@@ -21,7 +21,7 @@ contract RollbackInbox {
         );
         require(
             messenger.successfulMessages[_messageHash] == 0,
-            "RollbackInbox: can't process already successful message hashes"
+            "RollbackInbox: can not process already successful message hashes"
         );
 
         messageHashes[_messageHash] = block.timestamp;

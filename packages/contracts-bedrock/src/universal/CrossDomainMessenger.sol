@@ -115,7 +115,7 @@ abstract contract CrossDomainMessenger is
     uint64 public constant RELAY_GAS_CHECK_BUFFER = 5_000;
 
     // example, could be a public var
-    RollbackInbox constant ROLLBACK_INBOX = INBOX_ADDRESS;
+    RollbackInbox constant ROLLBACK_INBOX = ROLLBACK_INBOX_ADDRESS;
 
     // example, could be a public var
     uint256 constant ROLLBACK_INBOX_DELAY = 7 days;
