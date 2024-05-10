@@ -263,12 +263,12 @@ abstract contract StandardBridge is Initializable {
         bytes32 messageHash = Hashing.hashCrossDomainMessageV1(
             _nonce, address(this), address(otherBridge), 0, _minGasLimit, _originalMessage
         );
-        require(processedMessage[messageHash] == 0, "StandardBridge: this message hash has already been processed");
+        require(processedMessages[messageHash] == 0, "StandardBridge: this message hash has already been processed");
         require(
             ROLLBACK_INBOX.messageHashes(messageHash) != 0,
             "StandardBridge: the message hash is not present in the rollback inbox"
         );
-        processedMessage[messageHash] = true;
+        processedMessages[messageHash] = true;
         _finalizeBridgeERC20(_localToken, _remoteToken, _from, _amount);
         emit ERC20Unlocked(_localToken, _remoteToken, _from, _amount, messageHash);
     }
