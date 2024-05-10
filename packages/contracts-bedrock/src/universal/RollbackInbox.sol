@@ -6,18 +6,18 @@ contract RollbackInbox {
     address public otherMessenger; // CrossDomainMessenger from the other domain
     CrossDomainMessenger public messenger; // CrossDomainMessenger from this domain
 
-    mapping(bytes32 => uint256) messageHashes;
+    mapping(bytes32 => uint256) public messageHashes;
 
     event MessageHashReceived(bytes32 indexed messageHash, uint256 indexed timestamp);
 
     function receiveMessageHash(bytes32 _messageHash, address _sender) public {
         require(
-            messenger.xDomainMsgSender == address(otherMessenger),
-            "RollbackInbox: only CrossDomainMessenger from other domain can be the sender"
-        );
-        require(
             msg.sender == address(messenger),
             "RollbackInbox: only CrossDomainMessenger from this domain can be the caller"
+        );
+        require(
+            messenger.xDomainMsgSender == address(otherMessenger),
+            "RollbackInbox: only CrossDomainMessenger from other domain can be the sender"
         );
         require(
             messenger.successfulMessages[_messageHash] == 0,

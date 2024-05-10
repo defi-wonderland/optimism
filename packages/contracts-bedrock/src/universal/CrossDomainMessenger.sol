@@ -229,7 +229,7 @@ abstract contract CrossDomainMessenger is
             "CrossDomainMessenger: rollback relay has not elapsed"
         );
 
-        successfulMessages[versionedHash] = true;
+        successfulMessages[versionedHash] = block.timestamp;
 
         bytes memory message =
             abi.encodeWithSelector(ROLLBACK_INBOX.receiveRollbackHash.selector, versionedHash, address(this));
