@@ -19,10 +19,6 @@ contract RollbackInbox {
             messenger.xDomainMsgSender == address(otherMessenger),
             "RollbackInbox: only CrossDomainMessenger from other domain can be the sender"
         );
-        require(
-            messenger.successfulMessages[_messageHash] == 0,
-            "RollbackInbox: can not process already successful message hashes"
-        );
 
         messageHashes[_messageHash] = block.timestamp;
         emit MessageHashReceived(messageHash, block.timestamp);
