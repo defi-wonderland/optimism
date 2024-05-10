@@ -8,7 +8,7 @@ contract RollbackInbox {
 
     mapping(bytes32 => uint256) messageHashes;
 
-    event MessageHashReceived(bytes32 messageHash, uint256 timestamp);
+    event MessageHashReceived(bytes32 indexed messageHash, uint256 indexed timestamp);
 
     function receiveMessageHash(bytes32 _messageHash, address _sender) public {
         require(
