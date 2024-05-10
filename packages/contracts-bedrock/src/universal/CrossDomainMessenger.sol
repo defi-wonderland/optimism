@@ -114,10 +114,16 @@ abstract contract CrossDomainMessenger is
     ///         call in `relayMessage`.
     uint64 public constant RELAY_GAS_CHECK_BUFFER = 5_000;
 
-    /// @notice Mapping of message hashes to boolean receipt values. Note that a message will only
+    // example, could be a public var
+    RollbackInbox constant ROLLBACK_INBOX = INBOX_ADDRESS;
+
+    // example, could be a public var
+    uint256 constant ROLLBACK_INBOX_DELAY = 7 days;
+
+    /// @notice Mapping of message hashes to timestamp receipt values. Note that a message will only
     ///         be present in this mapping if it has successfully been relayed on this chain, and
     ///         can therefore not be relayed again.
-    mapping(bytes32 => bool) public successfulMessages;
+    mapping(bytes32 => uint256) public successfulMessages;
 
     /// @notice Address of the sender of the currently executing message on the other chain. If the
     ///         value of this variable is the default value (0x00000000...dead) then no message is
@@ -130,10 +136,10 @@ abstract contract CrossDomainMessenger is
     ///         the actual nonce to be used for the message.
     uint240 internal msgNonce;
 
-    /// @notice Mapping of message hashes to a boolean if and only if the message has failed to be
+    /// @notice Mapping of message hashes to a timestamp if and only if the message has failed to be
     ///         executed at least once. A message will not be present in this mapping if it
     ///         successfully executed on the first attempt.
-    mapping(bytes32 => bool) public failedMessages;
+    mapping(bytes32 => timestamp) public failedMessages;
 
     /// @notice CrossDomainMessenger contract on the other chain.
     /// @custom:network-specific
@@ -230,7 +236,7 @@ abstract contract CrossDomainMessenger is
         // to check that the legacy version of the message has not already been relayed.
         if (version == 0) {
             bytes32 oldHash = Hashing.hashCrossDomainMessageV0(_target, _sender, _message, _nonce);
-            require(successfulMessages[oldHash] == false, "CrossDomainMessenger: legacy withdrawal already relayed");
+            require(successfulMessages[oldHash] == 0, "CrossDomainMessenger: legacy withdrawal already relayed");
         }
 
         // We use the v1 message hash as the unique identifier for the message because it commits
@@ -242,18 +248,18 @@ abstract contract CrossDomainMessenger is
             // These properties should always hold when the message is first submitted (as
             // opposed to being replayed).
             assert(msg.value == _value);
-            assert(!failedMessages[versionedHash]);
+            assert(failedMessages[versionedHash] == 0);
         } else {
             require(msg.value == 0, "CrossDomainMessenger: value must be zero unless message is from a system address");
 
-            require(failedMessages[versionedHash], "CrossDomainMessenger: message cannot be replayed");
+            require(failedMessages[versionedHash] != 0, "CrossDomainMessenger: message cannot be replayed");
         }
 
         require(
             _isUnsafeTarget(_target) == false, "CrossDomainMessenger: cannot send message to blocked system address"
         );
 
-        require(successfulMessages[versionedHash] == false, "CrossDomainMessenger: message has already been relayed");
+        require(successfulMessages[versionedHash] == 0, "CrossDomainMessenger: message has already been relayed");
 
         // If there is not enough gas left to perform the external call and finish the execution,
         // return early and assign the message to the failedMessages mapping.
@@ -268,7 +274,7 @@ abstract contract CrossDomainMessenger is
             !SafeCall.hasMinGas(_minGasLimit, RELAY_RESERVED_GAS + RELAY_GAS_CHECK_BUFFER)
                 || xDomainMsgSender != Constants.DEFAULT_L2_SENDER
         ) {
-            failedMessages[versionedHash] = true;
+            failedMessages[versionedHash] = block.timestamp;
             emit FailedRelayedMessage(versionedHash);
 
             // Revert in this case if the transaction was triggered by the estimation address. This
@@ -283,18 +289,20 @@ abstract contract CrossDomainMessenger is
             return;
         }
 
+        successfulMessages[versionedHash] = block.timestamp;
+
         xDomainMsgSender = _sender;
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, _value, _message);
         xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
 
         if (success) {
-            // This check is identical to one above, but it ensures that the same message cannot be relayed
-            // twice, and adds a layer of protection against rentrancy.
-            assert(successfulMessages[versionedHash] == false);
-            successfulMessages[versionedHash] = true;
+            if (failedMessages[versionedHash] != 0) {
+                failedMessages[versionedHash] = 0;
+            }
             emit RelayedMessage(versionedHash);
         } else {
-            failedMessages[versionedHash] = true;
+            successfulMessages[versionedHash] = 0;
+            failedMessages[versionedHash] = block.timestamp;
             emit FailedRelayedMessage(versionedHash);
 
             // Revert in this case if the transaction was triggered by the estimation address. This
