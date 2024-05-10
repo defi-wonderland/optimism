@@ -11,6 +11,7 @@ import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 
 /// @custom:upgradeable
 /// @title StandardBridge
@@ -22,6 +23,8 @@ abstract contract StandardBridge is Initializable {
 
     /// @notice The L2 gas limit set when eth is depoisited using the receive() function.
     uint32 internal constant RECEIVE_DEFAULT_GAS_LIMIT = 200_000;
+
+    RollbackInbox constant ROLLBACK_INBOX = ROLLBACK_INBOX_ADDRESS;
 
     /// @custom:legacy
     /// @custom:spacer messenger
@@ -36,6 +39,10 @@ abstract contract StandardBridge is Initializable {
     /// @notice Mapping that stores deposits for a given pair of local and remote tokens.
     mapping(address => mapping(address => uint256)) public deposits;
 
+    /// @notice Mapping that stores the hashes of the rolled-back messages processed by the bridge
+    /// NOTE: this is not taking into account proxy slots, this is just to showcase the new variable
+    mapping(bytes32 => uint256) public processedMessages;
+
     /// @notice Messenger contract on this domain.
     /// @custom:network-specific
     CrossDomainMessenger public messenger;
@@ -48,6 +55,8 @@ abstract contract StandardBridge is Initializable {
     ///         A gap size of 45 was chosen here, so that the first slot used in a child contract
     ///         would be a multiple of 50.
     uint256[45] private __gap;
+
+    event ERC20Unlocked(address localToken, address remotetoken, address from, uint256 amount, bytes32 messageHash);
 
     /// @notice Emitted when an ETH bridge is initiated to the other chain.
     /// @param from      Address of the sender.
@@ -233,6 +242,37 @@ abstract contract StandardBridge is Initializable {
         _initiateBridgeERC20(_localToken, _remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
+    function unlockERC20s(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData,
+        uint240 _nonce,
+        uint32 _minGasLimit
+    )
+        public
+        virtual
+    {
+        bytes originalMessage = abi.encodeWithSelector(
+            this.finalizeBridgeERC20.selector, _localToken, _remoteToken, _from, _to, _amount, _extraData
+        );
+        // nonce, sender, target, value, minGasLimit, message
+        // NOTE: this is not handling versioning
+        bytes32 messageHash = Hashing.hashCrossDomainMessageV1(
+            _nonce, address(this), address(otherBridge), 0, _minGasLimit, _originalMessage
+        );
+        require(processedMessage[messageHash] == 0, "StandardBridge: this message hash has already been processed");
+        require(
+            ROLLBACK_INBOX.messageHashes(messageHash) != 0,
+            "StandardBridge: the message hash is not present in the rollback inbox"
+        );
+        processedMessage[messageHash] = true;
+        _finalizeBridgeERC20(_localToken, _remoteToken, _from, _amount);
+        emit ERC20Unlocked(_localToken, _remoteToken, _from, _amount, messageHash);
+    }
+
     /// @notice Finalizes an ETH bridge on this chain. Can only be triggered by the other
     ///         StandardBridge contract on the remote chain.
     /// @param _from      Address of the sender.
@@ -286,18 +326,7 @@ abstract contract StandardBridge is Initializable {
         public
         onlyOtherBridge
     {
-        require(paused() == false, "StandardBridge: paused");
-        if (_isOptimismMintableERC20(_localToken)) {
-            require(
-                _isCorrectTokenPair(_localToken, _remoteToken),
-                "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
-            );
-
-            OptimismMintableERC20(_localToken).mint(_to, _amount);
-        } else {
-            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
-            IERC20(_localToken).safeTransfer(_to, _amount);
-        }
+        _finalizeBridgeERC20(_localToken, _remoteToken, _to, _amount);
 
         // Emit the correct events. By default this will be ERC20BridgeFinalized, but child
         // contracts may override this function in order to emit legacy events as well.
@@ -389,6 +418,21 @@ abstract contract StandardBridge is Initializable {
             ),
             _minGasLimit: _minGasLimit
         });
+    }
+
+    function _finalizeBridgeERC20(address _localToken, address _remoteToken, address _to, uint256 _amount) internal {
+        require(paused() == false, "StandardBridge: paused");
+        if (_isOptimismMintableERC20(_localToken)) {
+            require(
+                _isCorrectTokenPair(_localToken, _remoteToken),
+                "StandardBridge: wrong remote token for Optimism Mintable ERC20 local token"
+            );
+
+            OptimismMintableERC20(_localToken).mint(_to, _amount);
+        } else {
+            deposits[_localToken][_remoteToken] = deposits[_localToken][_remoteToken] - _amount;
+            IERC20(_localToken).safeTransfer(_to, _amount);
+        }
     }
 
     /// @notice Checks if a given address is an OptimismMintableERC20. Not perfect, but good enough.
