@@ -205,6 +205,55 @@ abstract contract CrossDomainMessenger is
         }
     }
 
+    function sendHashToRollbackInbox(bytes32 _versionedHash, bytes32 _minGasLimit) external {
+        /*
+            Old version checks may go here as well.
+            This versionedHash should be the same hash as the one that failed on the relayMessage call.
+        */
+
+        // Upgrading this to timestamp should make the already failed messages be 1. So this will still allow them to be
+        // rolled back.
+        uint256 failedMessageTimestamp = failedMessages[versionedHash];
+        require(failedMessageTimestamp != 0, "CrossDomainMessenger: message has not failed relaying.");
+        require(
+            successfulMessages[versionedHash] == 0,
+            "CrossDomainMessenger: message has already been successfully relayed."
+        );
+
+        // We do this to give those with replayable messages enough time to do so while forbidding someone from rolling
+        // this back before they replay it.
+        require(
+            block.timestamp >= failedMessageTimestamp + ROLLBACK_DELAY_DELAY,
+            "CrossDomainMessenger: rollback relay has not elapsed"
+        );
+
+        successfulMessages[versionedHash] = true;
+
+        bytes memory message =
+            abi.encodeWithSelector(ROLLBACK_INBOX.receiveRollbackHash.selector, versionedHash, address(this));
+
+        _sendMessage({
+            _to: address(ROLLBACK_INBOX),
+            _gasLimit: baseGas(message, _minGasLimit),
+            _value: 0,
+            _data: abi.encodeWithSelector(
+                this.relayMessage.selector,
+                messageNonce(),
+                address(this),
+                address(otherMessenger),
+                0,
+                _newMinGasLimit,
+                message
+            )
+        });
+
+        // emit any necessary events
+
+        unchecked {
+            ++msgNonce;
+        }
+    }
+
     /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
     ///         be executed via cross-chain call from the other messenger OR if the message was
     ///         already received once and is currently being replayed.
