@@ -164,6 +164,8 @@ abstract contract CrossDomainMessenger is
     /// @param value  ETH value sent along with the message to the recipient.
     event SentMessageExtension1(address indexed sender, uint256 value);
 
+    event MessageSentToRollbackInbox(bytes32 indexed messageHash, address indexed target, address sender, bytes message, uint256 messageNonce, uint256 gasLimit);
+
     /// @notice Emitted whenever a message is successfully relayed on this chain.
     /// @param msgHash Hash of the message that was relayed.
     event RelayedMessage(bytes32 indexed msgHash);
@@ -242,12 +244,12 @@ abstract contract CrossDomainMessenger is
                 address(this),
                 address(otherMessenger),
                 0,
-                _newMinGasLimit,
+                _minGasLimit,
                 message
             )
         });
 
-        // emit any necessary events
+        emit MessageSentToRollbackInbox(_versionedHash, address(ROLLBACK_INBOX), address(this), _message, messageNonce(), _minGasLimit)
 
         unchecked {
             ++msgNonce;

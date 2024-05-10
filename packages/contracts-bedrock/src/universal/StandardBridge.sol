@@ -56,7 +56,13 @@ abstract contract StandardBridge is Initializable {
     ///         would be a multiple of 50.
     uint256[45] private __gap;
 
-    event ERC20Unlocked(address localToken, address remotetoken, address from, uint256 amount, bytes32 messageHash);
+    event ERC20Unlocked(
+        address indexed localToken,
+        address indexed remotetoken,
+        address indexed from,
+        uint256 amount,
+        bytes32 messageHash
+    );
 
     /// @notice Emitted when an ETH bridge is initiated to the other chain.
     /// @param from      Address of the sender.
