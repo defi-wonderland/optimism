@@ -13,11 +13,23 @@ error NotEntered();
 /// @notice Thrown when attempting to send a message to the chain that the message is being sent from.
 error MessageDestinationSameChain();
 
+/// @notice Thrown when attempting to send back a message hash to the same chain.
+error MessageSourceSameChain();
+
+/// @notice Thrown when attempting to receive a message hash to the wrong source chain.
+error MessageSourceIsIncorrect();
+
 /// @notice Thrown when attempting to relay a message and the function caller (msg.sender) is not CrossL2Inbox.
 error RelayMessageCallerNotCrossL2Inbox();
 
+/// @notice Thrown when attempting to send back a message before the delay has elapsed.
+error DelayHasNotEnsued();
+
 /// @notice Thrown when attempting to relay a message where CrossL2Inbox's origin is not L2ToL2CrossDomainMessenger.
 error CrossL2InboxOriginNotL2ToL2CrossDomainMessenger();
+
+/// @notice Thrown when attempting receive a message hash from the wrong destination chain.
+error CrossL2InboxDestinationDoesntMatch();
 
 /// @notice Thrown when attempting to relay a message whose destination chain is not the chain relaying it.
 error MessageDestinationNotRelayChain();
@@ -66,6 +78,16 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
     ///         mapping if it has successfully been relayed on this chain, and can therefore not be relayed again.
     mapping(bytes32 => bool) public successfulMessages;
 
+    /// @notice Mapping of message hashes to the timestamp when they failed to be relayed. Messages included in this
+    ///         mapping can be returned to the source chain after a given delay has elapsed.
+    mapping(bytes32 => uint256) public returnableMessageHashes;
+
+    /// @notice Mapping of message hashes to the timestamp when they were returned to the source chain.
+    mapping(bytes32 => uint256) public returnedMessageHashes;
+
+    /// @notice Time that must elapse before a returnable message can be returned to its source chain.
+    uint256 constant RETURN_DELAY;
+
     /// @notice Nonce for the next message to be sent, without the message version applied. Use the messageNonce getter,
     ///         which will insert the message version into the nonce to give you the actual nonce to be used for the
     ///         message.
@@ -74,6 +96,12 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
     /// @notice Emitted whenever a message is sent to the other chain.
     /// @param data Encoded data of the message that was sent.
     event SentMessage(bytes data) anonymous;
+
+    /// @notice Emitted whenever a message is sent to the other chain.
+    /// @param messageHash Hash of the unsuccessful message that is received.
+    /// @param source Chain id where the message was sent from at its inception.
+    /// @param destination Chain id of the chain where the message failed to be relayed.
+    event MessageHashReceived(bytes32 indexed messageHash, uint256 indexed source, uint256 indexed destination);
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
     /// @param messageHash Hash of the message that was relayed.
@@ -137,6 +165,53 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
         msgNonce++;
     }
 
+    /// @notice Sends an unsucessful message hash back to the source chain after a given amount of time has passed.
+    /// @param _source      Chain ID of the original message's source chain.
+    /// @param _nonce       Nonce of the original message.
+    /// @param _sender      Sender of the original message.
+    /// @param _target      Target of the original message.
+    /// @param _message     Message payload of the original message.
+    function sendHashToRollbackInbox(uint256 _source, uint256 _nonce, address _sender, address _target, bytes calldata _message) external {
+        if (_source == block.chainid) revert MessageSourceSameChain();
+
+        bytes32 messageHash = keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message));
+
+        if (successfulMessages[messageHash]) revert MessageAlreadyRelayed();
+        if (block.timestamp <  returnableMessageHashes[messageHash] + RETURN_DELAY) revert DelayHasNotEnsued();
+
+        returnableMessageHashes[messageHash] = 0;
+        successfulMessages[messageHash] = true;
+
+        bytes memory data = abi.encodeCall(
+            L2ToL2CrossDomainMessenger.receiveMessageHash,
+            (_source, address(this), messageHash)
+        );
+        emit SentMessage(data);
+        msgNonce++;
+    }
+
+    /// @notice Receives the message hash of a message that could not be relayed on the destination chain.
+    /// @param _source      Chain ID of the original message's source chain. Should be this chain.
+    /// @param _destination Chain ID of the original message's destination chain.
+    /// @param _sender      Sender of the message containing the message hash to be stored.
+    /// @param _messageHash Message hash of the message that failed to be relayed on the destination chain.
+    function receiveMessageHash(uint256 _source, uint256 _destination, address _sender, bytes32 _messageHash) external {
+        if (_source != block.chainid) revert IncorrectMessageSource();
+        if (_sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert SenderIsNotCrossDomainMesenger();
+        if (msg.sender != Predeploys.CROSS_L2_INBOX) revert ReceiveMessageHashCallerNotCrossL2Inbox();
+        if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).origin() != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
+            revert CrossL2InboxOriginNotL2ToL2CrossDomainMessenger();
+        }
+
+        if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).destination() != _destination) {
+            revert CrossL2InboxDestinationDoesntMatch();
+        }
+
+        returnedMessageHashes[_messageHash] = block.timestamp;
+
+        emit MessageHashReceived(_messageHash);
+    }
+
     /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only be executed via
     ///         cross-chain call from the other messenger OR if the message was already received once and is currently
     ///         being replayed.
@@ -179,8 +254,12 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
 
         if (success) {
             successfulMessages[messageHash] = true;
+            returnableMessageHashes[messageHash] = 0;
             emit RelayedMessage(messageHash);
         } else {
+            if (returnableMessageHashes[messageHash] == 0) {
+                returnableMessageHashes[messageHash] = block.timestamp;
+            }
             emit FailedRelayedMessage(messageHash);
         }
 
