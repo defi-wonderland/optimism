@@ -166,15 +166,15 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
     }
 
     /// @notice Sends an unsucessful message hash back to the source chain after a given amount of time has passed.
-    /// @param _source      Chain ID of the original message's source chain.
-    /// @param _nonce       Nonce of the original message.
-    /// @param _sender      Sender of the original message.
-    /// @param _target      Target of the original message.
-    /// @param _message     Message payload of the original message.
-    function sendHashToRollbackInbox(uint256 _source, uint256 _nonce, address _sender, address _target, bytes calldata _message) external {
+    /// @param _messageSource Chain ID of the original message's source chain.
+    /// @param _nonce         Nonce of the original message.
+    /// @param _sender        Sender of the original message.
+    /// @param _target        Target of the original message.
+    /// @param _message       Message payload of the original message.
+    function sendHashToRollbackInbox(uint256 _messageSource, uint256 _nonce, address _sender, address _target, bytes calldata _message) external {
         if (_source == block.chainid) revert MessageSourceSameChain();
 
-        bytes32 messageHash = keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message));
+        bytes32 messageHash = keccak256(abi.encode(block.chainid, _messageSource, _nonce, _sender, _target, _message));
 
         if (successfulMessages[messageHash]) revert MessageAlreadyRelayed();
         if (block.timestamp <  returnableMessageHashes[messageHash] + RETURN_DELAY) revert DelayHasNotEnsued();
@@ -184,26 +184,26 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
 
         bytes memory data = abi.encodeCall(
             L2ToL2CrossDomainMessenger.receiveMessageHash,
-            (_source, address(this), messageHash)
+            (_messageSource, Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, messageHash)
         );
         emit SentMessage(data);
         msgNonce++;
     }
 
     /// @notice Receives the message hash of a message that could not be relayed on the destination chain.
-    /// @param _source      Chain ID of the original message's source chain. Should be this chain.
-    /// @param _destination Chain ID of the original message's destination chain.
+    /// @param _messageSource      Chain ID of the original message's source chain. Should be this chain.
+    /// @param _messageDestination Chain ID of the original message's destination chain.
     /// @param _sender      Sender of the message containing the message hash to be stored.
     /// @param _messageHash Message hash of the message that failed to be relayed on the destination chain.
-    function receiveMessageHash(uint256 _source, uint256 _destination, address _sender, bytes32 _messageHash) external {
-        if (_source != block.chainid) revert IncorrectMessageSource();
+    function receiveMessageHash(uint256 _messageSource, uint256 _messageDestination, address _sender, bytes32 _messageHash) external {
+        if (_messageSource != block.chainid) revert IncorrectMessageSource();
         if (_sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert SenderIsNotCrossDomainMesenger();
         if (msg.sender != Predeploys.CROSS_L2_INBOX) revert ReceiveMessageHashCallerNotCrossL2Inbox();
         if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).origin() != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
             revert CrossL2InboxOriginNotL2ToL2CrossDomainMessenger();
         }
 
-        if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).destination() != _destination) {
+        if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).destination() != _messageDestination) {
             revert CrossL2InboxDestinationDoesntMatch();
         }
 
