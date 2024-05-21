@@ -203,7 +203,7 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
             revert CrossL2InboxOriginNotL2ToL2CrossDomainMessenger();
         }
 
-        if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).destination() != _messageDestination) {
+        if (CrossL2Inbox(Predeploys.CROSS_L2_INBOX).chainId() != _messageDestination) {
             revert CrossL2InboxDestinationDoesntMatch();
         }
 
