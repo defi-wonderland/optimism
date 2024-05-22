@@ -171,8 +171,8 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
     /// @param _sender        Sender of the original message.
     /// @param _target        Target of the original message.
     /// @param _message       Message payload of the original message.
-    function sendBackMessageHash(uint256 _messageSource, uint256 _nonce, address _sender, address _target, bytes calldata _message) external {
-        if (_source == block.chainid) revert MessageSourceSameChain();
+    function sendMessageHashBack(uint256 _messageSource, uint256 _nonce, address _sender, address _target, bytes calldata _message) external nonReentrant {
+        if (_messageSource == block.chainid) revert MessageSourceSameChain();
 
         bytes32 messageHash = keccak256(abi.encode(block.chainid, _messageSource, _nonce, _sender, _target, _message));
 
@@ -187,7 +187,6 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
             (_messageSource, Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, messageHash)
         );
         emit SentMessage(data);
-        msgNonce++;
     }
 
     /// @notice Receives the message hash of a message that could not be relayed on the destination chain.
