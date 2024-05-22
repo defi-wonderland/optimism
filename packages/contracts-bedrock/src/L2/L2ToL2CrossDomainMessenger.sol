@@ -80,10 +80,10 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
 
     /// @notice Mapping of message hashes to the timestamp when they failed to be relayed. Messages included in this
     ///         mapping can be returned to the source chain after a given delay has elapsed.
-    mapping(bytes32 => uint256) public returnableMessageHashes;
+    mapping(bytes32 => uint256) public failedMessages;
 
     /// @notice Mapping of message hashes to the timestamp when they were returned to the source chain.
-    mapping(bytes32 => uint256) public returnedMessageHashes;
+    mapping(bytes32 => uint256) public returnedMessages;
 
     /// @notice Time that must elapse before a returnable message can be returned to its source chain.
     uint256 constant RETURN_DELAY;
@@ -171,15 +171,15 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
     /// @param _sender        Sender of the original message.
     /// @param _target        Target of the original message.
     /// @param _message       Message payload of the original message.
-    function sendHashToRollbackInbox(uint256 _messageSource, uint256 _nonce, address _sender, address _target, bytes calldata _message) external {
+    function sendBackMessageHash(uint256 _messageSource, uint256 _nonce, address _sender, address _target, bytes calldata _message) external {
         if (_source == block.chainid) revert MessageSourceSameChain();
 
         bytes32 messageHash = keccak256(abi.encode(block.chainid, _messageSource, _nonce, _sender, _target, _message));
 
         if (successfulMessages[messageHash]) revert MessageAlreadyRelayed();
-        if (block.timestamp <  returnableMessageHashes[messageHash] + RETURN_DELAY) revert DelayHasNotEnsued();
+        if (block.timestamp <  failedMessages[messageHash] + RETURN_DELAY) revert DelayHasNotEnsued();
 
-        returnableMessageHashes[messageHash] = 0;
+        failedMessages[messageHash] = 0;
         successfulMessages[messageHash] = true;
 
         bytes memory data = abi.encodeCall(
@@ -207,7 +207,7 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
             revert CrossL2InboxDestinationDoesntMatch();
         }
 
-        returnedMessageHashes[_messageHash] = block.timestamp;
+        returnedMessages[_messageHash] = block.timestamp;
 
         emit MessageHashReceived(_messageHash);
     }
@@ -254,11 +254,11 @@ contract L2ToL2CrossDomainMessenger is IL2ToL2CrossDomainMessenger, ISemver {
 
         if (success) {
             successfulMessages[messageHash] = true;
-            returnableMessageHashes[messageHash] = 0;
+            failedMessages[messageHash] = 0;
             emit RelayedMessage(messageHash);
         } else {
-            if (returnableMessageHashes[messageHash] == 0) {
-                returnableMessageHashes[messageHash] = block.timestamp;
+            if (failedMessages[messageHash] == 0) {
+                failedMessages[messageHash] = block.timestamp;
             }
             emit FailedRelayedMessage(messageHash);
         }
