@@ -27,11 +27,11 @@ error CallerNotBridge();
 ///         to make it fungible across the Superchain. This construction builds on top of the L2ToL2CrossDomainMessenger
 ///         for both replay protection and domain binding.
 contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
-    /// @notice Address of the L2ToL2CrossDomainMessenger.
+    /// @notice Address of the L2ToL2CrossDomainMessenger Predeploy.
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
-    /// @notice Address of the StandardBridge on this network.
-    address private immutable BRIDGE;
+    /// @notice Address of the StandardBridge Predeploy.
+    address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
 
     /// @notice Decimals of the token
     uint8 private immutable DECIMALS;
@@ -70,16 +70,14 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
-    /// @param _bridge      Address of the L2 standard bridge.
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals.
-    constructor(address _bridge, string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol) {
-        BRIDGE = _bridge;
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol) {
         DECIMALS = _decimals;
     }
 
-    /// @notice Allows the StandardBridge on this network to mint tokens.
+    /// @notice Allows the StandardBridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function mint(address _to, uint256 _amount) external virtual override onlyBridge {
@@ -87,7 +85,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
         emit Mint(_to, _amount);
     }
 
-    /// @notice Allows the StandardBridge on this network to burn tokens.
+    /// @notice Allows the StandardBridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function burn(address _from, uint256 _amount) external virtual override onlyBridge {
@@ -128,11 +126,6 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
         }
 
         emit RelayedERC20(_to, _amount, _data);
-    }
-
-    /// @notice Returns the address of the StandardBridge.
-    function bridge() public view override returns (address) {
-        return BRIDGE;
     }
 
     /// @notice Returns the number of decimals used to get its user representation.

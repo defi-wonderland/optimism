@@ -6,15 +6,12 @@ pragma solidity 0.8.25;
 ///         We declare it as a separate interface so that it can be used in
 ///         custom implementations of SuperchainERC20.
 interface ISuperchainERC20 {
-    /// @notice Address of the StandardBridge on this network.
-    function bridge() external view returns (address);
-
-    /// @notice Allows the StandardBridge on this network to mint tokens.
+    /// @notice Allows the StandardBridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function mint(address _to, uint256 _amount) external;
 
-    /// @notice Allows the StandardBridge on this network to burn tokens.
+    /// @notice Allows the StandardBridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function burn(address _from, uint256 _amount) external;
