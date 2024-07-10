@@ -24,9 +24,8 @@ error CallerNotBridge();
 /// @custom:proxied
 /// @title SuperchainERC20
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token bridging
-///         to make it fungible across the Superchain. It builds on top of the messaging protocol, as the most trust
-///         minimized bridging solution. This construction builds on top of the L2ToL2CrossDomainMessenger for both
-///         replay protection and domain binding.
+///         to make it fungible across the Superchain. This construction builds on top of the L2ToL2CrossDomainMessenger
+///         for both replay protection and domain binding.
 contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @notice Address of the L2ToL2CrossDomainMessenger.
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
