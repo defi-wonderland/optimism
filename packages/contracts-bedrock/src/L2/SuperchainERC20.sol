@@ -80,7 +80,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @notice Allows the StandardBridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
-    function mint(address _to, uint256 _amount) external virtual override onlyBridge {
+    function mint(address _to, uint256 _amount) external virtual onlyBridge {
         _mint(_to, _amount);
         emit Mint(_to, _amount);
     }
@@ -88,7 +88,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @notice Allows the StandardBridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
-    function burn(address _from, uint256 _amount) external virtual override onlyBridge {
+    function burn(address _from, uint256 _amount) external virtual onlyBridge {
         _burn(_from, _amount);
         emit Burn(_from, _amount);
     }
@@ -98,7 +98,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @param _amount  Amount of tokens to send.
     /// @param _chainId Chain ID of the destination chain.
     /// @param _data    Data to be sent with the message.
-    function sendERC20(address _to, uint256 _amount, uint256 _chainId, bytes memory _data) external override {
+    function sendERC20(address _to, uint256 _amount, uint256 _chainId, bytes memory _data) external {
         _burn(msg.sender, _amount);
 
         bytes memory _message = abi.encodeCall(this.relayERC20, (_to, _amount, _data));
@@ -111,7 +111,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @param _to     Address to relay tokens to.
     /// @param _amount Amount of tokens to relay.
     /// @param _data   Data sent with the message.
-    function relayERC20(address _to, uint256 _amount, bytes memory _data) external override {
+    function relayERC20(address _to, uint256 _amount, bytes memory _data) external {
         if (msg.sender != MESSENGER) revert RelayMessageCallerNotL2ToL2CrossDomainMessenger();
 
         if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
@@ -121,8 +121,8 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
         _mint(_to, _amount);
 
         if (_data.length > 0) {
-            bool success = SafeCall.call(_to, 0, _data);
-            if (!success) revert ExternalCallFailed();
+            bool _success = SafeCall.call(_to, 0, _data);
+            if (!_success) revert ExternalCallFailed();
         }
 
         emit RelayedERC20(_to, _amount, _data);
