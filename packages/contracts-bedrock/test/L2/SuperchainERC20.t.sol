@@ -140,4 +140,14 @@ contract SuperchainERC20Test is Test {
         assertEq(superchainERC20.totalSupply(), _totalSupplyBefore - _amount);
         assertEq(superchainERC20.balanceOf(_from), _fromBalanceBefore - _amount);
     }
+
+    // TODO: sendERC20 tests
+
+    // TODO: relayERC20 tests
+
+    /// @dev Tests the `decimals` function always returns the correct value.
+    function testFuzz_decimals_succeeds(uint8 _decimals) public {
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(NAME, SYMBOL, _decimals);
+        assertEq(_newSuperchainERC20.decimals(), _decimals);
+    }
 }
