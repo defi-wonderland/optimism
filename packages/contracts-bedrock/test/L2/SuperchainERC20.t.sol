@@ -107,7 +107,7 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != BRIDGE);
 
         // Expect the revert with `CallerNotBridge` selector
-        vm.expectRevert(abi.encodeWithSelector(CallerNotBridge.selector));
+        vm.expectRevert(CallerNotBridge.selector);
 
         // Call the `burn` function with the non-bridge caller
         vm.prank(_caller);
@@ -124,7 +124,7 @@ contract SuperchainERC20Test is Test {
         superchainERC20.burn({ _from: ZERO_ADDRESS, _amount: _amount });
     }
 
-    /// @dev Tests the `burn` succeeds and emits the `Burn` event.
+    /// @dev Tests the `burn` bruns the amount and emits the `Burn` event.
     function testFuzz_burn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
@@ -202,15 +202,15 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != MESSENGER);
 
         // Expect the revert with `RelayMessageCallerNotL2ToL2CrossDomainMessenger` selector
-        vm.expectRevert(abi.encodeWithSelector(RelayMessageCallerNotL2ToL2CrossDomainMessenger.selector));
+        vm.expectRevert(RelayMessageCallerNotL2ToL2CrossDomainMessenger.selector);
 
         // Call the `relayERC20` function with the non-messenger caller
         vm.prank(_caller);
         superchainERC20.relayERC20(_to, _amount);
     }
 
-    /// @dev Tests the `relayERC20` function reverts when the `crossDomainMessageSender` that sent the message
-    /// is not the same SuperchainERC20.
+    /// @dev Tests the `relayERC20` function reverts when the `crossDomainMessageSender` that sent the message is not
+    /// the same SuperchainERC20 address.
     function testFuzz_relayERC20_notCrossDomainSender_reverts(
         address _crossDomainMessageSender,
         address _to,
@@ -228,7 +228,7 @@ contract SuperchainERC20Test is Test {
         );
 
         // Expect the revert with `MessageSenderNotThisSuperchainERC20` selector
-        vm.expectRevert(abi.encodeWithSelector(MessageSenderNotThisSuperchainERC20.selector));
+        vm.expectRevert(MessageSenderNotThisSuperchainERC20.selector);
 
         // Call the `relayERC20` function with the sender caller
         vm.prank(MESSENGER);
