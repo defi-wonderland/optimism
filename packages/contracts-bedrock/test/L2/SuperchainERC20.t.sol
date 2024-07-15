@@ -124,7 +124,7 @@ contract SuperchainERC20Test is Test {
         superchainERC20.burn({ _from: ZERO_ADDRESS, _amount: _amount });
     }
 
-    /// @dev Tests the `burn` bruns the amount and emits the `Burn` event.
+    /// @dev Tests the `burn` burns the amount and emits the `Burn` event.
     function testFuzz_burn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
@@ -176,13 +176,11 @@ contract SuperchainERC20Test is Test {
         emit SuperchainERC20.SentERC20(_sender, _to, _amount, _chainId);
 
         // Mock the call over the `sendMessage` function and expect it to be called properly
+        bytes memory _message = abi.encodeCall(superchainERC20.relayERC20, (_to, _amount));
         _mockAndExpect(
             MESSENGER,
             abi.encodeWithSelector(
-                IL2ToL2CrossDomainMessenger.sendMessage.selector,
-                _chainId,
-                address(superchainERC20),
-                abi.encodeCall(superchainERC20.relayERC20, (_to, _amount))
+                IL2ToL2CrossDomainMessenger.sendMessage.selector, _chainId, address(superchainERC20), _message
             ),
             abi.encode("")
         );
