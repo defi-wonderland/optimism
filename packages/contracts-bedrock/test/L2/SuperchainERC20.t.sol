@@ -234,10 +234,30 @@ contract SuperchainERC20Test is Test {
         superchainERC20.relayERC20(_to, _amount);
     }
 
-    /// @dev Tests the `relayERC20` mints the proper amount and emits the `RelayedERC20` event.
-    function testFuzz_relayERC20_succeeds(address _to, uint256 _amount) public {
+    /// @dev Tests the `relayERC20` function reverts when the `_to` address is the zero address.
+    function testFuzz_relayERC20_zeroAddressTo_reverts(uint256 _amount) public {
+        // Expect the revert reason "ERC20: mint to the zero address"
+        vm.expectRevert("ERC20: mint to the zero address");
+
         // Mock the call over the `crossDomainMessageSender` function setting the same address as value
         vm.mockCall(
+            MESSENGER,
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
+            abi.encode(address(superchainERC20))
+        );
+
+        // Call the `relayERC20` function with the zero address
+        vm.prank(MESSENGER);
+        address _to = address(0);
+        superchainERC20.relayERC20(_to, _amount);
+    }
+
+    /// @dev Tests the `relayERC20` mints the proper amount and emits the `RelayedERC20` event.
+    function testFuzz_relayERC20_succeeds(address _to, uint256 _amount) public {
+        vm.assume(_to != address(0));
+
+        // Mock the call over the `crossDomainMessageSender` function setting the same address as value
+        _mockAndExpect(
             MESSENGER,
             abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
             abi.encode(address(superchainERC20))
