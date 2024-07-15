@@ -156,14 +156,7 @@ contract SuperchainERC20Test is Test {
     }
 
     /// @dev Tests the `sendERC20` function burns the sender tokens, sends the message, and emits the `SentERC20` event.
-    function testFuzz_sendERC20_sendsERC20_succeeds(
-        address _sender,
-        address _to,
-        uint256 _amount,
-        uint256 _chainId
-    )
-        external
-    {
+    function testFuzz_sendERC20_succeeds(address _sender, address _to, uint256 _amount, uint256 _chainId) external {
         // Ensure `_sender` is not the zero address
         vm.assume(_sender != address(0));
 
@@ -242,7 +235,7 @@ contract SuperchainERC20Test is Test {
     }
 
     /// @dev Tests the `relayERC20` mints the proper amount and emits the `RelayedERC20` event.
-    function testFuzz_relayERC20_relaysERC20_succeeds(address _to, uint256 _amount) public {
+    function testFuzz_relayERC20_succeeds(address _to, uint256 _amount) public {
         // Mock the call over the `crossDomainMessageSender` function setting the same address as value
         vm.mockCall(
             MESSENGER,
