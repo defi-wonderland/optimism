@@ -9,9 +9,17 @@ import { Vm } from "forge-std/Vm.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IL2ToL2CrossDomainMessenger } from "src/L2/IL2ToL2CrossDomainMessenger.sol";
 
 // Target contract
-import { SuperchainERC20, CallerNotBridge, ERC20 } from "src/L2/SuperchainERC20.sol";
+import {
+    SuperchainERC20,
+    CallerNotBridge,
+    RelayMessageCallerNotL2ToL2CrossDomainMessenger,
+    MessageSenderNotThisSuperchainERC20,
+    CallerNotBridge
+} from "src/L2/SuperchainERC20.sol";
 import { ISuperchainERC20 } from "src/L2/ISuperchainERC20.sol";
 
 /// @title SuperchainERC20Test
@@ -21,6 +29,7 @@ contract SuperchainERC20Test is Test {
     string internal constant SYMBOL = "SCE";
     uint8 internal constant DECIMALS = 18;
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
+    address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
     SuperchainERC20 public superchainERC20;
 
@@ -29,9 +38,14 @@ contract SuperchainERC20Test is Test {
         superchainERC20 = new SuperchainERC20(NAME, SYMBOL, DECIMALS);
     }
 
+    /// @dev Helper function to setup a mock and expect a call to it.
+    function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
+        vm.mockCall(_receiver, _calldata, _returned);
+        vm.expectCall(_receiver, _calldata);
+    }
+
     /// @dev Test that the bridge's constructor sets the correct values.
     function test_constructor_succeeds() public view {
-        // Check the name, symbol, and decimals were set correctly
         assertEq(superchainERC20.name(), NAME);
         assertEq(superchainERC20.symbol(), SYMBOL);
         assertEq(superchainERC20.decimals(), DECIMALS);
@@ -141,9 +155,121 @@ contract SuperchainERC20Test is Test {
         assertEq(superchainERC20.balanceOf(_from), _fromBalanceBefore - _amount);
     }
 
-    // TODO: sendERC20 tests
+    /// @dev Tests the `sendERC20` function burns the sender tokens, sends the message, and emits the `SentERC20` event.
+    function testFuzz_sendERC20_sendsERC20_succeeds(
+        address _sender,
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        external
+    {
+        // Ensure `_sender` is not the zero address
+        vm.assume(_sender != address(0));
 
-    // TODO: relayERC20 tests
+        // Mint some tokens to the sender so then they can be sent
+        vm.prank(BRIDGE);
+        superchainERC20.mint(_sender, _amount);
+
+        // Get the total supply and balance of `_sender` before the send to compare later on the assertions
+        uint256 _totalSupplyBefore = superchainERC20.totalSupply();
+        uint256 _senderBalanceBefore = superchainERC20.balanceOf(_sender);
+
+        // Look for the emit of the `Transfer` event
+        vm.expectEmit(true, true, true, true, address(superchainERC20));
+        emit IERC20.Transfer(_sender, address(0), _amount);
+
+        // Look for the emit of the `SentERC20` event
+        vm.expectEmit(true, true, true, true, address(superchainERC20));
+        emit SuperchainERC20.SentERC20(_sender, _to, _amount, _chainId);
+
+        // Mock the call over the `sendMessage` function and expect it to be called properly
+        bytes memory _message = abi.encodeCall(superchainERC20.relayERC20, (_to, _amount));
+        _mockAndExpect(
+            MESSENGER,
+            abi.encodeWithSelector(
+                IL2ToL2CrossDomainMessenger.sendMessage.selector, _chainId, address(superchainERC20), _message
+            ),
+            abi.encode("")
+        );
+
+        // Call the `sendERC20` function
+        vm.prank(_sender);
+        superchainERC20.sendERC20(_to, _amount, _chainId);
+
+        // Check the total supply and balance of `_sender` after the send were updated correctly
+        assertEq(superchainERC20.totalSupply(), _totalSupplyBefore - _amount);
+        assertEq(superchainERC20.balanceOf(_sender), _senderBalanceBefore - _amount);
+    }
+
+    /// @dev Tests the `sendERC20` function reverts when the caller is not the bridge.
+    function testFuzz_relayERC20_notMessenger_reverts(address _caller, address _to, uint256 _amount) public {
+        // Ensure the caller is not the messenger
+        vm.assume(_caller != MESSENGER);
+
+        // Expect the revert with `CallerNotBridge` selector
+        vm.expectRevert(abi.encodeWithSelector(RelayMessageCallerNotL2ToL2CrossDomainMessenger.selector));
+
+        // Call the `sendERC20` function with the non-messenger caller
+        vm.prank(_caller);
+        superchainERC20.relayERC20(_to, _amount);
+    }
+
+    /// @dev Tests the `relayERC20` function reverts when the `crossDomainMessageSender` that sent the message
+    /// is not the same SuperchainERC20.
+    function testFuzz_relayERC20_notCrossDomainSender_reverts(
+        address _crossDomainMessageSender,
+        address _to,
+        uint256 _amount
+    )
+        public
+    {
+        vm.assume(_crossDomainMessageSender != address(superchainERC20));
+
+        // Mock the call over the `crossDomainMessageSender` function setting a wrong sender
+        vm.mockCall(
+            MESSENGER,
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
+            abi.encode(_crossDomainMessageSender)
+        );
+
+        // Expect the revert with `MessageSenderNotThisSuperchainERC20` selector
+        vm.expectRevert(abi.encodeWithSelector(MessageSenderNotThisSuperchainERC20.selector));
+
+        // Call the `relayERC20` function with the sender caller
+        vm.prank(MESSENGER);
+        superchainERC20.relayERC20(_to, _amount);
+    }
+
+    /// @dev Tests the `relayERC20` mints the proper amount and emits the `RelayedERC20` event.
+    function testFuzz_relayERC20_relaysERC20_succeeds(address _to, uint256 _amount) public {
+        // Mock the call over the `crossDomainMessageSender` function setting the same address as value
+        vm.mockCall(
+            MESSENGER,
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
+            abi.encode(address(superchainERC20))
+        );
+
+        // Get the total supply and balance of `_to` before the relay to compare later on the assertions
+        uint256 _totalSupplyBefore = superchainERC20.totalSupply();
+        uint256 _toBalanceBefore = superchainERC20.balanceOf(_to);
+
+        // Look for the emit of the `Transfer` event
+        vm.expectEmit(true, true, true, true, address(superchainERC20));
+        emit IERC20.Transfer(address(0), _to, _amount);
+
+        // Look for the emit of the `RelayedERC20` event
+        vm.expectEmit(true, true, true, true, address(superchainERC20));
+        emit SuperchainERC20.RelayedERC20(_to, _amount);
+
+        // Call the `relayERC20` function with the messenger caller
+        vm.prank(MESSENGER);
+        superchainERC20.relayERC20(_to, _amount);
+
+        // Check the total supply and balance of `_to` after the relay were updated correctly
+        assertEq(superchainERC20.totalSupply(), _totalSupplyBefore + _amount);
+        assertEq(superchainERC20.balanceOf(_to), _toBalanceBefore + _amount);
+    }
 
     /// @dev Tests the `decimals` function always returns the correct value.
     function testFuzz_decimals_succeeds(uint8 _decimals) public {
