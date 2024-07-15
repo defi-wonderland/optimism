@@ -18,8 +18,6 @@ error MessageSenderNotThisSuperchainERC20();
 /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the StandardBridge.
 error CallerNotBridge();
 
-import "forge-std/Test.sol";
-
 /// @custom:proxied
 /// @title SuperchainERC20
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token bridging
