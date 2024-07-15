@@ -25,6 +25,7 @@ import { ISuperchainERC20 } from "src/L2/ISuperchainERC20.sol";
 /// @title SuperchainERC20Test
 /// @dev Contract for testing the SuperchainERC20 contract.
 contract SuperchainERC20Test is Test {
+    address internal constant ZERO_ADDRESS = address(0);
     string internal constant NAME = "SuperchainERC20";
     string internal constant SYMBOL = "SCE";
     uint8 internal constant DECIMALS = 18;
@@ -57,7 +58,7 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != BRIDGE);
 
         // Expect the revert with `CallerNotBridge` selector
-        vm.expectRevert(abi.encodeWithSelector(CallerNotBridge.selector));
+        vm.expectRevert(CallerNotBridge.selector);
 
         // Call the `mint` function with the non-bridge caller
         vm.prank(_caller);
@@ -71,14 +72,13 @@ contract SuperchainERC20Test is Test {
 
         // Call the `mint` function with the zero address
         vm.prank(BRIDGE);
-        address _to = address(0);
-        superchainERC20.mint(_to, _amount);
+        superchainERC20.mint({ _to: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @dev Tests the `mint` succeeds and emits the `Mint` event.
     function testFuzz_mint_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
-        vm.assume(_to != address(0));
+        vm.assume(_to != ZERO_ADDRESS);
 
         // Get the total supply and balance of `_to` before the mint to compare later on the assertions
         uint256 _totalSupplyBefore = superchainERC20.totalSupply();
@@ -86,7 +86,7 @@ contract SuperchainERC20Test is Test {
 
         // Look for the emit of the `Transfer` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IERC20.Transfer(address(0), _to, _amount);
+        emit IERC20.Transfer(ZERO_ADDRESS, _to, _amount);
 
         // Look for the emit of the `Mint` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
@@ -121,14 +121,13 @@ contract SuperchainERC20Test is Test {
 
         // Call the `burn` function with the zero address
         vm.prank(BRIDGE);
-        address _from = address(0);
-        superchainERC20.burn(_from, _amount);
+        superchainERC20.burn({ _from: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @dev Tests the `burn` succeeds and emits the `Burn` event.
     function testFuzz_burn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
-        vm.assume(_from != address(0));
+        vm.assume(_from != ZERO_ADDRESS);
 
         // Mint some tokens to `_from` so then they can be burned
         vm.prank(BRIDGE);
@@ -140,7 +139,7 @@ contract SuperchainERC20Test is Test {
 
         // Look for the emit of the `Transfer` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IERC20.Transfer(_from, address(0), _amount);
+        emit IERC20.Transfer(_from, ZERO_ADDRESS, _amount);
 
         // Look for the emit of the `Burn` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
@@ -158,7 +157,7 @@ contract SuperchainERC20Test is Test {
     /// @dev Tests the `sendERC20` function burns the sender tokens, sends the message, and emits the `SentERC20` event.
     function testFuzz_sendERC20_succeeds(address _sender, address _to, uint256 _amount, uint256 _chainId) external {
         // Ensure `_sender` is not the zero address
-        vm.assume(_sender != address(0));
+        vm.assume(_sender != ZERO_ADDRESS);
 
         // Mint some tokens to the sender so then they can be sent
         vm.prank(BRIDGE);
@@ -170,18 +169,20 @@ contract SuperchainERC20Test is Test {
 
         // Look for the emit of the `Transfer` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IERC20.Transfer(_sender, address(0), _amount);
+        emit IERC20.Transfer(_sender, ZERO_ADDRESS, _amount);
 
         // Look for the emit of the `SentERC20` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
         emit SuperchainERC20.SentERC20(_sender, _to, _amount, _chainId);
 
         // Mock the call over the `sendMessage` function and expect it to be called properly
-        bytes memory _message = abi.encodeCall(superchainERC20.relayERC20, (_to, _amount));
         _mockAndExpect(
             MESSENGER,
             abi.encodeWithSelector(
-                IL2ToL2CrossDomainMessenger.sendMessage.selector, _chainId, address(superchainERC20), _message
+                IL2ToL2CrossDomainMessenger.sendMessage.selector,
+                _chainId,
+                address(superchainERC20),
+                abi.encodeCall(superchainERC20.relayERC20, (_to, _amount))
             ),
             abi.encode("")
         );
@@ -195,15 +196,15 @@ contract SuperchainERC20Test is Test {
         assertEq(superchainERC20.balanceOf(_sender), _senderBalanceBefore - _amount);
     }
 
-    /// @dev Tests the `sendERC20` function reverts when the caller is not the bridge.
+    /// @dev Tests the `relayERC20` function reverts when the caller is not the L2ToL2CrossDomainMessenger.
     function testFuzz_relayERC20_notMessenger_reverts(address _caller, address _to, uint256 _amount) public {
         // Ensure the caller is not the messenger
         vm.assume(_caller != MESSENGER);
 
-        // Expect the revert with `CallerNotBridge` selector
+        // Expect the revert with `RelayMessageCallerNotL2ToL2CrossDomainMessenger` selector
         vm.expectRevert(abi.encodeWithSelector(RelayMessageCallerNotL2ToL2CrossDomainMessenger.selector));
 
-        // Call the `sendERC20` function with the non-messenger caller
+        // Call the `relayERC20` function with the non-messenger caller
         vm.prank(_caller);
         superchainERC20.relayERC20(_to, _amount);
     }
@@ -248,13 +249,12 @@ contract SuperchainERC20Test is Test {
 
         // Call the `relayERC20` function with the zero address
         vm.prank(MESSENGER);
-        address _to = address(0);
-        superchainERC20.relayERC20(_to, _amount);
+        superchainERC20.relayERC20({ _to: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @dev Tests the `relayERC20` mints the proper amount and emits the `RelayedERC20` event.
     function testFuzz_relayERC20_succeeds(address _to, uint256 _amount) public {
-        vm.assume(_to != address(0));
+        vm.assume(_to != ZERO_ADDRESS);
 
         // Mock the call over the `crossDomainMessageSender` function setting the same address as value
         _mockAndExpect(
@@ -269,7 +269,7 @@ contract SuperchainERC20Test is Test {
 
         // Look for the emit of the `Transfer` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IERC20.Transfer(address(0), _to, _amount);
+        emit IERC20.Transfer(ZERO_ADDRESS, _to, _amount);
 
         // Look for the emit of the `RelayedERC20` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
