@@ -15,9 +15,6 @@ error RelayMessageCallerNotL2ToL2CrossDomainMessenger();
 /// @notice Thrown when attempting to relay a message and the cross domain message sender is not this SuperchainERC20.
 error MessageSenderNotThisSuperchainERC20();
 
-/// @notice Thrown when while relaying tokens the external call fails.
-error ExternalCallFailed();
-
 /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the StandardBridge.
 error CallerNotBridge();
 
@@ -51,14 +48,12 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @param to      Address of the recipient.
     /// @param amount  Amount of tokens sent.
     /// @param chainId Chain ID of the destination chain.
-    /// @param data    Data to be sent with the message.
-    event SentERC20(address indexed from, address indexed to, uint256 amount, uint256 chainId, bytes data);
+    event SentERC20(address indexed from, address indexed to, uint256 amount, uint256 chainId);
 
     /// @notice Emitted whenever tokens are successfully relayed on this chain.
     /// @param to     Address of the recipient.
     /// @param amount Amount of tokens relayed.
-    /// @param data   Data sent with the message.
-    event RelayedERC20(address indexed to, uint256 amount, bytes data);
+    event RelayedERC20(address indexed to, uint256 amount);
 
     /// @notice A modifier that only allows the bridge to call
     modifier onlyBridge() {
@@ -97,21 +92,19 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @param _to      Address to send tokens to.
     /// @param _amount  Amount of tokens to send.
     /// @param _chainId Chain ID of the destination chain.
-    /// @param _data    Data to be sent with the message.
-    function sendERC20(address _to, uint256 _amount, uint256 _chainId, bytes memory _data) external {
+    function sendERC20(address _to, uint256 _amount, uint256 _chainId) external {
         _burn(msg.sender, _amount);
 
-        bytes memory _message = abi.encodeCall(this.relayERC20, (_to, _amount, _data));
+        bytes memory _message = abi.encodeCall(this.relayERC20, (_to, _amount));
         IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_chainId, address(this), _message);
 
-        emit SentERC20(msg.sender, _to, _amount, _chainId, _data);
+        emit SentERC20(msg.sender, _to, _amount, _chainId);
     }
 
     /// @notice Relays tokens received from another chain.
     /// @param _to     Address to relay tokens to.
     /// @param _amount Amount of tokens to relay.
-    /// @param _data   Data sent with the message.
-    function relayERC20(address _to, uint256 _amount, bytes memory _data) external {
+    function relayERC20(address _to, uint256 _amount) external {
         if (msg.sender != MESSENGER) revert RelayMessageCallerNotL2ToL2CrossDomainMessenger();
 
         if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
@@ -120,12 +113,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
 
         _mint(_to, _amount);
 
-        if (_data.length > 0) {
-            bool _success = SafeCall.call(_to, 0, _data);
-            if (!_success) revert ExternalCallFailed();
-        }
-
-        emit RelayedERC20(_to, _amount, _data);
+        emit RelayedERC20(_to, _amount);
     }
 
     /// @notice Returns the number of decimals used to get its user representation.
