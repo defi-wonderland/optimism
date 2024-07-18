@@ -78,7 +78,7 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
         string memory _symbol,
         uint8 _decimals
     )
-        ERC20(_getName(_name), _getSymbol(_symbol))
+        ERC20(_name, _symbol)
     {
         REMOTE_TOKEN = _remoteToken;
         DECIMALS = _decimals;
@@ -136,21 +136,5 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// {IERC20-balanceOf} and {IERC20-transfer}.
     function decimals() public view override returns (uint8) {
         return DECIMALS;
-    }
-
-    /// -----------------------------------------------------------------------
-    /// ERC20 metadata generation
-    /// -----------------------------------------------------------------------
-
-    /// @notice Generates the SuperchainERC20 name.
-    /// @param _name ERC20 name.
-    function _getName(string memory _name) internal view virtual returns (string memory) {
-        return string.concat("Super", _name);
-    }
-
-    /// @notice Generates the SuperchainERC20 symbol.
-    /// @param _symbol ERC20 symbol.
-    function _getSymbol(string memory _symbol) internal view virtual returns (string memory) {
-        return string.concat("S", _symbol);
     }
 }

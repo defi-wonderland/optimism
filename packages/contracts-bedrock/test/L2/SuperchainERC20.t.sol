@@ -48,8 +48,8 @@ contract SuperchainERC20Test is Test {
 
     /// @dev Test that the bridge's constructor sets the correct values.
     function test_constructor_succeeds() public view {
-        assertEq(superchainERC20.name(), string.concat("Super", NAME));
-        assertEq(superchainERC20.symbol(), string.concat("S", SYMBOL));
+        assertEq(superchainERC20.name(), NAME);
+        assertEq(superchainERC20.symbol(), SYMBOL);
         assertEq(superchainERC20.decimals(), DECIMALS);
         assertEq(superchainERC20.REMOTE_TOKEN(), REMOTE_TOKEN);
     }
