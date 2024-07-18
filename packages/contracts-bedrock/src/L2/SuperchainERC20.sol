@@ -33,6 +33,9 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @notice Decimals of the token
     uint8 private immutable DECIMALS;
 
+    /// @notice Address of the corresponding version of this token on the remote chain.
+    address public immutable REMOTE_TOKEN;
+
     /// @notice Emitted whenever tokens are minted for an account.
     /// @param account Address of the account tokens are being minted for.
     /// @param amount  Amount of tokens minted.
@@ -65,10 +68,19 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
+    /// @param _remoteToken Address of the corresponding L1 token.
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals.
-    constructor(string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol) {
+    constructor(
+        address _remoteToken,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    )
+        ERC20(_getName(_name), _getSymbol(_symbol))
+    {
+        REMOTE_TOKEN = _remoteToken;
         DECIMALS = _decimals;
     }
 
@@ -124,5 +136,21 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// {IERC20-balanceOf} and {IERC20-transfer}.
     function decimals() public view override returns (uint8) {
         return DECIMALS;
+    }
+
+    /// -----------------------------------------------------------------------
+    /// ERC20 metadata generation
+    /// -----------------------------------------------------------------------
+
+    /// @notice Generates the SuperchainERC20 name.
+    /// @param _name ERC20 name.
+    function _getName(string memory _name) internal view virtual returns (string memory) {
+        return string.concat("Super", _name);
+    }
+
+    /// @notice Generates the SuperchainERC20 symbol.
+    /// @param _symbol ERC20 symbol.
+    function _getSymbol(string memory _symbol) internal view virtual returns (string memory) {
+        return string.concat("S", _symbol);
     }
 }
