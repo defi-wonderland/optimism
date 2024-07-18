@@ -26,6 +26,7 @@ import { ISuperchainERC20 } from "src/L2/ISuperchainERC20.sol";
 /// @dev Contract for testing the SuperchainERC20 contract.
 contract SuperchainERC20Test is Test {
     address internal constant ZERO_ADDRESS = address(0);
+    address internal constant L1_TOKEN = address(0x123);
     string internal constant NAME = "SuperchainERC20";
     string internal constant SYMBOL = "SCE";
     uint8 internal constant DECIMALS = 18;
@@ -36,7 +37,7 @@ contract SuperchainERC20Test is Test {
 
     /// @dev Sets up the test suite.
     function setUp() public {
-        superchainERC20 = new SuperchainERC20(NAME, SYMBOL, DECIMALS);
+        superchainERC20 = new SuperchainERC20(L1_TOKEN, NAME, SYMBOL, DECIMALS);
     }
 
     /// @dev Helper function to setup a mock and expect a call to it.
@@ -50,6 +51,7 @@ contract SuperchainERC20Test is Test {
         assertEq(superchainERC20.name(), NAME);
         assertEq(superchainERC20.symbol(), SYMBOL);
         assertEq(superchainERC20.decimals(), DECIMALS);
+        assertEq(superchainERC20.L1_TOKEN(), L1_TOKEN);
     }
 
     /// @dev Tests the `mint` function reverts when the caller is not the bridge.
@@ -284,7 +286,13 @@ contract SuperchainERC20Test is Test {
 
     /// @dev Tests the `decimals` function always returns the correct value.
     function testFuzz_decimals_succeeds(uint8 _decimals) public {
-        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(NAME, SYMBOL, _decimals);
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(L1_TOKEN, NAME, SYMBOL, _decimals);
         assertEq(_newSuperchainERC20.decimals(), _decimals);
+    }
+
+    /// @dev Tests the `L1_TOKEN` function always returns the correct value.
+    function testFuzz_l1Token_succeeds(address _l1Token) public {
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(_l1Token, NAME, SYMBOL, DECIMALS);
+        assertEq(_newSuperchainERC20.L1_TOKEN(), _l1Token);
     }
 }
