@@ -33,8 +33,8 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @notice Decimals of the token
     uint8 private immutable DECIMALS;
 
-    /// @notice Address of the corresponding version of this token on the remote chain.
-    address public immutable REMOTE_TOKEN;
+    /// @notice Address of the corresponding version of this token on the L1.
+    address public immutable L1_TOKEN;
 
     /// @notice Emitted whenever tokens are minted for an account.
     /// @param account Address of the account tokens are being minted for.
@@ -68,19 +68,12 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
-    /// @param _remoteToken Address of the corresponding L1 token.
+    /// @param _l1Token     Address of the corresponding L1 token.
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals.
-    constructor(
-        address _remoteToken,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    )
-        ERC20(_name, _symbol)
-    {
-        REMOTE_TOKEN = _remoteToken;
+    constructor(address _l1Token, string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol) {
+        L1_TOKEN = _l1Token;
         DECIMALS = _decimals;
     }
 
