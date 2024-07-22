@@ -37,7 +37,7 @@ contract SuperchainERC20Test is Test {
 
     /// @dev Sets up the test suite.
     function setUp() public {
-        superchainERC20 = new SuperchainERC20(REMOTE_TOKEN, DECIMALS, NAME, SYMBOL);
+        superchainERC20 = new SuperchainERC20(REMOTE_TOKEN, NAME, SYMBOL, DECIMALS);
     }
 
     /// @dev Helper function to setup a mock and expect a call to it.
@@ -286,13 +286,13 @@ contract SuperchainERC20Test is Test {
 
     /// @dev Tests the `decimals` function always returns the correct value.
     function testFuzz_decimals_succeeds(uint8 _decimals) public {
-        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(REMOTE_TOKEN, _decimals, NAME, SYMBOL);
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(REMOTE_TOKEN, NAME, SYMBOL, _decimals);
         assertEq(_newSuperchainERC20.decimals(), _decimals);
     }
 
     /// @dev Tests the `REMOTE_TOKEN` function always returns the correct value.
     function testFuzz_remoteToken_succeeds(address _remoteToken) public {
-        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(_remoteToken, DECIMALS, NAME, SYMBOL);
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(_remoteToken, NAME, SYMBOL, DECIMALS);
         assertEq(_newSuperchainERC20.REMOTE_TOKEN(), _remoteToken);
     }
 }

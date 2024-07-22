@@ -69,14 +69,14 @@ contract SuperchainERC20 is ISuperchainERC20, ERC20, ISemver {
     string public constant version = "1.0.0";
 
     /// @param _remoteToken     Address of the corresponding remote token.
-    /// @param _decimals        ERC20 decimals.
     /// @param _name            ERC20 name.
     /// @param _symbol          ERC20 symbol.
+    /// @param _decimals        ERC20 decimals.
     constructor(
         address _remoteToken,
-        uint8 _decimals,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        uint8 _decimals
     )
         ERC20(_name, _symbol)
     {
