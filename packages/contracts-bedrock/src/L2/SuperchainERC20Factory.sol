@@ -37,15 +37,6 @@ contract SuperchainERC20Factory is ISemver {
     /// @notice Address of the native initializer.
     address internal constant NATIVE_INITIALIZER = 0x0000000000000000000000000000000000000000;
 
-    /// @notice Address of the L2CrossDomainMessenger Predeploy.
-    address internal constant L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
-
-    /// @notice Address of the L2ToL2CrossDomainMessenger Predeploy.
-    address internal constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-
-    /// @notice Address of the SuperchainERC20Beacon Predeploy.
-    address internal constant SUPERCHAIN_ERC20_BEACON = Predeploys.SUPERCHAIN_ERC20_BEACON;
-
     /// @notice Deployment data for a SuperchainERC20.
     struct DeploymentData {
         address superchainERC20;
@@ -86,9 +77,9 @@ contract SuperchainERC20Factory is ISemver {
         external
         returns (address)
     {
-        if (msg.sender != L2_CROSS_DOMAIN_MESSENGER) revert CallerNotL2CrossDomainMessenger();
+        if (msg.sender != Predeploys.L2_CROSS_DOMAIN_MESSENGER) revert CallerNotL2CrossDomainMessenger();
 
-        if (ICrossDomainMessenger(L2_CROSS_DOMAIN_MESSENGER).xDomainMessageSender() != NATIVE_INITIALIZER) {
+        if (ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).xDomainMessageSender() != NATIVE_INITIALIZER) {
             revert InvalidNativeInitializer();
         }
 
@@ -114,9 +105,12 @@ contract SuperchainERC20Factory is ISemver {
         external
         returns (address)
     {
-        if (msg.sender != L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert CallerNotL2CrossDomainMessenger();
+        if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert CallerNotL2CrossDomainMessenger();
 
-        if (IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).crossDomainMessageSender() != address(this)) {
+        if (
+            IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).crossDomainMessageSender()
+                != address(this)
+        ) {
             revert InvalidCrossDomainSender();
         }
 
@@ -144,7 +138,7 @@ contract SuperchainERC20Factory is ISemver {
         // Encode the BeaconProxy creation code with the beacon contract address and metadata
         bytes memory _creationCode = abi.encodePacked(
             type(BeaconProxy).creationCode,
-            abi.encode(SUPERCHAIN_ERC20_BEACON, abi.encode(_remoteToken, _decimals, _name, _symbol))
+            abi.encode(Predeploys.SUPERCHAIN_ERC20_BEACON, abi.encode(_remoteToken, _decimals, _name, _symbol))
         );
 
         // Use CREATE3 for deterministic deployment
@@ -171,16 +165,12 @@ contract SuperchainERC20Factory is ISemver {
             abi.encodeCall(this.deployFromL2, (_remoteToken, _metadata.decimals, _metadata.name, _metadata.symbol));
 
         // Send the message to each chain ID
-        for (uint256 i; i < _chainIds.length;) {
-            IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
+        for (uint256 i; i < _chainIds.length; i++) {
+            IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
                 _destination: _chainIds[i],
                 _target: address(this),
                 _message: _message
             });
-
-            unchecked {
-                ++i;
-            }
         }
     }
 }
