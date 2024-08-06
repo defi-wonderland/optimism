@@ -48,6 +48,7 @@ contract L2StandardBridgeInterop_Test is Bridge_Initializer {
     }
 }
 
+/// @notice Test when converting from a legacy token to a SuperchainERC20 token
 contract L2StandardBridgeInterop_LegacyToSuper_Test is L2StandardBridgeInterop_Test {
     function _setUpLegacyToSuper(address _from, address _to) internal {
         // Assume
@@ -203,6 +204,7 @@ contract L2StandardBridgeInterop_LegacyToSuper_Test is L2StandardBridgeInterop_T
     }
 }
 
+/// @notice Test when converting from a SuperchainERC20 token to a legacy token
 contract L2StandardBridgeInterop_SuperToLegacy_Test is L2StandardBridgeInterop_Test {
     function _setUpSuperToLegacy(address _from, address _to) internal {
         // Assume
