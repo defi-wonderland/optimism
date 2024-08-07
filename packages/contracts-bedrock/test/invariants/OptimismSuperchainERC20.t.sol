@@ -191,7 +191,7 @@ contract OptimismSuperchainERC20_Invariant is Test {
     ///                   Actor's balance should also not increase out of nowhere.
     function invariant_sendERC20_succeeds() public view {
         // Assert that the actor has not failed to send OptimismSuperchainERC20.
-        assertTrue(!actor.failed(), "0");
+        assertTrue(!actor.failed());
 
         // Assert that the actor has sent more than or equal to the amount relayed.
         assertTrue(actor.totalAmountSent() >= actor.totalAmountRelayed());
@@ -216,7 +216,7 @@ contract OptimismSuperchainERC20_Invariant is Test {
         assertTrue(actor.totalAmountSent() >= actor.totalAmountRelayed());
 
         // Assert that the actor's balance has increased by the amount relayed.
-        assertEq(optimismSuperchainERC20.balanceOf(address(receiver)), actor.totalAmountRelayed(), "a");
+        assertEq(optimismSuperchainERC20.balanceOf(address(receiver)), actor.totalAmountRelayed());
 
         // Assert that the total supply of the OptimismSuperchainERC20 contract has decreased by the amount unrelayed.
         uint256 _unrelayedAmount = actor.totalAmountSent() - actor.totalAmountRelayed();
