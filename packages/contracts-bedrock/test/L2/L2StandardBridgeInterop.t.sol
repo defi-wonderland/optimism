@@ -222,10 +222,6 @@ contract L2StandardBridgeInterop_SuperToLegacy_Test is L2StandardBridgeInterop_T
         // Mock same decimals
         _mockDecimals(_from, 18);
         _mockDecimals(_to, 18);
-
-        // Mock `_to` to be a legacy address
-        _mockInterface(_to, type(IERC165).interfaceId, true);
-        _mockInterface(_to, type(IOptimismMintableERC20).interfaceId, true);
     }
 
     /// @notice Test that the `convert` function with different decimals reverts
