@@ -188,7 +188,8 @@ contract OptimismSuperchainERC20_Invariant is Test {
 
     /// @notice Invariant that checks that sending OptimismSuperchainERC20 always succeeds.
     /// @custom:invariant Calls to sendERC20 should always succeed as long as the actor has enough balance.
-    ///                   Actor's balance should also not increase out of nowhere.
+    ///                   Actor's balance should also not increase out of nowhere but instead should decrease by the
+    ///                   amount sent.
     function invariant_sendERC20_succeeds() public view {
         // Assert that the actor has not failed to send OptimismSuperchainERC20.
         assertTrue(!actor.failed());
@@ -205,9 +206,8 @@ contract OptimismSuperchainERC20_Invariant is Test {
     }
 
     /// @notice Invariant that checks that relaying OptimismSuperchainERC20 always succeeds.
-    /// @custom:invariant Calls to relayERC20 should when a message is received from another chain.
-    ///                   Actor's balance should get his amount minted when
-    /// the message is realyed and the amount is greater than 0.
+    /// @custom:invariant Calls to relayERC20 should always succeeds when a message is received from another chain.
+    ///                   Actor's balance should only increase by the amount relayed.
     function invariant_relayERC20_succeeds() public view {
         // Assert that the actor has not failed to relay OptimismSuperchainERC20.
         assertTrue(!actor.failed());
