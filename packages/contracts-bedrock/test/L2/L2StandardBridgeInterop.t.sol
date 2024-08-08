@@ -193,17 +193,13 @@ contract L2StandardBridgeInterop_LegacyToSuper_Test is L2StandardBridgeInterop_T
         _mockDeployments(address(l2OptimismMintableERC20Factory), _from, _remoteToken);
         _mockDeployments(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, _to, _remoteToken);
 
-        // Mock the `burn` and `mint` functions
-        vm.mockCall(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), abi.encode());
-        vm.mockCall(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), abi.encode());
-
         // Expect the `Converted` event to be emitted
         vm.expectEmit(true, true, true, true, address(l2StandardBridge));
         emit Converted(_from, _to, _caller, _amount);
 
-        // Expect the `mint` and `burn` functions to be called
-        vm.expectCall(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), 1);
-        vm.expectCall(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), 1);
+        // Mock and expect the `burn` and `mint` functions
+        _mockAndExpect(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), abi.encode());
+        _mockAndExpect(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), abi.encode());
 
         // Act
         vm.prank(_caller);
@@ -346,17 +342,13 @@ contract L2StandardBridgeInterop_SuperToLegacy_Test is L2StandardBridgeInterop_T
         _mockDeployments(address(l2OptimismMintableERC20Factory), _to, _remoteToken);
         _mockDeployments(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, _from, _remoteToken);
 
-        // Mock the `burn` and `mint` functions
-        vm.mockCall(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), abi.encode());
-        vm.mockCall(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), abi.encode());
-
         // Expect the `Converted` event to be emitted
         vm.expectEmit(true, true, true, true, address(l2StandardBridge));
         emit Converted(_from, _to, _caller, _amount);
 
-        // Expect the `mint` and `burn` functions to be called
-        vm.expectCall(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), 1);
-        vm.expectCall(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), 1);
+        // Mock and expect the `burn` and `mint` functions
+        _mockAndExpect(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), abi.encode());
+        _mockAndExpect(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), abi.encode());
 
         // Act
         vm.prank(_caller);
