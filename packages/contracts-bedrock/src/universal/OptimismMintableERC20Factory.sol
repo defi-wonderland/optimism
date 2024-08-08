@@ -43,8 +43,8 @@ contract OptimismMintableERC20Factory is ISemver, Initializable {
     ///         the OptimismMintableERC20 token contract since this contract
     ///         is responsible for deploying OptimismMintableERC20 contracts.
     /// @notice Semantic version.
-    /// @custom:semver 1.9.0
-    string public constant version = "1.9.0";
+    /// @custom:semver 1.10.0
+    string public constant version = "1.10.0";
 
     /// @notice Constructs the OptimismMintableERC20Factory contract.
     constructor() {
@@ -114,19 +114,17 @@ contract OptimismMintableERC20Factory is ISemver, Initializable {
         public
         returns (address)
     {
-        require(_remoteToken != address(0), "OptimismMintableERC20Factory: must provide remote token address");
-
-        bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
-        address localToken =
-            address(new OptimismMintableERC20{ salt: salt }(bridge, _remoteToken, _name, _symbol, _decimals));
-
-        // Emit the old event too for legacy support.
-        emit StandardL2TokenCreated(_remoteToken, localToken);
-
-        // Emit the updated event. The arguments here differ from the legacy event, but
-        // are consistent with the ordering used in StandardBridge events.
-        emit OptimismMintableERC20Created(localToken, _remoteToken, msg.sender);
-
-        return localToken;
+        return _createWithCreate3(_remoteToken, _name, _symbol, _decimals);
     }
+
+    function _createWithCreate3(
+        address _remoteToken,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    )
+        internal
+        virtual
+        returns (address)
+    { }
 }
