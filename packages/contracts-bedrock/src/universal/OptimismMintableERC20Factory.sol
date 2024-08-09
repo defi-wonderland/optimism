@@ -12,7 +12,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 ///         contracts on the network it's deployed to. Simplifies the deployment process for users
 ///         who may be less familiar with deploying smart contracts. Designed to be backwards
 ///         compatible with the older StandardL2ERC20Factory contract.
-contract OptimismMintableERC20Factory is ISemver, Initializable {
+abstract contract OptimismMintableERC20Factory is ISemver, Initializable {
     /// @custom:spacer OptimismMintableERC20Factory's initializer slot spacing
     /// @notice Spacer to avoid packing into the initializer slot
     bytes30 private spacer_0_2_30;
@@ -114,17 +114,23 @@ contract OptimismMintableERC20Factory is ISemver, Initializable {
         public
         returns (address)
     {
-        return _createWithCreate3(_remoteToken, _name, _symbol, _decimals);
+        return createWithCreate3(_remoteToken, _name, _symbol, _decimals);
     }
 
-    function _createWithCreate3(
+    /// @notice Creates an instance of the OptimismMintableERC20 contract, with specified decimals using CREATE3.
+    ///         To be implemented by the child contract.
+    /// @param _remoteToken Address of the token on the remote chain.
+    /// @param _name        ERC20 name.
+    /// @param _symbol      ERC20 symbol.
+    /// @param _decimals    ERC20 decimals.
+    /// @return Address of the newly created token.
+    function createWithCreate3(
         address _remoteToken,
         string memory _name,
         string memory _symbol,
         uint8 _decimals
     )
-        internal
+        public
         virtual
-        returns (address)
-    { }
+        returns (address);
 }

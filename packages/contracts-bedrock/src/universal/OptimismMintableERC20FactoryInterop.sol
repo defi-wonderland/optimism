@@ -38,32 +38,14 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory, IO
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals.
-    /// @return Address of the newly created token.
+    /// @return _localToken Address of the newly created token.
     function createWithCreate3(
         address _remoteToken,
         string memory _name,
         string memory _symbol,
         uint8 _decimals
     )
-        external
-        returns (address)
-    {
-        return _createWithCreate3(_remoteToken, _name, _symbol, _decimals);
-    }
-
-    /// @notice Creates an instance of the OptimismMintableERC20 contract, with specified decimals using CREATE3.
-    /// @param _remoteToken Address of the token on the remote chain.
-    /// @param _name        ERC20 name.
-    /// @param _symbol      ERC20 symbol.
-    /// @param _decimals    ERC20 decimals.
-    /// @return _localToken Address of the newly created token.
-    function _createWithCreate3(
-        address _remoteToken,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    )
-        internal
+        public
         override
         returns (address _localToken)
     {
