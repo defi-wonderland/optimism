@@ -29,7 +29,7 @@
     "gas-snapshot": "pnpm build:go-ffi && pnpm gas-snapshot:no-build",
     "kontrol-summary": "./test/kontrol/scripts/make-summary-deployment.sh",
     "kontrol-summary-fp": "KONTROL_FP_DEPLOYMENT=true pnpm kontrol-summary",
-    "medusa":"FOUNDRY_PROFILE=medusa medusa fuzz",
+    "medusa": "FOUNDRY_PROFILE=medusa medusa fuzz",
     "snapshots": "forge build && npx tsx scripts/autogen/generate-snapshots.ts && pnpm kontrol-summary-fp && pnpm kontrol-summary",
     "snapshots:check": "./scripts/checks/check-snapshots.sh",
     "semver-lock": "forge script scripts/SemverLock.s.sol",
@@ -62,6 +62,7 @@
     "eslint-plugin-jsdoc": "^48.8.3",
     "eslint-plugin-prefer-arrow": "^1.2.3",
     "eslint-plugin-prettier": "^4.0.0",
+    "halmos-cheatcodes#c0d8655": "github:a16z/halmos-cheatcodes#c0d8655",
     "prettier": "^2.8.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
