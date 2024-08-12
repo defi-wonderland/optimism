@@ -34,7 +34,7 @@ contract SuperchainERC20_SymTest is HalmosTest {
         superchainERC20 = new SuperchainERC20(remoteToken, "SuperchainERC20", "SUPER", decimals);
     }
 
-    function check_setup() public {
+    function check_setup() public view {
         assert(superchainERC20.REMOTE_TOKEN() == remoteToken);
         assert(superchainERC20.decimals() == decimals);
     }
@@ -53,7 +53,7 @@ contract SuperchainERC20_SymTest is HalmosTest {
         assert(superchainERC20.balanceOf(_to) == _balanceBef + _amount);
     }
 
-    // Don't work :(
+    // Doesn't work :(
     function check_sendERC20ZeroCall(address _user, address _to, uint256 _chainId) public {
         console.log(1);
         vm.assume(_chainId != 1);
