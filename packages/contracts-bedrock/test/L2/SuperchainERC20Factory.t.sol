@@ -2,10 +2,9 @@
 pragma solidity 0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-
 import { SuperchainERC20Factory } from "src/L2/SuperchainERC20Factory.sol";
 
-contract SuperchainERC20FactoryFuzz is Test {
+contract SuperchainERC20FactoryTest is Test {
     struct DeployParams {
         address remoteToken;
         string name;
@@ -20,7 +19,7 @@ contract SuperchainERC20FactoryFuzz is Test {
     }
 
     // this is a stateless check, so halmos will probably supersede it
-    function testContractAddressDependsOnParams(DeployParams memory left, DeployParams memory right) external {
+    function test_ContractAddressDependsOnParams(DeployParams memory left, DeployParams memory right) external {
         vm.assume(
             left.remoteToken != right.remoteToken || keccak256(bytes(left.name)) != keccak256(bytes(right.name))
                 || keccak256(bytes(left.symbol)) != keccak256(bytes(right.symbol)) || left.decimals != right.decimals
@@ -30,7 +29,7 @@ contract SuperchainERC20FactoryFuzz is Test {
         assert(superc20Left != superc20Right);
     }
 
-    function testContractAddressDoesNotDependOnChainId(
+    function test_ContractAddressDoesNotDependOnChainId(
         DeployParams memory params,
         uint256 chainIdLeft,
         uint256 chainIdRight

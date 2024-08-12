@@ -26,3 +26,15 @@
 [submodule "packages/contracts-bedrock/lib/automate"]
 	path = packages/contracts-bedrock/lib/automate
 	url = https://github.com/gelatodigital/automate
+[submodule "packages/contracts-bedrock/lib/halmos-cheatcodes"]
+	path = packages/contracts-bedrock/lib/halmos-cheatcodes
+	url = https://github.com/a16z/halmos-cheatcodes
+[submodule "lib/halmos-cheatcodes"]
+	path = lib/halmos-cheatcodes
+	url = https://github.com/a16z/halmos-cheatcodes
+[submodule "halmos-cheatcodes"]
+	path = halmos-cheatcodes
+	url = https://github.com/a16z/halmos-cheatcodes
+[submodule "packages/contracts-bedrock/halmos-cheatcodes"]
+	path = packages/contracts-bedrock/halmos-cheatcodes
+	url = https://github.com/a16z/halmos-cheatcodes

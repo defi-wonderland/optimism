@@ -43,13 +43,14 @@ contract SuperchainERC20Factory is ISemver {
         returns (address _superchainERC20)
     {
         // Encode the BeaconProxy creation code with the beacon contract address and metadata
-        bytes memory _creationCode = abi.encodePacked(
+        bytes memory _creationCode = bytes.concat(
             type(BeaconProxy).creationCode,
             abi.encode(Predeploys.SUPERCHAIN_ERC20_BEACON, abi.encode(_remoteToken, _name, _symbol, _decimals))
         );
 
         // Use CREATE3 for deterministic deployment
-        bytes32 _salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
+        // bytes32 _salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
+        bytes32 _salt = bytes32(abi.encode(_remoteToken, _name, _symbol, _decimals));
         _superchainERC20 = CREATE3.deploy({ salt: _salt, creationCode: _creationCode, value: 0 });
 
         // Store SuperchainERC20 and remote token addresses

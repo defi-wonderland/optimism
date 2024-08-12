@@ -62,7 +62,7 @@
     "eslint-plugin-jsdoc": "^48.8.3",
     "eslint-plugin-prefer-arrow": "^1.2.3",
     "eslint-plugin-prettier": "^4.0.0",
-    "halmos-cheatcodes#c0d8655": "github:a16z/halmos-cheatcodes#c0d8655",
+    "halmos-cheatcodes": "github:a16z/halmos-cheatcodes#c0d8655",
     "prettier": "^2.8.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"

@@ -8,7 +8,7 @@ import { IBeacon } from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 contract SuperchainERC20Beacon is IBeacon {
     /// TODO: Replace with real implementation address
     /// @notice Address of the SuperchainERC20 implementation.
-    address internal constant IMPLEMENTATION_ADDRESS = 0x0000000000000000000000000000000000000000;
+    address internal constant IMPLEMENTATION_ADDRESS = 0x4200000000000000000000000000000000000042;
 
     /// @inheritdoc IBeacon
     function implementation() external pure override returns (address) {

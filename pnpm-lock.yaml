@@ -46,9 +46,12 @@ importers:
       eslint-plugin-prettier:
         specifier: ^4.0.0
         version: 4.2.1(eslint-config-prettier@9.1.0(eslint@8.56.0))(eslint@8.56.0)(prettier@2.8.8)
-      halmos-cheatcodes#c0d8655:
+      halmos:
+        specifier: github:a16z/halmos#337adbac61881b32386beb9245e928309ed0f1b7
+        version: halmos#337adbac61881b32386beb9245e928309ed0f1b7@https://codeload.github.com/a16z/halmos/tar.gz/337adbac61881b32386beb9245e928309ed0f1b7
+      halmos-cheatcodes:
         specifier: github:a16z/halmos-cheatcodes#c0d8655
-        version: https://codeload.github.com/a16z/halmos-cheatcodes/tar.gz/c0d8655
+        version: halmos-cheatcodes#c0d8655@https://codeload.github.com/a16z/halmos-cheatcodes/tar.gz/c0d8655
       prettier:
         specifier: ^2.8.0
         version: 2.8.8
@@ -1001,6 +1004,10 @@ packages:
 
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
+
+  halmos#337adbac61881b32386beb9245e928309ed0f1b7@https://codeload.github.com/a16z/halmos/tar.gz/337adbac61881b32386beb9245e928309ed0f1b7:
+    resolution: {tarball: https://codeload.github.com/a16z/halmos/tar.gz/337adbac61881b32386beb9245e928309ed0f1b7}
+    version: 0.0.0
 
   halmos-cheatcodes#c0d8655@https://codeload.github.com/a16z/halmos-cheatcodes/tar.gz/c0d8655:
     resolution: {tarball: https://codeload.github.com/a16z/halmos-cheatcodes/tar.gz/c0d8655}
@@ -2779,6 +2786,8 @@ snapshots:
       get-intrinsic: 1.2.4
 
   graphemer@1.4.0: {}
+
+  halmos#337adbac61881b32386beb9245e928309ed0f1b7@https://codeload.github.com/a16z/halmos/tar.gz/337adbac61881b32386beb9245e928309ed0f1b7: {}
 
   halmos-cheatcodes#c0d8655@https://codeload.github.com/a16z/halmos-cheatcodes/tar.gz/c0d8655: {}
 
