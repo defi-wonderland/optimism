@@ -86,7 +86,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "_localToken",
+        "name": "",
         "type": "address"
       }
     ],

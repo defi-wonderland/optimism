@@ -109,7 +109,7 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals
-    /// @return _localToken Address of the newly created token.
+    /// @return Address of the newly created token.
     function createOptimismMintableERC20WithDecimals(
         address _remoteToken,
         string memory _name,
@@ -117,21 +117,24 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
         uint8 _decimals
     )
         public
-        returns (address _localToken)
+        returns (address)
     {
         require(_remoteToken != address(0), "OptimismMintableERC20Factory: must provide remote token address");
 
         bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
 
-        _localToken = address(new OptimismMintableERC20{ salt: salt }(bridge, _remoteToken, _name, _symbol, _decimals));
+        address localToken =
+            address(new OptimismMintableERC20{ salt: salt }(bridge, _remoteToken, _name, _symbol, _decimals));
 
-        deployments[_localToken] = _remoteToken;
+        deployments[localToken] = _remoteToken;
 
         // Emit the old event too for legacy support.
-        emit StandardL2TokenCreated(_remoteToken, _localToken);
+        emit StandardL2TokenCreated(_remoteToken, localToken);
 
         // Emit the updated event. The arguments here differ from the legacy event, but
         // are consistent with the ordering used in StandardBridge events.
-        emit OptimismMintableERC20Created(_localToken, _remoteToken, msg.sender);
+        emit OptimismMintableERC20Created(localToken, _remoteToken, msg.sender);
+
+        return localToken;
     }
 }
