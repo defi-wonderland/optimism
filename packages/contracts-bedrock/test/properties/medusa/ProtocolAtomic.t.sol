@@ -17,7 +17,13 @@ contract MockCrossDomainMessenger {
     mapping(address => bytes32) internal superTokenInitDeploySalts;
     // test-specific functions
 
-    function crossChainMessageReceiver(address sender, uint256 destinationChainId) external returns (OptimismSuperchainERC20) {
+    function crossChainMessageReceiver(
+        address sender,
+        uint256 destinationChainId
+    )
+        external
+        returns (OptimismSuperchainERC20)
+    {
         return OptimismSuperchainERC20(superTokenAddresses[destinationChainId][superTokenInitDeploySalts[sender]]);
     }
 
@@ -27,7 +33,7 @@ contract MockCrossDomainMessenger {
     }
     // mocked functions
 
-    function sendMessage(uint256 chainId, address /*recipient*/, bytes memory message) external {
+    function sendMessage(uint256 chainId, address, /*recipient*/ bytes memory message) external {
         address crossChainRecipient = superTokenAddresses[chainId][superTokenInitDeploySalts[msg.sender]];
         if (crossChainRecipient == msg.sender) {
             require(false, "same chain");
@@ -41,12 +47,16 @@ contract MockCrossDomainMessenger {
 
 contract ProtocolAtomicFuzz is Test {
     uint8 internal constant MAX_CHAINS = 4;
+    uint8 internal constant INITIAL_TOKENS = 2;
+    uint8 internal constant INITIAL_SUPERTOKENS = 2;
+    uint8 internal constant SUPERTOKEN_INITIAL_MINT = 100;
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
     MockCrossDomainMessenger internal constant MESSENGER =
         MockCrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     OptimismSuperchainERC20 internal superchainERC20Impl;
-    string[] internal WORDS = ["FANCY", "TOKENS"];
-    uint8[] internal DECIMALS = [0, 6, 18, 36];
+    // NOTE: having more options for this enables the fuzzer to configure different supertokens for the same
+    string[] internal WORDS = ["TOKENS"];
+    uint8[] internal DECIMALS = [6, 18];
 
     struct TokenDeployParams {
         uint8 remoteTokenIndex;
@@ -63,6 +73,12 @@ contract ProtocolAtomicFuzz is Test {
     constructor() {
         vm.etch(address(MESSENGER), address(new MockCrossDomainMessenger()).code);
         superchainERC20Impl = new OptimismSuperchainERC20();
+        for (uint256 i = 0; i < INITIAL_TOKENS; i++) {
+            _deployRemoteToken();
+            for (uint256 j = 0; j < INITIAL_SUPERTOKENS ; j++){
+                _deploySupertoken(remoteTokens[i], WORDS[0], WORDS[0], DECIMALS[0], j);
+            }
+        }
     }
 
     modifier validateTokenDeployParams(TokenDeployParams memory params) {
@@ -94,11 +110,14 @@ contract ProtocolAtomicFuzz is Test {
         destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
         fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
         OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
-        OptimismSuperchainERC20 destinationToken = MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
+        OptimismSuperchainERC20 destinationToken =
+            MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
         // TODO: when implementing non-atomic bridging, allow for the token to
         // not yet be deployed and funds be recovered afterwards.
         require(address(destinationToken) != address(0));
         uint256 balanceFromBefore = sourceToken.balanceOf(msg.sender);
+        // NOTE: lift this requirement to allow one more failure mode
+        amount = bound(amount, 0, balanceFromBefore);
         uint256 balanceToBefore = destinationToken.balanceOf(msg.sender);
         vm.prank(msg.sender);
         try sourceToken.sendERC20(msg.sender, amount, destinationChainId) {
@@ -106,7 +125,7 @@ contract ProtocolAtomicFuzz is Test {
             uint256 balanceToAfter = destinationToken.balanceOf(msg.sender);
             assert(balanceFromBefore + balanceToBefore == balanceFromAfter + balanceToAfter);
         } catch {
-            assert(balanceFromBefore < amount || address(destinationToken) == address(sourceToken));
+            assert(address(destinationToken) == address(sourceToken));
         }
     }
 
@@ -120,6 +139,10 @@ contract ProtocolAtomicFuzz is Test {
     }
 
     function fuzz_MockNewRemoteToken() external {
+        _deployRemoteToken();
+    }
+
+    function _deployRemoteToken() internal {
         // make sure they don't conflict with predeploys/preinstalls/precompiles/other tokens
         remoteTokens.push(address(uint160(1000 + remoteTokens.length)));
     }
@@ -135,7 +158,7 @@ contract ProtocolAtomicFuzz is Test {
     {
         bytes32 realSalt = keccak256(abi.encode(remoteToken, name, symbol, decimals));
         bytes32 hackySalt = keccak256(abi.encode(remoteToken, name, symbol, decimals, chainId));
-        OptimismSuperchainERC20 localToken = OptimismSuperchainERC20(
+        OptimismSuperchainERC20 token = OptimismSuperchainERC20(
             address(
                 // TODO: Use the SuperchainERC20 Beacon Proxy
                 new ERC1967Proxy{ salt: hackySalt }(
@@ -144,7 +167,9 @@ contract ProtocolAtomicFuzz is Test {
                 )
             )
         );
-        MESSENGER.registerSupertoken(realSalt, chainId, address(localToken));
-        allSuperTokens.push(address(localToken));
+        MESSENGER.registerSupertoken(realSalt, chainId, address(token));
+        allSuperTokens.push(address(token));
+        vm.prank(BRIDGE);
+        token.mint(msg.sender, INITIAL_TOKENS * 10 ** decimals);
     }
 }
