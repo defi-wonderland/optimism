@@ -9,7 +9,6 @@ import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Pr
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
-import { FuzzERC20 } from "../helpers/Utils.sol";
 
 contract MockCrossDomainMessenger {
     address public crossDomainMessageSender;
@@ -28,7 +27,7 @@ contract MockCrossDomainMessenger {
     }
     // mocked functions
 
-    function sendMessage(uint256 chainId, address recipient, bytes memory message) external returns (address) {
+    function sendMessage(uint256 chainId, address /*recipient*/, bytes memory message) external {
         address crossChainRecipient = superTokenAddresses[chainId][superTokenInitDeploySalts[msg.sender]];
         if (crossChainRecipient == msg.sender) {
             require(false, "same chain");
