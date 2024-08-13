@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 import { ISemver } from "src/universal/ISemver.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { IOptimismERC20Factory } from "src/L2/IOptimismERC20Factory.sol";
 
 /// @custom:proxied
 /// @custom:predeployed 0x4200000000000000000000000000000000000012
@@ -12,7 +13,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 ///         contracts on the network it's deployed to. Simplifies the deployment process for users
 ///         who may be less familiar with deploying smart contracts. Designed to be backwards
 ///         compatible with the older StandardL2ERC20Factory contract.
-abstract contract OptimismMintableERC20Factory is ISemver, Initializable {
+contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20Factory {
     /// @custom:spacer OptimismMintableERC20Factory's initializer slot spacing
     /// @notice Spacer to avoid packing into the initializer slot
     bytes30 private spacer_0_2_30;
@@ -21,10 +22,14 @@ abstract contract OptimismMintableERC20Factory is ISemver, Initializable {
     /// @custom:network-specific
     address public bridge;
 
+    /// @notice Mapping of local token address to remote token address.
+    ///         This is used to keep track of the token deployments.
+    mapping(address => address) public deployments;
+
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    ///         A gap size of 49 was chosen here, so that the first slot used in a child contract
-    ///         would be 1 plus a multiple of 50.
-    uint256[49] private __gap;
+    ///         A gap size of 48 was chosen here, so that the first slot used in a child contract
+    ///         would be a multiple of 50.
+    uint256[48] private __gap;
 
     /// @custom:legacy
     /// @notice Emitted whenever a new OptimismMintableERC20 is created. Legacy version of the newer
@@ -104,7 +109,7 @@ abstract contract OptimismMintableERC20Factory is ISemver, Initializable {
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals
-    /// @return Address of the newly created token.
+    /// @return _localToken Address of the newly created token.
     function createOptimismMintableERC20WithDecimals(
         address _remoteToken,
         string memory _name,
@@ -112,25 +117,21 @@ abstract contract OptimismMintableERC20Factory is ISemver, Initializable {
         uint8 _decimals
     )
         public
-        returns (address)
+        returns (address _localToken)
     {
-        return createWithCreate3(_remoteToken, _name, _symbol, _decimals);
-    }
+        require(_remoteToken != address(0), "OptimismMintableERC20Factory: must provide remote token address");
 
-    /// @notice Creates an instance of the OptimismMintableERC20 contract, with specified decimals using CREATE3.
-    ///         To be implemented by the child contract.
-    /// @param _remoteToken Address of the token on the remote chain.
-    /// @param _name        ERC20 name.
-    /// @param _symbol      ERC20 symbol.
-    /// @param _decimals    ERC20 decimals.
-    /// @return Address of the newly created token.
-    function createWithCreate3(
-        address _remoteToken,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    )
-        public
-        virtual
-        returns (address);
+        bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
+
+        _localToken = address(new OptimismMintableERC20{ salt: salt }(bridge, _remoteToken, _name, _symbol, _decimals));
+
+        deployments[_localToken] = _remoteToken;
+
+        // Emit the old event too for legacy support.
+        emit StandardL2TokenCreated(_remoteToken, _localToken);
+
+        // Emit the updated event. The arguments here differ from the legacy event, but
+        // are consistent with the ordering used in StandardBridge events.
+        emit OptimismMintableERC20Created(_localToken, _remoteToken, msg.sender);
+    }
 }

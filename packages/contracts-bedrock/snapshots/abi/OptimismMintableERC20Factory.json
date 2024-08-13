@@ -86,7 +86,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_localToken",
         "type": "address"
       }
     ],
@@ -120,6 +120,25 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "deployments",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
