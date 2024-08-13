@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import "forge-std/console.sol";
-
 import { Test } from "forge-std/Test.sol";
 
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
+import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
@@ -13,8 +12,8 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 contract MockCrossDomainMessenger {
     address public crossDomainMessageSender;
     address public crossDomainMessageSource;
-    mapping(uint256 chainId => mapping(bytes32 reayDeployData => address)) internal superTokenAddresses;
-    mapping(address => bytes32) internal superTokenInitDeploySalts;
+    mapping(address => bytes32) public superTokenInitDeploySalts;
+    mapping(uint256 chainId => mapping(bytes32 reayDeployData => address)) public superTokenAddresses;
     // test-specific functions
 
     function crossChainMessageReceiver(
@@ -46,15 +45,18 @@ contract MockCrossDomainMessenger {
 }
 
 contract ProtocolAtomicFuzz is Test {
+    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
+
     uint8 internal constant MAX_CHAINS = 4;
-    uint8 internal constant INITIAL_TOKENS = 2;
-    uint8 internal constant INITIAL_SUPERTOKENS = 2;
+    uint8 internal constant INITIAL_TOKENS = 1;
+    uint8 internal constant INITIAL_SUPERTOKENS = 1;
     uint8 internal constant SUPERTOKEN_INITIAL_MINT = 100;
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
     MockCrossDomainMessenger internal constant MESSENGER =
         MockCrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     OptimismSuperchainERC20 internal superchainERC20Impl;
-    // NOTE: having more options for this enables the fuzzer to configure different supertokens for the same
+    // NOTE: having more options for this enables the fuzzer to configure
+    // different supertokens for the same remote token
     string[] internal WORDS = ["TOKENS"];
     uint8[] internal DECIMALS = [6, 18];
 
@@ -67,15 +69,16 @@ contract ProtocolAtomicFuzz is Test {
 
     address[] internal remoteTokens;
     address[] internal allSuperTokens;
-    mapping(bytes32 => uint256) internal superTokenTotalSupply;
-    mapping(bytes32 => uint256) internal superTokensTotalSupply;
+
+    // deploy salt => total supply sum across chains
+    EnumerableMap.Bytes32ToUintMap internal ghost_totalSupplyAcrossChains;
 
     constructor() {
         vm.etch(address(MESSENGER), address(new MockCrossDomainMessenger()).code);
         superchainERC20Impl = new OptimismSuperchainERC20();
         for (uint256 i = 0; i < INITIAL_TOKENS; i++) {
             _deployRemoteToken();
-            for (uint256 j = 0; j < INITIAL_SUPERTOKENS ; j++){
+            for (uint256 j = 0; j < INITIAL_SUPERTOKENS; j++) {
                 _deploySupertoken(remoteTokens[i], WORDS[0], WORDS[0], DECIMALS[0], j);
             }
         }
@@ -106,6 +109,8 @@ contract ProtocolAtomicFuzz is Test {
         );
     }
 
+    /// @custom:property-id 22
+    /// @custom:property-id 23
     function fuzz_SelfBridgeSupertoken(uint256 fromIndex, uint256 destinationChainId, uint256 amount) external {
         destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
         fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
@@ -115,27 +120,58 @@ contract ProtocolAtomicFuzz is Test {
         // TODO: when implementing non-atomic bridging, allow for the token to
         // not yet be deployed and funds be recovered afterwards.
         require(address(destinationToken) != address(0));
-        uint256 balanceFromBefore = sourceToken.balanceOf(msg.sender);
+        uint256 sourceBalanceBefore = sourceToken.balanceOf(msg.sender);
+        uint256 sourceSupplyBefore = sourceToken.totalSupply();
         // NOTE: lift this requirement to allow one more failure mode
-        amount = bound(amount, 0, balanceFromBefore);
-        uint256 balanceToBefore = destinationToken.balanceOf(msg.sender);
+        uint256 destinationBalanceBefore = destinationToken.balanceOf(msg.sender);
+        uint256 destinationSupplyBefore = destinationToken.totalSupply();
+
+        amount = bound(amount, 0, sourceBalanceBefore);
         vm.prank(msg.sender);
         try sourceToken.sendERC20(msg.sender, amount, destinationChainId) {
-            uint256 balanceFromAfter = sourceToken.balanceOf(msg.sender);
-            uint256 balanceToAfter = destinationToken.balanceOf(msg.sender);
-            assert(balanceFromBefore + balanceToBefore == balanceFromAfter + balanceToAfter);
+            uint256 sourceBalanceAfter = sourceToken.balanceOf(msg.sender);
+            uint256 destinationBalanceAfter = destinationToken.balanceOf(msg.sender);
+            // no free mint
+            assert(sourceBalanceBefore + destinationBalanceBefore == sourceBalanceAfter + destinationBalanceAfter);
+            // 22
+            assert(sourceBalanceBefore - amount == sourceBalanceAfter);
+            assert(destinationBalanceBefore + amount == destinationBalanceAfter);
+            uint256 sourceSupplyAfter = sourceToken.totalSupply();
+            uint256 destinationSupplyAfter = destinationToken.totalSupply();
+            // 23
+            assert(sourceSupplyBefore - amount == sourceSupplyAfter);
+            assert(destinationSupplyBefore + amount == destinationSupplyAfter);
         } catch {
             assert(address(destinationToken) == address(sourceToken));
         }
     }
 
-    // TODO: track total supply for invariant checking
     function fuzz_MintSupertoken(uint256 index, uint96 amount) external {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
         vm.prank(BRIDGE);
         // medusa calls with different senders by default
         OptimismSuperchainERC20(addr).mint(msg.sender, amount);
+        uint256 currentValue = ghost_totalSupplyAcrossChains.get(MESSENGER.superTokenInitDeploySalts(addr));
+        ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);
+    }
+
+    // TODO: will need rework after
+    //   - non-atomic bridge
+    //   - `convert`
+    /// @custom:property-id 24
+    function property_totalSupplyAcrossChainsEqualsMints() external {
+        for (uint256 i = 0; i < ghost_totalSupplyAcrossChains.length(); i++) {
+            uint256 totalSupply = 0;
+            (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(i);
+            for (uint256 j = 0; j < MAX_CHAINS; j++) {
+                address supertoken = MESSENGER.superTokenAddresses(j, currentSalt);
+                if (supertoken != address(0)) {
+                    totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
+                }
+            }
+            assert(trackedSupply == totalSupply);
+        }
     }
 
     function fuzz_MockNewRemoteToken() external {
@@ -169,7 +205,10 @@ contract ProtocolAtomicFuzz is Test {
         );
         MESSENGER.registerSupertoken(realSalt, chainId, address(token));
         allSuperTokens.push(address(token));
+        uint256 mintAmount = INITIAL_TOKENS * 10 ** decimals;
         vm.prank(BRIDGE);
-        token.mint(msg.sender, INITIAL_TOKENS * 10 ** decimals);
+        token.mint(msg.sender, mintAmount);
+        (,uint256 curr) = ghost_totalSupplyAcrossChains.tryGet(realSalt);
+        ghost_totalSupplyAcrossChains.set(realSalt, curr + mintAmount);
     }
 }
