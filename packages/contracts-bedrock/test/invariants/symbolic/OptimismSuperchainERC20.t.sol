@@ -28,7 +28,9 @@ interface IHevm {
 contract HalmosTest is SymTest, Test { }
 
 contract OptimismSuperchainERC20_SymTest is HalmosTest {
-    uint256 internal constant _CURRENT_CHAIN_ID = 1;
+    uint256 internal constant CURRENT_CHAIN_ID = 1;
+    uint256 internal constant ZERO_AMOUNT = 0;
+    MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     IHevm hevm = IHevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address internal remoteToken = address(bytes20(keccak256("remoteToken")));
@@ -54,7 +56,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         // Etch the mocked L2 to L2 Messenger because the `TSTORE` opcode is not supported, and also due to issues with
         // `encodeVersionedNonce()`
         address _mockL2ToL2CrossDomainMessenger = address(new MockL2ToL2Messenger(address(optimismSuperchainERC20)));
-        hevm.etch(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _mockL2ToL2CrossDomainMessenger.code);
+        hevm.etch(address(MESSENGER), _mockL2ToL2CrossDomainMessenger.code);
     }
 
     function check_setup() public view {
@@ -75,7 +77,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         public
     {
         /* Preconditions */
-        vm.assume(_chainId != _CURRENT_CHAIN_ID);
+        vm.assume(_chainId != CURRENT_CHAIN_ID);
         vm.assume(_to != address(0));
 
         // Can't use symbolic value for user since it fails due to `NotConcreteError`
@@ -109,34 +111,68 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         vm.prank(_sender);
         try optimismSuperchainERC20.relayERC20(_from, _to, _amount) {
             console.log(7);
-            assert(_sender == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+            assert(_sender == address(MESSENGER));
         } catch {
             console.log(8);
             console.log(_sender);
             // The error is indeed the expected one, but the test fails
-            assert(_sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+            assert(_sender != address(MESSENGER));
         }
     }
 
     /// @custom:property-id 8
-    /// @custom:property SendERC20 with a value of zero does not modify accounting
+    /// @custom:property `sendERC20` with a value of zero does not modify accounting
     function check_sendERC20ZeroCall(address _to, uint256 _chainId) public {
         /* Precondition */
         // The current chain id is 1
         vm.assume(_to != address(0));
-        vm.assume(_chainId != _CURRENT_CHAIN_ID);
-        vm.assume(
-            _to != address(Predeploys.CROSS_L2_INBOX) && _to != address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)
-        );
+        vm.assume(_chainId != CURRENT_CHAIN_ID);
+        vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
 
         uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
 
         /* Action */
         vm.startPrank(user);
-        optimismSuperchainERC20.sendERC20(_to, 0, _chainId);
+        optimismSuperchainERC20.sendERC20(_to, ZERO_AMOUNT, _chainId);
 
         /* Action */
         assert(_totalSupplyBef == optimismSuperchainERC20.totalSupply());
+    }
+
+    /// @custom:property-id 9
+    /// @custom:property `relayERC20` with a value of zero does not modify accounting
+    function check_relayERC20ZeroCall(address _to) public {
+        /* Precondition */
+        vm.assume(_to != address(0));
+        MESSENGER.forTest_setCurrentXDomSender(address(optimismSuperchainERC20));
+
+        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
+        uint256 _balanceBef = optimismSuperchainERC20.balanceOf(user);
+
+        /* Action */
+        vm.prank(address(MESSENGER));
+        optimismSuperchainERC20.relayERC20(user, _to, ZERO_AMOUNT);
+
+        /* Postcondition */
+        assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBef);
+        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBef);
+    }
+
+    function test_relayERC20ZeroCall(address _to) public {
+        /* Precondition */
+        vm.assume(_to != address(0));
+        MESSENGER.forTest_setCurrentXDomSender(address(optimismSuperchainERC20));
+
+        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
+        uint256 _balanceBef = optimismSuperchainERC20.balanceOf(user);
+
+        /* Action */
+        vm.prank(address(MESSENGER));
+        optimismSuperchainERC20.relayERC20(user, _to, ZERO_AMOUNT);
+
+        /* Postcondition */
+        assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBef);
+        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBef);
     }
 
     /// @custom:property-id 12

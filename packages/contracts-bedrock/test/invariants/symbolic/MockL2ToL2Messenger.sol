@@ -48,7 +48,9 @@ contract MockL2ToL2Messenger is ITestL2ToL2CrossDomainMessenger {
     uint256 internal messageNonce;
     address internal currentXDomSender;
 
-    constructor(address _currentXDomSender) {
+    constructor(address _currentXDomSender) { }
+
+    function forTest_setCurrentXDomSender(address _currentXDomSender) external {
         currentXDomSender = _currentXDomSender;
     }
 
@@ -96,6 +98,9 @@ contract MockL2ToL2Messenger is ITestL2ToL2CrossDomainMessenger {
     }
 
     function crossDomainMessageSender() external view returns (address _sender) {
+        console.log(31);
+        console.log(currentXDomSender);
         _sender = currentXDomSender;
+        console.log(32);
     }
 }
