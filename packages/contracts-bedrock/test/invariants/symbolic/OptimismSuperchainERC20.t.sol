@@ -109,7 +109,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         vm.assume(_to != address(0));
         MESSENGER.forTest_setCurrentXDomSender(address(optimismSuperchainERC20));
 
-        vm.prank(_sender);
+        vm.prank(address(MESSENGER));
         try optimismSuperchainERC20.relayERC20(_from, _to, _amount) {
             console.log(7);
             assert(_sender == address(MESSENGER));

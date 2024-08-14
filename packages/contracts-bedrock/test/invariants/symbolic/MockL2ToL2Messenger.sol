@@ -88,13 +88,12 @@ contract MockL2ToL2Messenger is ITestL2ToL2CrossDomainMessenger {
         // TODO: Add more logic? Like replacing the `TSTORE` updates with `SSTORE` - or add the checks
 
         (bool succ, bytes memory ret) = _target.call{ value: msg.value }(_message);
-
         if (!succ) revert(string(ret));
     }
 
     // TODO
     function crossDomainMessageSource() external view returns (uint256 _source) {
-        _source = block.chainid;
+        _source = block.chainid + 1;
     }
 
     function crossDomainMessageSender() external view returns (address _sender) {
