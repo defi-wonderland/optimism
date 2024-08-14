@@ -107,6 +107,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         public
     {
         vm.assume(_to != address(0));
+        MESSENGER.forTest_setCurrentXDomSender(address(optimismSuperchainERC20));
 
         vm.prank(_sender);
         try optimismSuperchainERC20.relayERC20(_from, _to, _amount) {
@@ -124,10 +125,10 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
     function check_sendERC20ZeroCall(address _to, uint256 _chainId) public {
         /* Precondition */
-        // The current chain id is 1
         vm.assume(_to != address(0));
         vm.assume(_chainId != CURRENT_CHAIN_ID);
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
+        MESSENGER.forTest_setCurrentXDomSender(address(optimismSuperchainERC20));
 
         uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
 

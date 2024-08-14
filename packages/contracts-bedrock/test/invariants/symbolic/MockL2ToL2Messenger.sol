@@ -55,7 +55,7 @@ contract MockL2ToL2Messenger is ITestL2ToL2CrossDomainMessenger {
     }
 
     // TODO
-    function sendMessage(uint256 _destination, address _target, bytes calldata _message) external payable {
+    function sendMessage(uint256 _destination, address _target, bytes calldata) external payable {
         console.log(11);
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         console.log(22);
