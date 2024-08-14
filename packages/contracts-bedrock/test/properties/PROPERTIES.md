@@ -55,9 +55,9 @@ It’s worth noting that these properties will not hold for a live system
 
 | id  | description                                                                                                                        | halmos | echidna |
 | --- | ---                                                                                                                                | ---    | ---     |
-| 20  | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [ ]    | [ ]     |
-| 21  | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [ ]    | [ ]     |
-| 22  | sum of supertoken total supply across all chains is always equal to convert(legacy, super)- convert(super, legacy)                 | [ ]    | [ ]     |
+| 22  | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [ ]    | [ ]     |
+| 23  | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [ ]    | [ ]     |
+| 24  | sum of supertoken total supply across all chains is always equal to convert(legacy, super)- convert(super, legacy)                 | [ ]    | [ ]     |
 
 # Expected external interactions
 
