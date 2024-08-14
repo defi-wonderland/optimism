@@ -94,8 +94,6 @@ contract ProtocolAtomicFuzz is Test {
         uint256 destinationBalanceBefore = destinationToken.balanceOf(msg.sender);
         uint256 destinationSupplyBefore = destinationToken.totalSupply();
 
-        // NOTE: lift this requirement to allow one more failure mode
-        amount = bound(amount, 0, sourceBalanceBefore);
         vm.prank(msg.sender);
         try sourceToken.sendERC20(msg.sender, amount, destinationChainId) {
             uint256 sourceBalanceAfter = sourceToken.balanceOf(msg.sender);
@@ -111,7 +109,7 @@ contract ProtocolAtomicFuzz is Test {
             assert(sourceSupplyBefore - amount == sourceSupplyAfter);
             assert(destinationSupplyBefore + amount == destinationSupplyAfter);
         } catch {
-            assert(address(destinationToken) == address(sourceToken));
+            assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
         }
     }
 
@@ -121,7 +119,8 @@ contract ProtocolAtomicFuzz is Test {
         vm.prank(BRIDGE);
         // medusa calls with different senders by default
         OptimismSuperchainERC20(addr).mint(msg.sender, amount);
-        uint256 currentValue = ghost_totalSupplyAcrossChains.get(MESSENGER.superTokenInitDeploySalts(addr));
+        // currentValue will be zero if key is not present
+        (,uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(MESSENGER.superTokenInitDeploySalts(addr));
         ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);
     }
 
@@ -177,10 +176,5 @@ contract ProtocolAtomicFuzz is Test {
         );
         MESSENGER.registerSupertoken(realSalt, chainId, address(token));
         allSuperTokens.push(address(token));
-        uint256 mintAmount = INITIAL_TOKENS * 10 ** decimals;
-        vm.prank(BRIDGE);
-        token.mint(msg.sender, mintAmount);
-        (, uint256 curr) = ghost_totalSupplyAcrossChains.tryGet(realSalt);
-        ghost_totalSupplyAcrossChains.set(realSalt, curr + mintAmount);
     }
 }
