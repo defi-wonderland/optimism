@@ -28,6 +28,7 @@ interface IHevm {
 contract HalmosTest is SymTest, Test { }
 
 contract OptimismSuperchainERC20_SymTest is HalmosTest {
+    uint256 internal constant _CURRENT_CHAIN_ID = 1;
     IHevm hevm = IHevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address internal remoteToken = address(bytes20(keccak256("remoteToken")));
@@ -63,42 +64,6 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         assert(optimismSuperchainERC20.decimals() == decimals);
     }
 
-    // TODO: Update/discuss property
-    // Increases the total supply on the amount minted by the bridge
-    function check_mint(address _to, uint256 _amount) public {
-        vm.assume(_to != address(0));
-
-        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
-        uint256 _balanceBef = optimismSuperchainERC20.balanceOf(_to);
-
-        vm.startPrank(Predeploys.L2_STANDARD_BRIDGE);
-        optimismSuperchainERC20.mint(_to, _amount);
-
-        assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBef + _amount);
-        assert(optimismSuperchainERC20.balanceOf(_to) == _balanceBef + _amount);
-    }
-
-    /// @custom:property-id 8
-    /// @custom:property SendERC20 with a value of zero does not modify accounting
-    function check_sendERC20ZeroCall(address _to, uint256 _chainId) public {
-        /* Precondition */
-        // The current chain id is 1
-        vm.assume(_to != address(0));
-        vm.assume(_chainId != 1);
-        vm.assume(
-            _to != address(Predeploys.CROSS_L2_INBOX) && _to != address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)
-        );
-
-        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
-
-        /* Action */
-        vm.startPrank(user);
-        optimismSuperchainERC20.sendERC20(_to, 0, _chainId);
-
-        /* Action */
-        assert(_totalSupplyBef == optimismSuperchainERC20.totalSupply());
-    }
-
     /// @custom:property-id 6
     /// @custom:property-id Calls to sendERC20 succeed as long as caller has enough balance
     function check_sendERC20SucceedsOnlyIfEnoughBalance(
@@ -109,7 +74,8 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
     )
         public
     {
-        vm.assume(_chainId != 1);
+        /* Preconditions */
+        vm.assume(_chainId != _CURRENT_CHAIN_ID);
         vm.assume(_to != address(0));
 
         // Can't use symbolic value for user since it fails due to `NotConcreteError`
@@ -127,6 +93,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         }
     }
 
+    // TODO: Fails on the revert even though the error is expected on the catch. Passes on foundry
     /// @custom:property-id 7
     /// @custom:property-id Calls to relayERC20 always succeed as long as the cross-domain caller is valid
     function check_relayERC20OnlyFromL2ToL2Messenger(
@@ -151,26 +118,62 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         }
     }
 
-    // TODO: reverts as expected when the caller is not the messenger, but the test fails. With forge it passes
-    /// @custom:property-id 7
-    /// @custom:property-id Calls to relayERC20 always succeed as long as the cross-domain caller is valid
-    function test_relayERC20OnlyFromL2ToL2Messenger(
-        address _sender,
-        address _from,
-        address _to,
-        uint256 _amount
-    )
-        public
-    {
+    /// @custom:property-id 8
+    /// @custom:property SendERC20 with a value of zero does not modify accounting
+    function check_sendERC20ZeroCall(address _to, uint256 _chainId) public {
+        /* Precondition */
+        // The current chain id is 1
         vm.assume(_to != address(0));
+        vm.assume(_chainId != _CURRENT_CHAIN_ID);
+        vm.assume(
+            _to != address(Predeploys.CROSS_L2_INBOX) && _to != address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+        );
 
-        vm.startPrank(_sender);
-        try optimismSuperchainERC20.relayERC20(_from, _to, _amount) {
-            console.log(7);
-            assert(_sender == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        } catch (bytes memory _err) {
-            // The error is indeed the expected one, but the test fails
-            assert(_sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        }
+        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
+
+        /* Action */
+        vm.startPrank(user);
+        optimismSuperchainERC20.sendERC20(_to, 0, _chainId);
+
+        /* Action */
+        assert(_totalSupplyBef == optimismSuperchainERC20.totalSupply());
+    }
+
+    /// @custom:property-id 12
+    /// @custom:property Increases the total supply on the amount minted by the bridge
+    function check_mint(uint256 _amount) public {
+        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
+        uint256 _balanceBef = optimismSuperchainERC20.balanceOf(user);
+
+        vm.startPrank(Predeploys.L2_STANDARD_BRIDGE);
+        optimismSuperchainERC20.mint(user, _amount);
+
+        assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBef + _amount);
+        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBef + _amount);
+    }
+
+    /// @custom:property-id 13
+    /// @custom:property Supertoken total supply only decreases on the amount burned by the bridge
+    function check_burn(uint256 _amount) public {
+        /* Preconditions */
+        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        optimismSuperchainERC20.mint(user, _amount);
+
+        uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
+        uint256 _balanceBef = optimismSuperchainERC20.balanceOf(user);
+
+        /* Action */
+        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        optimismSuperchainERC20.burn(user, _amount);
+
+        /* Postconditions */
+        assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBef - _amount);
+        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBef - _amount);
+    }
+
+    /// @custom:property-id 14
+    /// @custom:property-id Supertoken total supply starts at zero
+    function check_totalSupplyStartsAtZero() public view {
+        assert(optimismSuperchainERC20.totalSupply() == 0);
     }
 }
