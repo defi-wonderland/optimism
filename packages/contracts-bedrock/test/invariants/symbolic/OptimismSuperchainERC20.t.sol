@@ -127,7 +127,6 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         }
     }
 
-    // TODO: reverts as expected when the caller is not the messenger, but the test fails. With forge it passes
     /// @custom:property-id 7
     /// @custom:property-id Calls to relayERC20 always succeed as long as the cross-domain caller is valid
     function check_relayERC20OnlyFromL2ToL2Messenger(
