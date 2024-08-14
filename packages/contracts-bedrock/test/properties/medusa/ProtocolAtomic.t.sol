@@ -7,42 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Pr
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { SafeCall } from "src/libraries/SafeCall.sol";
-
-contract MockCrossDomainMessenger {
-    address public crossDomainMessageSender;
-    address public crossDomainMessageSource;
-    mapping(address => bytes32) public superTokenInitDeploySalts;
-    mapping(uint256 chainId => mapping(bytes32 reayDeployData => address)) public superTokenAddresses;
-    // test-specific functions
-
-    function crossChainMessageReceiver(
-        address sender,
-        uint256 destinationChainId
-    )
-        external
-        returns (OptimismSuperchainERC20)
-    {
-        return OptimismSuperchainERC20(superTokenAddresses[destinationChainId][superTokenInitDeploySalts[sender]]);
-    }
-
-    function registerSupertoken(bytes32 deploySalt, uint256 chainId, address token) external {
-        superTokenAddresses[chainId][deploySalt] = token;
-        superTokenInitDeploySalts[token] = deploySalt;
-    }
-    // mocked functions
-
-    function sendMessage(uint256 chainId, address, /*recipient*/ bytes memory message) external {
-        address crossChainRecipient = superTokenAddresses[chainId][superTokenInitDeploySalts[msg.sender]];
-        if (crossChainRecipient == msg.sender) {
-            require(false, "same chain");
-        }
-        crossDomainMessageSender = crossChainRecipient;
-        crossDomainMessageSource = msg.sender;
-        SafeCall.call(crossDomainMessageSender, 0, message);
-        crossDomainMessageSender = address(0);
-    }
-}
+import { MockCrossDomainMessenger } from "../helpers/MockCrossDomainMessenger.t.sol";
 
 contract ProtocolAtomicFuzz is Test {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
@@ -62,15 +27,15 @@ contract ProtocolAtomicFuzz is Test {
 
     struct TokenDeployParams {
         uint8 remoteTokenIndex;
-        uint8 name;
-        uint8 symbol;
-        uint8 decimals;
+        uint8 nameIndex;
+        uint8 symbolIndex;
+        uint8 decimalsIndex;
     }
 
     address[] internal remoteTokens;
     address[] internal allSuperTokens;
 
-    // deploy salt => total supply sum across chains
+    //@dev  'real' deploy salt => total supply sum across chains
     EnumerableMap.Bytes32ToUintMap internal ghost_totalSupplyAcrossChains;
 
     constructor() {
@@ -86,9 +51,9 @@ contract ProtocolAtomicFuzz is Test {
 
     modifier validateTokenDeployParams(TokenDeployParams memory params) {
         params.remoteTokenIndex = uint8(bound(params.remoteTokenIndex, 0, remoteTokens.length - 1));
-        params.name = uint8(bound(params.name, 0, WORDS.length - 1));
-        params.symbol = uint8(bound(params.symbol, 0, WORDS.length - 1));
-        params.decimals = uint8(bound(params.decimals, 0, DECIMALS.length - 1));
+        params.nameIndex = uint8(bound(params.nameIndex, 0, WORDS.length - 1));
+        params.symbolIndex = uint8(bound(params.symbolIndex, 0, WORDS.length - 1));
+        params.decimalsIndex = uint8(bound(params.decimalsIndex, 0, DECIMALS.length - 1));
         _;
     }
 
@@ -102,15 +67,19 @@ contract ProtocolAtomicFuzz is Test {
         chainId = bound(chainId, 0, MAX_CHAINS - 1);
         _deploySupertoken(
             remoteTokens[params.remoteTokenIndex],
-            WORDS[params.name],
-            WORDS[params.symbol],
-            DECIMALS[params.decimals],
+            WORDS[params.nameIndex],
+            WORDS[params.symbolIndex],
+            DECIMALS[params.decimalsIndex],
             chainId
         );
     }
 
     /// @custom:property-id 22
+    /// @custom:property sendERC20 decreases sender balance in source chain and increases receiver balance in
+    /// destination chain exactly by the input amount
     /// @custom:property-id 23
+    /// @custom:property sendERC20 decreases total supply in source chain and increases it in destination chain exactly
+    /// by the input amount
     function fuzz_SelfBridgeSupertoken(uint256 fromIndex, uint256 destinationChainId, uint256 amount) external {
         destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
         fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
@@ -122,10 +91,10 @@ contract ProtocolAtomicFuzz is Test {
         require(address(destinationToken) != address(0));
         uint256 sourceBalanceBefore = sourceToken.balanceOf(msg.sender);
         uint256 sourceSupplyBefore = sourceToken.totalSupply();
-        // NOTE: lift this requirement to allow one more failure mode
         uint256 destinationBalanceBefore = destinationToken.balanceOf(msg.sender);
         uint256 destinationSupplyBefore = destinationToken.totalSupply();
 
+        // NOTE: lift this requirement to allow one more failure mode
         amount = bound(amount, 0, sourceBalanceBefore);
         vm.prank(msg.sender);
         try sourceToken.sendERC20(msg.sender, amount, destinationChainId) {
@@ -160,6 +129,9 @@ contract ProtocolAtomicFuzz is Test {
     //   - non-atomic bridge
     //   - `convert`
     /// @custom:property-id 24
+    /// @custom:property sum of supertoken total supply across all chains is always equal to convert(legacy, super)-
+    /// convert(super, legacy)
+    /// @dev deliberately not a view method so medusa runs it but not the view methods defined by Test
     function property_totalSupplyAcrossChainsEqualsMints() external {
         for (uint256 i = 0; i < ghost_totalSupplyAcrossChains.length(); i++) {
             uint256 totalSupply = 0;
@@ -185,21 +157,21 @@ contract ProtocolAtomicFuzz is Test {
 
     function _deploySupertoken(
         address remoteToken,
-        string memory name,
-        string memory symbol,
+        string memory nameIndex,
+        string memory symbolIndex,
         uint8 decimals,
         uint256 chainId
     )
         internal
     {
-        bytes32 realSalt = keccak256(abi.encode(remoteToken, name, symbol, decimals));
-        bytes32 hackySalt = keccak256(abi.encode(remoteToken, name, symbol, decimals, chainId));
+        bytes32 realSalt = keccak256(abi.encode(remoteToken, nameIndex, symbolIndex, decimals));
+        bytes32 hackySalt = keccak256(abi.encode(remoteToken, nameIndex, symbolIndex, decimals, chainId));
         OptimismSuperchainERC20 token = OptimismSuperchainERC20(
             address(
                 // TODO: Use the SuperchainERC20 Beacon Proxy
                 new ERC1967Proxy{ salt: hackySalt }(
                     address(superchainERC20Impl),
-                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
+                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, nameIndex, symbolIndex, decimals))
                 )
             )
         );
@@ -208,7 +180,7 @@ contract ProtocolAtomicFuzz is Test {
         uint256 mintAmount = INITIAL_TOKENS * 10 ** decimals;
         vm.prank(BRIDGE);
         token.mint(msg.sender, mintAmount);
-        (,uint256 curr) = ghost_totalSupplyAcrossChains.tryGet(realSalt);
+        (, uint256 curr) = ghost_totalSupplyAcrossChains.tryGet(realSalt);
         ghost_totalSupplyAcrossChains.set(realSalt, curr + mintAmount);
     }
 }

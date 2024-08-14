@@ -30,6 +30,7 @@
     "kontrol-summary": "./test/kontrol/scripts/make-summary-deployment.sh",
     "kontrol-summary-fp": "KONTROL_FP_DEPLOYMENT=true pnpm kontrol-summary",
     "medusa":"FOUNDRY_PROFILE=medusa medusa fuzz",
+    "snapshots": "forge build && go run ./scripts/autogen/generate-snapshots . && pnpm kontrol-summary-fp && pnpm kontrol-summary",
     "snapshots:check": "./scripts/checks/check-snapshots.sh",
     "semver-lock": "forge script scripts/SemverLock.s.sol",
     "validate-deploy-configs": "./scripts/checks/check-deploy-configs.sh",

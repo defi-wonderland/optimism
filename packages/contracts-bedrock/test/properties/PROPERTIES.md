@@ -4,14 +4,15 @@ legend:
 - `[ ]`: property not yet tested
 - `**[ ]**`: property not yet tested, dev/research team has asked for extra focus on it
 - `[X]`: tested/proven property
+- `[~]`: partially tested/proven property
 - `:(`: property won't be tested due to some limitation
 
 ## Unit test
 
 | id  | description                                                                        | halmos | medusa |
 | --- | ---                                                                                | ---    | ---    |
-| 0   | supertoken token address does not depend on the executing chain’s chainID          | [ ]    | [x]    |
-| 1   | supertoken token address depends on name, remote token, address and decimals       | [ ]    | [x]    |
+| 0   | supertoken token address does not depend on the executing chain’s chainID          | [ ]    | [ ]    |
+| 1   | supertoken token address depends on name, remote token, address and decimals       | [ ]    | [ ]    |
 | 2   | convert() should only allow converting legacy tokens to supertoken and viceversa   | [ ]    | [ ]    |
 | 3   | convert() only allows migrations between tokens representing the same remote asset | [ ]    | [ ]    |
 | 4   | convert() only allows migrations from tokens with the same decimals                | [ ]    | [ ]    |
@@ -53,11 +54,11 @@ legend:
 As another layer of defense, the following properties are defined which assume bridging operations to be atomic (that is, the sequencer and L2Inbox and CrossDomainMessenger contracts are fully abstracted away, `sendERC20` triggering the `relayERC20` call on the same transaction)
 It’s worth noting that these properties will not hold for a live system
 
-| id  | description                                                                                                                        | halmos | echidna |
+| id  | description                                                                                                                        | halmos | medusa  |
 | --- | ---                                                                                                                                | ---    | ---     |
-| 22  | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [ ]    | [ ]     |
-| 23  | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [ ]    | [ ]     |
-| 24  | sum of supertoken total supply across all chains is always equal to convert(legacy, super)- convert(super, legacy)                 | [ ]    | [ ]     |
+| 22  | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [ ]    | [x]     |
+| 23  | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [ ]    | [x]     |
+| 24  | sum of supertoken total supply across all chains is always equal to convert(legacy, super)- convert(super, legacy)                 | [ ]    | [~]     |
 
 # Expected external interactions
 
