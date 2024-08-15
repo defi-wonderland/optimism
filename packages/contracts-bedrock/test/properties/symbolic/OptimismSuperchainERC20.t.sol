@@ -1,25 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { Test } from "forge-std/Test.sol";
-import "src/L2/OptimismSuperchainERC20.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { SymTest } from "halmos-cheatcodes/src/SymTest.sol";
-import { L2ToL2CrossDomainMessenger } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockL2ToL2Messenger } from "./MockL2ToL2Messenger.sol";
-import "src/L2/L2ToL2CrossDomainMessenger.sol";
+import { AdvancedTest } from "../helpers/AdvancedTests.sol";
 
-contract SymTest_OptimismSuperchainERC20 is SymTest, Test {
-    uint256 internal constant CURRENT_CHAIN_ID = 1;
-    uint256 internal constant ZERO_AMOUNT = 0;
+contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
     MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-    address internal remoteToken = address(bytes20(keccak256("remoteToken")));
-    string internal name = "SuperchainERC20";
-    string internal symbol = "SUPER";
-    uint8 internal decimals = 18;
     address internal user = address(bytes20(keccak256("user")));
     address internal target = address(bytes20(keccak256("target")));
 
@@ -47,22 +38,9 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, Test {
         // into account when etching on halmos. Setting a constant slot with setters and getters didn't work neither.
     }
 
-    // TODO: move to a helper contract
-    function eqStrings(string memory a, string memory b) internal pure returns (bool) {
-        return keccak256(abi.encode(a)) == keccak256(abi.encode(b));
-    }
-
     /// @custom:property-id 0
     /// @custom:property Check setup works as expected
     function check_setup() public view {
-        assert(optimismSuperchainERC20.remoteToken() == remoteToken);
-        assert(eqStrings(optimismSuperchainERC20.name(), name));
-        assert(eqStrings(optimismSuperchainERC20.symbol(), symbol));
-        assert(optimismSuperchainERC20.decimals() == decimals);
-        assert(MESSENGER.crossDomainMessageSender() == address(optimismSuperchainERC20));
-    }
-
-    function test_setup() public view {
         assert(optimismSuperchainERC20.remoteToken() == remoteToken);
         assert(eqStrings(optimismSuperchainERC20.name(), name));
         assert(eqStrings(optimismSuperchainERC20.symbol(), symbol));
