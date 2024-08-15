@@ -9,8 +9,9 @@ import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableM
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { MockL2ToL2CrossDomainMessenger } from "../../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
+import { Actors } from "../../helpers/Actors.t.sol";
 
-contract ProtocolHandler is TestBase, StdUtils {
+contract ProtocolHandler is TestBase, StdUtils, Actors {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
 
     uint8 internal constant MAX_CHAINS = 4;
@@ -69,12 +70,12 @@ contract ProtocolHandler is TestBase, StdUtils {
     /// @notice pick one already-deployed supertoken and mint an arbitrary amount of it
     /// necessary so there is something to be bridged :D
     /// TODO: will be replaced when testing the factories and `convert()`
-    function handler_MintSupertoken(uint256 index, uint96 amount) external {
+    function handler_MintSupertoken(uint256 index, uint96 amount) external withActor(msg.sender) {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
         vm.prank(BRIDGE);
         // medusa calls with different senders by default
-        OptimismSuperchainERC20(addr).mint(msg.sender, amount);
+        OptimismSuperchainERC20(addr).mint(currentActor(), amount);
         // currentValue will be zero if key is not present
         (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(MESSENGER.superTokenInitDeploySalts(addr));
         ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);

@@ -75,7 +75,7 @@ legend:
 
 | id  | milestone | description                                                                    | halmos  | medusa |
 | --- | ---       | ---                                                                            | ---     | ---    |
-| 6   | SupERC20  | calls to sendERC20 succeed as long as caller has enough balance                | [ ]     | [ ]    |
+| 6   | SupERC20  | calls to sendERC20 succeed as long as caller has enough balance                | [ ]     | [x]    |
 | 7   | SupERC20  | calls to relayERC20 always succeed as long as the cross-domain caller is valid | **[ ]** | [ ]    |
 
 ## Variable transition
