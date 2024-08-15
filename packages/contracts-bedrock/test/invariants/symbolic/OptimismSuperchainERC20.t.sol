@@ -2,8 +2,6 @@
 pragma solidity 0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import "forge-std/Test.sol";
-
 import "src/L2/OptimismSuperchainERC20.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { SymTest } from "halmos-cheatcodes/src/SymTest.sol";
@@ -13,26 +11,10 @@ import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Pr
 import { MockL2ToL2Messenger } from "./MockL2ToL2Messenger.sol";
 import "src/L2/L2ToL2CrossDomainMessenger.sol";
 
-// TODO: Move to a advanced tests helper folder
-interface IHevm {
-    function chaind(uint256) external;
-
-    function etch(address addr, bytes calldata code) external;
-
-    function prank(address addr) external;
-
-    function deal(address, uint256) external;
-
-    function deal(address, address, uint256) external;
-}
-
-contract HalmosTest is SymTest, Test { }
-
-contract OptimismSuperchainERC20_SymTest is HalmosTest {
+contract SymTest_OptimismSuperchainERC20 is SymTest, Test {
     uint256 internal constant CURRENT_CHAIN_ID = 1;
     uint256 internal constant ZERO_AMOUNT = 0;
     MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    IHevm hevm = IHevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address internal remoteToken = address(bytes20(keccak256("remoteToken")));
     string internal name = "SuperchainERC20";
@@ -44,10 +26,12 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
     OptimismSuperchainERC20 public superchainERC20Impl;
     OptimismSuperchainERC20 internal optimismSuperchainERC20;
 
-    constructor() {
+    function setUp() public {
+        // Deploy the OptimismSuperchainERC20 contract implementation and the proxy to be used
         superchainERC20Impl = new OptimismSuperchainERC20();
         optimismSuperchainERC20 = OptimismSuperchainERC20(
             address(
+                // TODO: Update to beacon proxy
                 new ERC1967Proxy(
                     address(superchainERC20Impl),
                     abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
@@ -55,12 +39,15 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
             )
         );
 
-        // Etch the mocked L2 to L2 Messenger because the `TSTORE` opcode is not supported, and also due to issues with
-        // `encodeVersionedNonce()`
+        // Etch the mocked L2 to L2 Messenger since the messenger logic is out of scope for these test suite. Also, we
+        // avoid issues such as `TSTORE` opcode not being supported, or issues with `encodeVersionedNonce()`
         address _mockL2ToL2CrossDomainMessenger = address(new MockL2ToL2Messenger(address(optimismSuperchainERC20)));
-        hevm.etch(address(MESSENGER), _mockL2ToL2CrossDomainMessenger.code);
+        vm.etch(address(MESSENGER), _mockL2ToL2CrossDomainMessenger.code);
+        // NOTE: We need to set the crossDomainMessageSender as an immutable or otherwise storage vars and not taken
+        // into account when etching on halmos. Setting a constant slot with setters and getters didn't work neither.
     }
 
+    // TODO: move to a helper contract
     function eqStrings(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(abi.encode(a)) == keccak256(abi.encode(b));
     }
@@ -72,12 +59,22 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         assert(eqStrings(optimismSuperchainERC20.name(), name));
         assert(eqStrings(optimismSuperchainERC20.symbol(), symbol));
         assert(optimismSuperchainERC20.decimals() == decimals);
+        assert(MESSENGER.crossDomainMessageSender() == address(optimismSuperchainERC20));
+    }
+
+    function test_setup() public view {
+        assert(optimismSuperchainERC20.remoteToken() == remoteToken);
+        assert(eqStrings(optimismSuperchainERC20.name(), name));
+        assert(eqStrings(optimismSuperchainERC20.symbol(), symbol));
+        assert(optimismSuperchainERC20.decimals() == decimals);
+        assert(MESSENGER.crossDomainMessageSender() == address(optimismSuperchainERC20));
     }
 
     /// @custom:property-id 6
     /// @custom:property-id Calls to sendERC20 succeed as long as caller has enough balance
     function check_sendERC20SucceedsOnlyIfEnoughBalance(
         uint256 _initialBalance,
+        address _from,
         uint256 _amount,
         address _to,
         uint256 _chainId
@@ -87,13 +84,13 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         /* Preconditions */
         vm.assume(_chainId != CURRENT_CHAIN_ID);
         vm.assume(_to != address(0));
+        vm.assume(_from != address(0));
 
-        // Can't use symbolic value for user since it fails due to `NotConcreteError`
-        // hevm.deal(address(optimismSuperchainERC20), user, _initialBalance);
+        // Can't deal to unsupported cheatcode
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        optimismSuperchainERC20.mint(user, _initialBalance);
+        optimismSuperchainERC20.mint(_from, _initialBalance);
 
-        vm.prank(user);
+        vm.prank(_from);
         /* Action */
         try optimismSuperchainERC20.sendERC20(_to, _amount, _chainId) {
             /* Postcondition */
@@ -104,7 +101,8 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
     }
 
     /// @custom:property-id 7
-    /// @custom:property-id Calls to relayERC20 always succeed as long as the cross-domain caller is valid
+    /// @custom:property-id Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
+    /// @notice Partially verified since it can't be fully verified due to the use of `crossDomainMessageSender()`
     function check_relayERC20OnlyFromL2ToL2Messenger(address _sender, uint256 _amount) public {
         /* Precondition */
         vm.prank(_sender);
@@ -137,14 +135,14 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
 
     /// @custom:property-id 9
     /// @custom:property `relayERC20` with a value of zero does not modify accounting
-    function check_relayERC20ZeroCall() public {
+    function check_relayERC20ZeroCall(address _to) public {
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
         /* Preconditions */
         uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(user);
         vm.prank(address(MESSENGER));
 
         /* Action */
-        optimismSuperchainERC20.relayERC20(user, target, ZERO_AMOUNT);
+        optimismSuperchainERC20.relayERC20(user, _to, ZERO_AMOUNT);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore);
