@@ -30,7 +30,7 @@ Given the [OP monorepo](https://github.com/ethereum-optimism/optimism) already h
 
 - [ ]  [OptimismMintableERC20Factory](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20Factory.sol) (modifications to enable `convert` not yet merged)
 - [ ]  [OptimismSuperchainERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/OptimismSuperchainERC20.sol1)
-- [ ]  [SuperchainERC20Factory](https://github.com/defi-wonderland/optimism/pull/8/files#diff-09838f5703c353d0f7c5ff395acc04c1768ef58becac67404bc17e1fb0018517) (not yet merged)
+- [ ]  [OptimismSuperchainERC20Factory](https://github.com/defi-wonderland/optimism/pull/8/files#diff-09838f5703c353d0f7c5ff395acc04c1768ef58becac67404bc17e1fb0018517) (not yet merged)
 - [ ]  [L2StandardBridgeInterop](https://github.com/defi-wonderland/optimism/pull/10/files#diff-56cf869412631eac0a04a03f7d026596f64a1e00fcffa713bc770d67c6856c2f) (not yet merged)
 
 ## Behavior assumed correct
@@ -49,7 +49,7 @@ Given the [OP monorepo](https://github.com/ethereum-optimism/optimism) already h
 ## Definitions
 
 - *legacy token:*  an OptimismMintableERC20 or L2StandardERC20 token on the suprechain that has either been deployed by the factory after the liquidity migration upgrade to the latter, or has been deployed before it **but** added to factory’s `deployments` mapping as part of the upgrade. This testing campaign is not concerned with tokens on L1 or not listed in the factory’s `deployments` mapping.
-- *supertoken:* a SuperchainERC20 contract deployed on the Superchain
+- *supertoken:* a SuperchainERC20 contract deployed by the `OptimismSuperchainERC20Factory`
 
 # Ecosystem properties
 
@@ -62,14 +62,14 @@ legend:
 
 ## Unit test
 
-| id  | milestone           | description                                                                        | halmos | medusa |
-| --- | ---                 | ---                                                                                | ---    | ---    |
-| 0   | Factories           | supertoken token address does not depend on the executing chain’s chainID          | [ ]    | [ ]    |
-| 1   | Factories           | supertoken token address depends on name, remote token, address and decimals       | [ ]    | [ ]    |
-| 2   | Liquidity Migration | convert() should only allow converting legacy tokens to supertoken and viceversa   | [ ]    | [ ]    |
-| 3   | Liquidity Migration | convert() only allows migrations between tokens representing the same remote asset | [ ]    | [ ]    |
-| 4   | Liquidity Migration | convert() only allows migrations from tokens with the same decimals                | [ ]    | [ ]    |
-| 5   | Liquidity Migration | convert() burns the same amount of one token that it mints of the other            | [ ]    | [ ]    |
+| id  | milestone           | description                                                                                | halmos | medusa |
+| --- | ---                 | ---                                                                                        | ---    | ---    |
+| 0   | Factories           | supertoken token address does not depend on the executing chain’s chainID                  | [ ]    | [ ]    |
+| 1   | Factories           | supertoken token address depends on remote token, name, symbol and decimals                | [ ]    | [ ]    |
+| 2   | Liquidity Migration | convert() should only allow converting legacy tokens to supertoken and viceversa           | [ ]    | [ ]    |
+| 3   | Liquidity Migration | convert() only allows migrations between tokens representing the same remote asset         | [ ]    | [ ]    |
+| 4   | Liquidity Migration | convert() only allows migrations from tokens with the same decimals                        | [ ]    | [ ]    |
+| 5   | Liquidity Migration | convert() burns the same amount of legacy token that it mints of supertoken, and viceversa | [ ]    | [ ]    |
 
 ## Valid state
 
@@ -98,7 +98,7 @@ legend:
 | --- | ---                 | ---                                                                                                                                                                   | ---    | ---    |
 | 17  | Liquidity Migration | only calls to convert(legacy, super) can increase a supertoken’s  total supply across chains                                                                          | [ ]    | [ ]    |
 | 18  | Liquidity Migration | only calls to convert(super, legacy) can decrease a supertoken’s  total supply across chains                                                                          | [ ]    | [ ]    |
-| 19  | Liquidity Migration | sum of total supply across all chains is always <= to convert(legacy, super)- convert(super, legacy)                                                                  | [ ]    | [ ]    |
+| 19  | Liquidity Migration | sum of supertoken total supply across all chains is always <= to convert(legacy, super)- convert(super, legacy)                                                       | [ ]    | [ ]    |
 | 20  | SupERC20            | tokens sendERC20-ed on a source chain to a destination chain can be relayERC20-ed on it as long as the source chain is in the dependency set of the destination chain | [ ]    | [ ]    |
 | 21  | Liquidity Migration | sum of supertoken total supply across all chains is = to convert(legacy, super)- convert(super, legacy) when all cross-chain messages are processed                   | [ ]    | [ ]    |
 
