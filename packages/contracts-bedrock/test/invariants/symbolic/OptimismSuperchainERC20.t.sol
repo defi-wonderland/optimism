@@ -97,39 +97,23 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
         }
     }
 
-    // TODO: Fails on the revert even though the error is expected on the catch. Passes on foundry
     /// @custom:property-id 7
     /// @custom:property-id Calls to relayERC20 always succeed as long as the cross-domain caller is valid
     function check_relayERC20OnlyFromL2ToL2Messenger(address _sender, uint256 _amount) public {
-        vm.prank(address(MESSENGER));
-        try optimismSuperchainERC20.relayERC20(user, target, _amount) { }
-        catch {
-            assert(false);
+        /* Action */
+        vm.prank(_sender);
+        try optimismSuperchainERC20.relayERC20(user, target, _amount) {
+            /* Postconditions */
+            assert(_sender == address(MESSENGER));
+        } catch {
+            assert(_sender != address(MESSENGER));
         }
-
-        vm.prank(user);
-        try optimismSuperchainERC20.relayERC20(user, target, _amount) { }
-        catch {
-            // The error is indeed the expected one, but the test fails
-            assert(true);
-        }
-
-        // Doesn't work even though it reverts with the expected error :()
-        // try optimismSuperchainERC20.relayERC20(user, target, _amount) {
-        //     console.log(7);
-        //     assert(_sender == address(MESSENGER));
-        // } catch {
-        //     console.log(8);
-        //     console.log(_sender);
-        //     // The error is indeed the expected one, but the test fails
-        //     assert(_sender != address(MESSENGER));
-        // }
     }
 
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
     function check_sendERC20ZeroCall(address _to, uint256 _chainId) public {
-        /* Precondition */
+        /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_chainId != CURRENT_CHAIN_ID);
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
@@ -186,6 +170,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
     /// amount
     function check_relayERC20IncreasesTotalSupply(uint256 _amount) public {
         uint256 _totalSupplyBef = optimismSuperchainERC20.totalSupply();
+        uint256 _balanceBef = optimismSuperchainERC20.balanceOf(target);
 
         /* Action */
         vm.prank(address(MESSENGER));
@@ -193,6 +178,7 @@ contract OptimismSuperchainERC20_SymTest is HalmosTest {
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBef + _amount);
+        assert(optimismSuperchainERC20.balanceOf(target) == _balanceBef + _amount);
     }
 
     /// @custom:property-id 12

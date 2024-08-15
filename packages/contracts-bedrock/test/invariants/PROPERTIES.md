@@ -21,10 +21,10 @@ legend:
 
 ## Valid state
 
-| id  | description                                                                    | halmos | medusa |
-| --- | ------------------------------------------------------------------------------ | ------ | ------ |
-| 6   | calls to sendERC20 succeed as long as caller has enough balance                | [x]    | [ ]    |
-| 7   | calls to relayERC20 always succeed as long as the cross-domain caller is valid | [x]    | [ ]    |
+| id  | description                                                                    | halmos  | medusa |
+| --- | ------------------------------------------------------------------------------ | ------- | ------ |
+| 6   | calls to sendERC20 succeed as long as caller has enough balance                | [x]     | [ ]    |
+| 7   | calls to relayERC20 always succeed as long as the cross-domain caller is valid | **[x]** | [ ]    |
 
 ## Variable transition
 
