@@ -35,7 +35,6 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
         // into account when etching on halmos. Setting a constant slot with setters and getters didn't work neither.
     }
 
-    /// @custom:property-id 0
     /// @custom:property Check setup works as expected
     function check_setup() public view {
         assert(optimismSuperchainERC20.remoteToken() == remoteToken);
