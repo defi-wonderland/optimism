@@ -7,7 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Pr
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { MockCrossDomainMessenger } from "../helpers/MockCrossDomainMessenger.t.sol";
+import { MockL2ToL2CrossDomainMessenger } from "../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
 
 contract ProtocolAtomicFuzz is Test {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
@@ -17,8 +17,8 @@ contract ProtocolAtomicFuzz is Test {
     uint8 internal constant INITIAL_SUPERTOKENS = 1;
     uint8 internal constant SUPERTOKEN_INITIAL_MINT = 100;
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
-    MockCrossDomainMessenger internal constant MESSENGER =
-        MockCrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    MockL2ToL2CrossDomainMessenger internal constant MESSENGER =
+        MockL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     OptimismSuperchainERC20 internal superchainERC20Impl;
     // NOTE: having more options for this enables the fuzzer to configure
     // different supertokens for the same remote token
@@ -35,11 +35,11 @@ contract ProtocolAtomicFuzz is Test {
     address[] internal remoteTokens;
     address[] internal allSuperTokens;
 
-    //@dev  'real' deploy salt => total supply sum across chains
+    //@notice  'real' deploy salt => total supply sum across chains
     EnumerableMap.Bytes32ToUintMap internal ghost_totalSupplyAcrossChains;
 
     constructor() {
-        vm.etch(address(MESSENGER), address(new MockCrossDomainMessenger()).code);
+        vm.etch(address(MESSENGER), address(new MockL2ToL2CrossDomainMessenger()).code);
         superchainERC20Impl = new OptimismSuperchainERC20();
         for (uint256 i = 0; i < INITIAL_TOKENS; i++) {
             _deployRemoteToken();
@@ -49,6 +49,10 @@ contract ProtocolAtomicFuzz is Test {
         }
     }
 
+    /// @notice the deploy params are _indexes_ to pick from a pre-defined array of options and limit
+    /// the amount of supertokens for a given remoteAsset that are incompatible between them, as
+    /// two supertokens have to share decimals, name, symbol and remoteAsset to be considered
+    /// the same asset, and therefore bridgable.
     modifier validateTokenDeployParams(TokenDeployParams memory params) {
         params.remoteTokenIndex = uint8(bound(params.remoteTokenIndex, 0, remoteTokens.length - 1));
         params.nameIndex = uint8(bound(params.nameIndex, 0, WORDS.length - 1));
@@ -57,6 +61,7 @@ contract ProtocolAtomicFuzz is Test {
         _;
     }
 
+    /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
     function fuzz_DeployNewSupertoken(
         TokenDeployParams memory params,
         uint256 chainId
@@ -113,6 +118,9 @@ contract ProtocolAtomicFuzz is Test {
         }
     }
 
+    /// @notice pick one already-deployed supertoken and mint an arbitrary amount of it
+    /// necessary so there is something to be bridged :D
+    /// TODO: will be replaced when testing the factories and `convert()`
     function fuzz_MintSupertoken(uint256 index, uint96 amount) external {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
@@ -130,13 +138,15 @@ contract ProtocolAtomicFuzz is Test {
     /// @custom:property-id 24
     /// @custom:property sum of supertoken total supply across all chains is always equal to convert(legacy, super)-
     /// convert(super, legacy)
-    /// @dev deliberately not a view method so medusa runs it but not the view methods defined by Test
+    /// @notice deliberately not a view method so medusa runs it but not the view methods defined by Test
     function property_totalSupplyAcrossChainsEqualsMints() external {
-        for (uint256 i = 0; i < ghost_totalSupplyAcrossChains.length(); i++) {
+        // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
+        for (uint256 deploySaltIndex = 0; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
             uint256 totalSupply = 0;
-            (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(i);
-            for (uint256 j = 0; j < MAX_CHAINS; j++) {
-                address supertoken = MESSENGER.superTokenAddresses(j, currentSalt);
+            (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(deploySaltIndex);
+            // and then over all the (mocked) chain ids where that supertoken could be deployed
+            for (uint256 validChainId = 0; validChainId < MAX_CHAINS; validChainId++) {
+                address supertoken = MESSENGER.superTokenAddresses(validChainId, currentSalt);
                 if (supertoken != address(0)) {
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
                 }
@@ -149,11 +159,15 @@ contract ProtocolAtomicFuzz is Test {
         _deployRemoteToken();
     }
 
+    /// @notice deploy a remote token, that supertokens will be a representation of. They are  never called, so there
+    /// is no need to actually deploy a contract for them
     function _deployRemoteToken() internal {
         // make sure they don't conflict with predeploys/preinstalls/precompiles/other tokens
         remoteTokens.push(address(uint160(1000 + remoteTokens.length)));
     }
 
+    /// @custom:property-id 14
+    /// @custom:property supertoken total supply starts at zero
     function _deploySupertoken(
         address remoteToken,
         string memory nameIndex,
@@ -163,7 +177,10 @@ contract ProtocolAtomicFuzz is Test {
     )
         internal
     {
+        // this salt would be used in production. Tokens sharing it will be bridgable with each other
         bytes32 realSalt = keccak256(abi.encode(remoteToken, nameIndex, symbolIndex, decimals));
+        // what we use in the tests to walk around two contracts needing two different addresses
+        // tbf we could be using CREATE1, but this feels more verbose
         bytes32 hackySalt = keccak256(abi.encode(remoteToken, nameIndex, symbolIndex, decimals, chainId));
         OptimismSuperchainERC20 token = OptimismSuperchainERC20(
             address(
@@ -174,6 +191,8 @@ contract ProtocolAtomicFuzz is Test {
                 )
             )
         );
+        // 14
+        assert(token.totalSupply() == 0);
         MESSENGER.registerSupertoken(realSalt, chainId, address(token));
         allSuperTokens.push(address(token));
     }

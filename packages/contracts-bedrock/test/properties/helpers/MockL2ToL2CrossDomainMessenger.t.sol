@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 
-contract MockCrossDomainMessenger {
+contract MockL2ToL2CrossDomainMessenger {
     /////////////////////////////////////////////////////////
     //  State vars mocking the L2toL2CrossDomainMessenger  //
     /////////////////////////////////////////////////////////
@@ -14,14 +14,15 @@ contract MockCrossDomainMessenger {
     ///////////////////////////////////////////////////
     //  Helpers for cross-chain interaction mocking  //
     ///////////////////////////////////////////////////
-    mapping(address => bytes32) public superTokenInitDeploySalts;
-    mapping(uint256 chainId => mapping(bytes32 reayDeployData => address)) public superTokenAddresses;
+    mapping(address supertoken => bytes32 deploySalt) public superTokenInitDeploySalts;
+    mapping(uint256 chainId => mapping(bytes32 deploySalt => address supertoken)) public superTokenAddresses;
 
     function crossChainMessageReceiver(
         address sender,
         uint256 destinationChainId
     )
         external
+        view
         returns (OptimismSuperchainERC20)
     {
         return OptimismSuperchainERC20(superTokenAddresses[destinationChainId][superTokenInitDeploySalts[sender]]);
@@ -36,7 +37,7 @@ contract MockCrossDomainMessenger {
     //  Functions mocking the L2toL2CrossDomainMessenger  //
     ////////////////////////////////////////////////////////
 
-    /// @dev recipient will not be used since in normal execution it's the same
+    /// @notice recipient will not be used since in normal execution it's the same
     /// address on a different chain, but here we have to compute it to mock
     /// cross-chain messaging
     function sendMessage(uint256 chainId, address, /*recipient*/ bytes memory message) external {

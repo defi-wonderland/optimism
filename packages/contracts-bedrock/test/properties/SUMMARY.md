@@ -18,9 +18,8 @@ Given the [OP monorepo](https://github.com/ethereum-optimism/optimism) already h
 
 ## Contracts in scope
 
-- [ ]  [OptimismSuperchainERC20](https://github.com/defi-wonderland/optimism/pull/9/files#diff-810060510a8a9c06dc60cdce6782e5cafd93b638e2557307a68abe694ee86aee)
-- [ ]  [OptimismMintableERC20Factory](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20Factory.sol)
-- [ ]  [SuperchsupERC20ainERC20](https://github.com/defi-wonderland/optimism/pull/8/files#diff-603fd7d5a0b2c403c0d1eee21d0ee60fb8eb72430169eaac5ec7081e01de96b8) (not yet merged)
+- [ ]  [OptimismMintableERC20Factory](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20Factory.sol) (modifications to enable `convert` not yet merged)
+- [ ]  [OptimismSuperchainERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/OptimismSuperchainERC20.sol1)
 - [ ]  [SuperchainERC20Factory](https://github.com/defi-wonderland/optimism/pull/8/files#diff-09838f5703c353d0f7c5ff395acc04c1768ef58becac67404bc17e1fb0018517) (not yet merged)
 - [ ]  [L2StandardBridgeInterop](https://github.com/defi-wonderland/optimism/pull/10/files#diff-56cf869412631eac0a04a03f7d026596f64a1e00fcffa713bc770d67c6856c2f) (not yet merged)
 
@@ -29,7 +28,7 @@ Given the [OP monorepo](https://github.com/ethereum-optimism/optimism) already h
 - [ ]  inclusion of relay transactions
 - [ ]  sequencer implementation
 - [ ]  [OptimismMintableERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20.sol)
-- [ ]  [L2ToL2CrossDomainMessenger](https://github.com/defi-wonderland/src/L2/L2CrossDomainMessenger.sol)
+- [ ]  [L2ToL2CrossDomainMessenger](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2CrossDomainMessenger.sol)
 - [ ]  [CrossL2Inbox](https://github.com/defi-wonderland/src/L2/CrossL2Inbox.sol)
 
 ## Pain points
