@@ -11,9 +11,6 @@ import { AdvancedTest } from "../helpers/AdvancedTests.sol";
 contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
     MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-    address internal user = address(bytes20(keccak256("user")));
-    address internal target = address(bytes20(keccak256("target")));
-
     OptimismSuperchainERC20 public superchainERC20Impl;
     OptimismSuperchainERC20 internal optimismSuperchainERC20;
 
@@ -81,11 +78,20 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
     /// @custom:property-id 7
     /// @custom:property-id Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
     /// @notice Partially verified since it can't be fully verified due to the use of `crossDomainMessageSender()`
-    function check_relayERC20OnlyFromL2ToL2Messenger(address _sender, uint256 _amount) public {
+    function check_relayERC20OnlyFromL2ToL2Messenger(
+        address _sender,
+        address _from,
+        address _to,
+        uint256 _amount
+    )
+        public
+    {
         /* Precondition */
+        vm.assume(_to != address(0));
+
         vm.prank(_sender);
         /* Action */
-        try optimismSuperchainERC20.relayERC20(user, target, _amount) {
+        try optimismSuperchainERC20.relayERC20(_from, _to, _amount) {
             /* Postconditions */
             assert(_sender == address(MESSENGER));
         } catch {
@@ -95,110 +101,123 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
 
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
-    function check_sendERC20ZeroCall(address _to, uint256 _chainId) public {
+    function check_sendERC20ZeroCall(address _from, address _to, uint256 _chainId) public {
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_chainId != CURRENT_CHAIN_ID);
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
 
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
+        uint256 _fromBalanceBefore = optimismSuperchainERC20.balanceOf(_from);
 
-        vm.startPrank(user);
+        vm.startPrank(_from);
         /* Action */
         optimismSuperchainERC20.sendERC20(_to, ZERO_AMOUNT, _chainId);
 
         /* Postcondition */
         assert(_totalSupplyBefore == optimismSuperchainERC20.totalSupply());
+        assert(_fromBalanceBefore == optimismSuperchainERC20.balanceOf(_from));
     }
 
     /// @custom:property-id 9
     /// @custom:property `relayERC20` with a value of zero does not modify accounting
-    function check_relayERC20ZeroCall(address _to) public {
+    function check_relayERC20ZeroCall(address _from, address _to) public {
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
         /* Preconditions */
-        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(user);
+        uint256 _fromBalanceBefore = optimismSuperchainERC20.balanceOf(_from);
+        uint256 _toBalanceBefore = optimismSuperchainERC20.balanceOf(_to);
         vm.prank(address(MESSENGER));
 
         /* Action */
-        optimismSuperchainERC20.relayERC20(user, _to, ZERO_AMOUNT);
+        optimismSuperchainERC20.relayERC20(_from, _to, ZERO_AMOUNT);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore);
-        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBefore);
+        assert(optimismSuperchainERC20.balanceOf(_from) == _fromBalanceBefore);
+        assert(optimismSuperchainERC20.balanceOf(_to) == _toBalanceBefore);
     }
 
     /// @custom:property-id 10
     /// @custom:property `sendERC20` decreases the token's totalSupply in the source chain exactly by the input amount
-    function check_sendERC20DecreasesTotalSupply(address _to, uint256 _amount, uint256 _chainId) public {
+    function check_sendERC20DecreasesTotalSupply(
+        address _sender,
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        public
+    {
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_chainId != CURRENT_CHAIN_ID);
 
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        optimismSuperchainERC20.mint(user, _amount);
+        optimismSuperchainERC20.mint(_sender, _amount);
 
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
-        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(user);
+        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(_sender);
 
-        vm.prank(user);
+        vm.prank(_sender);
         /* Action */
         optimismSuperchainERC20.sendERC20(Predeploys.CROSS_L2_INBOX, _amount, _chainId);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore - _amount);
-        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBefore - _amount);
+        assert(optimismSuperchainERC20.balanceOf(_sender) == _balanceBefore - _amount);
     }
 
     /// @custom:property-id 11
     /// @custom:property `relayERC20` increases the token's totalSupply in the destination chain exactly by the input
     /// amount
-    function check_relayERC20IncreasesTotalSupply(uint256 _amount) public {
+    function check_relayERC20IncreasesTotalSupply(address _from, address _to, uint256 _amount) public {
+        vm.assume(_to != address(0));
+
         /* Preconditions */
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
-        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(target);
+        uint256 _toBalanceBefore = optimismSuperchainERC20.balanceOf(_to);
 
         vm.prank(address(MESSENGER));
         /* Action */
-        optimismSuperchainERC20.relayERC20(user, target, _amount);
+        optimismSuperchainERC20.relayERC20(_from, _to, _amount);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore + _amount);
-        assert(optimismSuperchainERC20.balanceOf(target) == _balanceBefore + _amount);
+        assert(optimismSuperchainERC20.balanceOf(_to) == _toBalanceBefore + _amount);
     }
 
     /// @custom:property-id 12
     /// @custom:property Increases the total supply on the amount minted by the bridge
-    function check_mint(uint256 _amount) public {
+    function check_mint(address _from, uint256 _amount) public {
         /* Preconditions */
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
-        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(user);
+        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(_from);
 
         vm.startPrank(Predeploys.L2_STANDARD_BRIDGE);
         /* Action */
-        optimismSuperchainERC20.mint(user, _amount);
+        optimismSuperchainERC20.mint(_from, _amount);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore + _amount);
-        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBefore + _amount);
+        assert(optimismSuperchainERC20.balanceOf(_from) == _balanceBefore + _amount);
     }
 
     /// @custom:property-id 13
     /// @custom:property Supertoken total supply only decreases on the amount burned by the bridge
-    function check_burn(uint256 _amount) public {
+    function check_burn(address _from, uint256 _amount) public {
         /* Preconditions */
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        optimismSuperchainERC20.mint(user, _amount);
+        optimismSuperchainERC20.mint(_from, _amount);
 
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
-        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(user);
+        uint256 _balanceBefore = optimismSuperchainERC20.balanceOf(_from);
 
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
         /* Action */
-        optimismSuperchainERC20.burn(user, _amount);
+        optimismSuperchainERC20.burn(_from, _amount);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore - _amount);
-        assert(optimismSuperchainERC20.balanceOf(user) == _balanceBefore - _amount);
+        assert(optimismSuperchainERC20.balanceOf(_from) == _balanceBefore - _amount);
     }
 
     /// @custom:property-id 14
