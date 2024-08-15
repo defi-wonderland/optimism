@@ -9,8 +9,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 
-import "forge-std/Test.sol";
-
 /// @notice Thrown when attempting to relay a message and the function caller (msg.sender) is not
 /// L2ToL2CrossDomainMessenger.
 error CallerNotL2ToL2CrossDomainMessenger();
@@ -143,23 +141,17 @@ contract OptimismSuperchainERC20 is IOptimismSuperchainERC20Extension, ERC20, IS
     /// @param _to     Address to relay tokens to.
     /// @param _amount Amount of tokens to relay.
     function relayERC20(address _from, address _to, uint256 _amount) external {
-        console.log(1);
         if (_to == address(0)) revert ZeroAddress();
 
-        console.log(2);
         if (msg.sender != MESSENGER) revert CallerNotL2ToL2CrossDomainMessenger();
 
-        console.log(3);
         if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
             revert InvalidCrossDomainSender();
         }
 
-        console.log(4);
         uint256 source = IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSource();
 
-        console.log(5);
         _mint(_to, _amount);
-        console.log(6);
 
         emit RelayERC20(_from, _to, _amount, source);
     }
