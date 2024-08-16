@@ -35,7 +35,7 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
         // into account when etching on halmos. Setting a constant slot with setters and getters didn't work neither.
     }
 
-    /// @custom:property Check setup works as expected
+    /// @notice Check setup works as expected
     function check_setup() public view {
         assert(optimismSuperchainERC20.remoteToken() == remoteToken);
         assert(eqStrings(optimismSuperchainERC20.name(), name));
@@ -76,8 +76,8 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
 
     /// @custom:property-id 7
     /// @custom:property-id Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
-    /// @notice Partially verified since it can't be fully verified due to the use of `crossDomainMessageSender()`
     function check_relayERC20OnlyFromL2ToL2Messenger(
+        address _crossDomainSender,
         address _sender,
         address _from,
         address _to,
@@ -87,14 +87,23 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
     {
         /* Precondition */
         vm.assume(_to != address(0));
+        // Deploying a new messenger because of an issue of not being able to etch the storage layout of the mock
+        // contract. So needed to a new one setting the symbolic immutable variable for the crossDomainSender.
+        vm.etch(address(MESSENGER), address(new MockL2ToL2Messenger(_crossDomainSender)).code);
 
         vm.prank(_sender);
         /* Action */
         try optimismSuperchainERC20.relayERC20(_from, _to, _amount) {
             /* Postconditions */
-            assert(_sender == address(MESSENGER));
+            assert(
+                _sender == address(MESSENGER)
+                    && MESSENGER.crossDomainMessageSender() == address(optimismSuperchainERC20)
+            );
         } catch {
-            assert(_sender != address(MESSENGER));
+            assert(
+                _sender != address(MESSENGER)
+                    || MESSENGER.crossDomainMessageSender() != address(optimismSuperchainERC20)
+            );
         }
     }
 
