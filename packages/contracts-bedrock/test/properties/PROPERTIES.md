@@ -43,7 +43,7 @@ Given the [OP monorepo](https://github.com/ethereum-optimism/optimism) already h
 
 ## Pain points
 
-- existing fuzzing tools use the same EVM to run the tested contracts as they do for asserting invariants, tracking ghost variables and everything else necessary to provision a fuzzing campaign. While this is usually very convenient, it means that we can’t assert on the behaviour/state of *different* EVMs from within a fuzzing campaign. This means we will have to walk around the requirement of supertokens having the same address across all chains, and implement a way to mock tokens existing in different chains. We will strive to formally prove it in a unitary fashion to mitigate this in properties 0 and 1
+- existing fuzzing tools use the same EVM to run the tested contracts as they do for asserting invariants, tracking ghost variables and everything else necessary to provision a fuzzing campaign. While this is usually very convenient, it means that we can’t assert on the behaviour/state of *different* chains from within a fuzzing campaign. This means we will have to walk around the requirement of supertokens having the same address across all chains, and implement a way to mock tokens existing in different chains. We will strive to formally prove it in a unitary fashion to mitigate this in properties 0 and 1
 - a buffer to represent 'in transit' messages should be implemented to assert on invariants relating to the non-atomicity of bridging from one chain to another. It is yet to be determined if it’ll be a FIFO queue (assuming ideal message ordering by sequencers) or it’ll have random-access capability to simulate messages arriving out of order
 
 ## Definitions
