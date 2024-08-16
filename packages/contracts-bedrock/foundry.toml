@@ -101,3 +101,8 @@ script = 'test/kontrol/proofs'
 src = 'test/properties/medusa/'
 test = 'test/properties/medusa/'
 script = 'test/properties/medusa/'
+
+[profile.halmos]
+src = 'test/properties/halmos/'
+test = 'test/properties/halmos/'
+script = 'test/properties/halmos/'

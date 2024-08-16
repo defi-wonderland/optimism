@@ -25,6 +25,9 @@ test-kontrol:
 test-medusa:
   FOUNDRY_PROFILE=medusa medusa fuzz
 
+test-halmos:
+  FOUNDRY_PROFILE=halmos halmos
+
 test-rerun: build-go-ffi
   forge test --rerun -vvv
 
