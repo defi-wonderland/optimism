@@ -41,10 +41,10 @@ contract ProtocolAtomicFuzz is Test {
     constructor() {
         vm.etch(address(MESSENGER), address(new MockL2ToL2CrossDomainMessenger()).code);
         superchainERC20Impl = new OptimismSuperchainERC20();
-        for (uint256 i = 0; i < INITIAL_TOKENS; i++) {
+        for (uint256 remoteTokenIndex = 0; remoteTokenIndex < INITIAL_TOKENS; remoteTokenIndex++) {
             _deployRemoteToken();
-            for (uint256 j = 0; j < INITIAL_SUPERTOKENS; j++) {
-                _deploySupertoken(remoteTokens[i], WORDS[0], WORDS[0], DECIMALS[0], j);
+            for (uint256 supertokenChainId = 0; supertokenChainId < INITIAL_SUPERTOKENS; supertokenChainId++) {
+                _deploySupertoken(remoteTokens[remoteTokenIndex], WORDS[0], WORDS[0], DECIMALS[0], supertokenChainId);
             }
         }
     }
@@ -62,6 +62,8 @@ contract ProtocolAtomicFuzz is Test {
     }
 
     /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
+    /// @custom:property-id 14
+    /// @custom:property supertoken total supply starts at zero
     function fuzz_DeployNewSupertoken(
         TokenDeployParams memory params,
         uint256 chainId
@@ -70,13 +72,15 @@ contract ProtocolAtomicFuzz is Test {
         validateTokenDeployParams(params)
     {
         chainId = bound(chainId, 0, MAX_CHAINS - 1);
-        _deploySupertoken(
+        OptimismSuperchainERC20 supertoken = _deploySupertoken(
             remoteTokens[params.remoteTokenIndex],
             WORDS[params.nameIndex],
             WORDS[params.symbolIndex],
             DECIMALS[params.decimalsIndex],
             chainId
         );
+        // 14
+        assert(supertoken.totalSupply() == 0);
     }
 
     /// @custom:property-id 22
@@ -166,34 +170,36 @@ contract ProtocolAtomicFuzz is Test {
         remoteTokens.push(address(uint160(1000 + remoteTokens.length)));
     }
 
-    /// @custom:property-id 14
-    /// @custom:property supertoken total supply starts at zero
+    /// @notice deploy a new supertoken representing remoteToken
+    /// remoteToken, name, symbol and decimals determine the 'real' deploy salt
+    /// and supertokens sharing it are interoperable between them
+    /// we however use the chainId as part of the deploy salt to mock the ability of
+    /// supertokens to exist on different chains on a single EVM.
     function _deploySupertoken(
         address remoteToken,
-        string memory nameIndex,
-        string memory symbolIndex,
+        string memory name,
+        string memory symbol,
         uint8 decimals,
         uint256 chainId
     )
         internal
+        returns(OptimismSuperchainERC20 supertoken)
     {
         // this salt would be used in production. Tokens sharing it will be bridgable with each other
-        bytes32 realSalt = keccak256(abi.encode(remoteToken, nameIndex, symbolIndex, decimals));
+        bytes32 realSalt = keccak256(abi.encode(remoteToken, name, symbol, decimals));
         // what we use in the tests to walk around two contracts needing two different addresses
         // tbf we could be using CREATE1, but this feels more verbose
-        bytes32 hackySalt = keccak256(abi.encode(remoteToken, nameIndex, symbolIndex, decimals, chainId));
-        OptimismSuperchainERC20 token = OptimismSuperchainERC20(
+        bytes32 hackySalt = keccak256(abi.encode(remoteToken, name, symbol, decimals, chainId));
+        supertoken = OptimismSuperchainERC20(
             address(
                 // TODO: Use the SuperchainERC20 Beacon Proxy
                 new ERC1967Proxy{ salt: hackySalt }(
                     address(superchainERC20Impl),
-                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, nameIndex, symbolIndex, decimals))
+                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
                 )
             )
         );
-        // 14
-        assert(token.totalSupply() == 0);
-        MESSENGER.registerSupertoken(realSalt, chainId, address(token));
-        allSuperTokens.push(address(token));
+        MESSENGER.registerSupertoken(realSalt, chainId, address(supertoken));
+        allSuperTokens.push(address(supertoken));
     }
 }
