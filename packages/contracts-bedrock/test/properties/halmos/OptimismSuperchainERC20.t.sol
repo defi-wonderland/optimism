@@ -114,8 +114,8 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
         optimismSuperchainERC20.sendERC20(_to, ZERO_AMOUNT, _chainId);
 
         /* Postcondition */
-        assert(_totalSupplyBefore == optimismSuperchainERC20.totalSupply());
-        assert(_fromBalanceBefore == optimismSuperchainERC20.balanceOf(_from));
+        assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore);
+        assert(optimismSuperchainERC20.balanceOf(_from) == _fromBalanceBefore);
     }
 
     /// @custom:property-id 9
