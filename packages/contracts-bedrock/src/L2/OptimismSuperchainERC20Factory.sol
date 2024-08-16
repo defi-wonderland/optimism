@@ -12,7 +12,7 @@ import { CREATE3 } from "@rari-capital/solmate/src/utils/CREATE3.sol";
 /// @custom:predeployed 0x4200000000000000000000000000000000000026
 /// @title OptimismSuperchainERC20Factory
 /// @notice OptimismSuperchainERC20Factory is a factory contract that deploys OptimismSuperchainERC20 Beacon Proxies
-///         using CREATE3 through CreateX.
+///         using CREATE3.
 contract OptimismSuperchainERC20Factory is IOptimismERC20Factory, ISemver {
     /// @notice Mapping of the deployed OptimismSuperchainERC20 to the remote token address.
     ///         This is used to keep track of the token deployments.
@@ -54,7 +54,7 @@ contract OptimismSuperchainERC20Factory is IOptimismERC20Factory, ISemver {
             type(BeaconProxy).creationCode, abi.encode(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, initCallData)
         );
 
-        // Use CREATE3 for deterministic deployment through CreateX.
+        // Use CREATE3 for deterministic deployment.
         bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
         _superchainERC20 = CREATE3.deploy({ salt: salt, creationCode: creationCode, value: 0 });
 
