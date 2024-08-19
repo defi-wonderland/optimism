@@ -7,7 +7,7 @@
 		"callSequenceLength": 100,
 		"corpusDirectory": "test/properties/medusa/corpus/",
 		"coverageEnabled": true,
-		"targetContracts": ["ProtocolAtomicFuzz"],
+		"targetContracts": ["ProtocolProperties"],
 		"targetContractsBalances": [],
 		"constructorArgs": {},
 		"deployerAddress": "0x30000",
@@ -43,7 +43,7 @@
 				}
 			},
 			"propertyTesting": {
-				"enabled": false,
+				"enabled": true,
 				"testPrefixes": [
 					"property_"
 				]
