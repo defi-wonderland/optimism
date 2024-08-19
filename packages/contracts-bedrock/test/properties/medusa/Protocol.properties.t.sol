@@ -104,4 +104,71 @@ contract ProtocolProperties is ProtocolHandler {
             assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
         }
     }
+
+    /// @custom:property-id 8
+    /// @custom:property calls to sendERC20 with a value of zero dont modify accounting
+    // NOTE: should we keep it? will cause the exact same coverage as fuzz_BridgeSupertoken
+    function fuzz_SendZeroDoesNotModifyAccounting(
+        uint256 fromIndex,
+        uint256 recipientIndex,
+        uint256 destinationChainId
+    )
+        external
+        withActor(msg.sender)
+    {
+        destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
+        fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
+        address recipient = getActorByRawIndex(recipientIndex);
+        OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
+        OptimismSuperchainERC20 destinationToken =
+            MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
+        // TODO: perhaps the mock should already start ignoring this?
+        require(address(destinationToken) != address(0));
+        uint256 sourceBalanceBefore = sourceToken.balanceOf(currentActor());
+        uint256 sourceSupplyBefore = sourceToken.totalSupply();
+        uint256 destinationBalanceBefore = destinationToken.balanceOf(recipient);
+        uint256 destinationSupplyBefore = destinationToken.totalSupply();
+
+        vm.prank(currentActor());
+        try sourceToken.sendERC20(recipient, 0, destinationChainId) {
+            uint256 sourceBalanceAfter = sourceToken.balanceOf(currentActor());
+            uint256 destinationBalanceAfter = destinationToken.balanceOf(recipient);
+            assert(sourceBalanceBefore == sourceBalanceAfter);
+            assert(destinationBalanceBefore == destinationBalanceAfter);
+            uint256 sourceSupplyAfter = sourceToken.totalSupply();
+            uint256 destinationSupplyAfter = destinationToken.totalSupply();
+            assert(sourceSupplyBefore == sourceSupplyAfter);
+            assert(destinationSupplyBefore == destinationSupplyAfter);
+        } catch {
+            assert(address(destinationToken) == address(sourceToken));
+        }
+    }
+
+    /// @custom:property-id 9
+    /// @custom:property calls to relayERC20 with a value of zero dont modify accounting
+    function fuzz_RelayZeroDoesNotModifyAccounting(
+        uint256 fromIndex,
+        uint256 recipientIndex
+    )
+        external
+        withActor(msg.sender)
+    {
+        fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
+        address recipient = getActorByRawIndex(recipientIndex);
+        OptimismSuperchainERC20 token = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
+        uint256 balanceBefore = token.balanceOf(currentActor());
+        uint256 supplyBefore = token.totalSupply();
+
+        vm.prank(address(MESSENGER));
+        vm.mockCall(
+            address(MESSENGER),
+            abi.encodeWithSignature("crossDomainMessageSource()"),
+            abi.encode(address(token))
+        );
+        token.relayERC20(currentActor(), recipient, 0);
+        uint256 balanceAfter = token.balanceOf(currentActor());
+        uint256 supplyAfter = token.totalSupply();
+        assert(balanceBefore == balanceAfter);
+        assert(supplyBefore == supplyAfter);
+    }
 }

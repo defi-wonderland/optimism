@@ -82,8 +82,8 @@ legend:
 
 | id  | milestone           | description                                                                                       | halmos | medusa |
 | --- | ---                 | ---                                                                                               | ---    | ---    |
-| 8   | SupERC20            | sendERC20 with a value of zero does not modify accounting                                         | [ ]    | [ ]    |
-| 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [ ]    | [ ]    |
+| 8   | SupERC20            | sendERC20 with a value of zero does not modify accounting                                         | [ ]    | [x]    |
+| 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [ ]    | [x]    |
 | 10  | SupERC20            | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [ ]    | [ ]    |
 | 11  | SupERC20            | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [ ]    | [ ]    |
 | 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [ ]    | [~]    |
