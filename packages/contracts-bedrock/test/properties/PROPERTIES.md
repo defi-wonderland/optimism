@@ -86,9 +86,9 @@ legend:
 | 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [ ]    | [ ]    |
 | 10  | SupERC20            | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [ ]    | [ ]    |
 | 11  | SupERC20            | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [ ]    | [ ]    |
-| 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [ ]    | [ ]    |
+| 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [ ]    | [~]    |
 | 13  | Liquidity Migration | supertoken total supply only decreases on calls to burn() by the L2toL2StandardBridge             | [ ]    | [ ]    |
-| 14  | SupERC20            | supertoken total supply starts at zero                                                            | [ ]    | [ ]    |
+| 14  | SupERC20            | supertoken total supply starts at zero                                                            | [ ]    | [x]    |
 | 15  | Factories           | deploying a supertoken registers its remote token in the factory                                  | [ ]    | [ ]    |
 | 16  | Factories           | deploying an OptimismMintableERC20 registers its remote token in the factory                      | [ ]    | [ ]    |
 
