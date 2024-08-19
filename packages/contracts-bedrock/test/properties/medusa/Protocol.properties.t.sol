@@ -93,18 +93,4 @@ contract ProtocolProperties is ProtocolHandler {
             assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
         }
     }
-
-    /// @notice pick one already-deployed supertoken and mint an arbitrary amount of it
-    /// necessary so there is something to be bridged :D
-    /// TODO: will be replaced when testing the factories and `convert()`
-    function fuzz_MintSupertoken(uint256 index, uint96 amount) external {
-        index = bound(index, 0, allSuperTokens.length - 1);
-        address addr = allSuperTokens[index];
-        vm.prank(BRIDGE);
-        // medusa calls with different senders by default
-        OptimismSuperchainERC20(addr).mint(msg.sender, amount);
-        // currentValue will be zero if key is not present
-        (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(MESSENGER.superTokenInitDeploySalts(addr));
-        ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);
-    }
 }
