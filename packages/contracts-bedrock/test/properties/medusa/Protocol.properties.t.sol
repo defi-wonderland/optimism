@@ -14,7 +14,7 @@ contract ProtocolProperties is ProtocolHandler {
     /// @custom:property-id 24
     /// @custom:property sum of supertoken total supply across all chains is always equal to convert(legacy, super)-
     /// convert(super, legacy)
-    function property_totalSupplyAcrossChainsEqualsMints() external view returns (bool success) {
+    function property_totalSupplyAcrossChainsEqualsMints() external view {
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
         for (uint256 deploySaltIndex = 0; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
             uint256 totalSupply = 0;
@@ -26,17 +26,14 @@ contract ProtocolProperties is ProtocolHandler {
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
                 }
             }
-            if (trackedSupply != totalSupply) {
-                return false;
-            }
+            assert(trackedSupply == totalSupply);
         }
-        return true;
     }
 
     /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
     /// @custom:property-id 14
     /// @custom:property supertoken total supply starts at zero
-    function fuzz_DeployNewSupertoken(
+    function property_DeployNewSupertoken(
         TokenDeployParams memory params,
         uint256 chainId
     )
@@ -61,7 +58,7 @@ contract ProtocolProperties is ProtocolHandler {
     /// @custom:property-id 23
     /// @custom:property sendERC20 decreases total supply in source chain and increases it in destination chain exactly
     /// by the input amount
-    function fuzz_SelfBridgeSupertoken(uint256 fromIndex, uint256 destinationChainId, uint256 amount) external {
+    function property_SelfBridgeSupertoken(uint256 fromIndex, uint256 destinationChainId, uint256 amount) external {
         destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
         fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
         OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);

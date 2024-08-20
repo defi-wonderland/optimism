@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
+import { TestBase } from "forge-std/Base.sol";
+import { StdUtils } from "forge-std/StdUtils.sol";
 
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
@@ -9,7 +10,7 @@ import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { MockL2ToL2CrossDomainMessenger } from "../../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
 
-contract ProtocolHandler is Test {
+contract ProtocolHandler is TestBase, StdUtils {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
 
     uint8 internal constant MAX_CHAINS = 4;
@@ -61,14 +62,14 @@ contract ProtocolHandler is Test {
         _;
     }
 
-    function fuzz_MockNewRemoteToken() external {
+    function handler_MockNewRemoteToken() external {
         _deployRemoteToken();
     }
 
     /// @notice pick one already-deployed supertoken and mint an arbitrary amount of it
     /// necessary so there is something to be bridged :D
     /// TODO: will be replaced when testing the factories and `convert()`
-    function fuzz_MintSupertoken(uint256 index, uint96 amount) external {
+    function handler_MintSupertoken(uint256 index, uint96 amount) external {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
         vm.prank(BRIDGE);

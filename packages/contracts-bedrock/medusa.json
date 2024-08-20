@@ -28,7 +28,7 @@
 			"traceAll": true,
 			"assertionTesting": {
 				"enabled": true,
-				"testViewMethods": false,
+				"testViewMethods": true,
 				"panicCodeConfig": {
 					"failOnCompilerInsertedPanic": false,
 					"failOnAssertion": true,
@@ -43,7 +43,7 @@
 				}
 			},
 			"propertyTesting": {
-				"enabled": true,
+				"enabled": false,
 				"testPrefixes": [
 					"property_"
 				]
