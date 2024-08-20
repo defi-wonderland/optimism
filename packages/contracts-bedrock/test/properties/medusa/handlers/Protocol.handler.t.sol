@@ -82,6 +82,45 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);
     }
 
+    function handler_SupERC20Transfer(
+        uint256 tokenIndex,
+        address recipient,
+        uint256 amount
+    )
+        external
+        withActor(msg.sender)
+    {
+        vm.prank(currentActor());
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(recipient, amount);
+    }
+
+    function handler_SupERC20TransferFrom(
+        uint256 tokenIndex,
+        address from,
+        address to,
+        uint256 amount
+    )
+        external
+        withActor(msg.sender)
+    {
+        vm.prank(currentActor());
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transferFrom(
+            from, to, amount
+        );
+    }
+
+    function handler_SupERC20Approve(
+        uint256 tokenIndex,
+        address spender,
+        uint256 amount
+    )
+        external
+        withActor(msg.sender)
+    {
+        vm.prank(currentActor());
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(spender, amount);
+    }
+
     /// @notice deploy a remote token, that supertokens will be a representation of. They are  never called, so there
     /// is no need to actually deploy a contract for them
     function _deployRemoteToken() internal {
