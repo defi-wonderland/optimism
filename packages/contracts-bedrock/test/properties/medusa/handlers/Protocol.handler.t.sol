@@ -7,6 +7,7 @@ import { StdUtils } from "forge-std/StdUtils.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
+import { OptimismSuperchainERC20ForToBProperties } from "../../helpers/OptimismSuperchainERC20ForToBProperties.t.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { MockL2ToL2CrossDomainMessenger } from "../../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
 import { Actors } from "../../helpers/Actors.t.sol";
@@ -42,7 +43,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
 
     constructor() {
         vm.etch(address(MESSENGER), address(new MockL2ToL2CrossDomainMessenger()).code);
-        superchainERC20Impl = new OptimismSuperchainERC20();
+        superchainERC20Impl = new OptimismSuperchainERC20ForToBProperties();
         for (uint256 remoteTokenIndex = 0; remoteTokenIndex < INITIAL_TOKENS; remoteTokenIndex++) {
             _deployRemoteToken();
             for (uint256 supertokenChainId = 0; supertokenChainId < INITIAL_SUPERTOKENS; supertokenChainId++) {

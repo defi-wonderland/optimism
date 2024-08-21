@@ -22,7 +22,7 @@ contract Actors is StdUtils {
     }
 
     /// @notice get the currently configured actor, should equal msg.sender
-    function currentActor() internal view returns(address){
+    function currentActor() internal view returns (address) {
         return _currentActor;
     }
 
