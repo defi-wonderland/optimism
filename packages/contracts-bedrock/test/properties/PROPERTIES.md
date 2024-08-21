@@ -71,13 +71,14 @@ legend:
 | 3   | Liquidity Migration | convert() only allows migrations between tokens representing the same remote asset         | [ ]    | [ ]    |
 | 4   | Liquidity Migration | convert() only allows migrations from tokens with the same decimals                        | [ ]    | [ ]    |
 | 5   | Liquidity Migration | convert() burns the same amount of legacy token that it mints of supertoken, and viceversa | [ ]    | [ ]    |
+| 25  | SupERC20            | supertokens can't be reinitialized                                                         | [ ]    | [x]    |
 
 ## Valid state
 
-| id  | milestone | description                                                                                | halmos  | medusa |
-| --- | ---       | ---                                                                                        | ---     | ---    |
-| 6   | SupERC20  | calls to sendERC20 succeed as long as caller has enough balance                            | [x]     | [x]    |
-| 7   | SupERC20  | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[~]** | [ ]    |
+| id  | milestone | description                                                                    | halmos  | medusa |
+| --- | ---       | ---                                                                            | ---     | ---    |
+| 6   | SupERC20  | calls to sendERC20 succeed as long as caller has enough balance                | [x]     | [x]    |
+| 7   | SupERC20  | calls to relayERC20 always succeed as long as the cross-domain caller is valid | **[~]** | [~]    |
 
 ## Variable transition
 

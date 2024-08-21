@@ -171,4 +171,48 @@ contract ProtocolProperties is ProtocolHandler {
         assert(balanceBefore == balanceAfter);
         assert(supplyBefore == supplyAfter);
     }
+
+    /// @custom:property-id 7
+    /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
+    /// @notice this ensures actors cant simply call relayERC20 and get tokens, no matter the system state
+    /// but there's still some possible work on how hard we can bork the system state with handlers calling
+    /// the L2ToL2CrossDomainMessenger or bridge directly (pending on non-atomic bridging)
+    function property_SupERC20RelayERC20AlwaysRevert(
+        uint256 tokenIndex,
+        address sender,
+        address recipient,
+        uint256 amount
+    )
+        external
+        withActor(msg.sender)
+    {
+        // if msg.sender is the L2ToL2CrossDomainMessenger then this will break other invariants
+        vm.prank(currentActor());
+        try OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).relayERC20(
+            sender, recipient, amount
+        ) {
+            assert(false);
+        } catch { }
+    }
+
+    /// @custom:property-id 25
+    /// @custom:property supertokens can't be reinitialized
+    function property_SupERC20CantBeReinitialized(
+        uint256 tokenIndex,
+        address remoteToken,
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    )
+        external
+        withActor(msg.sender)
+    {
+        vm.prank(currentActor());
+        // revert is possible in bound, but is not part of the external call
+        try OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).initialize(
+            remoteToken, name, symbol, decimals
+        ) {
+            assert(false);
+        } catch { }
+    }
 }
