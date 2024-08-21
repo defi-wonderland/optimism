@@ -50,6 +50,8 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
                 _deploySupertoken(remoteTokens[remoteTokenIndex], WORDS[0], WORDS[0], DECIMALS[0], supertokenChainId);
             }
         }
+        // integrate with all ToB properties using address(this) as the sender
+        addActor(address(this));
     }
 
     /// @notice the deploy params are _indexes_ to pick from a pre-defined array of options and limit
@@ -82,22 +84,27 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);
     }
 
+    /// @notice The ToB properties don't preclude the need for this since they
+    /// always use address(this) as the caller, which won't get any balance
+    /// until it's transferred to it somehow
     function handler_SupERC20Transfer(
         uint256 tokenIndex,
-        address recipient,
+        uint256 toIndex,
         uint256 amount
     )
         external
         withActor(msg.sender)
     {
         vm.prank(currentActor());
-        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(recipient, amount);
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(
+            getActorByRawIndex(toIndex), amount
+        );
     }
 
     function handler_SupERC20TransferFrom(
         uint256 tokenIndex,
-        address from,
-        address to,
+        uint256 fromIndex,
+        uint256 toIndex,
         uint256 amount
     )
         external
@@ -105,20 +112,22 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     {
         vm.prank(currentActor());
         OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transferFrom(
-            from, to, amount
+            getActorByRawIndex(fromIndex), getActorByRawIndex(toIndex), amount
         );
     }
 
     function handler_SupERC20Approve(
         uint256 tokenIndex,
-        address spender,
+        uint256 spenderIndex,
         uint256 amount
     )
         external
         withActor(msg.sender)
     {
         vm.prank(currentActor());
-        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(spender, amount);
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).approve(
+            getActorByRawIndex(spenderIndex), amount
+        );
     }
 
     /// @notice deploy a remote token, that supertokens will be a representation of. They are  never called, so there
