@@ -38,7 +38,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     address[] internal remoteTokens;
     address[] internal allSuperTokens;
 
-    //@notice  'real' deploy salt => total supply sum across chains
+    /// @notice  'real' deploy salt => total supply sum across chains
     EnumerableMap.Bytes32ToUintMap internal ghost_totalSupplyAcrossChains;
 
     constructor() {
