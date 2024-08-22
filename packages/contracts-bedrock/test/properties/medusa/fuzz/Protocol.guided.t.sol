@@ -88,7 +88,7 @@ contract ProtocolGuided is ProtocolHandler {
     /// @custom:property sendERC20 decreases sender balance in source chain exactly by the input amount
     /// @custom:property-id 10
     /// @custom:property sendERC20 decreases total supply in source chain exactly by the input amount
-    function fuzz_BridgeSupertoken(
+    function fuzz_SendERC20(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId,
@@ -157,7 +157,7 @@ contract ProtocolGuided is ProtocolHandler {
 
     /// @custom:property-id 8
     /// @custom:property calls to sendERC20 with a value of zero dont modify accounting
-    // @notice is a subset of fuzz_BridgeSupertoken, so we'll just call it
+    // @notice is a subset of fuzz_SendERC20, so we'll just call it
     // instead of re-implementing it. Keeping the function for visibility of the property.
     function fuzz_SendZeroDoesNotModifyAccounting(
         uint256 fromIndex,
@@ -166,7 +166,7 @@ contract ProtocolGuided is ProtocolHandler {
     )
         external
     {
-        fuzz_BridgeSupertoken(fromIndex, recipientIndex, destinationChainId, 0);
+        fuzz_SendERC20(fromIndex, recipientIndex, destinationChainId, 0);
     }
 
     /// @custom:property-id 9
