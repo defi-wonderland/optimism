@@ -58,8 +58,10 @@ contract ProtocolGuided is ProtocolHandler {
         uint256 destinationBalanceBefore = destinationToken.balanceOf(recipient);
         uint256 destinationSupplyBefore = destinationToken.totalSupply();
 
+        MESSENGER.setAtomic(true);
         vm.prank(currentActor());
         try sourceToken.sendERC20(recipient, amount, destinationChainId) {
+            MESSENGER.setAtomic(false);
             uint256 sourceBalanceAfter = sourceToken.balanceOf(currentActor());
             uint256 destinationBalanceAfter = destinationToken.balanceOf(recipient);
             // no free mint
@@ -73,6 +75,7 @@ contract ProtocolGuided is ProtocolHandler {
             assert(sourceSupplyBefore - amount == sourceSupplyAfter);
             assert(destinationSupplyBefore + amount == destinationSupplyAfter);
         } catch {
+            MESSENGER.setAtomic(false);
             // 6
             assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
         }
