@@ -57,7 +57,12 @@ contract MockL2ToL2CrossDomainMessenger {
         _atomic = atomic;
     }
 
-    function relayMessageFromQueue(uint256 index) public { }
+    function relayMessageFromQueue(uint256 index) public {
+        CrossChainMessage memory message = _messageQueue[index];
+        _messageQueue[index] = _messageQueue[_messageQueue.length - 1];
+        _messageQueue.pop();
+        _relayMessage(message);
+    }
 
     function _relayMessage(CrossChainMessage memory message) internal {
         crossDomainMessageSender = message.crossDomainMessageSender;
@@ -88,7 +93,7 @@ contract MockL2ToL2CrossDomainMessenger {
         if (_atomic) {
             _relayMessage(message);
         } else {
-            // to be implemented
+            _messageQueue.push(message);
         }
     }
 }

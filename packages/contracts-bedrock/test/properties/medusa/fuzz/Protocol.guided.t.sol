@@ -8,7 +8,7 @@ contract ProtocolGuided is ProtocolHandler {
     /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
     /// @custom:property-id 14
     /// @custom:property supertoken total supply starts at zero
-    function property_DeployNewSupertoken(
+    function fuzz_DeployNewSupertoken(
         TokenDeployParams memory params,
         uint256 chainId
     )
@@ -35,7 +35,7 @@ contract ProtocolGuided is ProtocolHandler {
     /// @custom:property-id 23
     /// @custom:property sendERC20 decreases total supply in source chain and increases it in destination chain exactly
     /// by the input amount
-    function property_BridgeSupertokenAtomic(
+    function fuzz_BridgeSupertokenAtomic(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId,
@@ -50,8 +50,6 @@ contract ProtocolGuided is ProtocolHandler {
         OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
         OptimismSuperchainERC20 destinationToken =
             MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
-        // TODO: when implementing non-atomic bridging, allow for the token to
-        // not yet be deployed and funds be recovered afterwards.
         require(address(destinationToken) != address(0));
         uint256 sourceBalanceBefore = sourceToken.balanceOf(currentActor());
         uint256 sourceSupplyBefore = sourceToken.totalSupply();
@@ -81,25 +79,66 @@ contract ProtocolGuided is ProtocolHandler {
         }
     }
 
+    /// @custom:property-id 6
+    /// @custom:property calls to sendERC20 succeed as long as caller has enough balance
+    /// @custom:property-id 26
+    /// @custom:property sendERC20 decreases sender balance in source chain exactly by the input amount
+    /// @custom:property-id 10
+    /// @custom:property sendERC20 decreases total supply in source chain exactly by the input amount
+    function fuzz_BridgeSupertoken(
+        uint256 fromIndex,
+        uint256 recipientIndex,
+        uint256 destinationChainId,
+        uint256 amount
+    )
+        public
+        withActor(msg.sender)
+    {
+        destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
+        fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
+        address recipient = getActorByRawIndex(recipientIndex);
+        OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
+        OptimismSuperchainERC20 destinationToken =
+            MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
+        bytes32 deploySalt = MESSENGER.superTokenInitDeploySalts(address(sourceToken));
+        uint256 sourceBalanceBefore = sourceToken.balanceOf(currentActor());
+        uint256 sourceSupplyBefore = sourceToken.totalSupply();
+
+        vm.prank(currentActor());
+        try sourceToken.sendERC20(recipient, amount, destinationChainId) {
+            (, uint256 currentlyInTransit) = ghost_tokensInTransit.tryGet(deploySalt);
+            ghost_tokensInTransit.set(deploySalt, currentlyInTransit + amount);
+            // 26
+            uint256 sourceBalanceAfter = sourceToken.balanceOf(currentActor());
+            assert(sourceBalanceBefore - amount == sourceBalanceAfter);
+            // 10
+            uint256 sourceSupplyAfter = sourceToken.totalSupply();
+            assert(sourceSupplyBefore - amount == sourceSupplyAfter);
+        } catch {
+            // 6
+            assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
+        }
+    }
+
     /// @custom:property-id 8
     /// @custom:property calls to sendERC20 with a value of zero dont modify accounting
-    // @notice is a subset of property_BridgeSupertoken, so we'll just call it
+    // @notice is a subset of fuzz_BridgeSupertoken, so we'll just call it
     // instead of re-implementing it. Keeping the function for visibility of the property.
-    function property_SendZeroDoesNotModifyAccounting(
+    function fuzz_SendZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId
     )
         external
     {
-        property_BridgeSupertoken(fromIndex, recipientIndex, destinationChainId, 0);
+        fuzz_BridgeSupertoken(fromIndex, recipientIndex, destinationChainId, 0);
     }
 
     /// @custom:property-id 9
     /// @custom:property calls to relayERC20 with a value of zero dont modify accounting
     /// @custom:property-id 7
     /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
-    function property_RelayZeroDoesNotModifyAccounting(
+    function fuzz_RelayZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex
     )
