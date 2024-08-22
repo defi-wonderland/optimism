@@ -167,7 +167,7 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
 
         vm.prank(_sender);
         /* Action */
-        optimismSuperchainERC20.sendERC20(Predeploys.CROSS_L2_INBOX, _amount, _chainId);
+        optimismSuperchainERC20.sendERC20(_to, _amount, _chainId);
 
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == _totalSupplyBefore - _amount);
