@@ -12,6 +12,8 @@ contract MockL2ToL2CrossDomainMessenger {
         address crossDomainMessageSender;
         address crossDomainMessageSource;
         bytes payload;
+        address recipient;
+        uint256 amount;
     }
 
     /////////////////////////////////////////////////////////
@@ -28,6 +30,10 @@ contract MockL2ToL2CrossDomainMessenger {
 
     CrossChainMessage[] private _messageQueue;
     bool private _atomic;
+
+    function messageQueue(uint256 index) external view returns (CrossChainMessage memory) {
+        return _messageQueue[index];
+    }
 
     function crossChainMessageReceiver(
         address sender,
@@ -79,15 +85,19 @@ contract MockL2ToL2CrossDomainMessenger {
     /// @notice recipient will not be used since in normal execution it's the same
     /// address on a different chain, but here we have to compute it to mock
     /// cross-chain messaging
-    function sendMessage(uint256 chainId, address, /*recipient*/ bytes memory data) external {
+    function sendMessage(uint256 chainId, address, /*recipient*/ bytes calldata data) external {
         address crossChainRecipient = superTokenAddresses[chainId][superTokenInitDeploySalts[msg.sender]];
         if (crossChainRecipient == msg.sender) {
             require(false, "same chain");
         }
+        (address recipient, uint256 amount) = _decodePayload(data);
+
         CrossChainMessage memory message = CrossChainMessage({
             crossDomainMessageSender: crossChainRecipient,
             crossDomainMessageSource: msg.sender,
-            payload: data
+            payload: data,
+            recipient: recipient,
+            amount: amount
         });
 
         if (_atomic) {
@@ -95,5 +105,13 @@ contract MockL2ToL2CrossDomainMessenger {
         } else {
             _messageQueue.push(message);
         }
+    }
+
+    ////////////////////////
+    //  Internal helpers  //
+    ////////////////////////
+
+    function _decodePayload(bytes calldata payload) internal pure returns (address recipient, uint256 amount) {
+        (, recipient, amount) = abi.decode(payload[4:], (address, address, uint256));
     }
 }
