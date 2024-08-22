@@ -74,6 +74,9 @@ contract OptimismSuperchainERC20FactoryTest is Test {
         // Assert
         assertTrue(addr == deployment);
         assertTrue(OptimismSuperchainERC20(deployment).decimals() == _decimals);
+        assertTrue(OptimismSuperchainERC20(deployment).remoteToken() == _remoteToken);
+        assertEq(OptimismSuperchainERC20(deployment).name(), _name);
+        assertEq(OptimismSuperchainERC20(deployment).symbol(), _symbol);
         assertEq(superchainERC20Factory.deployments(deployment), _remoteToken);
     }
 
