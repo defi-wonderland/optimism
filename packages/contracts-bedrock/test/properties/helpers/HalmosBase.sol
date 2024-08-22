@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 
-contract AdvancedTest is Test {
+contract HalmosBase is Test {
     uint256 internal constant CURRENT_CHAIN_ID = 1;
     uint256 internal constant ZERO_AMOUNT = 0;
 

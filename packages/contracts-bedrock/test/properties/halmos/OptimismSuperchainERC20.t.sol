@@ -6,9 +6,9 @@ import { SymTest } from "halmos-cheatcodes/src/SymTest.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockL2ToL2Messenger } from "./MockL2ToL2Messenger.sol";
-import { AdvancedTest } from "../helpers/AdvancedTests.sol";
+import { HalmosBase } from "../helpers/HalmosBase.sol";
 
-contract SymTest_OptimismSuperchainERC20 is SymTest, AdvancedTest {
+contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
     MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
     OptimismSuperchainERC20 public superchainERC20Impl;
