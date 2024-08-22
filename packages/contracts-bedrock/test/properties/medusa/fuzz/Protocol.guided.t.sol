@@ -35,7 +35,7 @@ contract ProtocolGuided is ProtocolHandler {
     /// @custom:property-id 23
     /// @custom:property sendERC20 decreases total supply in source chain and increases it in destination chain exactly
     /// by the input amount
-    function property_BridgeSupertoken(
+    function property_BridgeSupertokenAtomic(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId,
@@ -58,8 +58,10 @@ contract ProtocolGuided is ProtocolHandler {
         uint256 destinationBalanceBefore = destinationToken.balanceOf(recipient);
         uint256 destinationSupplyBefore = destinationToken.totalSupply();
 
+        MESSENGER.setAtomic(true);
         vm.prank(currentActor());
         try sourceToken.sendERC20(recipient, amount, destinationChainId) {
+            MESSENGER.setAtomic(false);
             uint256 sourceBalanceAfter = sourceToken.balanceOf(currentActor());
             uint256 destinationBalanceAfter = destinationToken.balanceOf(recipient);
             // no free mint
@@ -73,6 +75,7 @@ contract ProtocolGuided is ProtocolHandler {
             assert(sourceSupplyBefore - amount == sourceSupplyAfter);
             assert(destinationSupplyBefore + amount == destinationSupplyAfter);
         } catch {
+            MESSENGER.setAtomic(false);
             // 6
             assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
         }
