@@ -45,7 +45,7 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
     }
 
     /// @custom:property-id 6
-    /// @custom:property-id Calls to sendERC20 succeed as long as caller has enough balance
+    /// @custom:property Calls to sendERC20 succeed as long as caller has enough balance
     function check_sendERC20SucceedsOnlyIfEnoughBalance(
         uint256 _initialBalance,
         address _from,
@@ -75,7 +75,7 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
     }
 
     /// @custom:property-id 7
-    /// @custom:property-id Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
+    /// @custom:property Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
     function check_relayERC20OnlyFromL2ToL2Messenger(
         address _crossDomainSender,
         address _sender,
@@ -229,7 +229,7 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
     }
 
     /// @custom:property-id 14
-    /// @custom:property-id Supertoken total supply starts at zero
+    /// @custom:property Supertoken total supply starts at zero
     function check_totalSupplyStartsAtZero() public view {
         /* Postconditions */
         assert(optimismSuperchainERC20.totalSupply() == 0);
