@@ -172,6 +172,8 @@ contract ProtocolGuided is ProtocolHandler {
     /// @custom:property calls to relayERC20 with a value of zero dont modify accounting
     /// @custom:property-id 7
     /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
+    /// @notice cant call fuzz_RelayERC20 internally since that pops a
+    /// random message, which we cannot guarantee has a value of zero
     function fuzz_RelayZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex
