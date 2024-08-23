@@ -53,7 +53,6 @@ contract ProtocolGuided is ProtocolHandler {
         OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
         OptimismSuperchainERC20 destinationToken =
             MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
-        require(address(destinationToken) != address(0));
         uint256 sourceBalanceBefore = sourceToken.balanceOf(currentActor());
         uint256 sourceSupplyBefore = sourceToken.totalSupply();
         uint256 destinationBalanceBefore = destinationToken.balanceOf(recipient);
