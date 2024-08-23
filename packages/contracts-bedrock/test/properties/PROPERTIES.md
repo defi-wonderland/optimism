@@ -23,33 +23,33 @@ Given the [OP monorepo](https://github.com/ethereum-optimism/optimism) already h
 
 - including it in the mainline OP monorepo, in a subdirectory of the existing test contracts such as `test/invariants/medusa/superc20/`
 - keep the campaign in wonderland's fork of the repository, in its own feature branch, in which case the deliverable would consist primarily of:
-  - a summary of the results, extending this document
-  - PRs with extra unit tests replicating found issues to the main repo where applicable
+    - a summary of the results, extending this document
+    - PRs with extra unit tests replicating found issues to the main repo where applicable
 
 ## Contracts in scope
 
-- [ ] [OptimismMintableERC20Factory](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20Factory.sol) (modifications to enable `convert` not yet merged)
-- [ ] [OptimismSuperchainERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/OptimismSuperchainERC20.sol1)
-- [ ] [OptimismSuperchainERC20Factory](https://github.com/defi-wonderland/optimism/pull/8/files#diff-09838f5703c353d0f7c5ff395acc04c1768ef58becac67404bc17e1fb0018517) (not yet merged)
-- [ ] [L2StandardBridgeInterop](https://github.com/defi-wonderland/optimism/pull/10/files#diff-56cf869412631eac0a04a03f7d026596f64a1e00fcffa713bc770d67c6856c2f) (not yet merged)
+- [ ]  [OptimismMintableERC20Factory](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20Factory.sol) (modifications to enable `convert` not yet merged)
+- [ ]  [OptimismSuperchainERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/OptimismSuperchainERC20.sol1)
+- [ ]  [OptimismSuperchainERC20Factory](https://github.com/defi-wonderland/optimism/pull/8/files#diff-09838f5703c353d0f7c5ff395acc04c1768ef58becac67404bc17e1fb0018517) (not yet merged)
+- [ ]  [L2StandardBridgeInterop](https://github.com/defi-wonderland/optimism/pull/10/files#diff-56cf869412631eac0a04a03f7d026596f64a1e00fcffa713bc770d67c6856c2f) (not yet merged)
 
 ## Behavior assumed correct
 
-- [ ] inclusion of relay transactions
-- [ ] sequencer implementation
-- [ ] [OptimismMintableERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20.sol)
-- [ ] [L2ToL2CrossDomainMessenger](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2CrossDomainMessenger.sol)
-- [ ] [CrossL2Inbox](https://github.com/defi-wonderland/src/L2/CrossL2Inbox.sol)
+- [ ]  inclusion of relay transactions
+- [ ]  sequencer implementation
+- [ ]  [OptimismMintableERC20](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/universal/OptimismMintableERC20.sol)
+- [ ]  [L2ToL2CrossDomainMessenger](https://github.com/defi-wonderland/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2CrossDomainMessenger.sol)
+- [ ]  [CrossL2Inbox](https://github.com/defi-wonderland/src/L2/CrossL2Inbox.sol)
 
 ## Pain points
 
-- existing fuzzing tools use the same EVM to run the tested contracts as they do for asserting invariants, tracking ghost variables and everything else necessary to provision a fuzzing campaign. While this is usually very convenient, it means that we can’t assert on the behaviour/state of _different_ chains from within a fuzzing campaign. This means we will have to walk around the requirement of supertokens having the same address across all chains, and implement a way to mock tokens existing in different chains. We will strive to formally prove it in a unitary fashion to mitigate this in properties 0 and 1
+- existing fuzzing tools use the same EVM to run the tested contracts as they do for asserting invariants, tracking ghost variables and everything else necessary to provision a fuzzing campaign. While this is usually very convenient, it means that we can’t assert on the behaviour/state of *different* chains from within a fuzzing campaign. This means we will have to walk around the requirement of supertokens having the same address across all chains, and implement a way to mock tokens existing in different chains. We will strive to formally prove it in a unitary fashion to mitigate this in properties 0 and 1
 - a buffer to represent 'in transit' messages should be implemented to assert on invariants relating to the non-atomicity of bridging from one chain to another. It is yet to be determined if it’ll be a FIFO queue (assuming ideal message ordering by sequencers) or it’ll have random-access capability to simulate messages arriving out of order
 
 ## Definitions
 
-- _legacy token:_ an OptimismMintableERC20 or L2StandardERC20 token on the suprechain that has either been deployed by the factory after the liquidity migration upgrade to the latter, or has been deployed before it **but** added to factory’s `deployments` mapping as part of the upgrade. This testing campaign is not concerned with tokens on L1 or not listed in the factory’s `deployments` mapping.
-- _supertoken:_ a SuperchainERC20 contract deployed by the `OptimismSuperchainERC20Factory`
+- *legacy token:*  an OptimismMintableERC20 or L2StandardERC20 token on the suprechain that has either been deployed by the factory after the liquidity migration upgrade to the latter, or has been deployed before it **but** added to factory’s `deployments` mapping as part of the upgrade. This testing campaign is not concerned with tokens on L1 or not listed in the factory’s `deployments` mapping.
+- *supertoken:* a SuperchainERC20 contract deployed by the `OptimismSuperchainERC20Factory`
 
 # Ecosystem properties
 
@@ -64,7 +64,7 @@ legend:
 ## Unit test
 
 | id  | milestone           | description                                                                                | halmos | medusa |
-| --- | ------------------- | ------------------------------------------------------------------------------------------ | ------ | ------ |
+| --- | ---                 | ---                                                                                        | ---    | ---    |
 | 0   | Factories           | supertoken token address does not depend on the executing chain’s chainID                  | [ ]    | [ ]    |
 | 1   | Factories           | supertoken token address depends on remote token, name, symbol and decimals                | [ ]    | [ ]    |
 | 2   | Liquidity Migration | convert() should only allow converting legacy tokens to supertoken and viceversa           | [ ]    | [ ]    |
@@ -75,9 +75,9 @@ legend:
 ## Valid state
 
 | id  | milestone | description                                                                                | halmos  | medusa |
-| --- | --------- | ------------------------------------------------------------------------------------------ | ------- | ------ |
+| --- | ---       | ---                                                                                        | ---     | ---    |
 | 6   | SupERC20  | calls to sendERC20 succeed as long as caller has enough balance                            | [x]     | [ ]    |
-| 7   | SupERC20  | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[x]** | [ ]    |
+| 7   | SupERC20  | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[~]** | [ ]    |
 
 ## Variable transition
 
@@ -87,18 +87,18 @@ legend:
 | 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [x]    | [ ]    |
 | 10  | SupERC20            | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [x]    | [ ]    |
 | 11  | SupERC20            | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [x]    | [ ]    |
-| 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [x]    | [ ]    |
+| 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [x]    | [~]    |
 | 13  | Liquidity Migration | supertoken total supply only decreases on calls to burn() by the L2toL2StandardBridge             | [x]    | [ ]    |
-| 14  | SupERC20            | supertoken total supply starts at zero                                                            | [x]    | [ ]    |
+| 14  | SupERC20            | supertoken total supply starts at zero                                                            | [x]    | [x]    |
 | 15  | Factories           | deploying a supertoken registers its remote token in the factory                                  | [ ]    | [ ]    |
 | 16  | Factories           | deploying an OptimismMintableERC20 registers its remote token in the factory                      | [ ]    | [ ]    |
 
 ## High level
 
 | id  | milestone           | description                                                                                                                                                           | halmos | medusa |
-| --- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ |
-| 17  | Liquidity Migration | only calls to convert(legacy, super) can increase a supertoken’s total supply across chains                                                                           | [ ]    | [ ]    |
-| 18  | Liquidity Migration | only calls to convert(super, legacy) can decrease a supertoken’s total supply across chains                                                                           | [ ]    | [ ]    |
+| --- | ---                 | ---                                                                                                                                                                   | ---    | ---    |
+| 17  | Liquidity Migration | only calls to convert(legacy, super) can increase a supertoken’s  total supply across chains                                                                          | [ ]    | [ ]    |
+| 18  | Liquidity Migration | only calls to convert(super, legacy) can decrease a supertoken’s  total supply across chains                                                                          | [ ]    | [ ]    |
 | 19  | Liquidity Migration | sum of supertoken total supply across all chains is always <= to convert(legacy, super)- convert(super, legacy)                                                       | [ ]    | [ ]    |
 | 20  | SupERC20            | tokens sendERC20-ed on a source chain to a destination chain can be relayERC20-ed on it as long as the source chain is in the dependency set of the destination chain | [ ]    | [ ]    |
 | 21  | Liquidity Migration | sum of supertoken total supply across all chains is = to convert(legacy, super)- convert(super, legacy) when all cross-chain messages are processed                   | [ ]    | [ ]    |
@@ -109,7 +109,7 @@ As another layer of defense, the following properties are defined which assume b
 It’s worth noting that these properties will not hold for a live system
 
 | id  | milestone           | description                                                                                                                        | halmos | medusa |
-| --- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ |
+| --- | ---                 | ---                                                                                                                                | ---    | ---    |
 | 22  | SupERC20            | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [ ]    | [x]    |
 | 23  | SupERC20            | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [ ]    | [x]    |
 | 24  | Liquidity Migration | sum of supertoken total supply across all chains is always equal to convert(legacy, super)- convert(super, legacy)                 | [ ]    | [~]    |
@@ -122,5 +122,5 @@ It’s worth noting that these properties will not hold for a live system
 
 here we’ll list possible interactions that we intend the fuzzing campaign to support in order to help break invariants
 
-- [ ] changing the decimals of tokens after deployment
-- [ ] `convert()` ing between multiple (3+) representations of the same remote token, by having different names/symbols
+- [ ]  changing the decimals of tokens after deployment
+- [ ]  `convert()` ing between multiple (3+) representations of the same remote token, by having different names/symbols

@@ -3,13 +3,11 @@
 		"workers": 10,
 		"workerResetLimit": 50,
 		"timeout": 0,
-		"testLimit": 0,
-		"shrinkLimit": 5000,
+		"testLimit": 500000,
 		"callSequenceLength": 100,
-		"corpusDirectory": "",
+		"corpusDirectory": "test/properties/medusa/corpus/",
 		"coverageEnabled": true,
-		"targetContracts": [],
-		"predeployedContracts": {},
+		"targetContracts": ["ProtocolProperties"],
 		"targetContractsBalances": [],
 		"constructorArgs": {},
 		"deployerAddress": "0x30000",
@@ -20,17 +18,17 @@
 		],
 		"blockNumberDelayMax": 60480,
 		"blockTimestampDelayMax": 604800,
-		"blockGasLimit": 125000000,
+		"blockGasLimit": 30000000,
 		"transactionGasLimit": 12500000,
 		"testing": {
 			"stopOnFailedTest": true,
 			"stopOnFailedContractMatching": false,
 			"stopOnNoTests": true,
 			"testAllContracts": false,
-			"traceAll": false,
+			"traceAll": true,
 			"assertionTesting": {
 				"enabled": true,
-				"testViewMethods": false,
+				"testViewMethods": true,
 				"panicCodeConfig": {
 					"failOnCompilerInsertedPanic": false,
 					"failOnAssertion": true,
@@ -45,13 +43,13 @@
 				}
 			},
 			"propertyTesting": {
-				"enabled": true,
+				"enabled": false,
 				"testPrefixes": [
 					"property_"
 				]
 			},
 			"optimizationTesting": {
-				"enabled": true,
+				"enabled": false,
 				"testPrefixes": [
 					"optimize_"
 				]
@@ -73,7 +71,7 @@
 			"target": ".",
 			"solcVersion": "",
 			"exportDirectory": "",
-			"args": []
+			"args": ["--foundry-out-directory", "artifacts","--foundry-compile-all"]
 		}
 	},
 	"logging": {
