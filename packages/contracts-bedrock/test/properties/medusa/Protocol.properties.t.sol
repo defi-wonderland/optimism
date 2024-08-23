@@ -68,7 +68,7 @@ contract ProtocolProperties is ProtocolHandler {
         uint256 destinationChainId,
         uint256 amount
     )
-        external
+        public
         withActor(msg.sender)
     {
         destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
@@ -107,45 +107,22 @@ contract ProtocolProperties is ProtocolHandler {
 
     /// @custom:property-id 8
     /// @custom:property calls to sendERC20 with a value of zero dont modify accounting
-    // NOTE: should we keep it? will cause the exact same coverage as property_BridgeSupertoken
+    // @notice is a subset of property_BridgeSupertoken, so we'll just call it
+    // instead of re-implementing it. Keeping the function for visibility of the property.
     function property_SendZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId
     )
         external
-        withActor(msg.sender)
     {
-        destinationChainId = bound(destinationChainId, 0, MAX_CHAINS - 1);
-        fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
-        address recipient = getActorByRawIndex(recipientIndex);
-        OptimismSuperchainERC20 sourceToken = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
-        OptimismSuperchainERC20 destinationToken =
-            MESSENGER.crossChainMessageReceiver(address(sourceToken), destinationChainId);
-        // TODO: perhaps the mock should already start ignoring this?
-        require(address(destinationToken) != address(0));
-        uint256 sourceBalanceBefore = sourceToken.balanceOf(currentActor());
-        uint256 sourceSupplyBefore = sourceToken.totalSupply();
-        uint256 destinationBalanceBefore = destinationToken.balanceOf(recipient);
-        uint256 destinationSupplyBefore = destinationToken.totalSupply();
-
-        vm.prank(currentActor());
-        try sourceToken.sendERC20(recipient, 0, destinationChainId) {
-            uint256 sourceBalanceAfter = sourceToken.balanceOf(currentActor());
-            uint256 destinationBalanceAfter = destinationToken.balanceOf(recipient);
-            assert(sourceBalanceBefore == sourceBalanceAfter);
-            assert(destinationBalanceBefore == destinationBalanceAfter);
-            uint256 sourceSupplyAfter = sourceToken.totalSupply();
-            uint256 destinationSupplyAfter = destinationToken.totalSupply();
-            assert(sourceSupplyBefore == sourceSupplyAfter);
-            assert(destinationSupplyBefore == destinationSupplyAfter);
-        } catch {
-            assert(address(destinationToken) == address(sourceToken));
-        }
+        property_BridgeSupertoken(fromIndex, recipientIndex, destinationChainId, 0);
     }
 
     /// @custom:property-id 9
     /// @custom:property calls to relayERC20 with a value of zero dont modify accounting
+    /// @custom:property-id 7
+    /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
     function property_RelayZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex
@@ -164,7 +141,10 @@ contract ProtocolProperties is ProtocolHandler {
         try token.relayERC20(currentActor(), recipient, 0) {
             MESSENGER.setCrossDomainMessageSender(address(0));
         } catch {
-            MESSENGER.setCrossDomainMessageSender(address(0));
+            // should not revert because of 7, and if it *does* revert, I want the test suite
+            // to discard the sequence instead of potentially getting another
+            // error due to the crossDomainMessageSender being manually set
+            assert(false);
         }
         uint256 balanceAfter = token.balanceOf(currentActor());
         uint256 supplyAfter = token.totalSupply();
@@ -180,24 +160,31 @@ contract ProtocolProperties is ProtocolHandler {
     function property_SupERC20RelayERC20AlwaysRevert(
         uint256 tokenIndex,
         address sender,
+        address crossDomainMessageSender,
         address recipient,
         uint256 amount
     )
         external
-        withActor(msg.sender)
     {
-        // if msg.sender is the L2ToL2CrossDomainMessenger then this will break other invariants
-        vm.prank(currentActor());
-        try OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).relayERC20(
-            sender, recipient, amount
-        ) {
-            assert(false);
-        } catch { }
+        MESSENGER.setCrossDomainMessageSender(crossDomainMessageSender);
+        address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
+        vm.prank(sender);
+        try OptimismSuperchainERC20(token).relayERC20(sender, recipient, amount) {
+            assert(sender == address(MESSENGER));
+            assert(crossDomainMessageSender == token);
+            // this would increase the supply across chains without a call to
+            // `mint` by the MESSENGER, so I'm reverting the state transition
+            require(false);
+        } catch {
+            assert(sender != address(MESSENGER) || crossDomainMessageSender != token);
+            MESSENGER.setCrossDomainMessageSender(address(0));
+        }
     }
 
     /// @custom:property-id 25
     /// @custom:property supertokens can't be reinitialized
     function property_SupERC20CantBeReinitialized(
+        address sender,
         uint256 tokenIndex,
         address remoteToken,
         string memory name,
@@ -205,9 +192,8 @@ contract ProtocolProperties is ProtocolHandler {
         uint8 decimals
     )
         external
-        withActor(msg.sender)
     {
-        vm.prank(currentActor());
+        vm.prank(sender);
         // revert is possible in bound, but is not part of the external call
         try OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).initialize(
             remoteToken, name, symbol, decimals
