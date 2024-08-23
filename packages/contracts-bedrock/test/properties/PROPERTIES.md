@@ -82,7 +82,7 @@ legend:
 ## Variable transition
 
 | id  | milestone           | description                                                                                       | halmos | medusa |
-| --- | ------------------- | ------------------------------------------------------------------------------------------------- | ------ | ------ |
+| --- | ---                 | ---                                                                                               | ---    | ---    |
 | 8   | SupERC20            | sendERC20 with a value of zero does not modify accounting                                         | [x]    | [ ]    |
 | 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [x]    | [ ]    |
 | 10  | SupERC20            | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [x]    | [ ]    |
