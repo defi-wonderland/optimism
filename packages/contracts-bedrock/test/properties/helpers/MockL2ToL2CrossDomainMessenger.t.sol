@@ -31,8 +31,8 @@ contract MockL2ToL2CrossDomainMessenger {
     CrossChainMessage[] private _messageQueue;
     bool private _atomic;
 
-    function messageQueue(uint256 index) external view returns (CrossChainMessage memory) {
-        return _messageQueue[index];
+    function messageQueue(uint256 rawIndex) external view returns (CrossChainMessage memory) {
+        return _messageQueue[rawIndex % _messageQueue.length];
     }
 
     function crossChainMessageReceiver(
@@ -63,7 +63,8 @@ contract MockL2ToL2CrossDomainMessenger {
         _atomic = atomic;
     }
 
-    function relayMessageFromQueue(uint256 index) public {
+    function relayMessageFromQueue(uint256 rawIndex) public {
+        uint256 index = rawIndex % _messageQueue.length;
         CrossChainMessage memory message = _messageQueue[index];
         _messageQueue[index] = _messageQueue[_messageQueue.length - 1];
         _messageQueue.pop();

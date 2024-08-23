@@ -129,8 +129,6 @@ contract ProtocolGuided is ProtocolHandler {
     /// @custom:property-id 7
     /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
     function fuzz_RelayERC20(uint256 messageIndex) external {
-        uint256 queueLength = MESSENGER.messageQueueLength();
-        messageIndex = bound(messageIndex, 0, queueLength - 1);
         MockL2ToL2CrossDomainMessenger.CrossChainMessage memory messageToRelay = MESSENGER.messageQueue(messageIndex);
         OptimismSuperchainERC20 destinationToken = OptimismSuperchainERC20(messageToRelay.crossDomainMessageSender);
         uint256 destinationSupplyBefore = destinationToken.totalSupply();
