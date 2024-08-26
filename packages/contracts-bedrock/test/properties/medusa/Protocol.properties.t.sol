@@ -3,12 +3,29 @@ pragma solidity ^0.8.25;
 
 import { TestBase } from "forge-std/Base.sol";
 
+import { ITokenMock } from "@crytic/properties/contracts/ERC20/external/util/ITokenMock.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import { CryticERC20ExternalBasicProperties } from
+    "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
 import { ProtocolHandler } from "./handlers/Protocol.handler.t.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 
-contract ProtocolProperties is ProtocolHandler {
+contract ProtocolProperties is ProtocolHandler, CryticERC20ExternalBasicProperties {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
+
+    /// @dev `token` is the token under test for the ToB properties. This is coupled
+    /// to the ProtocolHandler constructor initializing at least one supertoken
+    constructor() {
+        token = ITokenMock(allSuperTokens[0]);
+    }
+
+    /// @dev not that much of a handler, since this only changes which
+    /// supertoken the ToB assertions are performed against. Thankfully, they are
+    /// implemented in a way that don't require tracking ghost variables or can
+    /// break properties defined by us
+    function handler_ToBTestOtherToken(uint256 index) external {
+        token = ITokenMock(allSuperTokens[bound(index, 0, allSuperTokens.length - 1)]);
+    }
 
     // TODO: will need rework after
     //   - non-atomic bridge

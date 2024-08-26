@@ -117,7 +117,7 @@ It’s worth noting that these properties will not hold for a live system
 
 # Expected external interactions
 
-- regular ERC20 operations between any accounts on the same chain, provided by [crytic ERC20 properties](https://github.com/crytic/properties?tab=readme-ov-file#erc20-tests)
+- [x] regular ERC20 operations between any accounts on the same chain, provided by [crytic ERC20 properties](https://github.com/crytic/properties?tab=readme-ov-file#erc20-tests)
 
 # Invariant-breaking candidates (brain dump)
 

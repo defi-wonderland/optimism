@@ -13,16 +13,20 @@ contract Actors is StdUtils {
     /// usually called with msg.sender as a parameter, to track the actors
     /// already provided by the fuzzer
     modifier withActor(address who) {
-        if (!_isActor[who]) {
-            _isActor[who] = true;
-            _actors.push(who);
-        }
+        addActor(who);
         _currentActor = who;
         _;
     }
 
+    function addActor(address who) internal {
+        if (!_isActor[who]) {
+            _isActor[who] = true;
+            _actors.push(who);
+        }
+    }
+
     /// @notice get the currently configured actor, should equal msg.sender
-    function currentActor() internal view returns(address){
+    function currentActor() internal view returns (address) {
         return _currentActor;
     }
 
