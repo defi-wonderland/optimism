@@ -150,7 +150,8 @@ contract ProtocolProperties is ProtocolHandler, CryticERC20ExternalBasicProperti
         fromIndex = bound(fromIndex, 0, allSuperTokens.length - 1);
         address recipient = getActorByRawIndex(recipientIndex);
         OptimismSuperchainERC20 token = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
-        uint256 balanceBefore = token.balanceOf(currentActor());
+        uint256 balanceSenderBefore = token.balanceOf(currentActor());
+        uint256 balanceRecipeintBefore = token.balanceOf(recipient);
         uint256 supplyBefore = token.totalSupply();
 
         MESSENGER.setCrossDomainMessageSender(address(token));
@@ -163,9 +164,11 @@ contract ProtocolProperties is ProtocolHandler, CryticERC20ExternalBasicProperti
             // error due to the crossDomainMessageSender being manually set
             assert(false);
         }
-        uint256 balanceAfter = token.balanceOf(currentActor());
+        uint256 balanceSenderAfter = token.balanceOf(currentActor());
+        uint256 balanceRecipeintAfter = token.balanceOf(recipient);
         uint256 supplyAfter = token.totalSupply();
-        assert(balanceBefore == balanceAfter);
+        assert(balanceSenderBefore == balanceSenderAfter);
+        assert(balanceRecipeintBefore == balanceRecipeintAfter);
         assert(supplyBefore == supplyAfter);
     }
 
