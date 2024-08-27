@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 
 contract HalmosBase is Test {
     uint256 internal constant CURRENT_CHAIN_ID = 1;
-    uint256 internal constant ZERO_AMOUNT = 0;
+    uint256 internal constant ZERO_AMOUNT;
 
     address internal remoteToken = address(bytes20(keccak256("remoteToken")));
     string internal name = "SuperchainERC20";

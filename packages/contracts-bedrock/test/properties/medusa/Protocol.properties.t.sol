@@ -35,11 +35,11 @@ contract ProtocolProperties is ProtocolHandler, CryticERC20ExternalBasicProperti
     /// convert(super, legacy)
     function property_totalSupplyAcrossChainsEqualsMints() external view {
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
-        for (uint256 deploySaltIndex = 0; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
-            uint256 totalSupply = 0;
+        for (uint256 deploySaltIndex; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
+            uint256 totalSupply;
             (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(deploySaltIndex);
             // and then over all the (mocked) chain ids where that supertoken could be deployed
-            for (uint256 validChainId = 0; validChainId < MAX_CHAINS; validChainId++) {
+            for (uint256 validChainId; validChainId < MAX_CHAINS; validChainId++) {
                 address supertoken = MESSENGER.superTokenAddresses(validChainId, currentSalt);
                 if (supertoken != address(0)) {
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();

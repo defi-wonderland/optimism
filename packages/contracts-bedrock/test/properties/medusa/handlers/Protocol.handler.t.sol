@@ -44,9 +44,9 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     constructor() {
         vm.etch(address(MESSENGER), address(new MockL2ToL2CrossDomainMessenger()).code);
         superchainERC20Impl = new OptimismSuperchainERC20ForToBProperties();
-        for (uint256 remoteTokenIndex = 0; remoteTokenIndex < INITIAL_TOKENS; remoteTokenIndex++) {
+        for (uint256 remoteTokenIndex; remoteTokenIndex < INITIAL_TOKENS; remoteTokenIndex++) {
             _deployRemoteToken();
-            for (uint256 supertokenChainId = 0; supertokenChainId < INITIAL_SUPERTOKENS; supertokenChainId++) {
+            for (uint256 supertokenChainId; supertokenChainId < INITIAL_SUPERTOKENS; supertokenChainId++) {
                 _deploySupertoken(remoteTokens[remoteTokenIndex], WORDS[0], WORDS[0], DECIMALS[0], supertokenChainId);
             }
         }
