@@ -1,54 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { TestBase } from "forge-std/Base.sol";
-
-import { ITokenMock } from "@crytic/properties/contracts/ERC20/external/util/ITokenMock.sol";
-import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import { CryticERC20ExternalBasicProperties } from
-    "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
-import { ProtocolHandler } from "./handlers/Protocol.handler.t.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
+import { ProtocolHandler } from "../handlers/Protocol.t.sol";
 
-contract ProtocolProperties is ProtocolHandler, CryticERC20ExternalBasicProperties {
-    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
-
-    /// @dev `token` is the token under test for the ToB properties. This is coupled
-    /// to the ProtocolHandler constructor initializing at least one supertoken
-    constructor() {
-        token = ITokenMock(allSuperTokens[0]);
-    }
-
-    /// @dev not that much of a handler, since this only changes which
-    /// supertoken the ToB assertions are performed against. Thankfully, they are
-    /// implemented in a way that don't require tracking ghost variables or can
-    /// break properties defined by us
-    function handler_ToBTestOtherToken(uint256 index) external {
-        token = ITokenMock(allSuperTokens[bound(index, 0, allSuperTokens.length - 1)]);
-    }
-
-    // TODO: will need rework after
-    //   - non-atomic bridge
-    //   - `convert`
-    /// @custom:property-id 24
-    /// @custom:property sum of supertoken total supply across all chains is always equal to convert(legacy, super)-
-    /// convert(super, legacy)
-    function property_totalSupplyAcrossChainsEqualsMints() external view {
-        // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
-        for (uint256 deploySaltIndex; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
-            uint256 totalSupply;
-            (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(deploySaltIndex);
-            // and then over all the (mocked) chain ids where that supertoken could be deployed
-            for (uint256 validChainId; validChainId < MAX_CHAINS; validChainId++) {
-                address supertoken = MESSENGER.superTokenAddresses(validChainId, currentSalt);
-                if (supertoken != address(0)) {
-                    totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
-                }
-            }
-            assert(trackedSupply == totalSupply);
-        }
-    }
-
+contract ProtocolGuided is ProtocolHandler {
     /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
     /// @custom:property-id 14
     /// @custom:property supertoken total supply starts at zero
@@ -170,55 +126,5 @@ contract ProtocolProperties is ProtocolHandler, CryticERC20ExternalBasicProperti
         assert(balanceSenderBefore == balanceSenderAfter);
         assert(balanceRecipeintBefore == balanceRecipeintAfter);
         assert(supplyBefore == supplyAfter);
-    }
-
-    /// @custom:property-id 7
-    /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
-    /// @notice this ensures actors cant simply call relayERC20 and get tokens, no matter the system state
-    /// but there's still some possible work on how hard we can bork the system state with handlers calling
-    /// the L2ToL2CrossDomainMessenger or bridge directly (pending on non-atomic bridging)
-    function property_SupERC20RelayERC20AlwaysRevert(
-        uint256 tokenIndex,
-        address sender,
-        address crossDomainMessageSender,
-        address recipient,
-        uint256 amount
-    )
-        external
-    {
-        MESSENGER.setCrossDomainMessageSender(crossDomainMessageSender);
-        address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
-        vm.prank(sender);
-        try OptimismSuperchainERC20(token).relayERC20(sender, recipient, amount) {
-            assert(sender == address(MESSENGER));
-            assert(crossDomainMessageSender == token);
-            // this would increase the supply across chains without a call to
-            // `mint` by the MESSENGER, so I'm reverting the state transition
-            require(false);
-        } catch {
-            assert(sender != address(MESSENGER) || crossDomainMessageSender != token);
-            MESSENGER.setCrossDomainMessageSender(address(0));
-        }
-    }
-
-    /// @custom:property-id 25
-    /// @custom:property supertokens can't be reinitialized
-    function property_SupERC20CantBeReinitialized(
-        address sender,
-        uint256 tokenIndex,
-        address remoteToken,
-        string memory name,
-        string memory symbol,
-        uint8 decimals
-    )
-        external
-    {
-        vm.prank(sender);
-        // revert is possible in bound, but is not part of the external call
-        try OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).initialize(
-            remoteToken, name, symbol, decimals
-        ) {
-            assert(false);
-        } catch { }
     }
 }
