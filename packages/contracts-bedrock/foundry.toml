@@ -64,6 +64,12 @@ multiline_func_header='all'
 bracket_spacing=true
 wrap_comments=true
 
+[invariant]
+runs=1000
+depth=500
+fail_on_revert=false
+shrink_run_limit=5000
+
 ################################################################
 #                         PROFILE: CI                          #
 ################################################################

@@ -15,12 +15,12 @@ import { Actors } from "../../helpers/Actors.t.sol";
 contract ProtocolHandler is TestBase, StdUtils, Actors {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
 
-    uint8 internal constant MAX_CHAINS = 4;
+    uint8 public constant MAX_CHAINS = 4;
     uint8 internal constant INITIAL_TOKENS = 1;
     uint8 internal constant INITIAL_SUPERTOKENS = 1;
     uint8 internal constant SUPERTOKEN_INITIAL_MINT = 100;
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
-    MockL2ToL2CrossDomainMessenger internal constant MESSENGER =
+    MockL2ToL2CrossDomainMessenger public constant MESSENGER =
         MockL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     OptimismSuperchainERC20 internal superchainERC20Impl;
     // NOTE: having more options for this enables the fuzzer to configure
@@ -66,6 +66,19 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         params.symbolIndex = uint8(bound(params.symbolIndex, 0, WORDS.length - 1));
         params.decimalsIndex = uint8(bound(params.decimalsIndex, 0, DECIMALS.length - 1));
         _;
+    }
+
+    function deploySaltsLength() external view returns(uint length){
+        return ghost_totalSupplyAcrossChains.length();
+    }
+
+    function totalSupplyAcrossChainsAtIndex(uint index) external view returns(bytes32 salt, uint supply){
+        return ghost_totalSupplyAcrossChains.at(index);
+    }
+
+    function tokensInTransitForDeploySalt(bytes32 salt) external view returns(uint amount){
+        (,amount) = ghost_tokensInTransit.tryGet(salt);
+        return amount;
     }
 
     function handler_MockNewRemoteToken() external {

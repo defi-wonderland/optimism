@@ -19,6 +19,7 @@ This directory contains documentation for all defined invariant tests within `co
 - [OptimismPortal](./OptimismPortal.md)
 - [OptimismPortal2](./OptimismPortal2.md)
 - [OptimismSuperchainERC20](./OptimismSuperchainERC20.md)
+- [PROPERTIES.md](./PROPERTIES.md.md)
 - [ResourceMetering](./ResourceMetering.md)
 - [SafeCall](./SafeCall.md)
 - [SuperchainWETH](./SuperchainWETH.md)
