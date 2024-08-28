@@ -42,6 +42,39 @@ contract ProtocolUnguided is ProtocolHandler {
         }
     }
 
+    /// @custom:property-id 12
+    /// @custom:property supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge
+    function fuzz_mint(uint256 tokenIndex, address to, address sender, uint256 amount) external {
+        address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
+        bytes32 salt = MESSENGER.superTokenInitDeploySalts(token);
+        amount = bound(amount, 0, type(uint256).max - OptimismSuperchainERC20(token).totalSupply());
+        vm.prank(sender);
+        try OptimismSuperchainERC20(token).mint(to, amount) {
+            assert(sender == BRIDGE);
+            (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(salt);
+            ghost_totalSupplyAcrossChains.set(salt, currentValue - amount);
+        } catch {
+            assert(sender != BRIDGE);
+        }
+    }
+
+
+    /// @custom:property-id 13
+    /// @custom:property supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge
+    function fuzz_burn(uint256 tokenIndex, address from, address sender, uint256 amount) external {
+        address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
+        bytes32 salt = MESSENGER.superTokenInitDeploySalts(token);
+        uint256 senderBalance = OptimismSuperchainERC20(token).balanceOf(sender);
+        vm.prank(sender);
+        try OptimismSuperchainERC20(token).burn(from, amount) {
+            assert(sender == BRIDGE);
+            (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(salt);
+            ghost_totalSupplyAcrossChains.set(salt, currentValue - amount);
+        } catch {
+            assert(sender != BRIDGE || senderBalance < amount);
+        }
+    }
+
     /// @custom:property-id 25
     /// @custom:property supertokens can't be reinitialized
     function fuzz_initialize(
