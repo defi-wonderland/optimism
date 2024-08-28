@@ -27,11 +27,15 @@ contract ProtocolUnguided is ProtocolHandler {
         address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
         vm.prank(sender);
         try OptimismSuperchainERC20(token).relayERC20(sender, recipient, amount) {
+            MESSENGER.setCrossDomainMessageSender(address(0));
             assert(sender == address(MESSENGER));
             assert(crossDomainMessageSender == token);
-            // this would increase the supply across chains without a call to
-            // `mint` by the MESSENGER, so I'm reverting the state transition
-            require(false);
+            // this increases the supply across chains without a call to
+            // `mint` by the MESSENGER, so it kind of breaks an invariant, but
+            // let's walk around that:
+            bytes32 salt = MESSENGER.superTokenInitDeploySalts(token);
+            (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(salt);
+            ghost_totalSupplyAcrossChains.set(salt, currentValue + amount);
         } catch {
             assert(sender != address(MESSENGER) || crossDomainMessageSender != token);
             MESSENGER.setCrossDomainMessageSender(address(0));
