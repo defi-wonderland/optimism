@@ -3,8 +3,8 @@ pragma solidity ^0.8.25;
 
 import { ITokenMock } from "@crytic/properties/contracts/ERC20/external/util/ITokenMock.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import { ProtocolGuided } from "./fuzz/Protocol.guided.t.sol";
-import { ProtocolUnguided } from "./fuzz/Protocol.unguided.t.sol";
+import { ProtocolGuided } from "../fuzz/Protocol.guided.t.sol";
+import { ProtocolUnguided } from "../fuzz/Protocol.unguided.t.sol";
 import { CryticERC20ExternalBasicProperties } from
     "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
