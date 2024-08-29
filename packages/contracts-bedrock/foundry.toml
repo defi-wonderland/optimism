@@ -65,10 +65,10 @@ bracket_spacing=true
 wrap_comments=true
 
 [invariant]
-runs=1000
-depth=500
+runs=100000
+depth=4
 fail_on_revert=false
-shrink_run_limit=5000
+shrink_run_limit=500000
 
 ################################################################
 #                         PROFILE: CI                          #

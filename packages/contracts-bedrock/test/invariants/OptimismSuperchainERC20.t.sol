@@ -11,7 +11,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { IL2ToL2CrossDomainMessenger } from "src/L2/IL2ToL2CrossDomainMessenger.sol";
-import { ProtocolProperties } from "../properties/medusa/Protocol.properties.t.sol";
+import { ProtocolProperties } from "../properties/medusa/Protocol.t.sol";
 import { MockL2ToL2CrossDomainMessenger } from "../properties/helpers/MockL2ToL2CrossDomainMessenger.t.sol";
 
 contract MedusaAdaptooor is Test {
@@ -42,10 +42,10 @@ contract MedusaAdaptooor is Test {
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
                 }
             }
-            console.log('trackedSupply   :', trackedSupply);
-            console.log('totalSupply   :', totalSupply);
+            console.log('trackedSupply    :', trackedSupply);
+            console.log('totalSupply      :', totalSupply);
             console.log('fundsInTransit   :', fundsInTransit);
-            assert(trackedSupply == totalSupply + fundsInTransit);
+            assertEq(trackedSupply, totalSupply + fundsInTransit);
         }
     }
 
@@ -74,6 +74,10 @@ contract MedusaAdaptooor is Test {
             console.log('totalSupply   :', totalSupply);
             assertEq(trackedSupply,  totalSupply);
         }
+    }
+
+    function invariant_handlerAssertions() external {
+        assertFalse(properties.failed());
     }
 }
 
