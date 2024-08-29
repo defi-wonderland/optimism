@@ -14,50 +14,52 @@ import { IERC165 } from "@openzeppelin/contracts-v5/utils/introspection/IERC165.
 
 // Target contract
 import {
-    OptimismSuperchainERC20,
-    IOptimismSuperchainERC20Extension,
-    OnlyBridge,
+    CallerNotL2ToL2CrossDomainMessenger,
+    InvalidCrossDomainSender,
+    SuperchainERC20,
+    ISuperchainERC20Extensions,
     ZeroAddress
-} from "src/L2/OptimismSuperchainERC20.sol";
-import { CallerNotL2ToL2CrossDomainMessenger, InvalidCrossDomainSender } from "src/L2/SuperchainERC20.sol";
-import { ISuperchainERC20Extensions } from "src/L2/ISuperchainERC20.sol";
+} from "src/L2/SuperchainERC20.sol";
 
-/// @title OptimismSuperchainERC20Test
-/// @notice Contract for testing the OptimismSuperchainERC20 contract.
-contract OptimismSuperchainERC20Test is Test {
+/// @notice Mock contract for the SuperchainERC20 contract so tests can mint tokens.
+contract SuperchainERC20Mock is SuperchainERC20 {
+    function mint(address _account, uint256 _amount) public {
+        _mint(_account, _amount);
+    }
+}
+
+/// @title SuperchainERC20Test
+/// @notice Contract for testing the SuperchainERC20 contract.
+contract SuperchainERC20Test is Test {
     address internal constant ZERO_ADDRESS = address(0);
-    address internal constant REMOTE_TOKEN = address(0x123);
-    string internal constant NAME = "OptimismSuperchainERC20";
+    string internal constant NAME = "SuperchainERC20";
     string internal constant SYMBOL = "SCE";
     uint8 internal constant DECIMALS = 18;
-    address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
-    OptimismSuperchainERC20 public superchainERC20Impl;
-    OptimismSuperchainERC20 public superchainERC20;
+    SuperchainERC20 public superchainERC20Impl;
+    SuperchainERC20Mock public superchainERC20;
 
     /// @notice Sets up the test suite.
     function setUp() public {
-        superchainERC20Impl = new OptimismSuperchainERC20();
-        superchainERC20 = _deploySuperchainERC20Proxy(REMOTE_TOKEN, NAME, SYMBOL, DECIMALS);
+        superchainERC20Impl = new SuperchainERC20Mock();
+        superchainERC20 = _deploySuperchainERC20Proxy(NAME, SYMBOL, DECIMALS);
     }
 
-    /// @notice Helper function to deploy a proxy of the OptimismSuperchainERC20 contract.
+    /// @notice Helper function to deploy a proxy of the SuperchainERC20 contract.
     function _deploySuperchainERC20Proxy(
-        address _remoteToken,
         string memory _name,
         string memory _symbol,
         uint8 _decimals
     )
         internal
-        returns (OptimismSuperchainERC20)
+        returns (SuperchainERC20Mock)
     {
-        return OptimismSuperchainERC20(
+        return SuperchainERC20Mock(
             address(
-                // TODO: Use the SuperchainERC20 Beacon Proxy
                 new ERC1967Proxy(
                     address(superchainERC20Impl),
-                    abi.encodeCall(OptimismSuperchainERC20.initialize, (_remoteToken, _name, _symbol, _decimals))
+                    abi.encodeCall(SuperchainERC20.initialize, (_name, _symbol, _decimals))
                 )
             )
         );
@@ -74,125 +76,15 @@ contract OptimismSuperchainERC20Test is Test {
         assertEq(superchainERC20.name(), NAME);
         assertEq(superchainERC20.symbol(), SYMBOL);
         assertEq(superchainERC20.decimals(), DECIMALS);
-        assertEq(superchainERC20.remoteToken(), REMOTE_TOKEN);
     }
 
     /// @notice Tests the `initialize` function reverts when the contract is already initialized.
-    function testFuzz_initializer_reverts(
-        address _remoteToken,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    )
-        public
-    {
+    function testFuzz_initializer_reverts(string memory _name, string memory _symbol, uint8 _decimals) public {
         // Expect the revert with `InvalidInitialization` selector
         vm.expectRevert(Initializable.InvalidInitialization.selector);
 
         // Call the `initialize` function again
-        superchainERC20.initialize(_remoteToken, _name, _symbol, _decimals);
-    }
-
-    /// @notice Tests the `mint` function reverts when the caller is not the bridge.
-    function testFuzz_mint_callerNotBridge_reverts(address _caller, address _to, uint256 _amount) public {
-        // Ensure the caller is not the bridge
-        vm.assume(_caller != BRIDGE);
-
-        // Expect the revert with `OnlyBridge` selector
-        vm.expectRevert(OnlyBridge.selector);
-
-        // Call the `mint` function with the non-bridge caller
-        vm.prank(_caller);
-        superchainERC20.mint(_to, _amount);
-    }
-
-    /// @notice Tests the `mint` function reverts when the amount is zero.
-    function testFuzz_mint_zeroAddressTo_reverts(uint256 _amount) public {
-        // Expect the revert with `ZeroAddress` selector
-        vm.expectRevert(ZeroAddress.selector);
-
-        // Call the `mint` function with the zero address
-        vm.prank(BRIDGE);
-        superchainERC20.mint({ _to: ZERO_ADDRESS, _amount: _amount });
-    }
-
-    /// @notice Tests the `mint` succeeds and emits the `Mint` event.
-    function testFuzz_mint_succeeds(address _to, uint256 _amount) public {
-        // Ensure `_to` is not the zero address
-        vm.assume(_to != ZERO_ADDRESS);
-
-        // Get the total supply and balance of `_to` before the mint to compare later on the assertions
-        uint256 _totalSupplyBefore = superchainERC20.totalSupply();
-        uint256 _toBalanceBefore = superchainERC20.balanceOf(_to);
-
-        // Look for the emit of the `Transfer` event
-        vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IERC20.Transfer(ZERO_ADDRESS, _to, _amount);
-
-        // Look for the emit of the `Mint` event
-        vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IOptimismSuperchainERC20Extension.Mint(_to, _amount);
-
-        // Call the `mint` function with the bridge caller
-        vm.prank(BRIDGE);
-        superchainERC20.mint(_to, _amount);
-
-        // Check the total supply and balance of `_to` after the mint were updated correctly
-        assertEq(superchainERC20.totalSupply(), _totalSupplyBefore + _amount);
-        assertEq(superchainERC20.balanceOf(_to), _toBalanceBefore + _amount);
-    }
-
-    /// @notice Tests the `burn` function reverts when the caller is not the bridge.
-    function testFuzz_burn_callerNotBridge_reverts(address _caller, address _from, uint256 _amount) public {
-        // Ensure the caller is not the bridge
-        vm.assume(_caller != BRIDGE);
-
-        // Expect the revert with `OnlyBridge` selector
-        vm.expectRevert(OnlyBridge.selector);
-
-        // Call the `burn` function with the non-bridge caller
-        vm.prank(_caller);
-        superchainERC20.burn(_from, _amount);
-    }
-
-    /// @notice Tests the `burn` function reverts when the amount is zero.
-    function testFuzz_burn_zeroAddressFrom_reverts(uint256 _amount) public {
-        // Expect the revert with `ZeroAddress` selector
-        vm.expectRevert(ZeroAddress.selector);
-
-        // Call the `burn` function with the zero address
-        vm.prank(BRIDGE);
-        superchainERC20.burn({ _from: ZERO_ADDRESS, _amount: _amount });
-    }
-
-    /// @notice Tests the `burn` burns the amount and emits the `Burn` event.
-    function testFuzz_burn_succeeds(address _from, uint256 _amount) public {
-        // Ensure `_from` is not the zero address
-        vm.assume(_from != ZERO_ADDRESS);
-
-        // Mint some tokens to `_from` so then they can be burned
-        vm.prank(BRIDGE);
-        superchainERC20.mint(_from, _amount);
-
-        // Get the total supply and balance of `_from` before the burn to compare later on the assertions
-        uint256 _totalSupplyBefore = superchainERC20.totalSupply();
-        uint256 _fromBalanceBefore = superchainERC20.balanceOf(_from);
-
-        // Look for the emit of the `Transfer` event
-        vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IERC20.Transfer(_from, ZERO_ADDRESS, _amount);
-
-        // Look for the emit of the `Burn` event
-        vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit IOptimismSuperchainERC20Extension.Burn(_from, _amount);
-
-        // Call the `burn` function with the bridge caller
-        vm.prank(BRIDGE);
-        superchainERC20.burn(_from, _amount);
-
-        // Check the total supply and balance of `_from` after the burn were updated correctly
-        assertEq(superchainERC20.totalSupply(), _totalSupplyBefore - _amount);
-        assertEq(superchainERC20.balanceOf(_from), _fromBalanceBefore - _amount);
+        superchainERC20.initialize(_name, _symbol, _decimals);
     }
 
     /// @notice Tests the `sendERC20` function reverts when the `_to` address is the zero address.
@@ -201,7 +93,6 @@ contract OptimismSuperchainERC20Test is Test {
         vm.expectRevert(ZeroAddress.selector);
 
         // Call the `sendERC20` function with the zero address
-        vm.prank(BRIDGE);
         superchainERC20.sendERC20({ _to: ZERO_ADDRESS, _amount: _amount, _chainId: _chainId });
     }
 
@@ -213,7 +104,6 @@ contract OptimismSuperchainERC20Test is Test {
         vm.assume(_to != ZERO_ADDRESS);
 
         // Mint some tokens to the sender so then they can be sent
-        vm.prank(BRIDGE);
         superchainERC20.mint(_sender, _amount);
 
         // Get the total supply and balance of `_sender` before the send to compare later on the assertions
@@ -347,39 +237,33 @@ contract OptimismSuperchainERC20Test is Test {
 
     /// @notice Tests the `decimals` function always returns the correct value.
     function testFuzz_decimals_succeeds(uint8 _decimals) public {
-        OptimismSuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(REMOTE_TOKEN, NAME, SYMBOL, _decimals);
+        SuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(NAME, SYMBOL, _decimals);
         assertEq(_newSuperchainERC20.decimals(), _decimals);
-    }
-
-    /// @notice Tests the `REMOTE_TOKEN` function always returns the correct value.
-    function testFuzz_remoteToken_succeeds(address _remoteToken) public {
-        OptimismSuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(_remoteToken, NAME, SYMBOL, DECIMALS);
-        assertEq(_newSuperchainERC20.remoteToken(), _remoteToken);
     }
 
     /// @notice Tests the `name` function always returns the correct value.
     function testFuzz_name_succeeds(string memory _name) public {
-        OptimismSuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(REMOTE_TOKEN, _name, SYMBOL, DECIMALS);
+        SuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(_name, SYMBOL, DECIMALS);
         assertEq(_newSuperchainERC20.name(), _name);
     }
 
     /// @notice Tests the `symbol` function always returns the correct value.
     function testFuzz_symbol_succeeds(string memory _symbol) public {
-        OptimismSuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(REMOTE_TOKEN, NAME, _symbol, DECIMALS);
+        SuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(NAME, _symbol, DECIMALS);
         assertEq(_newSuperchainERC20.symbol(), _symbol);
     }
 
-    /// @notice Tests that the `supportsInterface` function returns true for the `IOptimismSuperchainERC20` interface.
+    /// @notice Tests that the `supportsInterface` function returns true for the `ISuperchainERC20` interface.
     function test_supportInterface_succeeds() public view {
         assertTrue(superchainERC20.supportsInterface(type(IERC165).interfaceId));
-        assertTrue(superchainERC20.supportsInterface(type(IOptimismSuperchainERC20Extension).interfaceId));
+        assertTrue(superchainERC20.supportsInterface(type(ISuperchainERC20Extensions).interfaceId));
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
-    /// `IOptimismSuperchainERC20` one.
+    /// `ISuperchainERC20` one.
     function testFuzz_supportInterface_returnFalse(bytes4 _interfaceId) public view {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
-        vm.assume(_interfaceId != type(IOptimismSuperchainERC20Extension).interfaceId);
+        vm.assume(_interfaceId != type(ISuperchainERC20Extensions).interfaceId);
         assertFalse(superchainERC20.supportsInterface(_interfaceId));
     }
 }
