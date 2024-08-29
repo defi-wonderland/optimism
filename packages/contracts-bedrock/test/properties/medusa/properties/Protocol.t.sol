@@ -31,7 +31,7 @@ contract ProtocolProperties is ProtocolGuided, ProtocolUnguided, CryticERC20Exte
     /// @custom:property-id 19
     /// @custom:property sum of supertoken total supply across all chains is always <= to convert(legacy, super)-
     /// convert(super, legacy)
-    function property_totalSupplyAcrossChainsEqualsMintsMinusFundsInTransit() external view {
+    function property_totalSupplyAcrossChainsEqualsMintsMinusFundsInTransit() external {
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
         for (uint256 deploySaltIndex ; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
             uint256 totalSupply ;
@@ -44,7 +44,7 @@ contract ProtocolProperties is ProtocolGuided, ProtocolUnguided, CryticERC20Exte
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
                 }
             }
-            assert(trackedSupply == totalSupply + fundsInTransit);
+            compatibleAssert(trackedSupply == totalSupply + fundsInTransit);
         }
     }
 
@@ -53,7 +53,7 @@ contract ProtocolProperties is ProtocolGuided, ProtocolUnguided, CryticERC20Exte
     /// @custom:property-id 21
     /// @custom:property sum of supertoken total supply across all chains is equal to convert(legacy, super)-
     /// convert(super, legacy) when all when all cross-chain messages are processed
-    function property_totalSupplyAcrossChainsEqualsMintsWhenQueueIsEmpty() external view {
+    function property_totalSupplyAcrossChainsEqualsMintsWhenQueueIsEmpty() external {
         require(MESSENGER.messageQueueLength() == 0);
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
         for (uint256 deploySaltIndex ; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
@@ -66,7 +66,7 @@ contract ProtocolProperties is ProtocolGuided, ProtocolUnguided, CryticERC20Exte
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
                 }
             }
-            assert(trackedSupply == totalSupply);
+            compatibleAssert(trackedSupply == totalSupply);
         }
     }
 }
