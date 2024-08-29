@@ -66,14 +66,14 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         _;
     }
 
-    function handler_MockNewRemoteToken() external {
+    function handler_mockNewRemoteToken() external {
         _deployRemoteToken();
     }
 
     /// @notice pick one already-deployed supertoken and mint an arbitrary amount of it
     /// necessary so there is something to be bridged :D
     /// TODO: will be replaced when testing the factories and `convert()`
-    function handler_MintSupertoken(uint256 index, uint96 amount) external withActor(msg.sender) {
+    function handler_mintSupertoken(uint256 index, uint96 amount) external withActor(msg.sender) {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
         vm.prank(BRIDGE);
@@ -87,7 +87,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     /// @notice The ToB properties don't preclude the need for this since they
     /// always use address(this) as the caller, which won't get any balance
     /// until it's transferred to it somehow
-    function handler_SupERC20Transfer(
+    function handler_supERC20Transfer(
         uint256 tokenIndex,
         uint256 toIndex,
         uint256 amount
@@ -101,7 +101,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         );
     }
 
-    function handler_SupERC20TransferFrom(
+    function handler_supERC20TransferFrom(
         uint256 tokenIndex,
         uint256 fromIndex,
         uint256 toIndex,
@@ -116,7 +116,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         );
     }
 
-    function handler_SupERC20Approve(
+    function handler_supERC20Approve(
         uint256 tokenIndex,
         uint256 spenderIndex,
         uint256 amount
