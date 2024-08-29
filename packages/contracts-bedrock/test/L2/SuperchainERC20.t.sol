@@ -56,8 +56,8 @@ contract SuperchainERC20Test is Test {
         vm.expectCall(_receiver, _calldata);
     }
 
-    /// @notice Test that the contract's `initializer` sets the correct values.
-    function test_initializer_succeeds() public view {
+    /// @notice Test that the contract's `constructor` sets the correct values.
+    function test_constructor_succeeds() public view {
         assertEq(superchainERC20.name(), NAME);
         assertEq(superchainERC20.symbol(), SYMBOL);
         assertEq(superchainERC20.decimals(), DECIMALS);
