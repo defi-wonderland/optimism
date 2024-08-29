@@ -159,16 +159,20 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         // what we use in the tests to walk around two contracts needing two different addresses
         // tbf we could be using CREATE1, but this feels more verbose
         bytes32 hackySalt = keccak256(abi.encode(remoteToken, name, symbol, decimals, chainId));
-        supertoken = OptimismSuperchainERC20(
-            address(
-                // TODO: Use the SuperchainERC20 Beacon Proxy
-                new ERC1967Proxy{ salt: hackySalt }(
-                    address(superchainERC20Impl),
-                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
-                )
-            )
+        bytes memory creationCode = abi.encode(
+            type(ERC1967Proxy).creationCode,
+            address(superchainERC20Impl),
+            abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
         );
-        MESSENGER.registerSupertoken(realSalt, chainId, address(supertoken));
-        allSuperTokens.push(address(supertoken));
+        address ret;
+        assembly ("memory-safe") {
+            ret := create2(0, add(creationCode, 32), mload(creationCode), hackySalt)
+        }
+        if (ret == address(0)) {
+            require(false, "skip duplicate deployment");
+        }
+        MESSENGER.registerSupertoken(realSalt, chainId, ret);
+        allSuperTokens.push(ret);
+        supertoken = OptimismSuperchainERC20(ret);
     }
 }
