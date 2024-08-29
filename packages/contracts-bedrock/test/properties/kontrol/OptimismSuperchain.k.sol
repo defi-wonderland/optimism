@@ -2,13 +2,13 @@
 pragma solidity 0.8.25;
 
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
-import { SymTest } from "halmos-cheatcodes/src/SymTest.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockL2ToL2Messenger } from "test/properties/halmos/MockL2ToL2Messenger.sol";
 import { HalmosBase } from "test/properties/helpers/HalmosBase.sol";
+import { KontrolCheats } from "kontrol-cheatcodes/KontrolCheats.sol";
 
-contract OptimismSuperchainERC20Kontrol is SymTest, HalmosBase {
+contract OptimismSuperchainERC20Kontrol is KontrolCheats, HalmosBase {
     MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
     OptimismSuperchainERC20 public superchainERC20Impl;
