@@ -140,7 +140,8 @@ if [ "$SCRIPT_TESTS" == true ]; then
               "L1StandardBridgeKontrol.prove_finalizeBridgeERC20_paused" \
               "L1StandardBridgeKontrol.prove_finalizeBridgeETH_paused" \
               "L1ERC721BridgeKontrol.prove_finalizeBridgeERC721_paused" \
-              "L1CrossDomainMessengerKontrol.prove_relayMessage_paused"
+              "L1CrossDomainMessengerKontrol.prove_relayMessage_paused" \
+              "OptimismSuperchainERC20Kontrol.prove_setup"
   )
 elif [ "$CUSTOM_TESTS" != 0 ]; then
   test_list=( "${@:${CUSTOM_TESTS}}" )
