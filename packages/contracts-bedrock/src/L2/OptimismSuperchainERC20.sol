@@ -4,6 +4,9 @@ pragma solidity 0.8.25;
 import { IOptimismSuperchainERC20Extension } from "src/L2/IOptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { ISemver } from "src/universal/ISemver.sol";
+import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
+import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 
 /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the StandardBridge.
 error OnlyBridge();
@@ -19,7 +22,13 @@ error ZeroAddress();
 ///         token, turning it fungible and interoperable across the superchain. Likewise, it also enables the inverse
 ///         conversion path.
 ///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
-contract OptimismSuperchainERC20 is IOptimismSuperchainERC20Extension, SuperchainERC20 {
+contract OptimismSuperchainERC20 is
+    IOptimismSuperchainERC20Extension,
+    SuperchainERC20,
+    ISemver,
+    Initializable,
+    ERC165
+{
     /// @notice Address of the StandardBridge Predeploy.
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
 
@@ -55,7 +64,7 @@ contract OptimismSuperchainERC20 is IOptimismSuperchainERC20Extension, Superchai
     }
 
     /// @notice Constructs the OptimismSuperchainERC20 contract.
-    constructor() {
+    constructor() SuperchainERC20("", "", 18) {
         _disableInitializers();
     }
 
@@ -73,7 +82,7 @@ contract OptimismSuperchainERC20 is IOptimismSuperchainERC20Extension, Superchai
         external
         initializer
     {
-        super.initialize(_name, _symbol, _decimals);
+        _setMetadataStorage(_name, _symbol, _decimals);
 
         OptimismSuperchainERC20Metadata storage _storage = _getStorage();
         _storage.remoteToken = _remoteToken;

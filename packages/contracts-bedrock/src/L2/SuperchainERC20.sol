@@ -4,10 +4,7 @@ pragma solidity 0.8.25;
 import { ISuperchainERC20Extensions } from "src/L2/ISuperchainERC20.sol";
 import { ERC20 } from "@solady/tokens/ERC20.sol";
 import { IL2ToL2CrossDomainMessenger } from "src/L2/IL2ToL2CrossDomainMessenger.sol";
-import { ISemver } from "src/universal/ISemver.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
-import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 
 /// @notice Thrown when attempting to relay a message and the function caller (msg.sender) is not
 /// L2ToL2CrossDomainMessenger.
@@ -23,7 +20,7 @@ error ZeroAddress();
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
 ///         bridging to make it fungible across the Superchain. It builds on top of the L2ToL2CrossDomainMessenger for
 ///         both replay protection and domain binding.
-contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20, ISemver, Initializable, ERC165 {
+contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20 {
     /// @notice Address of the L2ToL2CrossDomainMessenger Predeploy.
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
@@ -50,33 +47,30 @@ contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20, ISemver, Initiali
         }
     }
 
-    /// @notice Semantic version.
-    /// @custom:semver "1.0.0-beta.1"
-    function version() public pure virtual returns (string memory) {
-        return "1.0.0-beta.1";
-    }
-
-    /// @notice Constructs the SuperchainERC20 contract.
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract.
-    /// @param _name           ERC20 name.
-    /// @param _symbol         ERC20 symbol.
-    /// @param _decimals       ERC20 decimals.
-    function initialize(string memory _name, string memory _symbol, uint8 _decimals) public initializer {
+    /// @notice Sets the storage for the SuperchainERC20Metadata.
+    /// @param _name     Name of the token.
+    /// @param _symbol   Symbol of the token.
+    /// @param _decimals Decimals of the token.
+    function _setMetadataStorage(string memory _name, string memory _symbol, uint8 _decimals) internal {
         SuperchainERC20Metadata storage _storage = _getMetadataStorage();
         _storage.name = _name;
         _storage.symbol = _symbol;
         _storage.decimals = _decimals;
     }
 
+    /// @notice Constructs the SuperchainERC20 contract.
+    /// @param _name           ERC20 name.
+    /// @param _symbol         ERC20 symbol.
+    /// @param _decimals       ERC20 decimals.
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
+        _setMetadataStorage(_name, _symbol, _decimals);
+    }
+
     /// @notice Sends tokens to some target address on another chain.
     /// @param _to      Address to send tokens to.
     /// @param _amount  Amount of tokens to send.
     /// @param _chainId Chain ID of the destination chain.
-    function sendERC20(address _to, uint256 _amount, uint256 _chainId) external {
+    function sendERC20(address _to, uint256 _amount, uint256 _chainId) external virtual {
         if (_to == address(0)) revert ZeroAddress();
 
         _burn(msg.sender, _amount);
@@ -91,7 +85,7 @@ contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20, ISemver, Initiali
     /// @param _from   Address of the msg.sender of sendERC20 on the source chain.
     /// @param _to     Address to relay tokens to.
     /// @param _amount Amount of tokens to relay.
-    function relayERC20(address _from, address _to, uint256 _amount) external {
+    function relayERC20(address _from, address _to, uint256 _amount) external virtual {
         if (_to == address(0)) revert ZeroAddress();
 
         if (msg.sender != MESSENGER) revert CallerNotL2ToL2CrossDomainMessenger();
@@ -123,14 +117,7 @@ contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20, ISemver, Initiali
     /// NOTE: This information is only used for _display_ purposes: it in
     /// no way affects any of the arithmetic of the contract, including
     /// {IERC20-balanceOf} and {IERC20-transfer}.
-    function decimals() public view override returns (uint8) {
+    function decimals() public view virtual override returns (uint8) {
         return _getMetadataStorage().decimals;
-    }
-
-    /// @notice ERC165 interface check function.
-    /// @param _interfaceId Interface ID to check.
-    /// @return Whether or not the interface is supported by this contract.
-    function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
-        return _interfaceId == type(ISuperchainERC20Extensions).interfaceId || super.supportsInterface(_interfaceId);
     }
 }

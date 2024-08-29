@@ -36,14 +36,6 @@ contract InitializerOZv5_Test is Test {
                 initCalldata: abi.encodeCall(OptimismSuperchainERC20.initialize, (address(0), "", "", 18))
             })
         );
-
-        // SuperchainERC20
-        contracts.push(
-            InitializeableContract({
-                target: address(new SuperchainERC20()),
-                initCalldata: abi.encodeCall(SuperchainERC20.initialize, ("", "", 18))
-            })
-        );
     }
 
     /// @notice Tests that:
