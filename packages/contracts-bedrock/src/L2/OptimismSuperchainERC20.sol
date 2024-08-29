@@ -59,9 +59,7 @@ contract OptimismSuperchainERC20 is
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
-    function version() public pure override returns (string memory) {
-        return "1.0.0-beta.1";
-    }
+    string public constant version = "1.0.0-beta.1";
 
     /// @notice Constructs the OptimismSuperchainERC20 contract.
     constructor() SuperchainERC20("", "", 18) {
