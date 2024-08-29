@@ -8,7 +8,7 @@ contract ProtocolGuided is ProtocolHandler {
     /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
     /// @custom:property-id 14
     /// @custom:property supertoken total supply starts at zero
-    function property_DeployNewSupertoken(
+    function fuzz_deployNewSupertoken(
         TokenDeployParams memory params,
         uint256 chainId
     )
@@ -35,7 +35,7 @@ contract ProtocolGuided is ProtocolHandler {
     /// @custom:property-id 23
     /// @custom:property sendERC20 decreases total supply in source chain and increases it in destination chain exactly
     /// by the input amount
-    function property_BridgeSupertoken(
+    function fuzz_bridgeSupertoken(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId,
@@ -80,23 +80,23 @@ contract ProtocolGuided is ProtocolHandler {
 
     /// @custom:property-id 8
     /// @custom:property calls to sendERC20 with a value of zero dont modify accounting
-    // @notice is a subset of property_BridgeSupertoken, so we'll just call it
+    // @notice is a subset of fuzz_bridgeSupertoken, so we'll just call it
     // instead of re-implementing it. Keeping the function for visibility of the property.
-    function property_SendZeroDoesNotModifyAccounting(
+    function fuzz_sendZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex,
         uint256 destinationChainId
     )
         external
     {
-        property_BridgeSupertoken(fromIndex, recipientIndex, destinationChainId, 0);
+        fuzz_bridgeSupertoken(fromIndex, recipientIndex, destinationChainId, 0);
     }
 
     /// @custom:property-id 9
     /// @custom:property calls to relayERC20 with a value of zero dont modify accounting
     /// @custom:property-id 7
     /// @custom:property calls to relayERC20 always succeed as long as the cross-domain caller is valid
-    function property_RelayZeroDoesNotModifyAccounting(
+    function fuzz_relayZeroDoesNotModifyAccounting(
         uint256 fromIndex,
         uint256 recipientIndex
     )
