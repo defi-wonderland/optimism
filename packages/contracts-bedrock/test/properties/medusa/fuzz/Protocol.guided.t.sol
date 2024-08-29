@@ -5,8 +5,9 @@ import { MockL2ToL2CrossDomainMessenger } from "../../helpers/MockL2ToL2CrossDom
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { ProtocolHandler } from "../handlers/Protocol.t.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import { CompatibleAssert } from '../../helpers/CompatibleAssert.t.sol';
 
-contract ProtocolGuided is ProtocolHandler {
+contract ProtocolGuided is ProtocolHandler, CompatibleAssert {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     /// @notice deploy a new supertoken with deploy salt determined by params, to the given (of course mocked) chainId
     /// @custom:property-id 14
@@ -27,7 +28,7 @@ contract ProtocolGuided is ProtocolHandler {
             chainId
         );
         // 14
-        assert(supertoken.totalSupply() == 0);
+        compatibleAssert(supertoken.totalSupply() == 0);
     }
 
     /// @custom:property-id 6
@@ -65,19 +66,19 @@ contract ProtocolGuided is ProtocolHandler {
             uint256 sourceBalanceAfter = sourceToken.balanceOf(currentActor());
             uint256 destinationBalanceAfter = destinationToken.balanceOf(recipient);
             // no free mint
-            assert(sourceBalanceBefore + destinationBalanceBefore == sourceBalanceAfter + destinationBalanceAfter);
+            compatibleAssert(sourceBalanceBefore + destinationBalanceBefore == sourceBalanceAfter + destinationBalanceAfter);
             // 22
-            assert(sourceBalanceBefore - amount == sourceBalanceAfter);
-            assert(destinationBalanceBefore + amount == destinationBalanceAfter);
+            compatibleAssert(sourceBalanceBefore - amount == sourceBalanceAfter);
+            compatibleAssert(destinationBalanceBefore + amount == destinationBalanceAfter);
             uint256 sourceSupplyAfter = sourceToken.totalSupply();
             uint256 destinationSupplyAfter = destinationToken.totalSupply();
             // 23
-            assert(sourceSupplyBefore - amount == sourceSupplyAfter);
-            assert(destinationSupplyBefore + amount == destinationSupplyAfter);
+            compatibleAssert(sourceSupplyBefore - amount == sourceSupplyAfter);
+            compatibleAssert(destinationSupplyBefore + amount == destinationSupplyAfter);
         } catch {
             MESSENGER.setAtomic(false);
             // 6
-            assert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
+            compatibleAssert(address(destinationToken) == address(sourceToken) || sourceBalanceBefore < amount);
         }
     }
 
