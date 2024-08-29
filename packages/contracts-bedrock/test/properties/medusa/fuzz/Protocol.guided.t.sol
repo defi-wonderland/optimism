@@ -107,7 +107,7 @@ contract ProtocolGuided is ProtocolHandler {
         address recipient = getActorByRawIndex(recipientIndex);
         OptimismSuperchainERC20 token = OptimismSuperchainERC20(allSuperTokens[fromIndex]);
         uint256 balanceSenderBefore = token.balanceOf(currentActor());
-        uint256 balanceRecipeintBefore = token.balanceOf(recipient);
+        uint256 balanceRecipientBefore = token.balanceOf(recipient);
         uint256 supplyBefore = token.totalSupply();
 
         MESSENGER.setCrossDomainMessageSender(address(token));
@@ -124,7 +124,7 @@ contract ProtocolGuided is ProtocolHandler {
         uint256 balanceRecipeintAfter = token.balanceOf(recipient);
         uint256 supplyAfter = token.totalSupply();
         assert(balanceSenderBefore == balanceSenderAfter);
-        assert(balanceRecipeintBefore == balanceRecipeintAfter);
+        assert(balanceRecipientBefore == balanceRecipeintAfter);
         assert(supplyBefore == supplyAfter);
     }
 }
