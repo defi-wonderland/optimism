@@ -79,7 +79,6 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
         vm.prank(BRIDGE);
-        // medusa calls with different senders by default
         OptimismSuperchainERC20(addr).mint(currentActor(), amount);
         // currentValue will be zero if key is not present
         (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(MESSENGER.superTokenInitDeploySalts(addr));
@@ -156,23 +155,21 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     {
         // this salt would be used in production. Tokens sharing it will be bridgable with each other
         bytes32 realSalt = keccak256(abi.encode(remoteToken, name, symbol, decimals));
+        require(MESSENGER.superTokenAddresses(chainId, realSalt) == address(0), "skip duplicate deployment");
+
         // what we use in the tests to walk around two contracts needing two different addresses
         // tbf we could be using CREATE1, but this feels more verbose
         bytes32 hackySalt = keccak256(abi.encode(remoteToken, name, symbol, decimals, chainId));
-        bytes memory creationCode = abi.encode(
-            type(ERC1967Proxy).creationCode,
-            address(superchainERC20Impl),
-            abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
+        supertoken = OptimismSuperchainERC20(
+            address(
+                // TODO: Use the SuperchainERC20 Beacon Proxy
+                new ERC1967Proxy{ salt: hackySalt }(
+                    address(superchainERC20Impl),
+                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
+                )
+            )
         );
-        address ret;
-        assembly ("memory-safe") {
-            ret := create2(0, add(creationCode, 32), mload(creationCode), hackySalt)
-        }
-        if (ret == address(0)) {
-            require(false, "skip duplicate deployment");
-        }
-        MESSENGER.registerSupertoken(realSalt, chainId, ret);
-        allSuperTokens.push(ret);
-        supertoken = OptimismSuperchainERC20(ret);
+        MESSENGER.registerSupertoken(realSalt, chainId, address(supertoken));
+        allSuperTokens.push(address(supertoken));
     }
 }
