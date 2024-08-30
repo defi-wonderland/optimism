@@ -155,6 +155,8 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     {
         // this salt would be used in production. Tokens sharing it will be bridgable with each other
         bytes32 realSalt = keccak256(abi.encode(remoteToken, name, symbol, decimals));
+        // Foundry invariant erroneously show other unrelated invariant breaking
+        // when this deployment fails due to a create2 collision, so we revert eagerly instead
         require(MESSENGER.superTokenAddresses(chainId, realSalt) == address(0), "skip duplicate deployment");
 
         // what we use in the tests to walk around two contracts needing two different addresses

@@ -5,7 +5,7 @@ import { console } from "forge-std/console.sol";
 
 /// @title CompatibleAssert
 /// @notice meant to add compatibility between medusa assertion tests and
-/// foundry invariant test's required arquitecture
+/// foundry invariant test's required architecture
 contract CompatibleAssert {
     bool public failed;
 
@@ -15,10 +15,13 @@ contract CompatibleAssert {
 
     function compatibleAssert(bool condition, string memory message) internal {
         if (!condition) {
+            if(bytes(message).length != 0) console.log("Assertion failed: ", message);
+            else console.log("Assertion failed");
+
             // for foundry to call & check
             failed = true;
+
             // for medusa
-            console.log("Assertion failed: ", message);
             assert(false);
         }
     }
