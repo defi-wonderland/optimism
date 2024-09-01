@@ -3,52 +3,22 @@ pragma solidity 0.8.25;
 
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockL2ToL2Messenger } from "test/properties/halmos/MockL2ToL2Messenger.sol";
-import { HalmosBase } from "test/properties/helpers/HalmosBase.sol";
-import { KontrolCheats } from "kontrol-cheatcodes/KontrolCheats.sol";
+import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
+import { InitialState } from "./deployments/InitialState.sol";
 
-contract OptimismSuperchainERC20Kontrol is KontrolCheats, HalmosBase {
-    MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-
-    OptimismSuperchainERC20 public superchainERC20Impl;
-    OptimismSuperchainERC20 internal sourceToken;
-    OptimismSuperchainERC20 internal destToken;
-
-    function setUp() public {
-        // Deploy the OptimismSuperchainERC20 contract implementation and the proxy to be used
-        superchainERC20Impl = new OptimismSuperchainERC20();
-        sourceToken = OptimismSuperchainERC20(
-            address(
-                // TODO: Update to beacon proxy
-                new ERC1967Proxy(
-                    address(superchainERC20Impl),
-                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
-                )
-            )
-        );
-
-        destToken = OptimismSuperchainERC20(
-            address(
-                // TODO: Update to beacon proxy
-                new ERC1967Proxy(
-                    address(superchainERC20Impl),
-                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
-                )
-            )
-        );
-
-        // Etch the mocked L2 to L2 Messenger since the messenger logic is out of scope for these test suite. Also, we
-        // avoid issues such as `TSTORE` opcode not being supported, or issues with `encodeVersionedNonce()`
-        address _mockL2ToL2CrossDomainMessenger =
-            address(new MockL2ToL2Messenger(address(sourceToken), address(destToken), DESTINATION_CHAIN_ID, address(0)));
-        vm.etch(address(MESSENGER), _mockL2ToL2CrossDomainMessenger.code);
-        // NOTE: We need to set the crossDomainMessageSender as an immutable or otherwise storage vars and not taken
-        // into account when etching on halmos. Setting a constant slot with setters and getters didn't work neither.
+contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
+    function setUpInlined() public {
+        superchainERC20Impl = OptimismSuperchainERC20(superchainERC20ImplAddress);
+        sourceToken = OptimismSuperchainERC20(sourceTokenAddress);
+        destToken = OptimismSuperchainERC20(destTokenAddress);
+        vm.etch(address(MESSENGER), mockL2ToL2MessengerAddress.code);
     }
 
     /// @notice Check setup works as expected
     function prove_setup() public {
+        setUpInlined();
+
         // Source token
         assert(sourceToken.remoteToken() == remoteToken);
         assert(eqStrings(sourceToken.name(), name));
@@ -68,6 +38,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolCheats, HalmosBase {
 
         // Custom cross domain sender
         assert(MESSENGER.crossDomainMessageSender() == address(0));
+
+        assert(block.chainid >= 0);
     }
 
     /// @custom:property-id 6
@@ -81,9 +53,14 @@ contract OptimismSuperchainERC20Kontrol is KontrolCheats, HalmosBase {
     )
         public
     {
+        setUpInlined();
+
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
+
+        notBuiltinAddress(_from);
+        notBuiltinAddress(_to);
 
         // Can't deal to unsupported cheatcode
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
@@ -135,6 +112,9 @@ contract OptimismSuperchainERC20Kontrol is KontrolCheats, HalmosBase {
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
+
+        notBuiltinAddress(_from);
+        notBuiltinAddress(_to);
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
