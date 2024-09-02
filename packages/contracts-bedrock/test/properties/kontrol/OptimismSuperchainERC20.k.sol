@@ -20,6 +20,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         setUpInlined();
 
         // Source token
+        assert(remoteToken != address(0));
         assert(sourceToken.remoteToken() == remoteToken);
         assert(eqStrings(sourceToken.name(), name));
         assert(eqStrings(sourceToken.symbol(), symbol));
