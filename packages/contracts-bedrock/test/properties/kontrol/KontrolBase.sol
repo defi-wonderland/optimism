@@ -16,10 +16,10 @@ contract KontrolBase is Test, KontrolCheats, RecordStateDiff {
 
     MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-    address internal remoteToken;
-    string internal name;
-    string internal symbol;
-    uint8 internal decimals;
+    address internal remoteToken = address(bytes20(keccak256("remoteToken")));
+    string internal name = "SuperchainERC20";
+    string internal symbol = "SUPER";
+    uint8 internal decimals = 18;
 
     OptimismSuperchainERC20 public superchainERC20Impl;
     OptimismSuperchainERC20 internal sourceToken;
@@ -28,11 +28,6 @@ contract KontrolBase is Test, KontrolCheats, RecordStateDiff {
 
     // The second function to get the state diff saving the addresses with their names
     function setUpNamed() public virtual recordStateDiff {
-        remoteToken = makeAddr("remoteToken");
-        name = "SuperchainERC20";
-        symbol = "SUPER";
-        decimals = 18;
-
         // Deploy the OptimismSuperchainERC20 contract implementation and the proxy to be used
         superchainERC20Impl = new OptimismSuperchainERC20();
         sourceToken = OptimismSuperchainERC20(
