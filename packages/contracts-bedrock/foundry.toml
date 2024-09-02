@@ -99,12 +99,6 @@ out = 'kout-proofs'
 test = 'test/kontrol/proofs'
 script = 'test/kontrol/proofs'
 
-[profile.medusa]
-src = 'test/properties/medusa/'
-test = 'test/properties/medusa/'
-script = 'test/properties/medusa/'
-via-ir=true
-
 [profile.halmos]
 src = 'test/properties/halmos/'
 test = 'test/properties/halmos/'

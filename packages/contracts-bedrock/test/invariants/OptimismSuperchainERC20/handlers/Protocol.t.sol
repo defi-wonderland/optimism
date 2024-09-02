@@ -7,10 +7,10 @@ import { StdUtils } from "forge-std/StdUtils.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
-import { OptimismSuperchainERC20ForToBProperties } from "../../helpers/OptimismSuperchainERC20ForToBProperties.t.sol";
+import { OptimismSuperchainERC20ForToBProperties } from "../helpers/OptimismSuperchainERC20ForToBProperties.t.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { MockL2ToL2CrossDomainMessenger } from "../../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
-import { Actors } from "../../helpers/Actors.t.sol";
+import { MockL2ToL2CrossDomainMessenger } from "../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
+import { Actors } from "../helpers/Actors.t.sol";
 
 contract ProtocolHandler is TestBase, StdUtils, Actors {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;

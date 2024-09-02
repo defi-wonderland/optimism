@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { ProtocolHandler } from "../handlers/Protocol.t.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
-import { CompatibleAssert } from '../../helpers/CompatibleAssert.t.sol';
+import { CompatibleAssert } from '../helpers/CompatibleAssert.t.sol';
 
 // TODO: add fuzz_sendERC20 when we implement non-atomic bridging
 contract ProtocolUnguided is ProtocolHandler , CompatibleAssert{

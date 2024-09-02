@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3
 pragma solidity ^0.8.24;
 
-import { ProtocolHandler } from "../medusa/handlers/Protocol.t.sol";
+import { ProtocolHandler } from "../handlers/Protocol.t.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
-contract FoundryGetters is ProtocolHandler {
+contract HandlerGetters is ProtocolHandler {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     function deploySaltsLength() external view returns (uint256 length) {
         return ghost_totalSupplyAcrossChains.length();

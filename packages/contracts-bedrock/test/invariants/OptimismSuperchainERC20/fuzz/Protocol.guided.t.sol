@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { MockL2ToL2CrossDomainMessenger } from "../../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
+import { MockL2ToL2CrossDomainMessenger } from "../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { ProtocolHandler } from "../handlers/Protocol.t.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import { CompatibleAssert } from '../../helpers/CompatibleAssert.t.sol';
+import { CompatibleAssert } from '../helpers/CompatibleAssert.t.sol';
 
 contract ProtocolGuided is ProtocolHandler, CompatibleAssert {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
