@@ -33,12 +33,12 @@ contract ProtocolProperties is ProtocolGuided, ProtocolUnguided, CryticERC20Exte
     /// convert(super, legacy)
     function property_totalSupplyAcrossChainsEqualsMintsMinusFundsInTransit() external view {
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
-        for (uint256 deploySaltIndex = 0; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
-            uint256 totalSupply = 0;
+        for (uint256 deploySaltIndex ; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
+            uint256 totalSupply ;
             (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(deploySaltIndex);
             (, uint256 fundsInTransit) = ghost_tokensInTransit.tryGet(currentSalt);
             // and then over all the (mocked) chain ids where that supertoken could be deployed
-            for (uint256 validChainId = 0; validChainId < MAX_CHAINS; validChainId++) {
+            for (uint256 validChainId ; validChainId < MAX_CHAINS; validChainId++) {
                 address supertoken = MESSENGER.superTokenAddresses(validChainId, currentSalt);
                 if (supertoken != address(0)) {
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();
@@ -56,11 +56,11 @@ contract ProtocolProperties is ProtocolGuided, ProtocolUnguided, CryticERC20Exte
     function property_totalSupplyAcrossChainsEqualsMintsWhenQueueIsEmpty() external view {
         require(MESSENGER.messageQueueLength() == 0);
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
-        for (uint256 deploySaltIndex = 0; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
-            uint256 totalSupply = 0;
+        for (uint256 deploySaltIndex ; deploySaltIndex < ghost_totalSupplyAcrossChains.length(); deploySaltIndex++) {
+            uint256 totalSupply ;
             (bytes32 currentSalt, uint256 trackedSupply) = ghost_totalSupplyAcrossChains.at(deploySaltIndex);
             // and then over all the (mocked) chain ids where that supertoken could be deployed
-            for (uint256 validChainId = 0; validChainId < MAX_CHAINS; validChainId++) {
+            for (uint256 validChainId ; validChainId < MAX_CHAINS; validChainId++) {
                 address supertoken = MESSENGER.superTokenAddresses(validChainId, currentSalt);
                 if (supertoken != address(0)) {
                     totalSupply += OptimismSuperchainERC20(supertoken).totalSupply();

@@ -92,9 +92,9 @@ contract ProtocolUnguided is ProtocolHandler {
         try OptimismSuperchainERC20(token).mint(to, amount) {
             assert(sender == BRIDGE);
             (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(salt);
-            ghost_totalSupplyAcrossChains.set(salt, currentValue - amount);
+            ghost_totalSupplyAcrossChains.set(salt, currentValue + amount);
         } catch {
-            assert(sender != BRIDGE);
+            assert(sender != BRIDGE || to == address(0));
         }
     }
 
