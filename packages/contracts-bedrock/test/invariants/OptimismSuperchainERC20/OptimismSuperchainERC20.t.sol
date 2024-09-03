@@ -18,7 +18,7 @@ import { MockL2ToL2CrossDomainMessenger } from "./helpers/MockL2ToL2CrossDomainM
 
 contract OptimismSuperchainERC20Handler is HandlerGetters, ProtocolGuided, ProtocolUnguided { }
 
-contract OptimismSuperchainERC20MedusaProperties is Test {
+contract OptimismSuperchainERC20Properties is Test {
     OptimismSuperchainERC20Handler internal handler;
     MockL2ToL2CrossDomainMessenger internal constant MESSENGER =
         MockL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
