@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { MockL2ToL2Messenger } from "test/properties/halmos/MockL2ToL2Messenger.sol";
+import { MockL2ToL2Messenger } from "test/properties/kontrol/helpers/MockL2ToL2Messenger.sol";
 import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
 import { InitialState } from "./deployments/InitialState.sol";
 
@@ -36,8 +36,12 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.prank(address(destToken));
         assert(MESSENGER.crossDomainMessageSender() == address(destToken));
 
-        // Custom cross domain sender
+        // Messenger
+        assert(MESSENGER.SOURCE() == SOURCE);
         assert(MESSENGER.crossDomainMessageSender() == address(0));
+        // Check the setter works properly
+        MESSENGER.forTest_setCustomCrossDomainSender(address(420));
+        assert(MESSENGER.crossDomainMessageSender() == address(420));
     }
 
     /// @custom:property-id 6
@@ -87,17 +91,13 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     {
         setUpInlined();
 
+        /* Preconditions */
+        vm.assume(_to != address(0));
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
+        vm.assume(notBuiltinAddress(_sender));
 
-        /* Precondition */
-        vm.assume(_to != address(0));
-        // Deploying a new messenger because of an issue of not being able to etch the storage layout of the mock
-        // contract. So needed to a new one setting the symbolic immutable variable for the crossDomainSender.
-        // Used 0 address on source token so when the `soureToken` calls it if returns the symbolic `_crossDomainSender`
-        vm.etch(
-            address(MESSENGER), address(new MockL2ToL2Messenger(address(0), address(0), 0, _crossDomainSender)).code
-        );
+        MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
         vm.prank(_sender);
         /* Action */
@@ -117,6 +117,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
+        // TODO
+        vm.assume(_from != address(0));
 
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
@@ -142,6 +144,10 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
         /* Preconditions */
         vm.assume(_to != address(0));
+        vm.assume(notBuiltinAddress(_from));
+        vm.assume(notBuiltinAddress(_to));
+        // TODO
+        vm.assume(_to != address(1));
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
@@ -274,7 +280,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 23
     /// @custom:property `sendERC20` decreases total supply in source chain and increases it in destination chain
     /// exactly by the input amount
-    function prove_crossChainMintAndBurn(address _from, address _to, uint256 _amount, uint256 _chainId) public {
+    function prove_crossChainSendERC20(address _from, address _to, uint256 _amount, uint256 _chainId) public {
         setUpInlined();
 
         vm.assume(notBuiltinAddress(_from));

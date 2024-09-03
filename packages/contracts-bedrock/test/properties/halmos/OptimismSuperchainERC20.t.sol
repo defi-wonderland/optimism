@@ -50,6 +50,7 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
     /// @notice Check setup works as expected
     function check_setup() public {
         // Source token
+        assert(remoteToken != address(0));
         assert(sourceToken.remoteToken() == remoteToken);
         assert(eqStrings(sourceToken.name(), name));
         assert(eqStrings(sourceToken.symbol(), symbol));
@@ -200,8 +201,6 @@ contract SymTest_OptimismSuperchainERC20 is SymTest, HalmosBase {
     /// @custom:property `relayERC20` increases the token's totalSupply in the destination chain exactly by the input
     /// amount
     function check_relayERC20IncreasesTotalSupply(address _from, address _to, uint256 _amount) public {
-        vm.assume(_to != address(0));
-
         /* Preconditions */
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _toBalanceBefore = sourceToken.balanceOf(_to);
