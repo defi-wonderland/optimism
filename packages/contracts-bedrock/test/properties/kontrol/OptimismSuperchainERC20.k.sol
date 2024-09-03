@@ -38,8 +38,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
         // Custom cross domain sender
         assert(MESSENGER.crossDomainMessageSender() == address(0));
-
-        assert(block.chainid >= 0);
     }
 
     /// @custom:property-id 6
@@ -59,8 +57,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
 
-        notBuiltinAddress(_from);
-        notBuiltinAddress(_to);
+        vm.assume(notBuiltinAddress(_from));
+        vm.assume(notBuiltinAddress(_to));
 
         // Can't deal to unsupported cheatcode
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
@@ -87,6 +85,11 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     )
         public
     {
+        setUpInlined();
+
+        vm.assume(notBuiltinAddress(_from));
+        vm.assume(notBuiltinAddress(_to));
+
         /* Precondition */
         vm.assume(_to != address(0));
         // Deploying a new messenger because of an issue of not being able to etch the storage layout of the mock
@@ -109,12 +112,14 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
     function prove_sendERC20ZeroCall(address _from, address _to, uint256 _chainId) public {
+        setUpInlined();
+
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
 
-        notBuiltinAddress(_from);
-        notBuiltinAddress(_to);
+        vm.assume(notBuiltinAddress(_from));
+        vm.assume(notBuiltinAddress(_to));
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
@@ -133,12 +138,16 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 9
     /// @custom:property `relayERC20` with a value of zero does not modify accounting
     function prove_relayERC20ZeroCall(address _from, address _to) public {
-        uint256 _totalSupplyBefore = sourceToken.totalSupply();
+        setUpInlined();
+
         /* Preconditions */
+        vm.assume(_to != address(0));
+
+        uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
         uint256 _toBalanceBefore = sourceToken.balanceOf(_to);
-        vm.prank(address(MESSENGER));
 
+        vm.prank(address(MESSENGER));
         /* Action */
         sourceToken.relayERC20(_from, _to, ZERO_AMOUNT);
 
@@ -158,7 +167,13 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     )
         public
     {
+        setUpInlined();
+
         /* Preconditions */
+        vm.assume(notBuiltinAddress(_sender));
+        vm.assume(notBuiltinAddress(_to));
+
+        vm.assume(_sender != address(0));
         vm.assume(_to != address(0));
 
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
@@ -180,9 +195,13 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property `relayERC20` increases the token's totalSupply in the destination chain exactly by the input
     /// amount
     function prove_relayERC20IncreasesTotalSupply(address _from, address _to, uint256 _amount) public {
-        vm.assume(_to != address(0));
+        setUpInlined();
 
         /* Preconditions */
+        vm.assume(_to != address(0));
+        vm.assume(notBuiltinAddress(_from));
+        vm.assume(notBuiltinAddress(_to));
+
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _toBalanceBefore = sourceToken.balanceOf(_to);
 
@@ -198,7 +217,12 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 12
     /// @custom:property Increases the total supply on the amount minted by the bridge
     function prove_mint(address _from, uint256 _amount) public {
+        setUpInlined();
+
         /* Preconditions */
+        vm.assume(_from != address(0));
+        vm.assume(notBuiltinAddress(_from));
+
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _balanceBefore = sourceToken.balanceOf(_from);
 
@@ -214,7 +238,12 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 13
     /// @custom:property Supertoken total supply only decreases on the amount burned by the bridge
     function prove_burn(address _from, uint256 _amount) public {
+        setUpInlined();
+
         /* Preconditions */
+        vm.assume(_from != address(0));
+        vm.assume(notBuiltinAddress(_from));
+
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
         sourceToken.mint(_from, _amount);
 
@@ -232,7 +261,9 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
     /// @custom:property-id 14
     /// @custom:property Supertoken total supply starts at zero
-    function prove_totalSupplyStartsAtZero() public view {
+    function prove_totalSupplyStartsAtZero() public {
+        setUpInlined();
+
         /* Postconditions */
         assert(sourceToken.totalSupply() == 0);
     }
@@ -244,6 +275,11 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property `sendERC20` decreases total supply in source chain and increases it in destination chain
     /// exactly by the input amount
     function prove_crossChainMintAndBurn(address _from, address _to, uint256 _amount, uint256 _chainId) public {
+        setUpInlined();
+
+        vm.assume(notBuiltinAddress(_from));
+        vm.assume(notBuiltinAddress(_to));
+
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
