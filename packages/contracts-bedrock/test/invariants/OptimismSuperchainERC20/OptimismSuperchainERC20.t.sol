@@ -30,8 +30,7 @@ contract OptimismSuperchainERC20Properties is Test {
 
     // TODO: will need rework after
     //   - `convert`
-    /// @custom:property-id 19
-    /// @custom:property sum of supertoken total supply across all chains is always <= to convert(legacy, super)-
+    /// @custom:invariant sum of supertoken total supply across all chains is always <= to convert(legacy, super)-
     /// convert(super, legacy)
     function invariant_totalSupplyAcrossChainsEqualsMintsMinusFundsInTransit() external view {
         // iterate over unique deploy salts aka supertokens that are supposed to be compatible with each other
@@ -52,8 +51,7 @@ contract OptimismSuperchainERC20Properties is Test {
 
     // TODO: will need rework after
     //   - `convert`
-    /// @custom:property-id 21
-    /// @custom:property sum of supertoken total supply across all chains is equal to convert(legacy, super)-
+    /// @custom:invariant sum of supertoken total supply across all chains is equal to convert(legacy, super)-
     /// convert(super, legacy) when all when all cross-chain messages are processed
     function invariant_totalSupplyAcrossChainsEqualsMintsWhenQueueIsEmpty() external view {
         if (MESSENGER.messageQueueLength() != 0) {
@@ -74,8 +72,10 @@ contract OptimismSuperchainERC20Properties is Test {
         }
     }
 
-    ///@notice `fail_on_revert=false` also ignores StdAssertion failures, so we
-    /// can't simply override compatibleAssert to call StdAssertions.assertTrue
+    /// @custom:invariant many other assertion mode invariants are also defined  under `test/invariants/OptimismSuperchainERC20/fuzz/` .
+    ///
+    ///     since setting`fail_on_revert=false` also ignores StdAssertion failures, this invariant explicitly asks the
+    ///     handler for assertion test failures
     function invariant_handlerAssertions() external view {
         assertFalse(handler.failed());
     }
