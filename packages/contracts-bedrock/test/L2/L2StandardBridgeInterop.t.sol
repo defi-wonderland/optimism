@@ -220,6 +220,160 @@ contract L2StandardBridgeInterop_LegacyToSuper_Test is L2StandardBridgeInterop_T
     }
 }
 
+/// @notice Test suite when converting from an Optimism mintable token to a SuperchainERC20 token
+contract L2StandardBridgeInterop_OpMintableToSuper_Test is L2StandardBridgeInterop_Test {
+    /// @notice Set up the test for converting from a legacy token to a SuperchainERC20 token
+    function _setUpOpMintableToSuper(address _from, address _to) internal {
+        // Assume
+        _assumeAddress(_from);
+        _assumeAddress(_to);
+
+        // Mock same decimals
+        _mockDecimals(_from, 18);
+        _mockDecimals(_to, 18);
+
+        // Mock `_from` to be a legacy address
+        _mockInterface(_from, type(IERC165).interfaceId, true);
+        _mockInterface(_from, type(ILegacyMintableERC20).interfaceId, false);
+        _mockInterface(_from, type(IOptimismMintableERC20).interfaceId, true);
+    }
+
+    /// @notice Test that the `convert` function with different decimals reverts
+    function testFuzz_convert_differentDecimals_reverts(
+        address _from,
+        uint8 _decimalsFrom,
+        address _to,
+        uint8 _decimalsTo,
+        uint256 _amount
+    )
+        public
+    {
+        // Assume
+        _assumeAddress(_from);
+        _assumeAddress(_to);
+        vm.assume(_decimalsFrom != _decimalsTo);
+        vm.assume(_from != _to);
+
+        // Arrange
+        // Mock the tokens to have different decimals
+        _mockDecimals(_from, _decimalsFrom);
+        _mockDecimals(_to, _decimalsTo);
+
+        // Expect the revert with `InvalidDecimals` selector
+        vm.expectRevert(InvalidDecimals.selector);
+
+        // Act
+        l2StandardBridge.convert(_from, _to, _amount);
+    }
+
+    /// @notice Test that the `convert` function with an invalid legacy ERC20 address reverts
+    function testFuzz_convert_invalidLegacyERC20Address_reverts(address _from, address _to, uint256 _amount) public {
+        // Arrange
+        _setUpOpMintableToSuper(_from, _to);
+
+        // Mock the legacy factory to return address(0)
+        _mockDeployments(address(l2OptimismMintableERC20Factory), _from, address(0));
+
+        // Expect the revert with `InvalidLegacyERC20Address` selector
+        vm.expectRevert(InvalidLegacyERC20Address.selector);
+
+        // Act
+        l2StandardBridge.convert(_from, _to, _amount);
+    }
+
+    /// @notice Test that the `convert` function with an invalid superchain ERC20 address reverts
+    function testFuzz_convert_invalidSuperchainERC20Address_reverts(
+        address _from,
+        address _to,
+        uint256 _amount,
+        address _remoteToken
+    )
+        public
+    {
+        // Assume
+        vm.assume(_remoteToken != address(0));
+
+        // Arrange
+        _setUpOpMintableToSuper(_from, _to);
+
+        // Mock the legacy factory to return `_remoteToken`
+        _mockDeployments(address(l2OptimismMintableERC20Factory), _from, _remoteToken);
+
+        // Mock the superchain factory to return address(0)
+        _mockDeployments(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, _to, address(0));
+
+        // Expect the revert with `InvalidSuperchainERC20Address` selector
+        vm.expectRevert(InvalidSuperchainERC20Address.selector);
+
+        // Act
+        l2StandardBridge.convert(_from, _to, _amount);
+    }
+
+    /// @notice Test that the `convert` function with different remote tokens reverts
+    function testFuzz_convert_differentRemoteAddresses_reverts(
+        address _from,
+        address _to,
+        uint256 _amount,
+        address _fromRemoteToken,
+        address _toRemoteToken
+    )
+        public
+    {
+        // Assume
+        vm.assume(_fromRemoteToken != address(0));
+        vm.assume(_toRemoteToken != address(0));
+        vm.assume(_fromRemoteToken != _toRemoteToken);
+
+        // Arrange
+        _setUpOpMintableToSuper(_from, _to);
+
+        // Mock the legacy factory to return `_fromRemoteToken`
+        _mockDeployments(address(l2OptimismMintableERC20Factory), _from, _fromRemoteToken);
+
+        // Mock the superchain factory to return `_toRemoteToken`
+        _mockDeployments(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, _to, _toRemoteToken);
+
+        // Expect the revert with `InvalidTokenPair` selector
+        vm.expectRevert(InvalidTokenPair.selector);
+
+        // Act
+        l2StandardBridge.convert(_from, _to, _amount);
+    }
+
+    /// @notice Test that the `convert` function succeeds
+    function testFuzz_convert_succeeds(
+        address _caller,
+        address _from,
+        address _to,
+        uint256 _amount,
+        address _remoteToken
+    )
+        public
+    {
+        // Assume
+        vm.assume(_remoteToken != address(0));
+
+        // Arrange
+        _setUpOpMintableToSuper(_from, _to);
+
+        // Mock the legacy and superchain factory to return `_remoteToken`
+        _mockDeployments(address(l2OptimismMintableERC20Factory), _from, _remoteToken);
+        _mockDeployments(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, _to, _remoteToken);
+
+        // Expect the `Converted` event to be emitted
+        vm.expectEmit(address(l2StandardBridge));
+        emit Converted(_from, _to, _caller, _amount);
+
+        // Mock and expect the `burn` and `mint` functions
+        _mockAndExpect(_from, abi.encodeWithSelector(MintableAndBurnable.burn.selector, _caller, _amount), abi.encode());
+        _mockAndExpect(_to, abi.encodeWithSelector(MintableAndBurnable.mint.selector, _caller, _amount), abi.encode());
+
+        // Act
+        vm.prank(_caller);
+        l2StandardBridge.convert(_from, _to, _amount);
+    }
+}
+
 /// @notice Test suite when converting from a SuperchainERC20 token to a legacy token
 contract L2StandardBridgeInterop_SuperToLegacy_Test is L2StandardBridgeInterop_Test {
     /// @notice Set up the test for converting from a SuperchainERC20 token to a legacy token
