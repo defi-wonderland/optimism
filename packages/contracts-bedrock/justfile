@@ -22,12 +22,6 @@ test: build-go-ffi
 test-kontrol:
   ./test/kontrol/scripts/run-kontrol.sh script
 
-test-halmos-all VERBOSE="-v":
-  FOUNDRY_PROFILE=halmos halmos {{VERBOSE}}
-
-test-halmos TEST VERBOSE="-v":
-  FOUNDRY_PROFILE=halmos halmos --function {{TEST}} {{VERBOSE}}
-
 test-rerun: build-go-ffi
   forge test --rerun -vvv
 
