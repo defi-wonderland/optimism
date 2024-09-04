@@ -66,47 +66,47 @@ contract FoundryDebugTests is KontrolBase {
 
     /// @custom:property-id 7
     /// @custom:property Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
-    // function test_proveRelayERC20OnlyFromL2ToL2Messenger() public {
-    //     address _crossDomainSender = address(0);
-    //     address _sender = address(0);
-    //     address _from = address(645326474426547203313410069153905908525362434350);
-    //     address _to = address(728815563385977040452943777879061427756277306519);
-    //     uint256 _amount = 0;
+    function test_proveRelayERC20OnlyFromL2ToL2Messenger() public {
+        address _crossDomainSender = address(263400868551549723330807389252719309078400616202);
+        address _sender = address(376793390874373408599387495934666716005045108771);
+        address _from = address(645326474426547203313410069153905908525362434350);
+        address _to = address(728815563385977040452943777879061427756277306519);
+        uint256 _amount = 0;
 
-    //     /* Precondition */
-    //     vm.assume(_to != address(0));
-    //     // Deploying a new messenger because of an issue of not being able to etch the storage layout of the mock
-    //     // contract. So needed to a new one setting the symbolic immutable variable for the crossDomainSender.
-    //     // Used 0 address on source token so when the `soureToken` calls it if returns the symbolic
-    // `_crossDomainSender`
-    //     vm.etch(
-    //         address(MESSENGER), address(new MockL2ToL2Messenger(address(0), address(0), 0, _crossDomainSender)).code
-    //     );
+        /* Precondition */
+        MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
-    //     vm.prank(_sender);
-    //     /* Action */
-    //     try sourceToken.relayERC20(_from, _to, _amount) {
-    //         /* Postconditions */
-    //         assert(_sender == address(MESSENGER) && MESSENGER.crossDomainMessageSender() == address(sourceToken));
-    //     } catch {
-    //         assert(_sender != address(MESSENGER) || MESSENGER.crossDomainMessageSender() != address(sourceToken));
-    //     }
-    // }
+        vm.prank(_sender);
+        /* Action */
+        try sourceToken.relayERC20(_from, _to, _amount) {
+            /* Postconditions */
+            console.log("here 1");
+            console.log("sender", _sender);
+            console.log("crossDomainSender", MESSENGER.crossDomainMessageSender());
+            console.log("sourceToken", address(sourceToken));
+            assert(_sender == address(MESSENGER) && MESSENGER.crossDomainMessageSender() == address(sourceToken));
+        } catch {
+            console.log("here 2");
+            assert(_sender != address(MESSENGER) || MESSENGER.crossDomainMessageSender() != address(sourceToken));
+        }
+    }
+    // NUMBER_CELL = 16777217
+    // VV2__from_114b9705 = 645326474426547203313410069153905908525362434350
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // TIMESTAMP_CELL = 1073741825
+    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
+    // VV3__to_114b9705 = 728815563385977040452943777879061427756277306519
+    // VV0__crossDomainSender_114b9705 = 263400868551549723330807389252719309078400616202
+    // VV4__amount_114b9705 = 0
+    // VV1__sender_114b9705 = 376793390874373408599387495934666716005045108771
 
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
     function test_proveSendERC20ZeroCall() public {
         /* Preconditions */
-        // 0x4200000000000000000000000000000000000024
-        // address _from = address(376793390874373408599387495934666716005045108772); //
-        // 0x7Fa9385Be102aC3eac297483DD6233d62B3e1497
-        // address _to = address(728815563385977040452943777879061427756277306519); //
-        address _from = address(263400868551549723330807389252719309078400616204); // 0x2e234dAE75c793F67a35089C9D99245e1C58470c
-        address _to = address(1);
+        address _from = address(376793390874373408599387495934666716005045108772); // 0x4200000000000000000000000000000000000024
+        address _to = address(728815563385977040452943777879061427756277306519); // 0x7Fa9385Be102aC3eac297483DD6233d62B3e1497
         uint256 _chainId = 0;
-
-        console.log("from : ", _from);
-        console.log("to : ", _to);
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
@@ -122,12 +122,20 @@ contract FoundryDebugTests is KontrolBase {
         assert(sourceToken.balanceOf(_to) == _toBalanceBefore);
     }
 
+    //     VV2__chainId_114b9705 = 0
+    // VV0__from_114b9705 = 376793390874373408599387495934666716005045108772
+    // NUMBER_CELL = 16777217
+    // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // TIMESTAMP_CELL = 1073741825
+    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
+
     /// @custom:property-id 9
     /// @custom:property `relayERC20` with a value of zero does not modify accounting
     function test_proveRelayERC20ZeroCall() public {
         /* Preconditions */
-        address _from = address(0);
-        address _to = address(1);
+        address _from = address(728815563385977040452943777879061427756277306519);
+        address _to = address(728815563385977040452943777879061427756277306519);
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
@@ -142,4 +150,10 @@ contract FoundryDebugTests is KontrolBase {
         assert(sourceToken.balanceOf(_from) == _fromBalanceBefore);
         assert(sourceToken.balanceOf(_to) == _toBalanceBefore);
     }
+    //     NUMBER_CELL = 16777217
+    // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // TIMESTAMP_CELL = 1073741825
+    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
+    // VV0__from_114b9705 = 728815563385977040452943777879061427756277306519
 }
