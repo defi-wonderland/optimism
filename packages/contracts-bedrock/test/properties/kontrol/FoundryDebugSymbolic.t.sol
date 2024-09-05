@@ -86,29 +86,26 @@ contract FoundryDebugTests is KontrolBase {
         MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
         // Expect the cross domain sender to be emitted so after confirming it matches, we can use it for checks
-        vm.expectEmit(true, true, true, true);
-        emit CrossDomainMessageSender(_crossDomainSender);
 
         vm.prank(_sender);
         /* Action */
         try sourceToken.relayERC20(_from, _to, _amount) {
             /* Postconditions */
-            assert(_sender == address(MESSENGER) && _crossDomainSender == address(sourceToken));
+            assert(_sender == address(MESSENGER) && MESSENGER.customCrossDomainSender() == address(sourceToken));
         } catch {
             // Emit to bypass the check when the call fails
-            emit CrossDomainMessageSender(_crossDomainSender);
-            assert(_sender != address(MESSENGER) || _crossDomainSender != address(sourceToken));
+            assert(_sender != address(MESSENGER) || MESSENGER.customCrossDomainSender() != address(sourceToken));
         }
     }
-    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
     // VV4__amount_114b9705 = 0
-    // VV1__sender_114b9705 = 376793390874373408599387495934666716005045108771
-    // CALLER_ID = 645326474426547203313410069153905908525362434350
-    // NUMBER_CELL = 16777217
-    // VV2__from_114b9705 = 645326474426547203313410069153905908525362434350
-    // VV0__crossDomainSender_114b9705 = 0
-    // VV3__to_114b9705 = 728815563385977040452943777879061427756277306519
-    // TIMESTAMP_CELL = 1073741825
+    //     ORIGIN_ID = 645326474426547203313410069153905908525362434350
+    //     TIMESTAMP_CELL = 1073741825
+    //     VV1__sender_114b9705 = 376793390874373408599387495934666716005045108771
+    //     NUMBER_CELL = 16777217
+    //     VV3__to_114b9705 = 728815563385977040452943777879061427756277306519
+    //     VV2__from_114b9705 = 645326474426547203313410069153905908525362434350
+    //     CALLER_ID = 645326474426547203313410069153905908525362434350
+    //     VV0__crossDomainSender_114b9705 = 0
 
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting

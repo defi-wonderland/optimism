@@ -16,8 +16,8 @@ contract MockL2ToL2Messenger {
     uint256 public immutable SOURCE;
 
     // Custom cross domain sender to be used when neither the source nor destination token are the callers
-    address internal customCrossDomainSender;
-    address internal lastCrossDomainSender;
+    address public customCrossDomainSender;
+    bool internal crossDomainSenderSet;
 
     constructor(address _sourceToken, address _destinationToken, uint256 _destinationChainId, uint256 _source) {
         SOURCE_TOKEN = _sourceToken;
@@ -50,10 +50,6 @@ contract MockL2ToL2Messenger {
     {
         (bool succ, bytes memory ret) = _target.call{ value: msg.value }(_message);
         if (!succ) revert(string(ret));
-
-        // Emit an event to access to the last cross domain sender, can't be stored in storage due to view
-        // restriction
-        emit CrossDomainMessageSender(customCrossDomainSender);
     }
 
     function crossDomainMessageSource() external view returns (uint256 _source) {
@@ -63,7 +59,7 @@ contract MockL2ToL2Messenger {
     // Mock this function so it defaults to the custom domain sender if set, otherwise it defaults to the address of the
     // token that called the function - reverts if neither are met
     function crossDomainMessageSender() external view returns (address _sender) {
-        if (customCrossDomainSender != address(0)) _sender = customCrossDomainSender;
+        if (crossDomainSenderSet) _sender = customCrossDomainSender;
         else if (msg.sender == SOURCE_TOKEN) _sender = SOURCE_TOKEN;
         else if (msg.sender == DESTINATION_TOKEN) _sender = DESTINATION_TOKEN;
         else _sender = address(0);
@@ -71,6 +67,7 @@ contract MockL2ToL2Messenger {
 
     /// Setter function for the customCrossDomainSender
     function forTest_setCustomCrossDomainSender(address _customCrossDomainSender) external {
+        crossDomainSenderSet = true;
         customCrossDomainSender = _customCrossDomainSender;
     }
 }
