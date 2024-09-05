@@ -517,20 +517,22 @@ contract L2Genesis is Deployer {
     /// @notice This predeploy is following the safety invariant #2.
     function setOptimismSuperchainERC20Beacon() internal {
         address superchainERC20Impl = Predeploys.OPTIMISM_SUPERCHAIN_ERC20;
-        console.log("Setting %s implementation at: %s", "OptimismSuperchainERC20", superchainERC20Impl);
+        console.log("Setting implementation at: %s", superchainERC20Impl);
         vm.etch(superchainERC20Impl, vm.getDeployedCode("OptimismSuperchainERC20.sol:OptimismSuperchainERC20"));
+
+        console.log("Setting Predeploy proxy");
+        bytes memory code = vm.getDeployedCode("Proxy.sol:Proxy");
+        vm.etch(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, code);
+        EIP1967Helper.setAdmin(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, Predeploys.PROXY_ADMIN);
 
         OptimismSuperchainERC20Beacon beacon = new OptimismSuperchainERC20Beacon(superchainERC20Impl);
         console.log(
             "Setting %s implementation at: %s",
             "OptimismSuperchainERC20Beacon",
+            address(beacon),
             Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON
         );
-        vm.etch(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, address(beacon).code);
-
-        /// Reset so its not included state dump
-        vm.etch(address(beacon), "");
-        vm.resetNonce(address(beacon));
+        EIP1967Helper.setImplementation(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, address(beacon));
     }
 
     /// @notice Sets all the preinstalls.
