@@ -8,6 +8,8 @@ import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
 import { InitialState } from "./deployments/InitialState.sol";
 
 contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
+    event CrossDomainMessageSender(address _sender);
+
     function setUpInlined() public {
         superchainERC20Impl = OptimismSuperchainERC20(superchainERC20ImplAddress);
         sourceToken = OptimismSuperchainERC20(sourceTokenAddress);
@@ -99,13 +101,19 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
         MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
+        // Expect the cross domain sender to be emitted so after confirming it matches, we can use it for checks
+        vm.expectEmit(true, true, true, true);
+        emit CrossDomainMessageSender(_crossDomainSender);
+
         vm.prank(_sender);
         /* Action */
         try sourceToken.relayERC20(_from, _to, _amount) {
             /* Postconditions */
-            assert(_sender == address(MESSENGER) && MESSENGER.crossDomainMessageSender() == address(sourceToken));
+            assert(_sender == address(MESSENGER) && _crossDomainSender == address(sourceToken));
         } catch {
-            assert(_sender != address(MESSENGER) || MESSENGER.crossDomainMessageSender() != address(sourceToken));
+            // Emit to bypass the check when the call fails
+            emit CrossDomainMessageSender(_crossDomainSender);
+            assert(_sender != address(MESSENGER) || _crossDomainSender != address(sourceToken));
         }
     }
 

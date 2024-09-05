@@ -3,10 +3,13 @@ pragma solidity 0.8.25;
 
 import "src/L2/L2ToL2CrossDomainMessenger.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
+import "forge-std/Test.sol";
 
 // TODO: Try to merge to a single mocked contract used by fuzzing and symbolic invariant tests - only if possible
 // and is a low priorty
-contract MockL2ToL2Messenger is IL2ToL2CrossDomainMessenger {
+contract MockL2ToL2Messenger {
+    event CrossDomainMessageSender(address _sender);
+
     address internal immutable SOURCE_TOKEN;
     address internal immutable DESTINATION_TOKEN;
     uint256 public immutable DESTINATION_CHAIN_ID;
@@ -14,6 +17,7 @@ contract MockL2ToL2Messenger is IL2ToL2CrossDomainMessenger {
 
     // Custom cross domain sender to be used when neither the source nor destination token are the callers
     address internal customCrossDomainSender;
+    address internal lastCrossDomainSender;
 
     constructor(address _sourceToken, address _destinationToken, uint256 _destinationChainId, uint256 _source) {
         SOURCE_TOKEN = _sourceToken;
@@ -46,18 +50,23 @@ contract MockL2ToL2Messenger is IL2ToL2CrossDomainMessenger {
     {
         (bool succ, bytes memory ret) = _target.call{ value: msg.value }(_message);
         if (!succ) revert(string(ret));
+
+        // Emit an event to access to the last cross domain sender, can't be stored in storage due to view
+        // restriction
+        emit CrossDomainMessageSender(customCrossDomainSender);
     }
 
     function crossDomainMessageSource() external view returns (uint256 _source) {
         _source = SOURCE;
     }
 
-    // Mock this function so it just always returns the expected if called by the supertoken to pass throgh the
-    // `address(this)` checks, or otherwise defaults to the custom cross domain sender
+    // Mock this function so it defaults to the custom domain sender if set, otherwise it defaults to the address of the
+    // token that called the function - reverts if neither are met
     function crossDomainMessageSender() external view returns (address _sender) {
-        if (msg.sender == SOURCE_TOKEN) _sender = SOURCE_TOKEN;
+        if (customCrossDomainSender != address(0)) _sender = customCrossDomainSender;
+        else if (msg.sender == SOURCE_TOKEN) _sender = SOURCE_TOKEN;
         else if (msg.sender == DESTINATION_TOKEN) _sender = DESTINATION_TOKEN;
-        else _sender = customCrossDomainSender;
+        else _sender = address(0);
     }
 
     /// Setter function for the customCrossDomainSender
