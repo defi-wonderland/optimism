@@ -164,10 +164,10 @@ contract FoundryDebugTests is KontrolBase {
 
     function test_proveCrossChainSendERC20() public {
         /* Preconditions */
-        address _from = address(376793390874373408599387495934666716005045108752);
+        address _from = address(728815563385977040452943777879061427756277306519);
         address _to = address(728815563385977040452943777879061427756277306519);
         uint256 _amount = 0;
-        uint256 _chainId = 2;
+        uint256 _chainId = 0;
         // Mint the amount to send
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
         sourceToken.mint(_from, _amount);
@@ -201,7 +201,7 @@ contract FoundryDebugTests is KontrolBase {
         }
     }
     // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
-    // VV0__from_114b9705 = 376793390874373408599387495934666716005045108752
+    // VV0__from_114b9705 = 728815563385977040452943777879061427756277306519
     // VV2__amount_114b9705 = 0
-    // VV3__chainId_114b9705 = 2
+    // VV3__chainId_114b9705 = 0
 }

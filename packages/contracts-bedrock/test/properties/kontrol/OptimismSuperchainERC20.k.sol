@@ -92,6 +92,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         public
     {
         setUpInlined();
+        kevm.symbolicStorage(address(MESSENGER));
 
         /* Preconditions */
         vm.assume(_to != address(0));
@@ -99,7 +100,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_to));
         vm.assume(notBuiltinAddress(_sender));
 
-        MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
+        // MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
         // Expect the cross domain sender to be emitted so after confirming it matches, we can use it for checks
         vm.expectEmit(true, true, true, true);
@@ -109,7 +110,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         /* Action */
         try sourceToken.relayERC20(_from, _to, _amount) {
             /* Postconditions */
-            assert(_sender == address(MESSENGER) && _crossDomainSender == address(sourceToken));
+            assert(_sender == address(MESSENGER));
+            assert(_crossDomainSender == address(sourceToken));
         } catch {
             // Emit to bypass the check when the call fails
             emit CrossDomainMessageSender(_crossDomainSender);
@@ -125,8 +127,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
-        // TODO
-        vm.assume(_from != address(0));
 
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
@@ -254,12 +254,14 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     function prove_burn(address _from, uint256 _amount) public {
         setUpInlined();
 
+        kevm.symbolicStorage(address(sourceToken));
+
         /* Preconditions */
         vm.assume(_from != address(0));
         vm.assume(notBuiltinAddress(_from));
 
-        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        sourceToken.mint(_from, _amount);
+        // vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        // sourceToken.mint(_from, _amount);
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _balanceBefore = sourceToken.balanceOf(_from);
@@ -291,16 +293,14 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     function prove_crossChainSendERC20(address _from, address _to, uint256 _amount, uint256 _chainId) public {
         setUpInlined();
 
+        kevm.symbolicStorage(address(sourceToken));
+
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
 
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
-
-        // Mint the amount to send
-        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        sourceToken.mint(_from, _amount);
 
         uint256 fromBalanceBefore = sourceToken.balanceOf(_from);
         uint256 toBalanceBefore = destToken.balanceOf(_to);
