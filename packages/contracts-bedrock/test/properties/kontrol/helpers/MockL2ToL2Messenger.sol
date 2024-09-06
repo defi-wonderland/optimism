@@ -61,7 +61,6 @@ contract MockL2ToL2Messenger {
     function crossDomainMessageSender() external view returns (address _sender) {
         if (crossDomainSenderSet) _sender = customCrossDomainSender;
         else if (msg.sender == SOURCE_TOKEN) _sender = SOURCE_TOKEN;
-        // Leaving the `if` here for clarity
         else if (msg.sender == DESTINATION_TOKEN) _sender = DESTINATION_TOKEN;
     }
 

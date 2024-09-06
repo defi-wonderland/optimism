@@ -5,7 +5,6 @@ import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { MockL2ToL2Messenger } from "test/properties/kontrol/helpers/MockL2ToL2Messenger.sol";
 import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
-import { InitialState } from "./deployments/InitialState.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "forge-std/Test.sol";

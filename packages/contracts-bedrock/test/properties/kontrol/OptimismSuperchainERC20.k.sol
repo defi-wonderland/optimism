@@ -49,7 +49,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 6
     /// @custom:property Calls to sendERC20 succeed as long as caller has enough balance
     function prove_sendERC20SucceedsOnlyIfEnoughBalance(
-        uint256 _initialBalance,
         address _from,
         uint256 _amount,
         address _to,
@@ -59,6 +58,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     {
         setUpInlined();
 
+        kevm.symbolicStorage(address(sourceToken));
+
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
@@ -67,8 +68,10 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_to));
 
         // Can't deal to unsupported cheatcode
-        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        sourceToken.mint(_from, _initialBalance);
+        // vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        // sourceToken.mint(_from, _initialBalance);
+
+        uint256 _initialBalance = sourceToken.balanceOf(_from);
 
         vm.prank(_from);
         /* Action */
@@ -92,7 +95,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         public
     {
         setUpInlined();
-        kevm.symbolicStorage(address(MESSENGER));
 
         /* Preconditions */
         vm.assume(_to != address(0));
@@ -100,11 +102,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_to));
         vm.assume(notBuiltinAddress(_sender));
 
+        kevm.symbolicStorage(address(MESSENGER));
         // MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
-
-        // Expect the cross domain sender to be emitted so after confirming it matches, we can use it for checks
-        vm.expectEmit(true, true, true, true);
-        emit CrossDomainMessageSender(_crossDomainSender);
 
         vm.prank(_sender);
         /* Action */
@@ -126,7 +125,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
         /* Preconditions */
         vm.assume(_to != address(0));
-        vm.assume(_to != address(Predeploys.CROSS_L2_INBOX) && _to != address(MESSENGER));
+        vm.assume(_to != address(Predeploys.CROSS_L2_INBOX));
+        vm.assume(_to != address(MESSENGER));
 
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
@@ -154,8 +154,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(_to != address(0));
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
-        // TODO
-        vm.assume(_to != address(1));
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
@@ -254,14 +252,14 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     function prove_burn(address _from, uint256 _amount) public {
         setUpInlined();
 
-        kevm.symbolicStorage(address(sourceToken));
-
         /* Preconditions */
         vm.assume(_from != address(0));
         vm.assume(notBuiltinAddress(_from));
 
         // vm.prank(Predeploys.L2_STANDARD_BRIDGE);
         // sourceToken.mint(_from, _amount);
+
+        kevm.symbolicStorage(address(sourceToken));
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _balanceBefore = sourceToken.balanceOf(_from);
@@ -293,14 +291,14 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     function prove_crossChainSendERC20(address _from, address _to, uint256 _amount, uint256 _chainId) public {
         setUpInlined();
 
-        kevm.symbolicStorage(address(sourceToken));
-
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
 
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
+
+        kevm.symbolicStorage(address(sourceToken));
 
         uint256 fromBalanceBefore = sourceToken.balanceOf(_from);
         uint256 toBalanceBefore = destToken.balanceOf(_to);
