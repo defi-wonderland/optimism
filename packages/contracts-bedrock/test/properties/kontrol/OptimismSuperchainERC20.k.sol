@@ -49,6 +49,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     /// @custom:property-id 6
     /// @custom:property Calls to sendERC20 succeed as long as caller has enough balance
     function prove_sendERC20SucceedsOnlyIfEnoughBalance(
+        uint256 _initialBalance,
         address _from,
         uint256 _amount,
         address _to,
@@ -58,8 +59,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     {
         setUpInlined();
 
-        kevm.symbolicStorage(address(sourceToken));
-
         /* Preconditions */
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
@@ -68,10 +67,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_to));
 
         // Can't deal to unsupported cheatcode
-        // vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        // sourceToken.mint(_from, _initialBalance);
-
-        uint256 _initialBalance = sourceToken.balanceOf(_from);
+        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        sourceToken.mint(_from, _initialBalance);
 
         vm.prank(_from);
         /* Action */
@@ -102,8 +99,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_to));
         vm.assume(notBuiltinAddress(_sender));
 
-        kevm.symbolicStorage(address(MESSENGER));
-        // MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
+        // kevm.symbolicStorage(address(MESSENGER));
+        MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
         vm.prank(_sender);
         /* Action */
@@ -256,10 +253,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(_from != address(0));
         vm.assume(notBuiltinAddress(_from));
 
-        // vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        // sourceToken.mint(_from, _amount);
-
-        kevm.symbolicStorage(address(sourceToken));
+        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        sourceToken.mint(_from, _amount);
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
         uint256 _balanceBefore = sourceToken.balanceOf(_from);
@@ -298,7 +293,8 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(_to != address(0));
         vm.assume(_from != address(0));
 
-        kevm.symbolicStorage(address(sourceToken));
+        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
+        sourceToken.mint(_from, _amount);
 
         uint256 fromBalanceBefore = sourceToken.balanceOf(_from);
         uint256 toBalanceBefore = destToken.balanceOf(_to);

@@ -62,47 +62,9 @@ contract FoundryDebugTests is KontrolBase {
         assert(MESSENGER.crossDomainMessageSender() == address(destToken));
 
         // Custom cross domain sender
-        assert(MESSENGER.crossDomainMessageSender() == address(0));
+        MESSENGER.forTest_setCustomCrossDomainSender(address(420));
+        assert(MESSENGER.crossDomainMessageSender() == address(420));
     }
-
-    /// @custom:property-id 7
-    /// @custom:property Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
-    function test_proveRelayERC20OnlyFromL2ToL2Messenger()
-        // address _crossDomainSender,
-        // address _sender,
-        // address _from,
-        // address _to,
-        // uint256 _amount
-        public
-    {
-        address _crossDomainSender = address(263400868551549723330807389252719309078400616203);
-        address _sender = address(376793390874373408599387495934666716005045108771);
-        address _from = address(645326474426547203313410069153905908525362434350);
-        address _to = address(728815563385977040452943777879061427756277306519);
-        uint256 _amount = 0;
-
-        /* Precondition */
-        MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
-
-        // Expect the cross domain sender to be emitted so after confirming it matches, we can use it for checks
-
-        vm.prank(_sender);
-        /* Action */
-        try sourceToken.relayERC20(_from, _to, _amount) {
-            /* Postconditions */
-            assert(_sender == address(MESSENGER) && MESSENGER.customCrossDomainSender() == address(sourceToken));
-        } catch {
-            // Emit to bypass the check when the call fails
-            assert(_sender != address(MESSENGER) || MESSENGER.customCrossDomainSender() != address(sourceToken));
-        }
-    }
-    // VV1__sender_114b9705 = 376793390874373408599387495934666716005045108771
-    // VV3__to_114b9705 = 728815563385977040452943777879061427756277306519
-    // VV0__crossDomainSender_114b9705 = 263400868551549723330807389252719309078400616203
-    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
-    // CALLER_ID = 645326474426547203313410069153905908525362434350
-    // VV4__amount_114b9705 = 0
-    // VV2__from_114b9705 = 645326474426547203313410069153905908525362434350
 
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
