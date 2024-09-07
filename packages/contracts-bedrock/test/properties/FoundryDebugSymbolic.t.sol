@@ -70,8 +70,8 @@ contract FoundryDebugTests is KontrolBase {
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
     function test_proveSendERC20ZeroCall() public {
         /* Preconditions */
-        address _from = address(376793390874373408599387495934666716005045108772); // 0x4200000000000000000000000000000000000024
-        address _to = address(728815563385977040452943777879061427756277306519); // 0x7Fa9385Be102aC3eac297483DD6233d62B3e1497
+        address _from = address(511347974759188522659820409854212399244223280810);
+        address _to = address(376793390874373408599387495934666716005045108769); // 0x7Fa9385Be102aC3eac297483DD6233d62B3e1497
         uint256 _chainId = 0;
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
@@ -87,20 +87,19 @@ contract FoundryDebugTests is KontrolBase {
         assert(sourceToken.balanceOf(_from) == _fromBalanceBefore);
         assert(sourceToken.balanceOf(_to) == _toBalanceBefore);
     }
-
-    //     VV2__chainId_114b9705 = 0
-    // VV0__from_114b9705 = 376793390874373408599387495934666716005045108772
-    // NUMBER_CELL = 16777217
-    // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
-    // CALLER_ID = 645326474426547203313410069153905908525362434350
-    // TIMESTAMP_CELL = 1073741825
     // ORIGIN_ID = 645326474426547203313410069153905908525362434350
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // NUMBER_CELL = 16777217
+    // VV2__chainId_114b9705 = 0
+    // VV0__from_114b9705 = 511347974759188522659820409854212399244223280810
+    // TIMESTAMP_CELL = 1073741825
+    // VV1__to_114b9705 = 376793390874373408599387495934666716005045108769
 
     /// @custom:property-id 9
     /// @custom:property `relayERC20` with a value of zero does not modify accounting
     function test_proveRelayERC20ZeroCall() public {
         /* Preconditions */
-        address _from = address(728815563385977040452943777879061427756277306519);
+        address _from = address(645326474426547203313410069153905908525362434350);
         address _to = address(728815563385977040452943777879061427756277306519);
 
         uint256 _totalSupplyBefore = sourceToken.totalSupply();
@@ -116,53 +115,10 @@ contract FoundryDebugTests is KontrolBase {
         assert(sourceToken.balanceOf(_from) == _fromBalanceBefore);
         assert(sourceToken.balanceOf(_to) == _toBalanceBefore);
     }
-    //     NUMBER_CELL = 16777217
-    // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
-    // CALLER_ID = 645326474426547203313410069153905908525362434350
-    // TIMESTAMP_CELL = 1073741825
+    // VV0__from_114b9705 = 645326474426547203313410069153905908525362434350
     // ORIGIN_ID = 645326474426547203313410069153905908525362434350
-    // VV0__from_114b9705 = 728815563385977040452943777879061427756277306519
-
-    function test_proveCrossChainSendERC20() public {
-        /* Preconditions */
-        address _from = address(728815563385977040452943777879061427756277306519);
-        address _to = address(728815563385977040452943777879061427756277306519);
-        uint256 _amount = 0;
-        uint256 _chainId = 0;
-        // Mint the amount to send
-        vm.prank(Predeploys.L2_STANDARD_BRIDGE);
-        sourceToken.mint(_from, _amount);
-
-        uint256 fromBalanceBefore = sourceToken.balanceOf(_from);
-        uint256 toBalanceBefore = destToken.balanceOf(_to);
-        uint256 sourceTotalSupplyBefore = sourceToken.totalSupply();
-        uint256 destTotalSupplyBefore = destToken.totalSupply();
-
-        vm.prank(_from);
-        /* Action */
-        try sourceToken.sendERC20(_to, _amount, _chainId) {
-            /* Postconditions */
-            // Source
-            assert(sourceToken.balanceOf(_from) == fromBalanceBefore - _amount);
-            assert(sourceToken.totalSupply() == sourceTotalSupplyBefore - _amount);
-
-            // Destination
-            if (_chainId == DESTINATION_CHAIN_ID) {
-                // If the destination chain matches the one of the dest token, check that the amount was minted
-                assert(destToken.balanceOf(_to) == toBalanceBefore + _amount);
-                assert(destToken.totalSupply() == destTotalSupplyBefore + _amount);
-            } else {
-                // Otherwise the balances should remain the same
-                assert(destToken.balanceOf(_to) == toBalanceBefore);
-                assert(destToken.totalSupply() == destTotalSupplyBefore);
-            }
-        } catch {
-            // Shouldn't fail
-            assert(false);
-        }
-    }
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // NUMBER_CELL = 16777217
     // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
-    // VV0__from_114b9705 = 728815563385977040452943777879061427756277306519
-    // VV2__amount_114b9705 = 0
-    // VV3__chainId_114b9705 = 0
+    // TIMESTAMP_CELL = 1073741825
 }
