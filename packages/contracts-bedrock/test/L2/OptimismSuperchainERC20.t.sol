@@ -8,7 +8,12 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IERC20 } from "@openzeppelin/contracts-v5/token/ERC20/IERC20.sol";
+<<<<<<< HEAD
 import { IL2ToL2CrossDomainMessenger } from "src/L2/IL2ToL2CrossDomainMessenger.sol";
+=======
+import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
+>>>>>>> develop
 import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 import { IERC165 } from "@openzeppelin/contracts-v5/utils/introspection/IERC165.sol";
 import { IBeacon } from "@openzeppelin/contracts-v5/proxy/beacon/IBeacon.sol";
@@ -23,7 +28,7 @@ import {
     OnlyBridge,
     ZeroAddress
 } from "src/L2/OptimismSuperchainERC20.sol";
-import { ISuperchainERC20Extensions } from "src/L2/ISuperchainERC20.sol";
+import { ISuperchainERC20Extensions } from "src/L2/interfaces/ISuperchainERC20.sol";
 
 /// @title OptimismSuperchainERC20Test
 /// @notice Contract for testing the OptimismSuperchainERC20 contract.
