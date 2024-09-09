@@ -10,7 +10,7 @@ auxiliary-lemmas = true
 # module-import = 'TestBase:KONTROL-LEMMAS'
 
 [prove.default]
-foundry-project-root = '.'
+foundry-project-root = './'
 verbose = false
 debug = false
 max-depth = 25000
@@ -31,7 +31,7 @@ break-on-cheatcodes = false
 run-constructor = true
 symbolic-immutables = false
 schedule = 'CANCUN'
-init-node-from-diff = 'supererc20-state-diff/StateDiff.json'
+init-node-from = 'supererc20-state-diff/StateDiff.json'
 
 [show.default]
 foundry-project-root = '.'
