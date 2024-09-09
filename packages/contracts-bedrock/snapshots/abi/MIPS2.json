@@ -51,10 +51,5 @@
     ],
     "stateMutability": "view",
     "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidExitedValue",
-    "type": "error"
   }
 ]

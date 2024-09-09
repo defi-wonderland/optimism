@@ -18,6 +18,9 @@ import (
 
 func TestCommitAndRead(t *testing.T) {
 	log := testlog.Logger(t, log.LevelInfo)
+	serverID := "SequencerA"
+	serverAddr := "127.0.0.1:0"
+	bootstrap := true
 	now := uint64(time.Now().Unix())
 	rollupCfg := &rollup.Config{
 		CanyonTime: &now,
@@ -26,18 +29,8 @@ func TestCommitAndRead(t *testing.T) {
 	if err := os.RemoveAll(storageDir); err != nil {
 		t.Fatal(err)
 	}
-	raftConsensusConfig := &RaftConsensusConfig{
-		ServerID:          "SequencerA",
-		ServerAddr:        "127.0.0.1:0",
-		StorageDir:        storageDir,
-		Bootstrap:         true,
-		RollupCfg:         rollupCfg,
-		SnapshotInterval:  120 * time.Second,
-		SnapshotThreshold: 10240,
-		TrailingLogs:      8192,
-	}
 
-	cons, err := NewRaftConsensus(log, raftConsensusConfig)
+	cons, err := NewRaftConsensus(log, serverID, serverAddr, storageDir, bootstrap, rollupCfg)
 	require.NoError(t, err)
 
 	// wait till it became leader

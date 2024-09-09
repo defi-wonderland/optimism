@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
 
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
-	"github.com/ethereum-optimism/optimism/op-program/host/types"
 
 	opnode "github.com/ethereum-optimism/optimism/op-node"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
@@ -32,7 +30,6 @@ var (
 	ErrInvalidL2ClaimBlock = errors.New("invalid l2 claim block number")
 	ErrDataDirRequired     = errors.New("datadir must be specified when in non-fetching mode")
 	ErrNoExecInServerMode  = errors.New("exec command must not be set when in server mode")
-	ErrInvalidDataFormat   = errors.New("invalid data format")
 )
 
 type Config struct {
@@ -40,9 +37,6 @@ type Config struct {
 	// DataDir is the directory to read/write pre-image data from/to.
 	// If not set, an in-memory key-value store is used and fetching data must be enabled
 	DataDir string
-
-	// DataFormat specifies the format to use for on-disk storage. Only applies when DataDir is set.
-	DataFormat types.DataFormat
 
 	// L1Head is the block hash of the L1 chain head block
 	L1Head      common.Hash
@@ -106,9 +100,6 @@ func (c *Config) Check() error {
 	if c.ServerMode && c.ExecCmd != "" {
 		return ErrNoExecInServerMode
 	}
-	if c.DataDir != "" && !slices.Contains(types.SupportedDataFormats, c.DataFormat) {
-		return ErrInvalidDataFormat
-	}
 	return nil
 }
 
@@ -139,7 +130,6 @@ func NewConfig(
 		L2ClaimBlockNumber:  l2ClaimBlockNum,
 		L1RPCKind:           sources.RPCKindStandard,
 		IsCustomChainConfig: isCustomConfig,
-		DataFormat:          types.DataFormatFile,
 	}
 }
 
@@ -193,14 +183,9 @@ func NewConfigFromCLI(log log.Logger, ctx *cli.Context) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid genesis: %w", err)
 	}
-	dbFormat := types.DataFormat(ctx.String(flags.DataFormat.Name))
-	if !slices.Contains(types.SupportedDataFormats, dbFormat) {
-		return nil, fmt.Errorf("invalid %w: %v", ErrInvalidDataFormat, dbFormat)
-	}
 	return &Config{
 		Rollup:              rollupCfg,
 		DataDir:             ctx.String(flags.DataDir.Name),
-		DataFormat:          dbFormat,
 		L2URL:               ctx.String(flags.L2NodeAddr.Name),
 		L2ChainConfig:       l2ChainConfig,
 		L2Head:              l2Head,

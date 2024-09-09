@@ -239,12 +239,11 @@ func setupTestData(t *testing.T) (string, string) {
 func setupWithTestData(t *testing.T, dataDir string, prestate string) (*CannonTraceProvider, *stubGenerator) {
 	generator := &stubGenerator{}
 	return &CannonTraceProvider{
-		logger:         testlog.Logger(t, log.LevelInfo),
-		dir:            dataDir,
-		generator:      generator,
-		prestate:       filepath.Join(dataDir, prestate),
-		gameDepth:      63,
-		stateConverter: &StateConverter{},
+		logger:    testlog.Logger(t, log.LevelInfo),
+		dir:       dataDir,
+		generator: generator,
+		prestate:  filepath.Join(dataDir, prestate),
+		gameDepth: 63,
 	}, generator
 }
 
@@ -261,7 +260,7 @@ func (e *stubGenerator) GenerateProof(ctx context.Context, dir string, i uint64)
 	var err error
 	if e.finalState != nil && e.finalState.Step <= i {
 		// Requesting a trace index past the end of the trace
-		proofFile = vm.FinalStatePath(dir, false)
+		proofFile = filepath.Join(dir, vm.FinalState)
 		data, err = json.Marshal(e.finalState)
 		if err != nil {
 			return err

@@ -6,7 +6,7 @@ import { L1BlockInterop, ConfigType } from "src/L2/L1BlockInterop.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
-/// @custom:proxied true
+/// @custom:proxied
 /// @title OptimismPortalInterop
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.

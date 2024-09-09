@@ -55,26 +55,18 @@ type SuperchainOperatorRole uint64
 const (
 	// SuperchainDeployerKey is the deployer of the superchain contracts.
 	SuperchainDeployerKey SuperchainOperatorRole = 0
-	// SuperchainProxyAdminOwner is the key that owns the superchain ProxyAdmin
-	SuperchainProxyAdminOwner SuperchainOperatorRole = 1
 	// SuperchainConfigGuardianKey is the Guardian of the SuperchainConfig.
-	SuperchainConfigGuardianKey SuperchainOperatorRole = 2
-	// SuperchainProtocolVersionsOwner is the key that can make ProtocolVersions changes.
-	SuperchainProtocolVersionsOwner SuperchainOperatorRole = 3
+	SuperchainConfigGuardianKey SuperchainOperatorRole = 1
 	// DependencySetManagerKey is the key used to manage the dependency set of a superchain.
-	DependencySetManagerKey SuperchainOperatorRole = 4
+	DependencySetManagerKey SuperchainOperatorRole = 2
 )
 
 func (role SuperchainOperatorRole) String() string {
 	switch role {
 	case SuperchainDeployerKey:
 		return "superchain-deployer"
-	case SuperchainProxyAdminOwner:
-		return "superchain-proxy-admin-owner"
 	case SuperchainConfigGuardianKey:
 		return "superchain-config-guardian"
-	case SuperchainProtocolVersionsOwner:
-		return "superchain-protocol-versions-owner"
 	case DependencySetManagerKey:
 		return "dependency-set-manager"
 	default:
@@ -130,8 +122,6 @@ const (
 	L1FeeVaultRecipientRole ChainOperatorRole = 8
 	// SequencerFeeVaultRecipientRole is the key that receives form the SequencerFeeVault predeploy
 	SequencerFeeVaultRecipientRole ChainOperatorRole = 9
-	// SystemConfigOwner is the key that can make SystemConfig changes.
-	SystemConfigOwner ChainOperatorRole = 10
 )
 
 func (role ChainOperatorRole) String() string {
@@ -156,8 +146,6 @@ func (role ChainOperatorRole) String() string {
 		return "l1-fee-vault-recipient"
 	case SequencerFeeVaultRecipientRole:
 		return "sequencer-fee-vault-recipient"
-	case SystemConfigOwner:
-		return "system-config-owner"
 	default:
 		return fmt.Sprintf("unknown-operator-%d", uint64(role))
 	}

@@ -17,7 +17,7 @@ enum ConfigType {
     REMOVE_DEPENDENCY
 }
 
-/// @custom:proxied true
+/// @custom:proxied
 /// @custom:predeploy 0x4200000000000000000000000000000000000015
 /// @title L1BlockInterop
 /// @notice Interop extenstions of L1Block.

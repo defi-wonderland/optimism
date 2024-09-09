@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	"github.com/ethereum-optimism/optimism/cannon/serialize"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
@@ -52,14 +51,14 @@ func LoadELF(ctx *cli.Context) error {
 			return program.LoadELF(f, singlethreaded.CreateInitialState)
 		}
 		writeState = func(path string, state mipsevm.FPVMState) error {
-			return serialize.Write[*singlethreaded.State](path, state.(*singlethreaded.State), OutFilePerm)
+			return jsonutil.WriteJSON[*singlethreaded.State](path, state.(*singlethreaded.State), OutFilePerm)
 		}
 	} else if vmType == mtVMType {
 		createInitialState = func(f *elf.File) (mipsevm.FPVMState, error) {
 			return program.LoadELF(f, multithreaded.CreateInitialState)
 		}
 		writeState = func(path string, state mipsevm.FPVMState) error {
-			return serialize.Write[*multithreaded.State](path, state.(*multithreaded.State), OutFilePerm)
+			return jsonutil.WriteJSON[*multithreaded.State](path, state.(*multithreaded.State), OutFilePerm)
 		}
 	} else {
 		return fmt.Errorf("invalid VM type: %q", vmType)
