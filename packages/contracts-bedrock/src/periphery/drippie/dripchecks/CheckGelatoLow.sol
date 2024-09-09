@@ -2,7 +2,11 @@
 pragma solidity 0.8.15;
 
 import { IDripCheck } from "../IDripCheck.sol";
-import { IGelatoTreasury } from "src/vendor/interfaces/IGelatoTreasury.sol";
+
+interface IGelatoTreasury {
+    function totalDepositedAmount(address _user, address _token) external view returns (uint256);
+    function totalWithdrawnAmount(address _user, address _token) external view returns (uint256);
+}
 
 /// @title CheckGelatoLow
 /// @notice DripCheck for checking if an account's Gelato ETH balance is below some threshold.

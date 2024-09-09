@@ -32,17 +32,6 @@ type RaftConsensus struct {
 	unsafeTracker *unsafeHeadTracker
 }
 
-type RaftConsensusConfig struct {
-	ServerID          string
-	ServerAddr        string
-	StorageDir        string
-	Bootstrap         bool
-	RollupCfg         *rollup.Config
-	SnapshotInterval  time.Duration
-	SnapshotThreshold uint64
-	TrailingLogs      uint64
-}
-
 // checkTCPPortOpen attempts to connect to the specified address and returns an error if the connection fails.
 func checkTCPPortOpen(address string) error {
 	conn, err := net.DialTimeout("tcp", address, 5*time.Second)
@@ -54,14 +43,11 @@ func checkTCPPortOpen(address string) error {
 }
 
 // NewRaftConsensus creates a new RaftConsensus instance.
-func NewRaftConsensus(log log.Logger, cfg *RaftConsensusConfig) (*RaftConsensus, error) {
+func NewRaftConsensus(log log.Logger, serverID, serverAddr, storageDir string, bootstrap bool, rollupCfg *rollup.Config) (*RaftConsensus, error) {
 	rc := raft.DefaultConfig()
-	rc.SnapshotInterval = cfg.SnapshotInterval
-	rc.TrailingLogs = cfg.TrailingLogs
-	rc.SnapshotThreshold = cfg.SnapshotThreshold
-	rc.LocalID = raft.ServerID(cfg.ServerID)
+	rc.LocalID = raft.ServerID(serverID)
 
-	baseDir := filepath.Join(cfg.StorageDir, cfg.ServerID)
+	baseDir := filepath.Join(storageDir, serverID)
 	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(baseDir, 0o755); err != nil {
 			return nil, fmt.Errorf("error creating storage dir: %w", err)
@@ -86,7 +72,7 @@ func NewRaftConsensus(log log.Logger, cfg *RaftConsensusConfig) (*RaftConsensus,
 		return nil, fmt.Errorf(`raft.NewFileSnapshotStore(%q): %w`, baseDir, err)
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp", cfg.ServerAddr)
+	addr, err := net.ResolveTCPAddr("tcp", serverAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to resolve tcp address")
 	}
@@ -109,18 +95,18 @@ func NewRaftConsensus(log log.Logger, cfg *RaftConsensusConfig) (*RaftConsensus,
 
 	// If bootstrap = true, start raft in bootstrap mode, this will allow the current node to elect itself as leader when there's no other participants
 	// and allow other nodes to join the cluster.
-	if cfg.Bootstrap {
-		raftCfg := raft.Configuration{
+	if bootstrap {
+		cfg := raft.Configuration{
 			Servers: []raft.Server{
 				{
 					ID:       rc.LocalID,
-					Address:  raft.ServerAddress(cfg.ServerAddr),
+					Address:  raft.ServerAddress(serverAddr),
 					Suffrage: raft.Voter,
 				},
 			},
 		}
 
-		f := r.BootstrapCluster(raftCfg)
+		f := r.BootstrapCluster(cfg)
 		if err := f.Error(); err != nil {
 			return nil, errors.Wrap(err, "failed to bootstrap raft cluster")
 		}
@@ -129,9 +115,9 @@ func NewRaftConsensus(log log.Logger, cfg *RaftConsensusConfig) (*RaftConsensus,
 	return &RaftConsensus{
 		log:           log,
 		r:             r,
-		serverID:      raft.ServerID(cfg.ServerID),
+		serverID:      raft.ServerID(serverID),
 		unsafeTracker: fsm,
-		rollupCfg:     cfg.RollupCfg,
+		rollupCfg:     rollupCfg,
 	}, nil
 }
 

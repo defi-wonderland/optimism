@@ -11,7 +11,6 @@ package sources
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -63,6 +62,11 @@ type EthClientConfig struct {
 	// till we re-attempt the user-preferred methods.
 	// If this is 0 then the client does not fall back to less optimal but available methods.
 	MethodResetDuration time.Duration
+
+	// [OPTIONAL] The reth DB path to fetch receipts from.
+	// If it is specified, the rethdb receipts fetcher will be used
+	// and the RPC configuration parameters don't need to be set.
+	RethDBPath string
 }
 
 func (c *EthClientConfig) Check() error {
@@ -77,6 +81,15 @@ func (c *EthClientConfig) Check() error {
 	}
 	if c.PayloadsCacheSize < 0 {
 		return fmt.Errorf("invalid payloads cache size: %d", c.PayloadsCacheSize)
+	}
+	if c.RethDBPath != "" {
+		if buildRethdb {
+			// If the rethdb path is set, we use the rethdb receipts fetcher and skip creating
+			// an RCP receipts fetcher, so below rpc config parameters don't need to be checked.
+			return nil
+		} else {
+			return fmt.Errorf("rethdb path specified, but built without rethdb support")
+		}
 	}
 	if c.MaxConcurrentRequests < 1 {
 		return fmt.Errorf("expected at least 1 concurrent request, but max is %d", c.MaxConcurrentRequests)
@@ -123,9 +136,9 @@ func NewEthClient(client client.RPC, log log.Logger, metrics caching.Metrics, co
 	}
 
 	client = LimitRPC(client, config.MaxConcurrentRequests)
-	recProvider := newRPCRecProviderFromConfig(client, log, metrics, config)
+	recProvider := newRecProviderFromConfig(client, log, metrics, config)
 	if recProvider.isInnerNil() {
-		return nil, errors.New("failed to establish receipts provider")
+		return nil, fmt.Errorf("failed to open RethDB")
 	}
 	return &EthClient{
 		client:            client,

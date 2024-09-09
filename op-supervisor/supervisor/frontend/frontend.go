@@ -12,7 +12,6 @@ import (
 type AdminBackend interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	AddL2RPC(ctx context.Context, rpc string) error
 }
 
 type QueryBackend interface {
@@ -61,9 +60,4 @@ func (a *AdminFrontend) Start(ctx context.Context) error {
 // Stop stops the service, if it was previously started.
 func (a *AdminFrontend) Stop(ctx context.Context) error {
 	return a.Supervisor.Stop(ctx)
-}
-
-// AddL2RPC adds a new L2 chain to the supervisor backend
-func (a *AdminFrontend) AddL2RPC(ctx context.Context, rpc string) error {
-	return a.Supervisor.AddL2RPC(ctx, rpc)
 }

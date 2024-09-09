@@ -23,23 +23,19 @@ const (
 )
 
 var (
+	ErrInvalidScalarValue     = errors.New("invalid scalar value")
 	ErrInvalidBlobKeyPreimage = errors.New("invalid blob key preimage")
 )
 
-type PreimageSource interface {
-	Get(key common.Hash) ([]byte, error)
-	Close() error
-}
-
-type PreimageSourceCreator func() PreimageSource
+type preimageSource func(key common.Hash) ([]byte, error)
 
 type PreimageLoader struct {
-	makeSource PreimageSourceCreator
+	getPreimage preimageSource
 }
 
-func NewPreimageLoader(makeSource PreimageSourceCreator) *PreimageLoader {
+func NewPreimageLoader(getPreimage preimageSource) *PreimageLoader {
 	return &PreimageLoader{
-		makeSource: makeSource,
+		getPreimage: getPreimage,
 	}
 }
 
@@ -61,9 +57,7 @@ func (l *PreimageLoader) loadBlobPreimage(proof *ProofData) (*types.PreimageOrac
 	// The key for a blob field element is a keccak hash of commitment++fieldElementIndex.
 	// First retrieve the preimage of the key as a keccak hash so we have the commitment and required field element
 	inputsKey := preimage.Keccak256Key(proof.OracleKey).PreimageKey()
-	source := l.makeSource()
-	defer source.Close()
-	inputs, err := source.Get(inputsKey)
+	inputs, err := l.getPreimage(inputsKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key preimage: %w", err)
 	}
@@ -80,7 +74,7 @@ func (l *PreimageLoader) loadBlobPreimage(proof *ProofData) (*types.PreimageOrac
 	for i := 0; i < params.BlobTxFieldElementsPerBlob; i++ {
 		binary.BigEndian.PutUint64(fieldElemKey[72:], uint64(i))
 		key := preimage.BlobKey(crypto.Keccak256(fieldElemKey)).PreimageKey()
-		fieldElement, err := source.Get(key)
+		fieldElement, err := l.getPreimage(key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load field element %v with key %v:  %w", i, common.Hash(key), err)
 		}
@@ -111,9 +105,7 @@ func (l *PreimageLoader) loadBlobPreimage(proof *ProofData) (*types.PreimageOrac
 
 func (l *PreimageLoader) loadPrecompilePreimage(proof *ProofData) (*types.PreimageOracleData, error) {
 	inputKey := preimage.Keccak256Key(proof.OracleKey).PreimageKey()
-	source := l.makeSource()
-	defer source.Close()
-	input, err := source.Get(inputKey)
+	input, err := l.getPreimage(inputKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key preimage: %w", err)
 	}

@@ -2,10 +2,9 @@
 pragma solidity 0.8.15;
 
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { ISemver } from "src/universal/interfaces/ISemver.sol";
+import { ISemver } from "src/universal/ISemver.sol";
 import { Storage } from "src/libraries/Storage.sol";
 
-/// @custom:proxied true
 /// @custom:audit none This contracts is not yet audited.
 /// @title SuperchainConfig
 /// @notice The SuperchainConfig contract is used to manage configuration of global superchain values.
@@ -36,8 +35,8 @@ contract SuperchainConfig is Initializable, ISemver {
     event ConfigUpdate(UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 1.1.1-beta.1
-    string public constant version = "1.1.1-beta.1";
+    /// @custom:semver 1.1.0
+    string public constant version = "1.1.0";
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor() {

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm/multithreaded"
-	"github.com/ethereum-optimism/optimism/cannon/serialize"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -218,29 +217,9 @@ func (p *ProcessPreimageOracle) Close() error {
 	if p.cmd == nil {
 		return nil
 	}
-
-	tryWait := func(dur time.Duration) (bool, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), dur)
-		defer cancel()
-		select {
-		case <-ctx.Done():
-			return false, nil
-		case err := <-p.waitErr:
-			return true, err
-		}
-	}
 	// Give the pre-image server time to exit cleanly before killing it.
-	if exited, err := tryWait(1 * time.Second); exited {
-		return err
-	}
-	// Politely ask the process to exit and give it some more time
+	time.Sleep(time.Second * 1)
 	_ = p.cmd.Process.Signal(os.Interrupt)
-	if exited, err := tryWait(30 * time.Second); exited {
-		return err
-	}
-
-	// Force the process to exit
-	_ = p.cmd.Process.Signal(os.Kill)
 	return <-p.waitErr
 }
 
@@ -455,7 +434,7 @@ func Run(ctx *cli.Context) error {
 		}
 
 		if snapshotAt(state) {
-			if err := serialize.Write(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
+			if err := jsonutil.WriteJSON(fmt.Sprintf(snapshotFmt, step), state, OutFilePerm); err != nil {
 				return fmt.Errorf("failed to write state snapshot: %w", err)
 			}
 		}
@@ -512,7 +491,7 @@ func Run(ctx *cli.Context) error {
 		vm.Traceback()
 	}
 
-	if err := serialize.Write(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
+	if err := jsonutil.WriteJSON(ctx.Path(RunOutputFlag.Name), state, OutFilePerm); err != nil {
 		return fmt.Errorf("failed to write state output: %w", err)
 	}
 	if debugInfoFile := ctx.Path(RunDebugInfoFlag.Name); debugInfoFile != "" {

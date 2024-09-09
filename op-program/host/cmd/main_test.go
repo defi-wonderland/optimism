@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
 	"github.com/ethereum-optimism/optimism/op-program/chainconfig"
 	"github.com/ethereum-optimism/optimism/op-program/host/config"
-	"github.com/ethereum-optimism/optimism/op-program/host/types"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 
@@ -119,20 +117,6 @@ func TestDataDir(t *testing.T) {
 	expected := "/tmp/mainTestDataDir"
 	cfg := configForArgs(t, addRequiredArgs("--datadir", expected))
 	require.Equal(t, expected, cfg.DataDir)
-}
-
-func TestDataFormat(t *testing.T) {
-	for _, format := range types.SupportedDataFormats {
-		format := format
-		t.Run(fmt.Sprintf("Valid-%v", format), func(t *testing.T) {
-			cfg := configForArgs(t, addRequiredArgs("--data.format", string(format)))
-			require.Equal(t, format, cfg.DataFormat)
-		})
-	}
-
-	t.Run("Invalid", func(t *testing.T) {
-		verifyArgsInvalid(t, "invalid data format: foo", addRequiredArgs("--data.format", "foo"))
-	})
 }
 
 func TestL2(t *testing.T) {
