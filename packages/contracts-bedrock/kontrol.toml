@@ -30,8 +30,8 @@ break-on-basic-blocks = false
 break-on-cheatcodes = false
 run-constructor = true
 symbolic-immutables = false
-schedule = CANCUN
-init-node-from = 'supererc20-state-diff/StateDiff.json'
+schedule = 'CANCUN'
+init-node-from-diff = 'supererc20-state-diff/StateDiff.json'
 
 [show.default]
 foundry-project-root = '.'
