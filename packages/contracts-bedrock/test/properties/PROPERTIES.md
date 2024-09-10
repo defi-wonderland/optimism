@@ -81,17 +81,17 @@ legend:
 
 ## Variable transition
 
-| id  | milestone           | description                                                                                       | kontrol | medusa |
-| --- | ------------------- | ------------------------------------------------------------------------------------------------- | ------- | ------ |
-| 8   | SupERC20            | sendERC20 with a value of zero does not modify accounting                                         | [x]     | [ ]    |
-| 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [x]     | [ ]    |
-| 10  | SupERC20            | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [x]     | [ ]    |
-| 11  | SupERC20            | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [x]     | [ ]    |
-| 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [x]     | [~]    |
-| 13  | Liquidity Migration | supertoken total supply only decreases on calls to burn() by the L2toL2StandardBridge             | [x]     | [ ]    |
-| 14  | SupERC20            | supertoken total supply starts at zero                                                            | [x]     | [x]    |
-| 15  | Factories           | deploying a supertoken registers its remote token in the factory                                  | [ ]     | [ ]    |
-| 16  | Factories           | deploying an OptimismMintableERC20 registers its remote token in the factory                      | [ ]     | [ ]    |
+| id  | milestone | description                                                                                       | kontrol | medusa |
+| --- | --------- | ------------------------------------------------------------------------------------------------- | ------- | ------ |
+| 8   | SupERC20  | sendERC20 with a value of zero does not modify accounting                                         | [x]     | [ ]    |
+| 9   | SupERC20  | relayERC20 with a value of zero does not modify accounting                                        | [x]     | [ ]    |
+| 10  | SupERC20  | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [x]     | [ ]    |
+| 11  | SupERC20  | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [x]     | [ ]    |
+| 12  | SupERC20  | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [x]     | [~]    |
+| 13  | SupERC20  | supertoken total supply only decreases on calls to burn() by the L2toL2StandardBridge             | [x]     | [ ]    |
+| 14  | SupERC20  | supertoken total supply starts at zero                                                            | [x]     | [x]    |
+| 15  | Factories | deploying a supertoken registers its remote token in the factory                                  | [ ]     | [ ]    |
+| 16  | Factories | deploying an OptimismMintableERC20 registers its remote token in the factory                      | [ ]     | [ ]    |
 
 ## High level
 
