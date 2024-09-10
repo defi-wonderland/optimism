@@ -24,14 +24,14 @@ legend:
 | id  | description                                                                                | kontrol | medusa |
 | --- | ------------------------------------------------------------------------------------------ | ------- | ------ |
 | 6   | calls to sendERC20 succeed as long as caller has enough balance                            | [x]     | [ ]    |
-| 7   | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[~]** | [ ]    |
+| 7   | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[x]** | [ ]    |
 
 ## Variable transition
 
 | id  | description                                                                                       | kontrol | medusa |
 | --- | ------------------------------------------------------------------------------------------------- | ------- | ------ |
-| 8   | sendERC20 with a value of zero does not modify accounting                                         | [x]     | [ ]    |
-| 9   | relayERC20 with a value of zero does not modify accounting                                        | [x]     | [ ]    |
+| 8   | sendERC20 with a value of zero does not modify accounting                                         | []      | [ ]    |
+| 9   | relayERC20 with a value of zero does not modify accounting                                        | []      | [ ]    |
 | 10  | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [x]     | [ ]    |
 | 11  | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [x]     | [ ]    |
 | 12  | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [x]     | [ ]    |
@@ -57,8 +57,8 @@ It’s worth noting that these properties will not hold for a live system
 
 | id  | description                                                                                                                        | kontrol | medusa |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------- | ------- | ------ |
-| 22  | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [ ]     | [x]    |
-| 23  | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [ ]     | [x]    |
+| 22  | sendERC20 decreases sender balance in source chain and increases receiver balance in destination chain exactly by the input amount | [x]     | [x]    |
+| 23  | sendERC20 decreases total supply in source chain and increases it in destination chain exactly by the input amount                 | [x]     | [x]    |
 | 24  | sum of supertoken total supply across all chains is always equal to convert(legacy, super)- convert(super, legacy)                 | [ ]     | [~]    |
 
 # Expected external interactions
