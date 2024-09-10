@@ -10,9 +10,14 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 )
+
+var setterFnSig = "set(bytes4,address)"
+var setterFnBytes4 = bytes4(setterFnSig)
 
 // precompileFunc is a prepared function to perform a method call / field read with ABI decoding/encoding.
 type precompileFunc struct {
@@ -33,8 +38,17 @@ func b32(v uint64) []byte {
 	return out
 }
 
-// pad to multiple of 32 bytes
-func pad32(data []byte) []byte {
+// leftPad32 to multiple of 32 bytes
+func leftPad32(data []byte) []byte {
+	out := bytes.Clone(data)
+	if len(out)%32 == 0 {
+		return out
+	}
+	return append(make([]byte, 32-(len(out)%32)), out...)
+}
+
+// rightPad32 to multiple of 32 bytes
+func rightPad32(data []byte) []byte {
 	out := bytes.Clone(data)
 	if len(out)%32 == 0 {
 		return out
@@ -42,9 +56,19 @@ func pad32(data []byte) []byte {
 	return append(out, make([]byte, 32-(len(out)%32))...)
 }
 
+type settableField struct {
+	name  string
+	value *reflect.Value
+}
+
 // Precompile is a wrapper around a Go object, making it a precompile.
 type Precompile[E any] struct {
 	Precompile E
+
+	fieldsOnly bool
+
+	fieldSetter bool
+	settable    map[[4]byte]*settableField
 
 	// abiMethods is effectively the jump-table for 4-byte ABI calls to the precompile.
 	abiMethods map[[4]byte]*precompileFunc
@@ -52,16 +76,35 @@ type Precompile[E any] struct {
 
 var _ vm.PrecompiledContract = (*Precompile[struct{}])(nil)
 
+type PrecompileOption[E any] func(p *Precompile[E])
+
+func WithFieldsOnly[E any](p *Precompile[E]) {
+	p.fieldsOnly = true
+}
+
+func WithFieldSetter[E any](p *Precompile[E]) {
+	p.fieldSetter = true
+}
+
 // NewPrecompile wraps a Go object into a Precompile.
 // All exported fields and methods will have a corresponding ABI interface.
-// Fields with a tag `evm:"-"` will be ignored.
+// Fields with a tag `evm:"-"` will be ignored, or can override their ABI name to x with this tag: `evm:"x"`.
 // Field names and method names are adjusted to start with a lowercase character in the ABI signature.
 // Method names may end with a `_X` where X must be the 4byte selector (this is sanity-checked),
 // to support multiple variants of the same method with different ABI input parameters.
 // Methods may return an error, which will result in a revert, rather than become an ABI encoded arg, if not nil.
 // All precompile methods have 0 gas cost.
-func NewPrecompile[E any](e E) (*Precompile[E], error) {
-	out := &Precompile[E]{Precompile: e, abiMethods: make(map[[4]byte]*precompileFunc)}
+func NewPrecompile[E any](e E, opts ...PrecompileOption[E]) (*Precompile[E], error) {
+	out := &Precompile[E]{
+		Precompile:  e,
+		abiMethods:  make(map[[4]byte]*precompileFunc),
+		fieldsOnly:  false,
+		fieldSetter: false,
+		settable:    make(map[[4]byte]*settableField),
+	}
+	for _, opt := range opts {
+		opt(out)
+	}
 	elemVal := reflect.ValueOf(e)
 	// setup methods (and if pointer, the indirect methods also)
 	if err := out.setupMethods(&elemVal); err != nil {
@@ -71,11 +114,16 @@ func NewPrecompile[E any](e E) (*Precompile[E], error) {
 	if err := out.setupFields(&elemVal); err != nil {
 		return nil, fmt.Errorf("failed to setup fields of precompile: %w", err)
 	}
+	// create setter that can handle of the fields
+	out.setupFieldSetter()
 	return out, nil
 }
 
 // setupMethods iterates through all exposed methods of val, and sets them all up as ABI methods.
 func (p *Precompile[E]) setupMethods(val *reflect.Value) error {
+	if p.fieldsOnly {
+		return nil
+	}
 	typ := val.Type()
 	methodCount := val.NumMethod()
 	for i := 0; i < methodCount; i++ {
@@ -88,6 +136,53 @@ func (p *Precompile[E]) setupMethods(val *reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+// makeArgs infers a list of ABI types, from a list of Go arguments.
+func makeArgs(argCount int, getType func(i int) reflect.Type) (abi.Arguments, error) {
+	out := make(abi.Arguments, argCount)
+	for i := 0; i < argCount; i++ {
+		argType := getType(i)
+		abiTyp, err := goTypeToABIType(argType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine ABI type of input arg %d: %w", i, err)
+		}
+		out[i] = abi.Argument{
+			Name: fmt.Sprintf("arg_%d", i),
+			Type: abiTyp,
+		}
+	}
+	return out, nil
+}
+
+// makeArgTypes turns a slice of ABI argument types into a slice of ABI stringified types
+func makeArgTypes(args abi.Arguments) []string {
+	out := make([]string, len(args))
+	for i := 0; i < len(args); i++ {
+		out[i] = args[i].Type.String()
+	}
+	return out
+}
+
+// makeArgAllocators returns a lice of Go object allocator functions, for each of the arguments.
+func makeArgAllocators(argCount int, getType func(i int) reflect.Type) []func() any {
+	out := make([]func() interface{}, argCount)
+	for i := 0; i < argCount; i++ {
+		argType := getType(i)
+		out[i] = func() interface{} {
+			return reflect.New(argType).Elem().Interface()
+		}
+	}
+	return out
+}
+
+// hasTrailingError checks if the last returned argument type, if any, is a Go error.
+func hasTrailingError(argCount int, getType func(i int) reflect.Type) bool {
+	if argCount == 0 {
+		return false
+	}
+	lastTyp := getType(argCount - 1)
+	return lastTyp.Kind() == reflect.Interface && lastTyp.Implements(typeFor[error]())
 }
 
 // setupMethod takes a method definition, attached to selfVal,
@@ -115,24 +210,14 @@ func (p *Precompile[E]) setupMethod(selfVal *reflect.Value, methodDef *reflect.M
 	if inArgCount < 0 {
 		return errors.New("expected method with receiver as first argument")
 	}
-	inArgs := make(abi.Arguments, inArgCount)
-	inArgTypes := make([]string, inArgCount)
-	inArgAllocators := make([]func() interface{}, inArgCount)
-	for i := 0; i < inArgCount; i++ {
-		argType := methodDef.Type.In(i + 1) // account for receiver
-		abiTyp, err := goTypeToABIType(argType)
-		if err != nil {
-			return fmt.Errorf("failed to determine ABI type of input arg %d: %w", i, err)
-		}
-		inArgs[i] = abi.Argument{
-			Name: fmt.Sprintf("in_%d", i),
-			Type: abiTyp,
-		}
-		inArgAllocators[i] = func() interface{} {
-			return reflect.New(argType).Elem().Interface()
-		}
-		inArgTypes[i] = abiTyp.String()
+	getInArg := func(i int) reflect.Type {
+		return methodDef.Type.In(i + 1) // +1 to account for the receiver
 	}
+	inArgs, err := makeArgs(inArgCount, getInArg)
+	if err != nil {
+		return fmt.Errorf("failed to preserve input args: %w", err)
+	}
+	inArgTypes := makeArgTypes(inArgs)
 	methodSig := fmt.Sprintf("%v(%v)", abiFunctionName, strings.Join(inArgTypes, ","))
 	byte4Sig := bytes4(methodSig)
 	if variantSuffix != "" {
@@ -148,35 +233,53 @@ func (p *Precompile[E]) setupMethod(selfVal *reflect.Value, methodDef *reflect.M
 
 	outArgCount := methodDef.Type.NumOut()
 	// A Go method may return an error, which we do not ABI-encode, but rather forward as revert.
-	errReturn := false
-	if outArgCount > 0 {
-		errIndex := outArgCount - 1
-		lastTyp := methodDef.Type.Out(errIndex)
-		if lastTyp.Kind() == reflect.Interface && lastTyp.Implements(typeFor[error]()) {
-			outArgCount -= 1
-			errReturn = true
-		}
-	}
-	// Prepare ABI definitions of return parameters.
-	outArgs := make(abi.Arguments, outArgCount)
-	for i := 0; i < outArgCount; i++ {
-		argType := methodDef.Type.Out(i)
-		abiTyp, err := goTypeToABIType(argType)
-		if err != nil {
-			return fmt.Errorf("failed to determine ABI type of output arg %d: %w", i, err)
-		}
-		outArgs[i] = abi.Argument{
-			Name: fmt.Sprintf("out_%d", i),
-			Type: abiTyp,
-		}
+	errReturn := hasTrailingError(outArgCount, methodDef.Type.Out)
+	if errReturn {
+		outArgCount -= 1
 	}
 
+	// Prepare ABI definitions of return parameters.
+	outArgs, err := makeArgs(outArgCount, methodDef.Type.Out)
+	if err != nil {
+		return fmt.Errorf("failed to prepare output arg types: %w", err)
+	}
+
+	inArgAllocators := makeArgAllocators(inArgCount, getInArg)
 	fn := makeFn(selfVal, &methodDef.Func, errReturn, inArgs, outArgs, inArgAllocators)
 
 	p.abiMethods[byte4Sig] = &precompileFunc{
 		goName:       methodName,
 		abiSignature: methodSig,
 		fn:           fn,
+	}
+	return nil
+}
+
+// abiToValues turns serialized ABI input data into values, which are written to the given dest slice.
+// The ABI decoding happens following the given args ABI type definitions.
+// Values are allocated with the given respective allocator functions.
+func abiToValues(args abi.Arguments, allocators []func() any, dest []reflect.Value, input []byte) error {
+	// sanity check that we have as many allocators as result destination slots
+	if len(allocators) != len(dest) {
+		return fmt.Errorf("have %d allocators, but %d destinations", len(allocators), len(dest))
+	}
+	// Unpack the ABI data into default Go types
+	inVals, err := args.UnpackValues(input)
+	if err != nil {
+		return fmt.Errorf("failed to decode input: %x\nerr: %w", input, err)
+	}
+	// Sanity check that the ABI util returned the expected number of inputs
+	if len(inVals) != len(allocators) {
+		return fmt.Errorf("expected %d args, got %d", len(allocators), len(inVals))
+	}
+	for i, inAlloc := range allocators {
+		argSrc := inVals[i]
+		argDest := inAlloc()
+		argDest, err = convertType(argSrc, argDest)
+		if err != nil {
+			return fmt.Errorf("failed to convert arg %d from Go type %T to %T: %w", i, argSrc, argDest, err)
+		}
+		dest[i] = reflect.ValueOf(argDest)
 	}
 	return nil
 }
@@ -189,26 +292,12 @@ func (p *Precompile[E]) setupMethod(selfVal *reflect.Value, methodDef *reflect.M
 // - and ABI encoding of outputs
 func makeFn(selfVal, methodVal *reflect.Value, errReturn bool, inArgs, outArgs abi.Arguments, inArgAllocators []func() any) func(input []byte) ([]byte, error) {
 	return func(input []byte) ([]byte, error) {
-		// Unpack the ABI data into default Go types
-		inVals, err := inArgs.UnpackValues(input)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode input: %x\nerr: %w", input, err)
-		}
-		// Sanity check that the ABI util returned the expected number of inputs
-		if len(inVals) != len(inArgAllocators) {
-			return nil, fmt.Errorf("expected %d args, got %d", len(inArgAllocators), len(inVals))
-		}
 		// Convert each default Go type into the expected opinionated Go type
-		callArgs := make([]reflect.Value, 0, 1+len(inArgAllocators))
-		callArgs = append(callArgs, *selfVal)
-		for i, inAlloc := range inArgAllocators {
-			argSrc := inVals[i]
-			argDest := inAlloc()
-			argDest, err = convertType(argSrc, argDest)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert arg %d from Go type %T to %T: %w", i, argSrc, argDest, err)
-			}
-			callArgs = append(callArgs, reflect.ValueOf(argDest))
+		callArgs := make([]reflect.Value, 1+len(inArgAllocators))
+		callArgs[0] = *selfVal
+		err := abiToValues(inArgs, inArgAllocators, callArgs[1:], input)
+		if err != nil {
+			return nil, err
 		}
 		// Call the precompile Go function
 		returnReflectVals := methodVal.Call(callArgs)
@@ -381,6 +470,10 @@ func (p *Precompile[E]) setupStructField(fieldDef *reflect.StructField, fieldVal
 	if lo := strings.ToLower(abiFunctionName[:1]); lo != abiFunctionName[:1] {
 		abiFunctionName = lo + abiFunctionName[1:]
 	}
+	// The tag can override the field name
+	if v, ok := fieldDef.Tag.Lookup("evm"); ok {
+		abiFunctionName = v
+	}
 	// The ABI signature of public fields in solidity is simply a getter function of the same name.
 	// The return type is not part of the ABI signature. So we just append "()" to turn it into a function.
 	methodSig := abiFunctionName + "()"
@@ -405,7 +498,14 @@ func (p *Precompile[E]) setupStructField(fieldDef *reflect.StructField, fieldVal
 		if len(input) != 0 { // 4 byte selector is already trimmed
 			return nil, fmt.Errorf("unexpected input: %x", input)
 		}
-		outData, err := outArgs.PackValues([]any{fieldVal.Interface()})
+		v := fieldVal.Interface()
+		if abiVal, ok := v.(interface{ ToABI() []byte }); ok {
+			return abiVal.ToABI(), nil
+		}
+		if bigInt, ok := v.(*hexutil.Big); ok { // We can change this to use convertType later, if we need more generic type handling.
+			v = (*big.Int)(bigInt)
+		}
+		outData, err := outArgs.PackValues([]any{v})
 		if err != nil {
 			return nil, fmt.Errorf("method %s failed to pack return data: %w", methodSig, err)
 		}
@@ -416,7 +516,40 @@ func (p *Precompile[E]) setupStructField(fieldDef *reflect.StructField, fieldVal
 		abiSignature: methodSig,
 		fn:           fn,
 	}
+	// register field as settable
+	if p.fieldSetter && fieldDef.Type.AssignableTo(typeFor[common.Address]()) {
+		p.settable[byte4Sig] = &settableField{
+			name:  fieldDef.Name,
+			value: fieldVal,
+		}
+	}
 	return nil
+}
+
+func (p *Precompile[E]) setupFieldSetter() {
+	if !p.fieldSetter {
+		return
+	}
+	p.abiMethods[setterFnBytes4] = &precompileFunc{
+		goName:       "__fieldSetter___",
+		abiSignature: setterFnSig,
+		fn: func(input []byte) ([]byte, error) {
+			if len(input) != 32*2 {
+				return nil, fmt.Errorf("cannot set address field to %d bytes", len(input))
+			}
+			if [32 - 4]byte(input[4:32]) != ([32 - 4]byte{}) {
+				return nil, fmt.Errorf("unexpected selector content, input: %x", input[:])
+			}
+			selector := [4]byte(input[:4])
+			f, ok := p.settable[selector]
+			if !ok {
+				return nil, fmt.Errorf("unknown address field selector 0x%x", selector)
+			}
+			addr := common.Address(input[32*2-20 : 32*2])
+			f.value.Set(reflect.ValueOf(addr))
+			return nil, nil
+		},
+	}
 }
 
 // RequiredGas is part of the vm.PrecompiledContract interface, and all system precompiles use 0 gas.
@@ -452,7 +585,7 @@ func encodeRevert(outErr error) ([]byte, error) {
 	out = append(out, revertSelector...)              // selector
 	out = append(out, b32(0x20)...)                   // offset to string
 	out = append(out, b32(uint64(len(outErrStr)))...) // length of string
-	out = append(out, pad32(outErrStr)...)            // the error message string
+	out = append(out, rightPad32(outErrStr)...)       // the error message string
 	return out, vm.ErrExecutionReverted               // Geth EVM will pick this up as a revert with return-data
 }
 

@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum-optimism/superchain-registry/superchain"
 )
 
-var OPStackSupport = params.ProtocolVersionV0{Build: [8]byte{}, Major: 7, Minor: 0, Patch: 0, PreRelease: 0}.Encode()
+var OPStackSupport = params.ProtocolVersionV0{Build: [8]byte{}, Major: 8, Minor: 0, Patch: 0, PreRelease: 0}.Encode()
 
 // LoadOPStackRollupConfig loads the rollup configuration of the requested chain ID from the superchain-registry.
 // Some chains may require a SystemConfigProvider to retrieve any values not part of the registry.
@@ -44,12 +44,12 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 		return nil, fmt.Errorf("unable to retrieve deposit contract address")
 	}
 
-	var plasma *PlasmaConfig
-	if chConfig.Plasma != nil {
-		plasma = &PlasmaConfig{
-			DAChallengeAddress: common.Address(*chConfig.Plasma.DAChallengeAddress),
-			DAChallengeWindow:  *chConfig.Plasma.DAChallengeWindow,
-			DAResolveWindow:    *chConfig.Plasma.DAResolveWindow,
+	var altDA *AltDAConfig
+	if chConfig.AltDA != nil {
+		altDA = &AltDAConfig{
+			DAChallengeAddress: common.Address(*chConfig.AltDA.DAChallengeAddress),
+			DAChallengeWindow:  *chConfig.AltDA.DAChallengeWindow,
+			DAResolveWindow:    *chConfig.AltDA.DAResolveWindow,
 		}
 	}
 
@@ -75,7 +75,6 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 		MaxSequencerDrift:      chConfig.MaxSequencerDrift,
 		SeqWindowSize:          chConfig.SequencerWindowSize,
 		ChannelTimeoutBedrock:  300,
-		ChannelTimeoutGranite:  50,
 		L1ChainID:              new(big.Int).SetUint64(superChain.Config.L1.ChainID),
 		L2ChainID:              new(big.Int).SetUint64(chConfig.ChainID),
 		RegolithTime:           &regolithTime,
@@ -87,7 +86,7 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 		BatchInboxAddress:      common.Address(chConfig.BatchInboxAddr),
 		DepositContractAddress: common.Address(addrs.OptimismPortalProxy),
 		L1SystemConfigAddress:  common.Address(addrs.SystemConfigProxy),
-		PlasmaConfig:           plasma,
+		AltDAConfig:            altDA,
 	}
 
 	if superChain.Config.ProtocolVersionsAddr != nil { // Set optional protocol versions address
