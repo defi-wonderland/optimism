@@ -48,7 +48,7 @@ func TestEVM_SysClone_FlagHandling(t *testing.T) {
 
 			var err error
 			var stepWitness *mipsevm.StepWitness
-			us := multithreaded.NewInstrumentedState(state, nil, os.Stdout, os.Stderr, nil)
+			us := multithreaded.NewInstrumentedState(state, nil, os.Stdout, os.Stderr, nil, nil)
 			if !c.valid {
 				// The VM should exit
 				stepWitness, err = us.Step(true)
@@ -623,6 +623,7 @@ func TestEVM_NoopSyscall(t *testing.T) {
 }
 
 func TestEVM_UnsupportedSyscall(t *testing.T) {
+	t.Parallel()
 	var tracer *tracing.Hooks
 
 	var NoopSyscallNums = maps.Values(NoopSyscalls)
@@ -638,7 +639,10 @@ func TestEVM_UnsupportedSyscall(t *testing.T) {
 
 	for i, syscallNum := range unsupportedSyscalls {
 		testName := fmt.Sprintf("Unsupported syscallNum %v", syscallNum)
+		i := i
+		syscallNum := syscallNum
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			goVm, state, contracts := setup(t, i*3434)
 			// Setup basic getThreadId syscall instruction
 			state.Memory.SetMemory(state.GetPC(), syscallInsn)
