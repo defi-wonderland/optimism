@@ -43,7 +43,7 @@ import { DataAvailabilityChallenge } from "src/L1/DataAvailabilityChallenge.sol"
 import { WETH } from "src/L2/WETH.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
-import { IOptimismERC20Factory } from "src/L2/IOptimismERC20Factory.sol";
+import { IOptimismERC20Factory } from "src/L2/interfaces/IOptimismERC20Factory.sol";
 
 /// @title Setup
 /// @dev This contact is responsible for setting up the contracts in state. It currently
