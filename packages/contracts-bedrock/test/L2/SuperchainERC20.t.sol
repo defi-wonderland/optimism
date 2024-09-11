@@ -7,7 +7,7 @@ import { Test } from "forge-std/Test.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IERC20 } from "@openzeppelin/contracts-v5/token/ERC20/IERC20.sol";
-import { IL2ToL2CrossDomainMessenger } from "src/L2/IL2ToL2CrossDomainMessenger.sol";
+import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 
 // Target contract
 import {
@@ -20,13 +20,9 @@ import {
 
 /// @notice Mock contract for the SuperchainERC20 contract so tests can mint tokens.
 contract SuperchainERC20Mock is SuperchainERC20 {
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    )
-        SuperchainERC20(_name, _symbol, _decimals)
-    { }
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
+        _setMetadataStorage(_name, _symbol, _decimals);
+    }
 
     function mint(address _account, uint256 _amount) public {
         _mint(_account, _amount);
@@ -213,19 +209,19 @@ contract SuperchainERC20Test is Test {
 
     /// @notice Tests the `decimals` function always returns the correct value.
     function testFuzz_decimals_succeeds(uint8 _decimals) public {
-        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(NAME, SYMBOL, _decimals);
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20Mock(NAME, SYMBOL, _decimals);
         assertEq(_newSuperchainERC20.decimals(), _decimals);
     }
 
     /// @notice Tests the `name` function always returns the correct value.
     function testFuzz_name_succeeds(string memory _name) public {
-        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(_name, SYMBOL, DECIMALS);
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20Mock(_name, SYMBOL, DECIMALS);
         assertEq(_newSuperchainERC20.name(), _name);
     }
 
     /// @notice Tests the `symbol` function always returns the correct value.
     function testFuzz_symbol_succeeds(string memory _symbol) public {
-        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20(NAME, _symbol, DECIMALS);
+        SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20Mock(NAME, _symbol, DECIMALS);
         assertEq(_newSuperchainERC20.symbol(), _symbol);
     }
 }

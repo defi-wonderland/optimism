@@ -14,11 +14,17 @@ import { IERC165 } from "@openzeppelin/contracts-v5/utils/introspection/IERC165.
 
 // Target contract
 import {
-    OptimismSuperchainERC20,
-    IOptimismSuperchainERC20Extension,
-    OnlyBridge,
-    ZeroAddress
+    OptimismSuperchainERC20, IOptimismSuperchainERC20Extension, OnlyBridge
 } from "src/L2/OptimismSuperchainERC20.sol";
+
+import {
+    CallerNotL2ToL2CrossDomainMessenger,
+    InvalidCrossDomainSender,
+    SuperchainERC20,
+    ISuperchainERC20Extensions,
+    ZeroAddress
+} from "src/L2/SuperchainERC20.sol";
+
 import { ISuperchainERC20Extensions } from "src/L2/interfaces/ISuperchainERC20.sol";
 
 /// @title OptimismSuperchainERC20Test

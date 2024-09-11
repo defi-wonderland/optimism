@@ -7,7 +7,6 @@ import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomai
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
-import { ISemver } from "src/universal/ISemver.sol";
 import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 
@@ -65,7 +64,7 @@ contract OptimismSuperchainERC20 is
     string public constant version = "1.0.0-beta.2";
 
     /// @notice Constructs the OptimismSuperchainERC20 contract.
-    constructor() SuperchainERC20("", "", 18) {
+    constructor() {
         _disableInitializers();
     }
 

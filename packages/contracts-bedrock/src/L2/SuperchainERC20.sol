@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { ISuperchainERC20Extensions } from "src/L2/ISuperchainERC20.sol";
+import { ISuperchainERC20Extensions } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { ERC20 } from "@solady/tokens/ERC20.sol";
-import { IL2ToL2CrossDomainMessenger } from "src/L2/IL2ToL2CrossDomainMessenger.sol";
+import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @notice Thrown when attempting to relay a message and the function caller (msg.sender) is not
@@ -20,7 +20,7 @@ error ZeroAddress();
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
 ///         bridging to make it fungible across the Superchain. It builds on top of the L2ToL2CrossDomainMessenger for
 ///         both replay protection and domain binding.
-contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20 {
+abstract contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20 {
     /// @notice Address of the L2ToL2CrossDomainMessenger Predeploy.
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
@@ -56,14 +56,6 @@ contract SuperchainERC20 is ISuperchainERC20Extensions, ERC20 {
         _storage.name = _name;
         _storage.symbol = _symbol;
         _storage.decimals = _decimals;
-    }
-
-    /// @notice Constructs the SuperchainERC20 contract.
-    /// @param _name           ERC20 name.
-    /// @param _symbol         ERC20 symbol.
-    /// @param _decimals       ERC20 decimals.
-    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
-        _setMetadataStorage(_name, _symbol, _decimals);
     }
 
     /// @notice Sends tokens to some target address on another chain.
