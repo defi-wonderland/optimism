@@ -33,25 +33,6 @@ symbolic-immutables = false
 schedule = 'CANCUN'
 init-node-from-diff = 'supererc20-state-diff/StateDiff.json'
 
-[prove.convert]
-foundry-project-root = './'
-verbose = false
-debug = false
-max-depth = 25000
-reinit = false
-cse = false
-failure-information = true
-counterexample-information = true
-minimize-proofs = false
-fail-fast = true
-smt-timeout = 1000
-break-every-step = false
-break-on-jumpi = false
-break-on-calls = false
-break-on-storage = false
-break-on-basic-blocks = false
-break-on-cheatcodes = false
-
 [show.default]
 foundry-project-root = '.'
 verbose = false
@@ -61,3 +42,13 @@ use-hex-encoding = false
 [view-kcfg.default]
 foundry-project-root = '.'
 use-hex-encoding = false
+
+## Convert profile
+
+[build.convert]
+
+[prove.convert]
+
+[show.convert]
+
+[view-kcfg.convert]
