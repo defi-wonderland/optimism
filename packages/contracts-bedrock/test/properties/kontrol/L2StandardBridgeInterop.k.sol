@@ -98,9 +98,12 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
         /* Action */
         try l2StandardBridgeInterop.convert(from, to, _randomAmount) {
             /* Postconditions */
+            // Assume the addresses are not zero and they match
+            assert(_fromRemoteAddress != address(0));
             assert(_fromRemoteAddress == _toRemoteAddress);
         } catch {
-            assert(_fromRemoteAddress != _toRemoteAddress);
+            // Assert the addresses differ or that they are both zero
+            assert(_fromRemoteAddress != _toRemoteAddress || _fromRemoteAddress == address(0));
         }
     }
 
