@@ -10,6 +10,7 @@ import { InitialState } from "./deployments/InitialState.sol";
 contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     event CrossDomainMessageSender(address _sender);
 
+    /// @notice Use this function instead of `setUp()` for performance reasons when running the proofs with Kontrol
     function setUpInlined() public {
         superchainERC20Impl = OptimismSuperchainERC20(superchainERC20ImplAddress);
         sourceToken = OptimismSuperchainERC20(sourceTokenAddress);
@@ -81,7 +82,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
     }
 
     /// @custom:property-id 7
-    /// @custom:property Calls to relayERC20 always succeed as long as the sender the cross-domain caller are valid
+    /// @custom:property Calls to relayERC20 always succeed as long as the sender and the cross-domain caller are valid
     function prove_relayERC20OnlyFromL2ToL2Messenger(
         address _crossDomainSender,
         address _sender,
@@ -99,7 +100,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_to));
         vm.assume(notBuiltinAddress(_sender));
 
-        // kevm.symbolicStorage(address(MESSENGER));
         MESSENGER.forTest_setCustomCrossDomainSender(_crossDomainSender);
 
         vm.prank(_sender);
@@ -117,6 +117,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
     /// @custom:property-id 8
     /// @custom:property `sendERC20` with a value of zero does not modify accounting
+    /// @custom:property-not-tested The proof fails - probably needs some fixes through lemmas and node pruning
     function prove_sendERC20ZeroCall(address _from, address _to, uint256 _chainId) public {
         setUpInlined();
 
@@ -144,6 +145,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
     /// @custom:property-id 9
     /// @custom:property `relayERC20` with a value of zero does not modify accounting
+    /// @custom:property-not-tested The proof fails - probably needs some fixes through lemmas and node pruning
     function prove_relayERC20ZeroCall(address _from, address _to) public {
         setUpInlined();
 
