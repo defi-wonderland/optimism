@@ -77,14 +77,14 @@ legend:
 | id  | milestone | description                                                                                | kontrol | medusa |
 | --- | --------- | ------------------------------------------------------------------------------------------ | ------- | ------ |
 | 6   | SupERC20  | calls to sendERC20 succeed as long as caller has enough balance                            | [x]     | [ ]    |
-| 7   | SupERC20  | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[~]** | [ ]    |
+| 7   | SupERC20  | calls to relayERC20 always succeed as long as the sender and cross-domain caller are valid | **[x]** | [ ]    |
 
 ## Variable transition
 
 | id  | milestone           | description                                                                                       | kontrol | medusa |
 | --- | ------------------- | ------------------------------------------------------------------------------------------------- | ------- | ------ |
-| 8   | SupERC20            | sendERC20 with a value of zero does not modify accounting                                         | [x]     | [ ]    |
-| 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [x]     | [ ]    |
+| 8   | SupERC20            | sendERC20 with a value of zero does not modify accounting                                         | [:(]    | [ ]    |
+| 9   | SupERC20            | relayERC20 with a value of zero does not modify accounting                                        | [:(]    | [ ]    |
 | 10  | SupERC20            | sendERC20 decreases the token's totalSupply in the source chain exactly by the input amount       | [x]     | [ ]    |
 | 11  | SupERC20            | relayERC20 increases the token's totalSupply in the destination chain exactly by the input amount | [x]     | [ ]    |
 | 12  | Liquidity Migration | supertoken total supply only increases on calls to mint() by the L2toL2StandardBridge             | [x]     | [~]    |
