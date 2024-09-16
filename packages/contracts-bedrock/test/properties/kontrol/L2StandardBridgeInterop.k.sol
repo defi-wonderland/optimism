@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { L2StandardBridgeInterop } from "src/L2/L2StandardBridgeInterop.sol";
+import "src/L2/L2StandardBridgeInterop.sol";
 import { Test } from "forge-std/Test.sol";
 import { KontrolCheats } from "kontrol-cheatcodes/KontrolCheats.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -227,6 +227,7 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
 
         /* Preconditions */
         vm.assume(_sender != address(0));
+
         // Mock the call over `deployments` - not in the scope of the test, but required to avoid a revert
         vm.mockCall(
             Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY,
@@ -257,6 +258,55 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
             L2_BRIDGE.convert(address(superToken), address(legacyToken), _amount);
             assert(legacyToken.balanceOf(_sender) == legacyBalanceBefore + _amount);
             assert(superToken.balanceOf(_sender) == superBalanceBefore - _amount);
+        }
+    }
+
+    /// @custom:property-id 17
+    /// @custom:property Only calls to convert(legacy, super) can increase a supertoken’s total supply
+    /// and decrease legacy's one across chains
+    /// @custom:property-id 18
+    /// @custom:property Only calls to convert(super, legacy) can decrease a supertoken’s total supply and increase
+    /// legacy's one across chains
+    function test_convertUpdatesTotalSupply(bool _legacyIsFrom, address _sender, uint256 _amount) public {
+        setUpInlined();
+
+        /* Preconditions */
+        vm.assume(_sender != address(0));
+
+        // Mock the call over `deployments` - not in the scope of the test, but required to avoid a revert
+        vm.mockCall(
+            Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY,
+            abi.encodeWithSelector(IOptimismERC20Factory.deployments.selector),
+            abi.encode(REMOTE_TOKEN)
+        );
+        vm.mockCall(
+            Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY,
+            abi.encodeWithSelector(IOptimismERC20Factory.deployments.selector),
+            abi.encode(REMOTE_TOKEN)
+        );
+
+        // Mint tokens to the sender and get the balances before the conversion
+        vm.prank(address(L2_BRIDGE));
+        if (_legacyIsFrom) legacyToken.mint(_sender, _amount);
+        else superToken.mint(_sender, _amount);
+        uint256 legacyBalanceBefore = legacyToken.balanceOf(_sender);
+        uint256 superBalanceBefore = superToken.balanceOf(_sender);
+
+        vm.startPrank(_sender);
+        /* Action */
+        if (_legacyIsFrom) {
+            L2_BRIDGE.convert(address(legacyToken), address(superToken), _amount);
+
+            /* Postconditions */
+            assert(superToken.totalSupply() == superBalanceBefore + _amount);
+            assert(legacyToken.totalSupply() == legacyBalanceBefore - _amount);
+        } else {
+            /* Action */
+            L2_BRIDGE.convert(address(superToken), address(legacyToken), _amount);
+
+            /* Postconditions */
+            assert(superToken.totalSupply() == superBalanceBefore - _amount);
+            assert(legacyToken.totalSupply() == legacyBalanceBefore + _amount);
         }
     }
 }

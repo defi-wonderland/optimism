@@ -97,8 +97,8 @@ legend:
 
 | id  | milestone           | description                                                                                                                                                           | kontrol | medusa |
 | --- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------ |
-| 17  | Liquidity Migration | only calls to convert(legacy, super) can increase a supertoken’s total supply across chains                                                                           | [ ]     | [ ]    |
-| 18  | Liquidity Migration | only calls to convert(super, legacy) can decrease a supertoken’s total supply across chains                                                                           | [ ]     | [ ]    |
+| 17  | Liquidity Migration | only calls to convert(legacy, super) can increase a supertoken’s total supply and decrease legacy's one across chains                                                 | [ ]     | [ ]    |
+| 18  | Liquidity Migration | only calls to convert(super, legacy) can decrease a supertoken’s total supply and increase the legacy's one across chains                                             | [ ]     | [ ]    |
 | 19  | Liquidity Migration | sum of supertoken total supply across all chains is always <= to convert(legacy, super)- convert(super, legacy)                                                       | [ ]     | [ ]    |
 | 20  | SupERC20            | tokens sendERC20-ed on a source chain to a destination chain can be relayERC20-ed on it as long as the source chain is in the dependency set of the destination chain | [ ]     | [ ]    |
 | 21  | Liquidity Migration | sum of supertoken total supply across all chains is = to convert(legacy, super)- convert(super, legacy) when all cross-chain messages are processed                   | [ ]     | [ ]    |
