@@ -6,7 +6,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { MockL2ToL2Messenger } from "test/properties/kontrol/helpers/MockL2ToL2Messenger.sol";
 import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
-
 import "forge-std/Test.sol";
 
 // TODO: File to debug faster with foundry replicating scenarios where the proof failed, needs removal afterwards.
@@ -41,7 +40,7 @@ contract FoundryDebugTests is KontrolBase {
         vm.etch(address(MESSENGER), address(mockL2ToL2Messenger).code);
     }
 
-    /// @notice Check setup works as expected
+    /// Check setup works as expected
     function test_proveSetup() public {
         // Source token
         assert(remoteToken != address(0));
@@ -66,8 +65,8 @@ contract FoundryDebugTests is KontrolBase {
         assert(MESSENGER.crossDomainMessageSender() == address(420));
     }
 
-    /// @custom:property-id 8
-    /// @custom:property `sendERC20` with a value of zero does not modify accounting
+    // debug property-id 8
+    // `sendERC20` with a value of zero does not modify accounting
     function test_proveSendERC20ZeroCall() public {
         /* Preconditions */
         address _from = address(511347974759188522659820409854212399244223280810);
@@ -95,8 +94,8 @@ contract FoundryDebugTests is KontrolBase {
     // TIMESTAMP_CELL = 1073741825
     // VV1__to_114b9705 = 376793390874373408599387495934666716005045108769
 
-    /// @custom:property-id 9
-    /// @custom:property `relayERC20` with a value of zero does not modify accounting
+    // debug 9
+    // `relayERC20` with a value of zero does not modify accounting
     function test_proveRelayERC20ZeroCall() public {
         /* Preconditions */
         address _from = address(645326474426547203313410069153905908525362434350);
