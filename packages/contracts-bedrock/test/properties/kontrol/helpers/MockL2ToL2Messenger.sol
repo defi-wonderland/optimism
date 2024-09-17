@@ -3,10 +3,8 @@ pragma solidity 0.8.25;
 
 import "src/L2/L2ToL2CrossDomainMessenger.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
-import "forge-std/Test.sol";
 
-// TODO: Try to merge to a single mocked contract used by fuzzing and symbolic invariant tests - only if possible
-// and is a low priorty
+// Mock contract for the L2ToL2Messenger contract where cross chain atomicity is simulated
 contract MockL2ToL2Messenger {
     event CrossDomainMessageSender(address _sender);
 
