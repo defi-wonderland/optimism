@@ -1,4 +1,8 @@
+// This code was originally copied from:
+// https://github.com/runtimeverification/kontrol/blob/86451cbdaef8bed0370bf804fa4b545ec8b7a28a/docs/external-computation/test/kontrol/state-diff/record-state-diff/RecordStateDiff.sol
+// It has been slightly modified, including changes to the compiler version.
 // SPDX-License-Identifier: MIT
+
 pragma solidity 0.8.25;
 
 import { console2 as console } from "forge-std/console2.sol";

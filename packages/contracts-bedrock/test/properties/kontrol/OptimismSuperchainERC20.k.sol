@@ -67,7 +67,7 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
         vm.assume(notBuiltinAddress(_from));
         vm.assume(notBuiltinAddress(_to));
 
-        // Can't deal to unsupported cheatcode
+        // Mint the amount to the caller
         vm.prank(Predeploys.L2_STANDARD_BRIDGE);
         sourceToken.mint(_from, _initialBalance);
 
