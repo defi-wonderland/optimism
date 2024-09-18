@@ -1,40 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
+import { OptimismSuperchainERC20Factory } from "src/L2/OptimismSuperchainERC20Factory.sol";
 import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { MockL2ToL2Messenger } from "test/properties/kontrol/helpers/MockL2ToL2Messenger.sol";
-import { KontrolCheats } from "kontrol-cheatcodes/KontrolCheats.sol";
-import { RecordStateDiff } from "./helpers/RecordStateDiff.sol";
-import { Test } from "forge-std/Test.sol";
-import { OptimismSuperchainERC20Factory } from "src/L2/OptimismSuperchainERC20Factory.sol";
+import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
+import { OptimismSuperchainERC20Factory } from "src/L2/OptimismSuperchainERC20Factory.sol";
 
-contract KontrolBase is Test, KontrolCheats, RecordStateDiff {
-    uint256 internal constant CURRENT_CHAIN_ID = 1;
-    uint256 internal constant DESTINATION_CHAIN_ID = 2;
-    uint256 internal constant SOURCE = 3;
-    uint256 internal constant ZERO_AMOUNT = 0;
-    uint8 internal constant DECIMALS = 18;
-    MockL2ToL2Messenger internal constant MESSENGER = MockL2ToL2Messenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-
-    address internal remoteToken = address(bytes20(keccak256("remoteToken")));
-    string internal sourceName = "SourceSuperchainERC20";
-    string internal sourceSymbol = "SOURCE";
-    uint8 internal sourceDecimals = 18;
-    string internal destName = "DestSuperchainERC20";
-    string internal destSymbol = "DEST";
-
-    OptimismSuperchainERC20 internal sourceToken;
-    OptimismSuperchainERC20 internal destToken;
-    MockL2ToL2Messenger internal mockL2ToL2Messenger;
-    address public superchainERC20Impl;
-    address public beaconProxy;
-    address public beaconImpl;
-
-    // The second function to get the state diff saving the addresses with their names
-    function setUpNamed() public virtual recordStateDiff {
+/// NOTE: File to debug faster with foundry replicating scenarios where the proof failed, needs removal afterwards.
+contract FoundryDebugTests is KontrolBase {
+    function setUp() public {
         // Deploy the OptimismSuperchainERC20Beacon implementation
         beaconProxy = Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON;
         beaconImpl = Predeploys.predeployToCodeNamespace(beaconProxy);
@@ -74,17 +52,90 @@ contract KontrolBase is Test, KontrolCheats, RecordStateDiff {
         mockL2ToL2Messenger =
             new MockL2ToL2Messenger(address(sourceToken), address(destToken), DESTINATION_CHAIN_ID, SOURCE);
 
-        // Save the addresses with their names
-        save_address(address(factory), "superchainERC20Factory");
-        save_address(address(beaconImpl), "superchainERC20BeaconImpl");
-        save_address(address(beaconProxy), "BeaconProxy");
-        save_address(address(_superTokenImpl), "superchainERC20Impl");
-        save_address(address(sourceToken), "sourceToken");
-        save_address(address(destToken), "destToken");
-        save_address(address(mockL2ToL2Messenger), "mockL2ToL2Messenger");
+        vm.etch(address(MESSENGER), address(mockL2ToL2Messenger).code);
     }
 
-    function eqStrings(string memory a, string memory b) internal pure returns (bool) {
-        return keccak256(abi.encode(a)) == keccak256(abi.encode(b));
+    /// Check setup works as expected
+    function test_proveSetup() public {
+        // Source token
+        assert(remoteToken != address(0));
+        assert(sourceToken.remoteToken() == remoteToken);
+        assert(eqStrings(sourceToken.name(), sourceName));
+        assert(eqStrings(sourceToken.symbol(), sourceSymbol));
+        assert(sourceToken.decimals() == DECIMALS);
+        vm.prank(address(sourceToken));
+        assert(MESSENGER.crossDomainMessageSender() == address(sourceToken));
+
+        // Destination token
+        assert(destToken.remoteToken() == remoteToken);
+        assert(eqStrings(destToken.name(), destName));
+        assert(eqStrings(destToken.symbol(), destSymbol));
+        assert(destToken.decimals() == DECIMALS);
+        assert(MESSENGER.DESTINATION_CHAIN_ID() == DESTINATION_CHAIN_ID);
+        vm.prank(address(destToken));
+        assert(MESSENGER.crossDomainMessageSender() == address(destToken));
+
+        // Messenger
+        assert(MESSENGER.SOURCE() == SOURCE);
+        assert(MESSENGER.crossDomainMessageSender() == address(0));
+        // Check the setter works properly
+        MESSENGER.forTest_setCustomCrossDomainSender(address(420));
+        assert(MESSENGER.crossDomainMessageSender() == address(420));
     }
+
+    // debug property-id 8
+    // `sendERC20` with a value of zero does not modify accounting
+    function test_proveSendERC20ZeroCall() public {
+        /* Preconditions */
+        address _from = address(511347974759188522659820409854212399244223280810);
+        address _to = address(376793390874373408599387495934666716005045108769); // 0x7Fa9385Be102aC3eac297483DD6233d62B3e1497
+        uint256 _chainId = 0;
+
+        uint256 _totalSupplyBefore = sourceToken.totalSupply();
+        uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
+        uint256 _toBalanceBefore = sourceToken.balanceOf(_to);
+
+        vm.startPrank(_from);
+        /* Action */
+        sourceToken.sendERC20(_to, ZERO_AMOUNT, _chainId);
+
+        /* Postcondition */
+        assert(sourceToken.totalSupply() == _totalSupplyBefore);
+        assert(sourceToken.balanceOf(_from) == _fromBalanceBefore);
+        assert(sourceToken.balanceOf(_to) == _toBalanceBefore);
+    }
+    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // NUMBER_CELL = 16777217
+    // VV2__chainId_114b9705 = 0
+    // VV0__from_114b9705 = 511347974759188522659820409854212399244223280810
+    // TIMESTAMP_CELL = 1073741825
+    // VV1__to_114b9705 = 376793390874373408599387495934666716005045108769
+
+    // debug 9
+    // `relayERC20` with a value of zero does not modify accounting
+    function test_proveRelayERC20ZeroCall() public {
+        /* Preconditions */
+        address _from = address(645326474426547203313410069153905908525362434350);
+        address _to = address(728815563385977040452943777879061427756277306519);
+
+        uint256 _totalSupplyBefore = sourceToken.totalSupply();
+        uint256 _fromBalanceBefore = sourceToken.balanceOf(_from);
+        uint256 _toBalanceBefore = sourceToken.balanceOf(_to);
+
+        vm.prank(address(MESSENGER));
+        /* Action */
+        sourceToken.relayERC20(_from, _to, ZERO_AMOUNT);
+
+        /* Postconditions */
+        assert(sourceToken.totalSupply() == _totalSupplyBefore);
+        assert(sourceToken.balanceOf(_from) == _fromBalanceBefore);
+        assert(sourceToken.balanceOf(_to) == _toBalanceBefore);
+    }
+    // VV0__from_114b9705 = 645326474426547203313410069153905908525362434350
+    // ORIGIN_ID = 645326474426547203313410069153905908525362434350
+    // CALLER_ID = 645326474426547203313410069153905908525362434350
+    // NUMBER_CELL = 16777217
+    // VV1__to_114b9705 = 728815563385977040452943777879061427756277306519
+    // TIMESTAMP_CELL = 1073741825
 }

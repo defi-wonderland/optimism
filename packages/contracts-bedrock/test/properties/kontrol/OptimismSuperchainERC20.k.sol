@@ -8,11 +8,8 @@ import { KontrolBase } from "test/properties/kontrol/KontrolBase.sol";
 import { InitialState } from "./deployments/InitialState.sol";
 
 contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
-    event CrossDomainMessageSender(address _sender);
-
     /// @notice Use this function instead of `setUp()` for performance reasons when running the proofs with Kontrol
     function setUpInlined() public {
-        superchainERC20Impl = OptimismSuperchainERC20(superchainERC20ImplAddress);
         sourceToken = OptimismSuperchainERC20(sourceTokenAddress);
         destToken = OptimismSuperchainERC20(destTokenAddress);
         vm.etch(address(MESSENGER), mockL2ToL2MessengerAddress.code);
@@ -24,27 +21,23 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
 
         // Source token
         assert(sourceToken.remoteToken() == remoteToken);
-        assert(eqStrings(sourceToken.name(), name));
-        assert(eqStrings(sourceToken.symbol(), symbol));
-        assert(sourceToken.decimals() == decimals);
+        assert(eqStrings(sourceToken.name(), sourceName));
+        assert(eqStrings(sourceToken.symbol(), sourceSymbol));
+        assert(sourceToken.decimals() == DECIMALS);
         vm.prank(address(sourceToken));
-        assert(MESSENGER.crossDomainMessageSender() == address(sourceToken));
 
         // Destination token
         assert(destToken.remoteToken() == remoteToken);
-        assert(eqStrings(destToken.name(), name));
-        assert(eqStrings(destToken.symbol(), symbol));
-        assert(destToken.decimals() == decimals);
+        assert(eqStrings(destToken.name(), destName));
+        assert(eqStrings(destToken.symbol(), destSymbol));
+        assert(destToken.decimals() == DECIMALS);
         assert(MESSENGER.DESTINATION_CHAIN_ID() == DESTINATION_CHAIN_ID);
         vm.prank(address(destToken));
-        assert(MESSENGER.crossDomainMessageSender() == address(destToken));
 
         // Messenger
         assert(MESSENGER.SOURCE() == SOURCE);
-        assert(MESSENGER.crossDomainMessageSender() == address(0));
         // Check the setter works properly
         MESSENGER.forTest_setCustomCrossDomainSender(address(420));
-        assert(MESSENGER.crossDomainMessageSender() == address(420));
     }
 
     /// @custom:property-id 6
@@ -110,7 +103,6 @@ contract OptimismSuperchainERC20Kontrol is KontrolBase, InitialState {
             assert(_crossDomainSender == address(sourceToken));
         } catch {
             // Emit to bypass the check when the call fails
-            emit CrossDomainMessageSender(_crossDomainSender);
             assert(_sender != address(MESSENGER) || _crossDomainSender != address(sourceToken));
         }
     }

@@ -14,10 +14,15 @@ contract InitialState is InitialStateCode {
     address private constant VM_ADDRESS = address(uint160(uint256(keccak256("hevm cheat code"))));
     Vm private constant vm = Vm(VM_ADDRESS);
 
-    address internal constant sourceTokenAddress = 0x2e234DAe75C793f67A35089C9d99245E1C58470b;
+    address internal constant superchainERC20FactoryAddress = 0x2e234DAe75C793f67A35089C9d99245E1C58470b;
+    address internal constant sourceTokenAddress = 0x2eeF3852a510d40766A6D3E86c5d177437905d60;
+    address internal constant BeaconProxyAddress = 0x4200000000000000000000000000000000000027;
     address internal constant superchainERC20ImplAddress = 0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f;
-    address internal constant mockL2ToL2MessengerAddress = 0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9;
-    address internal constant destTokenAddress = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;
+    address internal constant destTokenAddress = 0x96d88E31c311dC24b51406ee011265325ad7AB70;
+    address internal constant superchainERC20BeaconImplAddress = 0xC0d3C0D3C0d3c0d3c0d3C0d3c0D3c0d3c0d30027;
+    address internal constant mockL2ToL2MessengerAddress = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a;
+    address internal constant acc7Address = 0xbC5E70C27710D4bBF83CB0AD15b91185b768AcAd;
+    address internal constant acc8Address = 0x92A4f909bd57F7Fe94B7d9a35A6A021046a95F52;
 
     function recreateState() public {
         bytes32 slot;
@@ -26,9 +31,11 @@ contract InitialState is InitialStateCode {
         slot = hex"f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00";
         value = hex"000000000000000000000000000000000000000000000000ffffffffffffffff";
         vm.store(superchainERC20ImplAddress, slot, value);
+        vm.etch(superchainERC20FactoryAddress, superchainERC20FactoryCode);
+        vm.etch(acc7Address, acc7Code);
         vm.etch(sourceTokenAddress, sourceTokenCode);
-        slot = hex"360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
-        value = hex"0000000000000000000000005615deb798bb3e4dfa0139dfa1b3d433cc23b72f";
+        slot = hex"a3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50";
+        value = hex"0000000000000000000000004200000000000000000000000000000000000027";
         vm.store(sourceTokenAddress, slot, value);
         slot = hex"f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00";
         value = hex"0000000000000000000000000000000000000000000000000000000000000001";
@@ -40,10 +47,10 @@ contract InitialState is InitialStateCode {
         value = hex"000000000000000000000000237a66474b7b934b22574359500212977b656d9f";
         vm.store(sourceTokenAddress, slot, value);
         slot = hex"07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb01";
-        value = hex"5375706572636861696e4552433230000000000000000000000000000000001e";
+        value = hex"536f757263655375706572636861696e4552433230000000000000000000002a";
         vm.store(sourceTokenAddress, slot, value);
         slot = hex"07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb02";
-        value = hex"535550455200000000000000000000000000000000000000000000000000000a";
+        value = hex"534f55524345000000000000000000000000000000000000000000000000000c";
         vm.store(sourceTokenAddress, slot, value);
         slot = hex"07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb03";
         value = hex"0000000000000000000000000000000000000000000000000000000000000012";
@@ -51,9 +58,13 @@ contract InitialState is InitialStateCode {
         slot = hex"f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00";
         value = hex"0000000000000000000000000000000000000000000000000000000000000001";
         vm.store(sourceTokenAddress, slot, value);
+        slot = hex"2631ccd9093732dbe9984f4ad2e08f3c02397914f43a50ad18bee7150949a45d";
+        value = hex"000000000000000000000000237a66474b7b934b22574359500212977b656d9f";
+        vm.store(superchainERC20FactoryAddress, slot, value);
+        vm.etch(acc8Address, acc8Code);
         vm.etch(destTokenAddress, destTokenCode);
-        slot = hex"360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
-        value = hex"0000000000000000000000005615deb798bb3e4dfa0139dfa1b3d433cc23b72f";
+        slot = hex"a3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50";
+        value = hex"0000000000000000000000004200000000000000000000000000000000000027";
         vm.store(destTokenAddress, slot, value);
         slot = hex"f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00";
         value = hex"0000000000000000000000000000000000000000000000000000000000000001";
@@ -65,10 +76,10 @@ contract InitialState is InitialStateCode {
         value = hex"000000000000000000000000237a66474b7b934b22574359500212977b656d9f";
         vm.store(destTokenAddress, slot, value);
         slot = hex"07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb01";
-        value = hex"5375706572636861696e4552433230000000000000000000000000000000001e";
+        value = hex"446573745375706572636861696e455243323000000000000000000000000026";
         vm.store(destTokenAddress, slot, value);
         slot = hex"07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb02";
-        value = hex"535550455200000000000000000000000000000000000000000000000000000a";
+        value = hex"4445535400000000000000000000000000000000000000000000000000000008";
         vm.store(destTokenAddress, slot, value);
         slot = hex"07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb03";
         value = hex"0000000000000000000000000000000000000000000000000000000000000012";
@@ -76,15 +87,23 @@ contract InitialState is InitialStateCode {
         slot = hex"f0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00";
         value = hex"0000000000000000000000000000000000000000000000000000000000000001";
         vm.store(destTokenAddress, slot, value);
+        slot = hex"9a89804a8192371bb1adaf7f17a18f23055ffcfb7effdc1ff1ee6872a08e401b";
+        value = hex"000000000000000000000000237a66474b7b934b22574359500212977b656d9f";
+        vm.store(superchainERC20FactoryAddress, slot, value);
         vm.etch(mockL2ToL2MessengerAddress, mockL2ToL2MessengerCode);
     }
 
     function _notExternalAddress(address user) public pure {
         vm.assume(user != FOUNDRY_TEST_ADDRESS);
         vm.assume(user != VM_ADDRESS);
+        vm.assume(user != superchainERC20FactoryAddress);
         vm.assume(user != sourceTokenAddress);
+        vm.assume(user != BeaconProxyAddress);
         vm.assume(user != superchainERC20ImplAddress);
-        vm.assume(user != mockL2ToL2MessengerAddress);
         vm.assume(user != destTokenAddress);
+        vm.assume(user != superchainERC20BeaconImplAddress);
+        vm.assume(user != mockL2ToL2MessengerAddress);
+        vm.assume(user != acc7Address);
+        vm.assume(user != acc8Address);
     }
 }
