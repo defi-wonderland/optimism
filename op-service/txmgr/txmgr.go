@@ -46,6 +46,12 @@ var (
 	ErrClosed       = errors.New("transaction manager is closed")
 )
 
+type SendResponse struct {
+	Receipt *types.Receipt
+	Nonce   uint64
+	Err     error
+}
+
 // TxManager is an interface that allows callers to reliably publish txs,
 // bumping the gas price if needed, and obtain the receipt of the resulting tx.
 //
@@ -62,6 +68,14 @@ type TxManager interface {
 	// is ErrAlreadyReserved, which indicates an incompatible transaction may be stuck in the
 	// mempool and is in need of replacement or cancellation.
 	Send(ctx context.Context, candidate TxCandidate) (*types.Receipt, error)
+
+	// SendAsync is used to create & send a transaction asynchronously. It has similar internal
+	// semantics to Send, however it returns a channel that will receive the result of the
+	// send operation once it completes. Transactions crafted synchronously - that is, nonce
+	// management and gas estimation happen prior to the method returning. This allows callers
+	// that rely on predictable nonces to send multiple transactions in parallel while preserving
+	// the order of nonce increments.
+	SendAsync(ctx context.Context, candidate TxCandidate, ch chan SendResponse)
 
 	// From returns the sending address associated with the instance of the transaction manager.
 	// It is static for a single instance of a TxManager.
@@ -218,28 +232,56 @@ type TxCandidate struct {
 //
 // NOTE: Send can be called concurrently, the nonce will be managed internally.
 func (m *SimpleTxManager) Send(ctx context.Context, candidate TxCandidate) (*types.Receipt, error) {
-	// refuse new requests if the tx manager is closed
-	if m.closed.Load() {
-		return nil, ErrClosed
-	}
-	m.metr.RecordPendingTx(m.pending.Add(1))
-	defer func() {
-		m.metr.RecordPendingTx(m.pending.Add(-1))
-	}()
-	receipt, err := m.send(ctx, candidate)
-	if err != nil {
-		m.resetNonce()
-	}
-	return receipt, err
+	_, r, err := m.send(ctx, candidate)
+	return r, err
 }
 
-// send performs the actual transaction creation and sending.
-func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) (*types.Receipt, error) {
-	if m.cfg.TxSendTimeout != 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, m.cfg.TxSendTimeout)
-		defer cancel()
+func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) (*types.Transaction, *types.Receipt, error) {
+	// refuse new requests if the tx manager is closed
+	if m.closed.Load() {
+		return nil, nil, ErrClosed
 	}
+
+	m.metr.RecordPendingTx(m.pending.Add(1))
+	defer m.metr.RecordPendingTx(m.pending.Add(-1))
+
+	var cancel context.CancelFunc
+	if m.cfg.TxSendTimeout == 0 {
+		ctx, cancel = context.WithCancel(ctx)
+	} else {
+		ctx, cancel = context.WithTimeout(ctx, m.cfg.TxSendTimeout)
+	}
+	defer cancel()
+
+	tx, err := m.prepare(ctx, candidate)
+	if err != nil {
+		m.resetNonce()
+		return tx, nil, err
+	}
+	receipt, err := m.sendTx(ctx, tx)
+	if err != nil {
+		m.resetNonce()
+		return nil, nil, err
+	}
+	return tx, receipt, err
+}
+
+func (m *SimpleTxManager) SendAsync(ctx context.Context, candidate TxCandidate, ch chan SendResponse) {
+	go func() {
+		tx, receipt, err := m.send(ctx, candidate)
+		r := SendResponse{
+			Receipt: receipt,
+			Err:     err,
+		}
+		if tx != nil {
+			r.Nonce = tx.Nonce()
+		}
+		ch <- r
+	}()
+}
+
+// prepare prepares the transaction for sending.
+func (m *SimpleTxManager) prepare(ctx context.Context, candidate TxCandidate) (*types.Transaction, error) {
 	tx, err := retry.Do(ctx, 30, retry.Fixed(2*time.Second), func() (*types.Transaction, error) {
 		if m.closed.Load() {
 			return nil, ErrClosed
@@ -253,7 +295,7 @@ func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) (*typ
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the tx: %w", err)
 	}
-	return m.sendTx(ctx, tx)
+	return tx, nil
 }
 
 // craftTx creates the signed transaction
