@@ -351,6 +351,22 @@ contract OptimismSuperchainERC20Test is Test {
         assertEq(superchainERC20.balanceOf(_to), _toBalanceBefore + _amount);
     }
 
+    function testFuzz_allowance_permit2_max(address _owner) external view {
+        assertEq(superchainERC20.allowance(_owner, superchainERC20.PERMIT2()), type(uint256).max);
+    }
+
+    function testFuzz_permit2_transferFrom(address _owner, address _receiver, uint256 _amount) external {
+        vm.assume(_owner != _receiver);
+        vm.assume(_owner != ZERO_ADDRESS);
+        vm.prank(BRIDGE);
+        superchainERC20.mint(_owner, _amount);
+
+        assertEq(superchainERC20.balanceOf(_receiver), 0);
+        vm.prank(superchainERC20.PERMIT2());
+        superchainERC20.transferFrom(_owner, _receiver, _amount);
+        assertEq(superchainERC20.balanceOf(_receiver), _amount);
+    }
+
     /// @notice Tests the `decimals` function always returns the correct value.
     function testFuzz_decimals_succeeds(uint8 _decimals) public {
         OptimismSuperchainERC20 _newSuperchainERC20 = _deploySuperchainERC20Proxy(REMOTE_TOKEN, NAME, SYMBOL, _decimals);

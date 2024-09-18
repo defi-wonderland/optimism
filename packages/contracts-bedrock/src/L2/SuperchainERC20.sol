@@ -97,7 +97,7 @@ abstract contract SuperchainERC20 is ISuperchainERC20Extensions, ISuperchainERC2
     /// @return result Allowance for the spender.
     function allowance(address owner, address spender) public view virtual override returns (uint256 result) {
         if (spender == PERMIT2()) {
-            result = type(uint256).max;
+            return type(uint256).max;
         }
         result = super.allowance(owner, spender);
     }
