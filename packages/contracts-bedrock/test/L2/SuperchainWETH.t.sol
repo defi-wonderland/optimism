@@ -351,4 +351,28 @@ contract SuperchainWETH_Test is CommonTest {
         assertEq(address(superchainWeth).balance, 0);
         assertEq(superchainWeth.balanceOf(bob), 0);
     }
+
+    /// @notice Tests that the Permit2 contract succesfully transfers tokens from
+    ///         a user without requiring a previous approval transaction/
+    /// @param _owner    The owner of the WETH.
+    /// @param _receiver The address that will receive the WETH.
+    /// @param _amount   The amount of WETH to transfer.
+    function testFuzz_permit2_transferFrom(address _owner, address _receiver, uint256 _amount) external {
+        // Assume
+        _amount = bound(_amount, 0, type(uint248).max - 1);
+        vm.assume(_owner != _receiver);
+
+        // Arrange
+        vm.deal(_owner, _amount);
+        vm.prank(_owner);
+        superchainWeth.deposit{ value: _amount }();
+
+        // Sanity-check Assert
+        assertEq(superchainWeth.balanceOf(_receiver), 0);
+
+        // Act
+        vm.prank(superchainWeth.PERMIT2());
+        superchainWeth.transferFrom(_owner, _receiver, _amount);
+        assertEq(superchainWeth.balanceOf(_receiver), _amount);
+    }
 }

@@ -81,7 +81,7 @@ contract WETH98 is IWETH {
     }
 
     /// @inheritdoc IWETH
-    function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
+    function transferFrom(address src, address dst, uint256 wad) public virtual returns (bool) {
         require(balanceOf[src] >= wad);
 
         if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {

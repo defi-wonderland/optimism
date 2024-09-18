@@ -5,6 +5,7 @@ pragma solidity 0.8.15;
 import { WETH98 } from "src/universal/WETH98.sol";
 import { L1Block } from "src/L2/L1Block.sol";
 import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Libraries
 import { Unauthorized, NotCustomGasToken } from "src/libraries/errors/CommonErrors.sol";
@@ -16,13 +17,18 @@ import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomai
 import { ISuperchainERC20Extensions } from "src/L2/interfaces/ISuperchainERC20.sol";
 
 /// @title SuperchainWETH
-/// @notice SuperchainWETH is a version of WETH that can be freely transfrered between chains
+/// @notice SuperchainWETH is a version of WETH that can be freely transferred between chains
 ///         within the superchain. SuperchainWETH can be converted into native ETH on chains that
 ///         do not use a custom gas token.
 contract SuperchainWETH is WETH98, ISuperchainERC20Extensions, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.3
-    string public constant version = "1.0.0-beta.3";
+    /// @custom:semver 1.0.0-beta.4
+    string public constant version = "1.0.0-beta.4";
+
+    /// @inheritdoc ISuperchainERC20Extensions
+    function PERMIT2() public pure returns (address) {
+        return Preinstalls.Permit2;
+    }
 
     /// @inheritdoc WETH98
     function deposit() public payable override {
@@ -77,6 +83,25 @@ contract SuperchainWETH is WETH98, ISuperchainERC20Extensions, ISemver {
 
         // Emit event.
         emit RelayERC20(from, dst, wad, source);
+    }
+
+    /// @notice Transfers the given amount of WETH from the given address to the given address.
+    ///         If the msg.sender is the permit2 address, act as if allowance was infinite.
+    /// @param src The address to transfer the WETH from.
+    /// @param dst The address to transfer the WETH to.
+    /// @param wad The amount of WETH to transfer.
+    /// @return True if the transfer was successful.
+    function transferFrom(address src, address dst, uint256 wad) public override returns (bool) {
+        if (msg.sender == PERMIT2()) {
+            balanceOf[src] -= wad;
+            balanceOf[dst] += wad;
+
+            emit Transfer(src, dst, wad);
+
+            return true;
+        }
+
+        return super.transferFrom(src, dst, wad);
     }
 
     /// @notice Mints WETH to an address.

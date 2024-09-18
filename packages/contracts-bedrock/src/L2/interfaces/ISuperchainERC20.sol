@@ -23,6 +23,12 @@ interface ISuperchainERC20Extensions {
     /// @param source   Chain ID of the source chain.
     event RelayERC20(address indexed from, address indexed to, uint256 amount, uint256 source);
 
+    /// @notice Getter function for the permit2 address. It deterministically deployed
+    ///         so it will always be at the same address. It is also included as a preinstall,
+    ///         so it exists in the genesis state of chains.
+    /// @return Address of permit2 on this network.
+    function PERMIT2() external pure returns (address);
+
     /// @notice Sends tokens to some target address on another chain.
     /// @param _to      Address to send tokens to.
     /// @param _amount  Amount of tokens to send.

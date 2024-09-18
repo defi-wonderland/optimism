@@ -203,6 +203,20 @@ contract SuperchainERC20Test is Test {
         assertEq(superchainERC20.balanceOf(_to), _toBalanceBefore + _amount);
     }
 
+    function testFuzz_allowance_permit2_max(address _owner) external view {
+        assertEq(superchainERC20.allowance(_owner, superchainERC20.PERMIT2()), type(uint256).max);
+    }
+
+    function testFuzz_permit2_transferFrom(address _owner, address _receiver, uint256 _amount) external {
+        vm.assume(_owner != _receiver);
+        superchainERC20.mint(_owner, _amount);
+
+        assertEq(superchainERC20.balanceOf(_receiver), 0);
+        vm.prank(superchainERC20.PERMIT2());
+        superchainERC20.transferFrom(_owner, _receiver, _amount);
+        assertEq(superchainERC20.balanceOf(_receiver), _amount);
+    }
+
     /// @notice Tests the `name` function always returns the correct value.
     function testFuzz_name_succeeds(string memory _name) public {
         SuperchainERC20 _newSuperchainERC20 = new SuperchainERC20Mock(_name, SYMBOL, DECIMALS);
