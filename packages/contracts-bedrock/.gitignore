@@ -6,6 +6,7 @@ broadcast
 kout-deployment
 kout-proofs
 test/kontrol/logs
+out/
 
 # Metrics
 coverage.out
@@ -40,3 +41,6 @@ deploy-config/devnetL1.json
 
 # Getting Started guide deploy config
 deploy-config/getting-started.json
+
+# Supererc20 kontrol
+out-kontrol-properties/

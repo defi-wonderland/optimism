@@ -97,3 +97,15 @@ src = 'test/kontrol/proofs'
 out = 'kout-proofs'
 test = 'test/kontrol/proofs'
 script = 'test/kontrol/proofs'
+
+[profile.kontrol-properties]
+src = "test/properties/kontrol"
+test = "test/properties/kontrol"
+script = "test/properties/kontrol"
+out = 'out-kontrol-properties'
+# Make sure to export the variables $STATE_DIFF_DIR and $STATE_DIFF_NAME in your shell
+fs_permissions = [
+    { access = 'read', path = './supererc20-state-diff' },
+    { access = 'read-write', path = './supererc20-state-diff/StateDiff.json' },
+    { access = 'read-write', path = './supererc20-state-diff/AddressNames.json' }
+]
