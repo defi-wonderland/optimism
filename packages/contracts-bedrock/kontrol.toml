@@ -42,7 +42,6 @@ use-hex-encoding = false
 [view-kcfg.default]
 foundry-project-root = '.'
 use-hex-encoding = false
-<<<<<<< HEAD
 
 ## Convert profile
 
@@ -68,5 +67,3 @@ break-on-cheatcodes = false
 run-constructor = true
 symbolic-immutables = false
 schedule = 'CANCUN'
-=======
->>>>>>> feat/symbolic-testing
