@@ -66,7 +66,7 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
     }
 
     /// @notice Check the setup works as expected
-    function test_convertSetup() public {
+    function prove_convertSetup() public {
         setUpInlined();
 
         // L2 Standard Bridge Interop checks
@@ -91,7 +91,7 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
 
     /// @custom:property-id 3
     /// @custom:property convert() only allows migrations between tokens representing the same remote asset
-    function test_convertOnlyOnSameRemoteAsset(
+    function prove_convertOnlyOnSameRemoteAsset(
         bool _legacyIsFrom,
         address _legacyRemoteAddress,
         address _superRemoteAddress,
@@ -154,7 +154,7 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
 
     /// @custom:property-id 4
     /// @custom:property convert() only allows migrations from tokens with the same decimals
-    function test_convertOnlyTokenWithSameDecimals(
+    function prove_convertOnlyTokenWithSameDecimals(
         bool _fromIsLegacy,
         uint8 _decimalsLegacy,
         uint8 _decimalsSuper,
@@ -222,7 +222,7 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
 
     /// @custom:property-id 5
     /// @custom:property convert() burns the same amount of legacy token that it mints of supertoken, and viceversa
-    function test_mintAndBurnSameAmount(address _sender, bool _legacyIsFrom, uint256 _amount) public {
+    function prove_mintAndBurnSameAmount(address _sender, bool _legacyIsFrom, uint256 _amount) public {
         setUpInlined();
 
         /* Preconditions */
@@ -267,7 +267,7 @@ contract L2StandardBridgeInteropKontrol is Test, KontrolCheats {
     /// @custom:property-id 18
     /// @custom:property Only calls to convert(super, legacy) can decrease a supertoken’s total supply and increase
     /// legacy's one across chains
-    function test_convertUpdatesTotalSupply(bool _legacyIsFrom, address _sender, uint256 _amount) public {
+    function prove_convertUpdatesTotalSupply(bool _legacyIsFrom, address _sender, uint256 _amount) public {
         setUpInlined();
 
         /* Preconditions */
