@@ -5,10 +5,8 @@ import { IOptimismSuperchainERC20Extension } from "src/L2/interfaces/IOptimismSu
 import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { ERC20 } from "@solady/tokens/ERC20.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
-import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable-v5/token/ERC20/ERC20Upgradeable.sol";
 
 /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the StandardBridge.
 error OnlyBridge();
@@ -21,13 +19,7 @@ error OnlyBridge();
 ///         token, turning it fungible and interoperable across the superchain. Likewise, it also enables the inverse
 ///         conversion path.
 ///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
-contract OptimismSuperchainERC20 is
-    IOptimismSuperchainERC20Extension,
-    SuperchainERC20,
-    ISemver,
-    Initializable,
-    ERC165
-{
+contract OptimismSuperchainERC20 is ERC20Upgradeable, ERC165, IOptimismSuperchainERC20Extension, ISemver {
     /// @notice Address of the StandardBridge Predeploy.
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
 

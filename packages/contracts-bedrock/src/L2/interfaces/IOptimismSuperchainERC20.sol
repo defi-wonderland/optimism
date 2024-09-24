@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
-// Interfaces
-import { IERC20Solady } from "src/vendor/interfaces/IERC20Solady.sol";
-import { ISuperchainERC20Extensions, ISuperchainERC20Errors } from "src/L2/interfaces/ISuperchainERC20.sol";
+/// @title IOptimismSuperchainERC20Errors
+/// @notice Interface containing the errors added in the OptimismSuperchainERC20 implementation.
+interface IOptimismSuperchainERC20Errors {
+    /// @notice Thrown when attempting to perform an operation and the account is the zero address.
+    error ZeroAddress();
+}
 
 /// @title IOptimismSuperchainERC20Extension
 /// @notice This interface is available on the OptimismSuperchainERC20 contract.
 ///         We declare it as a separate interface so that it can be used in
 ///         custom implementations of SuperchainERC20.
-interface IOptimismSuperchainERC20Extension is ISuperchainERC20Extensions, ISuperchainERC20Errors {
+interface IOptimismSuperchainERC20Extension is IOptimismSuperchainERC20Errors {
     /// @notice Emitted whenever tokens are minted for an account.
     /// @param account Address of the account tokens are being minted for.
     /// @param amount  Amount of tokens minted.
@@ -33,7 +36,3 @@ interface IOptimismSuperchainERC20Extension is ISuperchainERC20Extensions, ISupe
     /// @notice Returns the address of the corresponding version of this token on the remote chain.
     function remoteToken() external view returns (address);
 }
-
-/// @title IOptimismSuperchainERC20
-/// @notice Combines Solady's ERC20 interface with the OptimismSuperchainERC20Extension interface.
-interface IOptimismSuperchainERC20 is IERC20Solady, IOptimismSuperchainERC20Extension { }
