@@ -66,7 +66,7 @@ contract CrossL2Inbox is ICrossL2Inbox, ISemver, TransientReentrancyAware {
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.7
-    string public constant version = "1.0.0-beta.7";
+    string public constant version = "1.0.0-beta.8";
 
     /// @notice Emitted when a cross chain message is being executed.
     /// @param msgHash Hash of message payload being executed.

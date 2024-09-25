@@ -25,7 +25,7 @@ contract OptimismPortalInterop is OptimismPortal2 {
 
     /// @custom:semver +interop
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop");
+        return string.concat(super.version(), "+interop-beta.1");
     }
 
     /// @notice Sets static configuration options for the L2 system.
