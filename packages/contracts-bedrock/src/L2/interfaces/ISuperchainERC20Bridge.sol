@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { ISemver } from "src/universal/interfaces/ISemver.sol";
+
 /// @title ISuperchainERC20Bridge
 /// @notice Interface for the SuperchainERC20Bridge contract.
-interface ISuperchainERC20Bridge {
+interface ISuperchainERC20Bridge is ISemver {
     /// @notice Thrown when attempting to relay a message and the function caller (msg.sender) is not
     /// L2ToL2CrossDomainMessenger.
     error CallerNotL2ToL2CrossDomainMessenger();
