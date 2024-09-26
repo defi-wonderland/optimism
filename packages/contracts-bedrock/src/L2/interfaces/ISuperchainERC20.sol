@@ -11,8 +11,7 @@ interface ISuperchainERC20Errors {
     /// L2ToL2CrossDomainMessenger.
     error CallerNotL2ToL2CrossDomainMessenger();
 
-    /// @notice Thrown when attempting to relay a message and the cross domain message sender is not this
-    /// SuperchainERC20.
+    /// @notice Thrown when attempting to relay a message and the cross domain message sender is not `address(this)`
     error InvalidCrossDomainSender();
 
     /// @notice Thrown when attempting to perform an operation and the account is the zero address.
