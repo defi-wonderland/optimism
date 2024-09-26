@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// Interfaces
+import { IERC20Solady } from "src/vendor/interfaces/IERC20Solady.sol";
+
 /// @title ISuperchainERC20Errors
 /// @notice Interface containing the errors added in the SuperchainERC20 implementation.
 interface ISuperchainERC20Errors {
@@ -47,3 +50,7 @@ interface ISuperchainERC20Extensions is ISuperchainERC20Errors {
     /// @param _amount  Amount of tokens to relay.
     function relayERC20(address _from, address _to, uint256 _amount) external;
 }
+
+/// @title ISuperchainERC20
+/// @notice Combines Solady's ERC20 interface with the SuperchainERC20Extensions interface.
+interface ISuperchainERC20 is IERC20Solady, ISuperchainERC20Extensions { }

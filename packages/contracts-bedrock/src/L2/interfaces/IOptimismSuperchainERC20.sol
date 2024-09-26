@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.0;
+
+// Interfaces
+import { IERC20Solady } from "src/vendor/interfaces/IERC20Solady.sol";
 
 /// @title IOptimismSuperchainERC20Errors
 /// @notice Interface containing the errors added in the OptimismSuperchainERC20 implementation.
 interface IOptimismSuperchainERC20Errors {
     /// @notice Thrown when attempting to perform an operation and the account is the zero address.
     error ZeroAddress();
+
+    /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the StandardBridge or the
+    /// SuperchainERC20Bridge.
+    error OnlyAuthorizedBridge();
 }
 
 /// @title IOptimismSuperchainERC20Extension
@@ -36,3 +43,7 @@ interface IOptimismSuperchainERC20Extension is IOptimismSuperchainERC20Errors {
     /// @notice Returns the address of the corresponding version of this token on the remote chain.
     function remoteToken() external view returns (address);
 }
+
+/// @title IOptimismSuperchainERC20
+/// @notice Combines Solady's ERC20 interface with the OptimismSuperchainERC20Extension interface.
+interface IOptimismSuperchainERC20 is IERC20Solady, IOptimismSuperchainERC20Extension { }
