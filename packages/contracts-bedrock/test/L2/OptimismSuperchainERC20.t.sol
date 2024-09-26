@@ -85,8 +85,8 @@ contract OptimismSuperchainERC20Test is Test {
 
     /// @notice Helper function to fuzz the bridge address to performs the calls with.
     /// @dev Needed to cover both possible branches of the authorized callers on `mint` and `burn` functions.
-    function _getBridge(bool _returnL2StandardBridge) internal pure returns (address _bridge) {
-        _bridge = _returnL2StandardBridge ? L2_BRIDGE : SUPERCHAIN_ERC20_BRIDGE;
+    function _getBridge(bool _returnL2StandardBridge) internal pure returns (address bridge) {
+        bridge = _returnL2StandardBridge ? L2_BRIDGE : SUPERCHAIN_ERC20_BRIDGE;
     }
 
     /// @notice Helper function to setup a mock and expect a call to it.
@@ -139,8 +139,8 @@ contract OptimismSuperchainERC20Test is Test {
         vm.expectRevert(IOptimismSuperchainERC20Errors.ZeroAddress.selector);
 
         // Call the `mint` function with the zero address
-        address _bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(_bridge);
+        address bridge = _getBridge(_returnL2StandardBridge);
+        vm.prank(bridge);
         superchainERC20.mint({ _to: ZERO_ADDRESS, _amount: _amount });
     }
 
@@ -162,8 +162,8 @@ contract OptimismSuperchainERC20Test is Test {
         emit IOptimismSuperchainERC20Extension.Mint(_to, _amount);
 
         // Call the `mint` function with the bridge caller
-        address _bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(_bridge);
+        address bridge = _getBridge(_returnL2StandardBridge);
+        vm.prank(bridge);
         superchainERC20.mint(_to, _amount);
 
         // Check the total supply and balance of `_to` after the mint were updated correctly
@@ -191,8 +191,8 @@ contract OptimismSuperchainERC20Test is Test {
         vm.expectRevert(IOptimismSuperchainERC20Errors.ZeroAddress.selector);
 
         // Call the `burn` function with the zero address
-        address _bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(_bridge);
+        address bridge = _getBridge(_returnL2StandardBridge);
+        vm.prank(bridge);
         superchainERC20.burn({ _from: ZERO_ADDRESS, _amount: _amount });
     }
 
@@ -202,8 +202,8 @@ contract OptimismSuperchainERC20Test is Test {
         vm.assume(_from != ZERO_ADDRESS);
 
         // Mint some tokens to `_from` so then they can be burned
-        address _bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(_bridge);
+        address bridge = _getBridge(_returnL2StandardBridge);
+        vm.prank(bridge);
         superchainERC20.mint(_from, _amount);
 
         // Get the total supply and balance of `_from` before the burn to compare later on the assertions
@@ -219,8 +219,8 @@ contract OptimismSuperchainERC20Test is Test {
         emit IOptimismSuperchainERC20Extension.Burn(_from, _amount);
 
         // Call the `burn` function with the bridge caller
-        _bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(_bridge);
+        bridge = _getBridge(_returnL2StandardBridge);
+        vm.prank(bridge);
         superchainERC20.burn(_from, _amount);
 
         // Check the total supply and balance of `_from` after the burn were updated correctly
