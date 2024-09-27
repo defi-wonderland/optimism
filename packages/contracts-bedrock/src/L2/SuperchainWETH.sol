@@ -5,7 +5,6 @@ pragma solidity 0.8.15;
 import { WETH98 } from "src/universal/WETH98.sol";
 
 // Libraries
-import { NotCustomGasToken } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
