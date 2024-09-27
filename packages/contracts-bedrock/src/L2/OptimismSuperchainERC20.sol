@@ -52,8 +52,8 @@ contract OptimismSuperchainERC20 is ERC20, Initializable, ERC165, IOptimismSuper
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.4
-    string public constant version = "1.0.0-beta.4";
+    /// @custom:semver 1.0.0-beta.5
+    string public constant version = "1.0.0-beta.5";
 
     /// @notice Constructs the OptimismSuperchainERC20 contract.
     constructor() {
