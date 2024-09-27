@@ -121,7 +121,6 @@ contract SuperchainERC20BridgeTest is Bridge_Initializer {
     )
         public
     {
-        vm.assume(_to != ZERO_ADDRESS);
         vm.assume(_crossDomainMessageSender != address(superchainERC20Bridge));
 
         // Mock the call over the `crossDomainMessageSender` function setting a wrong sender
