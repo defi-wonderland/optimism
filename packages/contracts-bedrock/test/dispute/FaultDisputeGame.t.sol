@@ -28,6 +28,8 @@ import { IAnchorStateRegistry } from "src/dispute/interfaces/IAnchorStateRegistr
 import { IFaultDisputeGame } from "src/dispute/interfaces/IFaultDisputeGame.sol";
 import { IDelayedWETH } from "src/dispute/interfaces/IDelayedWETH.sol";
 
+
+
 contract FaultDisputeGame_Init is DisputeGameFactory_Init {
     /// @dev The type of the game being tested.
     GameType internal constant GAME_TYPE = GameType.wrap(0);
@@ -97,6 +99,24 @@ contract FaultDisputeGame_Init is DisputeGameFactory_Init {
     fallback() external payable { }
 
     receive() external payable { }
+}
+
+// Test created just to run --debug on, bc the setUp is failing
+contract Alfa is FaultDisputeGame_Init {
+    /// @dev The root claim of the game.
+    Claim internal constant ROOT_CLAIM = Claim.wrap(bytes32((uint256(1) << 248) | uint256(10)));
+
+    /// @dev The preimage of the absolute prestate claim
+    bytes internal absolutePrestateData;
+    /// @dev The absolute prestate of the trace.
+    Claim internal absolutePrestate;
+    function test_abc() public {
+                absolutePrestateData = abi.encode(0);
+        absolutePrestate = _changeClaimStatus(Claim.wrap(keccak256(absolutePrestateData)), VMStatuses.UNFINISHED);
+
+        super.setUp();
+        super.init({ rootClaim: ROOT_CLAIM, absolutePrestate: absolutePrestate, l2BlockNumber: 0x10 });
+    }
 }
 
 contract FaultDisputeGame_Test is FaultDisputeGame_Init {

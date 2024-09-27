@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 // Libraries
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { FixedPointMathLib } from "@solady/utils/FixedPointMathLib.sol";
-import { Clone } from "@solady/utils/Clone.sol";
+import { CWIA } from "@solady/utils/legacy/CWIA.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { RLPReader } from "src/libraries/rlp/RLPReader.sol";
@@ -20,7 +20,7 @@ import { IAnchorStateRegistry } from "src/dispute/interfaces/IAnchorStateRegistr
 
 /// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
-contract FaultDisputeGame is Clone, ISemver {
+contract FaultDisputeGame is CWIA, ISemver {
     ////////////////////////////////////////////////////////////////
     //                         Structs                            //
     ////////////////////////////////////////////////////////////////

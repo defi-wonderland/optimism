@@ -76,7 +76,7 @@
     "sourceCodeHash": "0x0b6afdc52d1ae88d9e4bbb5dc00920e7a6bd1e9d6595bfdbae64874190f39df0"
   },
   "src/L2/GasPriceOracle.sol": {
-    "initCodeHash": "0x03947f33b80774b92214083374262fe6a4defa61da548391b44d471f2e87e9e7",
+    "initCodeHash": "0xbcf11f207c0cdcb51d1939d9b9045223b0edc0911c13cf03a26d2b5985acc489",
     "sourceCodeHash": "0x4f21025d4b5c9c74cf7040db6f8e9ce605b82931e3012fee51d3f5d9fbd7b73f"
   },
   "src/L2/L1Block.sol": {
@@ -116,7 +116,11 @@
     "sourceCodeHash": "0x4b806cc85cead74c8df34ab08f4b6c6a95a1a387a335ec8a7cb2de4ea4e1cf41"
   },
   "src/L2/OptimismSuperchainERC20.sol": {
+<<<<<<< Updated upstream
     "initCodeHash": "0x9b48e5b8271d9b5d4407bf1a7327842844b4bd858123ffa6da0c55ad9d3b9d8e",
+=======
+    "initCodeHash": "0xc6b50b55d4369fb1c2377dd1e26e674b97d3f1446fbf37be3966a5ab299eba0d",
+>>>>>>> Stashed changes
     "sourceCodeHash": "0xaf5702655736e9c4b480a0bb4f0f2220f09834b2292f8e5419b5b245e0a20300"
   },
   "src/L2/OptimismSuperchainERC20Beacon.sol": {
@@ -164,12 +168,12 @@
     "sourceCodeHash": "0xdbd64724b73f8f9d6f1cc72bb662a99b9955ab72950a8f6ffeb1d2454997f60b"
   },
   "src/dispute/DisputeGameFactory.sol": {
-    "initCodeHash": "0xb91623cca41e63e6e5a75c681b0d9ef7cb8bf68e7ff5e202a217629899fae099",
+    "initCodeHash": "0xc5b43e6c9c37ee67a4a6aeb45397a365f439538884943b2d52215593da5f05d1",
     "sourceCodeHash": "0xc8f21c777b2c5a37c2d2f92e8eeceba3b231b500a7d9cb0b607b774478f8be6b"
   },
   "src/dispute/FaultDisputeGame.sol": {
-    "initCodeHash": "0xdb724dfd12dcea804d1adbc5a7e919625615c62b940035cf4b9115ea3a63e0ae",
-    "sourceCodeHash": "0x223428ee91532af397cef72356430ff59221e0ac0cbf697a881d36bb1d672392"
+    "initCodeHash": "0x77260d14c2a8faccec908c3a4f9f66ee7697fcd4d8cb92a9d237483e87eea079",
+    "sourceCodeHash": "0x3dac8c37ff6c6360b8e7246157d2e5f13b0f0b7d0fa658b621aba86dcc02ff7b"
   },
   "src/legacy/DeployerWhitelist.sol": {
     "initCodeHash": "0x0b8177ed75b69eddbb9ce6537683f69a9935efed86a1d6faa8feaafbd151c1bd",
