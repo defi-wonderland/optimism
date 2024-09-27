@@ -13,9 +13,9 @@ import { ISuperchainERC20Bridge } from "src/L2/interfaces/ISuperchainERC20Bridge
 import { IOptimismSuperchainERC20 } from "src/L2/interfaces/IOptimismSuperchainERC20.sol";
 import { IOptimismSuperchainERC20Factory } from "src/L2/interfaces/IOptimismSuperchainERC20Factory.sol";
 
-/// @title OptimismSuperchainERC20BridgeTest
-/// @notice Contract for testing the OptimismSuperchainERC20Bridge contract.
-contract OptimismSuperchainERC20BridgeTest is Bridge_Initializer {
+/// @title SuperchainERC20BridgeTest
+/// @notice Contract for testing the SuperchainERC20Bridge contract.
+contract SuperchainERC20BridgeTest is Bridge_Initializer {
     address internal constant ZERO_ADDRESS = address(0);
     string internal constant NAME = "SuperchainERC20";
     string internal constant SYMBOL = "SCE";
@@ -54,7 +54,6 @@ contract OptimismSuperchainERC20BridgeTest is Bridge_Initializer {
     function testFuzz_sendERC20_succeeds(address _sender, address _to, uint256 _amount, uint256 _chainId) external {
         // Ensure `_sender` is not the zero address
         vm.assume(_sender != ZERO_ADDRESS);
-        vm.assume(_to != ZERO_ADDRESS);
 
         // Mint some tokens to the sender so then they can be sent
         vm.prank(Predeploys.SUPERCHAIN_ERC20_BRIDGE);
@@ -93,22 +92,29 @@ contract OptimismSuperchainERC20BridgeTest is Bridge_Initializer {
     }
 
     /// @notice Tests the `relayERC20` function reverts when the caller is not the L2ToL2CrossDomainMessenger.
-    function testFuzz_relayERC20_notMessenger_reverts(address _caller, address _to, uint256 _amount) public {
+    function testFuzz_relayERC20_notMessenger_reverts(
+        address _token,
+        address _caller,
+        address _to,
+        uint256 _amount
+    )
+        public
+    {
         // Ensure the caller is not the messenger
         vm.assume(_caller != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        vm.assume(_to != ZERO_ADDRESS);
 
         // Expect the revert with `CallerNotL2ToL2CrossDomainMessenger` selector
         vm.expectRevert(ISuperchainERC20Bridge.CallerNotL2ToL2CrossDomainMessenger.selector);
 
         // Call the `relayERC20` function with the non-messenger caller
         vm.prank(_caller);
-        superchainERC20Bridge.relayERC20(address(superchainERC20), _caller, _to, _amount);
+        superchainERC20Bridge.relayERC20(_token, _caller, _to, _amount);
     }
 
     /// @notice Tests the `relayERC20` function reverts when the `crossDomainMessageSender` that sent the message is not
     /// the same SuperchainERC20Bridge.
     function testFuzz_relayERC20_notCrossDomainSender_reverts(
+        address _token,
         address _crossDomainMessageSender,
         address _to,
         uint256 _amount
@@ -130,12 +136,11 @@ contract OptimismSuperchainERC20BridgeTest is Bridge_Initializer {
 
         // Call the `relayERC20` function with the sender caller
         vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        superchainERC20Bridge.relayERC20(address(superchainERC20), _crossDomainMessageSender, _to, _amount);
+        superchainERC20Bridge.relayERC20(_token, _crossDomainMessageSender, _to, _amount);
     }
 
     /// @notice Tests the `relayERC20` mints the proper amount and emits the `RelayERC20` event.
     function testFuzz_relayERC20_succeeds(address _from, address _to, uint256 _amount, uint256 _source) public {
-        vm.assume(_from != ZERO_ADDRESS);
         vm.assume(_to != ZERO_ADDRESS);
 
         // Mock the call over the `crossDomainMessageSender` function setting the same address as value
