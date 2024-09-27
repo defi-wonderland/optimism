@@ -1,47 +1,46 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.15;
 
 // Testing utilities
-import { Test } from "forge-std/Test.sol";
+import { Bridge_Initializer } from "test/setup/Bridge_Initializer.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { IERC20 } from "@openzeppelin/contracts-v5/token/ERC20/IERC20.sol";
-import { ERC20 } from "@openzeppelin/contracts-v5/token/ERC20/ERC20.sol";
 import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 
 // Target contract
-import { SuperchainERC20Bridge } from "src/L2/SuperchainERC20Bridge.sol";
 import { ISuperchainERC20Bridge } from "src/L2/interfaces/ISuperchainERC20Bridge.sol";
+import { IOptimismSuperchainERC20 } from "src/L2/interfaces/IOptimismSuperchainERC20.sol";
+import { IOptimismSuperchainERC20Factory } from "src/L2/interfaces/IOptimismSuperchainERC20Factory.sol";
 
-/// @notice Mock contract for the SuperchainERC20 contract so tests can mint and burn tokens.
-contract SuperchainERC20Mock is ERC20 {
-    constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) { }
-
-    function mint(address _account, uint256 _amount) public {
-        _mint(_account, _amount);
-    }
-
-    function burn(address _account, uint256 _amount) public {
-        _burn(_account, _amount);
-    }
-}
-
-/// @title SuperchainERC20BridgeTest
-/// @notice Contract for testing the SuperchainERC20Bridge contract.
-contract SuperchainERC20BridgeTest is Test {
+/// @title OptimismSuperchainERC20BridgeTest
+/// @notice Contract for testing the OptimismSuperchainERC20Bridge contract.
+contract OptimismSuperchainERC20BridgeTest is Bridge_Initializer {
     address internal constant ZERO_ADDRESS = address(0);
     string internal constant NAME = "SuperchainERC20";
     string internal constant SYMBOL = "SCE";
-    address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+    address internal constant REMOTE_TOKEN = address(0x123);
 
-    SuperchainERC20Mock public superchainERC20;
-    SuperchainERC20Bridge public superchainERC20Bridge;
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    event SendERC20(
+        address indexed token, address indexed from, address indexed to, uint256 amount, uint256 destination
+    );
+
+    event RelayERC20(address indexed token, address indexed from, address indexed to, uint256 amount, uint256 source);
+
+    IOptimismSuperchainERC20 public superchainERC20;
 
     /// @notice Sets up the test suite.
-    function setUp() public {
-        superchainERC20 = new SuperchainERC20Mock(NAME, SYMBOL);
-        superchainERC20Bridge = new SuperchainERC20Bridge();
+    function setUp() public override {
+        super.enableInterop();
+        super.setUp();
+
+        superchainERC20 = IOptimismSuperchainERC20(
+            IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY).deploy(
+                REMOTE_TOKEN, NAME, SYMBOL, 18
+            )
+        );
     }
 
     /// @notice Helper function to setup a mock and expect a call to it.
@@ -58,6 +57,7 @@ contract SuperchainERC20BridgeTest is Test {
         vm.assume(_to != ZERO_ADDRESS);
 
         // Mint some tokens to the sender so then they can be sent
+        vm.prank(Predeploys.SUPERCHAIN_ERC20_BRIDGE);
         superchainERC20.mint(_sender, _amount);
 
         // Get the total supply and balance of `_sender` before the send to compare later on the assertions
@@ -66,17 +66,17 @@ contract SuperchainERC20BridgeTest is Test {
 
         // Look for the emit of the `Transfer` event
         vm.expectEmit(address(superchainERC20));
-        emit IERC20.Transfer(_sender, ZERO_ADDRESS, _amount);
+        emit Transfer(_sender, ZERO_ADDRESS, _amount);
 
         // Look for the emit of the `SendERC20` event
         vm.expectEmit(address(superchainERC20Bridge));
-        emit ISuperchainERC20Bridge.SendERC20(address(superchainERC20), _sender, _to, _amount, _chainId);
+        emit SendERC20(address(superchainERC20), _sender, _to, _amount, _chainId);
 
         // Mock the call over the `sendMessage` function and expect it to be called properly
         bytes memory _message =
             abi.encodeCall(superchainERC20Bridge.relayERC20, (address(superchainERC20), _sender, _to, _amount));
         _mockAndExpect(
-            MESSENGER,
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
             abi.encodeWithSelector(
                 IL2ToL2CrossDomainMessenger.sendMessage.selector, _chainId, address(superchainERC20Bridge), _message
             ),
@@ -95,7 +95,7 @@ contract SuperchainERC20BridgeTest is Test {
     /// @notice Tests the `relayERC20` function reverts when the caller is not the L2ToL2CrossDomainMessenger.
     function testFuzz_relayERC20_notMessenger_reverts(address _caller, address _to, uint256 _amount) public {
         // Ensure the caller is not the messenger
-        vm.assume(_caller != MESSENGER);
+        vm.assume(_caller != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         vm.assume(_to != ZERO_ADDRESS);
 
         // Expect the revert with `CallerNotL2ToL2CrossDomainMessenger` selector
@@ -120,7 +120,7 @@ contract SuperchainERC20BridgeTest is Test {
 
         // Mock the call over the `crossDomainMessageSender` function setting a wrong sender
         vm.mockCall(
-            MESSENGER,
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
             abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
             abi.encode(_crossDomainMessageSender)
         );
@@ -129,7 +129,7 @@ contract SuperchainERC20BridgeTest is Test {
         vm.expectRevert(ISuperchainERC20Bridge.InvalidCrossDomainSender.selector);
 
         // Call the `relayERC20` function with the sender caller
-        vm.prank(MESSENGER);
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         superchainERC20Bridge.relayERC20(address(superchainERC20), _crossDomainMessageSender, _to, _amount);
     }
 
@@ -140,14 +140,14 @@ contract SuperchainERC20BridgeTest is Test {
 
         // Mock the call over the `crossDomainMessageSender` function setting the same address as value
         _mockAndExpect(
-            MESSENGER,
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
             abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
             abi.encode(address(superchainERC20Bridge))
         );
 
         // Mock the call over the `crossDomainMessageSource` function setting the source chain ID as value
         _mockAndExpect(
-            MESSENGER,
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
             abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSource.selector),
             abi.encode(_source)
         );
@@ -158,14 +158,14 @@ contract SuperchainERC20BridgeTest is Test {
 
         // Look for the emit of the `Transfer` event
         vm.expectEmit(address(superchainERC20));
-        emit IERC20.Transfer(ZERO_ADDRESS, _to, _amount);
+        emit Transfer(ZERO_ADDRESS, _to, _amount);
 
         // Look for the emit of the `RelayERC20` event
         vm.expectEmit(address(superchainERC20Bridge));
-        emit ISuperchainERC20Bridge.RelayERC20(address(superchainERC20), _from, _to, _amount, _source);
+        emit RelayERC20(address(superchainERC20), _from, _to, _amount, _source);
 
         // Call the `relayERC20` function with the messenger caller
-        vm.prank(MESSENGER);
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         superchainERC20Bridge.relayERC20(address(superchainERC20), _from, _to, _amount);
 
         // Check the total supply and balance of `_to` after the relay were updated correctly
