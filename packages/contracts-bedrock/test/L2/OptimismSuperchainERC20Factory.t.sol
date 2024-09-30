@@ -9,7 +9,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { CREATE3, Bytes32AddressLib } from "@rari-capital/solmate/src/utils/CREATE3.sol";
 
 // Target contract
-import { IOptimismSuperchainERC20 } from "src/L2/interfaces/IOptimismSuperchainERC20.sol";
+import { ISuperchainERC20 } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { IOptimismSuperchainERC20Factory } from "src/L2/interfaces/IOptimismSuperchainERC20Factory.sol";
 
 /// @title OptimismSuperchainERC20FactoryTest
@@ -50,10 +50,10 @@ contract OptimismSuperchainERC20FactoryTest is Bridge_Initializer {
 
         // Assert
         assertTrue(addr == deployment);
-        assertTrue(IOptimismSuperchainERC20(deployment).decimals() == _decimals);
-        assertTrue(IOptimismSuperchainERC20(deployment).remoteToken() == _remoteToken);
-        assertEq(IOptimismSuperchainERC20(deployment).name(), _name);
-        assertEq(IOptimismSuperchainERC20(deployment).symbol(), _symbol);
+        assertTrue(ISuperchainERC20(deployment).decimals() == _decimals);
+        assertTrue(ISuperchainERC20(deployment).remoteToken() == _remoteToken);
+        assertEq(ISuperchainERC20(deployment).name(), _name);
+        assertEq(ISuperchainERC20(deployment).symbol(), _symbol);
         assertEq(l2OptimismSuperchainERC20Factory.deployments(deployment), _remoteToken);
     }
 

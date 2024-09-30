@@ -9,10 +9,10 @@ interface IMintableAndBurnableERC20 is IERC20 {
     /// @notice Mints `_amount` of tokens to `_to`.
     /// @param _to      Address to mint tokens to.
     /// @param _amount  Amount of tokens to mint.
-    function mint(address _to, uint256 _amount) external;
+    function __superchainMint(address _to, uint256 _amount) external;
 
     /// @notice Burns `_amount` of tokens from `_from`.
     /// @param _from    Address to burn tokens from.
     /// @param _amount  Amount of tokens to burn.
-    function burn(address _from, uint256 _amount) external;
+    function __superchainBurn(address _from, uint256 _amount) external;
 }

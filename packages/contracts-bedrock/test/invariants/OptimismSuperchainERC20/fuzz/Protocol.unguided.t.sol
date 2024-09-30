@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { ProtocolHandler } from "../handlers/Protocol.t.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
+import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 import { CompatibleAssert } from "../helpers/CompatibleAssert.t.sol";
 
 // TODO: add fuzz_sendERC20 when we implement non-atomic bridging
@@ -15,9 +15,9 @@ contract ProtocolUnguided is ProtocolHandler, CompatibleAssert {
     function fuzz_mint(uint256 tokenIndex, address to, address sender, uint256 amount) external {
         address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
         bytes32 salt = MESSENGER.superTokenInitDeploySalts(token);
-        amount = bound(amount, 0, type(uint256).max - OptimismSuperchainERC20(token).totalSupply());
+        amount = bound(amount, 0, type(uint256).max - SuperchainERC20(token).totalSupply());
         vm.prank(sender);
-        try OptimismSuperchainERC20(token).mint(to, amount) {
+        try SuperchainERC20(token).__superchainMint(to, amount) {
             compatibleAssert(sender == BRIDGE);
             (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(salt);
             ghost_totalSupplyAcrossChains.set(salt, currentValue + amount);
@@ -31,9 +31,9 @@ contract ProtocolUnguided is ProtocolHandler, CompatibleAssert {
     function fuzz_burn(uint256 tokenIndex, address from, address sender, uint256 amount) external {
         address token = allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)];
         bytes32 salt = MESSENGER.superTokenInitDeploySalts(token);
-        uint256 senderBalance = OptimismSuperchainERC20(token).balanceOf(sender);
+        uint256 senderBalance = SuperchainERC20(token).balanceOf(sender);
         vm.prank(sender);
-        try OptimismSuperchainERC20(token).burn(from, amount) {
+        try SuperchainERC20(token).__superchainBurn(from, amount) {
             compatibleAssert(sender == BRIDGE);
             (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(salt);
             ghost_totalSupplyAcrossChains.set(salt, currentValue - amount);
@@ -56,7 +56,7 @@ contract ProtocolUnguided is ProtocolHandler, CompatibleAssert {
     {
         vm.prank(sender);
         // revert is possible in bound, but is not part of the external call
-        try OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).initialize(
+        try SuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).initialize(
             remoteToken, name, symbol, decimals
         ) {
             compatibleAssert(false);
