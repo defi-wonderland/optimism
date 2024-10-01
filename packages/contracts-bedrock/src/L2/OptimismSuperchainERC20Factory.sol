@@ -11,15 +11,15 @@ import { CREATE3 } from "@rari-capital/solmate/src/utils/CREATE3.sol";
 /// @custom:proxied
 /// @custom:predeployed 0x4200000000000000000000000000000000000026
 /// @title OptimismSuperchainERC20Factory
-/// @notice OptimismSuperchainERC20Factory is a factory contract that deploys SuperchainERC20 Beacon Proxies
+/// @notice OptimismSuperchainERC20Factory is a factory contract that deploys OptimismSuperchainERC20 Beacon Proxies
 ///         using CREATE3.
 contract OptimismSuperchainERC20Factory is IOptimismSuperchainERC20Factory, ISemver {
-    /// @notice Mapping of the deployed SuperchainERC20 to the remote token address.
+    /// @notice Mapping of the deployed OptimismSuperchainERC20 to the remote token address.
     ///         This is used to keep track of the token deployments.
     mapping(address superchainToken => address remoteToken) public deployments;
 
-    /// @notice Emitted when an SuperchainERC20 is deployed.
-    /// @param superchainToken  Address of the SuperchainERC20 deployment.
+    /// @notice Emitted when an OptimismSuperchainERC20 is deployed.
+    /// @param superchainToken  Address of the OptimismSuperchainERC20 deployment.
     /// @param remoteToken      Address of the corresponding token on the remote chain.
     /// @param deployer         Address of the account that deployed the token.
     event OptimismSuperchainERC20Created(
@@ -30,12 +30,12 @@ contract OptimismSuperchainERC20Factory is IOptimismSuperchainERC20Factory, ISem
     /// @custom:semver 1.0.0-beta.3
     string public constant version = "1.0.0-beta.3";
 
-    /// @notice Deploys a SuperchainERC20 Beacon Proxy using CREATE3.
+    /// @notice Deploys a OptimismSuperchainERC20 Beacon Proxy using CREATE3.
     /// @param _remoteToken      Address of the remote token.
-    /// @param _name             Name of the SuperchainERC20.
-    /// @param _symbol           Symbol of the SuperchainERC20.
-    /// @param _decimals         Decimals of the SuperchainERC20.
-    /// @return _superchainERC20 Address of the SuperchainERC20 deployment.
+    /// @param _name             Name of the OptimismSuperchainERC20.
+    /// @param _symbol           Symbol of the OptimismSuperchainERC20.
+    /// @param _decimals         Decimals of the OptimismSuperchainERC20.
+    /// @return _superchainERC20 Address of the OptimismSuperchainERC20 deployment.
     function deploy(
         address _remoteToken,
         string memory _name,

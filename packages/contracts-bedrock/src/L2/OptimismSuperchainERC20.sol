@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 import { IOptimismSuperchainERC20Extension } from "src/L2/interfaces/IOptimismSuperchainERC20.sol";
+import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
+import { ISemver } from "src/universal/interfaces/ISemver.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
+import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 /// @custom:proxied true
@@ -16,14 +18,14 @@ import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializa
 ///         also enables the inverse conversion path.
 ///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
 contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOptimismSuperchainERC20Extension {
-    /// @notice Storage slot that the SuperchainERC20Metadata struct is stored at.
-    /// keccak256(abi.encode(uint256(keccak256("SuperchainERC20.metadata")) - 1)) & ~bytes32(uint256(0xff));
+    /// @notice Storage slot that the OptimismSuperchainERC20Metadata struct is stored at.
+    /// keccak256(abi.encode(uint256(keccak256("optimismSuperchainERC20.metadata")) - 1)) & ~bytes32(uint256(0xff));
     bytes32 internal constant OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT =
         0x07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb00;
 
-    /// @notice Storage struct for the SuperchainERC20 metadata.
-    /// @custom:storage-location erc7201:SuperchainERC20.metadata
-    struct SuperchainERC20Metadata {
+    /// @notice Storage struct for the OptimismSuperchainERC20 metadata.
+    /// @custom:storage-location erc7201:optimismSuperchainERC20.metadata
+    struct OptimismSuperchainERC20Metadata {
         /// @notice Address of the corresponding version of this token on the remote chain.
         address remoteToken;
         /// @notice Name of the token
@@ -34,16 +36,28 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOpt
         uint8 decimals;
     }
 
-    /// @notice Constructs the SuperchainERC20 contract.
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Returns the storage for the SuperchainERC20Metadata.
-    function _getStorage() internal pure returns (SuperchainERC20Metadata storage _storage) {
+    /// @notice Returns the storage for the OptimismSuperchainERC20Metadata.
+    function _getStorage() private pure returns (OptimismSuperchainERC20Metadata storage _storage) {
         assembly {
             _storage.slot := OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT
         }
+    }
+
+    /// @notice A modifier that only allows the L2StandardBridge to call
+    modifier onlyL2StandardBridge() {
+        if (msg.sender != Predeploys.L2_STANDARD_BRIDGE) {
+            revert OnlyL2StandardBridge();
+        }
+        _;
+    }
+
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0-beta.6
+    string public constant override version = "1.0.0-beta.6";
+
+    /// @notice Constructs the OptimismSuperchainERC20 contract.
+    constructor() {
+        _disableInitializers();
     }
 
     /// @notice Initializes the contract.
@@ -60,23 +74,14 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOpt
         external
         initializer
     {
-        SuperchainERC20Metadata storage _storage = _getStorage();
+        OptimismSuperchainERC20Metadata storage _storage = _getStorage();
         _storage.remoteToken = _remoteToken;
         _storage.name = _name;
         _storage.symbol = _symbol;
         _storage.decimals = _decimals;
     }
 
-    /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta
-    string public constant override version = "1.0.0-beta";
-
-    modifier onlyL2StandardBridge() {
-        if (msg.sender != Predeploys.L2_STANDARD_BRIDGE) revert OnlyL2StandardBridge();
-        _;
-    }
-
-    /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to mint tokens.
+    /// @notice Allows the L2StandardBridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function mint(address _to, uint256 _amount) external virtual onlyL2StandardBridge {
@@ -87,7 +92,7 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOpt
         emit Mint(_to, _amount);
     }
 
-    /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to burn tokens.
+    /// @notice Allows the L2StandardBridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function burn(address _from, uint256 _amount) external virtual onlyL2StandardBridge {

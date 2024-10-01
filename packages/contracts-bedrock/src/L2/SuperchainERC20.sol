@@ -8,22 +8,19 @@ import { ERC20 } from "@solady/tokens/ERC20.sol";
 
 /// @title SuperchainERC20
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
-///         bridging to make it fungible across the Superchain. This construction allows the L2StandardBridge to burn
-///         and mint tokens. This makes it possible to convert a valid OptimismMintableERC20 token to a
-///         SuperchainERC20 token, turning it fungible and interoperable across the superchain. Likewise, it
-///         also enables the inverse conversion path.
-///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
+///         bridging to make it fungible across the Superchain. This construction allows the SuperchainERC20Bridge to
+///         burn and mint tokens.
 abstract contract SuperchainERC20 is ERC20, ISuperchainERC20Extension, ISemver {
-    /// @notice A modifier that only allows the bridge to call
+    /// @notice A modifier that only allows the SuperchainERC20Bridge to call
     modifier onlySuperchainERC20Bridge() {
         if (msg.sender != Predeploys.SUPERCHAIN_ERC20_BRIDGE) revert OnlySuperchainERC20Bridge();
         _;
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.6
+    /// @custom:semver 1.0.0-beta.1
     function version() external pure virtual returns (string memory) {
-        return "1.0.0-beta.6";
+        return "1.0.0-beta.1";
     }
 
     /// @notice Allows the SuperchainERC20Bridge to mint tokens.

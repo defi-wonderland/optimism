@@ -7,9 +7,9 @@ import { ISemver } from "src/universal/interfaces/ISemver.sol";
 /// @custom:proxied
 /// @custom:predeployed 0x4200000000000000000000000000000000000027
 /// @title OptimismSuperchainERC20Beacon
-/// @notice OptimismSuperchainERC20Beacon is the beacon proxy for the SuperchainERC20 implementation.
+/// @notice OptimismSuperchainERC20Beacon is the beacon proxy for the OptimismSuperchainERC20 implementation.
 contract OptimismSuperchainERC20Beacon is IBeacon, ISemver {
-    /// @notice Address of the SuperchainERC20 implementation.
+    /// @notice Address of the OptimismSuperchainERC20 implementation.
     address internal immutable IMPLEMENTATION;
 
     /// @notice Semantic version.
