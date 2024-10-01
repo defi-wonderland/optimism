@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 import { IOptimismSuperchainERC20Extension } from "src/L2/interfaces/IOptimismSuperchainERC20.sol";
+import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
+import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 /// @custom:proxied true
 /// @title OptimismSuperchainERC20
@@ -13,7 +15,58 @@ import { IOptimismSuperchainERC20Extension } from "src/L2/interfaces/IOptimismSu
 ///         OptimismSuperchainERC20 token, turning it fungible and interoperable across the superchain. Likewise, it
 ///         also enables the inverse conversion path.
 ///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
-contract OptimismSuperchainERC20 is SuperchainERC20, IOptimismSuperchainERC20Extension {
+contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOptimismSuperchainERC20Extension {
+    /// @notice Storage slot that the SuperchainERC20Metadata struct is stored at.
+    /// keccak256(abi.encode(uint256(keccak256("SuperchainERC20.metadata")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 internal constant OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT =
+        0x07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb00;
+
+    /// @notice Storage struct for the SuperchainERC20 metadata.
+    /// @custom:storage-location erc7201:SuperchainERC20.metadata
+    struct SuperchainERC20Metadata {
+        /// @notice Address of the corresponding version of this token on the remote chain.
+        address remoteToken;
+        /// @notice Name of the token
+        string name;
+        /// @notice Symbol of the token
+        string symbol;
+        /// @notice Decimals of the token
+        uint8 decimals;
+    }
+
+    /// @notice Constructs the SuperchainERC20 contract.
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Returns the storage for the SuperchainERC20Metadata.
+    function _getStorage() internal pure returns (SuperchainERC20Metadata storage _storage) {
+        assembly {
+            _storage.slot := OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT
+        }
+    }
+
+    /// @notice Initializes the contract.
+    /// @param _remoteToken    Address of the corresponding remote token.
+    /// @param _name           ERC20 name.
+    /// @param _symbol         ERC20 symbol.
+    /// @param _decimals       ERC20 decimals.
+    function initialize(
+        address _remoteToken,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    )
+        external
+        initializer
+    {
+        SuperchainERC20Metadata storage _storage = _getStorage();
+        _storage.remoteToken = _remoteToken;
+        _storage.name = _name;
+        _storage.symbol = _symbol;
+        _storage.decimals = _decimals;
+    }
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta
     string public constant override version = "1.0.0-beta";
@@ -43,5 +96,38 @@ contract OptimismSuperchainERC20 is SuperchainERC20, IOptimismSuperchainERC20Ext
         _burn(_from, _amount);
 
         emit Burn(_from, _amount);
+    }
+
+    /// @notice Returns the address of the corresponding version of this token on the remote chain.
+    function remoteToken() public view override returns (address) {
+        return _getStorage().remoteToken;
+    }
+
+    /// @notice Returns the name of the token.
+    function name() public view virtual override returns (string memory) {
+        return _getStorage().name;
+    }
+
+    /// @notice Returns the symbol of the token.
+    function symbol() public view virtual override returns (string memory) {
+        return _getStorage().symbol;
+    }
+
+    /// @notice Returns the number of decimals used to get its user representation.
+    /// For example, if `decimals` equals `2`, a balance of `505` tokens should
+    /// be displayed to a user as `5.05` (`505 / 10 ** 2`).
+    /// NOTE: This information is only used for _display_ purposes: it in
+    /// no way affects any of the arithmetic of the contract, including
+    /// {IERC20-balanceOf} and {IERC20-transfer}.
+    function decimals() public view override returns (uint8) {
+        return _getStorage().decimals;
+    }
+
+    /// @notice ERC165 interface check function.
+    /// @param _interfaceId Interface ID to check.
+    /// @return Whether or not the interface is supported by this contract.
+    function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
+        return
+            _interfaceId == type(IOptimismSuperchainERC20Extension).interfaceId || super.supportsInterface(_interfaceId);
     }
 }

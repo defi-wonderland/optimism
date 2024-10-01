@@ -6,7 +6,7 @@ import { StdUtils } from "forge-std/StdUtils.sol";
 
 import { ERC1967Proxy } from "@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { OptimismSuperchainERC20ForToBProperties } from "../helpers/OptimismSuperchainERC20ForToBProperties.t.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { MockL2ToL2CrossDomainMessenger } from "../helpers/MockL2ToL2CrossDomainMessenger.t.sol";
@@ -22,7 +22,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
     address internal constant BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
     MockL2ToL2CrossDomainMessenger internal constant MESSENGER =
         MockL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    SuperchainERC20 internal superchainERC20Impl;
+    OptimismSuperchainERC20 internal superchainERC20Impl;
     // NOTE: having more options for this enables the fuzzer to configure
     // different supertokens for the same remote token
     string[] internal WORDS = ["TOKENS"];
@@ -79,7 +79,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         index = bound(index, 0, allSuperTokens.length - 1);
         address addr = allSuperTokens[index];
         vm.prank(BRIDGE);
-        SuperchainERC20(addr).__superchainMint(currentActor(), amount);
+        OptimismSuperchainERC20(addr).__superchainMint(currentActor(), amount);
         // currentValue will be zero if key is not present
         (, uint256 currentValue) = ghost_totalSupplyAcrossChains.tryGet(MESSENGER.superTokenInitDeploySalts(addr));
         ghost_totalSupplyAcrossChains.set(MESSENGER.superTokenInitDeploySalts(addr), currentValue + amount);
@@ -97,7 +97,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         withActor(msg.sender)
     {
         vm.prank(currentActor());
-        SuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transfer(
             getActorByRawIndex(toIndex), amount
         );
     }
@@ -112,7 +112,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         withActor(msg.sender)
     {
         vm.prank(currentActor());
-        SuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transferFrom(
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).transferFrom(
             getActorByRawIndex(fromIndex), getActorByRawIndex(toIndex), amount
         );
     }
@@ -126,7 +126,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         withActor(msg.sender)
     {
         vm.prank(currentActor());
-        SuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).approve(
+        OptimismSuperchainERC20(allSuperTokens[bound(tokenIndex, 0, allSuperTokens.length)]).approve(
             getActorByRawIndex(spenderIndex), amount
         );
     }
@@ -151,7 +151,7 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         uint256 chainId
     )
         internal
-        returns (SuperchainERC20 supertoken)
+        returns (OptimismSuperchainERC20 supertoken)
     {
         // this salt would be used in production. Tokens sharing it will be bridgable with each other
         bytes32 realSalt = keccak256(abi.encode(remoteToken, name, symbol, decimals));
@@ -162,12 +162,12 @@ contract ProtocolHandler is TestBase, StdUtils, Actors {
         // what we use in the tests to walk around two contracts needing two different addresses
         // tbf we could be using CREATE1, but this feels more verbose
         bytes32 hackySalt = keccak256(abi.encode(remoteToken, name, symbol, decimals, chainId));
-        supertoken = SuperchainERC20(
+        supertoken = OptimismSuperchainERC20(
             address(
-                // TODO: Use the SuperchainERC20 Beacon Proxy
+                // TODO: Use the OptimismSuperchainERC20 Beacon Proxy
                 new ERC1967Proxy{ salt: hackySalt }(
                     address(superchainERC20Impl),
-                    abi.encodeCall(SuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
+                    abi.encodeCall(OptimismSuperchainERC20.initialize, (remoteToken, name, symbol, decimals))
                 )
             )
         );

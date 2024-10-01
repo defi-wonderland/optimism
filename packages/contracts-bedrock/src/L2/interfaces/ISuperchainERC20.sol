@@ -36,9 +36,6 @@ interface ISuperchainERC20Extension is ISuperchainERC20Errors {
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function __superchainBurn(address _from, uint256 _amount) external;
-
-    /// @notice Returns the address of the corresponding version of this token on the remote chain.
-    function remoteToken() external view returns (address);
 }
 
 /// @title ISuperchainERC20

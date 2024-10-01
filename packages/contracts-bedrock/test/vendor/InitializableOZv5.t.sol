@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import { Test } from "forge-std/Test.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 /// @title InitializerOZv5_Test
@@ -28,11 +28,11 @@ contract InitializerOZv5_Test is Test {
         // Initialize the `contracts` array with the addresses of the contracts to test and the
         // calldata used to initialize them
 
-        // SuperchainERC20
+        // OptimismSuperchainERC20
         contracts.push(
             InitializeableContract({
-                target: address(new SuperchainERC20()),
-                initCalldata: abi.encodeCall(SuperchainERC20.initialize, (address(0), "", "", 18))
+                target: address(new OptimismSuperchainERC20()),
+                initCalldata: abi.encodeCall(OptimismSuperchainERC20.initialize, (address(0), "", "", 18))
             })
         );
     }

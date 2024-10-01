@@ -2,14 +2,10 @@
 pragma solidity 0.8.25;
 
 import { ISuperchainERC20Extension } from "src/L2/interfaces/ISuperchainERC20.sol";
-import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { ERC165 } from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 import { ERC20 } from "@solady/tokens/ERC20.sol";
-import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
-/// @custom:proxied true
 /// @title SuperchainERC20
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
 ///         bridging to make it fungible across the Superchain. This construction allows the L2StandardBridge to burn
@@ -17,68 +13,17 @@ import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializa
 ///         SuperchainERC20 token, turning it fungible and interoperable across the superchain. Likewise, it
 ///         also enables the inverse conversion path.
 ///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
-contract SuperchainERC20 is ERC20, Initializable, ERC165, ISuperchainERC20Extension, ISemver {
-    /// @notice Storage slot that the SuperchainERC20Metadata struct is stored at.
-    /// keccak256(abi.encode(uint256(keccak256("SuperchainERC20.metadata")) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 internal constant OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT =
-        0x07f04e84143df95a6373fcf376312ae41da81a193a3089073a54f47a74d8fb00;
-
-    /// @notice Storage struct for the SuperchainERC20 metadata.
-    /// @custom:storage-location erc7201:SuperchainERC20.metadata
-    struct SuperchainERC20Metadata {
-        /// @notice Address of the corresponding version of this token on the remote chain.
-        address remoteToken;
-        /// @notice Name of the token
-        string name;
-        /// @notice Symbol of the token
-        string symbol;
-        /// @notice Decimals of the token
-        uint8 decimals;
-    }
-
-    /// @notice Returns the storage for the SuperchainERC20Metadata.
-    function _getStorage() private pure returns (SuperchainERC20Metadata storage _storage) {
-        assembly {
-            _storage.slot := OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT
-        }
-    }
-
+abstract contract SuperchainERC20 is ERC20, ISuperchainERC20Extension, ISemver {
     /// @notice A modifier that only allows the bridge to call
     modifier onlySuperchainERC20Bridge() {
         if (msg.sender != Predeploys.SUPERCHAIN_ERC20_BRIDGE) revert OnlySuperchainERC20Bridge();
         _;
     }
 
-    /// @notice Constructs the SuperchainERC20 contract.
-    constructor() {
-        _disableInitializers();
-    }
-
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.6
     function version() external pure virtual returns (string memory) {
         return "1.0.0-beta.6";
-    }
-
-    /// @notice Initializes the contract.
-    /// @param _remoteToken    Address of the corresponding remote token.
-    /// @param _name           ERC20 name.
-    /// @param _symbol         ERC20 symbol.
-    /// @param _decimals       ERC20 decimals.
-    function initialize(
-        address _remoteToken,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    )
-        external
-        initializer
-    {
-        SuperchainERC20Metadata storage _storage = _getStorage();
-        _storage.remoteToken = _remoteToken;
-        _storage.name = _name;
-        _storage.symbol = _symbol;
-        _storage.decimals = _decimals;
     }
 
     /// @notice Allows the SuperchainERC20Bridge to mint tokens.
@@ -101,37 +46,5 @@ contract SuperchainERC20 is ERC20, Initializable, ERC165, ISuperchainERC20Extens
         _burn(_from, _amount);
 
         emit Burn(_from, _amount);
-    }
-
-    /// @notice Returns the address of the corresponding version of this token on the remote chain.
-    function remoteToken() public view override returns (address) {
-        return _getStorage().remoteToken;
-    }
-
-    /// @notice Returns the name of the token.
-    function name() public view virtual override returns (string memory) {
-        return _getStorage().name;
-    }
-
-    /// @notice Returns the symbol of the token.
-    function symbol() public view virtual override returns (string memory) {
-        return _getStorage().symbol;
-    }
-
-    /// @notice Returns the number of decimals used to get its user representation.
-    /// For example, if `decimals` equals `2`, a balance of `505` tokens should
-    /// be displayed to a user as `5.05` (`505 / 10 ** 2`).
-    /// NOTE: This information is only used for _display_ purposes: it in
-    /// no way affects any of the arithmetic of the contract, including
-    /// {IERC20-balanceOf} and {IERC20-transfer}.
-    function decimals() public view override returns (uint8) {
-        return _getStorage().decimals;
-    }
-
-    /// @notice ERC165 interface check function.
-    /// @param _interfaceId Interface ID to check.
-    /// @return Whether or not the interface is supported by this contract.
-    function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
-        return _interfaceId == type(ISuperchainERC20Extension).interfaceId || super.supportsInterface(_interfaceId);
     }
 }

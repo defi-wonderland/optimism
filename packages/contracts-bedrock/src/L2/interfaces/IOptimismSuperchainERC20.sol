@@ -24,6 +24,9 @@ interface IOptimismSuperchainERC20Extension is ISuperchainERC20Extension, IOptim
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function burn(address _from, uint256 _amount) external;
+
+    /// @notice Returns the address of the corresponding version of this token on the remote chain.
+    function remoteToken() external view returns (address);
 }
 
 /// @title ISuperchainERC20

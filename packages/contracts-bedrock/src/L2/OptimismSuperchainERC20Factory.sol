@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import { IOptimismSuperchainERC20Factory } from "src/L2/interfaces/IOptimismSuperchainERC20Factory.sol";
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { BeaconProxy } from "@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy.sol";
 import { CREATE3 } from "@rari-capital/solmate/src/utils/CREATE3.sol";
@@ -46,7 +46,7 @@ contract OptimismSuperchainERC20Factory is IOptimismSuperchainERC20Factory, ISem
         returns (address _superchainERC20)
     {
         bytes memory initCallData =
-            abi.encodeCall(SuperchainERC20.initialize, (_remoteToken, _name, _symbol, _decimals));
+            abi.encodeCall(OptimismSuperchainERC20.initialize, (_remoteToken, _name, _symbol, _decimals));
 
         bytes memory creationCode = bytes.concat(
             type(BeaconProxy).creationCode, abi.encode(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, initCallData)
