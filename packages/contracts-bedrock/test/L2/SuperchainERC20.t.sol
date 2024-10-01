@@ -20,6 +20,10 @@ import { SuperchainERC20, ISuperchainERC20Extension } from "src/L2/SuperchainERC
 import { ISuperchainERC20Errors } from "src/L2/interfaces/ISuperchainERC20.sol";
 
 contract SuperchainERC20Implementation is SuperchainERC20 {
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0-mock
+    string public constant override version = "1.0.0-mock";
+
     function name() public pure override returns (string memory) {
         return "SuperchainERC20";
     }
