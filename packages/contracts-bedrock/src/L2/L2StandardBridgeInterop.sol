@@ -19,7 +19,7 @@ error InvalidDecimals();
 /// @notice Thrown when the legacy address is not found in the OptimismMintableERC20Factory.
 error InvalidLegacyERC20Address();
 
-/// @notice Thrown when the SuperchainERC20 address is not found in the OptimismSuperchainERC20Factory.
+/// @notice Thrown when the OptimismSuperchainERC20 address is not found in the OptimismSuperchainERC20Factory.
 error InvalidSuperchainERC20Address();
 
 /// @notice Thrown when the remote addresses of the tokens are not the same.
