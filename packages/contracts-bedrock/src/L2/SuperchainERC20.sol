@@ -34,7 +34,7 @@ abstract contract SuperchainERC20 is ERC20, ISuperchainERC20Extension, ISemver {
 
         _mint(_to, _amount);
 
-        emit Mint(_to, _amount);
+        emit SuperchainMint(_to, _amount);
     }
 
     /// @notice Allows the SuperchainERC20Bridge to burn tokens.
@@ -45,6 +45,6 @@ abstract contract SuperchainERC20 is ERC20, ISuperchainERC20Extension, ISemver {
 
         _burn(_from, _amount);
 
-        emit Burn(_from, _amount);
+        emit SuperchainBurn(_from, _amount);
     }
 }

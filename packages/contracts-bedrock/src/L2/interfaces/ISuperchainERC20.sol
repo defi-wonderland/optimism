@@ -17,15 +17,15 @@ interface ISuperchainERC20Errors {
 /// @title ISuperchainERC20Extension
 /// @notice This interface is available on the SuperchainERC20 contract.
 interface ISuperchainERC20Extension is ISuperchainERC20Errors {
-    /// @notice Emitted whenever tokens are minted for an account.
+    /// @notice Emitted whenever tokens are minted for by the SuperchainERC20Bridge.
     /// @param account Address of the account tokens are being minted for.
     /// @param amount  Amount of tokens minted.
-    event Mint(address indexed account, uint256 amount);
+    event SuperchainMint(address indexed account, uint256 amount);
 
-    /// @notice Emitted whenever tokens are burned from an account.
+    /// @notice Emitted whenever tokens are burned by the SuperchainERC20Bridge.
     /// @param account Address of the account tokens are being burned from.
     /// @param amount  Amount of tokens burned.
-    event Burn(address indexed account, uint256 amount);
+    event SuperchainBurn(address indexed account, uint256 amount);
 
     /// @notice Allows the SuperchainERC20Bridge to mint tokens.
     /// @param _to     Address to mint tokens to.

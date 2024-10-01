@@ -15,6 +15,16 @@ interface IOptimismSuperchainERC20Errors {
 /// @title ISuperchainERC20Extension
 /// @notice This interface is available on the SuperchainERC20 contract.
 interface IOptimismSuperchainERC20Extension is ISuperchainERC20Extension, IOptimismSuperchainERC20Errors {
+    /// @notice Emitted whenever tokens are minted for an account.
+    /// @param account Address of the account tokens are being minted for.
+    /// @param amount  Amount of tokens minted.
+    event Mint(address indexed account, uint256 amount);
+
+    /// @notice Emitted whenever tokens are burned from an account.
+    /// @param account Address of the account tokens are being burned from.
+    /// @param amount  Amount of tokens burned.
+    event Burn(address indexed account, uint256 amount);
+
     /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.

@@ -85,9 +85,9 @@ contract SuperchainERC20Test is Test {
         vm.expectEmit(address(superchainERC20));
         emit IERC20.Transfer(ZERO_ADDRESS, _to, _amount);
 
-        // Look for the emit of the `Mint` event
+        // Look for the emit of the `SuperchainMint` event
         vm.expectEmit(address(superchainERC20));
-        emit ISuperchainERC20Extension.Mint(_to, _amount);
+        emit ISuperchainERC20Extension.SuperchainMint(_to, _amount);
 
         // Call the `mint` function with the bridge caller
         vm.prank(SUPERCHAIN_ERC20_BRIDGE);
@@ -146,7 +146,7 @@ contract SuperchainERC20Test is Test {
 
         // Look for the emit of the `Burn` event
         vm.expectEmit(address(superchainERC20));
-        emit ISuperchainERC20Extension.Burn(_from, _amount);
+        emit ISuperchainERC20Extension.SuperchainBurn(_from, _amount);
 
         // Call the `burn` function with the bridge caller
         vm.prank(SUPERCHAIN_ERC20_BRIDGE);
