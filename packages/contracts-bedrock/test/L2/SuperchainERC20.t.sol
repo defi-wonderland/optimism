@@ -27,7 +27,6 @@ contract SuperchainERC20Test is Test {
     string internal constant NAME = "SuperchainERC20";
     string internal constant SYMBOL = "SCE";
     uint8 internal constant DECIMALS = 18;
-    address internal constant L2_BRIDGE = Predeploys.L2_STANDARD_BRIDGE;
     address internal constant SUPERCHAIN_ERC20_BRIDGE = Predeploys.SUPERCHAIN_ERC20_BRIDGE;
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
@@ -83,12 +82,6 @@ contract SuperchainERC20Test is Test {
         );
     }
 
-    /// @notice Helper function to fuzz the bridge address to performs the calls with.
-    /// @dev Needed to cover both possible branches of the authorized callers on `mint` and `burn` functions.
-    function _getBridge(bool _returnL2StandardBridge) internal pure returns (address bridge) {
-        bridge = _returnL2StandardBridge ? L2_BRIDGE : SUPERCHAIN_ERC20_BRIDGE;
-    }
-
     /// @notice Helper function to setup a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
         vm.mockCall(_receiver, _calldata, _returned);
@@ -122,7 +115,6 @@ contract SuperchainERC20Test is Test {
     /// @notice Tests the `mint` function reverts when the caller is not the bridge.
     function testFuzz_mint_callerNotBridge_reverts(address _caller, address _to, uint256 _amount) public {
         // Ensure the caller is not the bridge
-        vm.assume(_caller != L2_BRIDGE);
         vm.assume(_caller != SUPERCHAIN_ERC20_BRIDGE);
 
         // Expect the revert with `OnlySuperchainERC20Bridge` selector
@@ -134,18 +126,17 @@ contract SuperchainERC20Test is Test {
     }
 
     /// @notice Tests the `mint` function reverts when the amount is zero.
-    function testFuzz_mint_zeroAddressTo_reverts(uint256 _amount, bool _returnL2StandardBridge) public {
+    function testFuzz_mint_zeroAddressTo_reverts(uint256 _amount) public {
         // Expect the revert with `ZeroAddress` selector
         vm.expectRevert(ISuperchainERC20Errors.ZeroAddress.selector);
 
         // Call the `mint` function with the zero address
-        address bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(bridge);
+        vm.prank(SUPERCHAIN_ERC20_BRIDGE);
         superchainERC20.__superchainMint({ _to: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @notice Tests the `mint` succeeds and emits the `Mint` event.
-    function testFuzz_mint_succeeds(address _to, uint256 _amount, bool _returnL2StandardBridge) public {
+    function testFuzz_mint_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
 
@@ -162,8 +153,7 @@ contract SuperchainERC20Test is Test {
         emit ISuperchainERC20Extension.Mint(_to, _amount);
 
         // Call the `mint` function with the bridge caller
-        address bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(bridge);
+        vm.prank(SUPERCHAIN_ERC20_BRIDGE);
         superchainERC20.__superchainMint(_to, _amount);
 
         // Check the total supply and balance of `_to` after the mint were updated correctly
@@ -174,7 +164,6 @@ contract SuperchainERC20Test is Test {
     /// @notice Tests the `burn` function reverts when the caller is not the bridge.
     function testFuzz_burn_callerNotBridge_reverts(address _caller, address _from, uint256 _amount) public {
         // Ensure the caller is not the bridge
-        vm.assume(_caller != L2_BRIDGE);
         vm.assume(_caller != SUPERCHAIN_ERC20_BRIDGE);
 
         // Expect the revert with `OnlySuperchainERC20Bridge` selector
@@ -186,24 +175,22 @@ contract SuperchainERC20Test is Test {
     }
 
     /// @notice Tests the `burn` function reverts when the amount is zero.
-    function testFuzz_burn_zeroAddressFrom_reverts(uint256 _amount, bool _returnL2StandardBridge) public {
+    function testFuzz_burn_zeroAddressFrom_reverts(uint256 _amount) public {
         // Expect the revert with `ZeroAddress` selector
         vm.expectRevert(ISuperchainERC20Errors.ZeroAddress.selector);
 
         // Call the `burn` function with the zero address
-        address bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(bridge);
+        vm.prank(SUPERCHAIN_ERC20_BRIDGE);
         superchainERC20.__superchainBurn({ _from: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @notice Tests the `burn` burns the amount and emits the `Burn` event.
-    function testFuzz_burn_succeeds(address _from, uint256 _amount, bool _returnL2StandardBridge) public {
+    function testFuzz_burn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
 
         // Mint some tokens to `_from` so then they can be burned
-        address bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(bridge);
+        vm.prank(SUPERCHAIN_ERC20_BRIDGE);
         superchainERC20.__superchainMint(_from, _amount);
 
         // Get the total supply and balance of `_from` before the burn to compare later on the assertions
@@ -219,8 +206,7 @@ contract SuperchainERC20Test is Test {
         emit ISuperchainERC20Extension.Burn(_from, _amount);
 
         // Call the `burn` function with the bridge caller
-        bridge = _getBridge(_returnL2StandardBridge);
-        vm.prank(bridge);
+        vm.prank(SUPERCHAIN_ERC20_BRIDGE);
         superchainERC20.__superchainBurn(_from, _amount);
 
         // Check the total supply and balance of `_from` after the burn were updated correctly
