@@ -44,20 +44,20 @@ contract SuperchainERC20 is ERC20, Initializable, ERC165, ISuperchainERC20Extens
     }
 
     /// @notice A modifier that only allows the bridge to call
-    modifier onlyAuthorizedBridge() {
-        if (msg.sender != Predeploys.L2_STANDARD_BRIDGE && msg.sender != Predeploys.SUPERCHAIN_ERC20_BRIDGE) {
-            revert OnlyAuthorizedBridge();
-        }
+    modifier onlySuperchainERC20Bridge() {
+        if (msg.sender != Predeploys.SUPERCHAIN_ERC20_BRIDGE) revert OnlySuperchainERC20Bridge();
         _;
     }
-
-    /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.6
-    string public constant version = "1.0.0-beta.6";
 
     /// @notice Constructs the SuperchainERC20 contract.
     constructor() {
         _disableInitializers();
+    }
+
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0-beta.6
+    function version() external pure virtual returns (string memory) {
+        return "1.0.0-beta.6";
     }
 
     /// @notice Initializes the contract.
@@ -81,10 +81,10 @@ contract SuperchainERC20 is ERC20, Initializable, ERC165, ISuperchainERC20Extens
         _storage.decimals = _decimals;
     }
 
-    /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to mint tokens.
+    /// @notice Allows the SuperchainERC20Bridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
-    function __superchainMint(address _to, uint256 _amount) external virtual onlyAuthorizedBridge {
+    function __superchainMint(address _to, uint256 _amount) external virtual onlySuperchainERC20Bridge {
         if (_to == address(0)) revert ZeroAddress();
 
         _mint(_to, _amount);
@@ -92,10 +92,10 @@ contract SuperchainERC20 is ERC20, Initializable, ERC165, ISuperchainERC20Extens
         emit Mint(_to, _amount);
     }
 
-    /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to burn tokens.
+    /// @notice Allows the SuperchainERC20Bridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
-    function __superchainBurn(address _from, uint256 _amount) external virtual onlyAuthorizedBridge {
+    function __superchainBurn(address _from, uint256 _amount) external virtual onlySuperchainERC20Bridge {
         if (_from == address(0)) revert ZeroAddress();
 
         _burn(_from, _amount);

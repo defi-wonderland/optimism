@@ -10,9 +10,8 @@ interface ISuperchainERC20Errors {
     /// @notice Thrown when attempting to perform an operation and the account is the zero address.
     error ZeroAddress();
 
-    /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the StandardBridge or the
-    /// SuperchainERC20Bridge.
-    error OnlyAuthorizedBridge();
+    /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the SuperchainERC20Bridge.
+    error OnlySuperchainERC20Bridge();
 }
 
 /// @title ISuperchainERC20Extension
@@ -28,12 +27,12 @@ interface ISuperchainERC20Extension is ISuperchainERC20Errors {
     /// @param amount  Amount of tokens burned.
     event Burn(address indexed account, uint256 amount);
 
-    /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to mint tokens.
+    /// @notice Allows the SuperchainERC20Bridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function __superchainMint(address _to, uint256 _amount) external;
 
-    /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to burn tokens.
+    /// @notice Allows the SuperchainERC20Bridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function __superchainBurn(address _from, uint256 _amount) external;

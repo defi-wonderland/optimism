@@ -125,8 +125,8 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != L2_BRIDGE);
         vm.assume(_caller != SUPERCHAIN_ERC20_BRIDGE);
 
-        // Expect the revert with `OnlyAuthorizedBridge` selector
-        vm.expectRevert(ISuperchainERC20Errors.OnlyAuthorizedBridge.selector);
+        // Expect the revert with `OnlySuperchainERC20Bridge` selector
+        vm.expectRevert(ISuperchainERC20Errors.OnlySuperchainERC20Bridge.selector);
 
         // Call the `mint` function with the non-bridge caller
         vm.prank(_caller);
@@ -177,8 +177,8 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != L2_BRIDGE);
         vm.assume(_caller != SUPERCHAIN_ERC20_BRIDGE);
 
-        // Expect the revert with `OnlyAuthorizedBridge` selector
-        vm.expectRevert(ISuperchainERC20Errors.OnlyAuthorizedBridge.selector);
+        // Expect the revert with `OnlySuperchainERC20Bridge` selector
+        vm.expectRevert(ISuperchainERC20Errors.OnlySuperchainERC20Bridge.selector);
 
         // Call the `burn` function with the non-bridge caller
         vm.prank(_caller);
