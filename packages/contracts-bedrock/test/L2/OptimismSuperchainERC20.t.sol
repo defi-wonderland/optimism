@@ -16,7 +16,11 @@ import { IBeacon } from "@openzeppelin/contracts-v5/proxy/beacon/IBeacon.sol";
 import { BeaconProxy } from "@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy.sol";
 
 // Target contract
-import { OptimismSuperchainERC20, IOptimismSuperchainERC20Extension } from "src/L2/OptimismSuperchainERC20.sol";
+import { OptimismSuperchainERC20 } from "src/L2/OptimismSuperchainERC20.sol";
+import {
+    IOptimismSuperchainERC20Extension,
+    IOptimismSuperchainERC20Errors
+} from "src/L2/interfaces/IOptimismSuperchainERC20.sol";
 import { ISuperchainERC20Errors } from "src/L2/interfaces/ISuperchainERC20.sol";
 
 /// @title OptimismSuperchainERC20Test
@@ -119,12 +123,12 @@ contract OptimismSuperchainERC20Test is Test {
         // Ensure the caller is not the bridge
         vm.assume(_caller != L2_BRIDGE);
 
-        // Expect the revert with `OnlySuperchainERC20Bridge` selector
-        vm.expectRevert(ISuperchainERC20Errors.OnlySuperchainERC20Bridge.selector);
+        // Expect the revert with `OnlyL2StandardBridge` selector
+        vm.expectRevert(IOptimismSuperchainERC20Errors.OnlyL2StandardBridge.selector);
 
         // Call the `mint` function with the non-bridge caller
         vm.prank(_caller);
-        optimismSuperchainERC20.__superchainMint(_to, _amount);
+        optimismSuperchainERC20.mint(_to, _amount);
     }
 
     /// @notice Tests the `mint` function reverts when the amount is zero.
@@ -134,7 +138,7 @@ contract OptimismSuperchainERC20Test is Test {
 
         // Call the `mint` function with the zero address
         vm.prank(L2_BRIDGE);
-        optimismSuperchainERC20.__superchainMint({ _to: ZERO_ADDRESS, _amount: _amount });
+        optimismSuperchainERC20.mint({ _to: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @notice Tests the `mint` succeeds and emits the `Mint` event.
@@ -156,7 +160,7 @@ contract OptimismSuperchainERC20Test is Test {
 
         // Call the `mint` function with the bridge caller
         vm.prank(L2_BRIDGE);
-        optimismSuperchainERC20.__superchainMint(_to, _amount);
+        optimismSuperchainERC20.mint(_to, _amount);
 
         // Check the total supply and balance of `_to` after the mint were updated correctly
         assertEq(optimismSuperchainERC20.totalSupply(), _totalSupplyBefore + _amount);
@@ -168,12 +172,12 @@ contract OptimismSuperchainERC20Test is Test {
         // Ensure the caller is not the bridge
         vm.assume(_caller != L2_BRIDGE);
 
-        // Expect the revert with `OnlySuperchainERC20Bridge` selector
-        vm.expectRevert(ISuperchainERC20Errors.OnlySuperchainERC20Bridge.selector);
+        // Expect the revert with `OnlyL2StandardBridge` selector
+        vm.expectRevert(IOptimismSuperchainERC20Errors.OnlyL2StandardBridge.selector);
 
         // Call the `burn` function with the non-bridge caller
         vm.prank(_caller);
-        optimismSuperchainERC20.__superchainBurn(_from, _amount);
+        optimismSuperchainERC20.burn(_from, _amount);
     }
 
     /// @notice Tests the `burn` function reverts when the amount is zero.
@@ -183,7 +187,7 @@ contract OptimismSuperchainERC20Test is Test {
 
         // Call the `burn` function with the zero address
         vm.prank(L2_BRIDGE);
-        optimismSuperchainERC20.__superchainBurn({ _from: ZERO_ADDRESS, _amount: _amount });
+        optimismSuperchainERC20.burn({ _from: ZERO_ADDRESS, _amount: _amount });
     }
 
     /// @notice Tests the `burn` burns the amount and emits the `Burn` event.
@@ -193,7 +197,7 @@ contract OptimismSuperchainERC20Test is Test {
 
         // Mint some tokens to `_from` so then they can be burned
         vm.prank(L2_BRIDGE);
-        optimismSuperchainERC20.__superchainMint(_from, _amount);
+        optimismSuperchainERC20.mint(_from, _amount);
 
         // Get the total supply and balance of `_from` before the burn to compare later on the assertions
         uint256 _totalSupplyBefore = optimismSuperchainERC20.totalSupply();
@@ -209,7 +213,7 @@ contract OptimismSuperchainERC20Test is Test {
 
         // Call the `burn` function with the bridge caller
         vm.prank(L2_BRIDGE);
-        optimismSuperchainERC20.__superchainBurn(_from, _amount);
+        optimismSuperchainERC20.burn(_from, _amount);
 
         // Check the total supply and balance of `_from` after the burn were updated correctly
         assertEq(optimismSuperchainERC20.totalSupply(), _totalSupplyBefore - _amount);

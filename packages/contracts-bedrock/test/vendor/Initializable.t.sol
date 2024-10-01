@@ -401,7 +401,7 @@ contract Initializer_Test is Bridge_Initializer {
         excludes[0] = "src/L1/SystemConfigInterop.sol";
         excludes[1] = "src/L1/OptimismPortalInterop.sol";
         // Contract is currently not being deployed as part of the standard deployment script.
-        excludes[2] = "src/L2/SuperchainERC20.sol";
+        excludes[2] = "src/L2/OptimismSuperchainERC20.sol";
         // Periphery contracts don't get deployed as part of the standard deployment script.
         excludes[3] = "src/periphery/*";
         // TODO: Deployment script is currently "broken" in the sense that it doesn't properly

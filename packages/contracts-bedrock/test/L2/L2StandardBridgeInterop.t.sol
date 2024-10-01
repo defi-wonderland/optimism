@@ -203,14 +203,10 @@ contract L2StandardBridgeInterop_LegacyToSuper_Test is L2StandardBridgeInterop_T
 
         // Mock and expect the `burn` and `mint` functions
         _mockAndExpect(
-            _from,
-            abi.encodeWithSelector(IMintableAndBurnableERC20.__superchainBurn.selector, _caller, _amount),
-            abi.encode()
+            _from, abi.encodeWithSelector(IMintableAndBurnableERC20.burn.selector, _caller, _amount), abi.encode()
         );
         _mockAndExpect(
-            _to,
-            abi.encodeWithSelector(IMintableAndBurnableERC20.__superchainMint.selector, _caller, _amount),
-            abi.encode()
+            _to, abi.encodeWithSelector(IMintableAndBurnableERC20.mint.selector, _caller, _amount), abi.encode()
         );
 
         // Act
@@ -365,14 +361,10 @@ contract L2StandardBridgeInterop_SuperToLegacy_Test is L2StandardBridgeInterop_T
 
         // Mock and expect the `burn` and `mint` functions
         _mockAndExpect(
-            _from,
-            abi.encodeWithSelector(IMintableAndBurnableERC20.__superchainBurn.selector, _caller, _amount),
-            abi.encode()
+            _from, abi.encodeWithSelector(IMintableAndBurnableERC20.burn.selector, _caller, _amount), abi.encode()
         );
         _mockAndExpect(
-            _to,
-            abi.encodeWithSelector(IMintableAndBurnableERC20.__superchainMint.selector, _caller, _amount),
-            abi.encode()
+            _to, abi.encodeWithSelector(IMintableAndBurnableERC20.mint.selector, _caller, _amount), abi.encode()
         );
 
         // Act

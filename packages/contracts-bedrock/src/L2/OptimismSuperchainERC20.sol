@@ -84,7 +84,7 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOpt
 
         _mint(_to, _amount);
 
-        emit Burn(_to, _amount);
+        emit Mint(_to, _amount);
     }
 
     /// @notice Allows the L2StandardBridge and SuperchainERC20Bridge to burn tokens.

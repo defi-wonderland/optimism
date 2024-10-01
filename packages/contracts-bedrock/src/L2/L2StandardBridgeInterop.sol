@@ -52,8 +52,8 @@ contract L2StandardBridgeInterop is L2StandardBridge {
     function convert(address _from, address _to, uint256 _amount) external {
         _validatePair(_from, _to);
 
-        IMintableAndBurnableERC20(_from).__superchainMint(msg.sender, _amount);
-        IMintableAndBurnableERC20(_to).__superchainBurn(msg.sender, _amount);
+        IMintableAndBurnableERC20(_from).mint(msg.sender, _amount);
+        IMintableAndBurnableERC20(_to).burn(msg.sender, _amount);
 
         emit Converted(_from, _to, msg.sender, _amount);
     }
