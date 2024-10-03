@@ -42,7 +42,7 @@ with additional rules. These are:
 - Always use `@notice` since it has the same general effect as `@dev` but avoids confusion about when to use one over the other.
 - Include a newline between `@notice` and the first `@param`.
 - Include a newline between `@param` and the first `@return`.
-- Use a line-length of 100 characters.
+- Use a line-length of 120 characters.
 
 We also have the following custom tags:
 
