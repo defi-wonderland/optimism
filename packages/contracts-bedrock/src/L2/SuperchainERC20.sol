@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { ICrosschainERC20 } from "src/L2/interfaces/ICrosschainERC20.sol";
-import { ISuperchainERC20Errors } from "src/L2/interfaces/ISuperchainERC20.sol";
+import { ISuperchainERC20 } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ERC20 } from "@solady/tokens/ERC20.sol";
@@ -11,7 +10,7 @@ import { ERC20 } from "@solady/tokens/ERC20.sol";
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
 ///         bridging to make it fungible across the Superchain. This construction allows the SuperchainERC20Bridge to
 ///         burn and mint tokens.
-abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISuperchainERC20Errors, ISemver {
+abstract contract SuperchainERC20 is ERC20, ISuperchainERC20, ISemver {
     /// @notice A modifier that only allows the SuperchainERC20Bridge to call
     modifier onlySuperchainERC20Bridge() {
         if (msg.sender != Predeploys.SUPERCHAIN_ERC20_BRIDGE) revert OnlySuperchainERC20Bridge();

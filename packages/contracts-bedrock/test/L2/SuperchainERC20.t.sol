@@ -18,7 +18,7 @@ import { BeaconProxy } from "@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy
 // Target contract
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 import { ICrosschainERC20 } from "src/L2/interfaces/ICrosschainERC20.sol";
-import { ISuperchainERC20Errors } from "src/L2/interfaces/ISuperchainERC20.sol";
+import { ISuperchainERC20 } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { SuperchainERC20Implementation_MockContract } from "test/mocks/SuperchainERC20Implementation.sol";
 
 /// @title SuperchainERC20Test
@@ -47,7 +47,7 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != SUPERCHAIN_ERC20_BRIDGE);
 
         // Expect the revert with `OnlySuperchainERC20Bridge` selector
-        vm.expectRevert(ISuperchainERC20Errors.OnlySuperchainERC20Bridge.selector);
+        vm.expectRevert(ISuperchainERC20.OnlySuperchainERC20Bridge.selector);
 
         // Call the `mint` function with the non-bridge caller
         vm.prank(_caller);
@@ -92,7 +92,7 @@ contract SuperchainERC20Test is Test {
         vm.assume(_caller != SUPERCHAIN_ERC20_BRIDGE);
 
         // Expect the revert with `OnlySuperchainERC20Bridge` selector
-        vm.expectRevert(ISuperchainERC20Errors.OnlySuperchainERC20Bridge.selector);
+        vm.expectRevert(ISuperchainERC20.OnlySuperchainERC20Bridge.selector);
 
         // Call the `burn` function with the non-bridge caller
         vm.prank(_caller);

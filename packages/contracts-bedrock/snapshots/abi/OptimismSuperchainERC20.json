@@ -427,7 +427,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "account",
+        "name": "from",
         "type": "address"
       },
       {
@@ -446,7 +446,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "account",
+        "name": "from",
         "type": "address"
       },
       {
@@ -465,7 +465,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "account",
+        "name": "to",
         "type": "address"
       },
       {
@@ -497,7 +497,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "account",
+        "name": "to",
         "type": "address"
       },
       {
