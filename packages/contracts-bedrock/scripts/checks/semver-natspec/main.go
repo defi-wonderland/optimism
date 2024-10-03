@@ -63,7 +63,6 @@ func run() error {
 
 	artifactsDir := filepath.Join(cwd, "forge-artifacts")
 	srcDir := filepath.Join(cwd, "src")
-	testDir := filepath.Join(cwd, "test")
 
 	artifactFiles, err := glob(artifactsDir, ".json")
 	if err != nil {
@@ -72,10 +71,6 @@ func run() error {
 	contractFiles, err := glob(srcDir, ".sol")
 	if err != nil {
 		return fmt.Errorf("failed to get contract files: %w", err)
-	}
-	testFiles, err := glob(testDir, ".sol")
-	if err != nil {
-		return fmt.Errorf("failed to get test files: %w", err)
 	}
 
 	var hasErr int32
@@ -134,12 +129,13 @@ func run() error {
 				return
 			}
 
-			var contractPath string
-			if path, ok := contractFiles[contractName]; ok {
-				contractPath = path
-			} else if path, ok := testFiles[contractName]; ok {
-				contractPath = path
-			} else {
+			// Skip mock contracts
+			if strings.Contains(contractName, "_MockContract") {
+				return
+			}
+
+			contractPath := contractFiles[contractName]
+			if contractPath == "" {
 				fail("%s: Source file not found", contractName)
 				return
 			}
