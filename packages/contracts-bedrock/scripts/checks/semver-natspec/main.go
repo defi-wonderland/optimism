@@ -136,7 +136,7 @@ func run() error {
 
 			contractPath := contractFiles[contractName]
 			if contractPath == "" {
-				fail("%s: Source file not found", contractName)
+				fail("%s: Source file not found (For test mock contracts, suffix the name with '_MockContract' to ignore this warning)", contractName)
 				return
 			}
 
