@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 // Interfaces
-import { ISuperchainERC20, ISuperchainERC20Extension } from "src/L2/interfaces/ISuperchainERC20.sol";
+import { ISuperchainERC20Extension } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { IERC20Solady } from "src/vendor/interfaces/IERC20Solady.sol";
 
 /// @title IOptimismSuperchainERC20Errors

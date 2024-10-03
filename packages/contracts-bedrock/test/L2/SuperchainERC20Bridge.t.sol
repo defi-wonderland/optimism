@@ -67,7 +67,7 @@ contract SuperchainERC20BridgeTest is Bridge_Initializer {
 
         // Mint some tokens to the sender so then they can be sent
         vm.prank(Predeploys.SUPERCHAIN_ERC20_BRIDGE);
-        superchainERC20.__superchainMint(_sender, _amount);
+        superchainERC20.__crosschainMint(_sender, _amount);
 
         // Get the total supply and balance of `_sender` before the send to compare later on the assertions
         uint256 _totalSupplyBefore = superchainERC20.totalSupply();
