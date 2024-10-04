@@ -15,7 +15,7 @@ import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializa
 ///         OptimismSuperchainERC20 token, turning it fungible and interoperable across the superchain. Likewise, it
 ///         also enables the inverse conversion path.
 ///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
-contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOptimismSuperchainERC20 {
+contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165 {
     /// @notice Storage slot that the OptimismSuperchainERC20Metadata struct is stored at.
     /// keccak256(abi.encode(uint256(keccak256("optimismSuperchainERC20.metadata")) - 1)) & ~bytes32(uint256(0xff));
     bytes32 internal constant OPTIMISM_SUPERCHAIN_ERC20_METADATA_SLOT =
@@ -44,7 +44,7 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOpt
     /// @notice A modifier that only allows the L2StandardBridge to call
     modifier onlyL2StandardBridge() {
         if (msg.sender != Predeploys.L2_STANDARD_BRIDGE) {
-            revert OnlyL2StandardBridge();
+            revert IOptimismSuperchainERC20.OnlyL2StandardBridge();
         }
         _;
     }
@@ -83,26 +83,26 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable, ERC165, IOpt
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function mint(address _to, uint256 _amount) external virtual onlyL2StandardBridge {
-        if (_to == address(0)) revert ZeroAddress();
+        if (_to == address(0)) revert IOptimismSuperchainERC20.ZeroAddress();
 
         _mint(_to, _amount);
 
-        emit Mint(_to, _amount);
+        emit IOptimismSuperchainERC20.Mint(_to, _amount);
     }
 
     /// @notice Allows the L2StandardBridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function burn(address _from, uint256 _amount) external virtual onlyL2StandardBridge {
-        if (_from == address(0)) revert ZeroAddress();
+        if (_from == address(0)) revert IOptimismSuperchainERC20.ZeroAddress();
 
         _burn(_from, _amount);
 
-        emit Burn(_from, _amount);
+        emit IOptimismSuperchainERC20.Burn(_from, _amount);
     }
 
     /// @notice Returns the address of the corresponding version of this token on the remote chain.
-    function remoteToken() public view override returns (address) {
+    function remoteToken() public view returns (address) {
         return _getStorage().remoteToken;
     }
 

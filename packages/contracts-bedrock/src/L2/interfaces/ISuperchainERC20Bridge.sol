@@ -37,11 +37,19 @@ interface ISuperchainERC20Bridge is ISemver {
 
     /// @notice Sends tokens to a target address on another chain.
     /// @dev Tokens are burned on the source chain.
-    /// @param _token   Token to send.
-    /// @param _to      Address to send tokens to.
-    /// @param _amount  Amount of tokens to send.
-    /// @param _chainId Chain ID of the destination chain.
-    function sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId) external;
+    /// @param _token    Token to send.
+    /// @param _to       Address to send tokens to.
+    /// @param _amount   Amount of tokens to send.
+    /// @param _chainId  Chain ID of the destination chain.
+    /// @return msgHash_ Hash of the message sent.
+    function sendERC20(
+        address _token,
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        external
+        returns (bytes32 msgHash_);
 
     /// @notice Relays tokens received from another chain.
     /// @dev Tokens are minted on the destination chain.
@@ -50,4 +58,6 @@ interface ISuperchainERC20Bridge is ISemver {
     /// @param _to      Address to relay tokens to.
     /// @param _amount  Amount of tokens to relay.
     function relayERC20(address _token, address _from, address _to, uint256 _amount) external;
+
+    function __constructor__() external;
 }

@@ -35,4 +35,6 @@ interface IOptimismSuperchainERC20 is ISuperchainERC20 {
 
     /// @notice Returns the address of the corresponding version of this token on the remote chain.
     function remoteToken() external view returns (address);
+
+    function __constructor__() external;
 }
