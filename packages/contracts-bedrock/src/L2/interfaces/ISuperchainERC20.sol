@@ -9,7 +9,6 @@ import { ISemver } from "src/universal/interfaces/ISemver.sol";
 /// @title ISuperchainERC20
 /// @notice This interface is available on the SuperchainERC20 contract.
 interface ISuperchainERC20 is ICrosschainERC20, IERC20Solady, ISemver {
-    /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the SuperchainERC20Bridge.
     error OnlySuperchainERC20Bridge();
 
     function __constructor__() external;
