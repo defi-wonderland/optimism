@@ -10,7 +10,7 @@ import { ERC20 } from "@solady/tokens/ERC20.sol";
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
 ///         bridging to make it fungible across the Superchain. This construction allows the SuperchainERC20Bridge to
 ///         burn and mint tokens.
-abstract contract SuperchainERC20 is ERC20, ISemver {
+abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
     /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the SuperchainERC20Bridge.
     error OnlySuperchainERC20Bridge();
 
@@ -32,7 +32,7 @@ abstract contract SuperchainERC20 is ERC20, ISemver {
     function __crosschainMint(address _to, uint256 _amount) external virtual onlySuperchainERC20Bridge {
         _mint(_to, _amount);
 
-        emit ICrosschainERC20.CrosschainMinted(_to, _amount);
+        emit CrosschainMinted(_to, _amount);
     }
 
     /// @notice Allows the SuperchainERC20Bridge to burn tokens.
@@ -41,6 +41,6 @@ abstract contract SuperchainERC20 is ERC20, ISemver {
     function __crosschainBurn(address _from, uint256 _amount) external virtual onlySuperchainERC20Bridge {
         _burn(_from, _amount);
 
-        emit ICrosschainERC20.CrosschainBurnt(_from, _amount);
+        emit CrosschainBurnt(_from, _amount);
     }
 }
