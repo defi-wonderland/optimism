@@ -51,17 +51,16 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
         address target,
         bytes memory message,
         address to,
-        uint256 amount
+        uint256 amount,
+        address originalSender
     )
         external
     {
         require(sender == Predeploys.SUPERCHAIN_ERC20_BRIDGE);
         require(target == address(this));
 
-        // this forces the msg.sender to be the one that sent the message in bridge, could also be permissionless if
-        // added as parameter
         bytes memory expectedMessage =
-            abi.encodeCall(Predeploys.SUPERCHAIN_ERC20_BRIDGE.relayERC20, (address(this), msg.sender, to, amount));
+            abi.encodeCall(Predeploys.SUPERCHAIN_ERC20_BRIDGE.relayERC20, (address(this), originalSender, to, amount));
         require(expectedMessage = message);
 
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -77,7 +76,7 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
 
         if (isExpired) {
             // a recovery address could be added to the message as well
-            _mint(msg.sender, amount);
+            _mint(originalSender, amount);
         }
     }
 }
