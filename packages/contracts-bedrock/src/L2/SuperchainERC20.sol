@@ -41,4 +41,40 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
 
         emit CrosschainBurnt(_from, _amount);
     }
+
+    function handleExpireMessage(
+        uint256 destination,
+        uint256 nonce,
+        address sender,
+        address target,
+        bytes memory message,
+        address to,
+        uint256 amount,
+        address originalSender
+    )
+        external
+    {
+        require(sender == Predeploys.SUPERCHAIN_ERC20_BRIDGE);
+        require(target == address(this));
+
+        bytes memory expectedMessage =
+            abi.encodeCall(Predeploys.SUPERCHAIN_ERC20_BRIDGE.relayERC20, (address(this), originalSender, to, amount));
+        require(expectedMessage = message);
+
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: destination,
+            _source: block.chainId,
+            _nonce: nonce,
+            _sender: sender,
+            _target: target,
+            _message: message
+        });
+
+        bool isExpired = Predeploys.L2ToL2CrossDomainMessenger.expiredMessages(msgHash) != 0;
+
+        if (isExpired) {
+            // a recovery address could be added to the message as well
+            _mint(originalSender, amount);
+        }
+    }
 }
