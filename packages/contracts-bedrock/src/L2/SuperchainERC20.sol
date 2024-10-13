@@ -14,6 +14,8 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
     /// @notice Thrown when attempting to mint or burn tokens and the function caller is not the SuperchainTokenBridge.
     error OnlySuperchainTokenBridge();
 
+    mapping(bytes32 messageHash => uint256 timestamp) handledMessages;
+
     /// @notice A modifier that only allows the SuperchainTokenBridge to call
     modifier onlySuperchainTokenBridge() {
         if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert OnlySuperchainTokenBridge();
@@ -47,8 +49,6 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
     function handleExpireMessage(
         uint256 destination,
         uint256 nonce,
-        address sender,
-        address target,
         bytes memory message,
         address to,
         uint256 amount,
@@ -56,9 +56,6 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
     )
         external
     {
-        require(sender == Predeploys.SUPERCHAIN_ERC20_BRIDGE);
-        require(target == address(this));
-
         bytes memory expectedMessage =
             abi.encodeCall(Predeploys.SUPERCHAIN_ERC20_BRIDGE.relayERC20, (address(this), originalSender, to, amount));
         require(expectedMessage = message);
@@ -67,10 +64,13 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
             _destination: destination,
             _source: block.chainId,
             _nonce: nonce,
-            _sender: sender,
-            _target: target,
+            _sender: Predeploys.SUPERCHAIN_ERC20_BRIDGE,
+            _target: address(this),
             _message: message
         });
+
+        require(handledMessages == 0);
+        handledMessages[messageHash] = block.timestamp;
 
         bool isExpired = Predeploys.L2ToL2CrossDomainMessenger.expiredMessages(msgHash) != 0;
 
