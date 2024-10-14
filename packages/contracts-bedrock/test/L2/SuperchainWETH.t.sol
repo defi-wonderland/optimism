@@ -7,6 +7,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { NotCustomGasToken } from "src/libraries/errors/CommonErrors.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Interfaces
 import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
@@ -353,5 +354,58 @@ contract SuperchainWETH_Test is CommonTest {
         // Assert
         assertEq(address(superchainWeth).balance, 0);
         assertEq(superchainWeth.balanceOf(bob), 0);
+    }
+
+    /// @notice Tests that the allowance function returns the max uint256 value when the spender is Permit.
+    /// @param _randomCaller The address that will call the function - used to fuzz better since the behaviour should be
+    ///                       the same regardless of the caller.
+    /// @param _src The funds owner.
+    function testFuzz_allowance_fromPermit2_succeeds(address _randomCaller, address _src) public {
+        vm.prank(_randomCaller);
+        uint256 _allowance = superchainWeth.allowance(_src, Preinstalls.Permit2);
+
+        assertEq(_allowance, type(uint256).max);
+    }
+
+    /// @notice Tests that the allowance function returns the correct allowance when the spender is not Permit.
+    /// @param _randomCaller The address that will call the function - used to fuzz better
+    ///                       since the behaviour should be the same regardless of the caller.
+    /// @param _src The funds owner.
+    /// @param _guy The address of the spender - It cannot be Permit2.
+    function testFuzz_allowance_succeeds(address _randomCaller, address _src, address _guy, uint256 _wad) public {
+        // Assume
+        vm.assume(_guy != Preinstalls.Permit2);
+
+        // Arrange
+        vm.prank(_src);
+        superchainWeth.approve(_guy, _wad);
+
+        // Act
+        vm.prank(_randomCaller);
+        uint256 _allowance = superchainWeth.allowance(_src, _guy);
+
+        // Assert
+        assertEq(_allowance, _wad);
+    }
+
+    /// @notice Tests that `transferFrom` works when the caller (spender) is Permit2, without any explicit approval.
+    /// @param _src The funds owner.
+    /// @param _dst The address of the recipient.
+    /// @param _wad The amount of WETH to transfer.
+    function testFuzz_transferFrom_whenPermit2IsCaller_succeeds(address _src, address _dst, uint256 _wad) public {
+        // Arrange
+        vm.assume(_src != Preinstalls.Permit2);
+        deal(address(superchainWeth), _src, _wad);
+
+        vm.expectEmit(address(superchainWeth));
+        emit Transfer(_src, _dst, _wad);
+
+        // Act
+        vm.prank(Preinstalls.Permit2);
+        superchainWeth.transferFrom(_src, _dst, _wad);
+
+        // Assert
+        assertEq(superchainWeth.balanceOf(_src), 0);
+        assertEq(superchainWeth.balanceOf(_dst), _wad);
     }
 }

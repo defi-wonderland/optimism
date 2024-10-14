@@ -6,6 +6,7 @@ import { WETH98 } from "src/universal/WETH98.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Interfaces
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
@@ -22,8 +23,8 @@ import { ISuperchainWETH } from "src/L2/interfaces/ISuperchainWETH.sol";
 ///         do not use a custom gas token.
 contract SuperchainWETH is WETH98, ISuperchainWETH, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.6
-    string public constant version = "1.0.0-beta.6";
+    /// @custom:semver 1.0.0-beta.7
+    string public constant version = "1.0.0-beta.7";
 
     /// @inheritdoc WETH98
     function deposit() public payable override {
@@ -80,11 +81,17 @@ contract SuperchainWETH is WETH98, ISuperchainWETH, ISemver {
         emit RelayERC20(from, dst, wad, source);
     }
 
+    /// @inheritdoc WETH98
+    function allowance(address src, address guy) public view override returns (uint256) {
+        if (guy == Preinstalls.Permit2) return type(uint256).max;
+        return super.allowance(src, guy);
+    }
+
     /// @notice Mints WETH to an address.
     /// @param guy The address to mint WETH to.
     /// @param wad The amount of WETH to mint.
     function _mint(address guy, uint256 wad) internal {
-        balanceOf[guy] += wad;
+        _balanceOf[guy] += wad;
         emit Transfer(address(0), guy, wad);
     }
 
@@ -92,8 +99,8 @@ contract SuperchainWETH is WETH98, ISuperchainWETH, ISemver {
     /// @param guy The address to burn WETH from.
     /// @param wad The amount of WETH to burn.
     function _burn(address guy, uint256 wad) internal {
-        require(balanceOf[guy] >= wad);
-        balanceOf[guy] -= wad;
+        require(balanceOf(guy) >= wad);
+        _balanceOf[guy] -= wad;
         emit Transfer(guy, address(0), wad);
     }
 }
