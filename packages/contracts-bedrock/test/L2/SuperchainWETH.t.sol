@@ -404,7 +404,9 @@ contract SuperchainWETH_Test is CommonTest {
         superchainWeth.transferFrom(_src, _dst, _wad);
 
         // Assert
-        assertEq(superchainWeth.balanceOf(_src), 0);
         assertEq(superchainWeth.balanceOf(_dst), _wad);
+        // Handle the case where the source and destination are the same to check the source balance.
+        if (_src != _dst) assertEq(superchainWeth.balanceOf(_src), 0);
+        else assertEq(superchainWeth.balanceOf(_src), _wad);
     }
 }
