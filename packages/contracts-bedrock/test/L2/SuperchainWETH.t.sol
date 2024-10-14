@@ -394,7 +394,6 @@ contract SuperchainWETH_Test is CommonTest {
     /// @param _wad The amount of WETH to transfer.
     function testFuzz_transferFrom_whenPermit2IsCaller_succeeds(address _src, address _dst, uint256 _wad) public {
         // Arrange
-        vm.assume(_src != Preinstalls.Permit2);
         deal(address(superchainWeth), _src, _wad);
 
         vm.expectEmit(address(superchainWeth));
