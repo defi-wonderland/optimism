@@ -67,7 +67,7 @@ contract WETH98 is IWETH {
 
     /// @inheritdoc IWETH
     function withdraw(uint256 wad) public virtual {
-        require(balanceOf(msg.sender) >= wad);
+        require(_balanceOf[msg.sender] >= wad);
         _balanceOf[msg.sender] -= wad;
         payable(msg.sender).transfer(wad);
         emit Withdrawal(msg.sender, wad);
@@ -92,7 +92,7 @@ contract WETH98 is IWETH {
 
     /// @inheritdoc IWETH
     function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
-        require(balanceOf(src) >= wad);
+        require(_balanceOf[src] >= wad);
 
         uint256 senderAllowance = allowance(src, msg.sender);
         if (src != msg.sender && senderAllowance != type(uint256).max) {

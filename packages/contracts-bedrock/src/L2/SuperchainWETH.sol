@@ -99,7 +99,7 @@ contract SuperchainWETH is WETH98, ISuperchainWETH, ISemver {
     /// @param guy The address to burn WETH from.
     /// @param wad The amount of WETH to burn.
     function _burn(address guy, uint256 wad) internal {
-        require(balanceOf(guy) >= wad);
+        require(_balanceOf[guy] >= wad);
         _balanceOf[guy] -= wad;
         emit Transfer(guy, address(0), wad);
     }
