@@ -174,6 +174,7 @@ contract SuperchainWETH_Test is CommonTest {
         // Check the total supply and balance of `_to` after the mint were updated correctly
         assertEq(superchainWeth.totalSupply(), _totalSupplyBefore + _amount);
         assertEq(superchainWeth.balanceOf(_to), _toBalanceBefore + _amount);
+        assertEq(superchainWeth.balanceOf(Predeploys.ETH_LIQUIDITY), 0);
         assertEq(address(superchainWeth).balance, _amount);
     }
 
@@ -197,12 +198,16 @@ contract SuperchainWETH_Test is CommonTest {
         // Mock the `isCustomGasToken` function to return false
         _mockAndExpect(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(true));
 
+        // Expect to not call the `mint` function in the `ETHLiquidity` contract
+        vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.mint, (_amount)), 0);
+
         // Call the `mint` function with the bridge caller
         vm.prank(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
         superchainWeth.crosschainMint(_to, _amount);
 
         // Check the total supply and balance of `_to` after the mint were updated correctly
         assertEq(superchainWeth.balanceOf(_to), _toBalanceBefore + _amount);
+        assertEq(superchainWeth.balanceOf(Predeploys.ETH_LIQUIDITY), 0);
         assertEq(superchainWeth.totalSupply(), 0);
         assertEq(address(superchainWeth).balance, 0);
     }
@@ -247,7 +252,7 @@ contract SuperchainWETH_Test is CommonTest {
         // Mock the `isCustomGasToken` function to return false
         _mockAndExpect(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(false));
 
-        // Expect the call to the `mint` function in the `ETHLiquidity` contract
+        // Expect the call to the `burn` function in the `ETHLiquidity` contract
         vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.burn, ()), 1);
 
         // Call the `burn` function with the bridge caller
@@ -285,6 +290,9 @@ contract SuperchainWETH_Test is CommonTest {
         // Look for the emit of the `CrosschainBurnt` event
         vm.expectEmit(address(superchainWeth));
         emit CrosschainBurnt(_from, _amount);
+
+        // Expect to not call the `burn` function in the `ETHLiquidity` contract
+        vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.burn, ()), 0);
 
         // Call the `burn` function with the bridge caller
         vm.prank(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);

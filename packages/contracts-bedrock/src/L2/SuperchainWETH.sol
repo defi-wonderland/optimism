@@ -28,8 +28,8 @@ contract SuperchainWETH is WETH98, ICrosschainERC20, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.6
-    string public constant version = "1.0.0-beta.6";
+    /// @custom:semver 1.0.0-beta.7
+    string public constant version = "1.0.0-beta.7";
 
     /// @inheritdoc WETH98
     function deposit() public payable override {
@@ -64,12 +64,12 @@ contract SuperchainWETH is WETH98, ICrosschainERC20, ISemver {
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function crosschainMint(address _to, uint256 _amount) external onlySuperchainTokenBridge {
+        _mint(_to, _amount);
+
         // Mint from ETHLiquidity contract.
         if (!IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
             IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
         }
-
-        _mint(_to, _amount);
 
         emit CrosschainMinted(_to, _amount);
     }
