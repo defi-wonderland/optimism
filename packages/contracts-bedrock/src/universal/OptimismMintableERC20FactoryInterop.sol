@@ -19,7 +19,7 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     error HashOnionNotSet();
 
     /// @notice Thrown when the hashOnion is already peeled - meaning that all the deployments are already stored.
-    error OnionAlreadyPeelled();
+    error OnionAlreadyPeeled();
 
     /// @notice Thrown when the tokens length to verify and store mismatch.
     error TokensLengthMismatch();
@@ -70,7 +70,7 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     {
         bytes32 _hashOnion = hashOnion();
         if (_hashOnion == 0) revert HashOnionNotSet();
-        if (_hashOnion == INITIAL_ONION_LAYER) revert OnionAlreadyPeelled();
+        if (_hashOnion == INITIAL_ONION_LAYER) revert OnionAlreadyPeeled();
         if (_localTokens.length != _remoteTokens.length) revert TokensLengthMismatch();
 
         // Unpeel the hash onion and store the deployments

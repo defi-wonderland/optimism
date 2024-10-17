@@ -8,7 +8,7 @@ interface IOptimismMintableERC20FactoryInterop is IOptimismMintableERC20Factory 
 
     error HashOnionNotSet();
 
-    error OnionAlreadyPeelled();
+    error OnionAlreadyPeeled();
 
     error TokensLengthMismatch();
 
