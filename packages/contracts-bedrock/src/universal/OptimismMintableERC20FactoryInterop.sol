@@ -56,11 +56,11 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     }
 
     /// @notice Verifies the hashOnion and stores the provided addresses.
+    ///         Stores the deployments of the provided tokens if the computed hashOnion is valid. It can be considered
+    ///         complete when the hashOnion matches the initial layer.
     /// @param _localTokens  Array of local token addresses.
     /// @param _remoteTokens Array of remote token addresses.
     /// @param _startingInnerLayer The starting inner layer of the hashOnion.
-    /// @notice Stores the deployments of the provided tokens if the computed hashOnion is valid. It can be considered
-    /// complete when the hashOnion matches the initial layer.
     function verifyAndStore(
         address[] calldata _localTokens,
         address[] calldata _remoteTokens,
