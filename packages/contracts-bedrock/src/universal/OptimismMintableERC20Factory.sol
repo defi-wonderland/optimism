@@ -13,7 +13,7 @@ import { IOptimismERC20Factory } from "src/L2/interfaces/IOptimismERC20Factory.s
 ///         contracts on the network it's deployed to. Simplifies the deployment process for users
 ///         who may be less familiar with deploying smart contracts. Designed to be backwards
 ///         compatible with the older StandardL2ERC20Factory contract.
-contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20Factory {
+contract OptimismMintableERC20Factory is Initializable, IOptimismERC20Factory, ISemver {
     /// @custom:spacer OptimismMintableERC20Factory's initializer slot spacing
     /// @notice Spacer to avoid packing into the initializer slot
     bytes30 private spacer_0_2_30;
@@ -44,12 +44,11 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
     /// @param deployer    Address of the account that deployed the token.
     event OptimismMintableERC20Created(address indexed localToken, address indexed remoteToken, address deployer);
 
-    /// @notice The semver MUST be bumped any time that there is a change in
-    ///         the OptimismMintableERC20 token contract since this contract
-    ///         is responsible for deploying OptimismMintableERC20 contracts.
     /// @notice Semantic version.
-    /// @custom:semver 1.10.1-beta.3
-    string public constant version = "1.10.1-beta.3";
+    /// @custom:semver 1.10.1-beta.4
+    function version() public pure virtual returns (string memory) {
+        return "1.10.1-beta.4";
+    }
 
     /// @notice Constructs the OptimismMintableERC20Factory contract.
     constructor() {
