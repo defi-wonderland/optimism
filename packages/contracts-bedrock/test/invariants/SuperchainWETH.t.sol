@@ -19,12 +19,12 @@ contract SuperchainWETH_User is StdUtils {
     Vm internal vm;
 
     /// @notice The SuperchainWETH contract.
-    ISuperchainWETH internal weth;
+    ISuperchainWETHERC20 internal weth;
 
     /// @param _vm The Vm contract.
     /// @param _weth The SuperchainWETH contract.
     /// @param _balance The initial balance of the contract.
-    constructor(Vm _vm, ISuperchainWETH _weth, uint256 _balance) {
+    constructor(Vm _vm, ISuperchainWETHERC20 _weth, uint256 _balance) {
         vm = _vm;
         weth = _weth;
         vm.deal(address(this), _balance);
