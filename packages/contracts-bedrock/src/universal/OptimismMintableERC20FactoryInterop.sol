@@ -4,7 +4,6 @@ pragma solidity 0.8.15;
 import { OptimismMintableERC20Factory } from "./OptimismMintableERC20Factory.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-import { IOptimismMintableERC20FactoryInterop } from "src/universal/interfaces/IOptimismMintableERC20FactoryInterop.sol";
 
 /// @custom:proxied true
 /// @custom:predeployed 0x4200000000000000000000000000000000000012
