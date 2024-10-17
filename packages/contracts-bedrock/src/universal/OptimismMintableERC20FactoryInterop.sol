@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { OptimismMintableERC20Factory } from "./OptimismMintableERC20Factory.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
+import { IOptimismMintableERC20FactoryInterop } from "src/universal/interfaces/IOptimismMintableERC20FactoryInterop.sol";
 
 /// @custom:proxied true
 /// @custom:predeployed 0x4200000000000000000000000000000000000012
@@ -43,13 +44,13 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
 
     /// @notice Semantic version.
     /// @custom:semver +interop
-    function version() public pure override returns (string memory) {
+    function version() public view override returns (string memory) {
         return string.concat(super.version(), "+interop");
     }
 
     /// @notice hashOnion getter.
     /// @return hashOnion_ The hashOnion value.
-    function hashOnion() public view returns (bytes32 hashOnion_) {
+    function hashOnion() public pure returns (bytes32 hashOnion_) {
         assembly {
             hashOnion_ := HASH_ONION_SLOT
         }
@@ -59,6 +60,8 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     /// @param _localTokens  Array of local token addresses.
     /// @param _remoteTokens Array of remote token addresses.
     /// @param _startingInnerLayer The starting inner layer of the hashOnion.
+    /// @notice Stores the deployments of the provided tokens if the computed hashOnion is valid. It can be considered
+    /// complete when the hashOnion matches the initial layer.
     function verifyAndStore(
         address[] calldata _localTokens,
         address[] calldata _remoteTokens,
@@ -86,13 +89,13 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     }
 
     /// @notice One-time setter for the hashOnion value to be called by the ProxyAdmin.
-    /// @param _onionHash The new hashOnion value.
-    function setOnionHash(bytes32 _onionHash) external {
+    /// @param _hashOnion The new hashOnion value.
+    function setHashOnion(bytes32 _hashOnion) external {
         if (msg.sender != Predeploys.PROXY_ADMIN) revert Unauthorized();
         if (hashOnion() != 0) revert HashOnionAlreadySet();
 
         assembly {
-            sstore(HASH_ONION_SLOT, _onionHash)
+            sstore(HASH_ONION_SLOT, _hashOnion)
         }
     }
 }

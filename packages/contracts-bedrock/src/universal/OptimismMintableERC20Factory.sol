@@ -46,7 +46,7 @@ contract OptimismMintableERC20Factory is Initializable, IOptimismERC20Factory, I
 
     /// @notice Semantic version.
     /// @custom:semver 1.10.1-beta.4
-    function version() public pure virtual returns (string memory) {
+    function version() public view virtual returns (string memory) {
         return "1.10.1-beta.4";
     }
 
