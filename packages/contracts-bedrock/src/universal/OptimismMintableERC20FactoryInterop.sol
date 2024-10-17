@@ -49,9 +49,9 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
 
     /// @notice hashOnion getter.
     /// @return hashOnion_ The hashOnion value.
-    function hashOnion() public pure returns (bytes32 hashOnion_) {
+    function hashOnion() public view returns (bytes32 hashOnion_) {
         assembly {
-            hashOnion_ := HASH_ONION_SLOT
+            hashOnion_ := sload(HASH_ONION_SLOT)
         }
     }
 

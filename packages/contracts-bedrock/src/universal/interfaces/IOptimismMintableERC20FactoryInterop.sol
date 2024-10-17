@@ -18,7 +18,7 @@ interface IOptimismMintableERC20FactoryInterop is IOptimismMintableERC20Factory 
 
     event DeploymentStored(address indexed localToken, address indexed remoteToken);
 
-    function hashOnion() external pure returns (bytes32 hashOnion_);
+    function hashOnion() external view returns (bytes32 hashOnion_);
 
     function verifyAndStore(
         address[] calldata _localTokens,
