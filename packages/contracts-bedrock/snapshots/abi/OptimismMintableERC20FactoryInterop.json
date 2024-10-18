@@ -146,7 +146,7 @@
         "type": "bytes32"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -289,22 +289,17 @@
   },
   {
     "inputs": [],
+    "name": "DeploymentsAlreadyStored",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "HashOnionAlreadySet",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "HashOnionNotSet",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidHashOnion",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnionAlreadyPeelled",
+    "name": "InvalidProof",
     "type": "error"
   },
   {
