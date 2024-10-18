@@ -237,16 +237,10 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
             _remoteTokens[_i] = address(uint160(uint256(keccak256(abi.encode(_localTokens[_i])))));
         }
 
-        // Calculate hash onion
-        bytes32 _innerLayer = INITIAL_ONION_LAYER;
-        for (uint256 _i; _i < _arraysLength; _i++) {
-            _innerLayer =
-                keccak256(abi.encodePacked(_innerLayer, abi.encodePacked(_localTokens[_i], _remoteTokens[_i])));
-        }
-
-        // Set hash onion
+        // Calculate and set hash onion
+        bytes32 _hashOnion = _calculateHashOnion(_localTokens, _remoteTokens, INITIAL_ONION_LAYER);
         vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
-        opMintableERC20FactoryInterop.setHashOnion(_innerLayer);
+        opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         /* Act */
         uint256 _gasBeforeCall = gasleft();
