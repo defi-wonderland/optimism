@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { OptimismMintableERC20Factory } from "./OptimismMintableERC20Factory.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @custom:proxied true
 /// @custom:predeployed 0x4200000000000000000000000000000000000012
@@ -89,7 +90,8 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     /// @notice One-time setter for the hashOnion value to be called by the ProxyAdmin.
     /// @param _hashOnion The new hashOnion value.
     function setHashOnion(bytes32 _hashOnion) external {
-        if (msg.sender != Predeploys.PROXY_ADMIN) revert Unauthorized();
+        // TODO: Research if this is the correct address to check for.
+        if (msg.sender != Ownable(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
         if (hashOnion() != 0) revert HashOnionAlreadySet();
 
         assembly {

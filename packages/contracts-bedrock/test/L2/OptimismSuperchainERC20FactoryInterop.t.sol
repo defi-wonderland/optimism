@@ -10,6 +10,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { IOptimismMintableERC20FactoryInterop } from "src/universal/interfaces/IOptimismMintableERC20FactoryInterop.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
     bytes32 internal constant INITIAL_ONION_LAYER = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
@@ -65,7 +66,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         assertEq(opMintableERC20FactoryInterop.hashOnion(), 0);
 
         // Set hash onion
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         // Expect hash onion value to be equal to the set value
@@ -82,7 +83,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         public
     {
         /* Arrange - set hash onion to initial layer */
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(INITIAL_ONION_LAYER);
 
         /* Act and Assert */
@@ -104,7 +105,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         /* Arrange */
         vm.assume(_localTokens.length != _remoteTokens.length);
 
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         /* Act and Assert */
@@ -124,7 +125,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         bytes32 _hashOnion = _calculateHashOnion(_localTokens, _remoteTokens, INITIAL_ONION_LAYER);
 
         // Set hash onion
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         /* Act */
@@ -158,7 +159,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         bytes32 _hashOnion = _calculateHashOnion(_localTokensSecondHalf, _remoteTokensSecondHalf, _halfInnerLayer);
 
         // Set hash onion
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         /* Act */
@@ -196,7 +197,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         bytes32 _hashOnion = _calculateHashOnion(_localTokens, _remoteTokens, INITIAL_ONION_LAYER);
 
         // Set hash onion
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         // Modify the first local token address to make the computed hash onion invalid
@@ -218,7 +219,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
 
         // Expect revert if sending empty arrays
         vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidProof.selector);
-        opMintableERC20FactoryInterop.verifyAndStore(new address[](0), new address, INITIAL_ONION_LAYER);
+        opMintableERC20FactoryInterop.verifyAndStore(new address[](0), new address[](0), INITIAL_ONION_LAYER);
     }
 
     /// @notice Tests the maximum number of token arrays that can be verified and stored in a single call.
@@ -244,7 +245,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         }
 
         // Set hash onion
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_innerLayer);
 
         /* Act */
@@ -261,7 +262,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
     /// @notice Tests that `setHashOnion` reverts when the caller is not the ProxyAdmin.
     function testFuzz_setHashOnion_reverts_whenCallerNotProxyAdmin(address _caller, bytes32 _hashOnion) public {
         /* Arrange */
-        vm.assume(_caller != Predeploys.PROXY_ADMIN);
+        vm.assume(_caller != Ownable(Predeploys.PROXY_ADMIN).owner());
         vm.startPrank(_caller);
 
         /* Act and Assert */
@@ -272,7 +273,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
     /// @notice Tests that `setHashOnion` reverts when the hash onion is already set.
     function testFuzz_setHashOnion_reverts_whenHashOnionAlreadySet(bytes32 _hashOnion) public {
         /* Arrange */
-        vm.startPrank(Predeploys.PROXY_ADMIN);
+        vm.startPrank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         /* Act and Assert */
@@ -283,7 +284,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
     /// @notice Tests that `setHashOnion` succeeds when the caller is the ProxyAdmin and the hash onion is not set.
     function testFuzz_setHashOnion_succeeds(bytes32 _hashOnion) public {
         /* Arrange */
-        vm.prank(Predeploys.PROXY_ADMIN);
+        vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
 
         /* Act */
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
