@@ -22,13 +22,13 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop = IOptimismMintableERC20FactoryInterop(address(l2OptimismMintableERC20Factory));
     }
 
-    /// @notice Helper function to setup a mock and expect a call to it.
+    /// @notice Helper function to set up a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
         vm.mockCall(_receiver, _calldata, _returned);
         vm.expectCall(_receiver, _calldata);
     }
 
-    /// @notice Helper function to calculate the hash onion by the given arrays of local and remote tokens.
+    /// @notice Helper function to calculate the hash onion from the given arrays of local and remote tokens.
     function _calculateHashOnion(
         address[] memory _localTokens,
         address[] memory _remoteTokens,
@@ -46,7 +46,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         _hashOnion = _innerLayer;
     }
 
-    /// @notice Helper function to set a different remote token address per local token address.
+    /// @notice Helper function to set a unique remote token address for each local token address.
     function _setRemoteTokensArray(address[] memory _localTokens)
         internal
         pure
@@ -58,8 +58,8 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         }
     }
 
-    /// @notice Test that the `hashOnion` getter returns the expected value.
-    /// @notice Asumming `setHashOnion` is working as expected - it's be tested in other tests.
+    /// @notice Tests that the `hashOnion` getter returns the expected value.
+    /// @dev Assumes `setHashOnion` works as expected; it is tested in other tests.
     function testFuzz_hashOnion_succeeds(bytes32 _hashOnion) public {
         // Expect hash onion value to be zero if not set
         assertEq(opMintableERC20FactoryInterop.hashOnion(), 0);
@@ -72,7 +72,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         assertEq(opMintableERC20FactoryInterop.hashOnion(), _hashOnion);
     }
 
-    /// @notice Test that `verifyAndStore` reverts when the hash onion is already peeled.
+    /// @notice Tests that `verifyAndStore` reverts when the hash onion has already been peeled.
     function testFuzz_verifyAndStore_reverts_whenDeploymentsAlreadyStored(
         address _caller,
         address[] memory _localTokens,
@@ -91,7 +91,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, _startingInnerLayer);
     }
 
-    /// @notice Test that `verifyAndStore` reverts when the tokens length mismatch.
+    /// @notice Tests that `verifyAndStore` reverts when the lengths of the token arrays do not match.
     function testFuzz_verifyAndStore_reverts_whenTokensLengthMismatch(
         address _caller,
         address[] memory _localTokens,
@@ -113,7 +113,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, _startingInnerLayer);
     }
 
-    /// @notice Test that `verifyAndStore` succeeds when the hash onion is fully unpeeled at once with valid inputs.
+    /// @notice Tests that `verifyAndStore` succeeds when the hash onion is fully unpeeled at once with valid inputs.
     function testFuzz_verifyAndStore_succeeds_fullOnionUnpeeledAtOnce(address[] memory _localTokens) public {
         vm.assume(_localTokens.length > 0);
 
@@ -131,7 +131,8 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, INITIAL_ONION_LAYER);
     }
 
-    /// @notice Test that `verifyAndStore` succeeds when the hash onion is fully unpeeled in 2 steps with valid inputs.
+    /// @notice Tests that `verifyAndStore` succeeds when the hash onion is fully unpeeled in two steps with valid
+    /// inputs.
     function testFuzz_verifyAndStore_succeeds_multipleUnpeels(address[] memory _localTokensFirstHalf) public {
         /* Arrange */
         vm.assume(_localTokensFirstHalf.length > 0);
@@ -168,7 +169,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.verifyAndStore(_localTokensFirstHalf, _remoteTokensFirstHalf, INITIAL_ONION_LAYER);
     }
 
-    /// @notice Test that `verifyAndStore` reverts when the hash onion is not set.
+    /// @notice Tests that `verifyAndStore` reverts when the hash onion is not set.
     function testFuzz_verifyAndStore_reverts_withInvalidProofwhenNotSet(
         address[] memory _tokens,
         bytes32 _startingInnerLayer
@@ -180,11 +181,11 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.verifyAndStore(_tokens, _tokens, _startingInnerLayer);
     }
 
-    /// @notice Test that `verifyAndStore` reverts when the computed hash onion is invalid.
-    ///         Testing the cases where the computed hash onion is invalid due to:
-    ///         - Invalid local token address
-    ///         - Invalid remote token address
-    ///         - Empty arrays
+    /// @notice Tests that `verifyAndStore` reverts when the computed hash onion is invalid.
+    /// @dev Covers cases where the computed hash onion is invalid due to:
+    ///      - Invalid local token address
+    ///      - Invalid remote token address
+    ///      - Empty arrays
     function testFuzz_verifyAndStore_reverts_whenInvalidComputedHashOnion(address[] memory _localTokens) public {
         vm.assume(_localTokens.length > 0);
 
@@ -217,12 +218,12 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
 
         // Expect revert if sending empty arrays
         vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidProof.selector);
-        opMintableERC20FactoryInterop.verifyAndStore(new address[](0), new address[](0), INITIAL_ONION_LAYER);
+        opMintableERC20FactoryInterop.verifyAndStore(new address[](0), new address, INITIAL_ONION_LAYER);
     }
 
-    /// @notice Test which is the max amount of tokens arrays that can be verified and stored in a single call.
-    ///         By the given tests, the max amount of tokens on the arrays that can be verified and stored in a single
-    ///         call is 950.
+    /// @notice Tests the maximum number of token arrays that can be verified and stored in a single call.
+    /// @dev Based on the given tests, the maximum number of tokens in the arrays that can be verified and stored in a
+    ///      single call is 950.
     function test_verifyAndStore_succeeds_withLongTokensArray() public {
         uint256 _arraysLength = 950;
         address[] memory _localTokens = new address[](_arraysLength);
@@ -257,7 +258,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         assertApproxEqAbs(_gasCost, _maxPossibleGasLimit, 300_000);
     }
 
-    /// @notice Test that `setHashOnion` reverts when the caller is not the ProxyAdmin.
+    /// @notice Tests that `setHashOnion` reverts when the caller is not the ProxyAdmin.
     function testFuzz_setHashOnion_reverts_whenCallerNotProxyAdmin(address _caller, bytes32 _hashOnion) public {
         /* Arrange */
         vm.assume(_caller != Predeploys.PROXY_ADMIN);
@@ -268,7 +269,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
     }
 
-    /// @notice Test that `setHashOnion` reverts when the hash onion is already set.
+    /// @notice Tests that `setHashOnion` reverts when the hash onion is already set.
     function testFuzz_setHashOnion_reverts_whenHashOnionAlreadySet(bytes32 _hashOnion) public {
         /* Arrange */
         vm.startPrank(Predeploys.PROXY_ADMIN);
@@ -279,7 +280,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
     }
 
-    /// @notice Test that `setHashOnion` succeeds when the caller is the ProxyAdmin and the hash onion is not set.
+    /// @notice Tests that `setHashOnion` succeeds when the caller is the ProxyAdmin and the hash onion is not set.
     function testFuzz_setHashOnion_succeeds(bytes32 _hashOnion) public {
         /* Arrange */
         vm.prank(Predeploys.PROXY_ADMIN);
