@@ -6,13 +6,11 @@ import { IOptimismMintableERC20Factory } from "./IOptimismMintableERC20Factory.s
 interface IOptimismMintableERC20FactoryInterop is IOptimismMintableERC20Factory {
     error HashOnionAlreadySet();
 
-    error HashOnionNotSet();
-
-    error OnionAlreadyPeeled();
+    error DeploymentsAlreadyStored();
 
     error TokensLengthMismatch();
 
-    error InvalidHashOnion();
+    error InvalidProof();
 
     error Unauthorized();
 

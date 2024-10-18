@@ -72,21 +72,8 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         assertEq(opMintableERC20FactoryInterop.hashOnion(), _hashOnion);
     }
 
-    /// @notice Test that `verifyAndStore` reverts when the hash onion is not set.
-    function testFuzz_verifyAndStore_reverts_whenHashOnionNotSet(
-        address[] memory _localTokens,
-        address[] memory _remoteTokens,
-        bytes32 _startingInnerLayer
-    )
-        public
-    {
-        /* Act and Assert */
-        vm.expectRevert(IOptimismMintableERC20FactoryInterop.HashOnionNotSet.selector);
-        opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, _startingInnerLayer);
-    }
-
     /// @notice Test that `verifyAndStore` reverts when the hash onion is already peeled.
-    function testFuzz_verifyAndStore_reverts_whenOnionAlreadyPeeled(
+    function testFuzz_verifyAndStore_reverts_whenDeploymentsAlreadyStored(
         address _caller,
         address[] memory _localTokens,
         address[] memory _remoteTokens,
@@ -100,7 +87,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
 
         /* Act and Assert */
         vm.prank(_caller);
-        vm.expectRevert(IOptimismMintableERC20FactoryInterop.OnionAlreadyPeeled.selector);
+        vm.expectRevert(IOptimismMintableERC20FactoryInterop.DeploymentsAlreadyStored.selector);
         opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, _startingInnerLayer);
     }
 
@@ -115,7 +102,6 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         public
     {
         /* Arrange */
-        vm.assume(_hashOnion != INITIAL_ONION_LAYER);
         vm.assume(_localTokens.length != _remoteTokens.length);
 
         vm.prank(Predeploys.PROXY_ADMIN);
@@ -182,6 +168,18 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.verifyAndStore(_localTokensFirstHalf, _remoteTokensFirstHalf, INITIAL_ONION_LAYER);
     }
 
+    /// @notice Test that `verifyAndStore` reverts when the hash onion is not set.
+    function testFuzz_verifyAndStore_reverts_withInvalidProofwhenNotSet(
+        address[] memory _tokens,
+        bytes32 _startingInnerLayer
+    )
+        public
+    {
+        /* Act and Assert */
+        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidProof.selector);
+        opMintableERC20FactoryInterop.verifyAndStore(_tokens, _tokens, _startingInnerLayer);
+    }
+
     /// @notice Test that `verifyAndStore` reverts when the computed hash onion is invalid.
     ///         Testing the cases where the computed hash onion is invalid due to:
     ///         - Invalid local token address
@@ -206,7 +204,7 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         _badLocalTokens[0] = address(uint160(uint256(keccak256(abi.encode(_localTokens[0])))));
 
         /* Act and Assert */
-        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidHashOnion.selector);
+        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidProof.selector);
         opMintableERC20FactoryInterop.verifyAndStore(_badLocalTokens, _remoteTokens, INITIAL_ONION_LAYER);
 
         // Expect to revert when remote tokens have invalid values as well
@@ -214,19 +212,22 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         _badRemoteTokens = _remoteTokens;
         _badRemoteTokens[0] = address(uint160(uint256(keccak256(abi.encode(_remoteTokens[0])))));
 
-        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidHashOnion.selector);
+        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidProof.selector);
         opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _badRemoteTokens, INITIAL_ONION_LAYER);
 
         // Expect revert if sending empty arrays
-        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidHashOnion.selector);
+        vm.expectRevert(IOptimismMintableERC20FactoryInterop.InvalidProof.selector);
         opMintableERC20FactoryInterop.verifyAndStore(new address[](0), new address[](0), INITIAL_ONION_LAYER);
     }
 
-    /// @notice Test that `verifyAndStore` doesn't revert due OOG when the input tokens array length is very long.
+    /// @notice Test which is the max amount of tokens arrays that can be verified and stored in a single call.
+    ///         By the given tests, the max amount of tokens on the arrays that can be verified and stored in a single
+    ///         call is 950.
     function test_verifyAndStore_succeeds_withLongTokensArray() public {
-        uint256 _arraysLength = 100_000;
+        uint256 _arraysLength = 950;
         address[] memory _localTokens = new address[](_arraysLength);
         address[] memory _remoteTokens = new address[](_arraysLength);
+
         // Not using the `_setRemoteTokensArray` helper function so both arrays items are updated on the same loop.
         // This logic was only used here so no need to create a helper function for it.
         for (uint256 _i; _i < _arraysLength; _i++) {
@@ -246,14 +247,14 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.setHashOnion(_innerLayer);
 
         /* Act */
-        (bool _success,) = address(opMintableERC20FactoryInterop).call(
-            abi.encodeWithSelector(
-                opMintableERC20FactoryInterop.verifyAndStore.selector, _localTokens, _remoteTokens, INITIAL_ONION_LAYER
-            )
-        );
+        uint256 _gasBeforeCall = gasleft();
+        opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, INITIAL_ONION_LAYER);
+        uint256 _gasAfterCall = gasleft();
 
-        // Assert
-        assertTrue(_success);
+        /* Assert */
+        uint256 _gasCost = _gasBeforeCall - _gasAfterCall;
+        uint256 _maxPossibleGasLimit = 25_000_000;
+        assertApproxEqAbs(_gasCost, _maxPossibleGasLimit, 300_000);
     }
 
     /// @notice Test that `setHashOnion` reverts when the caller is not the ProxyAdmin.
