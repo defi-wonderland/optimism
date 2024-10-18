@@ -32,9 +32,9 @@ contract SuperchainWETH is WETH98, ICrosschainERC20, ISemver {
     }
 
     /// @inheritdoc WETH98
-    function withdraw(uint256 wad) public override {
+    function withdraw(uint256 _amount) public override {
         if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) revert NotCustomGasToken();
-        super.withdraw(wad);
+        super.withdraw(_amount);
     }
 
     /// @notice Mints WETH to an address.
