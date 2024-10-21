@@ -125,7 +125,7 @@
   },
   "src/L2/SuperchainERC20.sol": {
     "initCodeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-    "sourceCodeHash": "0x75d061633a141af11a19b86e599a1725dfae8d245dcddfb6bb244a50d5e53f96"
+    "sourceCodeHash": "0xa4aa1291dccb2364e9e5a21a7e608bdfc975aed07f95cff95d9aa4fd389dc268"
   },
   "src/L2/SuperchainTokenBridge.sol": {
     "initCodeHash": "0x07fc1d495928d9c13bd945a049d17e1d105d01c2082a7719e5d18cbc0e1c7d9e",
