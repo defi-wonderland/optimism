@@ -147,6 +147,7 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainMint_fromBridgeNonCustomGasTokenChain_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
+        vm.assume(_to != Predeploys.ETH_LIQUIDITY && _to != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Get the total supply and balance of `_to` before the mint to compare later on the assertions
@@ -182,6 +183,7 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainMint_fromBridgeCustomGasTokenChain_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
+        vm.assume(_to != Predeploys.ETH_LIQUIDITY && _to != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Get the balance of `_to` before the mint to compare later on the assertions
@@ -230,6 +232,7 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainBurn_fromBridgeNonCustomGasTokenChain_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
+        vm.assume(_from != Predeploys.ETH_LIQUIDITY && _from != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Deposit some tokens to `_from` so then they can be burned
@@ -270,6 +273,7 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainBurn_fromBridgeCustomGasTokenChain_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
+        vm.assume(_from != Predeploys.ETH_LIQUIDITY && _from != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Mock the `isCustomGasToken` function to return false
@@ -308,6 +312,7 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainBurn_insufficientBalance_fails(address _from, uint256 _amount) public {
         // Assume
         vm.assume(_from != ZERO_ADDRESS);
+        vm.assume(_from != Predeploys.ETH_LIQUIDITY && _from != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Arrange
