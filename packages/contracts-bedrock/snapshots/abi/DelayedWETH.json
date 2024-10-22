@@ -22,12 +22,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "src",
+        "name": "owner",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "guy",
+        "name": "spender",
         "type": "address"
       }
     ],
