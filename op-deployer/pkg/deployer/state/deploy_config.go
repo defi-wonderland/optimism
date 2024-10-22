@@ -22,7 +22,7 @@ func DefaultDeployConfig(chainIntent *ChainIntent) genesis.DeployConfig {
 	return genesis.DeployConfig{
 		L2InitializationConfig: genesis.L2InitializationConfig{
 			L2GenesisBlockDeployConfig: genesis.L2GenesisBlockDeployConfig{
-				L2GenesisBlockGasLimit:      30_000_000,
+				L2GenesisBlockGasLimit:      60_000_000,
 				L2GenesisBlockBaseFeePerGas: &l2GenesisBlockBaseFeePerGas,
 			},
 			L2VaultsDeployConfig: genesis.L2VaultsDeployConfig{
@@ -40,6 +40,7 @@ func DefaultDeployConfig(chainIntent *ChainIntent) genesis.DeployConfig {
 				EnableGovernance:      true,
 				GovernanceTokenSymbol: "OP",
 				GovernanceTokenName:   "Optimism",
+				GovernanceTokenOwner:  common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAdDEad"),
 			},
 			GasPriceOracleDeployConfig: genesis.GasPriceOracleDeployConfig{
 				GasPriceOracleBaseFeeScalar:     1368,
@@ -110,6 +111,10 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 	cfg.OperatorDeployConfig = genesis.OperatorDeployConfig{
 		BatchSenderAddress:  chainIntent.Roles.Batcher,
 		P2PSequencerAddress: chainIntent.Roles.UnsafeBlockSigner,
+	}
+	cfg.OwnershipDeployConfig = genesis.OwnershipDeployConfig{
+		ProxyAdminOwner:  chainIntent.Roles.L2ProxyAdminOwner,
+		FinalSystemOwner: chainIntent.Roles.L1ProxyAdminOwner,
 	}
 	cfg.BatchInboxAddress = calculateBatchInboxAddr(chainState.ID)
 	cfg.L1ChainID = intent.L1ChainID
