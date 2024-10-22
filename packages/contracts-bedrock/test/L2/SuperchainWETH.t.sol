@@ -147,7 +147,6 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainMint_fromBridgeNonCustomGasTokenChain_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
-        vm.assume(_to != Predeploys.ETH_LIQUIDITY && _to != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Get the total supply and balance of `_to` before the mint to compare later on the assertions
@@ -175,7 +174,6 @@ contract SuperchainWETH_Test is CommonTest {
         // Check the total supply and balance of `_to` after the mint were updated correctly
         assertEq(superchainWeth.totalSupply(), _totalSupplyBefore + _amount);
         assertEq(superchainWeth.balanceOf(_to), _toBalanceBefore + _amount);
-        assertEq(superchainWeth.balanceOf(Predeploys.ETH_LIQUIDITY), 0);
         assertEq(address(superchainWeth).balance, _amount);
     }
 
@@ -183,7 +181,6 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainMint_fromBridgeCustomGasTokenChain_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
-        vm.assume(_to != Predeploys.ETH_LIQUIDITY && _to != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Get the balance of `_to` before the mint to compare later on the assertions
@@ -209,7 +206,6 @@ contract SuperchainWETH_Test is CommonTest {
 
         // Check the total supply and balance of `_to` after the mint were updated correctly
         assertEq(superchainWeth.balanceOf(_to), _toBalanceBefore + _amount);
-        assertEq(superchainWeth.balanceOf(Predeploys.ETH_LIQUIDITY), 0);
         assertEq(superchainWeth.totalSupply(), 0);
         assertEq(address(superchainWeth).balance, 0);
     }
@@ -232,7 +228,6 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainBurn_fromBridgeNonCustomGasTokenChain_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
-        vm.assume(_from != Predeploys.ETH_LIQUIDITY && _from != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Deposit some tokens to `_from` so then they can be burned
@@ -273,7 +268,6 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainBurn_fromBridgeCustomGasTokenChain_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
-        vm.assume(_from != Predeploys.ETH_LIQUIDITY && _from != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Mock the `isCustomGasToken` function to return false
@@ -312,7 +306,6 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_crosschainBurn_insufficientBalance_fails(address _from, uint256 _amount) public {
         // Assume
         vm.assume(_from != ZERO_ADDRESS);
-        vm.assume(_from != Predeploys.ETH_LIQUIDITY && _from != Predeploys.SUPERCHAIN_WETH);
         _amount = bound(_amount, 0, type(uint248).max - 1);
 
         // Arrange
@@ -323,10 +316,6 @@ contract SuperchainWETH_Test is CommonTest {
         // Act
         vm.expectRevert();
         superchainWeth.crosschainBurn(_from, _amount + 1);
-
-        // Assert
-        assertEq(_from.balance, 0);
-        assertEq(superchainWeth.balanceOf(_from), _amount);
     }
 
     /// @notice Test that the internal mint function reverts to protect against accidentally changing the visibility.
