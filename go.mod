@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-datastore v0.6.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/klauspost/compress v1.17.11
-	github.com/kurtosis-tech/kurtosis/api/golang v1.3.0
+	github.com/kurtosis-tech/kurtosis/api/golang v1.3.1
 	github.com/libp2p/go-libp2p v0.36.2
 	github.com/libp2p/go-libp2p-mplex v0.9.0
 	github.com/libp2p/go-libp2p-pubsub v0.12.0
@@ -42,7 +42,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.7.0
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/protolambda/ctxlock v0.1.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.5
@@ -251,9 +251,9 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.14.11 => github.com/ethereum-optimism/op-geth v1.101408.1-0.20241002211323-d5a96613c22b
+replace github.com/ethereum/go-ethereum v1.14.11 => github.com/ethereum-optimism/op-geth v1.101411.1-rc.2
 
-// replace github.com/ethereum/go-ethereum => ../op-geth
+//replace github.com/ethereum/go-ethereum => ../op-geth
 
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 

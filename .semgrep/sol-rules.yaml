@@ -5,6 +5,22 @@ rules:
     message: _args parameter should be wrapped with DeployUtils.encodeConstructor
     pattern-regex: DeployUtils\.(create1|create2|create1AndSave|create2AndSave)\s*\(\s*\{[^}]*?_args\s*:\s*(?!\s*DeployUtils\.encodeConstructor\()\s*[^}]*?\}\s*\)
 
+  - id: sol-safety-expectrevert-before-ll-call
+    languages: [solidity]
+    severity: ERROR
+    message: vm.expectRevert is followed by a low-level call but not followed by assertion expecting revert
+    patterns:
+      - pattern: |
+          vm.expectRevert(...);
+          $CALL;
+          $CHECK;
+      - metavariable-pattern:
+          metavariable: $CALL
+          patterns:
+            - pattern-regex: \.call\(.*\)|\.delegatecall\(.*\)
+      - focus-metavariable: $CHECK
+      - pattern-not-regex: assertTrue\(revertsAsExpected\)
+
   - id: sol-style-input-arg-fmt
     languages: [solidity]
     severity: ERROR
@@ -13,6 +29,7 @@ rules:
     paths:
       exclude:
         - op-chain-ops/script/testdata/scripts/ScriptExample.s.sol
+        - packages/contracts-bedrock/test
         - packages/contracts-bedrock/scripts/libraries/Solarray.sol
         - packages/contracts-bedrock/scripts/interfaces/IGnosisSafe.sol
         - packages/contracts-bedrock/src/universal/interfaces/IWETH.sol
@@ -30,6 +47,7 @@ rules:
     paths:
       exclude:
         - op-chain-ops/script/testdata/scripts/ScriptExample.s.sol
+        - packages/contracts-bedrock/test
         - packages/contracts-bedrock/scripts/libraries/Solarray.sol
         - packages/contracts-bedrock/scripts/interfaces/IGnosisSafe.sol
         - packages/contracts-bedrock/src/dispute/interfaces/IPermissionedDisputeGame.sol
@@ -40,6 +58,9 @@ rules:
     severity: ERROR
     message: Javadoc-style comments are not allowed, use `///` style doc comments instead
     pattern-regex: (\/\*\*\n(\s+\*\s.*\n)+\s+\*\/)
+    paths:
+      exclude:
+        - packages/contracts-bedrock/test/safe-tools/CompatibilityFallbackHandler_1_3_0.sol
 
   - id: sol-expectrevert-no-args
     languages: [solidity]
@@ -47,6 +68,9 @@ rules:
     message: vm.expectRevert() must specify the revert reason
     patterns:
       - pattern: vm.expectRevert()
+    paths:
+      exclude:
+        - packages/contracts-bedrock/test
 
   - id: sol-style-malformed-require
     languages: [solidity]
@@ -62,6 +86,7 @@ rules:
       - pattern-not-regex: \"([a-zA-Z0-9\s]+-[a-zA-Z0-9\s]+-[a-zA-Z0-9\s]+)\"
     paths:
       exclude:
+        - packages/contracts-bedrock/test
         - packages/contracts-bedrock/src/libraries/Bytes.sol
         - packages/contracts-bedrock/src/legacy/LegacyMintableERC20.sol
         - packages/contracts-bedrock/src/cannon/MIPS.sol
@@ -80,4 +105,5 @@ rules:
       - pattern-not-regex: \"(\w+:\s[^"]+)\"
     paths:
       exclude:
+        - packages/contracts-bedrock/test
         - packages/contracts-bedrock/src/cannon/libraries/MIPSInstructions.sol
