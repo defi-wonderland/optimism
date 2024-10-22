@@ -39,9 +39,9 @@ contract SuperchainWETH is WETH98, ICrosschainERC20, ISemver {
     }
 
     /// @inheritdoc WETH98
-    function allowance(address src, address guy) public view override returns (uint256) {
-        if (guy == Preinstalls.Permit2) return type(uint256).max;
-        return super.allowance(src, guy);
+    function allowance(address owner, address spender) public view override returns (uint256) {
+        if (spender == Preinstalls.Permit2) return type(uint256).max;
+        return super.allowance(owner, spender);
     }
 
     /// @notice Mints WETH to an address.

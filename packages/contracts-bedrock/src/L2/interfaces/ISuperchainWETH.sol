@@ -11,5 +11,3 @@ interface ISuperchainWETH is IWETH, ICrosschainERC20, ISemver {
 
     function __constructor__() external;
 }
-
-interface ISuperchainWETHERC20 is IWETH, ISuperchainWETH { }

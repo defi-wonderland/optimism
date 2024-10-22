@@ -50,8 +50,8 @@ contract WETH98 is IWETH {
     }
 
     /// @inheritdoc IWETH
-    function allowance(address src, address guy) public view virtual returns (uint256) {
-        return _allowance[src][guy];
+    function allowance(address owner, address spender) public view virtual returns (uint256) {
+        return _allowance[owner][spender];
     }
 
     /// @inheritdoc IWETH

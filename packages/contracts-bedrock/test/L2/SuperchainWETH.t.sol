@@ -418,6 +418,8 @@ contract SuperchainWETH_Test is CommonTest {
     /// @param _dst The address of the recipient.
     /// @param _wad The amount of WETH to transfer.
     function testFuzz_transferFrom_whenPermit2IsCaller_succeeds(address _src, address _dst, uint256 _wad) public {
+        vm.assume(_src != _dst);
+
         // Arrange
         deal(address(superchainWeth), _src, _wad);
 
@@ -429,9 +431,32 @@ contract SuperchainWETH_Test is CommonTest {
         superchainWeth.transferFrom(_src, _dst, _wad);
 
         // Assert
+        assertEq(superchainWeth.balanceOf(_src), 0);
         assertEq(superchainWeth.balanceOf(_dst), _wad);
-        // Handle the case where the source and destination are the same to check the source balance.
-        if (_src != _dst) assertEq(superchainWeth.balanceOf(_src), 0);
-        else assertEq(superchainWeth.balanceOf(_src), _wad);
+    }
+
+    /// @notice Tests that `transferFrom` works when the caller (spender) is Permit2, and `_src` equals `_dst` without
+    ///         an explicit approval.
+    ///         The balance should remain the same on this scenario.
+    /// @param _user The source and destination address.
+    /// @param _wad The amount of WETH to transfer.
+    function testFuzz_transferFrom_whenPermit2IsCallerAndSourceIsDestination_succeeds(
+        address _user,
+        uint256 _wad
+    )
+        public
+    {
+        // Arrange
+        deal(address(superchainWeth), _user, _wad);
+
+        vm.expectEmit(address(superchainWeth));
+        emit Transfer(_user, _user, _wad);
+
+        // Act
+        vm.prank(Preinstalls.Permit2);
+        superchainWeth.transferFrom(_user, _user, _wad);
+
+        // Assert
+        assertEq(superchainWeth.balanceOf(_user), _wad);
     }
 }
