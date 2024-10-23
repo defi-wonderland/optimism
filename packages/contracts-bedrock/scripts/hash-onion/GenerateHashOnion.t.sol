@@ -23,7 +23,7 @@ contract GenerateHashOnion_Test is Test {
 
     /// @notice Test the script reads and parses properly the tokens json file, and hash onion generation.
     function test_generateHashOnion() public {
-        // Calculate the hash onion by the given tokens file.
+        // Calculate the hash onion using the same values than given tokens file.
         bytes32 _innerLayer = INITIAL_ONION_LAYER;
         // Use `_i + 2` so the addresses goes incremental per pair and they are never repeated.
         for (uint256 _i; _i < 10; _i += 2) {
