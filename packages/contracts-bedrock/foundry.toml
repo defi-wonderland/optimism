@@ -52,6 +52,7 @@ fs_permissions = [
   { access='read-write', path='./.testdata/' },
   { access='read', path='./kout-deployment' },
   { access='read', path='./test/fixtures' },
+  { access ='read-write', path='./scripts/hash-onion'}
 ]
 libs = ["node_modules", "lib"]
 
