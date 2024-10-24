@@ -13,7 +13,9 @@ import { IOptimismMintableERC20FactoryInterop } from "src/universal/interfaces/I
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
-    bytes32 internal constant INITIAL_ONION_LAYER = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+    event HashOnionUpdated(bytes32 newHashOnion, bytes32 previousHashOnion);
+
+    bytes32 internal constant INITIAL_ONION_LAYER = keccak256(abi.encode(0));
     IOptimismMintableERC20FactoryInterop opMintableERC20FactoryInterop;
 
     function setUp() public virtual override {
@@ -39,12 +41,10 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         pure
         returns (bytes32 _hashOnion)
     {
-        bytes32 _innerLayer = _startingInnerLayer;
+        _hashOnion = _startingInnerLayer;
         for (uint256 _i; _i < _localTokens.length; _i++) {
-            _innerLayer =
-                keccak256(abi.encodePacked(_innerLayer, abi.encodePacked(_localTokens[_i], _remoteTokens[_i])));
+            _hashOnion = keccak256(abi.encodePacked(_hashOnion, abi.encodePacked(_localTokens[_i], _remoteTokens[_i])));
         }
-        _hashOnion = _innerLayer;
     }
 
     /// @notice Helper function to set a unique remote token address for each local token address.
@@ -128,6 +128,10 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
+        // Expect the event to be emitted
+        vm.expectEmit(address(opMintableERC20FactoryInterop));
+        emit HashOnionUpdated(INITIAL_ONION_LAYER, _hashOnion);
+
         /* Act */
         opMintableERC20FactoryInterop.verifyAndStore(_localTokens, _remoteTokens, INITIAL_ONION_LAYER);
     }
@@ -163,8 +167,17 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);
 
         /* Act */
+
+        // Expect the event to be emitted
+        vm.expectEmit(address(opMintableERC20FactoryInterop));
+        emit HashOnionUpdated(_halfInnerLayer, _hashOnion);
+
         // Unpeel the second half of the hash onion
         opMintableERC20FactoryInterop.verifyAndStore(_localTokensSecondHalf, _remoteTokensSecondHalf, _halfInnerLayer);
+
+        // Expect the event to be emitted
+        vm.expectEmit(address(opMintableERC20FactoryInterop));
+        emit HashOnionUpdated(INITIAL_ONION_LAYER, _halfInnerLayer);
 
         // Unpeel the remaining first half of the hash onion
         opMintableERC20FactoryInterop.verifyAndStore(_localTokensFirstHalf, _remoteTokensFirstHalf, INITIAL_ONION_LAYER);
@@ -279,6 +292,10 @@ contract OptimismMintableTokenFactoryInterop_Test is Bridge_Initializer {
     function testFuzz_setHashOnion_succeeds(bytes32 _hashOnion) public {
         /* Arrange */
         vm.prank(Ownable(Predeploys.PROXY_ADMIN).owner());
+
+        // Expect the event to be emitted
+        vm.expectEmit(address(opMintableERC20FactoryInterop));
+        emit HashOnionUpdated(_hashOnion, INITIAL_ONION_LAYER);
 
         /* Act */
         opMintableERC20FactoryInterop.setHashOnion(_hashOnion);

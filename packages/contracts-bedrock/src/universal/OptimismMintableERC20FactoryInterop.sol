@@ -26,6 +26,9 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     /// hashOnion.
     error InvalidProof();
 
+    /// @notice Emitted when the hashOnion is updated - either on the setter or after verifying and storing deployments.
+    event HashOnionUpdated(bytes32 newHashOnion, bytes32 previousHashOnion);
+
     /// @notice Emitted when a deployment is stored after verifying tokens against the hashOnion.
     /// @param localToken  Address of the local token.
     /// @param remoteToken Address of the remote token.
@@ -36,8 +39,7 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     bytes32 internal constant HASH_ONION_SLOT = 0xae706b81046b35e941cb9737b644ec489aa4690fffd2c3f501ccbed8fd5b0400;
 
     /// @notice Initial layer of the hash onion.
-    /// keccak256(abi.encode(0));
-    bytes32 internal constant INITIAL_ONION_LAYER = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+    bytes32 internal constant INITIAL_ONION_LAYER = keccak256(abi.encode(0));
 
     /// @notice Semantic version.
     /// @custom:semver +interop-beta.1
@@ -69,8 +71,8 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     )
         external
     {
-        bytes32 _hashOnion = hashOnion();
-        if (_hashOnion == INITIAL_ONION_LAYER) revert DeploymentsAlreadyStored();
+        bytes32 _currentHashOnion = hashOnion();
+        if (_currentHashOnion == INITIAL_ONION_LAYER) revert DeploymentsAlreadyStored();
         if (_localTokens.length != _remoteTokens.length) revert TokensLengthMismatch();
 
         // Unpeel the hash onion and store the deployments
@@ -81,10 +83,12 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
             emit DeploymentStored(_localTokens[i], _remoteTokens[i]);
         }
 
-        if (innerLayer != _hashOnion) revert InvalidProof();
+        if (innerLayer != _currentHashOnion) revert InvalidProof();
         assembly {
             sstore(HASH_ONION_SLOT, _startingInnerLayer)
         }
+
+        emit HashOnionUpdated(_startingInnerLayer, _currentHashOnion);
     }
 
     /// @notice One-time setter for the hashOnion value to be called by the ProxyAdmin.
@@ -97,5 +101,7 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
         assembly {
             sstore(HASH_ONION_SLOT, _hashOnion)
         }
+
+        emit HashOnionUpdated(_hashOnion, INITIAL_ONION_LAYER);
     }
 }
