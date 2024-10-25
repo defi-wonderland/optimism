@@ -20,6 +20,8 @@ cache
 
 packages/contracts-bedrock/deployments/devnetL1
 packages/contracts-bedrock/deployments/anvil
+packages/contracts-bedrock/scripts/hash-onion/fuzz-test-mock-tokens.json
+packages/contracts-bedrock/scripts/hash-onion/test-bad-tokens.json
 
 # vim
 *.sw*

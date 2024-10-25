@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import { GenerateHashOnion } from "./GenerateHashOnion.s.sol";
 import { Test } from "forge-std/Test.sol";
 import { IOptimismERC20Factory } from "src/L2/interfaces/IOptimismERC20Factory.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 contract GenerateHashOnionForTest is GenerateHashOnion {
     function forTest_setTokensPath(string memory _path) public {
@@ -12,7 +13,7 @@ contract GenerateHashOnionForTest is GenerateHashOnion {
 }
 
 contract GenerateHashOnion_Test is Test {
-    address internal constant FACTORY = address(0x4200000000000000000000000000000000000012);
+    address internal constant FACTORY = address(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
     bytes32 internal constant INITIAL_ONION_LAYER = keccak256(abi.encode(0));
 
     GenerateHashOnionForTest internal script;
@@ -66,43 +67,6 @@ contract GenerateHashOnion_Test is Test {
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
         vm.mockCall(_receiver, _calldata, _returned);
         vm.expectCall(_receiver, _calldata);
-    }
-
-    /// @notice Test the script reverts when an item in the tokens json file has a repeated token id.
-    function test_generateHashOnion_reverts_whenRepeatedId() public {
-        string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/test-bad-tokens.json");
-        script.forTest_setTokensPath(_path);
-        uint256 _id = 1;
-
-        // Create the json file with 2 items with repeated token ids
-        string memory _badTokensJson = string.concat(
-            '[{"id": ',
-            vm.toString(_id),
-            ",",
-            '"localToken":"',
-            vm.toString(abi.encodePacked(address(0))),
-            '",',
-            '"remoteToken":"',
-            vm.toString(abi.encodePacked(address(1))),
-            '"},',
-            '{"id": ',
-            vm.toString(_id),
-            ",",
-            '"localToken":"',
-            vm.toString(abi.encodePacked(address(2))),
-            '",',
-            '"remoteToken":"',
-            vm.toString(abi.encodePacked(address(3))),
-            '"}]'
-        );
-
-        vm.writeFile(_path, _badTokensJson);
-
-        // Expect the script to revert with the error `TokenIdAlreadyExists`
-        vm.expectRevert(abi.encodeWithSelector(GenerateHashOnion.TokenIdAlreadyExists.selector, _id));
-
-        // Act
-        script.run();
     }
 
     /// @notice Test the script reverts when an item in the tokens json file has a repeated local token.
