@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import { GenerateHashOnion } from "./GenerateHashOnion.s.sol";
 import { Test } from "forge-std/Test.sol";
+import { IOptimismERC20Factory } from "src/L2/interfaces/IOptimismERC20Factory.sol";
 
 contract GenerateHashOnionForTest is GenerateHashOnion {
     function forTest_setTokensPath(string memory _path) public {
@@ -11,23 +12,23 @@ contract GenerateHashOnionForTest is GenerateHashOnion {
 }
 
 contract GenerateHashOnion_Test is Test {
+    address internal constant FACTORY = address(0x4200000000000000000000000000000000000012);
     bytes32 internal constant INITIAL_ONION_LAYER = keccak256(abi.encode(0));
 
     GenerateHashOnionForTest internal script;
 
     function setUp() public {
         script = new GenerateHashOnionForTest();
+
+        // Mock the call over `deployments` to return zero so the check doesn't revert
+        vm.mockCall(FACTORY, abi.encodeWithSelector(IOptimismERC20Factory.deployments.selector), abi.encode(address(0)));
     }
 
-    /// @notice Helper function to set a unique remote token address for each local token address.
-    function _setRemoteTokensArray(address[] memory _localTokens)
-        internal
-        pure
-        returns (address[] memory _remoteTokens)
-    {
-        _remoteTokens = new address[](_localTokens.length);
-        for (uint256 _i; _i < _localTokens.length; _i++) {
-            _remoteTokens[_i] = address(uint160(uint256(keccak256(abi.encode(_localTokens[_i])))));
+    /// @notice Helper function to set a unique output token for each input token.
+    function _setTokensArray(address[] memory _inputTokens) internal pure returns (address[] memory _outputTokens) {
+        _outputTokens = new address[](_inputTokens.length);
+        for (uint256 _i; _i < _inputTokens.length; _i++) {
+            _outputTokens[_i] = address(uint160(uint256(keccak256(abi.encode(_inputTokens[_i]))) + _i));
         }
     }
 
@@ -61,6 +62,12 @@ contract GenerateHashOnion_Test is Test {
         _json = string.concat(_json, "]"); // Close JSON
     }
 
+    /// @notice Helper function to setup a mock and expect a call to it.
+    function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
+        vm.mockCall(_receiver, _calldata, _returned);
+        vm.expectCall(_receiver, _calldata);
+    }
+
     /// @notice Test the script reverts when an item in the tokens json file has a repeated token id.
     function test_generateHashOnion_reverts_whenRepeatedId() public {
         string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/test-bad-tokens.json");
@@ -91,10 +98,67 @@ contract GenerateHashOnion_Test is Test {
 
         vm.writeFile(_path, _badTokensJson);
 
-        // vm.expectRevert(GenerateHashOnion.TokenIdAlreadyExists);
+        // Expect the script to revert with the error `TokenIdAlreadyExists`
         vm.expectRevert(abi.encodeWithSelector(GenerateHashOnion.TokenIdAlreadyExists.selector, _id));
 
-        // Run the script to calculate the hash onion
+        // Act
+        script.run();
+    }
+
+    /// @notice Test the script reverts when an item in the tokens json file has a repeated local token.
+    function test_generateHashOnion_reverts_whenRepeatedLocalToken() public {
+        string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/test-bad-tokens.json");
+        script.forTest_setTokensPath(_path);
+        address _localToken = makeAddr("localToken");
+
+        // Create the json file with 2 items with repeated token ids
+        string memory _badTokensJson = string.concat(
+            '[{"id": ',
+            vm.toString(uint256(1)),
+            ",",
+            '"localToken":"',
+            vm.toString(_localToken),
+            '",',
+            '"remoteToken":"',
+            vm.toString(abi.encodePacked(address(1))),
+            '"},',
+            '{"id": ',
+            vm.toString(uint256(2)),
+            ",",
+            '"localToken":"',
+            vm.toString(_localToken),
+            '",',
+            '"remoteToken":"',
+            vm.toString(abi.encodePacked(address(2))),
+            '"}]'
+        );
+
+        vm.writeFile(_path, _badTokensJson);
+
+        // Expect the script to revert with the error `RepeatedLocalToken`
+        vm.expectRevert(abi.encodeWithSelector(GenerateHashOnion.RepeatedLocalToken.selector, _localToken));
+
+        // Act
+        script.run();
+    }
+
+    /// @notice Test the script reverts when an item in the tokens json file is already stored on the factory.
+    ///         This test will only work with the `test-mock-tokens.json` file.
+    function test_generateHashOnion_reverts_whenDeploymentIsAlreadyStored() public {
+        string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/test-mock-tokens.json");
+        script.forTest_setTokensPath(_path);
+
+        // Mock the last remote token on the `test-mock-tokens.json` file to be already stored on the factory
+        _mockAndExpect(
+            FACTORY,
+            abi.encodeWithSelector(IOptimismERC20Factory.deployments.selector, address(9)),
+            abi.encode(address(1))
+        );
+
+        // Expect the script to revert with the error `DeploymentAlreadyStored`
+        vm.expectRevert(abi.encodeWithSelector(GenerateHashOnion.DeploymentAlreadyStored.selector, address(9)));
+
+        // Act
         script.run();
     }
 
@@ -106,7 +170,7 @@ contract GenerateHashOnion_Test is Test {
         // Calculate the hash onion using the same values than given tokens file.
         bytes32 _hashOnion = INITIAL_ONION_LAYER;
         // Use `_i + 2` so the addresses goes incremental per pair and they are never repeated.
-        for (uint256 _i; _i < 10; _i += 2) {
+        for (uint256 _i = 1; _i < 10; _i += 2) {
             _hashOnion = keccak256(
                 abi.encodePacked(_hashOnion, abi.encodePacked(address(uint160(_i)), address(uint160(_i + 1))))
             );
@@ -121,14 +185,14 @@ contract GenerateHashOnion_Test is Test {
 
     /// @notice Test the script reads and parses properly the tokens json file, and hash onion generation with a fuzz
     ///         test.
-    function testFuzz_generateHashOnion_succeeds(address[] memory _localTokens) public {
+    function testFuzz_generateHashOnion_succeeds(address[] memory _remoteTokens) public {
+        vm.assume(_remoteTokens.length > 0);
+
         string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/fuzz-test-mock-tokens.json");
         script.forTest_setTokensPath(_path);
 
-        vm.assume(_localTokens.length > 0);
-
         // Set the remote tokens array
-        address[] memory _remoteTokens = _setRemoteTokensArray(_localTokens);
+        address[] memory _localTokens = _setTokensArray(_remoteTokens);
 
         // Calculate the hash onion using the given local and remote tokens
         bytes32 _hashOnion = INITIAL_ONION_LAYER;
