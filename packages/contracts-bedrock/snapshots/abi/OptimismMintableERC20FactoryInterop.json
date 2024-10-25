@@ -235,6 +235,25 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "bytes32",
+        "name": "newHashOnion",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "previousHashOnion",
+        "type": "bytes32"
+      }
+    ],
+    "name": "HashOnionUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint8",
         "name": "version",
         "type": "uint8"
