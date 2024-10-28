@@ -97,10 +97,10 @@ contract OptimismMintableERC20FactoryInterop is OptimismMintableERC20Factory {
     /// @param _hashOnion The new hashOnion value.
     function setHashOnion(bytes32 _hashOnion) external {
         if (hashOnion() != 0) revert HashOnionAlreadySet();
+        if (msg.sender != Predeploys.L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
         if (
-            msg.sender != Predeploys.L2_CROSS_DOMAIN_MESSENGER
-                || ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).xDomainMessageSender()
-                    != AddressAliasHelper.undoL1ToL2Alias(Ownable(Predeploys.PROXY_ADMIN).owner())
+            ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).xDomainMessageSender()
+                != AddressAliasHelper.undoL1ToL2Alias(Ownable(Predeploys.PROXY_ADMIN).owner())
         ) {
             revert Unauthorized();
         }
