@@ -13,7 +13,8 @@ contract PredeploysBaseTest is CommonTest {
 
     /// @dev Returns true if the address is a predeploy that has a different code in the interop mode.
     function _interopCodeDiffer(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.L1_BLOCK_ATTRIBUTES || _addr == Predeploys.L2_STANDARD_BRIDGE;
+        return _addr == Predeploys.L1_BLOCK_ATTRIBUTES || _addr == Predeploys.L2_STANDARD_BRIDGE
+            || _addr == Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY;
     }
 
     /// @dev Returns true if the account is not meant to be in the L2 genesis anymore.

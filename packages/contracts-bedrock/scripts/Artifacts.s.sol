@@ -121,6 +121,8 @@ abstract contract Artifacts {
             return payable(Predeploys.SEQUENCER_FEE_WALLET);
         } else if (digest == keccak256(bytes("OptimismMintableERC20Factory"))) {
             return payable(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
+        } else if (digest == keccak256(bytes("OptimismMintableERC20FactoryInterop"))) {
+            return payable(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
         } else if (digest == keccak256(bytes("OptimismMintableERC721Factory"))) {
             return payable(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
         } else if (digest == keccak256(bytes("L1Block"))) {

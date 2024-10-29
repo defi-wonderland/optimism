@@ -344,6 +344,14 @@ contract Initializer_Test is Bridge_Initializer {
                 initCalldata: abi.encodeCall(l1OptimismMintableERC20Factory.initialize, (address(l1StandardBridge)))
             })
         );
+        // L2OptimismMintableERC20FactoryInteropImpl
+        contracts.push(
+            InitializeableContract({
+                name: "OptimismMintableERC20FactoryInterop",
+                target: deploy.mustGetAddress("OptimismMintableERC20FactoryInterop"),
+                initCalldata: abi.encodeCall(l2OptimismMintableERC20Factory.initialize, (address(l2StandardBridge)))
+            })
+        );
         // DataAvailabilityChallengeImpl
         contracts.push(
             InitializeableContract({

@@ -217,7 +217,7 @@
   },
   "src/universal/OptimismMintableERC20FactoryInterop.sol": {
     "initCodeHash": "0x9b3715d0c568e023861d2e9fdc7ead778f5978ca55fc888ce69658412fc591e3",
-    "sourceCodeHash": "0x9907babcd0a16c1d602837f866c034d477db9ad35cbe3d193a9f85415a1aae6b"
+    "sourceCodeHash": "0x29af9ab64c84d451d4267cb373c9da01db5c189b6d628eaef90bd1f8b890b2c9"
   },
   "src/universal/OptimismMintableERC721.sol": {
     "initCodeHash": "0xec037be7fc28e072944b0a9e55d4278b92d6c68ccb41049ab52eafca59c6e023",

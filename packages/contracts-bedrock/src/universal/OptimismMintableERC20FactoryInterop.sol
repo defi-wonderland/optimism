@@ -9,7 +9,7 @@ import { ICrossDomainMessenger } from "src/universal/interfaces/ICrossDomainMess
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 
 /// @custom:proxied true
-/// @custom:predeployed 0x4200000000000000000000000000000000000012
+/// @custom:predeploy 0x4200000000000000000000000000000000000012
 /// @title OptimismMintableERC20FactoryInterop
 /// @notice OptimismMintableERC20FactoryInterop is an extension of the OptimismMintableERC20Factory that handles the
 /// `deployments` mapping inclusion of tokens deployed before the Holocene. It uses a hash onion structure to verify and
