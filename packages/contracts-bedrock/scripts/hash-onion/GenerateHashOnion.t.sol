@@ -1,0 +1,189 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
+
+import { GenerateHashOnion } from "./GenerateHashOnion.s.sol";
+import { Test } from "forge-std/Test.sol";
+import { IOptimismERC20Factory } from "src/L2/interfaces/IOptimismERC20Factory.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+contract GenerateHashOnionForTest is GenerateHashOnion {
+    function forTest_setTokensPath(string memory _path) public {
+        tokensPath = _path;
+    }
+}
+
+contract GenerateHashOnion_Test is Test {
+    address internal constant FACTORY = address(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
+    bytes32 internal constant INITIAL_ONION_LAYER = keccak256(abi.encode(0));
+
+    GenerateHashOnionForTest internal script;
+
+    function setUp() public {
+        script = new GenerateHashOnionForTest();
+
+        // Mock the call over `deployments` to return zero so the check doesn't revert
+        vm.mockCall(FACTORY, abi.encodeWithSelector(IOptimismERC20Factory.deployments.selector), abi.encode(address(0)));
+    }
+
+    /// @notice Helper function to set a unique output token for each input token.
+    function _setTokensArray(address[] memory _inputTokens) internal pure returns (address[] memory _outputTokens) {
+        _outputTokens = new address[](_inputTokens.length);
+        for (uint256 _i; _i < _inputTokens.length; _i++) {
+            _outputTokens[_i] = address(uint160(uint256(keccak256(abi.encode(_inputTokens[_i]))) + _i));
+        }
+    }
+
+    /// @dev Encodes the local and remote tokens into a JSON format with "pair" keys.
+    function _encodeTokensToJson(
+        address[] memory _localTokens,
+        address[] memory _remoteTokens
+    )
+        internal
+        pure
+        returns (string memory _json)
+    {
+        _json = "["; // Start JSON array
+        for (uint256 i = 0; i < _localTokens.length; i++) {
+            uint256 _pairId = i + 1;
+            // names
+            string memory _tokensItem = string.concat(
+                '{"id": ',
+                vm.toString(_pairId),
+                ",",
+                '"localToken":"',
+                vm.toString(abi.encodePacked(_localTokens[i])),
+                '",',
+                '"remoteToken":"',
+                vm.toString(abi.encodePacked(_remoteTokens[i])),
+                '"}'
+            );
+            // Concatenate the pair item to the JSON, add a comma if it's not the last item
+            _json = string.concat(_json, _tokensItem, (i < _localTokens.length - 1) ? "," : "");
+        }
+        _json = string.concat(_json, "]"); // Close JSON
+    }
+
+    /// @notice Helper function to setup a mock and expect a call to it.
+    function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
+        vm.mockCall(_receiver, _calldata, _returned);
+        vm.expectCall(_receiver, _calldata);
+    }
+
+    /// @notice Test the script reverts when an item in the tokens json file has a repeated local token.
+    function test_generateHashOnion_reverts_whenRepeatedLocalToken() public {
+        string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/test-bad-tokens.json");
+        script.forTest_setTokensPath(_path);
+        address _localToken = makeAddr("localToken");
+
+        // Create the json file with 2 items with repeated token ids
+        string memory _badTokensJson = string.concat(
+            '[{"id": ',
+            vm.toString(uint256(1)),
+            ",",
+            '"localToken":"',
+            vm.toString(_localToken),
+            '",',
+            '"remoteToken":"',
+            vm.toString(abi.encodePacked(address(1))),
+            '"},',
+            '{"id": ',
+            vm.toString(uint256(2)),
+            ",",
+            '"localToken":"',
+            vm.toString(_localToken),
+            '",',
+            '"remoteToken":"',
+            vm.toString(abi.encodePacked(address(2))),
+            '"}]'
+        );
+
+        vm.writeFile(_path, _badTokensJson);
+
+        // Expect the script to revert with the error `RepeatedLocalToken`
+        vm.expectRevert(abi.encodeWithSelector(GenerateHashOnion.RepeatedLocalToken.selector, _localToken));
+
+        // Act
+        script.run();
+    }
+
+    /// @notice Test the script reverts when an item in the tokens json file is already stored on the factory.
+    ///         This test will only work with the `test-mock-tokens.json` file.
+    function test_generateHashOnion_reverts_whenDeploymentIsAlreadyStored() public {
+        string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/test-mock-tokens.json");
+        script.forTest_setTokensPath(_path);
+
+        // Mock the last remote token on the `test-mock-tokens.json` file to be already stored on the factory
+        _mockAndExpect(
+            FACTORY,
+            abi.encodeWithSelector(IOptimismERC20Factory.deployments.selector, address(9)),
+            abi.encode(address(1))
+        );
+
+        // Expect the script to revert with the error `DeploymentAlreadyStored`
+        vm.expectRevert(abi.encodeWithSelector(GenerateHashOnion.DeploymentAlreadyStored.selector, address(9)));
+
+        // Act
+        script.run();
+    }
+
+    /// @notice Test the script reads and parses properly the tokens json file, and hash onion generation.
+    ///         This test will only work with the `test-mock-tokens.json` file.
+    function test_generateHashOnion_succeeds() public {
+        script.forTest_setTokensPath(string.concat(vm.projectRoot(), "/scripts/hash-onion/test-mock-tokens.json"));
+
+        // Calculate the hash onion using the same values than given tokens file.
+        bytes32 _hashOnion = INITIAL_ONION_LAYER;
+        // Use `_i + 2` so the addresses goes incremental per pair and they are never repeated.
+        for (uint256 _i = 1; _i < 10; _i += 2) {
+            _hashOnion = keccak256(
+                abi.encodePacked(_hashOnion, abi.encodePacked(address(uint160(_i)), address(uint160(_i + 1))))
+            );
+        }
+
+        // Run the script to calculate the hash onion
+        bytes32 _returnedHashOnion = script.run();
+
+        // Assert the returned hash onion is the same as the expected hash onion
+        assertEq(_returnedHashOnion, _hashOnion);
+    }
+
+    /// @notice Test the script reads and parses properly the tokens json file, and hash onion generation with a fuzz
+    ///         test.
+    function testFuzz_generateHashOnion_succeeds(address[] memory _remoteTokens) public {
+        vm.assume(_remoteTokens.length > 0);
+
+        string memory _path = string.concat(vm.projectRoot(), "/scripts/hash-onion/fuzz-test-mock-tokens.json");
+        script.forTest_setTokensPath(_path);
+
+        // Set the remote tokens array
+        address[] memory _localTokens = _setTokensArray(_remoteTokens);
+
+        // Calculate the hash onion using the given local and remote tokens
+        bytes32 _hashOnion = INITIAL_ONION_LAYER;
+        for (uint256 _i; _i < _localTokens.length; _i++) {
+            _hashOnion = keccak256(abi.encodePacked(_hashOnion, abi.encodePacked(_localTokens[_i], _remoteTokens[_i])));
+        }
+
+        // Write over a json file with the given local and remote tokens
+        string memory _tokensJson = _encodeTokensToJson(_localTokens, _remoteTokens);
+        vm.writeFile(_path, _tokensJson);
+
+        // Run the script to calculate the hash onion
+        bytes32 _returnedHashOnion = script.run();
+
+        // Assert the returned hash onion is the same as the expected hash onion
+        assertEq(_returnedHashOnion, _hashOnion);
+    }
+
+    /// @notice Test the script reads and parses properly the tokens json file, and hash onion generation with a very
+    ///         large array of tokens.
+    ///         Make sure to add enough memory with the flag `--memory-limit` to run this test.
+    function test_generateHashOnion_succeeds_onVeryLargeArray() public {
+        address[] memory _localTokens = new address[](10000);
+        for (uint256 _i; _i < _localTokens.length; _i++) {
+            _localTokens[_i] = address(uint160(_i));
+        }
+
+        testFuzz_generateHashOnion_succeeds(_localTokens);
+    }
+}
