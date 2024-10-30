@@ -365,7 +365,15 @@ contract L2Genesis is Deployer {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setOptimismMintableERC20Factory() public {
-        address impl = _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
+        address impl;
+        if (cfg.useInterop()) {
+            string memory cname = "OptimismMintableERC20FactoryInterop";
+            impl = Predeploys.predeployToCodeNamespace(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
+            console.log("Setting %s implementation at: %s", cname, impl);
+            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
+        } else {
+            impl = _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
+        }
 
         IOptimismMintableERC20Factory(impl).initialize({ _bridge: address(0) });
 
