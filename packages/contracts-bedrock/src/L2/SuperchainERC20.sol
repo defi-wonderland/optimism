@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { ICrosschainERC20 } from "src/L2/interfaces/ICrosschainERC20.sol";
+import { IERC7802 } from "src/L2/interfaces/IERC7802.sol";
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ERC20 } from "@solady-v0.0.245/tokens/ERC20.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
+import { ERC165, IERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /// @title SuperchainERC20
 /// @notice SuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
 ///         bridging to make it fungible across the Superchain. This construction allows the SuperchainTokenBridge to
 ///         burn and mint tokens.
-abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
+abstract contract SuperchainERC20 is ERC20, ERC165, IERC7802, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.4
+    /// @custom:semver 1.0.0-beta.5
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.4";
+        return "1.0.0-beta.5";
     }
 
     /// @notice Allows the SuperchainTokenBridge to mint tokens.
@@ -38,5 +39,10 @@ abstract contract SuperchainERC20 is ERC20, ICrosschainERC20, ISemver {
         _burn(_from, _amount);
 
         emit CrosschainBurn(_from, _amount);
+    }
+
+    /// @inheritdoc ERC165
+    function supportsInterface(bytes4 _interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return _interfaceId == type(IERC7802).interfaceId || super.supportsInterface(_interfaceId);
     }
 }
