@@ -53,7 +53,7 @@ contract DependencySetManager is Ownable {
 
         for (uint256 i; i < _dependencySet.length; i++) {
             // Check that the dependency wasn't removed from the dependency set before calling its systemConfigInterop
-            if (chainsStatus[_chainId] != Status.Active) {
+            if (chainsStatus[_chainId] == Status.Active) {
                 systemConfigInterops[_dependencySet[i]].addChain(_chainId);
             }
         }
@@ -69,6 +69,15 @@ contract DependencySetManager is Ownable {
         chainsStatus[_chainId] = Status.Registered;
 
         // Remove chain from dependencies
+        for (uint256 i; i < _dependencySet.length; i++) {
+            // Check that the dependency wasn't removed from the dependency set before calling its systemConfigInterop
+            if (chainsStatus[_chainId] == Status.Active) {
+                systemConfigInterops[_dependencySet[i]].removeChain(_chainId);
+            }
+        }
+
+        // Remove all dependencies from the removing chain
+        ISystemConfigInterop(systemConfigInterops[_chainId]).removeDependencies(dependencySet);
 
         emit ChainRemoved(_chainId, _status);
     }
