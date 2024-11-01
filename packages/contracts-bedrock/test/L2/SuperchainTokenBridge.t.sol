@@ -161,30 +161,6 @@ contract SuperchainTokenBridgeTest is Bridge_Initializer {
         superchainTokenBridge.relayERC20(_token, _caller, _to, _amount);
     }
 
-    /// @notice Tests the `relayERC20` function reverts when the `token` does not support the IERC7802 interface.
-    function testFuzz_relayERC20_notSupportedIERC7802_reverts(
-        address _token,
-        address _crossDomainMessageSender,
-        address _to,
-        uint256 _amount
-    )
-        public
-    {
-        assumeAddressIsNot(_token, AddressType.Precompile, AddressType.ForgeAddress);
-
-        // Mock the call over the `supportsInterface` function to return false
-        vm.mockCall(
-            _token, abi.encodeCall(ISuperchainERC20.supportsInterface, (type(IERC7802).interfaceId)), abi.encode(false)
-        );
-
-        // Expect the revert with `InvalidERC7802` selector
-        vm.expectRevert(ISuperchainTokenBridge.InvalidERC7802.selector);
-
-        // Call the `relayERC20` function with the messenger caller
-        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        superchainTokenBridge.relayERC20(_token, _crossDomainMessageSender, _to, _amount);
-    }
-
     /// @notice Tests the `relayERC20` function reverts when the `crossDomainMessageSender` that sent the message is not
     /// the same SuperchainTokenBridge.
     function testFuzz_relayERC20_notCrossDomainSender_reverts(

@@ -86,8 +86,6 @@ contract SuperchainTokenBridge {
     function relayERC20(address _token, address _from, address _to, uint256 _amount) external {
         if (msg.sender != MESSENGER) revert Unauthorized();
 
-        if (!IERC165(_token).supportsInterface(type(IERC7802).interfaceId)) revert InvalidERC7802();
-
         (address crossDomainMessageSender, uint256 source) =
             IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageContext();
 
