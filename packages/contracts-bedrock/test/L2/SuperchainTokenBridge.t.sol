@@ -72,6 +72,7 @@ contract SuperchainTokenBridgeTest is Bridge_Initializer {
         public
     {
         vm.assume(_to != ZERO_ADDRESS);
+        assumeAddressIsNot(_token, AddressType.Precompile, AddressType.ForgeAddress);
 
         // Mock the call over the `supportsInterface` function to return false
         vm.mockCall(
@@ -169,6 +170,8 @@ contract SuperchainTokenBridgeTest is Bridge_Initializer {
     )
         public
     {
+        assumeAddressIsNot(_token, AddressType.Precompile, AddressType.ForgeAddress);
+
         // Mock the call over the `supportsInterface` function to return false
         vm.mockCall(
             _token, abi.encodeCall(ISuperchainERC20.supportsInterface, (type(IERC7802).interfaceId)), abi.encode(false)
