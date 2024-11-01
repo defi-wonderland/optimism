@@ -17,10 +17,8 @@ interface ISystemConfigInterop {
 contract DependencySetManager is Ownable {
     enum Status {
         Pristine,
-        Pending,
-        Active,
-        Inactive,
-        Removed
+        Registered,
+        Active
     }
 
     /// The OPContractsManager contract address
@@ -40,19 +38,17 @@ contract DependencySetManager is Ownable {
         require(systemConfigInterops[_chainId] == address(0), "Chain already registered");
 
         // Check is compatible
-        require(opContractsManager.systemConfigs(_chainId) != address(0), "Chain not compatible");
+        address systemConfig = opContractsManager.systemConfigs(_chainId);
+        require(systemConfig != address(0), "Chain not compatible");
 
-        // TODO: chainIdToBatchInboxAddress? --> think
-        // TODO: Superchain Registry? -> probably not needed
-
-        chainsStatus[_chainId] = Status.Pending;
+        chainsStatus[_chainId] = Status.Registered;
+        systemConfigInterops[_chainId] = systemConfig;
 
         emit ChainRegistered(_chainId);
     }
 
     function addChain(uint256 _chainId) external onlyOwner {
-        require(systemConfigInterops[_chainId] == address(0), "Chain already added");
-        require(chainsStatus[_chainId] == Status.Pending, "Chain status needs to be pending");
+        require(chainsStatus[_chainId] == Status.Registered, "Chain status needs to be on registered status");
         chainsStatus[_chainId] = Status.Active;
 
         for (uint256 i; i < _dependencySet.length; i++) {
@@ -68,8 +64,12 @@ contract DependencySetManager is Ownable {
         emit ChainAdded(chainId);
     }
 
-    function updateChainStatus(Status _status) external onlyOwner {
-        chainsStatus[_chainId] = _status;
-        emit ChainStatusUpdated(_chainId, _status);
+    function removeChain(uint256 _chainId) external onlyOwner {
+        require(chainsStatus[_chainId] == Status.Active, "Chain status needs to be on active status");
+        chainsStatus[_chainId] = Status.Registered;
+
+        // Remove chain from dependencies
+
+        emit ChainRemoved(_chainId, _status);
     }
 }
