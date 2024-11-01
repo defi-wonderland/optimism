@@ -111,6 +111,13 @@ contract SystemConfigInterop is SystemConfig {
         );
     }
 
+    function addDependencies(uint256[] calldata _chainIds) external {
+        require(msg.sender == dependencyManager(), "SystemConfig: caller is not the dependency manager");
+        for (uint256 i = 0; i < _chainIds.length; i++) {
+            IOptimismPortal(payable(optimismPortal())).setConfig(ConfigType.ADD_DEPENDENCIES, abi.encode(_chainIds));
+        }
+    }
+
     /// @notice Removes a chain from the interop dependency set. Can only be called by the dependency manager
     /// @param _chainId Chain ID of the chain to remove.
     function removeDependency(uint256 _chainId) external {
@@ -118,6 +125,13 @@ contract SystemConfigInterop is SystemConfig {
         IOptimismPortal(payable(optimismPortal())).setConfig(
             ConfigType.REMOVE_DEPENDENCY, StaticConfig.encodeRemoveDependency(_chainId)
         );
+    }
+
+    function removeDependencies(uint256[] calldata _chainIds) external {
+        require(msg.sender == dependencyManager(), "SystemConfig: caller is not the dependency manager");
+        for (uint256 i = 0; i < _chainIds.length; i++) {
+            IOptimismPortal(payable(optimismPortal())).setConfig(ConfigType.REMOVE_DEPENDENCIES, abi.encode(_chainIds));
+        }
     }
 
     /// @notice getter for the dependency manager address

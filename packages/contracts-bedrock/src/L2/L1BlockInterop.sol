@@ -25,7 +25,9 @@ import {
 enum ConfigType {
     SET_GAS_PAYING_TOKEN,
     ADD_DEPENDENCY,
-    REMOVE_DEPENDENCY
+    ADD_DEPENDENCIES,
+    REMOVE_DEPENDENCY,
+    REMOVE_DEPENDENCIES
 }
 
 /// @custom:proxied true
@@ -111,8 +113,26 @@ contract L1BlockInterop is L1Block {
             _setGasPayingToken(_value);
         } else if (_type == ConfigType.ADD_DEPENDENCY) {
             _addDependency(_value);
+        } else if (_type == ConfigType.ADD_DEPENDENCIES) {
+            _addDependencies(_value);
         } else if (_type == ConfigType.REMOVE_DEPENDENCY) {
             _removeDependency(_value);
+        } else if (_type == ConfigType.REMOVE_DEPENDENCIES) {
+            _removeDependencies(_value);
+        }
+    }
+
+    function _addDependencies(bytes calldata _value) internal {
+        uint256[] memory chainIds = abi.decode(_value, (uint256[]));
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            _addDependency(abi.encode(chainIds[i]));
+        }
+    }
+
+    function _removeDependencies(bytes calldata _value) internal {
+        uint256[] memory chainIds = abi.decode(_value, (uint256[]));
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            _removeDependency(abi.encode(chainIds[i]));
         }
     }
 
