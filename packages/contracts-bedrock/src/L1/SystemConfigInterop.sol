@@ -114,7 +114,7 @@ contract SystemConfigInterop is SystemConfig {
     function addDependencies(uint256[] calldata _chainIds) external {
         require(msg.sender == dependencyManager(), "SystemConfig: caller is not the dependency manager");
         for (uint256 i = 0; i < _chainIds.length; i++) {
-            IOptimismPortal(payable(optimismPortal())).setConfig(ConfigType.ADD_DEPENDENCIES, abi.encode(_chainIds));
+            IOptimismPortal(payable(optimismPortal())).setConfig(ConfigType.ADD_DEPENDENCIES, abi.encode(_chainIds[i]));
         }
     }
 

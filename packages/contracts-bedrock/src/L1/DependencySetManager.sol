@@ -25,13 +25,13 @@ contract DependencySetManager is Ownable {
     IOPContractsManager public opContractsManager;
 
     // Mapping from chainId to SystemConfigInterop address
-    mapping(uint256 _chainId => address systemConfigInterop_) public systemConfigInterops;
+    mapping(uint256 _chainId => address systemConfigInterop_) public systemConfigInterops; // si esta aca
 
     // Mapping to check if a chainId is in the dependency set
     mapping(uint256 _chainId => Stats status_) public chainsStatus;
 
     // Current dependency set list
-    uint256[] public dependencySet;
+    uint256[] public dependencySet; // no esta aca
 
     function registerChain(uint256 _chainId) external {
         // Check is not alredy registered
@@ -81,4 +81,8 @@ contract DependencySetManager is Ownable {
 
         emit ChainRemoved(_chainId, _status);
     }
+
+    function isRegistered(uint256 _chainId) external view returns (bool) { }
+
+    function isActive(uint256 _chainId) external view returns (bool) { }
 }
