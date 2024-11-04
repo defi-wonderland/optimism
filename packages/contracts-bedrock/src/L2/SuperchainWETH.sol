@@ -13,6 +13,7 @@ import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { IL1Block } from "src/L2/interfaces/IL1Block.sol";
 import { IETHLiquidity } from "src/L2/interfaces/IETHLiquidity.sol";
 import { IERC7802, IERC165 } from "src/L2/interfaces/IERC7802.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Unauthorized, NotCustomGasToken } from "src/libraries/errors/CommonErrors.sol";
 
 /// @custom:proxied true
@@ -94,6 +95,7 @@ contract SuperchainWETH is WETH98, IERC7802, ISemver {
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return _interfaceId == type(IERC7802).interfaceId || _interfaceId == type(IERC165).interfaceId;
+        return _interfaceId == type(IERC7802).interfaceId || _interfaceId == type(IERC20).interfaceId
+            || _interfaceId == type(IERC165).interfaceId;
     }
 }
