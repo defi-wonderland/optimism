@@ -13,6 +13,7 @@ import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { IETHLiquidity } from "src/L2/interfaces/IETHLiquidity.sol";
 import { ISuperchainWETH } from "src/L2/interfaces/ISuperchainWETH.sol";
 import { IERC7802, IERC165 } from "src/L2/interfaces/IERC7802.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title SuperchainWETH_Test
 /// @notice Contract for testing the SuperchainWETH contract.
@@ -463,6 +464,7 @@ contract SuperchainWETH_Test is CommonTest {
     function test_supportInterface_succeeds() public view {
         assertTrue(superchainWeth.supportsInterface(type(IERC165).interfaceId));
         assertTrue(superchainWeth.supportsInterface(type(IERC7802).interfaceId));
+        assertTrue(superchainWeth.supportsInterface(type(IERC20).interfaceId));
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
@@ -470,6 +472,7 @@ contract SuperchainWETH_Test is CommonTest {
     function testFuzz_supportInterface_returnFalse(bytes4 _interfaceId) public view {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
+        vm.assume(_interfaceId != type(IERC20).interfaceId);
         assertFalse(superchainWeth.supportsInterface(_interfaceId));
     }
 }

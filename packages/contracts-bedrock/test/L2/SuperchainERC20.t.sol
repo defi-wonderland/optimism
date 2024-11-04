@@ -6,11 +6,11 @@ import { Test } from "forge-std/Test.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { IERC20Solady as IERC20 } from "src/vendor/interfaces/IERC20Solady.sol";
 
 // Target contract
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 import { IERC7802, IERC165 } from "src/L2/interfaces/IERC7802.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISuperchainERC20 } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { MockSuperchainERC20Implementation } from "test/mocks/SuperchainERC20Implementation.sol";
 
@@ -120,6 +120,7 @@ contract SuperchainERC20Test is Test {
     function test_supportInterface_succeeds() public view {
         assertTrue(superchainERC20.supportsInterface(type(IERC165).interfaceId));
         assertTrue(superchainERC20.supportsInterface(type(IERC7802).interfaceId));
+        assertTrue(superchainERC20.supportsInterface(type(IERC20).interfaceId));
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
@@ -127,6 +128,7 @@ contract SuperchainERC20Test is Test {
     function testFuzz_supportInterface_returnFalse(bytes4 _interfaceId) public view {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
+        vm.assume(_interfaceId != type(IERC20).interfaceId);
         assertFalse(superchainERC20.supportsInterface(_interfaceId));
     }
 }
