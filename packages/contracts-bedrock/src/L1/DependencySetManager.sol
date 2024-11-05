@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { Ownable } from "@openzeppelin/contracts-v5/access/Ownable.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 interface IOPContractsManager {
     function systemConfigs(uint256 _chainId) external view returns (address);
@@ -13,76 +13,49 @@ interface ISystemConfigInterop {
     function addDependency(uint256 _chainId) external;
 }
 
-// contract DependencySetManager is Ownable {
-contract DependencySetManager is Ownable {
-    enum Status {
-        Pristine,
-        Registered,
-        Active
-    }
+contract DependencySetManager {
+    using EnumerableSet for EnumerableSet.UintSet;
+
+    event ChainAdded(uint256 indexed chainId);
+
+    // The address of the DependencyManager contract
+    address public dependencyManager;
 
     /// The OPContractsManager contract address
     IOPContractsManager public opContractsManager;
 
     // Mapping from chainId to SystemConfigInterop address
-    mapping(uint256 _chainId => address systemConfigInterop_) public systemConfigInterops; // si esta aca
+    mapping(uint256 _chainId => ISystemConfigInterop) public systemConfigInterops;
 
-    // Mapping to check if a chainId is in the dependency set
-    mapping(uint256 _chainId => Stats status_) public chainsStatus;
+    /// @notice The interop dependency set, containing the chain IDs in it.
+    EnumerableSet.UintSet internal _dependencySet;
 
-    // Current dependency set list
-    uint256[] public dependencySet; // no esta aca
+    function addChain(uint256 _chainId) external {
+        require(msg.sender == dependencyManager, "Unauthorized");
 
-    function registerChain(uint256 _chainId) external {
-        // Check is not alredy registered
-        require(systemConfigInterops[_chainId] == address(0), "Chain already registered");
+        // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
+        require(_dependencySet.add(_chainId), "Chain already added");
 
         // Check is compatible
         address systemConfig = opContractsManager.systemConfigs(_chainId);
         require(systemConfig != address(0), "Chain not compatible");
 
-        chainsStatus[_chainId] = Status.Registered;
-        systemConfigInterops[_chainId] = systemConfig;
-
-        emit ChainRegistered(_chainId);
-    }
-
-    function addChain(uint256 _chainId) external onlyOwner {
-        require(chainsStatus[_chainId] == Status.Registered, "Chain status needs to be on registered status");
-        chainsStatus[_chainId] = Status.Active;
-
-        for (uint256 i; i < _dependencySet.length; i++) {
-            // Check that the dependency wasn't removed from the dependency set before calling its systemConfigInterop
-            if (chainsStatus[_chainId] == Status.Active) {
-                systemConfigInterops[_dependencySet[i]].addChain(_chainId);
-            }
+        // Loop through the dependency set (except the newly added chain) and add it as a dependency for each chain
+        for (uint256 i; i < _dependencySet.length() - 1; i++) {
+            systemConfigInterops[_dependencySet.at(i)].addDependency(_chainId);
         }
 
-        ISystemConfigInterop(systemConfigInterops[_chainId]).addDependencies(dependencySet);
-        dependencySet.push(_chainId);
+        // Add all dependencies on the new chain
+        systemConfigInterops[_chainId].addDependencies(_dependencySet.values());
 
-        emit ChainAdded(chainId);
+        emit ChainAdded(_chainId);
     }
 
-    function removeChain(uint256 _chainId) external onlyOwner {
-        require(chainsStatus[_chainId] == Status.Active, "Chain status needs to be on active status");
-        chainsStatus[_chainId] = Status.Registered;
-
-        // Remove chain from dependencies
-        for (uint256 i; i < _dependencySet.length; i++) {
-            // Check that the dependency wasn't removed from the dependency set before calling its systemConfigInterop
-            if (chainsStatus[_chainId] == Status.Active) {
-                systemConfigInterops[_dependencySet[i]].removeChain(_chainId);
-            }
-        }
-
-        // Remove all dependencies from the removing chain
-        ISystemConfigInterop(systemConfigInterops[_chainId]).removeDependencies(dependencySet);
-
-        emit ChainRemoved(_chainId, _status);
+    function dependencySet() external view returns (uint256[] memory) {
+        return _dependencySet.values();
     }
 
-    function isRegistered(uint256 _chainId) external view returns (bool) { }
-
-    function isActive(uint256 _chainId) external view returns (bool) { }
+    function isInDependencySet(uint256 _chainId) public view returns (bool) {
+        return _dependencySet.contains(_chainId);
+    }
 }
