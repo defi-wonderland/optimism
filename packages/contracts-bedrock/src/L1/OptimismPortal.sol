@@ -70,7 +70,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     uint32 internal constant SYSTEM_DEPOSIT_GAS_LIMIT = 200_000;
 
     /// @notice The Shared Lockbox contract.
-    ISharedLockbox internal sharedLockbox;
 
     /// @notice Address of the L2 account which initiated a withdrawal in this transaction.
     ///         If the of this variable is the default L2 sender address, then we are NOT inside of
@@ -171,12 +170,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
     /// @param _l2Oracle Contract of the L2OutputOracle.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
-    /// @param _sharedLockbox Contract of the SharedLockbox.
     function initialize(
         IL2OutputOracle _l2Oracle,
         ISystemConfig _systemConfig,
-        ISuperchainConfig _superchainConfig,
-        ISharedLockbox _sharedLockbox
+        ISuperchainConfig _superchainConfig
     )
         public
         initializer
@@ -184,12 +181,10 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
         l2Oracle = _l2Oracle;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
-        sharedLockbox = _sharedLockbox;
         if (l2Sender == address(0)) {
             l2Sender = Constants.DEFAULT_L2_SENDER;
         }
 
-        payable(address(sharedLockbox)).transfer(address(this).balance);
         __ResourceMetering_init();
     }
 
@@ -417,7 +412,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
             //   2. The amount of gas provided to the execution context of the target is at least the
             //      gas limit specified by the user. If there is not enough gas in the current context
             //      to accomplish this, `callWithMinGas` will revert.
-            sharedLockbox.unlockETH(_tx.value);
             success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
         } else {
             // Cannot call the token contract directly from the portal. This would allow an attacker
@@ -428,7 +422,6 @@ contract OptimismPortal is Initializable, ResourceMetering, ISemver {
             // using the standard bridge or arbitrary message passing.
             if (_tx.value != 0) {
                 // Update the contracts internal accounting of the amount of native asset in L2.
-                sharedLockbox.unlockETH(_tx.value);
 
                 // Read the balance of the target contract before the transfer so the consistency
                 // of the transfer can be checked afterwards.

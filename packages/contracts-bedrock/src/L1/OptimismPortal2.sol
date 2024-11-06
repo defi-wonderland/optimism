@@ -46,6 +46,10 @@ import { IDisputeGameFactory } from "src/dispute/interfaces/IDisputeGameFactory.
 import { IDisputeGame } from "src/dispute/interfaces/IDisputeGame.sol";
 import { IL1Block } from "src/L2/interfaces/IL1Block.sol";
 
+interface ISharedLockbox {
+    function unlockETH(uint256 _value) external;
+}
+
 /// @custom:proxied true
 /// @title OptimismPortal2
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
@@ -78,6 +82,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice The L2 gas limit for system deposit transactions that are initiated from L1.
     uint32 internal constant SYSTEM_DEPOSIT_GAS_LIMIT = 200_000;
+
+    /// @notice The Shared Lockbox contract.
+    address public sharedLockbox;
 
     /// @notice Address of the L2 account which initiated a withdrawal in this transaction.
     ///         If the of this variable is the default L2 sender address, then we are NOT inside of
@@ -197,7 +204,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
             _disputeGameFactory: IDisputeGameFactory(address(0)),
             _systemConfig: ISystemConfig(address(0)),
             _superchainConfig: ISuperchainConfig(address(0)),
-            _initialRespectedGameType: GameType.wrap(0)
+            _initialRespectedGameType: GameType.wrap(0),
+            _sharedLockbox: address(0)
         });
     }
 
@@ -209,7 +217,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
-        GameType _initialRespectedGameType
+        GameType _initialRespectedGameType,
+        address _sharedLockbox
     )
         public
         initializer
@@ -217,6 +226,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
+        sharedLockbox = _sharedLockbox;
 
         // Set the `l2Sender` slot, only if it is currently empty. This signals the first initialization of the
         // contract.
@@ -230,6 +240,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
             // Set the initial respected game type
             respectedGameType = _initialRespectedGameType;
         }
+
+        SafeCall.send(address(sharedLockbox), address(this).balance);
 
         __ResourceMetering_init();
     }
@@ -419,6 +431,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         bool success;
         (address token,) = gasPayingToken();
         if (token == Constants.ETHER) {
+            // Get the necessary ether from the shared lockbox.
+            ISharedLockbox(sharedLockbox).unlockETH(_tx.value);
+
             // Trigger the call to the target contract. We use a custom low level method
             // SafeCall.callWithMinGas to ensure two key properties
             //   1. Target contracts cannot force this call to run out of gas by returning a very large
@@ -435,6 +450,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
             // Only transfer value when a non zero value is specified. This saves gas in the case of
             // using the standard bridge or arbitrary message passing.
             if (_tx.value != 0) {
+                // Get the necessary ether from the shared lockbox.
+                ISharedLockbox(sharedLockbox).unlockETH(_tx.value);
+
                 // Update the contracts internal accounting of the amount of native asset in L2.
                 _balance -= _tx.value;
 
