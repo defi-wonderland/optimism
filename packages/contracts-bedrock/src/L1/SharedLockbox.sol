@@ -39,7 +39,7 @@ contract SharedLockbox is ISemver {
     }
 
     /// @notice Locks ETH in the lockbox.
-    ///         Called by an authorized portal when migrating its ETH liquidity to the SharedLockbox.
+    ///         Called by an authorized portal when migrating its ETH liquidity or when depositing with some ETH value.
     function lockETH() external payable {
         if (!authorizedPortals[msg.sender]) revert Unauthorized();
 
