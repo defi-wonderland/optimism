@@ -28,7 +28,7 @@ contract SharedLockbox is ISemver {
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
-    function version() public pure virtual returns (string memory) {
+    function version() public view virtual returns (string memory) {
         return "1.0.0-beta.1";
     }
 
