@@ -4,8 +4,8 @@ pragma solidity 0.8.25;
 import { ISharedLockbox } from "./interfaces/ISharedLockbox.sol";
 
 /// @title LiquidityMigrator
-/// @notice A contract to migrate the contract's ETH balance to the SharedLockbox. One-time use logic, executed in a
-///         batch of transactions to enable the SharedLockbox interaction within the OptimismPortal.
+/// @notice A contract to migrate the OptimisPortal's ETH balance to the SharedLockbox. One-time use logic, executed in
+/// a batch of transactions to enable the SharedLockbox interaction within the OptimismPortal.
 contract LiquidityMigrator {
     /// @notice Emitted when the contract's ETH balance is migrated to the SharedLockbox.
     /// @param amount The amount corresponding to the contract's ETH balance migrated.
