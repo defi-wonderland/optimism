@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.15;
 
 // Testing utilities
 import { Test } from "forge-std/Test.sol";
@@ -12,10 +12,17 @@ import { SharedLockbox } from "src/L1/SharedLockbox.sol";
 import { IOptimismPortal } from "src/L1/interfaces/IOptimismPortal.sol";
 
 contract SharedLockboxTest is Test {
+    event ETHLocked(address indexed portal, uint256 amount);
+
+    event ETHUnlocked(address indexed portal, uint256 amount);
+
+    event AuthorizedPortal(address indexed portal);
+
     address internal immutable SUPERCHAIN_CONFIG = makeAddr("SuperchainConfig");
     IOptimismPortal internal immutable PORTAL = IOptimismPortal(payable(makeAddr("OptimismPortal")));
     SharedLockbox public sharedLockbox;
 
+    // TODO: Update setup to use CommonTest and simulate a real deployment environment
     function setUp() public {
         // Deploy the SharedLockbox contract
         sharedLockbox = new SharedLockbox(SUPERCHAIN_CONFIG);
@@ -52,7 +59,7 @@ contract SharedLockboxTest is Test {
 
         // Look for the emit of the `ETHLocked` event
         vm.expectEmit(address(sharedLockbox));
-        emit SharedLockbox.ETHLocked(_portal, _amount);
+        emit ETHLocked(_portal, _amount);
 
         // Call the `lockETH` function with the portal
         vm.prank(_portal);
@@ -93,7 +100,7 @@ contract SharedLockboxTest is Test {
 
         // Look for the emit of the `ETHUnlocked` event
         vm.expectEmit(address(sharedLockbox));
-        emit SharedLockbox.ETHUnlocked(address(PORTAL), _value);
+        emit ETHUnlocked(address(PORTAL), _value);
 
         // Call the `unlockETH` function with the portal
         vm.prank(address(PORTAL));
@@ -124,7 +131,7 @@ contract SharedLockboxTest is Test {
 
         // Look for the emit of the `AuthorizedPortal` event
         vm.expectEmit(address(sharedLockbox));
-        emit SharedLockbox.AuthorizedPortal(_portal);
+        emit AuthorizedPortal(_portal);
 
         // Call the `authorizePortal` function with the SuperchainConfig
         vm.prank(SUPERCHAIN_CONFIG);
