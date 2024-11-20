@@ -124,8 +124,8 @@
     "sourceCodeHash": "0xcf39c16893cace1e7d61350bfff05a27f3ce8da8eb0ac02cb5ac7bf603f163fa"
   },
   "src/L2/SuperchainTokenBridge.sol": {
-    "initCodeHash": "0x1cd2afdae6dd1b6ebc17f1d529e7d74c9b8b21b02db8589b8e389e2d5523d775",
-    "sourceCodeHash": "0x617aa994f659c5d8ebd54128d994f86f5b175ceca095b024b8524a7898e8ae62"
+    "initCodeHash": "0x5ba314989a911643d93ec2d268a91ee153d2dc0639b492baafa3aa545cd0aa3a",
+    "sourceCodeHash": "0xab115771516fe68ae10034ebef19f883aaef2657cb54d4a0b353cffa0bf0f72e"
   },
   "src/L2/SuperchainWETH.sol": {
     "initCodeHash": "0x5aef986a7c9c102b1e9b3068e2a2b66adce0a71dd5f39e03694622bf494f8d97",

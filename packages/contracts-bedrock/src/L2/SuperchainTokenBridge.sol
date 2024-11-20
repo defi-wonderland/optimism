@@ -9,6 +9,7 @@ import { ZeroAddress, Unauthorized } from "src/libraries/errors/CommonErrors.sol
 import { ISuperchainERC20 } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { IERC7802, IERC165 } from "src/L2/interfaces/IERC7802.sol";
 import { IL2ToL2CrossDomainMessenger } from "src/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
+import { IDependencySet } from "src/L2/interfaces/IDependencySet.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000028
@@ -23,6 +24,9 @@ contract SuperchainTokenBridge {
 
     /// @notice Thrown when attempting to use a token that does not implement the ERC7802 interface.
     error InvalidERC7802();
+
+    /// @notice Thrown when attempting to use a chain ID that is not in the dependency set.
+    error InvalidChainId();
 
     /// @notice Emitted when tokens are sent from one chain to another.
     /// @param token         Address of the token sent.
@@ -45,9 +49,12 @@ contract SuperchainTokenBridge {
     /// @notice Address of the L2ToL2CrossDomainMessenger Predeploy.
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
+    /// @notice Address of the L1Block Predeploy.
+    address internal constant L1_BLOCK = Predeploys.L1_BLOCK_ATTRIBUTES;
+
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.3
-    string public constant version = "1.0.0-beta.3";
+    /// @custom:semver 1.0.0-beta.4
+    string public constant version = "1.0.0-beta.4";
 
     /// @notice Sends tokens to a target address on another chain.
     /// @dev Tokens are burned on the source chain.
@@ -68,6 +75,8 @@ contract SuperchainTokenBridge {
         if (_to == address(0)) revert ZeroAddress();
 
         if (!IERC165(_token).supportsInterface(type(IERC7802).interfaceId)) revert InvalidERC7802();
+
+        if (!IDependencySet(L1_BLOCK).isInDependencySet(_chainId)) revert InvalidChainId();
 
         ISuperchainERC20(_token).crosschainBurn(msg.sender, _amount);
 

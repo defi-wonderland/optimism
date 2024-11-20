@@ -150,6 +150,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidChainId",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidCrossDomainSender",
     "type": "error"
   },

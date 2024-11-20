@@ -14,6 +14,7 @@ import { ISuperchainERC20 } from "src/L2/interfaces/ISuperchainERC20.sol";
 import { IOptimismSuperchainERC20Factory } from "src/L2/interfaces/IOptimismSuperchainERC20Factory.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC7802 } from "src/L2/interfaces/IERC7802.sol";
+import { IDependencySet } from "src/L2/interfaces/IDependencySet.sol";
 
 /// @title SuperchainTokenBridgeTest
 /// @notice Contract for testing the SuperchainTokenBridge contract.
@@ -87,6 +88,32 @@ contract SuperchainTokenBridgeTest is CommonTest {
         superchainTokenBridge.sendERC20(_token, _to, _amount, _chainId);
     }
 
+    /// @notice Tests the `sendERC20` function reverts when the `chainId` is not in the dependency set.
+    function testFuzz_sendERC20_notInDependencySet_reverts(
+        address _sender,
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        public
+    {
+        vm.assume(_to != ZERO_ADDRESS);
+
+        // Mock the call over the `isInDependencySet` function to return false
+        vm.mockCall(
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            abi.encodeCall(IDependencySet.isInDependencySet, (_chainId)),
+            abi.encode(false)
+        );
+
+        // Expect the revert with `InvalidChainId` selector
+        vm.expectRevert(ISuperchainTokenBridge.InvalidChainId.selector);
+
+        // Call the `sendERC20` function
+        vm.prank(_sender);
+        superchainTokenBridge.sendERC20(address(superchainERC20), _to, _amount, _chainId);
+    }
+
     /// @notice Tests the `sendERC20` function burns the sender tokens, sends the message, and emits the `SendERC20`
     /// event.
     function testFuzz_sendERC20_succeeds(
@@ -117,6 +144,13 @@ contract SuperchainTokenBridgeTest is CommonTest {
         // Look for the emit of the `SendERC20` event
         vm.expectEmit(address(superchainTokenBridge));
         emit SendERC20(address(superchainERC20), _sender, _to, _amount, _chainId);
+
+        // Mock the call over the `isInDependencySet` function to return true
+        _mockAndExpect(
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            abi.encodeCall(IDependencySet.isInDependencySet, (_chainId)),
+            abi.encode(true)
+        );
 
         // Mock the call over the `sendMessage` function and expect it to be called properly
         bytes memory _message =
