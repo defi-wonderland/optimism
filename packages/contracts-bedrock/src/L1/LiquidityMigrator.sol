@@ -23,8 +23,8 @@ contract LiquidityMigrator {
     /// @notice Migrates the contract's whole ETH balance to the SharedLockbox.
     ///         One-time use logic upgraded over OptimismPortalProxy address and then deprecated by another approval.
     function migrateETH() external {
-        uint256 _balance = address(this).balance;
-        SHARED_LOCKBOX.lockETH{ value: _balance }();
-        emit ETHMigrated(_balance);
+        uint256 balance = address(this).balance;
+        SHARED_LOCKBOX.lockETH{ value: balance }();
+        emit ETHMigrated(balance);
     }
 }
