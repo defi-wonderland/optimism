@@ -4,12 +4,16 @@ pragma solidity 0.8.15;
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { Storage } from "src/libraries/Storage.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Unauthorized} from "src/libraries/errors/CommonErrors.sol";
 
 /// @custom:proxied true
 /// @custom:audit none This contracts is not yet audited.
 /// @title SuperchainConfig
 /// @notice The SuperchainConfig contract is used to manage configuration of global superchain values.
 contract SuperchainConfig is Initializable, ISemver {
+    using EnumerableSet for EnumerableSet.UintSet;
+
     /// @notice Enum representing different types of updates.
     /// @custom:value GUARDIAN            Represents an update to the guardian.
     enum UpdateType {
@@ -35,9 +39,19 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @param data       Encoded update data.
     event ConfigUpdate(UpdateType indexed updateType, bytes data);
 
+    event ChainAdded(uint256 indexed chainId, address indexed systemConfig, address indexed portal);
+
+    error ChainAlreadyAdded();
+
     /// @notice Semantic version.
     /// @custom:semver 1.1.1-beta.1
     string public constant version = "1.1.1-beta.1";
+
+    // Mapping from chainId to SystemConfig address
+    mapping(uint256 _chainId => ISystemConfig) public systemConfigs;
+
+    // Current dependency set
+    EnumerableSet.UintSet internal _dependencySet;
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor() {
@@ -91,5 +105,41 @@ contract SuperchainConfig is Initializable, ISemver {
     function _setGuardian(address _guardian) internal {
         Storage.setAddress(GUARDIAN_SLOT, _guardian);
         emit ConfigUpdate(UpdateType.GUARDIAN, abi.encode(_guardian));
+    }
+
+    function addChain(uint256 _chainId, address _systemConfig) external {
+        if (msg.sender != updater()) revert Unauthorized();
+
+        // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
+        if (!_dependencySet.add(_chainId!)) revert ChainAlreadyAdded();
+
+        // Store the system config
+        systemConfigs[_chainId] = _systemConfig;
+
+        // Loop through the dependency set and update the dependency for each chain. Using length - 2 to exclude the
+        // current chain from the loop.
+        for (uint256 i; i < _dependencySet.length() - 2; i++) {
+            uint256 currentId = _dependencySet.at(i);
+
+            // Add the new chain as dependency for the current chain on the loop
+            systemConfigs[currentId].addDependency(_chainId);
+            // Add the current chain on the loop as dependency for the new chain
+            systemConfigs[_chainId].addDependency(currentId);
+        }
+
+        address portal = _systemConfig.optimismPortal();
+
+        // Authorize the portal on the shared lockbox
+        SHARED_LOCKBOX.authorizePortal(portal);
+
+        emit ChainAdded(_chainId, _systemConfig, portal);
+    }
+
+    function dependencySet() external view returns (uint256[] memory) {
+        return dependencySet.values();
+    }
+
+    function isInDependencySet(uint256 _chainId) public view returns (bool) {
+        return dependencySet.contains(_chainId);
     }
 }
