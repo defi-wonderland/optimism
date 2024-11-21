@@ -17,11 +17,28 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 // TODO: Update for the real address once is merged
 address constant LOCKBOX = address(uint160(uint256(bytes32("SharedLockbox"))));
 
+/// @notice For testing purposes contract, with setters to facilitate replicating complex scenarios when needed.
 contract SuperchainConfigForTest is SuperchainConfig {
     using EnumerableSet for EnumerableSet.UintSet;
 
     function forTest_addChainOnDependencySet(uint256 _chainId) external {
         _dependencySet.add(_chainId);
+    }
+
+    function forTest_addChainAndSystemConfig(uint256 _chainId, address _systemConfig) external {
+        _dependencySet.add(_chainId);
+        systemConfigs[_chainId] = _systemConfig;
+    }
+
+    function forTest_setLockbox(address _lockbox) external {
+        sharedLockbox = _lockbox;
+    }
+
+    function forTest_setGuardian(address _guardian) external {
+        bytes32 slot = GUARDIAN_SLOT;
+        assembly {
+            sstore(slot, _guardian)
+        }
     }
 }
 
@@ -123,13 +140,12 @@ contract SuperchainConfig_Unpause_Test is CommonTest {
 contract SuperchainConfig_AddChain_Test is CommonTest {
     event ChainAdded(uint256 indexed chainId, address indexed systemConfig, address indexed portal);
 
-    address internal immutable PORTAL = makeAddr("OptimismPortal");
-
     function _mockAndExpect(address _target, bytes memory _calldata, bytes memory _returnData) internal {
         vm.mockCall(_target, _calldata, _returnData);
         vm.expectCall(_target, _calldata);
     }
 
+    /// @notice Tests that `addChain` reverts when called by an unauthorized address.
     function test_addChain_reverts_unauthorized(address _caller, uint256 _chainId, address _systemConfig) external {
         vm.assume(_caller != superchainConfig.guardian());
 
@@ -138,6 +154,7 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
         superchainConfig.addChain(_chainId, _systemConfig);
     }
 
+    /// @notice Tests that `addChain` reverts when the chain is already in the dependency set.
     function test_addChain_reverts_chainAlreadyExists(uint256 _chainId, address _systemConfig) external {
         SuperchainConfigForTest superchainConfig = new SuperchainConfigForTest();
         superchainConfig.forTest_addChainOnDependencySet(_chainId);
@@ -147,32 +164,155 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
         superchainConfig.addChain(_chainId, _systemConfig);
     }
 
-    function test_addChain_succeeds(uint256 _chainId) external {
+    /// @notice Tests that `addChain` successfully adds a chain to the dependency set when it is empty.
+    function test_addChain_succeeds_onEmptyDependencySet(uint256 _chainId, address _portal) external {
         vm.assume(!superchainConfig.isInDependencySet(_chainId));
 
-        // Store the PORTAL address we expect to be used in a call in the SystemConfig OptimsimPortal slot
+        // Store the PORTAL address we expect to be used in a call in the SystemConfig OptimsimPortal slot, and expect
+        // it to be called
         vm.store(
             address(systemConfig),
             bytes32(uint256(keccak256("systemconfig.optimismportal")) - 1),
-            bytes32(uint256(uint160(PORTAL)))
+            bytes32(uint256(uint160(_portal)))
         );
-
-        vm.expectEmit(address(superchainConfig));
-        emit ChainAdded(_chainId, address(systemConfig), PORTAL);
-
         vm.expectCall(address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.optimismPortal.selector));
 
-        _mockAndExpect(LOCKBOX, abi.encodeWithSelector(ISharedLockbox.authorizePortal.selector, PORTAL), "");
+        // Mock and expect the call to authorize the portal on the SharedLockbox with the `_portal` address
+        _mockAndExpect(LOCKBOX, abi.encodeWithSelector(ISharedLockbox.authorizePortal.selector, _portal), "");
 
+        // Expect the `addDependency` function call to not be called since the dependency set is empty
+        uint64 zeroCalls = 0;
+        vm.expectCall(
+            address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector), zeroCalls
+        );
+
+        // Expect the ChainAdded event to be emitted
+        vm.expectEmit(address(superchainConfig));
+        emit ChainAdded(_chainId, address(systemConfig), _portal);
+
+        // Add the new chain to the dependency set
         vm.startPrank(superchainConfig.guardian());
         superchainConfig.addChain(_chainId, address(systemConfig));
 
+        // Check that the new chain is in the dependency set
         assertTrue(superchainConfig.isInDependencySet(_chainId));
     }
 
-    function test_addChain_succeeds_withMultipleDependencies(uint256 _chainId) external { }
+    /// @notice Tests that `addChain` successfully adds a chain to the dependency set when it is not empty.
+    ///         This tests deploys a new SuperchainConfigForTest contract and mocks several calls regarding SystemConfig
+    ///         and SharedLockbox contracts of the added chains with the purpose of reducing test complexity and making
+    ///         it more readable on the trade-off of getting a less realistic environment -- but finally checking the
+    ///         logic that is being tested when having multiple dependencies.
+    function test_addChain_succeeds_withMultipleDependencies(uint256 _chainId, address _portal) external {
+        vm.assume(_chainId > 3);
+
+        // Deploy a new SuperchainConfigForTest contract and set the LOCKBOX and guardian addresses
+        SuperchainConfigForTest superchainConfigForTest = new SuperchainConfigForTest();
+        superchainConfigForTest.forTest_setLockbox(LOCKBOX);
+        superchainConfigForTest.forTest_setGuardian(superchainConfig.guardian());
+
+        // Define the chains to be added to the dependency set
+        (uint256 chainIdOne, address systemConfigOne) = (1, makeAddr("SystemConfigOne"));
+        (uint256 chainIdTwo, address systemConfigTwo) = (2, makeAddr("SystemConfigTwo"));
+        (uint256 chainIdThree, address systemConfigThree) = (3, makeAddr("SystemConfigThree"));
+
+        // Add the first three chains to the dependency set
+        superchainConfigForTest.forTest_addChainAndSystemConfig(chainIdOne, systemConfigOne);
+        superchainConfigForTest.forTest_addChainAndSystemConfig(chainIdTwo, systemConfigTwo);
+        superchainConfigForTest.forTest_addChainAndSystemConfig(chainIdThree, systemConfigThree);
+
+        // Mock and expect the calls when looping through the first chain of the dependency set
+        _mockAndExpect(
+            systemConfigOne, abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, _chainId), ""
+        );
+        _mockAndExpect(
+            address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, chainIdOne), ""
+        );
+
+        // Mock and expect the calls when looping through the second chain of the dependency set
+        _mockAndExpect(
+            systemConfigTwo, abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, _chainId), ""
+        );
+        _mockAndExpect(
+            address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, chainIdTwo), ""
+        );
+
+        // Mock and expect the calls when looping through the third chain of the dependency set
+        _mockAndExpect(
+            systemConfigThree, abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, _chainId), ""
+        );
+        _mockAndExpect(
+            address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, chainIdThree), ""
+        );
+
+        // Store the PORTAL address we expect to be used in a call in the SystemConfig OptimsimPortal slot, and expect
+        // it to be called
+        vm.store(
+            address(systemConfig),
+            bytes32(uint256(keccak256("systemconfig.optimismportal")) - 1),
+            bytes32(uint256(uint160(_portal)))
+        );
+        vm.expectCall(address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.optimismPortal.selector));
+
+        // Mock and expect the call to authorize the portal on the SharedLockbox with the `_portal` address
+        _mockAndExpect(LOCKBOX, abi.encodeWithSelector(ISharedLockbox.authorizePortal.selector, _portal), "");
+
+        // Expect the ChainAdded event to be emitted
+        vm.expectEmit(address(superchainConfigForTest));
+        emit ChainAdded(_chainId, address(systemConfig), _portal);
+
+        // Add the new chain to the dependency set
+        vm.prank(superchainConfigForTest.guardian());
+        superchainConfigForTest.addChain(_chainId, address(systemConfig));
+
+        // Check that the new chain is in the dependency set
+        assertTrue(superchainConfigForTest.isInDependencySet(_chainId));
+    }
 }
 
-contract SuperchainConfig_IsInDependencySet_Test is CommonTest { }
+contract SuperchainConfig_IsInDependencySet_Test is CommonTest {
+    /// @dev Tests that `isInDependencySet` returns false when the chain is not in the dependency set. Checking if empty
+    ///      to ensure that should be true.
+    function test_isInDependencySet_false(uint256 _chainId) external view {
+        assert(superchainConfig.dependencySet().length == 0);
+        assertFalse(superchainConfig.isInDependencySet(_chainId));
+    }
 
-contract SuperchainConfig_DependencySet_Test is CommonTest { }
+    /// @dev Tests that `isInDependencySet` returns true when the chain is in the dependency set.
+    function test_isInDependencySet_true(uint256 _chainId) external {
+        SuperchainConfigForTest superchainConfig = new SuperchainConfigForTest();
+        superchainConfig.forTest_addChainOnDependencySet(_chainId);
+
+        assertTrue(superchainConfig.isInDependencySet(_chainId));
+    }
+}
+
+contract SuperchainConfig_DependencySet_Test is CommonTest {
+    using EnumerableSet for EnumerableSet.UintSet;
+
+    EnumerableSet.UintSet internal chainIds;
+
+    /// @notice Tests that the dependency set returns properly the dependencies added.
+    function test_dependencySet_succeeds(uint256[] calldata _chainIdsArray) public {
+        SuperchainConfigForTest superchainConfigForTest = new SuperchainConfigForTest();
+
+        // Ensure there are no repeated values on the input array
+        for (uint256 i; i < _chainIdsArray.length; i++) {
+            chainIds.add(_chainIdsArray[i]);
+        }
+
+        // Add the dependencies to the dependency set
+        for (uint256 i; i < chainIds.values().length; i++) {
+            superchainConfigForTest.forTest_addChainOnDependencySet(chainIds.at(i));
+        }
+
+        // Check that the dependency set has the same length as the dependencies
+        uint256[] memory dependencySet = superchainConfigForTest.dependencySet();
+        assertEq(dependencySet.length, chainIds.values().length);
+
+        // Check that the dependency set has the same chain IDs as the dependencies
+        for (uint256 i; i < chainIds.values().length; i++) {
+            assertEq(dependencySet[i], chainIds.at(i));
+        }
+    }
+}

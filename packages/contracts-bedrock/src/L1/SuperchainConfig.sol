@@ -62,7 +62,7 @@ contract SuperchainConfig is Initializable, ISemver {
     string public constant version = "1.1.1-beta.2";
 
     // Mapping from chainId to SystemConfig address
-    mapping(uint256 => ISystemConfigInterop) public systemConfigs;
+    mapping(uint256 => address) public systemConfigs;
 
     // Dependency set of chains that are part of the same cluster
     EnumerableSet.UintSet internal _dependencySet;
@@ -135,18 +135,19 @@ contract SuperchainConfig is Initializable, ISemver {
         // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
         if (!_dependencySet.add(_chainId)) revert ChainAlreadyAdded();
 
-        systemConfigs[_chainId] = ISystemConfigInterop(_systemConfig);
+        systemConfigs[_chainId] = _systemConfig;
 
-        if (_dependencySet.length() > 1) {
+        // If the dependency set is empty, there is no need to update the dependencies
+        if (_dependencySet.length() != 0) {
             // Loop through the dependency set and update the dependency for each chain. Using length - 2 to exclude the
             // current chain from the loop.
-            for (uint256 i; i < _dependencySet.length() - 2; i++) {
+            for (uint256 i; i < _dependencySet.length() - 1; i++) {
                 uint256 currentId = _dependencySet.at(i);
 
                 // Add the new chain as dependency for the current chain on the loop
-                systemConfigs[currentId].addDependency(_chainId);
+                ISystemConfigInterop(systemConfigs[currentId]).addDependency(_chainId);
                 // Add the current chain on the loop as dependency for the new chain
-                systemConfigs[_chainId].addDependency(currentId);
+                ISystemConfigInterop(_systemConfig).addDependency(currentId);
             }
         }
 

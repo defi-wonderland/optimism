@@ -20,8 +20,8 @@ interface ISuperchainConfig {
     function unpause() external;
     function version() external view returns (string memory);
     function addChain(uint256 chainId, address systemConfig) external;
-    function dependencySet(uint256 chainId) external view returns (uint256);
     function isInDependencySet(uint256 chainId) external view returns (bool);
+    function dependencySet() external view returns (uint256[] memory);
 
     function __constructor__() external;
 }
