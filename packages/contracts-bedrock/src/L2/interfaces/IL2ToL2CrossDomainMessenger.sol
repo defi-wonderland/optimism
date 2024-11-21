@@ -42,14 +42,23 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when a call to the target contract during message relay fails.
     error TargetCallFailed();
 
+    /// @notice Thrown when relaying a message from an address different from the specified entrypoint.
+    error InvalidEntrypoint();
+
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
     /// @param messageNonce Nonce associated with the messsage sent
     /// @param sender       Address initiating this message call
     /// @param message      Message payload to call target with.
+    /// @param entrypoint   Address of the entrypoint on the destination chain.
     event SentMessage(
-        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message
+        uint256 indexed destination,
+        address indexed target,
+        uint256 indexed messageNonce,
+        address sender,
+        bytes message,
+        address entrypoint
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
@@ -95,6 +104,25 @@ interface IL2ToL2CrossDomainMessenger {
     /// @return msgHash_ The hash of the message being sent, which can be used for tracking whether
     ///                  the message has successfully been relayed.
     function sendMessage(uint256 _destination, address _target, bytes calldata _message) external returns (bytes32);
+
+    /// @notice Sends a message to some target address on a destination chain with an entrypoint address as an
+    ///         authorized relayer. Note that if the call always reverts, then the message will be unrelayable and any
+    ///         ETH sent will be permanently locked. The same will occur if the target on the other chain is considered
+    ///         unsafe (see the _isUnsafeTarget() function). The entrypoint must have the capability to call
+    ///         `relayMessage` for successful relaying.
+    /// @param _destination Chain ID of the destination chain.
+    /// @param _target      Target contract or wallet address.
+    /// @param _message     Message payload to call target with.
+    /// @param _entrypoint  Address of the entrypoint on the destination chain.
+    /// @return The hash of the message being sent, used to track whether the message has successfully been relayed.
+    function sendMessage(
+        uint256 _destination,
+        address _target,
+        bytes calldata _message,
+        address _entrypoint
+    )
+        external
+        returns (bytes32);
 
     /// @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
     ///         be executed via cross-chain call from the other messenger OR if the message was
