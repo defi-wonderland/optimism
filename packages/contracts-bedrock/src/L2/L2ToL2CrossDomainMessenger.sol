@@ -83,7 +83,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
-    /// @param messageNonce Nonce associated with the messsage sent
+    /// @param messageNonce Nonce associated with the message sent
     /// @param sender       Address initiating this message call
     /// @param message      Message payload to call target with.
     /// @param entrypoint   Address of the entrypoint on the destination chain.
@@ -98,7 +98,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
     /// @param source       Chain ID of the source chain.
-    /// @param messageNonce Nonce associated with the messsage sent
+    /// @param messageNonce Nonce associated with the message sent
     /// @param messageHash  Hash of the message that was relayed.
     event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash);
 
