@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { LiquidityMigrator } from "src/L1/LiquidityMigrator.sol";
 import { SharedLockbox } from "src/L1/SharedLockbox.sol";
 
+// TODO: Inherit from CommonTest once we deploy correctly
 contract LiquidityMigratorTest is Test {
     address internal immutable SUPERCHAIN_CONFIG = makeAddr("SuperchainConfig");
 
