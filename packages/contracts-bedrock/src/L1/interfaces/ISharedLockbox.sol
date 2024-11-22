@@ -16,7 +16,7 @@ interface ISharedLockbox is ISemver {
 
     function SUPERCHAIN_CONFIG() external view returns (address);
 
-    function authorizedPortals(address _portal) external view returns (bool);
+    function authorizedPortals(address) external view returns (bool);
 
     function __constructor__(address _superchainConfig) external;
 

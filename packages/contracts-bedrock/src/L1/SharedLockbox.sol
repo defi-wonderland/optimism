@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.15;
 
 import { ISemver } from "src/universal/interfaces/ISemver.sol";
 import { IOptimismPortal } from "src/L1/interfaces/IOptimismPortal.sol";
@@ -24,7 +24,7 @@ contract SharedLockbox is ISemver {
     address public immutable SUPERCHAIN_CONFIG;
 
     /// @notice OptimismPortals that are part of the dependency cluster authorized to interact with the SharedLockbox.
-    mapping(address _portal => bool) public authorizedPortals;
+    mapping(address => bool) public authorizedPortals;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
