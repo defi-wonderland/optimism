@@ -16,7 +16,7 @@ contract SharedLockboxTest is Test {
 
     event ETHUnlocked(address indexed portal, uint256 amount);
 
-    event AuthorizedPortal(address indexed portal);
+    event PortalAuthorized(address indexed portal);
 
     address internal immutable SUPERCHAIN_CONFIG = makeAddr("SuperchainConfig");
     IOptimismPortal internal immutable PORTAL = IOptimismPortal(payable(makeAddr("OptimismPortal")));
@@ -129,9 +129,9 @@ contract SharedLockboxTest is Test {
         // Adding this check to make it more future proof in case something changes on the setup.
         vm.assume(sharedLockbox.authorizedPortals(_portal) == false);
 
-        // Look for the emit of the `AuthorizedPortal` event
+        // Look for the emit of the `PortalAuthorized` event
         vm.expectEmit(address(sharedLockbox));
-        emit AuthorizedPortal(_portal);
+        emit PortalAuthorized(_portal);
 
         // Call the `authorizePortal` function with the SuperchainConfig
         vm.prank(SUPERCHAIN_CONFIG);
