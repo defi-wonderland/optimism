@@ -42,7 +42,7 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when a call to the target contract during message relay fails.
     error TargetCallFailed();
 
-    /// @notice Thrown when relaying a message from an address different from the specified entrypoint.
+    /// @notice Thrown when relaying a message from an address different than the specified entrypoint.
     error InvalidEntrypoint();
 
     /// @notice Emitted whenever a message is sent to a destination
