@@ -7,11 +7,7 @@ import { Storage } from "src/libraries/Storage.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { ISystemConfigInterop } from "src/L1/interfaces/ISystemConfigInterop.sol";
-
-// TODO: Remove once is merged
-interface ISharedLockbox {
-    function authorizePortal(address _portal) external;
-}
+import { ISharedLockbox } from "src/L1/interfaces/ISharedLockbox.sol";
 
 /// @custom:proxied true
 /// @custom:audit none This contracts is not yet audited.
