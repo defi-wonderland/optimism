@@ -361,6 +361,9 @@ contract DeploySuperchain is Script {
         address guardian = _dsi.guardian();
         bool paused = _dsi.paused();
 
+        // TODO: Update for the real address once is merged
+        address sharedLockbox = address(uint160(uint256(bytes32("SharedLockbox"))));
+
         IProxyAdmin superchainProxyAdmin = _dso.superchainProxyAdmin();
         ISuperchainConfig superchainConfigImpl = _dso.superchainConfigImpl();
 
@@ -376,7 +379,7 @@ contract DeploySuperchain is Script {
         superchainProxyAdmin.upgradeAndCall(
             payable(address(superchainConfigProxy)),
             address(superchainConfigImpl),
-            abi.encodeCall(ISuperchainConfig.initialize, (guardian, paused))
+            abi.encodeCall(ISuperchainConfig.initialize, (guardian, paused, sharedLockbox))
         );
         vm.stopBroadcast();
 
