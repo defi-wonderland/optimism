@@ -146,7 +146,7 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
     }
 
     /// @notice Tests that `addChain` reverts when called by an unauthorized address.
-    function test_addChain_reverts_unauthorized(address _caller, uint256 _chainId, address _systemConfig) external {
+    function test_addChain_unauthorized_reverts(address _caller, uint256 _chainId, address _systemConfig) external {
         vm.assume(_caller != superchainConfig.guardian());
 
         vm.expectRevert(Unauthorized.selector);
@@ -155,7 +155,7 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
     }
 
     /// @notice Tests that `addChain` reverts when the chain is already in the dependency set.
-    function test_addChain_reverts_chainAlreadyExists(uint256 _chainId, address _systemConfig) external {
+    function test_addChain_chainAlreadyExists_reverts(uint256 _chainId, address _systemConfig) external {
         SuperchainConfigForTest superchainConfig = new SuperchainConfigForTest();
         superchainConfig.forTest_addChainOnDependencySet(_chainId);
 
@@ -165,7 +165,7 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
     }
 
     /// @notice Tests that `addChain` successfully adds a chain to the dependency set when it is empty.
-    function test_addChain_succeeds_onEmptyDependencySet(uint256 _chainId, address _portal) external {
+    function test_addChain_onEmptyDependencySet_succeeds(uint256 _chainId, address _portal) external {
         vm.assume(!superchainConfig.isInDependencySet(_chainId));
 
         // Store the PORTAL address we expect to be used in a call in the SystemConfig OptimsimPortal slot, and expect
@@ -203,7 +203,7 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
     ///         and SharedLockbox contracts of the added chains with the purpose of reducing test complexity and making
     ///         it more readable on the trade-off of getting a less realistic environment -- but finally checking the
     ///         logic that is being tested when having multiple dependencies.
-    function test_addChain_succeeds_withMultipleDependencies(uint256 _chainId, address _portal) external {
+    function test_addChain_withMultipleDependencies_succeeds(uint256 _chainId, address _portal) external {
         vm.assume(_chainId > 3);
 
         // Deploy a new SuperchainConfigForTest contract and set the LOCKBOX and guardian addresses
@@ -273,13 +273,13 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
 contract SuperchainConfig_IsInDependencySet_Test is CommonTest {
     /// @dev Tests that `isInDependencySet` returns false when the chain is not in the dependency set. Checking if empty
     ///      to ensure that should be true.
-    function test_isInDependencySet_false(uint256 _chainId) external view {
+    function test_isInDependencySet_false_succeeds(uint256 _chainId) external view {
         assert(superchainConfig.dependencySet().length == 0);
         assertFalse(superchainConfig.isInDependencySet(_chainId));
     }
 
     /// @dev Tests that `isInDependencySet` returns true when the chain is in the dependency set.
-    function test_isInDependencySet_true(uint256 _chainId) external {
+    function test_isInDependencySet_true_succeeds(uint256 _chainId) external {
         SuperchainConfigForTest superchainConfig = new SuperchainConfigForTest();
         superchainConfig.forTest_addChainOnDependencySet(_chainId);
 
