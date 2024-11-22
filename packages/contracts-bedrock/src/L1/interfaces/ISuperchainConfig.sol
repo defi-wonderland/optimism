@@ -17,6 +17,7 @@ interface ISuperchainConfig {
 
     function GUARDIAN_SLOT() external view returns (bytes32);
     function PAUSED_SLOT() external view returns (bytes32);
+    function sharedLockbox() external view returns (address);
     function guardian() external view returns (address guardian_);
     function systemConfigs(uint256) external view returns (address);
     function initialize(address _guardian, bool _paused, address _sharedLockbox) external;
@@ -24,8 +25,8 @@ interface ISuperchainConfig {
     function paused() external view returns (bool paused_);
     function unpause() external;
     function version() external view returns (string memory);
-    function addChain(uint256 chainId, address systemConfig) external;
-    function isInDependencySet(uint256 chainId) external view returns (bool);
+    function addChain(uint256 _chainId, address _systemConfig) external;
+    function isInDependencySet(uint256 _chainId) external view returns (bool);
     function dependencySet() external view returns (uint256[] memory);
 
     function __constructor__() external;

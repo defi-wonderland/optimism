@@ -30,7 +30,7 @@ contract SuperchainConfig is Initializable, ISemver {
     bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256("superchainConfig.guardian")) - 1);
 
     // The Shared Lockbox contract
-    address internal sharedLockbox;
+    address public sharedLockbox;
 
     /// @notice Emitted when the pause is triggered.
     /// @param identifier A string helping to identify provenance of the pause transaction.
