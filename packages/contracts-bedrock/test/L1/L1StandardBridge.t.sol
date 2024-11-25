@@ -186,7 +186,8 @@ contract L1StandardBridge_Receive_Test is CommonTest {
         vm.prank(alice, alice);
         (bool success,) = address(l1StandardBridge).call{ value: 100 }(hex"");
         assertEq(success, true);
-        assertEq(address(optimismPortal).balance, 100);
+        assertEq(address(optimismPortal).balance, 0);
+        assertEq(address(sharedLockbox).balance, 100);
     }
 }
 
@@ -277,11 +278,12 @@ contract L1StandardBridge_DepositETH_Test is PreBridgeETH {
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      Only EOA can call depositETH.
-    ///      ETH ends up in the optimismPortal.
+    ///      ETH ends up in the sharedLockbox.
     function test_depositETH_succeeds() external {
         _preBridgeETH({ isLegacy: true, value: 500 });
         l1StandardBridge.depositETH{ value: 500 }(50000, hex"dead");
-        assertEq(address(optimismPortal).balance, 500);
+        assertEq(address(optimismPortal).balance, 0);
+        assertEq(address(sharedLockbox).balance, 500);
     }
 }
 
@@ -310,11 +312,12 @@ contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      Only EOA can call bridgeETH.
-    ///      ETH ends up in the optimismPortal.
+    ///      ETH ends up in the sharedLockbox.
     function test_bridgeETH_succeeds() external {
         _preBridgeETH({ isLegacy: false, value: 500 });
         l1StandardBridge.bridgeETH{ value: 500 }(50000, hex"dead");
-        assertEq(address(optimismPortal).balance, 500);
+        assertEq(address(optimismPortal).balance, 0);
+        assertEq(address(sharedLockbox).balance, 500);
     }
 }
 
@@ -403,11 +406,12 @@ contract L1StandardBridge_DepositETHTo_Test is PreBridgeETHTo {
     ///      Emits ETHDepositInitiated event.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      EOA or contract can call depositETHTo.
-    ///      ETH ends up in the optimismPortal.
+    ///      ETH ends up in the sharedLockbox.
     function test_depositETHTo_succeeds() external {
         _preBridgeETHTo({ isLegacy: true, value: 600 });
         l1StandardBridge.depositETHTo{ value: 600 }(bob, 60000, hex"dead");
-        assertEq(address(optimismPortal).balance, 600);
+        assertEq(address(optimismPortal).balance, 0);
+        assertEq(address(sharedLockbox).balance, 600);
     }
 }
 
@@ -436,11 +440,12 @@ contract L1StandardBridge_BridgeETHTo_Test is PreBridgeETHTo {
     ///      Emits ETHDepositInitiated and ETHBridgeInitiated events.
     ///      Calls depositTransaction on the OptimismPortal.
     ///      Only EOA can call bridgeETHTo.
-    ///      ETH ends up in the optimismPortal.
+    ///      ETH ends up in the sharedLockbox.
     function test_bridgeETHTo_succeeds() external {
         _preBridgeETHTo({ isLegacy: false, value: 600 });
         l1StandardBridge.bridgeETHTo{ value: 600 }(bob, 60000, hex"dead");
-        assertEq(address(optimismPortal).balance, 600);
+        assertEq(address(optimismPortal).balance, 0);
+        assertEq(address(sharedLockbox).balance, 600);
     }
 }
 
