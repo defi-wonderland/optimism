@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 import { ISharedLockbox } from "./interfaces/ISharedLockbox.sol";
 
+/// @custom:proxied true
 /// @title LiquidityMigrator
 /// @notice A contract to migrate the OptimisPortal's ETH balance to the SharedLockbox. One-time use logic, executed in
 /// a batch of transactions to enable the SharedLockbox interaction within the OptimismPortal.
