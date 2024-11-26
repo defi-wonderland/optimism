@@ -3,7 +3,6 @@ pragma solidity 0.8.15;
 
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { LiquidityMigrator } from "src/L1/LiquidityMigrator.sol";
-import { SharedLockbox } from "src/L1/SharedLockbox.sol";
 
 contract LiquidityMigratorTest is CommonTest {
     event ETHMigrated(uint256 amount);
