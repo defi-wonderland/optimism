@@ -43,7 +43,6 @@ contract Specification_Test is CommonTest {
         DELAYEDWETHOWNER,
         COUNCILSAFE,
         COUNCILSAFEOWNER,
-        DEPENDENCYMANAGER,
         PORTAL,
         SUPERCHAINCONFIG
     }
@@ -492,7 +491,6 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("gasLimit()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("eip1559Denominator()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("eip1559Elasticity()") });
-        _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.initialize.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfig.initialize.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.minimumGasLimit.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("overhead()") });
@@ -559,13 +557,14 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("basefeeScalar()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("blobbasefeeScalar()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("maximumGasLimit()") });
-        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("addDependency(uint256)"), _auth: Role.DEPENDENCYMANAGER });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("addDependency(uint256)"), _auth: Role.SUPERCHAINCONFIG });
         _addSpec({
             _name: "SystemConfigInterop",
             _sel: _getSel("removeDependency(uint256)"),
-            _auth: Role.DEPENDENCYMANAGER
+            _auth: Role.SUPERCHAINCONFIG
         });
-        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("dependencyManager()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("dependencyCounter()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("SUPERCHAIN_CONFIG()") });
 
         // ProxyAdmin
         _addSpec({ _name: "ProxyAdmin", _sel: _getSel("addressManager()") });

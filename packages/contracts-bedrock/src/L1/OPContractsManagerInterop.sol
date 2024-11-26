@@ -40,7 +40,7 @@ contract OPContractsManagerInterop is OPContractsManager {
         // to update where this value is pulled from in the future. To support a different dependency
         // manager in this contract without an invasive change of redefining the `Roles` struct,
         // we will make the change described in https://github.com/ethereum-optimism/optimism/issues/11783.
-        address dependencyManager = address(_input.roles.systemConfigOwner);
+        // address dependencyManager = address(_input.roles.systemConfigOwner);
 
         return abi.encodeWithSelector(
             selector,
@@ -52,8 +52,7 @@ contract OPContractsManagerInterop is OPContractsManager {
             _input.roles.unsafeBlockSigner,
             referenceResourceConfig,
             chainIdToBatchInboxAddress(_input.l2ChainId),
-            opChainAddrs,
-            dependencyManager
+            opChainAddrs
         );
     }
 }

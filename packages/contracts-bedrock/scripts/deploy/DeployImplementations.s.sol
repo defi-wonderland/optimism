@@ -926,9 +926,9 @@ contract DeployImplementations is Script {
 //   - `OptimismPortalInterop is OptimismPortal`: A different portal implementation is used, and
 //     it's ABI is the same.
 //   - `SystemConfigInterop is SystemConfig`: A different system config implementation is used, and
-//     it's initializer has a different signature. This signature is different because there is a
-//     new input parameter, the `dependencyManager`.
-//   - Because of the different system config initializer, there is a new input parameter (dependencyManager).
+//     it's constructor has a different signature. This signature is different because there is a
+//     new input parameter, the `superchainConfig`.
+//   - Because of the different system config constructor, there is a new input parameter (superchainConfig).
 //
 // Similar to how inheritance was used to develop the new portal and system config contracts, we use
 // inheritance to modify up to all of the deployer contracts. For this interop example, what this
@@ -1038,11 +1038,14 @@ contract DeployImplementationsInterop is DeployImplementations {
         if (existingImplementation != address(0)) {
             impl = ISystemConfigInterop(existingImplementation);
         } else {
+            address superchainConfig = address(_dii.superchainConfigProxy());
             vm.broadcast(msg.sender);
             impl = ISystemConfigInterop(
                 DeployUtils.create1({
                     _name: "SystemConfigInterop",
-                    _args: DeployUtils.encodeConstructor(abi.encodeCall(ISystemConfigInterop.__constructor__, ()))
+                    _args: DeployUtils.encodeConstructor(
+                        abi.encodeCall(ISystemConfigInterop.__constructor__, (superchainConfig))
+                    )
                 })
             );
         }
