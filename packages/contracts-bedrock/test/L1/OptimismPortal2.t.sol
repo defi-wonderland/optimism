@@ -878,9 +878,10 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         uint256 _proposedGameIndex_noData = disputeGameFactory.gameCount() - 1;
         // Warp beyond the chess clocks and finalize the game.
         vm.warp(block.timestamp + game_noData.maxClockDuration().raw() + 1 seconds);
-        // Fund the portal so that we can withdraw ETH.
-        vm.store(address(optimismPortal2), bytes32(uint256(61)), bytes32(uint256(0xFFFFFFFF)));
-        vm.deal(address(optimismPortal2), 0xFFFFFFFF);
+
+        // Fund the SharedLockbox so that we can withdraw ETH.
+        vm.deal(address(sharedLockbox), _defaultTx_noData.value);
+        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx_noData.value)));
 
         uint256 bobBalanceBefore = bob.balance;
 
@@ -985,6 +986,10 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
     function test_finalizeWithdrawalTransaction_provenWithdrawalHashEther_succeeds() external {
         uint256 bobBalanceBefore = address(bob).balance;
 
+        // Fund the SharedLockbox so that we can withdraw ETH.
+        vm.deal(address(sharedLockbox), _defaultTx.value);
+        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
+
         vm.expectEmit(address(optimismPortal2));
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         vm.expectEmit(address(optimismPortal2));
@@ -1020,6 +1025,10 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Warp 1 second into the future so that the proof is submitted after the timestamp of game creation.
         vm.warp(block.timestamp + 1 seconds);
+
+        // Fund the SharedLockbox so that we can withdraw ETH.
+        vm.deal(address(sharedLockbox), _defaultTx.value);
+        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
 
         // Prove the withdrawal transaction against the invalid dispute game, as 0xb0b.
         vm.expectEmit(true, true, true, true);
@@ -1198,6 +1207,10 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         uint256 bobBalanceBefore = address(bob).balance;
         vm.etch(bob, hex"fe"); // Contract with just the invalid opcode.
 
+        // Fund the SharedLockbox so that we can withdraw ETH.
+        vm.deal(address(sharedLockbox), _defaultTx.value);
+        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
+
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         vm.expectEmit(true, true, true, true);
@@ -1224,6 +1237,10 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal has already been
     ///      finalized.
     function test_finalizeWithdrawalTransaction_onReplay_reverts() external {
+        // Fund the SharedLockbox so that we can withdraw ETH.
+        vm.deal(address(sharedLockbox), _defaultTx.value);
+        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
+
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         vm.expectEmit(true, true, true, true);
@@ -1320,6 +1337,10 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Return a mock output root from the game.
         vm.mockCall(address(game), abi.encodeCall(game.rootClaim, ()), abi.encode(outputRoot));
+
+        // Fund the SharedLockbox so that we can withdraw ETH.
+        vm.deal(address(sharedLockbox), _testTx.value);
+        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_testTx.value)));
 
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(withdrawalHash, alice, address(this));

@@ -163,6 +163,7 @@ contract L1StandardBridge_Receive_Test is CommonTest {
     /// @dev Tests receive bridges ETH successfully.
     function test_receive_succeeds() external {
         assertEq(address(optimismPortal).balance, 0);
+        assertEq(address(sharedLockbox).balance, 0);
 
         // The legacy event must be emitted for backwards compatibility
         vm.expectEmit(address(l1StandardBridge));
@@ -280,8 +281,11 @@ contract L1StandardBridge_DepositETH_Test is PreBridgeETH {
     ///      Only EOA can call depositETH.
     ///      ETH ends up in the sharedLockbox.
     function test_depositETH_succeeds() external {
+        assertEq(address(sharedLockbox).balance, 0);
+
         _preBridgeETH({ isLegacy: true, value: 500 });
         l1StandardBridge.depositETH{ value: 500 }(50000, hex"dead");
+
         assertEq(address(optimismPortal).balance, 0);
         assertEq(address(sharedLockbox).balance, 500);
     }
@@ -314,8 +318,11 @@ contract L1StandardBridge_BridgeETH_Test is PreBridgeETH {
     ///      Only EOA can call bridgeETH.
     ///      ETH ends up in the sharedLockbox.
     function test_bridgeETH_succeeds() external {
+        assertEq(address(sharedLockbox).balance, 0);
+
         _preBridgeETH({ isLegacy: false, value: 500 });
         l1StandardBridge.bridgeETH{ value: 500 }(50000, hex"dead");
+
         assertEq(address(optimismPortal).balance, 0);
         assertEq(address(sharedLockbox).balance, 500);
     }
@@ -408,8 +415,11 @@ contract L1StandardBridge_DepositETHTo_Test is PreBridgeETHTo {
     ///      EOA or contract can call depositETHTo.
     ///      ETH ends up in the sharedLockbox.
     function test_depositETHTo_succeeds() external {
+        assertEq(address(sharedLockbox).balance, 0);
+
         _preBridgeETHTo({ isLegacy: true, value: 600 });
         l1StandardBridge.depositETHTo{ value: 600 }(bob, 60000, hex"dead");
+
         assertEq(address(optimismPortal).balance, 0);
         assertEq(address(sharedLockbox).balance, 600);
     }
@@ -442,8 +452,11 @@ contract L1StandardBridge_BridgeETHTo_Test is PreBridgeETHTo {
     ///      Only EOA can call bridgeETHTo.
     ///      ETH ends up in the sharedLockbox.
     function test_bridgeETHTo_succeeds() external {
+        assertEq(address(sharedLockbox).balance, 0);
+
         _preBridgeETHTo({ isLegacy: false, value: 600 });
         l1StandardBridge.bridgeETHTo{ value: 600 }(bob, 60000, hex"dead");
+
         assertEq(address(optimismPortal).balance, 0);
         assertEq(address(sharedLockbox).balance, 600);
     }

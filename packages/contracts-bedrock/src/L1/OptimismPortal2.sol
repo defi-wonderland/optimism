@@ -181,7 +181,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
 
     /// @notice Reverts when paused.
-    function _whenNotPaused() private view {
+    function _whenNotPaused() internal view {
         if (paused()) revert CallPaused();
     }
 
@@ -249,8 +249,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Returns the `_token` balance of the `_account`.
-    /// @param _token  Address of the token to check the balance of.
-    /// @param _account Address of the account to check the balance of.
+    /// @param _token   Address of the token to check the balance of.
+    /// @param _account The address of the account to query the balance for.
     function _balanceOf(address _token, address _account) internal view returns (uint256) {
         return IERC20(_token).balanceOf(_account);
     }
