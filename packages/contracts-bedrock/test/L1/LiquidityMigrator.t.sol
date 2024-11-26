@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { Test } from "forge-std/Test.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
 import { LiquidityMigrator } from "src/L1/LiquidityMigrator.sol";
 import { SharedLockbox } from "src/L1/SharedLockbox.sol";
 
-// TODO: Inherit from CommonTest once we deploy correctly
-contract LiquidityMigratorTest is Test {
+contract LiquidityMigratorTest is CommonTest {
     event ETHMigrated(uint256 amount);
 
-    address internal immutable SUPERCHAIN_CONFIG = makeAddr("SuperchainConfig");
-
     LiquidityMigrator public migrator;
-    SharedLockbox public sharedLockbox;
 
-    function setUp() public {
-        sharedLockbox = new SharedLockbox(SUPERCHAIN_CONFIG);
+    function setUp() public virtual override {
+        super.setUp();
         migrator = new LiquidityMigrator(address(sharedLockbox));
     }
 
@@ -31,7 +27,7 @@ contract LiquidityMigratorTest is Test {
         emit ETHMigrated(_migratorEthBalance);
 
         // Set the migrator as an authorized portal so it can lock the ETH while migrating
-        vm.prank(SUPERCHAIN_CONFIG);
+        vm.prank(address(superchainConfig));
         sharedLockbox.authorizePortal(address(migrator));
 
         // Call the `migrateETH` function with the amount
