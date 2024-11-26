@@ -23,6 +23,7 @@ import { IL1ChugSplashProxy } from "src/legacy/interfaces/IL1ChugSplashProxy.sol
 import { IResolvedDelegateProxy } from "src/legacy/interfaces/IResolvedDelegateProxy.sol";
 
 import { ISuperchainConfig } from "src/L1/interfaces/ISuperchainConfig.sol";
+import { ISharedLockbox } from "src/L1/interfaces/ISharedLockbox.sol";
 import { IProtocolVersions, ProtocolVersion } from "src/L1/interfaces/IProtocolVersions.sol";
 import { OPContractsManager } from "src/L1/OPContractsManager.sol";
 import { IProxy } from "src/universal/interfaces/IProxy.sol";
@@ -39,10 +40,10 @@ contract DeployOPChainInput_Test is Test {
     address unsafeBlockSigner = makeAddr("unsafeBlockSigner");
     address proposer = makeAddr("proposer");
     address challenger = makeAddr("challenger");
+    address opcm = makeAddr("opcm");
     uint32 basefeeScalar = 100;
     uint32 blobBaseFeeScalar = 200;
     uint256 l2ChainId = 300;
-    OPContractsManager opcm = OPContractsManager(makeAddr("opcm"));
     string saltMixer = "saltMixer";
 
     function setUp() public {
@@ -60,9 +61,8 @@ contract DeployOPChainInput_Test is Test {
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.allowCustomDisputeParameters.selector, true);
-
-        (IProxy opcmProxy) = DeployUtils.buildERC1967ProxyWithImpl("opcmProxy");
-        doi.set(doi.opcmProxy.selector, address(opcmProxy));
+        doi.set(doi.opcm.selector, opcm);
+        vm.etch(opcm, hex"01");
 
         // Compare the default inputs to the getter methods.
         assertEq(opChainProxyAdminOwner, doi.opChainProxyAdminOwner(), "200");
@@ -74,7 +74,7 @@ contract DeployOPChainInput_Test is Test {
         assertEq(basefeeScalar, doi.basefeeScalar(), "800");
         assertEq(blobBaseFeeScalar, doi.blobBaseFeeScalar(), "900");
         assertEq(l2ChainId, doi.l2ChainId(), "1000");
-        assertEq(address(opcmProxy), address(doi.opcmProxy()), "1100");
+        assertEq(opcm, address(doi.opcm()), "1100");
         assertEq(true, doi.allowCustomDisputeParameters(), "1200");
     }
 
@@ -315,7 +315,7 @@ contract DeployOPChain_TestBase is Test {
     ProtocolVersion recommendedProtocolVersion = ProtocolVersion.wrap(2);
 
     // Define default inputs for DeployImplementations.
-    // `superchainConfigProxy` and `protocolVersionsProxy` are set during `setUp` since they are
+    // `superchainConfigProxy`, `protocolVersionsProxy` and `sharedLockboxProxy` are set during `setUp` since they are
     // outputs of the previous step.
     uint256 withdrawalDelaySeconds = 100;
     uint256 minProposalSizeBytes = 200;
@@ -325,6 +325,7 @@ contract DeployOPChain_TestBase is Test {
     string release = "dev-release"; // this means implementation contracts will be deployed
     ISuperchainConfig superchainConfigProxy;
     IProtocolVersions protocolVersionsProxy;
+    ISharedLockbox sharedLockboxProxy;
 
     // Define default inputs for DeployOPChain.
     // `opcm` is set during `setUp` since it is an output of the previous step.
@@ -385,6 +386,7 @@ contract DeployOPChain_TestBase is Test {
         // Populate the inputs for DeployImplementations based on the output of DeploySuperchain.
         superchainConfigProxy = dso.superchainConfigProxy();
         protocolVersionsProxy = dso.protocolVersionsProxy();
+        sharedLockboxProxy = dso.sharedLockboxProxy();
 
         // Configure and deploy Implementation contracts
         DeployImplementations deployImplementations = createDeployImplementationsContract();
@@ -396,15 +398,16 @@ contract DeployOPChain_TestBase is Test {
         dii.set(dii.proofMaturityDelaySeconds.selector, proofMaturityDelaySeconds);
         dii.set(dii.disputeGameFinalityDelaySeconds.selector, disputeGameFinalityDelaySeconds);
         dii.set(dii.mipsVersion.selector, 1);
-        dii.set(dii.release.selector, release);
+        dii.set(dii.l1ContractsRelease.selector, release);
         dii.set(dii.superchainConfigProxy.selector, address(superchainConfigProxy));
         dii.set(dii.protocolVersionsProxy.selector, address(protocolVersionsProxy));
+        dii.set(dii.sharedLockboxProxy.selector, address(sharedLockboxProxy));
         // End users of the DeployImplementations contract will need to set the `standardVersionsToml`.
         string memory standardVersionsTomlPath =
             string.concat(vm.projectRoot(), "/test/fixtures/standard-versions.toml");
         string memory standardVersionsToml = vm.readFile(standardVersionsTomlPath);
         dii.set(dii.standardVersionsToml.selector, standardVersionsToml);
-        dii.set(dii.opcmProxyOwner.selector, address(1));
+
         deployImplementations.run(dii, dio);
 
         // Deploy DeployOpChain, but defer populating the input values to the test suites inheriting this contract.
@@ -412,7 +415,7 @@ contract DeployOPChain_TestBase is Test {
         (doi, doo) = deployOPChain.etchIOContracts();
 
         // Set the OPContractsManager input for DeployOPChain.
-        opcm = dio.opcmProxy();
+        opcm = dio.opcm();
     }
 
     // See the function of the same name in the `DeployImplementations_Test` contract of
@@ -466,7 +469,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
         doi.set(doi.l2ChainId.selector, l2ChainId);
-        doi.set(doi.opcmProxy.selector, address(opcm)); // Not fuzzed since it must be an actual instance.
+        doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.saltMixer.selector, saltMixer);
         doi.set(doi.gasLimit.selector, gasLimit);
         doi.set(doi.disputeGameType.selector, disputeGameType);
@@ -559,7 +562,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
         doi.set(doi.l2ChainId.selector, l2ChainId);
-        doi.set(doi.opcmProxy.selector, address(opcm));
+        doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.saltMixer.selector, saltMixer);
         doi.set(doi.gasLimit.selector, gasLimit);
         doi.set(doi.disputeGameType.selector, disputeGameType);
