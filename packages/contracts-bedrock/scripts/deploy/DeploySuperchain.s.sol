@@ -378,10 +378,8 @@ contract DeploySuperchain is Script {
     function deploySuperchain(DeploySuperchainInput _dsi, DeploySuperchainOutput _dso) public {
         // Precalculate the proxies addresses. Needed since there are circular dependencies between them.
         PrecalculatedAddresses memory precalculatedAddresses;
-        precalculatedAddresses.superchainConfigProxy =
-            DeployUtils.precalculateCreateAddress(msg.sender, vm.getNonce(msg.sender) + 3);
-        precalculatedAddresses.sharedLockboxProxy =
-            DeployUtils.precalculateCreateAddress(msg.sender, vm.getNonce(msg.sender) + 7);
+        precalculatedAddresses.superchainConfigProxy = vm.computeCreateAddress(msg.sender, vm.getNonce(msg.sender) + 3);
+        precalculatedAddresses.sharedLockboxProxy = vm.computeCreateAddress(msg.sender, vm.getNonce(msg.sender) + 7);
 
         // Deploy implementation contracts
         deploySuperchainImplementationContracts(_dsi, _dso, precalculatedAddresses);
