@@ -37,8 +37,6 @@ contract Initializer_Test is CommonTest {
     /// @notice Array of contracts to test.
     InitializeableContract[] contracts;
 
-    address constant LOCKBOX = address(uint160(uint256(bytes32("SharedLockbox"))));
-
     /// @notice Mapping of nickname to actual contract name.
     /// @dev Nicknames are only used when one proxy contract has multiple potential implementations
     ///      as can happen when a new implementation is being developed.
@@ -57,7 +55,7 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "SuperchainConfig",
                 target: deploy.mustGetAddress("SuperchainConfig"),
-                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), false, LOCKBOX))
+                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), false, address(0)))
             })
         );
         // SuperchainConfigProxy
@@ -65,7 +63,7 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "SuperchainConfigProxy",
                 target: address(superchainConfig),
-                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), false, LOCKBOX))
+                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), false, address(0)))
             })
         );
         // L1CrossDomainMessengerImpl
