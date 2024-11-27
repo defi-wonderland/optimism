@@ -71,7 +71,6 @@ import { BaseDeployIO } from "scripts/deploy/BaseDeployIO.sol";
 // shared functionality for all deploy scripts, such as access to cheat codes.
 contract DeploySuperchainInput is BaseDeployIO {
     // We use the `stdToml` library to parse TOML input files. This allows us to easily parse
-
     using stdToml for string;
 
     // All inputs are set in storage individually. We put any roles first, followed by the remaining
@@ -353,6 +352,7 @@ contract DeploySuperchain is Script {
         // Transfer ownership of the ProxyAdmin from the deployer to the specified owner.
         transferProxyAdminOwnership(_dsi, _dso);
 
+        // Output assertions, to make sure outputs were assigned correctly.
         _dso.checkOutput(_dsi);
     }
 
@@ -415,6 +415,7 @@ contract DeploySuperchain is Script {
             })
         );
 
+        // Deploy SharedLockbox implementation
         ISharedLockbox sharedLockboxImpl = ISharedLockbox(
             DeployUtils.create1({
                 _name: "SharedLockbox",
@@ -442,7 +443,7 @@ contract DeploySuperchain is Script {
     )
         internal
     {
-        IProxyAdmin superchainConfigAdmin = _dso.superchainProxyAdmin();
+        IProxyAdmin superchainProxyAdmin = _dso.superchainProxyAdmin();
 
         // Deploy SuperchainConfig proxy
         ISuperchainConfig superchainConfigProxy;
@@ -455,11 +456,11 @@ contract DeploySuperchain is Script {
                 DeployUtils.create1({
                     _name: "Proxy",
                     _args: DeployUtils.encodeConstructor(
-                        abi.encodeCall(IProxy.__constructor__, (address(superchainConfigAdmin)))
+                        abi.encodeCall(IProxy.__constructor__, (address(superchainProxyAdmin)))
                     )
                 })
             );
-            superchainConfigAdmin.upgradeAndCall(
+            superchainProxyAdmin.upgradeAndCall(
                 payable(address(superchainConfigProxy)),
                 address(_dso.superchainConfigImpl()),
                 abi.encodeCall(ISuperchainConfig.initialize, (guardian, paused))
@@ -481,11 +482,11 @@ contract DeploySuperchain is Script {
                 DeployUtils.create1({
                     _name: "Proxy",
                     _args: DeployUtils.encodeConstructor(
-                        abi.encodeCall(IProxy.__constructor__, (address(superchainConfigAdmin)))
+                        abi.encodeCall(IProxy.__constructor__, (address(superchainProxyAdmin)))
                     )
                 })
             );
-            superchainConfigAdmin.upgradeAndCall(
+            superchainProxyAdmin.upgradeAndCall(
                 payable(address(protocolVersionsProxy)),
                 address(protocolVersions),
                 abi.encodeCall(
@@ -502,18 +503,19 @@ contract DeploySuperchain is Script {
             DeployUtils.create1({
                 _name: "Proxy",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IProxy.__constructor__, (address(superchainConfigAdmin)))
+                    abi.encodeCall(IProxy.__constructor__, (address(superchainProxyAdmin)))
                 )
             })
         );
-        superchainConfigAdmin.upgrade(payable(address(sharedLockboxProxy)), address(_dso.sharedLockboxImpl()));
+        superchainProxyAdmin.upgrade(payable(address(sharedLockboxProxy)), address(_dso.sharedLockboxImpl()));
         vm.stopBroadcast();
 
         vm.label(address(superchainConfigProxy), "SuperchainConfigProxy");
         _dso.set(_dso.superchainConfigProxy.selector, address(superchainConfigProxy));
         // To ensure deployments are correct, check that the precalculated address matches the actual address.
         require(
-            address(superchainConfigProxy) == _precalculatedAddresses.superchainConfigProxy, "superchain config assert"
+            address(superchainConfigProxy) == _precalculatedAddresses.superchainConfigProxy,
+            "superchain config expected address mismatch"
         );
 
         vm.label(address(protocolVersionsProxy), "ProtocolVersionsProxy");
@@ -522,7 +524,10 @@ contract DeploySuperchain is Script {
         vm.label(address(sharedLockboxProxy), "SharedLockboxProxy");
         _dso.set(_dso.sharedLockboxProxy.selector, address(sharedLockboxProxy));
         // To ensure deployments are correct, check that the precalculated address matches the actual address.
-        require(address(sharedLockboxProxy) == _precalculatedAddresses.sharedLockboxProxy, "shared lockbox assert");
+        require(
+            address(sharedLockboxProxy) == _precalculatedAddresses.sharedLockboxProxy,
+            "shared lockbox expected address mismatch"
+        );
     }
 
     function transferProxyAdminOwnership(DeploySuperchainInput _dsi, DeploySuperchainOutput _dso) public {
