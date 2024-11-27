@@ -1,6 +1,12 @@
 [
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_sharedLockbox",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -25,6 +31,19 @@
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SHARED_LOCKBOX",
+    "outputs": [
+      {
+        "internalType": "contract ISharedLockbox",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -85,11 +104,6 @@
         "internalType": "bool",
         "name": "_paused",
         "type": "bool"
-      },
-      {
-        "internalType": "address",
-        "name": "_sharedLockbox",
-        "type": "address"
       }
     ],
     "name": "initialize",
@@ -137,19 +151,6 @@
         "internalType": "bool",
         "name": "paused_",
         "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "sharedLockbox",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",

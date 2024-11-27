@@ -14,13 +14,6 @@
     "type": "bool"
   },
   {
-    "bytes": "20",
-    "label": "sharedLockbox",
-    "offset": 2,
-    "slot": "0",
-    "type": "address"
-  },
-  {
     "bytes": "32",
     "label": "systemConfigs",
     "offset": 0,
