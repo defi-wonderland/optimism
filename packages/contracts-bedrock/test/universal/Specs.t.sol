@@ -43,7 +43,6 @@ contract Specification_Test is CommonTest {
         DELAYEDWETHOWNER,
         COUNCILSAFE,
         COUNCILSAFEOWNER,
-        DEPENDENCYMANAGER,
         PORTAL,
         SUPERCHAINCONFIG
     }
@@ -497,7 +496,6 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("gasLimit()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("eip1559Denominator()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("eip1559Elasticity()") });
-        _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.initialize.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfig.initialize.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.minimumGasLimit.selector });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("overhead()") });
@@ -564,13 +562,14 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("basefeeScalar()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("blobbasefeeScalar()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("maximumGasLimit()") });
-        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("addDependency(uint256)"), _auth: Role.DEPENDENCYMANAGER });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("addDependency(uint256)"), _auth: Role.SUPERCHAINCONFIG });
         _addSpec({
             _name: "SystemConfigInterop",
             _sel: _getSel("removeDependency(uint256)"),
-            _auth: Role.DEPENDENCYMANAGER
+            _auth: Role.SUPERCHAINCONFIG
         });
-        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("dependencyManager()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("dependencyCounter()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("SUPERCHAIN_CONFIG()") });
 
         // ProxyAdmin
         _addSpec({ _name: "ProxyAdmin", _sel: _getSel("addressManager()") });
@@ -862,18 +861,6 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OPContractsManager", _sel: OPContractsManager.chainIdToBatchInboxAddress.selector });
         _addSpec({ _name: "OPContractsManager", _sel: OPContractsManager.implementations.selector });
 
-        // OPContractsManagerInterop
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: _getSel("version()") });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: _getSel("superchainConfig()") });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: _getSel("protocolVersions()") });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: _getSel("l1ContractsRelease()") });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: _getSel("systemConfigs(uint256)") });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: _getSel("OUTPUT_VERSION()") });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: OPContractsManager.deploy.selector });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: OPContractsManager.blueprints.selector });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: OPContractsManager.chainIdToBatchInboxAddress.selector });
-        _addSpec({ _name: "OPContractsManagerInterop", _sel: OPContractsManager.implementations.selector });
-
         // DeputyGuardianModule
         _addSpec({
             _name: "DeputyGuardianModule",
@@ -923,6 +910,9 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "LivenessModule", _sel: _getSel("safe()") });
         _addSpec({ _name: "LivenessModule", _sel: _getSel("thresholdPercentage()") });
         _addSpec({ _name: "LivenessModule", _sel: _getSel("version()") });
+
+        // LiquidityMigrator
+        _addSpec({ _name: "LiquidityMigrator", _sel: _getSel("migrateETH()") });
     }
 
     /// @dev Computes the selector from a function signature.
