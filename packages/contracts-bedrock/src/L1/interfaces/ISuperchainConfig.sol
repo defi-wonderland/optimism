@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface ISuperchainConfig {
+import { IDependencySet } from "src/L2/interfaces/IDependencySet.sol";
+
+interface ISuperchainConfig is IDependencySet {
     enum UpdateType {
         GUARDIAN
     }
@@ -26,7 +28,6 @@ interface ISuperchainConfig {
     function unpause() external;
     function version() external view returns (string memory);
     function addChain(uint256 _chainId, address _systemConfig) external;
-    function isInDependencySet(uint256 _chainId) external view returns (bool);
     function dependencySet() external view returns (uint256[] memory);
 
     function __constructor__() external;
