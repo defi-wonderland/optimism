@@ -137,6 +137,20 @@ contract SystemConfigInterop_Test is CommonTest {
         _systemConfigInterop().removeDependency(_chainId);
     }
 
+    function test_dependencyCounter_succeeds() public {
+        assertEq(_systemConfigInterop().dependencyCounter(), 0);
+
+        // Add a dependency
+        vm.prank(address(superchainConfig));
+        _systemConfigInterop().addDependency(1);
+        assertEq(_systemConfigInterop().dependencyCounter(), 1);
+
+        // Remove the dependency
+        vm.prank(address(superchainConfig));
+        _systemConfigInterop().removeDependency(1);
+        assertEq(_systemConfigInterop().dependencyCounter(), 0);
+    }
+
     /// @dev Helper to clean storage and then initialize the system config with an arbitrary gas token address.
     function _cleanStorageAndInit(address _token) internal {
         // Wipe out the initialized slot so the proxy can be initialized again
