@@ -135,7 +135,7 @@ contract SuperchainConfig is Initializable, ISemver {
 
         // If the dependency set is empty, there is no need to update the dependencies
         if (_dependencySet.length() != 0) {
-            // Loop through the dependency set and update the dependency for each chain. Using length - 2 to exclude the
+            // Loop through the dependency set and update the dependency for each chain. Using length - 1 to exclude the
             // current chain from the loop.
             for (uint256 i; i < _dependencySet.length() - 1; i++) {
                 uint256 currentId = _dependencySet.at(i);
