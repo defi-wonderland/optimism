@@ -30,7 +30,7 @@ contract SuperchainConfig is Initializable, ISemver {
     bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256("superchainConfig.guardian")) - 1);
 
     // The Shared Lockbox contract
-    address public sharedLockbox;
+    ISharedLockbox public immutable SHARED_LOCKBOX;
 
     /// @notice Emitted when the pause is triggered.
     /// @param identifier A string helping to identify provenance of the pause transaction.
@@ -64,18 +64,16 @@ contract SuperchainConfig is Initializable, ISemver {
     EnumerableSet.UintSet internal _dependencySet;
 
     /// @notice Constructs the SuperchainConfig contract.
-    constructor() {
-        // TODO: Set lockbox here and leave as immutable?
-        initialize({ _guardian: address(0), _paused: false, _sharedLockbox: address(0) });
+    constructor(address _sharedLockbox) {
+        SHARED_LOCKBOX = ISharedLockbox(_sharedLockbox);
+        initialize({ _guardian: address(0), _paused: false });
     }
 
     /// @notice Initializer.
     /// @param _guardian    Address of the guardian, can pause the OptimismPortal.
     /// @param _paused      Initial paused status.
-    /// @param _sharedLockbox The address of the SharedLockbox contract.
-    function initialize(address _guardian, bool _paused, address _sharedLockbox) public initializer {
+    function initialize(address _guardian, bool _paused) public initializer {
         _setGuardian(_guardian);
-        sharedLockbox = _sharedLockbox;
         if (_paused) {
             _pause("Initializer paused");
         }
@@ -149,7 +147,7 @@ contract SuperchainConfig is Initializable, ISemver {
 
         // Authorize the portal on the shared lockbox
         address portal = ISystemConfigInterop(_systemConfig).optimismPortal();
-        ISharedLockbox(sharedLockbox).authorizePortal(portal);
+        SHARED_LOCKBOX.authorizePortal(portal);
 
         emit ChainAdded(_chainId, _systemConfig, portal);
     }

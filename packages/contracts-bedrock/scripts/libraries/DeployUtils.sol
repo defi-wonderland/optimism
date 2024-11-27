@@ -19,6 +19,8 @@ import { IResolvedDelegateProxy } from "src/legacy/interfaces/IResolvedDelegateP
 
 library DeployUtils {
     Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+    /// @notice RLP encoding deployer length prefix for calculating the address of a contract deployed through `CREATE`
+    bytes1 internal constant _LEN = bytes1(0x94);
 
     /// @notice Deploys a contract with the given name and arguments via CREATE.
     /// @param _name Name of the contract to deploy.
@@ -90,6 +92,54 @@ library DeployUtils {
         returns (address payable addr_)
     {
         return create1AndSave(_save, _name, _name, _args);
+    }
+
+    /**
+     * @notice Precalculates the address of a contract that will be deployed thorugh `CREATE` opcode
+     * @param _deployer The deployer address
+     * @param _nonce The next nonce of the deployer address
+     * @return _precalculatedAddress The address where the contract will be stored
+     * @dev Only works for nonces between 1 and (2 ** 64 - 2), which is enough for this use case
+     */
+    function precalculateCreateAddress(
+        address _deployer,
+        uint256 _nonce
+    )
+        internal
+        pure
+        returns (address _precalculatedAddress)
+    {
+        bytes memory _data;
+
+        // A one-byte integer in the [0x00, 0x7f] range uses its own value as a length prefix, there is no
+        // additional "0x80 + length" prefix that precedes it.
+        if (_nonce <= 0x7f) {
+            _data = abi.encodePacked(bytes1(0xd6), _LEN, _deployer, uint8(_nonce));
+        }
+        // In the case of `_nonce > 0x7f` and `_nonce <= type(uint8).max`, we have the following encoding scheme
+        // (the same calculation can be carried over for higher _nonce bytes):
+        // 0xda = 0xc0 (short RLP prefix) + 0x1a (= the bytes length of: 0x94 + address + 0x84 + _nonce, in hex),
+        // 0x94 = 0x80 + 0x14 (= the bytes length of an address, 20 bytes, in hex),
+        // 0x84 = 0x80 + 0x04 (= the bytes length of the _nonce, 4 bytes, in hex).
+        else if (_nonce <= type(uint8).max) {
+            _data = abi.encodePacked(bytes1(0xd7), _LEN, _deployer, bytes1(0x81), uint8(_nonce));
+        } else if (_nonce <= type(uint16).max) {
+            _data = abi.encodePacked(bytes1(0xd8), _LEN, _deployer, bytes1(0x82), uint16(_nonce));
+        } else if (_nonce <= type(uint24).max) {
+            _data = abi.encodePacked(bytes1(0xd9), _LEN, _deployer, bytes1(0x83), uint24(_nonce));
+        } else if (_nonce <= type(uint32).max) {
+            _data = abi.encodePacked(bytes1(0xda), _LEN, _deployer, bytes1(0x84), uint32(_nonce));
+        } else if (_nonce <= type(uint40).max) {
+            _data = abi.encodePacked(bytes1(0xdb), _LEN, _deployer, bytes1(0x85), uint40(_nonce));
+        } else if (_nonce <= type(uint48).max) {
+            _data = abi.encodePacked(bytes1(0xdc), _LEN, _deployer, bytes1(0x86), uint48(_nonce));
+        } else if (_nonce <= type(uint56).max) {
+            _data = abi.encodePacked(bytes1(0xdd), _LEN, _deployer, bytes1(0x87), uint56(_nonce));
+        } else {
+            _data = abi.encodePacked(bytes1(0xde), _LEN, _deployer, bytes1(0x88), uint64(_nonce));
+        }
+
+        _precalculatedAddress = address(uint160(uint256(keccak256(_data))));
     }
 
     /// @notice Deploys a contract with the given name and arguments via CREATE2.
