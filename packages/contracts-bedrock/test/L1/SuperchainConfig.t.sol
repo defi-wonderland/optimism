@@ -154,11 +154,11 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
     /// @notice Tests that `addChain` reverts when the input chain already contains dependencies on its set.
     function test_addChain_alreadyHasDependencies_reverts(uint256 _chainId, address _systemConfig) external {
         // Mock the number of dependencies to be greater than 0.
-        uint256 _numberOfDependencies = 1;
+        uint256 numberOfDependencies = 1;
         _mockAndExpect(
             _systemConfig,
             abi.encodeWithSelector(ISystemConfigInterop.dependencyCounter.selector),
-            abi.encode(_numberOfDependencies)
+            abi.encode(numberOfDependencies)
         );
 
         vm.startPrank(superchainConfig.guardian());
