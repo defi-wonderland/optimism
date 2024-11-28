@@ -151,6 +151,21 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
         superchainConfig.addChain(_chainId, _systemConfig);
     }
 
+    /// @notice Tests that `addChain` reverts when the input chain already contains dependencies on its set.
+    function test_addChain_alreadyHasDependencies_reverts(uint256 _chainId, address _systemConfig) external {
+        // Mock the number of dependencies to be greater than 0.
+        uint256 _numberOfDependencies = 1;
+        _mockAndExpect(
+            _systemConfig,
+            abi.encodeWithSelector(ISystemConfigInterop.dependencyCounter.selector),
+            abi.encode(_numberOfDependencies)
+        );
+
+        vm.startPrank(superchainConfig.guardian());
+        vm.expectRevert(ISuperchainConfig.ChainAlreadyHasDependencies.selector);
+        superchainConfig.addChain(_chainId, _systemConfig);
+    }
+
     /// @notice Tests that `addChain` reverts when the chain is already in the dependency set.
     function test_addChain_chainAlreadyExists_reverts(uint256 _chainId, address _systemConfig) external {
         SuperchainConfigForTest superchainConfig = new SuperchainConfigForTest(address(sharedLockbox));
