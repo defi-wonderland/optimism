@@ -272,7 +272,7 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
 
 contract SuperchainConfig_IsInDependencySet_Test is CommonTest {
     /// @dev Tests that `isInDependencySet` returns false when the chain is not in the dependency set. Checking if empty
-    ///      to ensure that should be true.
+    ///      to ensure that should always be false.
     function test_isInDependencySet_false_succeeds(uint256 _chainId) external view {
         assert(superchainConfig.dependencySet().length == 0);
         assertFalse(superchainConfig.isInDependencySet(_chainId));
