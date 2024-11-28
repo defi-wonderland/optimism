@@ -242,12 +242,16 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
         superchainConfigForTest.forTest_addChainAndSystemConfig(chainIdTwo, systemConfigTwo);
         superchainConfigForTest.forTest_addChainAndSystemConfig(chainIdThree, systemConfigThree);
 
+        // Mock and expect the call to `dependencyCounter` to return 0 for the new chain
+        _mockAndExpect(
+            address(systemConfig),
+            abi.encodeWithSelector(ISystemConfigInterop.dependencyCounter.selector),
+            abi.encode(0)
+        );
+
         // Mock and expect the calls when looping through the first chain of the dependency set
         _mockAndExpect(
             systemConfigOne, abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, _chainId), ""
-        );
-        _mockAndExpect(
-            systemConfigOne, abi.encodeWithSelector(ISystemConfigInterop.dependencyCounter.selector), abi.encode(0)
         );
         _mockAndExpect(
             address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, chainIdOne), ""
@@ -258,18 +262,12 @@ contract SuperchainConfig_AddChain_Test is CommonTest {
             systemConfigTwo, abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, _chainId), ""
         );
         _mockAndExpect(
-            systemConfigTwo, abi.encodeWithSelector(ISystemConfigInterop.dependencyCounter.selector), abi.encode(0)
-        );
-        _mockAndExpect(
             address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, chainIdTwo), ""
         );
 
         // Mock and expect the calls when looping through the third chain of the dependency set
         _mockAndExpect(
             systemConfigThree, abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, _chainId), ""
-        );
-        _mockAndExpect(
-            systemConfigThree, abi.encodeWithSelector(ISystemConfigInterop.dependencyCounter.selector), abi.encode(0)
         );
         _mockAndExpect(
             address(systemConfig), abi.encodeWithSelector(ISystemConfigInterop.addDependency.selector, chainIdThree), ""
