@@ -131,18 +131,15 @@ contract SuperchainConfig is Initializable, ISemver {
 
         systemConfigs[_chainId] = _systemConfig;
 
-        // If the dependency set is empty, there is no need to update the dependencies
-        if (_dependencySet.length() != 0) {
-            // Loop through the dependency set and update the dependency for each chain. Using length - 1 to exclude the
-            // current chain from the loop.
-            for (uint256 i; i < _dependencySet.length() - 1; i++) {
-                uint256 currentId = _dependencySet.at(i);
+        // Loop through the dependency set and update the dependency for each chain. Using length - 1 to exclude the
+        // current chain from the loop.
+        for (uint256 i; i < _dependencySet.length() - 1; i++) {
+            uint256 currentId = _dependencySet.at(i);
 
-                // Add the new chain as dependency for the current chain on the loop
-                ISystemConfigInterop(systemConfigs[currentId]).addDependency(_chainId);
-                // Add the current chain on the loop as dependency for the new chain
-                ISystemConfigInterop(_systemConfig).addDependency(currentId);
-            }
+            // Add the new chain as dependency for the current chain on the loop
+            ISystemConfigInterop(systemConfigs[currentId]).addDependency(_chainId);
+            // Add the current chain on the loop as dependency for the new chain
+            ISystemConfigInterop(_systemConfig).addDependency(currentId);
         }
 
         // Authorize the portal on the shared lockbox
@@ -158,7 +155,7 @@ contract SuperchainConfig is Initializable, ISemver {
         return _dependencySet.contains(_chainId);
     }
 
-    /// @notice Getter for the dependency set's chain ids values list.
+    /// @notice Getter for the chain ids list on the dependency set.
     function dependencySet() external view returns (uint256[] memory) {
         return _dependencySet.values();
     }
