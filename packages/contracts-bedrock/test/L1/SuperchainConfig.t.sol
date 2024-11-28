@@ -302,16 +302,16 @@ contract SuperchainConfig_DependencySet_Test is CommonTest {
         }
 
         // Add the dependencies to the dependency set
-        for (uint256 i; i < chainIds.values().length; i++) {
+        for (uint256 i; i < chainIds.length(); i++) {
             superchainConfigForTest.forTest_addChainOnDependencySet(chainIds.at(i));
         }
 
         // Check that the dependency set has the same length as the dependencies
         uint256[] memory dependencySet = superchainConfigForTest.dependencySet();
-        assertEq(dependencySet.length, chainIds.values().length);
+        assertEq(dependencySet.length, chainIds.length());
 
         // Check that the dependency set has the same chain IDs as the dependencies
-        for (uint256 i; i < chainIds.values().length; i++) {
+        for (uint256 i; i < chainIds.length(); i++) {
             assertEq(dependencySet[i], chainIds.at(i));
         }
     }
