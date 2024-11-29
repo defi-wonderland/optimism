@@ -61,6 +61,7 @@ contract SharedLockboxTest is CommonTest {
         assertEq(address(sharedLockbox).balance, _lockboxBalanceBefore + _amount);
     }
 
+    /// @notice Tests `unlockETH` reverts when the contract is paused.
     function test_unlockETH_paused_reverts(address _caller, uint256 _value) public {
         // Set the paused status to true
         vm.prank(superchainConfig.guardian());
@@ -115,6 +116,7 @@ contract SharedLockboxTest is CommonTest {
         assertEq(address(sharedLockbox).balance, _lockboxBalanceBefore - _value);
     }
 
+    /// @notice Tests `authorizePortal` reverts when the contract is paused.
     function test_authorizePortal_paused_reverts(address _caller, address _portal) public {
         // Set the paused status to true
         vm.prank(superchainConfig.guardian());
@@ -158,6 +160,7 @@ contract SharedLockboxTest is CommonTest {
         assertEq(sharedLockbox.authorizedPortals(_portal), true);
     }
 
+    /// @notice Tests the paused status is correctly returned.
     function test_paused_succeeds() public {
         // Assert the paused status is false
         assertEq(sharedLockbox.paused(), false);
