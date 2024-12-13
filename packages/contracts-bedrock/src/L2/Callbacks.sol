@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 import { Identifier, IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
@@ -24,8 +23,6 @@ contract Greeter {
 
     string public greeting;
 
-    IERC20 public token;
-
     address internal _remoteGreeter;
 
     // 4 bytes are reserved for the callback selector
@@ -46,17 +43,15 @@ contract Greeter {
     /**
      * @notice Defines the owner to the msg.sender and sets the initial greeting
      * @param _greeting Initial greeting
-     * @param _token Initial token
      */
-    constructor(string memory _greeting, IERC20 _token) {
+    constructor(string memory _greeting) {
         OWNER = msg.sender;
-        token = _token;
         setGreeting(_greeting);
     }
 
     function greet() external view returns (string memory _greeting, uint256 _balance) {
         _greeting = greeting;
-        _balance = token.balanceOf(msg.sender);
+        _balance = address(msg.sender).balance;
     }
 
     function setGreeting(string memory _greeting) public onlyOwner {
@@ -89,7 +84,7 @@ contract Greeter {
         returns (string memory _greeting, uint256 _balance)
     {
         _greeting = _remoteGreeting;
-        _balance = token.balanceOf(msg.sender);
+        _balance = address(msg.sender).balance;
 
         // obtain the return context
         CallbackContext memory _callbackContext = callbackContexts[_contextNonce];
@@ -98,8 +93,6 @@ contract Greeter {
 
         // call the callback (not sure if we should check for success...)
         _callbackContext.to.call(abi.encodeWithSelector(_callbackContext.selector, _greeting, _balance));
-
-        // TODO: revert if failed
     }
 
     // builds the cdm call with the callback entrypoint
@@ -127,8 +120,6 @@ contract Greeter {
         );
     }
 
-    // function promise(bytes memory _promiseData, bytes memory _callbackData);
-
     // Setter for the remote greeter WIP without auth for now.
     function setRemoteGreeter(address __remoteGreeter) public {
         _remoteGreeter = __remoteGreeter;
@@ -138,28 +129,29 @@ contract Greeter {
 contract CallbackEntrypoint {
     address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
-    function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) external payable {
+    function relayMessage(
+        Identifier calldata _id,
+        bytes calldata _sentMessage
+    )
+        external
+        payable
+        returns (bytes memory returnData_)
+    {
         // Calls the CDM contract and get return value of the function call
-        bytes memory _data =
-            IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _sentMessage);
+        returnData_ = IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _sentMessage);
+
+        (address sender,,) = abi.decode(_sentMessage[128:], (address, bytes, address));
 
         // get the last 32 bytes of _sentMessage (4 bytes for the callback selector and 28 bytes for the contextNonce)
-        bytes32 _callbackSelectorAndParams = abi.decode(_sentMessage[_sentMessage.length - 32:], (bytes32));
-
-        //
-        (sender, message, entrypoint_) =
-            abi.decode(_sentMessage[_sentMessage.length - 128:_sentMessage.length - 32], (address, bytes, address));
-
-        console.log("origin %s", _id.origin);
+        bytes32 _callbackSelectorAndParams =
+            abi.decode(_sentMessage[_sentMessage.length - 64:_sentMessage.length - 32], (bytes32));
 
         // Creates new CDM message to _sentMessage origin, sender and _callbackSelector with the return value
         IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage(
-            _id.chainId, _id.origin, abi.encodePacked(_callbackSelectorAndParams, _data)
+            _id.chainId, sender, abi.encodePacked(_callbackSelectorAndParams, returnData_)
         );
     }
 }
-
-////
 
 // 1. Chain A: remoteGreet -> async -> sendMessage
 
@@ -167,5 +159,3 @@ contract CallbackEntrypoint {
 // sendMessage(chainA, greeterA, remoteGreetCallback)
 
 // 3. Chain A: CDM.relayMessage -> remoteGreetCallback -> target call
-
-import "forge-std/Test.sol";
