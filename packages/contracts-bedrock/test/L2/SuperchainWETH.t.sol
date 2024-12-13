@@ -527,7 +527,7 @@ contract SuperchainWETH_Test is CommonTest {
         bytes memory _message = abi.encodeCall(superchainWeth.relayETH, (_sender, _to, _amount));
         _mockAndExpect(
             Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-            abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_chainId, address(superchainWeth), _message)),
+            abi.encodeWithSignature("sendMessage(uint256,address,bytes)", _chainId, address(superchainWeth), _message),
             abi.encode(_msgHash)
         );
 
