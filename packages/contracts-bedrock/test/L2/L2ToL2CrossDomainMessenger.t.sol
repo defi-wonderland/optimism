@@ -402,11 +402,14 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         uint256 _blockNum,
         uint256 _logIndex,
         uint256 _time,
-        address _target,
         bytes memory _mockedReturnData
     )
         public
     {
+        // Declare target and ensure it has 0 balance to avoid an overflow
+        address _target = makeAddr("target");
+        vm.deal(_target, 0);
+
         // Declare a random call to be made over the target
         bytes memory message = abi.encodeWithSignature("randomCall()");
 
