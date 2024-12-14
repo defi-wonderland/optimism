@@ -143,7 +143,7 @@ contract CallbackEntrypoint {
         // 0 to 31 bytes: SentMessage selector
         // 32 to 127 bytes: destination (uint256), target (address), nonce (uint256)
         // 128 to end: sender (address), actual message (bytes), entrypoint (address)
-        (address sender,,) = abi.decode(_sentMessage[128:], (address, bytes, address));
+        (address sender) = abi.decode(_sentMessage[128:160], (address));
 
         // the callback selector and params are in the last 32 bytes of the actual message, we need to take into
         // account the 32 bytes of the entrypoint.
