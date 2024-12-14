@@ -140,9 +140,13 @@ contract CallbackEntrypoint {
         // Calls the CDM contract and get return value of the function call
         returnData_ = IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _sentMessage);
 
+        // 0 to 31 bytes: SentMessage selector
+        // 32 to 127 bytes: destination (uint256), target (address), nonce (uint256)
+        // 128 to end: sender (address), actual message (bytes), entrypoint (address)
         (address sender,,) = abi.decode(_sentMessage[128:], (address, bytes, address));
 
-        // get the last 32 bytes of _sentMessage (4 bytes for the callback selector and 28 bytes for the contextNonce)
+        // the callback selector and params are in the last 32 bytes of the actual message, we need to take into
+        // account the 32 bytes of the entrypoint.
         bytes32 _callbackSelectorAndParams =
             abi.decode(_sentMessage[_sentMessage.length - 64:_sentMessage.length - 32], (bytes32));
 
