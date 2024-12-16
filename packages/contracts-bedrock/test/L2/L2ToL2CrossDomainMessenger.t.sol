@@ -206,6 +206,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Call the sendMessage function with value to provoke revert
         // NOTE: using encodeWithSignature to target the correct overloaded function signature
+        // nosemgrep: sol-style-use-abi-encodecall
         (bool success,) = address(l2ToL2CrossDomainMessenger).call{ value: _value }(
             abi.encodeWithSignature("sendMessage(uint256, address, bytes)", _destination, _target, _message)
         );
@@ -291,6 +292,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         );
 
         // Ensure the CrossL2Inbox validates this message
+        // nosemgrep: sol-style-use-abi-encodecall
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
