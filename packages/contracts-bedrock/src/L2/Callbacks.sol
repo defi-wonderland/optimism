@@ -4,131 +4,180 @@ pragma solidity 0.8.25;
 import { Identifier, IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-struct CallbackContext {
-    address to;
-    bytes4 selector;
+interface ICallbackGreeterMetadata {
+    /// @notice Callback context to be executed (along with params if any) once the callback is received
+    /// @param to Target address
+    /// @param selector Function selector
+    struct CallbackContext {
+        address to;
+        bytes4 selector;
+    }
+
+    /// @notice Emitted when the greeting is set
+    /// @param greeting New greeting
+    event GreetingSet(string greeting);
+
+    /// @notice Emitted when an async call is sent
+    /// @param contextNonce Nonce of the context
+    event AsyncCallSent(uint224 contextNonce);
+
+    /// @notice Emitted when the remote greeter is set
+    /// @param remoteGreeter Address of the remote greeter
+    event RemoteGreeterSet(address remoteGreeter);
+
+    /// @notice Emitted when the callback is executed
+    /// @param contextNonce Nonce of the context
+    event CallbackExecuted(uint224 contextNonce);
+
+    /// @notice Thrown when caller is not the owner
+    error OnlyOwner();
+
+    /// @notice Thrown when the callback fails
+    error CallbackFailed();
 }
 
-contract Greeter {
-    /**
-     * @notice Empty string for revert checks
-     * @dev result of doing keccak256(bytes(''))
-     */
-    bytes32 internal constant _EMPTY_STRING = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-
+contract CallbackGreeter is ICallbackGreeterMetadata {
+    /// @notice Address of the L2ToL2CrossDomainMessenger contract
     address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-    address public constant CALLBACK_ENTRYPOINT = address(0); // TODO: add setter
 
+    /// @notice Address of the callback entrypoint
+    address public immutable CALLBACK_ENTRYPOINT;
+
+    /// @notice Owner of the contract
     address public immutable OWNER;
 
+    /// @notice Nonce for the return context to be used as an identifier for the callback.
+    ///         4 bytes are reserved for the callback selector.
+    uint224 public returnContextNonce;
+
+    /// @notice Greeting string
     string public greeting;
 
+    /// @notice Remote greeter contract address
     address internal _remoteGreeter;
 
-    // 4 bytes are reserved for the callback selector
-    uint224 public returnContextNonce;
-    // Holds the return context for the async remoteGreet call
-    mapping(uint224 => CallbackContext) public callbackContexts;
+    /// @notice Contains the return context by nonce for the call to be made once the callback is received
+    mapping(uint224 _nonce => CallbackContext) public callbackContexts;
 
     /**
-     * @notice Reverts in case the function was not called by the owner of the contract
+     * @notice Reverts when the caller is not the owner.
      */
     modifier onlyOwner() {
-        if (msg.sender != OWNER) {
-            revert("only owner");
-        }
+        if (msg.sender != OWNER) revert OnlyOwner();
         _;
     }
 
     /**
-     * @notice Defines the owner to the msg.sender and sets the initial greeting
-     * @param _greeting Initial greeting
+     * @notice Constructs the CallbackGreeter contract.
+     * @param _greeting Initial greeting.
+     * @param _callbackEntrypoint Address of the callback entrypoint.
      */
-    constructor(string memory _greeting) {
+    constructor(string memory _greeting, address _callbackEntrypoint) {
         OWNER = msg.sender;
+        CALLBACK_ENTRYPOINT = _callbackEntrypoint;
         setGreeting(_greeting);
     }
 
-    function greet() external view returns (string memory _greeting, uint256 _balance) {
-        _greeting = greeting;
-        _balance = address(msg.sender).balance;
-    }
-
+    /**
+     * @notice Sets the greeting.
+     * @param _greeting New greeting.
+     */
     function setGreeting(string memory _greeting) public onlyOwner {
-        if (keccak256(bytes(_greeting)) == _EMPTY_STRING) {
-            revert("Greeter_InvalidGreeting");
-        }
-
         greeting = _greeting;
-        // emit GreetingSet(_greeting);
+        emit GreetingSet(_greeting);
     }
 
     /**
-     * @notice Initiates a remote greeting call handled by the callback
-     * @return contextNonce_
+     * @notice Initiates a remote greeting call handled by the callback.
+     * @param _chainId Chain ID of the destination chain.
+     * @param _callbackContext Target and selector to call once the callback is received on origin chain.
+     * @return contextNonce_ Nonce of the context.
      */
-    function remoteGreet(CallbackContext calldata _callbackContext) external returns (uint224 contextNonce_) {
-        contextNonce_ = async(
-            2, // TODO: receive param
-            abi.encodeWithSelector(this.greeting.selector),
-            this.remoteGreetCallback.selector,
-            _callbackContext
-        );
+    function remoteGreet(
+        uint64 _chainId,
+        CallbackContext calldata _callbackContext
+    )
+        external
+        returns (uint224 contextNonce_)
+    {
+        bytes memory _targetCalldata = abi.encodeWithSelector(this.greeting.selector);
+        bytes4 _callbackSelector = this.remoteGreetCallback.selector;
+        contextNonce_ = async(_chainId, _targetCalldata, _callbackSelector, _callbackContext);
     }
 
+    /// @notice Callback function for the remote greeting
+    /// @param _contextNonce Nonce of the context
+    /// @param _remoteGreeting Greeting received from the remote greeter
+    /// @return greeting_ The greeting
+    /// @return balance_ The ETH balance of the caller
     function remoteGreetCallback(
         uint224 _contextNonce,
         string memory _remoteGreeting
     )
         external
-        returns (string memory _greeting, uint256 _balance)
+        returns (string memory greeting_, uint256 balance_)
     {
-        _greeting = _remoteGreeting;
-        _balance = address(msg.sender).balance;
+        greeting_ = _remoteGreeting;
+        balance_ = address(msg.sender).balance;
 
-        // obtain the return context
+        // Obtain the return context
         CallbackContext memory _callbackContext = callbackContexts[_contextNonce];
-        // delete the return context
+        // Delete the return context
         delete callbackContexts[_contextNonce];
 
-        // call the callback (not sure if we should check for success...)
-        _callbackContext.to.call(abi.encodeWithSelector(_callbackContext.selector, _greeting, _balance));
+        // Call the callback
+        (bool success,) =
+            _callbackContext.to.call(abi.encodeWithSelector(_callbackContext.selector, greeting_, balance_));
+        if (!success) revert CallbackFailed();
+
+        emit CallbackExecuted(_contextNonce);
     }
 
-    // builds the cdm call with the callback entrypoint
+    /// @notice Initiates an async call to the remote greeter through the CallbackEntrypoint.
+    /// @param _chainid Chain ID of the destination chain.
+    /// @param _targetCalldata Calldata to be sent to the target contract on destination.
+    /// @param _callbackSelector Callback selector.
+    /// @param _callbackContext Context to be executed once the callback is received.
+    /// @return contextNonce_ Nonce of the context.
     function async(
-        uint256 _chainid,
-        bytes memory _data,
+        uint64 _chainid,
+        bytes memory _targetCalldata,
         bytes4 _callbackSelector,
         CallbackContext calldata _callbackContext
     )
         internal
         returns (uint224 contextNonce_)
     {
-        // increment the nonce
+        // Increment the nonce
         contextNonce_ = ++returnContextNonce;
-        // store the return context
+        // Store the return context
         callbackContexts[contextNonce_] = _callbackContext;
 
+        // Encode the target call along with the callback selector and the context nonce as the message and send it.
+        bytes memory message = abi.encodePacked(_targetCalldata, _callbackSelector, contextNonce_);
         IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage(
-            _chainid,
-            _remoteGreeter,
-            // data + callback selector
-            abi.encodePacked(_data, _callbackSelector, contextNonce_),
-            //abi.encodePacked(_data, _callbackSelector, contextNonce_, 32), // 32 bytes can be dynamic [IMPROVEMENT]
-            CALLBACK_ENTRYPOINT
+            _chainid, _remoteGreeter, message, CALLBACK_ENTRYPOINT
         );
+
+        emit AsyncCallSent(contextNonce_);
     }
 
-    // Setter for the remote greeter WIP without auth for now.
-    function setRemoteGreeter(address __remoteGreeter) public {
+    /// @notice Setter for the remote greeter
+    /// @param __remoteGreeter Address of the remote greeter
+    function setRemoteGreeter(address __remoteGreeter) public onlyOwner {
         _remoteGreeter = __remoteGreeter;
+        emit RemoteGreeterSet(__remoteGreeter);
     }
 }
 
 contract CallbackEntrypoint {
+    /// @notice Address of the L2ToL2CrossDomainMessenger contract
     address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
+    /// @notice Relays a message that was sent by the other CrossDomainMessenger contract.
+    /// @param _id Identifier of the SentMessage event to be relayed.
+    /// @param _sentMessage Message payload of the `SentMessage` event.
+    /// @return returnData_ Return data from the target contract call.
     function relayMessage(
         Identifier calldata _id,
         bytes calldata _sentMessage
@@ -137,29 +186,21 @@ contract CallbackEntrypoint {
         payable
         returns (bytes memory returnData_)
     {
-        // Calls the CDM contract and get return value of the function call
+        // Call the CDM contract and get return value of the target call
         returnData_ = IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _sentMessage);
 
-        // 0 to 31 bytes: SentMessage selector
-        // 32 to 127 bytes: destination (uint256), target (address), nonce (uint256)
+        // 0 to 32 bytes: SentMessage selector
+        // 32 to 128 bytes: destination (uint256), target (address), nonce (uint256)
         // 128 to end: sender (address), actual message (bytes), entrypoint (address)
-        (address sender) = abi.decode(_sentMessage[128:160], (address));
+        address originSender = abi.decode(_sentMessage[128:160], (address));
 
-        // the callback selector and params are in the last 32 bytes of the actual message, we need to take into
-        // account the 32 bytes of the entrypoint.
-        bytes32 _callbackSelectorAndParams =
+        // The callback selector and params are in the last 32 bytes of the actual message, we need to substract 32
+        // taking into account the 32 bytes of the entrypoint.
+        bytes32 callbackSelectorAndParams =
             abi.decode(_sentMessage[_sentMessage.length - 64:_sentMessage.length - 32], (bytes32));
 
-        // Creates new CDM message to _sentMessage origin, sender and _callbackSelector with the return value
-        IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage(
-            _id.chainId, sender, abi.encodePacked(_callbackSelectorAndParams, returnData_)
-        );
+        // Encode the callback selector, params and returned data as the message, and sent back to the origin sender
+        bytes memory _message = abi.encodePacked(callbackSelectorAndParams, returnData_);
+        IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage(_id.chainId, originSender, _message);
     }
 }
-
-// 1. Chain A: remoteGreet -> async -> sendMessage
-
-// 2. Chain B:  entrypoint.relayMessage -> cdm.relayMessage -> greeting + remoteGreetCallback(nonce, ) ->
-// sendMessage(chainA, greeterA, remoteGreetCallback)
-
-// 3. Chain A: CDM.relayMessage -> remoteGreetCallback -> target call
