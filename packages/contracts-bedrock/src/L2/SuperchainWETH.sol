@@ -150,7 +150,7 @@ contract SuperchainWETH is WETH98, IERC7802, ISemver {
     function relayETH(address _from, address _to, uint256 _amount) external {
         if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
 
-        (address crossDomainMessageSender, uint256 source, /*address entrypoint*/, /*uint256 nonce*/ ) =
+        (address crossDomainMessageSender, uint256 source,,) =
             IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).crossDomainMessageContext();
 
         if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
