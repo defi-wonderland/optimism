@@ -74,7 +74,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     uint16 public constant messageVersion = uint16(0);
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.14
+    /// @custom:semver 1.0.0-beta.15
     string public constant version = "1.0.0-beta.15";
 
     /// @notice Mapping of message hashes to boolean receipt values. Note that a message will only be present in this
