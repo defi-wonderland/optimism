@@ -15,8 +15,6 @@ import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 import { L2ToL2CrossDomainMessenger } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 
-import "forge-std/Test.sol";
-
 /// @notice This is the contract that will be called by the callback.
 ///         CallbackGreeter expects to have the the whatever function we choose to have a specific signature.
 contract Receiver {
@@ -61,9 +59,16 @@ contract CallbackTest is Test {
         // Deploy and setup entrypointB and greeters on both chains
         entrypointB = new CallbackEntrypoint();
 
-        greeterA = new CallbackGreeter(greetingA, address(entrypointB));
-        greeterB = new CallbackGreeter(greetingB, address(0));
+        vm.chainId(chainB);
 
+        greeterB = new CallbackGreeter(greetingB, address(0));
+        vm.label(address(greeterB), "greeterB");
+
+        vm.chainId(chainA);
+        greeterA = new CallbackGreeter(greetingA, address(entrypointB));
+        vm.label(address(greeterA), "greeterA");
+
+        vm.chainId(chainB);
         greeterA.setRemoteGreeter(address(greeterB));
         greeterB.setRemoteGreeter(address(greeterA));
 
@@ -113,13 +118,11 @@ contract CallbackTest is Test {
         Identifier memory id = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, 1, 1, 1, 1);
 
         uint256 cdmNonce = 1;
-        bytes memory targetCalladata = abi.encodeWithSignature("greeting()");
-        bytes memory message =
-            abi.encodePacked(targetCalladata, CallbackGreeter.remoteGreetCallback.selector, callbackNonce);
+        bytes memory message = hex"ef690cc098b43dfb00000000000000000000000000000000000000000000000000000001";
 
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(IL2ToL2CrossDomainMessenger.SentMessage.selector, chainB, address(greeterB), cdmNonce), // topics
-            abi.encode(address(greeterA), message, address(entrypointB)) // data
+            abi.encode(address(greeterA), address(entrypointB), message) // data
         );
 
         // Mock the call over the `isInDependencySet` function to return true
@@ -133,36 +136,29 @@ contract CallbackTest is Test {
         _mockAndExpect(Predeploys.CROSS_L2_INBOX, abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector), "");
 
         vm.prank(relayer);
-        bytes memory _returnData = entrypointB.relayMessage(id, sentMessage);
+        bytes memory returnData = entrypointB.relayMessage(id, sentMessage);
 
         /* Step 3 - Chain A - callback */
         vm.chainId(chainA);
 
-        message = abi.encodeCall(CallbackGreeter.remoteGreetCallback, (callbackNonce, string(_returnData)));
-        // message = abi.encodeWithSelector(CallbackGreeter.remoteGreetCallback.selector, callbackNonce, _returnData);
+        // message = abi.encodeCall(CallbackGreeter.remoteGreetCallback, (callbackNonce, string(returnData)));
+        message =
+            hex"98b43dfb0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001a48656c6c6f2c20576f726c642066726f6d20436861696e204221000000000000";
         sentMessage = abi.encodePacked(
             abi.encode(IL2ToL2CrossDomainMessenger.SentMessage.selector, chainA, address(greeterA), cdmNonce), // topics
-            abi.encode(address(entrypointB), message, address(0)) // data
+                // // TODO: Check topic
+            abi.encode(address(greeterA), address(0), message) // data
         );
 
         // Ensure the CrossL2Inbox validates this message
-        _mockAndExpect(
-            Predeploys.CROSS_L2_INBOX,
-            abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector), // , abi.encode(id,
-            ""
-        );
+        _mockAndExpect(Predeploys.CROSS_L2_INBOX, abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector), "");
 
         vm.prank(relayer);
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(id, sentMessage);
 
-        console.log("received callback Greeting on origin");
-        console.logString(receiver.receivedGreeting());
-
-        console.log("actual greeting");
-        console.logString(greetingB);
-
         // Check the receiver contract state
-        assertEq(abi.encodePacked(receiver.receivedGreeting()), abi.encodePacked(greetingB), "1");
+        // assertEq(abi.encode(receiver.receivedGreeting()), abi.encode(greetingB), "1");
+        assertEq(abi.encodePacked(receiver.receivedGreeting()), abi.encodePacked(greeterB.greeting()));
         assertEq(receiver.receivedBalance(), 0);
     }
 }
