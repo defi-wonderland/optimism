@@ -63,6 +63,22 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
         }
     }
+
+    /// @dev Sets the cross domain messenger entrypoint in transient storage.
+    /// @param _entrypoint Entrypoint address to set.
+    function setCrossDomainMessageEntrypoint(address _entrypoint) external {
+        assembly {
+            tstore(CROSS_DOMAIN_MESSAGE_ENTRYPOINT_SLOT, _entrypoint)
+        }
+    }
+
+    /// @dev Sets the cross domain messenger nonce in transient storage.
+    /// @param _nonce Nonce to set.
+    function setCrossDomainMessageNonce(uint256 _nonce) external {
+        assembly {
+            tstore(CROSS_DOMAIN_MESSAGE_NONCE_SLOT, _nonce)
+        }
+    }
 }
 
 /// @title L2ToL2CrossDomainMessengerTest
@@ -989,8 +1005,39 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         l2ToL2CrossDomainMessenger.crossDomainMessageSource();
     }
 
+    /// @dev Tests that the `crossDomainMessageSource` function returns the correct value.
+    function testFuzz_crossDomainMessageEntrypoint_succeeds(address _entrypoint) external {
+        // Set `entered` to non-zero value to prevent NotEntered revert
+        l2ToL2CrossDomainMessenger.setEntered(1);
+        // Ensure that the contract is now entered
+        assertEq(l2ToL2CrossDomainMessenger.entered(), true);
+        // Set cross domain message entrypoint in the transient storage
+        l2ToL2CrossDomainMessenger.setCrossDomainMessageEntrypoint(_entrypoint);
+        // Check that the `crossDomainMessageEntrypoint` function returns the correct value
+        assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageEntrypoint(), _entrypoint);
+    }
+
+    /// @dev Tests that the `crossDomainMessageSource` function reverts when not entered.
+    function test_crossDomainMessageEntrypoint_notEntered_reverts() external {
+        // Ensure that the contract is not entered
+        assertEq(l2ToL2CrossDomainMessenger.entered(), false);
+
+        // Expect a revert with the NotEntered selector
+        vm.expectRevert(NotEntered.selector);
+
+        // Call `crossDomainMessageEntrypoint` to provoke revert
+        l2ToL2CrossDomainMessenger.crossDomainMessageEntrypoint();
+    }
+
     /// @dev Tests that the `crossDomainMessageContext` function returns the correct value.
-    function testFuzz_crossDomainMessageContext_succeeds(address _sender, uint256 _source) external {
+    function testFuzz_crossDomainMessageContext_succeeds(
+        address _sender,
+        uint256 _source,
+        address _entrypoint,
+        uint256 _nonce
+    )
+        external
+    {
         // Set `entered` to non-zero value to prevent NotEntered revert
         l2ToL2CrossDomainMessenger.setEntered(1);
         // Ensure that the contract is now entered
@@ -999,12 +1046,16 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Set cross domain message source in the transient storage
         l2ToL2CrossDomainMessenger.setCrossDomainMessageSender(_sender);
         l2ToL2CrossDomainMessenger.setCrossDomainMessageSource(_source);
+        l2ToL2CrossDomainMessenger.setCrossDomainMessageEntrypoint(_entrypoint);
+        l2ToL2CrossDomainMessenger.setCrossDomainMessageNonce(_nonce);
 
         // Check that the `crossDomainMessageContext` function returns the correct value
-        (address crossDomainContextSender, uint256 crossDomainContextSource) =
+        (address crossDomainContextSender, uint256 crossDomainContextSource, address entrypoint, uint256 nonce) =
             l2ToL2CrossDomainMessenger.crossDomainMessageContext();
         assertEq(crossDomainContextSender, _sender);
         assertEq(crossDomainContextSource, _source);
+        assertEq(entrypoint, _entrypoint);
+        assertEq(nonce, _nonce);
     }
 
     /// @dev Tests that the `crossDomainMessageContext` function reverts when not entered.

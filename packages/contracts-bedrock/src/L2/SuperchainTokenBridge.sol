@@ -86,7 +86,7 @@ contract SuperchainTokenBridge {
     function relayERC20(address _token, address _from, address _to, uint256 _amount) external {
         if (msg.sender != MESSENGER) revert Unauthorized();
 
-        (address crossDomainMessageSender, uint256 source) =
+        (address crossDomainMessageSender, uint256 source, /*address entrypoint*/, /*uint256 nonce*/ ) =
             IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageContext();
 
         if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
