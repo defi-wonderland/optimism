@@ -110,7 +110,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(
             msgHash,
             Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, address(this), _target, _message
+                _destination, block.chainid, messageNonce, address(this), _target, address(0), _message
             )
         );
 
@@ -164,7 +164,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(
             msgHash,
             Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, address(this), _target, _message
+                _destination, block.chainid, messageNonce, address(this), _target, _entrypoint, _message
             )
         );
 
@@ -381,7 +381,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             returnData: ""
         });
 
-        bytes32 msgHash = _getMessageHash(_source, _nonce, _sender, _target, _message);
+        bytes32 msgHash = _getMessageHash(_source, _nonce, _sender, _target, address(0), _message);
 
         // Look for correct emitted event
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -434,7 +434,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             returnData: ""
         });
 
-        bytes32 msgHash = _getMessageHash(_source, _nonce, _sender, _target, _message);
+        bytes32 msgHash = _getMessageHash(_source, _nonce, _sender, _target, _entrypoint, _message);
 
         // Look for correct emitted event
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -513,7 +513,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         address target = address(this);
         bytes memory message = abi.encodeCall(this.mockTarget, (_source, _sender));
 
-        bytes32 msgHash = _getMessageHash(_source, _nonce, _sender, target, message);
+        bytes32 msgHash = _getMessageHash(_source, _nonce, _sender, target, address(0), message);
 
         // Look for correct emitted event
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -868,7 +868,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Look for correct emitted event for first call.
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         emit L2ToL2CrossDomainMessenger.RelayedMessage(
-            _source, _nonce, _getMessageHash(_source, _nonce, _sender, _target, _message)
+            _source, _nonce, _getMessageHash(_source, _nonce, _sender, _target, address(0), _message)
         );
 
         Identifier memory id =
@@ -1025,12 +1025,13 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         uint256 _nonce,
         address _sender,
         address _target,
+        address _entrypoint,
         bytes memory _message
     )
         internal
         view
         returns (bytes32)
     {
-        return keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message));
+        return keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _entrypoint, _message));
     }
 }

@@ -210,6 +210,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: sender,
             _target: target,
+            _entrypoint: entrypoint,
             _message: message
         });
 
@@ -315,6 +316,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: msg.sender,
             _target: _target,
+            _entrypoint: _entrypoint,
             _message: _message
         });
     }
