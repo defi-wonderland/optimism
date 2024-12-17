@@ -12,8 +12,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
-import "forge-std/Test.sol";
-
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
 
