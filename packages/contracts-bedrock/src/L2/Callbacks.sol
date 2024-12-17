@@ -36,6 +36,11 @@ interface ICallbackGreeterMetadata {
     error CallbackFailed();
 }
 
+/**
+ * @title CallbackGreeter
+ * @notice Initiates a remote greeting call to a greeter contract on a different chain via the CallbackEntrypoint. It
+ * also handles the callback received from the remote greeter.
+ */
 contract CallbackGreeter is ICallbackGreeterMetadata {
     /// @notice Address of the L2ToL2CrossDomainMessenger contract
     address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
@@ -100,9 +105,9 @@ contract CallbackGreeter is ICallbackGreeterMetadata {
         external
         returns (uint224 contextNonce_)
     {
-        bytes memory _targetCalldata = abi.encodeWithSelector(this.greeting.selector);
-        bytes4 _callbackSelector = this.remoteGreetCallback.selector;
-        contextNonce_ = async(_chainId, _targetCalldata, _callbackSelector, _callbackContext);
+        bytes memory targetCalldata = abi.encodeWithSelector(this.greeting.selector);
+        bytes4 callbackSelector = this.remoteGreetCallback.selector;
+        contextNonce_ = async(_chainId, targetCalldata, callbackSelector, _callbackContext);
     }
 
     /// @notice Callback function for the remote greeting
@@ -118,7 +123,6 @@ contract CallbackGreeter is ICallbackGreeterMetadata {
         returns (string memory greeting_, uint256 balance_)
     {
         greeting_ = abi.decode(_remoteData, (string));
-
         balance_ = address(msg.sender).balance;
 
         // Obtain the return context
@@ -158,7 +162,7 @@ contract CallbackGreeter is ICallbackGreeterMetadata {
         bytes memory message = abi.encodePacked(_targetCalldata, _callbackSelector, contextNonce_);
 
         IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage(
-            _chainid, _remoteGreeter, message, CALLBACK_ENTRYPOINT
+            _chainid, _remoteGreeter, CALLBACK_ENTRYPOINT, message
         );
 
         emit AsyncCallSent(contextNonce_);
@@ -172,6 +176,11 @@ contract CallbackGreeter is ICallbackGreeterMetadata {
     }
 }
 
+/**
+ * @title CallbackEntrypoint
+ * @notice This contract serves as an entry point to relay messages on the Cross-Domain Messenger (CDM). It subsequently
+ * sends a callback using the input message and return data to the original sender.
+ */
 contract CallbackEntrypoint {
     /// @notice Address of the L2ToL2CrossDomainMessenger contract
     address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
@@ -191,17 +200,19 @@ contract CallbackEntrypoint {
         // Call the CDM contract and get return value of the target call
         returnData_ = IL2ToL2CrossDomainMessenger(L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _sentMessage);
 
-        // 0 to 32 bytes: SentMessage selector
-        // 32 to 128 bytes: destination (uint256), target (address), nonce (uint256)
-        // 128 to end: sender (address), actual message (bytes), entrypoint (address)
-        (address originSender,, bytes memory inputMessage) = abi.decode(_sentMessage[128:], (address, address, bytes));
+        // 0 to 128 bytes: SentMessage selector, destination (uint256), target (address), nonce (uint256)
+        uint256 topicsLength = 128;
+        // 128 to end: sender (address), entrypoint (address), actual message (bytes)
+        (address originSender,, bytes memory inputMessage) =
+            abi.decode(_sentMessage[topicsLength:], (address, address, bytes));
 
-        // The callback selector and params are in the last 32 bytes of the actual message, we need to substract 32
-        // taking into account the 32 bytes of the entrypoint.
-        uint256 totalLen = 128 + 32 + 32 + 32 + 32 + inputMessage.length;
+        // Get the position in which the message content ends
+        // 128 to message: sender (address), entrypoint (address), message bytes offset, message bytes length
+        uint256 messageContentLength = topicsLength + 32 + 32 + 32 + 32 + inputMessage.length;
 
-        bytes4 selector = bytes4(_sentMessage[totalLen - 32:totalLen - 28]);
-        uint224 nonce = uint224(bytes28(_sentMessage[totalLen - 28:totalLen]));
+        // From the content, get the callback selector and params that are in the last 32 bytes
+        bytes4 selector = bytes4(_sentMessage[messageContentLength - 32:messageContentLength - 28]);
+        uint224 nonce = uint224(bytes28(_sentMessage[messageContentLength - 28:messageContentLength]));
 
         // Encode the callback selector, params and returned data as the message, and sent back to the origin sender
         bytes memory messageToSend = abi.encodeWithSelector(bytes4(selector), nonce, returnData_);
