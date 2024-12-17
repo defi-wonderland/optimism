@@ -68,6 +68,8 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
 /// @title L2ToL2CrossDomainMessengerTest
 /// @dev Contract for testing the L2ToL2CrossDomainMessenger contract.
 contract L2ToL2CrossDomainMessengerTest is Test {
+    address internal foundryVMAddress = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+
     /// @dev L2ToL2CrossDomainMessenger contract instance with modifiable transient storage.
     L2ToL2CrossDomainMessengerWithModifiableTransientStorage l2ToL2CrossDomainMessenger;
 
@@ -349,11 +351,17 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     )
         external
     {
-        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
-        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger or the foundry VM
+        vm.assume(
+            _target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER
+                && _target != foundryVMAddress
+        );
 
         // Ensure that the target call is payable if value is sent
         if (_value > 0) assumePayable(_target);
+
+        // Ensure that the target is not a forge address.
+        assumeNotForgeAddress(_target);
 
         // Ensure that the target contract does not revert
         vm.mockCall({ callee: _target, msgValue: _value, data: _message, returnData: abi.encode(true) });
@@ -559,15 +567,24 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     )
         public
     {
+        // Ensure the target is not CrossL2Inbox or L2ToL2CrossDomainMessenger or the foundry VM
+        vm.assume(
+            _target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER
+                && _target != foundryVMAddress
+        );
+
+        // ensure the target has 0 balance to avoid an overflow
+        vm.deal(_target, 0);
+
         // Declare a random call to be made over the target
-        bytes memory message = abi.encodeWithSignature("randomCall()");
+        bytes memory message = abi.encodePacked("randomCall()");
 
         // Construct the message
         Identifier memory id =
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
-            abi.encode(_sender, message) // data
+            abi.encode(_sender, address(0), message) // data
         );
 
         // Ensure the CrossL2Inbox validates this message
@@ -839,8 +856,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Ensure that the target call is payable if value is sent
         if (_value > 0) assumePayable(_target);
 
-        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
-        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger or the foundry VM
+        vm.assume(
+            _target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER
+                && _target != foundryVMAddress
+        );
 
         // Ensure that the target contract does not revert
         vm.mockCall({ callee: _target, msgValue: _value, data: _message, returnData: abi.encode(true) });
