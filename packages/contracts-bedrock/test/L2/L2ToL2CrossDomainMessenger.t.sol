@@ -1005,7 +1005,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         l2ToL2CrossDomainMessenger.crossDomainMessageSource();
     }
 
-    /// @dev Tests that the `crossDomainMessageSource` function returns the correct value.
+    /// @dev Tests that the `crossDomainMessageEntrypoint` function returns the correct value.
     function testFuzz_crossDomainMessageEntrypoint_succeeds(address _entrypoint) external {
         // Set `entered` to non-zero value to prevent NotEntered revert
         l2ToL2CrossDomainMessenger.setEntered(1);
@@ -1017,7 +1017,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageEntrypoint(), _entrypoint);
     }
 
-    /// @dev Tests that the `crossDomainMessageSource` function reverts when not entered.
+    /// @dev Tests that the `crossDomainMessageEntrypoint` function reverts when not entered.
     function test_crossDomainMessageEntrypoint_notEntered_reverts() external {
         // Ensure that the contract is not entered
         assertEq(l2ToL2CrossDomainMessenger.entered(), false);
@@ -1027,6 +1027,30 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Call `crossDomainMessageEntrypoint` to provoke revert
         l2ToL2CrossDomainMessenger.crossDomainMessageEntrypoint();
+    }
+
+    /// @dev Tests that the `crossDomainMessageNonce` function returns the correct value.
+    function testFuzz_crossDomainMessageNonce_succeeds(uint256 _nonce) external {
+        // Set `entered` to non-zero value to prevent NotEntered revert
+        l2ToL2CrossDomainMessenger.setEntered(1);
+        // Ensure that the contract is now entered
+        assertEq(l2ToL2CrossDomainMessenger.entered(), true);
+        // Set cross domain message nonce in the transient storage
+        l2ToL2CrossDomainMessenger.setCrossDomainMessageNonce(_nonce);
+        // Check that the `crossDomainMessageNonce` function returns the correct value
+        assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageNonce(), _nonce);
+    }
+
+    /// @dev Tests that the `crossDomainMessageNonce` function reverts when not entered.
+    function test_crossDomainMessageNonce_notEntered_reverts() external {
+        // Ensure that the contract is not entered
+        assertEq(l2ToL2CrossDomainMessenger.entered(), false);
+
+        // Expect a revert with the NotEntered selector
+        vm.expectRevert(NotEntered.selector);
+
+        // Call `crossDomainMessageNonce` to provoke revert
+        l2ToL2CrossDomainMessenger.crossDomainMessageNonce();
     }
 
     /// @dev Tests that the `crossDomainMessageContext` function returns the correct value.
