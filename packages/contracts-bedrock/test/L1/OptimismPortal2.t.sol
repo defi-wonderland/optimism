@@ -133,6 +133,20 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(optimismPortal2.paused(), true);
     }
 
+    /// @dev Tests that `sharedLockbox` returns correctly
+    function testFuzz_sharedLockbox_succeeds(address _caller, address _lockbox) external {
+        // Mock and expect the SuperchainConfig's SharedLockbox
+        vm.mockCall(
+            address(superchainConfig), abi.encodeCall(superchainConfig.SHARED_LOCKBOX, ()), abi.encode(_lockbox)
+        );
+        vm.expectCall(address(superchainConfig), 0, abi.encodeCall(superchainConfig.SHARED_LOCKBOX, ()));
+
+        vm.prank(_caller);
+        address _result = address(optimismPortal2.sharedLockbox());
+
+        assertEq(_result, _lockbox);
+    }
+
     /// @dev Tests that `receive` successdully deposits ETH.
     function testFuzz_receive_succeeds(uint256 _value) external {
         vm.expectEmit(address(optimismPortal2));
