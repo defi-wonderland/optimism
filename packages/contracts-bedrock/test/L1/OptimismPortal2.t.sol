@@ -55,7 +55,6 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(address(opImpl.superchainConfig()), address(0));
         assertEq(opImpl.l2Sender(), Constants.DEFAULT_L2_SENDER);
         assertEq(opImpl.respectedGameType().raw(), deploy.cfg().respectedGameType());
-        assertEq(opImpl.sharedLockbox(), address(sharedLockbox));
     }
 
     /// @dev Tests that the initializer sets the correct values.
@@ -70,7 +69,7 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(optimismPortal2.l2Sender(), Constants.DEFAULT_L2_SENDER);
         assertEq(optimismPortal2.paused(), false);
         assertEq(optimismPortal2.respectedGameType().raw(), deploy.cfg().respectedGameType());
-        assertEq(optimismPortal2.sharedLockbox(), address(sharedLockbox));
+        assertEq(address(optimismPortal2.sharedLockbox()), address(sharedLockbox));
     }
 
     /// @dev Tests that `pause` successfully pauses
