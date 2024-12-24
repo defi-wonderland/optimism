@@ -18,8 +18,8 @@ contract LiquidityMigratorTest is CommonTest {
         vm.deal(address(liquidityMigrator), _ethAmount);
 
         // Get the balance of the migrator before the migration to compare later on the assertions
-        uint256 _migratorEthBalance = address(liquidityMigrator).balance;
-        uint256 _lockboxBalanceBefore = address(sharedLockbox).balance;
+        uint256 migratorEthBalance = address(liquidityMigrator).balance;
+        uint256 lockboxBalanceBefore = address(sharedLockbox).balance;
 
         // Set the migrator as an authorized portal so it can lock the ETH while migrating
         vm.prank(address(superchainConfig));
@@ -27,14 +27,14 @@ contract LiquidityMigratorTest is CommonTest {
 
         // Look for the emit of the `ETHMigrated` event
         vm.expectEmit(address(liquidityMigrator));
-        emit ETHMigrated(_migratorEthBalance);
+        emit ETHMigrated(migratorEthBalance);
 
         // Call the `migrateETH` function with the amount
         liquidityMigrator.migrateETH();
 
         // Assert the balances after the migration happened
         assert(address(liquidityMigrator).balance == 0);
-        assert(address(sharedLockbox).balance == _lockboxBalanceBefore + _migratorEthBalance);
+        assert(address(sharedLockbox).balance == lockboxBalanceBefore + migratorEthBalance);
     }
 
     /// @notice Tests the migration of the portal's ETH balance to the SharedLockbox works properly.
@@ -42,8 +42,8 @@ contract LiquidityMigratorTest is CommonTest {
         vm.deal(address(optimismPortal2), _ethAmount);
 
         // Get the balance of the portal before the migration to compare later on the assertions
-        uint256 _portalEthBalance = address(optimismPortal2).balance;
-        uint256 _lockboxBalanceBefore = address(sharedLockbox).balance;
+        uint256 portalEthBalance = address(optimismPortal2).balance;
+        uint256 lockboxBalanceBefore = address(sharedLockbox).balance;
 
         // Get the proxy admin address and it's owner
         IProxyAdmin proxyAdmin = IProxyAdmin(deploy.mustGetAddress("ProxyAdmin"));
@@ -51,7 +51,7 @@ contract LiquidityMigratorTest is CommonTest {
 
         // Look for the emit of the `ETHMigrated` event
         vm.expectEmit(address(optimismPortal2));
-        emit ETHMigrated(_portalEthBalance);
+        emit ETHMigrated(portalEthBalance);
 
         // Update the portal proxy implementation to the LiquidityMigrator contract
         vm.prank(proxyAdminOwner);
@@ -63,6 +63,6 @@ contract LiquidityMigratorTest is CommonTest {
 
         // Assert the balances after the migration happened
         assert(address(optimismPortal2).balance == 0);
-        assert(address(sharedLockbox).balance == _lockboxBalanceBefore + _portalEthBalance);
+        assert(address(sharedLockbox).balance == lockboxBalanceBefore + portalEthBalance);
     }
 }
