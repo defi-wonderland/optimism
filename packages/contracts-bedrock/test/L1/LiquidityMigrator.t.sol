@@ -45,7 +45,7 @@ contract LiquidityMigratorTest is CommonTest {
         uint256 _portalEthBalance = address(optimismPortal2).balance;
         uint256 _lockboxBalanceBefore = address(sharedLockbox).balance;
 
-        // Set the portal as an authorized portal so it can lock the ETH while migrating
+        // Get the proxy admin address and it's owner
         IProxyAdmin proxyAdmin = IProxyAdmin(deploy.mustGetAddress("ProxyAdmin"));
         address proxyAdminOwner = proxyAdmin.owner();
 
