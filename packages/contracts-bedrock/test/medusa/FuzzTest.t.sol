@@ -84,7 +84,7 @@ contract FuzzTest {
     function test_setIntropStartBlock() external {
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
         try inbox.setInteropStart() {
-            assert(inbox.interopStart() == 0);
+            assert(inbox.interopStart() == 0); // Intended to fail to test the try-catch
         } catch {
             assert(false);
         }
@@ -92,7 +92,7 @@ contract FuzzTest {
 
     function test_sendMessage(address _target, bytes calldata _message) external {
         try messenger.sendMessage(2, _target, _message) {
-            assert(false);
+            assert(false); // Intended to fail to test the try-catch
         } catch {
             assert(false);
         }
