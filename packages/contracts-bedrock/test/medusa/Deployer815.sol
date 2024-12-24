@@ -13,6 +13,10 @@ import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
 import { L1BlockInterop } from "src/L2/L1BlockInterop.sol";
 
 contract Deployer815 {
+    function deployL1BlockInterop() public returns (address l1BlockInterop) {
+        l1BlockInterop = address(new L1BlockInterop());
+    }
+
     function deploySuperchainWETH() public returns (address superchainWETH) {
         superchainWETH = address(new SuperchainWETH());
     }

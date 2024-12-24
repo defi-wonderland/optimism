@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface IDeployer815 {
+    function deployL1BlockInterop() external returns (address l1BlockInterop);
+
     function deploySuperchainWETH() external returns (address superchainWETH);
 
     function deployETHLiquidity() external returns (address ethLiquidity);
