@@ -8,7 +8,6 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @notice Thrown when the caller is not DEPOSITOR_ACCOUNT when calling `setInteropStart()`
@@ -22,9 +21,6 @@ error NotEntered();
 
 /// @notice Thrown when trying to execute a cross chain message with an invalid Identifier timestamp.
 error InvalidTimestamp();
-
-/// @notice Thrown when trying to execute a cross chain message with an invalid Identifier chain ID.
-error InvalidChainId();
 
 /// @notice Thrown when trying to execute a cross chain message and the target call fails.
 error TargetCallFailed();
@@ -76,8 +72,8 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.11
-    string public constant version = "1.0.0-beta.11";
+    /// @custom:semver 1.0.0-beta.12
+    string public constant version = "1.0.0-beta.12";
 
     /// @notice Emitted when a cross chain message is being executed.
     /// @param msgHash Hash of message payload being executed.
@@ -190,9 +186,6 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     /// @param _id Identifier of the message.
     function _checkIdentifier(Identifier calldata _id) internal view {
         if (_id.timestamp > block.timestamp || _id.timestamp <= interopStart()) revert InvalidTimestamp();
-        if (!IDependencySet(Predeploys.L1_BLOCK_ATTRIBUTES).isInDependencySet(_id.chainId)) {
-            revert InvalidChainId();
-        }
     }
 
     /// @notice Stores the Identifier in transient storage.

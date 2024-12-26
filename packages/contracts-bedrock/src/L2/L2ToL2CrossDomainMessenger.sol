@@ -9,7 +9,6 @@ import { TransientReentrancyAware } from "src/libraries/TransientContext.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
@@ -71,8 +70,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     uint16 public constant messageVersion = uint16(0);
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.14
-    string public constant version = "1.0.0-beta.14";
+    /// @custom:semver 1.0.0-beta.15
+    string public constant version = "1.0.0-beta.15";
 
     /// @notice Mapping of message hashes to boolean receipt values. Note that a message will only be present in this
     ///         mapping if it has successfully been relayed on this chain, and can therefore not be relayed again.
@@ -136,7 +135,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         if (_target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
-        if (!IDependencySet(Predeploys.L1_BLOCK_ATTRIBUTES).isInDependencySet(_destination)) revert InvalidChainId();
 
         uint256 nonce = messageNonce();
         emit SentMessage(_destination, _target, nonce, msg.sender, _message);
