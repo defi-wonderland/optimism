@@ -118,6 +118,10 @@ coverage: build-go-ffi
 coverage-lcov: build-go-ffi
   forge coverage --report lcov
 
+# runs medusa on a foundry profile that allows faster compilation by omitting
+# to build other tests and scripts
+test-medusa *ARGS:
+  FOUNDRY_PROFILE=medusa medusa fuzz {{ARGS}}
 
 ########################################################
 #                        DEPLOY                        #

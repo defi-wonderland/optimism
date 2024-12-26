@@ -82,8 +82,6 @@
 			"solcVersion": "",
 			"exportDirectory": "",
 			"args": [
-				"--compile-force-framework",
-				"foundry",
 				"--foundry-compile-all",
 				"--foundry-out-directory",
 				"artifacts"
