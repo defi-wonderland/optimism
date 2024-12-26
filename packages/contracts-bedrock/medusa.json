@@ -7,7 +7,7 @@
 		"shrinkLimit": 5000,
 		"callSequenceLength": 100,
 		"corpusDirectory": "test/medusa/corpus",
-		"coverageEnabled": false,
+		"coverageEnabled": true,
 		"coverageFormats": [
 			"html",
 			"lcov"
@@ -82,8 +82,6 @@
 			"solcVersion": "",
 			"exportDirectory": "",
 			"args": [
-				"--compile-force-framework",
-				"foundry",
 				"--foundry-compile-all",
 				"--foundry-out-directory",
 				"artifacts"
