@@ -60,6 +60,9 @@ contract FuzzTest {
 
         // Deploy L2ToL2CrossDomainMessenger
         _etchAndUpgrade(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, deployer825.deployL2ToL2CrossDomainMessenger());
+
+        // Deploy SuperchainTokenBridge
+        _etchAndUpgrade(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, deployer825.deploySuperchainTokenBridge());
     }
 
     function test_setIntropStartBlock() external {
