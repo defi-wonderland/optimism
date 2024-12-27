@@ -53,19 +53,22 @@ contract FuzzTest {
 
     constructor() {
         //  Deploy CrossL2Inbox
-        _etchAndUpgrade(Predeploys.CROSS_L2_INBOX, deployer825.deployCrossL2Inbox());
+        _setCode(Predeploys.CROSS_L2_INBOX, deployer825.deployCrossL2Inbox());
 
         // Deploy L1BlockAtributes
-        _etchAndUpgrade(Predeploys.L1_BLOCK_ATTRIBUTES, deployer815.deployL1BlockInterop());
+        _setCode(Predeploys.L1_BLOCK_ATTRIBUTES, deployer815.deployL1BlockInterop());
 
         // Deploy L2ToL2CrossDomainMessenger
-        _etchAndUpgrade(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, deployer825.deployL2ToL2CrossDomainMessenger());
+        _setCode(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, deployer825.deployL2ToL2CrossDomainMessenger());
 
         // Deploy SuperchainTokenBridge
-        _etchAndUpgrade(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, deployer825.deploySuperchainTokenBridge());
+        _setCode(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, deployer825.deploySuperchainTokenBridge());
+
+        // Deploy SuperchainWETH
+        _setCode(Predeploys.SUPERCHAIN_WETH, deployer815.deploySuperchainWETH());
     }
 
-    function test_setIntropStartBlock() external {
+    function test_inbox() external {
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
         try inbox.setInteropStart() {
             assert(inbox.interopStart() == 0); // Intended to fail to test the try-catch
@@ -74,7 +77,7 @@ contract FuzzTest {
         }
     }
 
-    function test_sendMessage(address _target, bytes calldata _message) external {
+    function test_messenger(address _target, bytes calldata _message) external {
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
         l1BlockInterop.setConfig(ConfigType.ADD_DEPENDENCY, abi.encode("", 2));
 
@@ -85,8 +88,17 @@ contract FuzzTest {
         }
     }
 
-    function _etchAndUpgrade(address _target, address _implementation) internal {
-        vm.etch(_target, type(UpgradeableProxy).runtimeCode);
-        UpgradeableProxy(payable(_target)).upgradeTo(_implementation);
+    function test_superWeth() external {
+        assert(superWeth.decimals() == 18);
+    }
+
+    /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
+    function _setCode(address _target, address _implementation) internal {
+        if (Predeploys.notProxied(_target)) {
+            vm.etch(_target, _implementation.code);
+        } else {
+            vm.etch(_target, type(UpgradeableProxy).runtimeCode);
+            UpgradeableProxy(payable(_target)).upgradeTo(_implementation);
+        }
     }
 }
