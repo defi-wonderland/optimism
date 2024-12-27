@@ -22,4 +22,11 @@ interface IDeployer815 {
     )
         external
         returns (address optimismPortal2);
+
+    function deployOptimismPortalInterop(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        external
+        returns (address optimismPortalInterop);
 }

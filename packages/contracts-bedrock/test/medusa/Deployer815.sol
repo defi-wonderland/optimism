@@ -50,4 +50,15 @@ contract Deployer815 {
     {
         optimismPortal2 = address(new OptimismPortal2(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
     }
+
+    function deployOptimismPortalInterop(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        public
+        returns (address optimismPortalInterop)
+    {
+        optimismPortalInterop =
+            address(new OptimismPortalInterop(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
+    }
 }
