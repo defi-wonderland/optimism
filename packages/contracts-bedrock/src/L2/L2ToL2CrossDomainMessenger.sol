@@ -41,9 +41,6 @@ error ReentrantCall();
 /// @notice Thrown when a call to the target contract during message relay fails.
 error TargetCallFailed();
 
-/// @notice Thrown when attempting to use a chain ID that is not in the dependency set.
-error InvalidChainId();
-
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
 /// @title L2ToL2CrossDomainMessenger

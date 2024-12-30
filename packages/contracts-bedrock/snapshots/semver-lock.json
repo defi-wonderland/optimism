@@ -65,7 +65,7 @@
   },
   "src/L2/CrossL2Inbox.sol": {
     "initCodeHash": "0x12c325f9898460dc42f54febcfe312a4a92d6b78b78586f54c7be9ae8d5b39be",
-    "sourceCodeHash": "0x205252627db9b225f61aae249293a7a20d90797e53a378ed8df7b1323cffbed4"
+    "sourceCodeHash": "0xec115e27a78d76a47d8fbb6454d049a5f8314fe0283a4a9cbd44f286388cb0f0"
   },
   "src/L2/ETHLiquidity.sol": {
     "initCodeHash": "0xbb16de6a3f678db7301694a000f315154f25f9660c8dcec4b0bef20bc7cfdebd",
@@ -109,7 +109,7 @@
   },
   "src/L2/L2ToL2CrossDomainMessenger.sol": {
     "initCodeHash": "0x115a00cfd2432d8b230302ec9a22f611ec23420aecd4b35d3d1d42041db820a9",
-    "sourceCodeHash": "0x9b653a71e0af65f86aa730cf889b881b2ceddcdf5c94df1064c92d4e13e3dd4a"
+    "sourceCodeHash": "0x067e879cd1acf2348e0729dd02395c064d24cf4571fdeade8bc2eefd8accec87"
   },
   "src/L2/OptimismSuperchainERC20.sol": {
     "initCodeHash": "0xdac32a1057a6bc8a8d2ffdce1db8f34950cd0ffd1454d2133865736d21869192",

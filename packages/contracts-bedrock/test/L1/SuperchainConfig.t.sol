@@ -246,8 +246,7 @@ contract SuperchainConfig_DependencySet_Test is CommonTest {
 
         // Ensure there are no repeated values on the input array
         for (uint256 i; i < _chainIdsArray.length; i++) {
-            vm.assume(_chainIdsArray[i] != block.chainid);
-            chainIds.add(_chainIdsArray[i]);
+            if (_chainIdsArray[i] != block.chainid) chainIds.add(_chainIdsArray[i]);
         }
 
         vm.startPrank(superchainConfig.dependencyManager());

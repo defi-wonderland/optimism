@@ -21,8 +21,7 @@ import {
     MessageTargetL2ToL2CrossDomainMessenger,
     MessageAlreadyRelayed,
     ReentrantCall,
-    TargetCallFailed,
-    InvalidChainId
+    TargetCallFailed
 } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 
 // Interfaces

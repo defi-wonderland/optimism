@@ -180,9 +180,8 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         emit ExecutingMessage(_msgHash, _id);
     }
 
-    /// @notice Validates that for a given cross chain message identifier,
-    ///         it's timestamp is not in the future and the source chainId
-    ///         is in the destination chain's dependency set.
+    /// @notice Validates that for a given cross chain message identifier
+    ///         it's timestamp is not in the future.
     /// @param _id Identifier of the message.
     function _checkIdentifier(Identifier calldata _id) internal view {
         if (_id.timestamp > block.timestamp || _id.timestamp <= interopStart()) revert InvalidTimestamp();
