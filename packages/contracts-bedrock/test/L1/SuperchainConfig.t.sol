@@ -149,6 +149,34 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
         superchainConfig.addDependency(_chainId, _systemConfig);
     }
 
+    /// @notice Tests that `addDependency` reverts when the dependency set is too large.
+    function test_addDependency_dependencySetTooLarge_reverts() external {
+        vm.startPrank(superchainConfig.dependencyManager());
+
+        // Add the maximum number of dependencies to the dependency set
+        uint256 i;
+        for (i; i < type(uint8).max; i++) {
+            superchainConfig.addDependency(i, address(systemConfig));
+        }
+
+        // Check that the dependency set is full and that expect the next call to revert
+        assertEq(superchainConfig.dependencySetSize(), type(uint8).max);
+        vm.expectRevert(SuperchainConfig.DependencySetTooLarge.selector);
+
+        // Try to add another dependency to the dependency set
+        uint256 chainId = i + 1;
+        superchainConfig.addDependency(chainId, address(systemConfig));
+
+        vm.stopPrank();
+    }
+
+    /// @notice Tests that `addDependency` reverts when the chain ID is the same as the current chain ID.
+    function test_addDependency_sameChainID_reverts() external {
+        vm.prank(superchainConfig.dependencyManager());
+        vm.expectRevert(SuperchainConfig.InvalidChainID.selector);
+        superchainConfig.addDependency(block.chainid, address(systemConfig));
+    }
+
     /// @notice Tests that `addDependency` reverts when the chain is already in the dependency set.
     function test_addDependency_chainAlreadyExists_reverts(uint256 _chainId) external {
         vm.assume(_chainId != block.chainid);
@@ -159,30 +187,6 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
         vm.expectRevert(SuperchainConfig.DependencyAlreadyAdded.selector);
         superchainConfig.addDependency(_chainId, address(systemConfig));
         vm.stopPrank();
-    }
-
-    /// @notice Tests that `addDependency` reverts when the dependency set is too large.
-    function test_addDependency_dependencySetTooLarge_reverts() external {
-        vm.startPrank(superchainConfig.dependencyManager());
-
-        uint256 i;
-        for (i; i < type(uint8).max; i++) {
-            superchainConfig.addDependency(i, address(systemConfig));
-        }
-
-        assertEq(superchainConfig.dependencySetSize(), type(uint8).max);
-
-        vm.expectRevert(SuperchainConfig.DependencySetTooLarge.selector);
-        superchainConfig.addDependency(i + 1, address(systemConfig));
-
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that `addDependency` reverts when the chain ID is the same as the current chain ID.
-    function test_addDependency_sameChainID_reverts() external {
-        vm.prank(superchainConfig.dependencyManager());
-        vm.expectRevert(SuperchainConfig.InvalidChainID.selector);
-        superchainConfig.addDependency(block.chainid, address(systemConfig));
     }
 
     /// @notice Tests that `addDependency` successfully adds a chain to the dependency set when it is empty.
@@ -237,8 +241,7 @@ contract SuperchainConfig_DependencySet_Test is CommonTest {
 
     EnumerableSet.UintSet internal chainIds;
 
-    /// @notice Tests that the dependency set returns properly the dependencies added.
-    function test_dependencySet_succeeds(uint256[] calldata _chainIdsArray) public {
+    function _addDependencies(uint256[] calldata _chainIdsArray) internal {
         vm.assume(_chainIdsArray.length <= type(uint8).max);
 
         // Ensure there are no repeated values on the input array
@@ -254,6 +257,13 @@ contract SuperchainConfig_DependencySet_Test is CommonTest {
             superchainConfig.addDependency(chainIds.at(i), address(systemConfig));
         }
 
+        vm.stopPrank();
+    }
+
+    /// @notice Tests that the dependency set returns properly the dependencies added.
+    function test_dependencySet_succeeds(uint256[] calldata _chainIdsArray) public {
+        _addDependencies(_chainIdsArray);
+
         // Check that the dependency set has the same length as the dependencies
         uint256[] memory dependencySet = superchainConfig.dependencySet();
         assertEq(dependencySet.length, chainIds.length());
@@ -262,10 +272,13 @@ contract SuperchainConfig_DependencySet_Test is CommonTest {
         for (uint256 i; i < chainIds.length(); i++) {
             assertEq(dependencySet[i], chainIds.at(i));
         }
+    }
 
-        // Check that the dependency set size is the same as the dependencies
-        assertEq(superchainConfig.dependencySetSize(), uint8(chainIds.length()));
+    /// @notice Tests that the dependency set size returns properly the number of dependencies added.
+    function test_dependencySetSize_succeeds(uint256[] calldata _chainIdsArray) public {
+        _addDependencies(_chainIdsArray);
 
-        vm.stopPrank();
+        // Check that the dependency set has the same length as the dependencies
+        assertEq(superchainConfig.dependencySetSize(), chainIds.length());
     }
 }

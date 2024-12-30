@@ -68,7 +68,7 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @notice Thrown when the input chain ID is the same as the current chain ID.
     error InvalidChainID();
 
-    /// @notice Thrown when the input chain is already added to the dependency set.
+    /// @notice Thrown when the input dependency is already added to the set.
     error DependencyAlreadyAdded();
 
     /// @notice Semantic version.

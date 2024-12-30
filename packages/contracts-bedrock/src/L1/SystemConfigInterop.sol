@@ -20,9 +20,9 @@ import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 ///         All configuration is stored on L1 and picked up by L2 as part of the derviation of
 ///         the L2 chain.
 contract SystemConfigInterop is SystemConfig {
-    /// @custom:semver +interop-beta.8
+    /// @custom:semver +interop-beta.9
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop-beta.8");
+        return string.concat(super.version(), "+interop-beta.9");
     }
 
     /// @notice Internal setter for the gas paying token address, includes validation.
