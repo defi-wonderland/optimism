@@ -20,10 +20,5 @@ interface IL1FeeVault {
 
     function version() external view returns (string memory);
 
-    function __constructor__(
-        address _recipient,
-        uint256 _minWithdrawalAmount,
-        Types.WithdrawalNetwork _withdrawalNetwork
-    )
-        external;
+    function __constructor__() external;
 }

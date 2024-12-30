@@ -343,16 +343,7 @@ contract L2Genesis is Deployer {
         ISequencerFeeVault vault = ISequencerFeeVault(
             DeployUtils.create1(
                 "SequencerFeeVault",
-                DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        ISequencerFeeVault.__constructor__,
-                        (
-                            cfg.sequencerFeeVaultRecipient(),
-                            cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
-                            Types.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
-                        )
-                    )
-                )
+                DeployUtils.encodeConstructor(abi.encodeCall(ISequencerFeeVault.__constructor__, ()))
             )
         );
 
@@ -444,17 +435,7 @@ contract L2Genesis is Deployer {
     function setBaseFeeVault() public {
         IBaseFeeVault vault = IBaseFeeVault(
             DeployUtils.create1(
-                "BaseFeeVault",
-                DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IBaseFeeVault.__constructor__,
-                        (
-                            cfg.baseFeeVaultRecipient(),
-                            cfg.baseFeeVaultMinimumWithdrawalAmount(),
-                            Types.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
-                        )
-                    )
-                )
+                "BaseFeeVault", DeployUtils.encodeConstructor(abi.encodeCall(IBaseFeeVault.__constructor__, ()))
             )
         );
 
@@ -471,17 +452,7 @@ contract L2Genesis is Deployer {
     function setL1FeeVault() public {
         IL1FeeVault vault = IL1FeeVault(
             DeployUtils.create1(
-                "L1FeeVault",
-                DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IL1FeeVault.__constructor__,
-                        (
-                            cfg.l1FeeVaultRecipient(),
-                            cfg.l1FeeVaultMinimumWithdrawalAmount(),
-                            Types.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
-                        )
-                    )
-                )
+                "L1FeeVault", DeployUtils.encodeConstructor(abi.encodeCall(IL1FeeVault.__constructor__, ()))
             )
         );
 
