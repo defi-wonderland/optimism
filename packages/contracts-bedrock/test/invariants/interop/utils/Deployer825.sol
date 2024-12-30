@@ -4,8 +4,8 @@ pragma solidity 0.8.25;
 // Contracts
 import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
 import { L2ToL2CrossDomainMessenger } from "src/L2/L2ToL2CrossDomainMessenger.sol";
-import { SuperchainTokenBridge } from "src/L2/SuperchainTokenBridge.sol";
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { SuperchainTokenBridge } from "src/L2/SuperchainTokenBridge.sol";
 
 contract Deployer825 {
     function deployCrossL2Inbox() public returns (address crossL2Inbox) {
@@ -16,12 +16,12 @@ contract Deployer825 {
         l2ToL2CrossDomainMessenger = address(new L2ToL2CrossDomainMessenger());
     }
 
-    function deploySuperchainTokenBridge() public returns (address superchainTokenBridge) {
-        superchainTokenBridge = address(new SuperchainTokenBridge());
-    }
-
     function deploySuperchainERC20() public returns (address superchainERC20) {
         superchainERC20 = address(new MedusaToken());
+    }
+
+    function deploySuperchainTokenBridge() public returns (address superchainTokenBridge) {
+        superchainTokenBridge = address(new SuperchainTokenBridge());
     }
 }
 

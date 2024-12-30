@@ -6,7 +6,7 @@
 		"testLimit": 0,
 		"shrinkLimit": 5000,
 		"callSequenceLength": 100,
-		"corpusDirectory": "test/medusa/corpus",
+		"corpusDirectory": "test/invariants/interop/corpus",
 		"coverageEnabled": true,
 		"coverageFormats": [
 			"html",

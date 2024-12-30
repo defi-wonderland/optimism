@@ -43,4 +43,4 @@ deploy-config/devnetL1.json
 deploy-config/getting-started.json
 
 # Medusa
-test/medusa/corpus
+test/invariants/interop/corpus
