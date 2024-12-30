@@ -54,7 +54,7 @@ contract Setup {
     ICrossL2Inbox constant inbox = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
     IL2ToL2CrossDomainMessenger constant messenger =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    ISuperchainERC20 immutable medusaToken;
+    ISuperchainERC20 immutable superToken;
     ISuperchainTokenBridge constant tokenBridge = ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
 
     // Actors
@@ -118,7 +118,7 @@ contract Setup {
         );
 
         // Deploy SuperchainToken
-        medusaToken = ISuperchainERC20(deployer825.deploySuperchainERC20());
+        superToken = ISuperchainERC20(deployer825.deploySuperchainERC20());
 
         // Deploy SharedLockbox
         _setCode(sharedLockboxAddress, deployer815.deploySharedLockbox(superchainConfigAddress), true);
@@ -151,12 +151,15 @@ contract Setup {
 
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
     function _setCode(address _target, address _implementation, bool _isProxied) internal {
+        if (_implementation.code.length == 0) revert("Setup: Invalid implementation address");
+
         if (_isProxied) {
             vm.etch(_target, type(ERC1967Proxy).runtimeCode);
             vm.store(_target, _IMPLEMENTATION_SLOT, bytes32(uint256(uint160(_implementation))));
             vm.store(_target, _ADMIN_SLOT, bytes32(uint256(uint160(admin))));
 
             assert(address(uint160(uint256(vm.load(_target, _IMPLEMENTATION_SLOT)))) != address(0));
+            assert(address(uint160(uint256(vm.load(_target, _ADMIN_SLOT)))) == admin);
         } else {
             vm.etch(_target, _implementation.code);
         }

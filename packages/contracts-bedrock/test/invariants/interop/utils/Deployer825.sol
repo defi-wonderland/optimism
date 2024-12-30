@@ -25,13 +25,13 @@ contract Deployer825 {
     }
 }
 
-contract MedusaToken is SuperchainERC20 {
+contract SuperToken is SuperchainERC20 {
     function name() public pure override returns (string memory) {
-        return "MedusaToken";
+        return "Super Token";
     }
 
     /// @dev Returns the symbol of the token.
     function symbol() public pure override returns (string memory) {
-        return "MEDUSA";
+        return "SUP";
     }
 }
