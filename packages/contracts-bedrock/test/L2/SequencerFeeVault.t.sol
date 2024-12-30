@@ -4,18 +4,15 @@ pragma solidity 0.8.15;
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { Reverter } from "test/mocks/Callers.sol";
-import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Contracts
 import { Constants } from "src/libraries/Constants.sol";
 import { ConfigType } from "interfaces/L2/IL1Block.sol";
-import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 
 // Libraries
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 
 contract SequencerFeeVault_Test is CommonTest {

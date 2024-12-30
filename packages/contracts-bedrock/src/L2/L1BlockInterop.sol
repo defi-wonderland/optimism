@@ -6,7 +6,6 @@ import { L1Block, ConfigType } from "src/L2/L1Block.sol";
 
 // Libraries
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import {
@@ -41,7 +40,7 @@ contract L1BlockInterop is L1Block {
 
     /// @custom:semver +interop-beta.3
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop-beta.3");
+        return string.concat(super.version(), "+interop-beta.4");
     }
 
     /// @notice Returns whether the call was triggered from a a deposit or not.

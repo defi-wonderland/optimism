@@ -1,26 +1,5 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_recipient",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minWithdrawalAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum Types.WithdrawalNetwork",
-        "name": "_withdrawalNetwork",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
     "stateMutability": "payable",
     "type": "receive"
   },
@@ -57,6 +36,29 @@
       {
         "internalType": "enum Types.WithdrawalNetwork",
         "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "config",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "recipient_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minWithdrawalAmount_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum Types.WithdrawalNetwork",
+        "name": "withdrawalNetwork_",
         "type": "uint8"
       }
     ],

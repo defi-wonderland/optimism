@@ -122,6 +122,25 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "enum ConfigType",
+        "name": "_type",
+        "type": "uint8"
+      }
+    ],
+    "name": "getConfig",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "config_",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "hash",
     "outputs": [
@@ -197,6 +216,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum ConfigType",
+        "name": "_type",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_value",
+        "type": "bytes"
+      }
+    ],
+    "name": "setConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

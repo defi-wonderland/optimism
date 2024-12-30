@@ -46,7 +46,7 @@ interface IL1Block {
     function timestamp() external view returns (uint64);
     function version() external pure returns (string memory);
     function setConfig(ConfigType _type, bytes memory _value) external;
-    function getConfig(ConfigType _type) external view returns (bytes memory);
+    function getConfig(ConfigType _type) external view returns (bytes memory config_);
 
     function __constructor__() external;
 }

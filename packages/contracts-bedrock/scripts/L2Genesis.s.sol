@@ -15,7 +15,6 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
-import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
