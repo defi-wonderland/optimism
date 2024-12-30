@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 //Testing
 import { IStdCheats } from "./interfaces/IStdCheats.sol";
-import { UpgradeableProxy } from "./UpgradeableProxy.sol";
+import { IDeployer815 } from "./interfaces/IDeployer815.sol";
+import { IDeployer825 } from "./interfaces/IDeployer825.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 // Interfaces
 import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
@@ -22,14 +24,11 @@ import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 import { ISuperchainERC20 } from "interfaces/L2/ISuperchainERC20.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { GameType } from "src/dispute/lib/Types.sol";
-
-import { IDeployer815 } from "./interfaces/IDeployer815.sol";
-import { IDeployer825 } from "./interfaces/IDeployer825.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { GameType } from "src/dispute/lib/Types.sol";
 
 contract Setup {
     IStdCheats constant vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
@@ -55,8 +54,12 @@ contract Setup {
     IOptimismPortalInterop immutable optimismPortalInterop;
 
     // Actors
-    address guardian = address(uint160(uint256(keccak256("Guardian"))));
-    address upgrader = address(uint160(uint256(keccak256("Upgrader"))));
+    address guardian = vm.addr(uint256(keccak256("Guardian")));
+    address upgrader = vm.addr(uint256(keccak256("Upgrader")));
+    address admin = vm.addr(uint256(keccak256("Admin")));
+
+    bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+    bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     constructor() {
         //  Deploy CrossL2Inbox
@@ -114,17 +117,17 @@ contract Setup {
         superchainConfig.initialize(guardian, upgrader, false);
 
         // Deploy LiquidityMigrator
-        address liquidityMigratorAddress = address(uint160(uint256(keccak256("LiquidityMigrator"))));
+        address liquidityMigratorAddress = vm.addr(uint256(keccak256("LiquidityMigrator")));
         _setCode(liquidityMigratorAddress, deployer815.deployLiquidityMigrator(sharedLockboxAddress), true);
         liquidityMigrator = ILiquidityMigrator(liquidityMigratorAddress);
 
         // Deploy SystemConfigInterop
-        address systemConfigInteropAddress = address(uint160(uint256(keccak256("SystemConfigInterop"))));
+        address systemConfigInteropAddress = vm.addr(uint256(keccak256("SystemConfigInterop")));
         _setCode(systemConfigInteropAddress, deployer815.deploySystemConfigInterop(superchainConfigAddress), true);
         systemConfigInterop = ISystemConfigInterop(systemConfigInteropAddress);
 
         // Deploy OptimismPortal2
-        address optimismPortal2Address = address(uint160(uint256(keccak256("OptimismPortal2"))));
+        address optimismPortal2Address = vm.addr(uint256(keccak256("OptimismPortal2")));
         _setCode(optimismPortal2Address, deployer815.deployOptimismPortal2(0, 0), true); // TODO: Set the correct values
         optimismPortal2 = IOptimismPortal2(payable(optimismPortal2Address));
 
@@ -142,8 +145,9 @@ contract Setup {
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
     function _setCode(address _target, address _implementation, bool _isProxied) internal {
         if (_isProxied) {
-            vm.etch(_target, type(UpgradeableProxy).runtimeCode);
-            UpgradeableProxy(payable(_target)).upgradeTo(_implementation);
+            vm.etch(_target, type(ERC1967Proxy).runtimeCode);
+            vm.store(_target, _IMPLEMENTATION_SLOT, bytes32(uint256(uint160(_implementation))));
+            vm.store(_target, _ADMIN_SLOT, bytes32(uint256(uint160(admin))));
         } else {
             vm.etch(_target, _implementation.code);
         }
