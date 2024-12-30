@@ -7,6 +7,8 @@ import { Reverter } from "test/mocks/Callers.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Contracts
+import { Constants } from "src/libraries/Constants.sol";
+import { ConfigType } from "interfaces/L2/IL1Block.sol";
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 
 // Libraries
@@ -14,6 +16,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
 
 contract SequencerFeeVault_Test is CommonTest {
     address recipient;
@@ -109,27 +112,14 @@ contract SequencerFeeVault_L2Withdrawal_Test is CommonTest {
     function setUp() public override {
         super.setUp();
 
-        // Alter the deployment to use WithdrawalNetwork.L2
-        vm.etch(
-            EIP1967Helper.getImplementation(Predeploys.SEQUENCER_FEE_WALLET),
-            address(
-                DeployUtils.create1({
-                    _name: "SequencerFeeVault",
-                    _args: DeployUtils.encodeConstructor(
-                        abi.encodeCall(
-                            ISequencerFeeVault.__constructor__,
-                            (
-                                deploy.cfg().sequencerFeeVaultRecipient(),
-                                deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount(),
-                                Types.WithdrawalNetwork.L2
-                            )
-                        )
-                    )
-                })
-            ).code
-        );
-
         recipient = deploy.cfg().sequencerFeeVaultRecipient();
+
+        // Alter the L1Block to use WithdrawalNetwork.L2
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(
+            ConfigType.SEQUENCER_FEE_VAULT_CONFIG,
+            abi.encode(Encoding.encodeFeeVaultConfig(recipient, 1, Types.WithdrawalNetwork.L2))
+        );
     }
 
     /// @dev Tests that `withdraw` successfully initiates a withdrawal to L2.
