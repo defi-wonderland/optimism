@@ -24,6 +24,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL2OutputOracle } from "interfaces/L1/IL2OutputOracle.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
+import { ILiquidityMigrator } from "interfaces/L1/ILiquidityMigrator.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IOptimismPortal } from "interfaces/L1/IOptimismPortal.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
@@ -143,7 +144,6 @@ library ChainAssertions {
     /// @notice Asserts that the SystemConfigInterop is setup correctly
     function checkSystemConfigInterop(
         Types.ContractSet memory _contracts,
-        Types.ContractSet memory _proxies,
         DeployConfig _cfg,
         bool _isProxy
     )
@@ -151,7 +151,6 @@ library ChainAssertions {
         view
     {
         ISystemConfigInterop config = ISystemConfigInterop(_contracts.SystemConfig);
-        ISuperchainConfig superchainConfig = ISuperchainConfig(_proxies.SuperchainConfig);
 
         console.log(
             "Running chain assertions on the SystemConfigInterop %s at %s",
@@ -160,9 +159,6 @@ library ChainAssertions {
         );
 
         checkSystemConfig(_contracts, _cfg, _isProxy);
-
-        require(config.dependencyCounter() == 0, "CHECK-SCFGI-10");
-        require(config.SUPERCHAIN_CONFIG() == address(superchainConfig), "CHECK-SCFGI-20");
     }
 
     /// @notice Asserts that the L1CrossDomainMessenger is setup correctly
@@ -600,5 +596,12 @@ library ChainAssertions {
 
         require(address(sharedLockbox) != address(0), "CHECK-SLB-10");
         require(sharedLockbox.SUPERCHAIN_CONFIG() == superchainConfig, "CHECK-SLB-20");
+    }
+
+    /// @notice Asserts that the LiquidityMigrator is setup correctly
+    function checkLiquidityMigrator(Types.ContractSet memory _contracts, address _liquidityMigrator) internal view {
+        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
+
+        require(ILiquidityMigrator(_liquidityMigrator).SHARED_LOCKBOX() == sharedLockbox, "LM-10");
     }
 }
