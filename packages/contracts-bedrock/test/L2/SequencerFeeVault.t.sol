@@ -99,6 +99,23 @@ contract SequencerFeeVault_Test is CommonTest {
         assertEq(address(sequencerFeeVault).balance, 0);
         assertEq(Predeploys.L2_TO_L1_MESSAGE_PASSER.balance, amount);
     }
+
+    /// @dev Tests that the setConfig function in l1Block  sets the correct values.
+    function test_setConfig_succeeds(address _recipient, uint88 _amount, uint8 _networkSeed) external {
+        Types.WithdrawalNetwork _network = Types.WithdrawalNetwork(bound(_networkSeed, 0, 1));
+        bytes32 sequencerFeeVaultConfig = Encoding.encodeFeeVaultConfig(_recipient, _amount, _network);
+
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(ConfigType.SEQUENCER_FEE_VAULT_CONFIG, abi.encode(sequencerFeeVaultConfig));
+        vm.stopPrank();
+
+        assertEq(sequencerFeeVault.RECIPIENT(), _recipient);
+        assertEq(sequencerFeeVault.recipient(), _recipient);
+        assertEq(sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), _amount);
+        assertEq(sequencerFeeVault.minWithdrawalAmount(), _amount);
+        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(_network));
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(_network));
+    }
 }
 
 contract SequencerFeeVault_L2Withdrawal_Test is CommonTest {
