@@ -17,7 +17,7 @@ contract Deployer825 {
     }
 
     function deploySuperchainERC20() public returns (address superchainERC20) {
-        superchainERC20 = address(new MedusaToken());
+        superchainERC20 = address(new SuperToken());
     }
 
     function deploySuperchainTokenBridge() public returns (address superchainTokenBridge) {

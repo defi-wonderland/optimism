@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import { IStdCheats } from "./interfaces/IStdCheats.sol";
 import { IDeployer815 } from "./interfaces/IDeployer815.sol";
 import { IDeployer825 } from "./interfaces/IDeployer825.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 // Interfaces 0.8.15
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
@@ -70,7 +69,12 @@ contract Setup {
     address immutable optimismPortal2Address = vm.addr(uint256(keccak256("OptimismPortal2")));
     address immutable optimismPortalInteropAddress = vm.addr(uint256(keccak256("OptimismPortalInterop")));
 
+    bytes internal proxyCode;
+
     constructor() {
+        // Deploy Proxy
+        proxyCode = deployer815.deployProxy(admin).code;
+
         // Deploy ETHLiquidity
         _setCode(
             Predeploys.ETH_LIQUIDITY, deployer815.deployETHLiquidity(), !Predeploys.notProxied(Predeploys.ETH_LIQUIDITY)
@@ -154,7 +158,7 @@ contract Setup {
         if (_implementation.code.length == 0) revert("Setup: Invalid implementation address");
 
         if (_isProxied) {
-            vm.etch(_target, type(ERC1967Proxy).runtimeCode);
+            vm.etch(_target, proxyCode);
             vm.store(_target, _IMPLEMENTATION_SLOT, bytes32(uint256(uint160(_implementation))));
             vm.store(_target, _ADMIN_SLOT, bytes32(uint256(uint160(admin))));
 
