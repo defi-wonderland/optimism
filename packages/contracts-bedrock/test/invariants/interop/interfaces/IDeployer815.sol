@@ -4,23 +4,16 @@ pragma solidity ^0.8.0;
 interface IDeployer815 {
     function deployETHLiquidity() external returns (address ethLiquidity);
 
-    function deployL1BlockInterop() external returns (address l1BlockInterop);
+    function deployL1Block() external returns (address l1Block);
 
     function deployLiquidityMigrator(address _sharedLockbox) external returns (address liquidityMigrator);
 
-    function deployOptimismPortal2(
+    function deployOptimismPortal(
         uint256 _proofMaturityDelaySeconds,
         uint256 _disputeGameFinalityDelaySeconds
     )
         external
-        returns (address optimismPortal2);
-
-    function deployOptimismPortalInterop(
-        uint256 _proofMaturityDelaySeconds,
-        uint256 _disputeGameFinalityDelaySeconds
-    )
-        external
-        returns (address optimismPortalInterop);
+        returns (address optimismPortal);
 
     function deployProxy(address _admin) external returns (address proxy);
 
@@ -30,5 +23,5 @@ interface IDeployer815 {
 
     function deploySuperchainWETH() external returns (address superchainWETH);
 
-    function deploySystemConfigInterop() external returns (address systemConfigInterop);
+    function deploySystemConfig() external returns (address systemConfig);
 }

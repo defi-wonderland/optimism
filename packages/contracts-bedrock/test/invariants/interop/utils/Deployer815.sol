@@ -5,7 +5,7 @@ pragma solidity 0.8.15;
 import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
 import { L1BlockInterop } from "src/L2/L1BlockInterop.sol";
 import { LiquidityMigrator } from "src/L1/LiquidityMigrator.sol";
-import { OptimismPortalMock as OptimismPortal2 } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
+import { OptimismPortalMock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
 import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { SharedLockbox } from "src/L1/SharedLockbox.sol";
@@ -18,7 +18,7 @@ contract Deployer815 {
         ethLiquidity = address(new ETHLiquidity());
     }
 
-    function deployL1BlockInterop() public returns (address l1BlockInterop) {
+    function deployL1Block() public returns (address l1BlockInterop) {
         l1BlockInterop = address(new L1BlockInterop());
     }
 
@@ -26,14 +26,14 @@ contract Deployer815 {
         liquidityMigrator = address(new LiquidityMigrator(_sharedLockbox));
     }
 
-    function deployOptimismPortal2(
+    function deployOptimismPortal(
         uint256 _proofMaturityDelaySeconds,
         uint256 _disputeGameFinalityDelaySeconds
     )
         public
         returns (address optimismPortal2)
     {
-        optimismPortal2 = address(new OptimismPortal2(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
+        optimismPortal2 = address(new OptimismPortalMock(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
     }
 
     function deployOptimismPortalInterop(
@@ -63,7 +63,7 @@ contract Deployer815 {
         superchainWETH = address(new SuperchainWETH());
     }
 
-    function deploySystemConfigInterop() public returns (address systemConfigInterop) {
+    function deploySystemConfig() public returns (address systemConfigInterop) {
         systemConfigInterop = address(new SystemConfigInterop());
     }
 }

@@ -10,7 +10,6 @@ import { IDeployer825 } from "./interfaces/IDeployer825.sol";
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
 import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 import { ILiquidityMigrator } from "interfaces/L1/ILiquidityMigrator.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
@@ -42,12 +41,11 @@ contract Setup {
     IETHLiquidity constant ethLiquidity = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
     IL1BlockInterop constant l1BlockInterop = IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES);
     ILiquidityMigrator immutable liquidityMigrator;
-    IOptimismPortal2 immutable optimismPortal2;
-    IOptimismPortalInterop immutable optimismPortalInterop;
+    IOptimismPortalInterop immutable optimismPortal;
     ISharedLockbox immutable sharedLockbox;
     ISuperchainConfig immutable superchainConfig;
     ISuperchainWETH constant superWeth = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
-    ISystemConfigInterop immutable systemConfigInterop;
+    ISystemConfigInterop immutable systemConfig;
 
     // Soldity 0.8.25 Contracts
     ICrossL2Inbox constant inbox = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
@@ -59,15 +57,15 @@ contract Setup {
     // Actors
     address immutable guardian = vm.addr(uint256(keccak256("Guardian")));
     address immutable upgrader = vm.addr(uint256(keccak256("Upgrader")));
+    // TODO: Deploy ProxyAdmin
     address immutable admin = vm.addr(uint256(keccak256("Admin")));
 
     // Predefined addresses
     address immutable sharedLockboxAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
     address immutable superchainConfigAddress = vm.addr(uint256(keccak256("SharedLockbox")));
     address immutable liquidityMigratorAddress = vm.addr(uint256(keccak256("LiquidityMigrator")));
-    address immutable systemConfigInteropAddress = vm.addr(uint256(keccak256("SystemConfigInterop")));
-    address immutable optimismPortal2Address = vm.addr(uint256(keccak256("OptimismPortal2")));
-    address immutable optimismPortalInteropAddress = vm.addr(uint256(keccak256("OptimismPortalInterop")));
+    address immutable systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
+    address immutable optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
 
     bytes internal proxyCode;
 
@@ -83,7 +81,7 @@ contract Setup {
         // Deploy L1BlockInterop
         _setCode(
             Predeploys.L1_BLOCK_ATTRIBUTES,
-            deployer815.deployL1BlockInterop(),
+            deployer815.deployL1Block(),
             !Predeploys.notProxied(Predeploys.L1_BLOCK_ATTRIBUTES)
         );
 
@@ -136,21 +134,21 @@ contract Setup {
         superchainConfig.initialize(guardian, upgrader, false);
 
         // Deploy SystemConfigInterop
-        _setCode(systemConfigInteropAddress, deployer815.deploySystemConfigInterop(), true);
-        systemConfigInterop = ISystemConfigInterop(systemConfigInteropAddress);
+        _setCode(systemConfigAddress, deployer815.deploySystemConfig(), true);
+        systemConfig = ISystemConfigInterop(systemConfigAddress);
 
         // These values are not important for the scope of this testing campaign
         (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (0, 0);
         // Deploy OptimismPortal2
         _setCode(
-            optimismPortal2Address,
-            deployer815.deployOptimismPortal2(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            optimismPortalAddress,
+            deployer815.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
             true
         );
-        optimismPortal2 = IOptimismPortal2(payable(optimismPortal2Address));
+        optimismPortal = IOptimismPortalInterop(payable(optimismPortalAddress));
 
         // Initialize OptimismPortal2
-        optimismPortal2.initialize(
+        optimismPortal.initialize(
             IDisputeGameFactory(address(0)), ISystemConfig(address(0)), superchainConfig, GameType.wrap(0)
         );
     }
