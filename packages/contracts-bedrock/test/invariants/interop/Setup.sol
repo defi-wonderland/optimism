@@ -29,127 +29,143 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-contract Setup {
-    IStdCheats constant vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
-    IDeployer815 constant deployer815 = IDeployer815(0x4200000000000000000000000000000000000815);
-    IDeployer825 constant deployer825 = IDeployer825(0x4200000000000000000000000000000000000825);
+import "forge-std/Test.sol";
+
+contract Setup is Test {
+    uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
+    IDeployer815 public DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815); // TODO: CONSTANT
+    IDeployer825 public DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825); // TODO: CONSTANT
+
+    // Solidity 0.8.15 Contracts
+    IETHLiquidity public constant ETH_LIQUIDITY = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
+    IL1BlockInterop public constant L1_BLOCK = IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES);
+    ISuperchainWETH public constant SUPER_WETH = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
+    IOptimismPortalInterop public immutable PORTAL;
+    ISharedLockbox public immutable SHARED_LOCKBOX;
+    ISuperchainConfig public immutable SUPERCHAIN_CONFIG;
+    ISystemConfigInterop public immutable SYSTEM_CONFIG;
+
+    // Soldity 0.8.25 Contracts
+    ICrossL2Inbox public constant CROSS_L2_INBOX = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
+    IL2ToL2CrossDomainMessenger public constant L2_TO_L2_MESSENGER =
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    ISuperchainTokenBridge public constant SUPERCHAIN_TOKEN_BRIDGE =
+        ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+    ISuperchainERC20 public immutable SUPER_TOKEN;
 
     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
-    // Solidity 0.8.15 Contracts
-    IETHLiquidity constant ethLiquidity = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
-    IL1BlockInterop constant l1BlockInterop = IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES);
-    ILiquidityMigrator immutable liquidityMigrator;
-    IOptimismPortalInterop immutable optimismPortal;
-    ISharedLockbox immutable sharedLockbox;
-    ISuperchainConfig immutable superchainConfig;
-    ISuperchainWETH constant superWeth = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
-    ISystemConfigInterop immutable systemConfig;
-
-    // Soldity 0.8.25 Contracts
-    ICrossL2Inbox constant inbox = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
-    IL2ToL2CrossDomainMessenger constant messenger =
-        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    ISuperchainERC20 immutable superToken;
-    ISuperchainTokenBridge constant tokenBridge = ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
-
     // Actors
-    address immutable guardian = vm.addr(uint256(keccak256("Guardian")));
-    address immutable upgrader = vm.addr(uint256(keccak256("Upgrader")));
+    address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
+    address public immutable dependencyManager = vm.addr(uint256(keccak256("DependencyManager")));
     // TODO: Deploy ProxyAdmin
-    address immutable admin = vm.addr(uint256(keccak256("Admin")));
+    address public immutable admin = vm.addr(uint256(keccak256("Admin")));
 
     // Predefined addresses
-    address immutable sharedLockboxAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
-    address immutable superchainConfigAddress = vm.addr(uint256(keccak256("SharedLockbox")));
-    address immutable liquidityMigratorAddress = vm.addr(uint256(keccak256("LiquidityMigrator")));
-    address immutable systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
-    address immutable optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
+    address public sharedLockboxAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
+    address public superchainConfigAddress = vm.addr(uint256(keccak256("SharedLockbox")));
+    address public systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
+    address public optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
+    address public liquidityMigrator = vm.addr(uint256(keccak256("LiquidityMigrator")));
 
-    bytes internal proxyCode;
+    // IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D); // TODO: Uncomment
+    address internal _disputeGameFactory = vm.addr(uint256(keccak256("DisputeGameFactory")));
+    bytes internal _proxyCode;
 
     constructor() {
+        vm.etch(0x4200000000000000000000000000000000000815, vm.getDeployedCode("Deployer815"));
+        vm.etch(0x4200000000000000000000000000000000000825, vm.getDeployedCode("Deployer825"));
+
         // Deploy Proxy
-        proxyCode = deployer815.deployProxy(admin).code;
+        _proxyCode = DEPLOYER_8_15.deployProxy(admin).code;
 
         // Deploy ETHLiquidity
         _setCode(
-            Predeploys.ETH_LIQUIDITY, deployer815.deployETHLiquidity(), !Predeploys.notProxied(Predeploys.ETH_LIQUIDITY)
+            Predeploys.ETH_LIQUIDITY,
+            DEPLOYER_8_15.deployETHLiquidity(),
+            !Predeploys.notProxied(Predeploys.ETH_LIQUIDITY)
         );
 
         // Deploy L1BlockInterop
         _setCode(
             Predeploys.L1_BLOCK_ATTRIBUTES,
-            deployer815.deployL1Block(),
+            DEPLOYER_8_15.deployL1Block(),
             !Predeploys.notProxied(Predeploys.L1_BLOCK_ATTRIBUTES)
         );
-
-        // Deploy LiquidityMigrator
-        _setCode(liquidityMigratorAddress, deployer815.deployLiquidityMigrator(sharedLockboxAddress), true);
-        liquidityMigrator = ILiquidityMigrator(liquidityMigratorAddress);
-
-        assert(address(liquidityMigrator.SHARED_LOCKBOX()) == sharedLockboxAddress);
 
         //  Deploy CrossL2Inbox
         _setCode(
             Predeploys.CROSS_L2_INBOX,
-            deployer825.deployCrossL2Inbox(),
+            DEPLOYER_8_25.deployCrossL2Inbox(),
             !Predeploys.notProxied(Predeploys.CROSS_L2_INBOX)
         );
 
         // Deploy L2ToL2CrossDomainMessenger
         _setCode(
             Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-            deployer825.deployL2ToL2CrossDomainMessenger(),
+            DEPLOYER_8_25.deployL2ToL2CrossDomainMessenger(),
             !Predeploys.notProxied(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         );
 
         // Deploy SuperchainTokenBridge
         _setCode(
             Predeploys.SUPERCHAIN_TOKEN_BRIDGE,
-            deployer825.deploySuperchainTokenBridge(),
+            DEPLOYER_8_25.deploySuperchainTokenBridge(),
             !Predeploys.notProxied(Predeploys.SUPERCHAIN_TOKEN_BRIDGE)
         );
 
         // Deploy SuperchainWETH
         _setCode(
             Predeploys.SUPERCHAIN_WETH,
-            deployer815.deploySuperchainWETH(),
+            DEPLOYER_8_15.deploySuperchainWETH(),
             !Predeploys.notProxied(Predeploys.SUPERCHAIN_WETH)
         );
 
         // Deploy SuperchainToken
-        superToken = ISuperchainERC20(deployer825.deploySuperchainERC20());
+        SUPER_TOKEN = ISuperchainERC20(DEPLOYER_8_25.deploySuperchainERC20());
 
         // Deploy SharedLockbox
-        _setCode(sharedLockboxAddress, deployer815.deploySharedLockbox(superchainConfigAddress), true);
-        sharedLockbox = ISharedLockbox(sharedLockboxAddress);
+        _setCode(sharedLockboxAddress, DEPLOYER_8_15.deploySharedLockbox(superchainConfigAddress), true);
+        SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
 
         // Deploy SuperchainConfig
-        _setCode(superchainConfigAddress, deployer815.deploySuperchainConfig(sharedLockboxAddress), true);
-        superchainConfig = ISuperchainConfig(superchainConfigAddress);
+        _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(sharedLockboxAddress), true);
+        SUPERCHAIN_CONFIG = ISuperchainConfig(superchainConfigAddress);
 
         // Initialize SuperchainConfig
-        superchainConfig.initialize(guardian, upgrader, false);
+        SUPERCHAIN_CONFIG.initialize(guardian, dependencyManager, false);
 
         // Deploy SystemConfigInterop
-        _setCode(systemConfigAddress, deployer815.deploySystemConfig(), true);
-        systemConfig = ISystemConfigInterop(systemConfigAddress);
+        _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
+        SYSTEM_CONFIG = ISystemConfigInterop(systemConfigAddress);
+
+        // TODO: Initialize SystemConfigInterop
+
+        // Deploy LiquidityMigrator on the OptimismPortal proxy address
+        _setCode(optimismPortalAddress, DEPLOYER_8_15.deployLiquidityMigrator(sharedLockboxAddress), true);
+
+        // TODO: Deal the ether to the portal address
+
+        // Migrate the liquidity
+        ILiquidityMigrator(optimismPortalAddress).migrateETH();
 
         // These values are not important for the scope of this testing campaign
-        (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (0, 0);
+        (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
         // Deploy OptimismPortal2
         _setCode(
             optimismPortalAddress,
-            deployer815.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            DEPLOYER_8_15.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
             true
         );
-        optimismPortal = IOptimismPortalInterop(payable(optimismPortalAddress));
+        PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
 
-        // Initialize OptimismPortal2
-        optimismPortal.initialize(
-            IDisputeGameFactory(address(0)), ISystemConfig(address(0)), superchainConfig, GameType.wrap(0)
+        // Initialize OptimismPortal
+        PORTAL.initialize(
+            IDisputeGameFactory(_disputeGameFactory),
+            ISystemConfig(address(SYSTEM_CONFIG)),
+            SUPERCHAIN_CONFIG,
+            GameType.wrap(0)
         );
     }
 
@@ -158,7 +174,7 @@ contract Setup {
         if (_implementation.code.length == 0) revert("Setup: Invalid implementation address");
 
         if (_isProxied) {
-            vm.etch(_target, proxyCode);
+            vm.etch(_target, _proxyCode);
             vm.store(_target, _IMPLEMENTATION_SLOT, bytes32(uint256(uint160(_implementation))));
             vm.store(_target, _ADMIN_SLOT, bytes32(uint256(uint160(admin))));
 
