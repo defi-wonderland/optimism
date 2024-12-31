@@ -43,6 +43,9 @@ abstract contract FeeVault {
     receive() external payable { }
 
     /// @notice Returns the configuration of the FeeVault.
+    /// @return recipient_ Account that will receive the fees.
+    /// @return minWithdrawalAmount_ Minimum balance before a withdrawal can be triggered.
+    /// @return withdrawalNetwork_ Network which the recipient will receive fees on.
     function config()
         public
         view
