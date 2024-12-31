@@ -14,7 +14,6 @@ import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
-import { ISystemConfigInterop } from "interfaces/L1/ISystemConfigInterop.sol";
 
 // Interfaces 0.8.25
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
@@ -29,12 +28,12 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-import "forge-std/Test.sol";
+contract Setup {
+    IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
-contract Setup is Test {
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
-    IDeployer815 public DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815); // TODO: CONSTANT
-    IDeployer825 public DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825); // TODO: CONSTANT
+    IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
+    IDeployer825 public constant DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825);
 
     // Solidity 0.8.15 Contracts
     IETHLiquidity public constant ETH_LIQUIDITY = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
@@ -43,7 +42,7 @@ contract Setup is Test {
     IOptimismPortalInterop public immutable PORTAL;
     ISharedLockbox public immutable SHARED_LOCKBOX;
     ISuperchainConfig public immutable SUPERCHAIN_CONFIG;
-    ISystemConfigInterop public immutable SYSTEM_CONFIG;
+    ISystemConfig public immutable SYSTEM_CONFIG;
 
     // Soldity 0.8.25 Contracts
     ICrossL2Inbox public constant CROSS_L2_INBOX = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
@@ -69,14 +68,10 @@ contract Setup is Test {
     address public optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
     address public liquidityMigrator = vm.addr(uint256(keccak256("LiquidityMigrator")));
 
-    // IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D); // TODO: Uncomment
     address internal _disputeGameFactory = vm.addr(uint256(keccak256("DisputeGameFactory")));
     bytes internal _proxyCode;
 
     constructor() {
-        vm.etch(0x4200000000000000000000000000000000000815, vm.getDeployedCode("Deployer815"));
-        vm.etch(0x4200000000000000000000000000000000000825, vm.getDeployedCode("Deployer825"));
-
         // Deploy Proxy
         _proxyCode = DEPLOYER_8_15.deployProxy(admin).code;
 
@@ -134,7 +129,7 @@ contract Setup is Test {
 
         // Deploy SystemConfigInterop
         _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
-        SYSTEM_CONFIG = ISystemConfigInterop(systemConfigAddress);
+        SYSTEM_CONFIG = ISystemConfig(systemConfigAddress);
 
         // TODO: Initialize SystemConfigInterop
 
@@ -144,12 +139,16 @@ contract Setup is Test {
 
         // Authorize the portal proxy address on the shared lockbox
         vm.prank(address(SUPERCHAIN_CONFIG));
-        SHARED_LOCKBOX.authorizePortal(optimismPortalAddress);
+        /// NOTE: Medusa crashes when calling `SHARED_LOCKBOX#authorizePortal` - that's why the low-level call is used
+        (bool success,) =
+            sharedLockboxAddress.call(abi.encodeCall(ISharedLockbox.authorizePortal, (optimismPortalAddress)));
+        if (!success) revert("Setup: Failed to authorize portal");
 
         // Deploy LiquidityMigrator on the OptimismPortal proxy address
         _setCode(optimismPortalAddress, DEPLOYER_8_15.deployLiquidityMigrator(sharedLockboxAddress), true);
 
-        // TODO: Deal the ether to the portal address
+        // Deal the initial ether to the portal address
+        vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
 
         // Migrate the liquidity
         ILiquidityMigrator(optimismPortalAddress).migrateETH();
@@ -164,10 +163,12 @@ contract Setup is Test {
         );
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
 
+        // TODO: Reset Portal initialized state?
+
         // Initialize OptimismPortal
         PORTAL.initialize(
             IDisputeGameFactory(_disputeGameFactory),
-            ISystemConfig(address(SYSTEM_CONFIG)),
+            ISystemConfig(address(SYSTEM_CONFIG)), // NOTE: doesn't work, nor with the address
             SUPERCHAIN_CONFIG,
             GameType.wrap(0)
         );

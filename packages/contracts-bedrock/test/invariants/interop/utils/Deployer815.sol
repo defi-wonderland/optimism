@@ -14,16 +14,16 @@ import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import { SystemConfigInterop } from "src/L1/SystemConfigInterop.sol";
 
 contract Deployer815 {
-    function deployETHLiquidity() public returns (address ethLiquidity) {
-        ethLiquidity = address(new ETHLiquidity());
+    function deployETHLiquidity() public returns (address _ethLiquidity) {
+        _ethLiquidity = address(new ETHLiquidity());
     }
 
-    function deployL1Block() public returns (address l1BlockInterop) {
-        l1BlockInterop = address(new L1BlockInterop());
+    function deployL1Block() public returns (address _l1Block) {
+        _l1Block = address(new L1BlockInterop());
     }
 
-    function deployLiquidityMigrator(address _sharedLockbox) public returns (address liquidityMigrator) {
-        liquidityMigrator = address(new LiquidityMigrator(_sharedLockbox));
+    function deployLiquidityMigrator(address _sharedLockbox) public returns (address _liquidityMigrator) {
+        _liquidityMigrator = address(new LiquidityMigrator(_sharedLockbox));
     }
 
     function deployOptimismPortal(
@@ -31,39 +31,28 @@ contract Deployer815 {
         uint256 _disputeGameFinalityDelaySeconds
     )
         public
-        returns (address optimismPortal2)
+        returns (address _optimismPortal)
     {
-        optimismPortal2 = address(new OptimismPortalMock(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
-    }
-
-    function deployOptimismPortalInterop(
-        uint256 _proofMaturityDelaySeconds,
-        uint256 _disputeGameFinalityDelaySeconds
-    )
-        public
-        returns (address optimismPortalInterop)
-    {
-        optimismPortalInterop =
-            address(new OptimismPortalInterop(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
+        _optimismPortal = address(new OptimismPortalMock(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
     }
 
     function deployProxy(address _admin) public returns (address proxy) {
         proxy = address(new Proxy(_admin));
     }
 
-    function deploySharedLockbox(address _superchainConfig) public returns (address sharedLockbox) {
-        sharedLockbox = address(new SharedLockbox(_superchainConfig));
+    function deploySharedLockbox(address _superchainConfig) public returns (address _sharedLockbox) {
+        _sharedLockbox = address(new SharedLockbox(_superchainConfig));
     }
 
-    function deploySuperchainConfig(address _sharedLockbox) public returns (address superchainConfig) {
-        superchainConfig = address(new SuperchainConfig(_sharedLockbox));
+    function deploySuperchainConfig(address _sharedLockbox) public returns (address _superchainConfig) {
+        _superchainConfig = address(new SuperchainConfig(_sharedLockbox));
     }
 
-    function deploySuperchainWETH() public returns (address superchainWETH) {
-        superchainWETH = address(new SuperchainWETH());
+    function deploySuperchainWETH() public returns (address _superchainWETH) {
+        _superchainWETH = address(new SuperchainWETH());
     }
 
-    function deploySystemConfig() public returns (address systemConfigInterop) {
-        systemConfigInterop = address(new SystemConfigInterop());
+    function deploySystemConfig() public returns (address _systemConfig) {
+        _systemConfig = address(new SystemConfigInterop());
     }
 }
