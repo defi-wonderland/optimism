@@ -29,8 +29,8 @@ contract L1FeeVault is FeeVault, ISemver {
         override
         returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_)
     {
-        bytes memory _config = L1_BLOCK().getConfig(ConfigType.L1_FEE_VAULT_CONFIG);
+        bytes memory vaultConfig = L1_BLOCK().getConfig(ConfigType.L1_FEE_VAULT_CONFIG);
         (recipient_, minWithdrawalAmount_, withdrawalNetwork_) =
-            Encoding.decodeFeeVaultConfig(abi.decode(_config, (bytes32)));
+            Encoding.decodeFeeVaultConfig(abi.decode(vaultConfig, (bytes32)));
     }
 }
