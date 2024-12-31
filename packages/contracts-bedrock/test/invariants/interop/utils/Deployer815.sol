@@ -7,6 +7,7 @@ import { L1BlockInterop } from "src/L2/L1BlockInterop.sol";
 import { LiquidityMigrator } from "src/L1/LiquidityMigrator.sol";
 import { OptimismPortalMock as OptimismPortal2 } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
 import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
+import { Proxy } from "src/universal/Proxy.sol";
 import { SharedLockbox } from "src/L1/SharedLockbox.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
@@ -33,6 +34,21 @@ contract Deployer815 {
         returns (address optimismPortal2)
     {
         optimismPortal2 = address(new OptimismPortal2(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
+    }
+
+    function deployOptimismPortalInterop(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        public
+        returns (address optimismPortalInterop)
+    {
+        optimismPortalInterop =
+            address(new OptimismPortalInterop(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
+    }
+
+    function deployProxy(address _admin) public returns (address proxy) {
+        proxy = address(new Proxy(_admin));
     }
 
     function deploySharedLockbox(address _superchainConfig) public returns (address sharedLockbox) {

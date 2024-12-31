@@ -22,6 +22,8 @@ interface IDeployer815 {
         external
         returns (address optimismPortalInterop);
 
+    function deployProxy(address _admin) external returns (address proxy);
+
     function deploySharedLockbox(address _superchainConfig) external returns (address sharedLockbox);
 
     function deploySuperchainConfig(address _sharedLockbox) external returns (address superchainConfig);
