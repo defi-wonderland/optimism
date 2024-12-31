@@ -125,10 +125,6 @@ contract Setup is Test {
         // Deploy SuperchainToken
         SUPER_TOKEN = ISuperchainERC20(DEPLOYER_8_25.deploySuperchainERC20());
 
-        // Deploy SharedLockbox
-        _setCode(sharedLockboxAddress, DEPLOYER_8_15.deploySharedLockbox(superchainConfigAddress), true);
-        SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
-
         // Deploy SuperchainConfig
         _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(sharedLockboxAddress), true);
         SUPERCHAIN_CONFIG = ISuperchainConfig(superchainConfigAddress);
@@ -141,6 +137,14 @@ contract Setup is Test {
         SYSTEM_CONFIG = ISystemConfigInterop(systemConfigAddress);
 
         // TODO: Initialize SystemConfigInterop
+
+        // Deploy SharedLockbox
+        _setCode(sharedLockboxAddress, DEPLOYER_8_15.deploySharedLockbox(superchainConfigAddress), true);
+        SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
+
+        // Authorize the portal proxy address on the shared lockbox
+        vm.prank(address(SUPERCHAIN_CONFIG));
+        SHARED_LOCKBOX.authorizePortal(optimismPortalAddress);
 
         // Deploy LiquidityMigrator on the OptimismPortal proxy address
         _setCode(optimismPortalAddress, DEPLOYER_8_15.deployLiquidityMigrator(sharedLockboxAddress), true);
