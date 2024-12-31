@@ -135,18 +135,20 @@ contract Setup {
         _setCode(systemConfigInteropAddress, deployer815.deploySystemConfigInterop(), true);
         systemConfigInterop = ISystemConfigInterop(systemConfigInteropAddress);
 
+        // These values are not important for the scope of this testing campaign
+        (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (0, 0);
         // Deploy OptimismPortal2
-        _setCode(optimismPortal2Address, deployer815.deployOptimismPortal2(0, 0), true); // TODO: Set the correct values
+        _setCode(
+            optimismPortal2Address,
+            deployer815.deployOptimismPortal2(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            true
+        );
         optimismPortal2 = IOptimismPortal2(payable(optimismPortal2Address));
 
         // Initialize OptimismPortal2
         optimismPortal2.initialize(
             IDisputeGameFactory(address(0)), ISystemConfig(address(0)), superchainConfig, GameType.wrap(0)
         );
-
-        // Deploy OptimismPortalInterop
-        _setCode(optimismPortalInteropAddress, deployer815.deployOptimismPortalInterop(0, 0), true);
-        optimismPortalInterop = IOptimismPortalInterop(payable(optimismPortalInteropAddress));
     }
 
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
