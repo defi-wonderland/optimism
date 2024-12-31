@@ -67,17 +67,26 @@ abstract contract FeeVault {
         (,, network_) = config();
     }
 
-    /// @notice Alias for minWithdrawalAmount().
+    /// @notice Minimum balance before a withdrawal can be triggered.
+    ///         Use the `minWithdrawalAmount()` getter as this is deprecated
+    ///         and is subject to be removed in the future.
+    /// @custom:legacy
     function MIN_WITHDRAWAL_AMOUNT() external view returns (uint256) {
         return minWithdrawalAmount();
     }
 
-    /// @notice Alias for recipient().
+    /// @notice Account that will receive the fees. Can be located on L1 or L2.
+    ///         Use the `recipient()` getter as this is deprecated
+    ///         and is subject to be removed in the future.
+    /// @custom:legacy
     function RECIPIENT() external view returns (address) {
         return recipient();
     }
 
-    /// @notice Alias for withdrawalNetwork().
+    /// @notice Network which the recipient will receive fees on.
+    ///         Use the `withdrawalNetwork()` getter as this is deprecated
+    ///         and is subject to be removed in the future.
+    /// @custom:legacy
     function WITHDRAWAL_NETWORK() external view returns (Types.WithdrawalNetwork) {
         return withdrawalNetwork();
     }
