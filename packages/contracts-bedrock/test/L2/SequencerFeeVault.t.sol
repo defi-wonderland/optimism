@@ -7,7 +7,6 @@ import { Reverter } from "test/mocks/Callers.sol";
 
 // Contracts
 import { Constants } from "src/libraries/Constants.sol";
-import { ConfigType } from "interfaces/L2/IL1Block.sol";
 
 // Libraries
 import { Hashing } from "src/libraries/Hashing.sol";
@@ -106,7 +105,7 @@ contract SequencerFeeVault_Test is CommonTest {
         bytes32 sequencerFeeVaultConfig = Encoding.encodeFeeVaultConfig(_recipient, _amount, _network);
 
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(ConfigType.SEQUENCER_FEE_VAULT_CONFIG, abi.encode(sequencerFeeVaultConfig));
+        l1Block.setConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG, abi.encode(sequencerFeeVaultConfig));
         vm.stopPrank();
 
         assertEq(sequencerFeeVault.RECIPIENT(), _recipient);
@@ -131,7 +130,7 @@ contract SequencerFeeVault_L2Withdrawal_Test is CommonTest {
         // Alter the L1Block to use WithdrawalNetwork.L2
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
         l1Block.setConfig(
-            ConfigType.SEQUENCER_FEE_VAULT_CONFIG,
+            Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG,
             abi.encode(Encoding.encodeFeeVaultConfig(recipient, 1, Types.WithdrawalNetwork.L2))
         );
     }

@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-enum ConfigType {
-    SET_GAS_PAYING_TOKEN,
-    BASE_FEE_VAULT_CONFIG,
-    L1_FEE_VAULT_CONFIG,
-    SEQUENCER_FEE_VAULT_CONFIG,
-    ADD_DEPENDENCY,
-    REMOVE_DEPENDENCY
-}
+import { Types } from "src/libraries/Types.sol";
 
 interface IL1BlockInterop {
     error AlreadyDependency();
@@ -41,8 +34,8 @@ interface IL1BlockInterop {
     function l1FeeScalar() external view returns (uint256);
     function number() external view returns (uint64);
     function sequenceNumber() external view returns (uint64);
-    function setConfig(ConfigType _type, bytes memory _value) external;
-    function getConfig(ConfigType _type) external view returns (bytes memory config_);
+    function setConfig(Types.ConfigType _type, bytes memory _value) external;
+    function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
     function setGasPayingToken(address _token, uint8 _decimals, bytes32 _name, bytes32 _symbol) external;
     function setL1BlockValues(
         uint64 _number,

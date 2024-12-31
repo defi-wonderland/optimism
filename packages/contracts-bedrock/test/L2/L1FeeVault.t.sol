@@ -6,7 +6,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
-import { ConfigType } from "interfaces/L2/IL1Block.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
@@ -28,7 +27,7 @@ contract FeeVault_Test is CommonTest {
         bytes32 l1FeeVaultConfig = Encoding.encodeFeeVaultConfig(_recipient, _amount, _network);
 
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(ConfigType.L1_FEE_VAULT_CONFIG, abi.encode(l1FeeVaultConfig));
+        l1Block.setConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG, abi.encode(l1FeeVaultConfig));
         vm.stopPrank();
 
         assertEq(l1FeeVault.RECIPIENT(), _recipient);

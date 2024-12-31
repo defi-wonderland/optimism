@@ -9,7 +9,6 @@ import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 
 // Interfaces
-import { ConfigType } from "interfaces/L2/IL1Block.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:proxied true
@@ -36,7 +35,7 @@ contract SequencerFeeVault is FeeVault, ISemver {
         override
         returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_)
     {
-        bytes memory vaultConfig = L1_BLOCK().getConfig(ConfigType.SEQUENCER_FEE_VAULT_CONFIG);
+        bytes memory vaultConfig = L1_BLOCK().getConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG);
         (recipient_, minWithdrawalAmount_, withdrawalNetwork_) =
             Encoding.decodeFeeVaultConfig(abi.decode(vaultConfig, (bytes32)));
     }

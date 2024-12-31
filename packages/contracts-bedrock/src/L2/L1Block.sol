@@ -7,26 +7,10 @@ import { GasPayingToken, IGasToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 import { NotDepositor } from "src/libraries/L1BlockErrors.sol";
 import { Storage } from "src/libraries/Storage.sol";
+import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-
-/// @notice Enum representing different types of configurations that can be set on L1BlockInterop.
-/// @custom:value SET_GAS_PAYING_TOKEN  Represents the config type for setting the gas paying token.
-/// @custom:value BASE_FEE_VAULT_CONFIG Represents the config type for setting the base fee vault configuration.
-/// @custom:value L1_FEE_VAULT_CONFIG  Represents the config type for setting the L1 fee vault configuration.
-/// @custom:value SEQUENCER_FEE_VAULT_CONFIG Represents the config type for setting the sequencer fee vault
-///               configuration.
-/// @custom:value ADD_DEPENDENCY        Represents the config type for adding a chain to the interop dependency set.
-/// @custom:value REMOVE_DEPENDENCY     Represents the config type for removing a chain from the interop dependency set.
-enum ConfigType {
-    SET_GAS_PAYING_TOKEN,
-    BASE_FEE_VAULT_CONFIG,
-    L1_FEE_VAULT_CONFIG,
-    SEQUENCER_FEE_VAULT_CONFIG,
-    ADD_DEPENDENCY,
-    REMOVE_DEPENDENCY
-}
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000015
@@ -213,17 +197,17 @@ contract L1Block is ISemver, IGasToken {
     ///         depositor account.
     /// @param _type  The type of configuration to set.
     /// @param _value The encoded value with which to set the configuration.
-    function setConfig(ConfigType _type, bytes calldata _value) public virtual {
+    function setConfig(Types.ConfigType _type, bytes calldata _value) public virtual {
         if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
 
-        if (_type == ConfigType.SET_GAS_PAYING_TOKEN) {
+        if (_type == Types.ConfigType.SET_GAS_PAYING_TOKEN) {
             (address token, uint8 decimals, bytes32 name, bytes32 symbol) = StaticConfig.decodeSetGasPayingToken(_value);
             _setGasPayingToken(token, decimals, name, symbol);
-        } else if (_type == ConfigType.BASE_FEE_VAULT_CONFIG) {
+        } else if (_type == Types.ConfigType.BASE_FEE_VAULT_CONFIG) {
             Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
-        } else if (_type == ConfigType.SEQUENCER_FEE_VAULT_CONFIG) {
+        } else if (_type == Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG) {
             Storage.setBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
-        } else if (_type == ConfigType.L1_FEE_VAULT_CONFIG) {
+        } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
         }
     }
@@ -231,12 +215,12 @@ contract L1Block is ISemver, IGasToken {
     /// @notice Returns the configuration for the given config type.
     /// @param _type The type of configuration to return.
     /// @return config_ The encoded configuration value.
-    function getConfig(ConfigType _type) external view returns (bytes memory config_) {
-        if (_type == ConfigType.BASE_FEE_VAULT_CONFIG) {
+    function getConfig(Types.ConfigType _type) external view returns (bytes memory config_) {
+        if (_type == Types.ConfigType.BASE_FEE_VAULT_CONFIG) {
             config_ = abi.encode(Storage.getBytes32(BASE_FEE_VAULT_CONFIG_SLOT));
-        } else if (_type == ConfigType.SEQUENCER_FEE_VAULT_CONFIG) {
+        } else if (_type == Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG) {
             config_ = abi.encode(Storage.getBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT));
-        } else if (_type == ConfigType.L1_FEE_VAULT_CONFIG) {
+        } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             config_ = abi.encode(Storage.getBytes32(L1_FEE_VAULT_CONFIG_SLOT));
         }
     }

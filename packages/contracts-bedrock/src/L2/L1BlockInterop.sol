@@ -2,9 +2,10 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { L1Block, ConfigType } from "src/L2/L1Block.sol";
+import { L1Block } from "src/L2/L1Block.sol";
 
 // Libraries
+import { Types } from "src/libraries/Types.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -93,12 +94,12 @@ contract L1BlockInterop is L1Block {
     ///         depositor account.
     /// @param _type  The type of configuration to set.
     /// @param _value The encoded value with which to set the configuration.
-    function setConfig(ConfigType _type, bytes calldata _value) public override {
+    function setConfig(Types.ConfigType _type, bytes calldata _value) public override {
         if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
 
-        if (_type == ConfigType.ADD_DEPENDENCY) {
+        if (_type == Types.ConfigType.ADD_DEPENDENCY) {
             _addDependency(_value);
-        } else if (_type == ConfigType.REMOVE_DEPENDENCY) {
+        } else if (_type == Types.ConfigType.REMOVE_DEPENDENCY) {
             _removeDependency(_value);
         } else {
             L1Block.setConfig(_type, _value);

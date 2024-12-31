@@ -5,12 +5,13 @@ pragma solidity 0.8.15;
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
+import { Types } from "src/libraries/Types.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import "src/libraries/PortalErrors.sol";
 
 // Interfaces
-import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 
 contract OptimismPortalInterop_Test is CommonTest {
@@ -31,17 +32,17 @@ contract OptimismPortalInterop_Test is CommonTest {
             _mint: 0,
             _gasLimit: 200_000,
             _isCreation: false,
-            _data: abi.encodeCall(IL1BlockInterop.setConfig, (ConfigType.SET_GAS_PAYING_TOKEN, _value))
+            _data: abi.encodeCall(IL1BlockInterop.setConfig, (Types.ConfigType.SET_GAS_PAYING_TOKEN, _value))
         });
 
         vm.prank(address(_optimismPortalInterop().systemConfig()));
-        _optimismPortalInterop().setConfig(ConfigType.SET_GAS_PAYING_TOKEN, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.SET_GAS_PAYING_TOKEN, _value);
     }
 
     /// @dev Tests that setting the gas paying token config as not the system config reverts.
     function testFuzz_setConfig_gasPayingTokenButNotSystemConfig_reverts(bytes calldata _value) public {
         vm.expectRevert(Unauthorized.selector);
-        _optimismPortalInterop().setConfig(ConfigType.SET_GAS_PAYING_TOKEN, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.SET_GAS_PAYING_TOKEN, _value);
     }
 
     /// @dev Tests that the config for adding a dependency can be set.
@@ -54,17 +55,17 @@ contract OptimismPortalInterop_Test is CommonTest {
             _mint: 0,
             _gasLimit: 200_000,
             _isCreation: false,
-            _data: abi.encodeCall(IL1BlockInterop.setConfig, (ConfigType.ADD_DEPENDENCY, _value))
+            _data: abi.encodeCall(IL1BlockInterop.setConfig, (Types.ConfigType.ADD_DEPENDENCY, _value))
         });
 
         vm.prank(address(_optimismPortalInterop().systemConfig()));
-        _optimismPortalInterop().setConfig(ConfigType.ADD_DEPENDENCY, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.ADD_DEPENDENCY, _value);
     }
 
     /// @dev Tests that setting the add dependency config as not the system config reverts.
     function testFuzz_setConfig_addDependencyButNotSystemConfig_reverts(bytes calldata _value) public {
         vm.expectRevert(Unauthorized.selector);
-        _optimismPortalInterop().setConfig(ConfigType.ADD_DEPENDENCY, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.ADD_DEPENDENCY, _value);
     }
 
     /// @dev Tests that the config for removing a dependency can be set.
@@ -77,17 +78,17 @@ contract OptimismPortalInterop_Test is CommonTest {
             _mint: 0,
             _gasLimit: 200_000,
             _isCreation: false,
-            _data: abi.encodeCall(IL1BlockInterop.setConfig, (ConfigType.REMOVE_DEPENDENCY, _value))
+            _data: abi.encodeCall(IL1BlockInterop.setConfig, (Types.ConfigType.REMOVE_DEPENDENCY, _value))
         });
 
         vm.prank(address(_optimismPortalInterop().systemConfig()));
-        _optimismPortalInterop().setConfig(ConfigType.REMOVE_DEPENDENCY, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.REMOVE_DEPENDENCY, _value);
     }
 
     /// @dev Tests that setting the remove dependency config as not the system config reverts.
     function testFuzz_setConfig_removeDependencyButNotSystemConfig_reverts(bytes calldata _value) public {
         vm.expectRevert(Unauthorized.selector);
-        _optimismPortalInterop().setConfig(ConfigType.REMOVE_DEPENDENCY, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.REMOVE_DEPENDENCY, _value);
     }
 
     /// @dev Returns the OptimismPortalInterop instance.

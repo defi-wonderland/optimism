@@ -16,7 +16,7 @@ import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISystemConfigInterop } from "interfaces/L1/ISystemConfigInterop.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
-import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { Types } from "src/libraries/Types.sol";
 
 contract SystemConfigInterop_Test is CommonTest {
     /// @notice Marked virtual to be overridden in
@@ -72,7 +72,7 @@ contract SystemConfigInterop_Test is CommonTest {
             abi.encodeCall(
                 IOptimismPortalInterop.setConfig,
                 (
-                    ConfigType.SET_GAS_PAYING_TOKEN,
+                    Types.ConfigType.SET_GAS_PAYING_TOKEN,
                     StaticConfig.encodeSetGasPayingToken({
                         _token: _token,
                         _decimals: 18,
@@ -92,7 +92,7 @@ contract SystemConfigInterop_Test is CommonTest {
             address(optimismPortal2),
             abi.encodeCall(
                 IOptimismPortalInterop.setConfig,
-                (ConfigType.ADD_DEPENDENCY, StaticConfig.encodeAddDependency(_chainId))
+                (Types.ConfigType.ADD_DEPENDENCY, StaticConfig.encodeAddDependency(_chainId))
             )
         );
 
@@ -114,7 +114,7 @@ contract SystemConfigInterop_Test is CommonTest {
             address(optimismPortal2),
             abi.encodeCall(
                 IOptimismPortalInterop.setConfig,
-                (ConfigType.REMOVE_DEPENDENCY, StaticConfig.encodeRemoveDependency(_chainId))
+                (Types.ConfigType.REMOVE_DEPENDENCY, StaticConfig.encodeRemoveDependency(_chainId))
             )
         );
 

@@ -45,7 +45,7 @@ import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
-import { IL1Block, ConfigType } from "interfaces/L2/IL1Block.sol";
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
 import { IWETH98 } from "interfaces/universal/IWETH98.sol";
@@ -320,21 +320,21 @@ contract Setup {
             _amount: deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount(),
             _network: Types.WithdrawalNetwork(deploy.cfg().sequencerFeeVaultWithdrawalNetwork())
         });
-        l1Block.setConfig(ConfigType.SEQUENCER_FEE_VAULT_CONFIG, abi.encode(sequencerFeeVaultConfig));
+        l1Block.setConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG, abi.encode(sequencerFeeVaultConfig));
 
         bytes32 baseFeeVaultConfig = Encoding.encodeFeeVaultConfig({
             _recipient: deploy.cfg().baseFeeVaultRecipient(),
             _amount: deploy.cfg().baseFeeVaultMinimumWithdrawalAmount(),
             _network: Types.WithdrawalNetwork(deploy.cfg().baseFeeVaultWithdrawalNetwork())
         });
-        l1Block.setConfig(ConfigType.BASE_FEE_VAULT_CONFIG, abi.encode(baseFeeVaultConfig));
+        l1Block.setConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG, abi.encode(baseFeeVaultConfig));
 
         bytes32 l1FeeVaultConfig = Encoding.encodeFeeVaultConfig({
             _recipient: deploy.cfg().l1FeeVaultRecipient(),
             _amount: deploy.cfg().l1FeeVaultMinimumWithdrawalAmount(),
             _network: Types.WithdrawalNetwork(deploy.cfg().l1FeeVaultWithdrawalNetwork())
         });
-        l1Block.setConfig(ConfigType.L1_FEE_VAULT_CONFIG, abi.encode(l1FeeVaultConfig));
+        l1Block.setConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG, abi.encode(l1FeeVaultConfig));
         vm.stopPrank();
 
         console.log("Setup: completed L2 genesis");

@@ -6,6 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 
 // Libraries
+import { Types } from "src/libraries/Types.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
@@ -14,7 +15,6 @@ import { Storage } from "src/libraries/Storage.sol";
 // Interfaces
 import { IOptimismPortalInterop as IOptimismPortal } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @custom:proxied true
 /// @title SystemConfigInterop
@@ -91,7 +91,7 @@ contract SystemConfigInterop is SystemConfig {
             // Set the gas paying token in storage and in the OptimismPortal.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
             IOptimismPortal(payable(optimismPortal())).setConfig(
-                ConfigType.SET_GAS_PAYING_TOKEN,
+                Types.ConfigType.SET_GAS_PAYING_TOKEN,
                 StaticConfig.encodeSetGasPayingToken({
                     _token: _token,
                     _decimals: GAS_PAYING_TOKEN_DECIMALS,
@@ -107,7 +107,7 @@ contract SystemConfigInterop is SystemConfig {
     function addDependency(uint256 _chainId) external {
         require(msg.sender == dependencyManager(), "SystemConfig: caller is not the dependency manager");
         IOptimismPortal(payable(optimismPortal())).setConfig(
-            ConfigType.ADD_DEPENDENCY, StaticConfig.encodeAddDependency(_chainId)
+            Types.ConfigType.ADD_DEPENDENCY, StaticConfig.encodeAddDependency(_chainId)
         );
     }
 
@@ -116,7 +116,7 @@ contract SystemConfigInterop is SystemConfig {
     function removeDependency(uint256 _chainId) external {
         require(msg.sender == dependencyManager(), "SystemConfig: caller is not the dependency manager");
         IOptimismPortal(payable(optimismPortal())).setConfig(
-            ConfigType.REMOVE_DEPENDENCY, StaticConfig.encodeRemoveDependency(_chainId)
+            Types.ConfigType.REMOVE_DEPENDENCY, StaticConfig.encodeRemoveDependency(_chainId)
         );
     }
 

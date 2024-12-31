@@ -9,7 +9,7 @@ import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 
 // Interfaces
-import { ConfigType } from "interfaces/L2/IL1Block.sol";
+import { Types } from "src/libraries/Types.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:proxied true
@@ -29,7 +29,7 @@ contract BaseFeeVault is FeeVault, ISemver {
         override
         returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_)
     {
-        bytes memory vaultConfig = L1_BLOCK().getConfig(ConfigType.BASE_FEE_VAULT_CONFIG);
+        bytes memory vaultConfig = L1_BLOCK().getConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG);
         (recipient_, minWithdrawalAmount_, withdrawalNetwork_) =
             Encoding.decodeFeeVaultConfig(abi.decode(vaultConfig, (bytes32)));
     }
