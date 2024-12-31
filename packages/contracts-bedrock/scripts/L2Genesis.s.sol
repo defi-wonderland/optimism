@@ -339,20 +339,7 @@ contract L2Genesis is Deployer {
 
     /// @notice This predeploy is following the safety invariant #2,
     function setSequencerFeeVault() public {
-        ISequencerFeeVault vault = ISequencerFeeVault(
-            DeployUtils.create1(
-                "SequencerFeeVault",
-                DeployUtils.encodeConstructor(abi.encodeCall(ISequencerFeeVault.__constructor__, ()))
-            )
-        );
-
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.SEQUENCER_FEE_WALLET);
-        console.log("Setting %s implementation at: %s", "SequencerFeeVault", impl);
-        vm.etch(impl, address(vault).code);
-
-        /// Reset so its not included state dump
-        vm.etch(address(vault), "");
-        vm.resetNonce(address(vault));
+        _setImplementationCode(Predeploys.SEQUENCER_FEE_WALLET);
     }
 
     /// @notice This predeploy is following the safety invariant #1.
@@ -432,36 +419,12 @@ contract L2Genesis is Deployer {
 
     /// @notice This predeploy is following the safety invariant #2.
     function setBaseFeeVault() public {
-        IBaseFeeVault vault = IBaseFeeVault(
-            DeployUtils.create1(
-                "BaseFeeVault", DeployUtils.encodeConstructor(abi.encodeCall(IBaseFeeVault.__constructor__, ()))
-            )
-        );
-
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.BASE_FEE_VAULT);
-        console.log("Setting %s implementation at: %s", "BaseFeeVault", impl);
-        vm.etch(impl, address(vault).code);
-
-        /// Reset so its not included state dump
-        vm.etch(address(vault), "");
-        vm.resetNonce(address(vault));
+        _setImplementationCode(Predeploys.BASE_FEE_VAULT);
     }
 
     /// @notice This predeploy is following the safety invariant #2.
     function setL1FeeVault() public {
-        IL1FeeVault vault = IL1FeeVault(
-            DeployUtils.create1(
-                "L1FeeVault", DeployUtils.encodeConstructor(abi.encodeCall(IL1FeeVault.__constructor__, ()))
-            )
-        );
-
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_FEE_VAULT);
-        console.log("Setting %s implementation at: %s", "L1FeeVault", impl);
-        vm.etch(impl, address(vault).code);
-
-        /// Reset so its not included state dump
-        vm.etch(address(vault), "");
-        vm.resetNonce(address(vault));
+        _setImplementationCode(Predeploys.L1_FEE_VAULT);
     }
 
     /// @notice This predeploy is following the safety invariant #2.
