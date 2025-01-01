@@ -95,14 +95,12 @@ contract L1BlockInterop is L1Block {
     /// @param _type  The type of configuration to set.
     /// @param _value The encoded value with which to set the configuration.
     function setConfig(Types.ConfigType _type, bytes calldata _value) public override {
-        if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
+        L1Block.setConfig(_type, _value);
 
         if (_type == Types.ConfigType.ADD_DEPENDENCY) {
             _addDependency(_value);
         } else if (_type == Types.ConfigType.REMOVE_DEPENDENCY) {
             _removeDependency(_value);
-        } else {
-            L1Block.setConfig(_type, _value);
         }
     }
 
