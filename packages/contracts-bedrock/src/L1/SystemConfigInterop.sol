@@ -91,7 +91,7 @@ contract SystemConfigInterop is SystemConfig {
             // Set the gas paying token in storage and in the OptimismPortal.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
             IOptimismPortal(payable(optimismPortal())).setConfig(
-                Types.ConfigType.SET_GAS_PAYING_TOKEN,
+                Types.ConfigType.GAS_PAYING_TOKEN,
                 StaticConfig.encodeSetGasPayingToken({
                     _token: _token,
                     _decimals: GAS_PAYING_TOKEN_DECIMALS,

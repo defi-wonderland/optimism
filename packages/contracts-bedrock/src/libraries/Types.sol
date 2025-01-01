@@ -77,7 +77,7 @@ library Types {
     }
 
     /// @notice Enum representing different types of configurations that can be set on L1BlockInterop.
-    /// @custom:value SET_GAS_PAYING_TOKEN  Represents the config type for setting the gas paying token.
+    /// @custom:value GAS_PAYING_TOKEN  Represents the config type for setting the gas paying token.
     /// @custom:value BASE_FEE_VAULT_CONFIG Represents the config type for setting the base fee vault configuration.
     /// @custom:value L1_FEE_VAULT_CONFIG  Represents the config type for setting the L1 fee vault configuration.
     /// @custom:value SEQUENCER_FEE_VAULT_CONFIG Represents the config type for setting the sequencer fee vault
@@ -86,7 +86,7 @@ library Types {
     /// @custom:value REMOVE_DEPENDENCY     Represents the config type for removing a chain from the interop dependency
     /// set.
     enum ConfigType {
-        SET_GAS_PAYING_TOKEN,
+        GAS_PAYING_TOKEN,
         BASE_FEE_VAULT_CONFIG,
         L1_FEE_VAULT_CONFIG,
         SEQUENCER_FEE_VAULT_CONFIG,

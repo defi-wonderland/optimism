@@ -32,17 +32,17 @@ contract OptimismPortalInterop_Test is CommonTest {
             _mint: 0,
             _gasLimit: 200_000,
             _isCreation: false,
-            _data: abi.encodeCall(IL1BlockInterop.setConfig, (Types.ConfigType.SET_GAS_PAYING_TOKEN, _value))
+            _data: abi.encodeCall(IL1BlockInterop.setConfig, (Types.ConfigType.GAS_PAYING_TOKEN, _value))
         });
 
         vm.prank(address(_optimismPortalInterop().systemConfig()));
-        _optimismPortalInterop().setConfig(Types.ConfigType.SET_GAS_PAYING_TOKEN, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.GAS_PAYING_TOKEN, _value);
     }
 
     /// @dev Tests that setting the gas paying token config as not the system config reverts.
     function testFuzz_setConfig_gasPayingTokenButNotSystemConfig_reverts(bytes calldata _value) public {
         vm.expectRevert(Unauthorized.selector);
-        _optimismPortalInterop().setConfig(Types.ConfigType.SET_GAS_PAYING_TOKEN, _value);
+        _optimismPortalInterop().setConfig(Types.ConfigType.GAS_PAYING_TOKEN, _value);
     }
 
     /// @dev Tests that the config for adding a dependency can be set.

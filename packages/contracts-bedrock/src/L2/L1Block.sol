@@ -202,7 +202,7 @@ contract L1Block is ISemver, IGasToken {
     function setConfig(Types.ConfigType _type, bytes calldata _value) public virtual {
         if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
 
-        if (_type == Types.ConfigType.SET_GAS_PAYING_TOKEN) {
+        if (_type == Types.ConfigType.GAS_PAYING_TOKEN) {
             _setGasPayingToken(_value);
         } else if (_type == Types.ConfigType.BASE_FEE_VAULT_CONFIG) {
             Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
@@ -223,6 +223,11 @@ contract L1Block is ISemver, IGasToken {
             config_ = abi.encode(Storage.getBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT));
         } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             config_ = abi.encode(Storage.getBytes32(L1_FEE_VAULT_CONFIG_SLOT));
+        } else if (_type == Types.ConfigType.GAS_PAYING_TOKEN) {
+            (address token, uint8 decimals) = GasPayingToken.getToken();
+            string memory name = GasPayingToken.getName();
+            string memory symbol = GasPayingToken.getSymbol();
+            config_ = abi.encode(token, decimals, name, symbol);
         }
     }
 

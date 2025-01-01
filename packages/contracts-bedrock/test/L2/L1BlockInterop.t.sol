@@ -97,7 +97,7 @@ contract L1BlockInteropTest is CommonTest {
         emit GasPayingTokenSet({ token: _token, decimals: _decimals, name: _name, symbol: _symbol });
 
         _l1BlockInterop().setConfig(
-            Types.ConfigType.SET_GAS_PAYING_TOKEN,
+            Types.ConfigType.GAS_PAYING_TOKEN,
             StaticConfig.encodeSetGasPayingToken({ _token: _token, _decimals: _decimals, _name: _name, _symbol: _symbol })
         );
     }
@@ -115,7 +115,7 @@ contract L1BlockInteropTest is CommonTest {
 
         vm.expectRevert(NotDepositor.selector);
         _l1BlockInterop().setConfig(
-            Types.ConfigType.SET_GAS_PAYING_TOKEN,
+            Types.ConfigType.GAS_PAYING_TOKEN,
             StaticConfig.encodeSetGasPayingToken({ _token: _token, _decimals: _decimals, _name: _name, _symbol: _symbol })
         );
     }
