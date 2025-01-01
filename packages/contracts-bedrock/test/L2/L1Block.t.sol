@@ -2,11 +2,15 @@
 pragma solidity 0.8.15;
 
 // Testing
+import { console } from "forge-std/Test.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
+import { StaticConfig } from "src/libraries/StaticConfig.sol";
+import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 import "src/libraries/L1BlockErrors.sol";
 
 contract L1BlockTest is CommonTest {
@@ -209,5 +213,120 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     function test_setGasPayingToken_isDepositor_reverts() external {
         vm.expectRevert(NotDepositor.selector);
         l1Block.setGasPayingToken(address(this), 18, "Test", "TST");
+    }
+
+    function test_setConfig_isDepositor_reverts(uint8 _configTypeSeed, bytes memory _data) external {
+        Types.ConfigType configType = Types.ConfigType(bound(_configTypeSeed, 0, 5)); // 6 ConfigTypes
+        vm.expectRevert(NotDepositor.selector);
+        l1Block.setConfig(configType, _data);
+    }
+
+    /// @notice Tests that `setConfig` with `GAS_PAYING_TOKEN` config type updates the values correctly.
+    ///         Assumes is not address(0) which means it is not ETH
+    function test_setConfig_gasPayingToken_succeeds(
+        address _token,
+        uint8 _decimals,
+        bytes32 _name,
+        bytes32 _symbol
+    )
+        external
+    {
+        vm.assume(_token != address(0));
+
+        Types.ConfigType configType = Types.ConfigType.GAS_PAYING_TOKEN;
+        bytes memory data = StaticConfig.encodeSetGasPayingToken(_token, _decimals, _name, _symbol);
+
+        vm.expectEmit(address(l1Block));
+        emit GasPayingTokenSet({ token: _token, decimals: _decimals, name: _name, symbol: _symbol });
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, data);
+        vm.stopPrank();
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(
+            keccak256(config),
+            keccak256(
+                abi.encode(_token, _decimals, LibString.fromSmallString(_name), LibString.fromSmallString(_symbol))
+            )
+        );
+
+        (address token, uint8 decimals, string memory name, string memory symbol) =
+            abi.decode(config, (address, uint8, string, string));
+        assertEq(token, _token);
+        assertEq(decimals, _decimals);
+        assertEq(keccak256(bytes(name)), keccak256(bytes(LibString.fromSmallString(_name))));
+        assertEq(keccak256(bytes(symbol)), keccak256(bytes(LibString.fromSmallString(_symbol))));
+    }
+
+    /// @notice Tests that `setConfig` with `BASE_FEE_VAULT_CONFIG` config type updates the values correctly.
+    function test_setConfig_baseFeeVault_succeeds(
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        bool _isL1
+    )
+        external
+    {
+        Types.ConfigType configType = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
+        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
+        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
+
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, abi.encode(data));
+        vm.stopPrank();
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(keccak256(config), keccak256(abi.encode(data)));
+
+        (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
+            Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
+        assertEq(recipient, _recipient);
+        assertEq(minWithdrawalAmount, _minWithdrawalAmount);
+        assertEq(uint8(network), uint8(withdrawalNetwork));
+    }
+
+    /// @notice Tests that `setConfig` with `SEQUENCER_FEE_VAULT_CONFIG` config type updates the values correctly.
+    function test_setConfig_sequencerFeeVault_succeeds(
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        bool _isL1
+    )
+        external
+    {
+        Types.ConfigType configType = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
+        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
+        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
+
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, abi.encode(data));
+        vm.stopPrank();
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(keccak256(config), keccak256(abi.encode(data)));
+
+        (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
+            Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
+        assertEq(recipient, _recipient);
+        assertEq(minWithdrawalAmount, _minWithdrawalAmount);
+        assertEq(uint8(network), uint8(withdrawalNetwork));
+    }
+
+    /// @notice Tests that `setConfig` with `L1_FEE_VAULT_CONFIG` config type updates the values correctly.
+    function test_setConfig_l1FeeVault_succeeds(address _recipient, uint88 _minWithdrawalAmount, bool _isL1) external {
+        Types.ConfigType configType = Types.ConfigType.L1_FEE_VAULT_CONFIG;
+        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
+        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
+
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, abi.encode(data));
+        vm.stopPrank();
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(keccak256(config), keccak256(abi.encode(data)));
+
+        (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
+            Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
+        assertEq(recipient, _recipient);
+        assertEq(minWithdrawalAmount, _minWithdrawalAmount);
+        assertEq(uint8(network), uint8(withdrawalNetwork));
     }
 }

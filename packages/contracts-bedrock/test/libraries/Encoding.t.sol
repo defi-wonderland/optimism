@@ -105,6 +105,27 @@ contract Encoding_Test is CommonTest {
 
         assertEq(txn, _txn);
     }
+
+    /// @dev Tests fee vaults encoding
+    function testFuzz_encodeFeeVaultConfig_succeeds(
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        bool _isL1Withdrawal
+    )
+        external
+        pure
+    {
+        bytes32 config = Encoding.encodeFeeVaultConfig(
+            _recipient, _minWithdrawalAmount, _isL1Withdrawal ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2
+        );
+
+        (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork withdrawalNetwork) =
+            Encoding.decodeFeeVaultConfig(config);
+
+        assertEq(recipient, _recipient);
+        assertEq(minWithdrawalAmount, _minWithdrawalAmount);
+        assertEq(uint8(withdrawalNetwork), uint8(withdrawalNetwork));
+    }
 }
 
 contract EncodingContract {
