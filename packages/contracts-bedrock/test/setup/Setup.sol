@@ -310,6 +310,12 @@ contract Setup {
         labelPreinstall(Preinstalls.BeaconBlockRoots);
         labelPreinstall(Preinstalls.CreateX);
 
+        configureFeeVaults();
+
+        console.log("Setup: completed L2 genesis");
+    }
+
+    function configureFeeVaults() internal {
         // These calls by the depositor account simulate the SystemConfig setting the
         // network specific configuration into L2. Ideally there is a library that automatically
         // translates TransactionDeposited and ConfigUpdate events into the appropriate calls
@@ -337,7 +343,7 @@ contract Setup {
         l1Block.setConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG, abi.encode(l1FeeVaultConfig));
         vm.stopPrank();
 
-        console.log("Setup: completed L2 genesis");
+        console.log("Setup: configured fee vaults");
     }
 
     function labelPredeploy(address _addr) internal {
