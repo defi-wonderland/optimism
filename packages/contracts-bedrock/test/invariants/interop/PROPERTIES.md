@@ -30,43 +30,43 @@ The goal of this campaign is to develop a testing suite that fuzzes over the int
 | 10  | SharedLockbox   | The total withdrawable ETH amount present on all the dependency set’s chains MUST NEVER be more than the amount held by the `SharedLockbox` of the cluster.                                                                                            |  [ ]   |
 | 11  | SharedLockbox   | The `OptimismPortal` MUST lock the ETH amount on the `SharedLockbox` when on a deposit transaction with value greater than zero, without holding any ETH balance from the depositing users.                                                            |  [ ]   |
 | 12  | SharedLockbox   | The `OptimismPortal` MUST unlock the ETH amount being withdrawn from the `SharedLockbox` if it is greater than zero.                                                                                                                                   |  [ ]   |
-| 13  | SharedLockbox   | Once `SuperchainConfig#addChain` is successfully called, the chain must be added to the dependency set and the `OptimismPortal` of it set as authorized on the `SharedLockbox`.                                                                        |  [ ]   |
-| 14  | SharedLockbox   | The `LiquidityMigrator` MUST migrate the whole `OptimismPortal` ETH balance to the `SharedLockbox`.                                                                                                                                                    |  [ ]   |
+| 13  | SharedLockbox   | The `LiquidityMigrator` MUST migrate the whole `OptimismPortal` ETH balance to the `SharedLockbox`.                                                                                                                                                    |  [ ]   |
 
 ---
 
 <br><br>
 The following properties are considered to be easily coverable by **Unit tests**, so they **won't be included in this campaign**:
 
-| Id  | Description                                                                                                                    |
-| --- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 15  | Message to the same chain MUST be disallowed                                                                                   |
-| 16  | Only the `SuperchainConfig` MUST be able to authorize an `OptimismPortal`                                                      |
-| 17  | Adding an `OptimismPortal` during a paused state MUST revert                                                                   |
-| 18  | Only `authorizedPortals` MUST be able to call `lockETH` and `unlockETH`                                                        |
-| 19  | Only the `DependencyManager` MUST be able to add a new dependency                                                              |
-| 20  | `isDeposit` MUST only be callable by the `CrossL2Inbox`                                                                        |
-| 21  | `depositsComplete` and `setConfig` MUST be only callable by the `DEPOSITOR_ACCOUNT`                                            |
-| 22  | `crosschainBurn()` MUST be called only by the `SuperchainTokenBridge`.                                                         |
-| 23  | `crosschainMint()` MUST Revert if attempting to send more than the sender's available balance.                                 |
-| 24  | `crosschainMint()` MUST be called only by any the `SuperchainTokenBridge`.                                                     |
-| 25  | `SuperchainTokenBridge#sendERC20()` function MUST exclusively send a message to the same address on the target chain           |
-| 26  | `SuperchainTokenBridge#relayERC20()` function should only process messages originating from the same address.                  |
-| 27  | `ETHLiquidity` Initial balance MUST be set to `type(uint248).max`                                                              |
-| 28  | `ETHLiquidity#mint()` MUST be called only by `SuperchainWETH`.                                                                 |
-| 29  | `ETHLiquidity#mint()` MUST Transfer requested ETH value to the sending address.                                                |
-| 30  | `ETHLiquidity#burn()` MUST be called only by `SuperchainWETH`.                                                                 |
-| 31  | `ETHLiquidity#burn()` MUST Accept ETH value.                                                                                   |
-| 32  | `isInDependencySet()` MUST return true for all the chain IDs of the chains that integrate the cluster, and false otherwise.    |
-| 33  | It MUST not be possible to validate or execute deposit transactions as messages                                                |
-| 34  | `SuperchainWETH#withdraw()` MUST revert if triggered on a chain that does not use ETH as a native token.                       |
-| 35  | `SuperchainWETH#deposit()` MUST Revert if triggered on a chain that does not use ETH as a native token                         |
-| 36  | `ETHLiquidity#burn()` MUST Revert if called on a chain that does not use ETH as a native token.                                |
-| 37  | `ETHLiquidity#mint()` MUST Revert if called on a chain that does not use ETH as a native token.                                |
-| 38  | calls to `relayERC20` always succeed as long as the sender and cross-domain caller are valid.                                  |
-| 39  | The `SharedLockbox` MUST NOT trigger a new deposit transaction when unlocking ETH from the `OptimismPortal`                    |
-| 40  | No Ether MUST flow out of from the `Sharedlockbox` contract when in a paused state                                             |
-| 41  | The `SuperchainTokenBrdige#sendERC20()` function MUST exclusively use the `L2toL2CrossDomainMessenger` for messaging.          |
-| 42  | The `SuperchainTokenBridge#relayERC20()` function MUST only process messages originating from the `L2toL2CrossDomainMessenger` |
+| Id  | Description                                                                                                                                                                         |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15  | Message to the same chain MUST be disallowed                                                                                                                                        |
+| 16  | Only the `SuperchainConfig` MUST be able to authorize an `OptimismPortal`                                                                                                           |
+| 17  | Adding an `OptimismPortal` during a paused state MUST revert                                                                                                                        |
+| 18  | Only `authorizedPortals` MUST be able to call `lockETH` and `unlockETH`                                                                                                             |
+| 19  | Only the `DependencyManager` MUST be able to add a new dependency                                                                                                                   |
+| 20  | `isDeposit` MUST only be callable by the `CrossL2Inbox`                                                                                                                             |
+| 21  | `depositsComplete` and `setConfig` MUST be only callable by the `DEPOSITOR_ACCOUNT`                                                                                                 |
+| 22  | `crosschainBurn()` MUST be called only by the `SuperchainTokenBridge`.                                                                                                              |
+| 23  | `crosschainMint()` MUST Revert if attempting to send more than the sender's available balance.                                                                                      |
+| 24  | `crosschainMint()` MUST be called only by any the `SuperchainTokenBridge`.                                                                                                          |
+| 25  | `SuperchainTokenBridge#sendERC20()` function MUST exclusively send a message to the same address on the target chain                                                                |
+| 26  | `SuperchainTokenBridge#relayERC20()` function should only process messages originating from the same address.                                                                       |
+| 27  | `ETHLiquidity` Initial balance MUST be set to `type(uint248).max`                                                                                                                   |
+| 28  | `ETHLiquidity#mint()` MUST be called only by `SuperchainWETH`.                                                                                                                      |
+| 29  | `ETHLiquidity#mint()` MUST Transfer requested ETH value to the sending address.                                                                                                     |
+| 30  | `ETHLiquidity#burn()` MUST be called only by `SuperchainWETH`.                                                                                                                      |
+| 31  | `ETHLiquidity#burn()` MUST Accept ETH value.                                                                                                                                        |
+| 32  | `isInDependencySet()` MUST return true for all the chain IDs of the chains that integrate the cluster, and false otherwise.                                                         |
+| 33  | It MUST not be possible to validate or execute deposit transactions as messages                                                                                                     |
+| 34  | `SuperchainWETH#withdraw()` MUST revert if triggered on a chain that does not use ETH as a native token.                                                                            |
+| 35  | `SuperchainWETH#deposit()` MUST Revert if triggered on a chain that does not use ETH as a native token                                                                              |
+| 36  | `ETHLiquidity#burn()` MUST Revert if called on a chain that does not use ETH as a native token.                                                                                     |
+| 37  | `ETHLiquidity#mint()` MUST Revert if called on a chain that does not use ETH as a native token.                                                                                     |
+| 38  | calls to `relayERC20` always succeed as long as the sender and cross-domain caller are valid.                                                                                       |
+| 39  | The `SharedLockbox` MUST NOT trigger a new deposit transaction when unlocking ETH from the `OptimismPortal`                                                                         |
+| 40  | No Ether MUST flow out of from the `Sharedlockbox` contract when in a paused state                                                                                                  |
+| 41  | The `SuperchainTokenBrdige#sendERC20()` function MUST exclusively use the `L2toL2CrossDomainMessenger` for messaging.                                                               |
+| 42  | The `SuperchainTokenBridge#relayERC20()` function MUST only process messages originating from the `L2toL2CrossDomainMessenger`                                                      |
+| 43  | Once `SuperchainConfig#addDependency` is successfully called, the chain MUST be added to the dependency set and the `OptimismPortal` of it set as authorized on the `SharedLockbox` |
 
 ---
