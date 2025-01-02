@@ -293,9 +293,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         Types.ConfigType configType = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
         Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
 
-        bytes32 data = _setFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
-
-        _assertConfigData(configType, data, _recipient, _minWithdrawalAmount, withdrawalNetwork);
+        _assertConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
     }
 
     /// @dev Tests that `setConfig` with `SEQUENCER_FEE_VAULT_CONFIG` config type updates the values correctly.
@@ -309,9 +307,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         Types.ConfigType configType = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
         Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
 
-        bytes32 data = _setFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
-
-        _assertConfigData(configType, data, _recipient, _minWithdrawalAmount, withdrawalNetwork);
+        _assertConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
     }
 
     /// @dev Tests that `setConfig` with `L1_FEE_VAULT_CONFIG` config type updates the values correctly.
@@ -319,40 +315,26 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         Types.ConfigType configType = Types.ConfigType.L1_FEE_VAULT_CONFIG;
         Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
 
-        bytes32 data = _setFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
-
-        _assertConfigData(configType, data, _recipient, _minWithdrawalAmount, withdrawalNetwork);
-    }
-
-    /// @dev Sets the fee vault config data for a given config type.
-    function _setFeeVaultConfigData(
-        Types.ConfigType configType,
-        address _recipient,
-        uint88 _minWithdrawalAmount,
-        Types.WithdrawalNetwork _withdrawalNetwork
-    )
-        internal
-        returns (bytes32 data_)
-    {
-        data_ = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
-
-        vm.prank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(configType, abi.encode(data_));
+        _assertConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
     }
 
     /// @dev Asserts that the config data is set correctly for a given configType.
     function _assertConfigData(
         Types.ConfigType _configType,
-        bytes32 _data,
         address _recipient,
         uint88 _minWithdrawalAmount,
         Types.WithdrawalNetwork _withdrawalNetwork
     )
         internal
-        view
     {
+        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
+        bytes memory encodedData = abi.encode(data);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(_configType, encodedData);
+
         bytes memory config = l1Block.getConfig(_configType);
-        assertEq(keccak256(config), keccak256(abi.encode(_data)));
+        assertEq(keccak256(config), keccak256(encodedData));
 
         (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
             Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
