@@ -2,10 +2,10 @@
 pragma solidity 0.8.15;
 
 // Testing
-import { console } from "forge-std/Test.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
+import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
@@ -26,7 +26,7 @@ contract L1BlockTest is CommonTest {
 }
 
 contract L1BlockBedrock_Test is L1BlockTest {
-    // @dev Tests that `setL1BlockValues` updates the values correctly.
+    /// @dev Tests that `setL1BlockValues` updates the values correctly.
     function testFuzz_updatesValues_succeeds(
         uint64 n,
         uint64 t,
@@ -170,6 +170,7 @@ contract L1BlockEcotone_Test is L1BlockTest {
 }
 
 contract L1BlockCustomGasToken_Test is L1BlockTest {
+    /// @dev Tests that `setGasPayingToken` updates the values correctly.
     function testFuzz_setGasPayingToken_succeeds(
         address _token,
         uint8 _decimals,
@@ -210,18 +211,33 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         assertTrue(l1Block.isCustomGasToken());
     }
 
-    function test_setGasPayingToken_isDepositor_reverts() external {
+    /// @dev Tests that `setGasPayingToken` reverts if sender address is not the depositor account.
+    function test_setGasPayingToken_isDepositor_reverts(address _nonDepositor) external {
+        vm.assume(_nonDepositor != Constants.DEPOSITOR_ACCOUNT);
+
         vm.expectRevert(NotDepositor.selector);
+        vm.prank(_nonDepositor);
         l1Block.setGasPayingToken(address(this), 18, "Test", "TST");
     }
 
-    function test_setConfig_isDepositor_reverts(uint8 _configTypeSeed, bytes memory _data) external {
+    /// @dev Tests that `setConfig` reverts if sender address is not the depositor account.
+    function test_setConfig_isDepositor_reverts(
+        address _nonDepositor,
+        uint8 _configTypeSeed,
+        bytes memory _data
+    )
+        external
+    {
+        vm.assume(_nonDepositor != Constants.DEPOSITOR_ACCOUNT);
+
         Types.ConfigType configType = Types.ConfigType(bound(_configTypeSeed, 0, 5)); // 6 ConfigTypes
+
         vm.expectRevert(NotDepositor.selector);
+        vm.prank(_nonDepositor);
         l1Block.setConfig(configType, _data);
     }
 
-    /// @notice Tests that `setConfig` with `GAS_PAYING_TOKEN` config type updates the values correctly.
+    /// @dev Tests that `setConfig` with `GAS_PAYING_TOKEN` config type updates the values correctly.
     ///         Assumes is not address(0) which means it is not ETH
     function test_setConfig_gasPayingToken_succeeds(
         address _token,
@@ -238,27 +254,32 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
 
         vm.expectEmit(address(l1Block));
         emit GasPayingTokenSet({ token: _token, decimals: _decimals, name: _name, symbol: _symbol });
-        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
         l1Block.setConfig(configType, data);
-        vm.stopPrank();
 
         bytes memory config = l1Block.getConfig(configType);
         assertEq(
             keccak256(config),
             keccak256(
-                abi.encode(_token, _decimals, LibString.fromSmallString(_name), LibString.fromSmallString(_symbol))
+                abi.encode(
+                    _token,
+                    _decimals,
+                    GasPayingToken.sanitize(LibString.fromSmallString(_name)),
+                    GasPayingToken.sanitize(LibString.fromSmallString(_symbol))
+                )
             )
         );
 
-        (address token, uint8 decimals, string memory name, string memory symbol) =
-            abi.decode(config, (address, uint8, string, string));
+        (address token, uint8 decimals, bytes32 name, bytes32 symbol) =
+            abi.decode(config, (address, uint8, bytes32, bytes32));
         assertEq(token, _token);
         assertEq(decimals, _decimals);
-        assertEq(keccak256(bytes(name)), keccak256(bytes(LibString.fromSmallString(_name))));
-        assertEq(keccak256(bytes(symbol)), keccak256(bytes(LibString.fromSmallString(_symbol))));
+        assertEq(name, GasPayingToken.sanitize(LibString.fromSmallString(_name)));
+        assertEq(symbol, GasPayingToken.sanitize(LibString.fromSmallString(_symbol)));
     }
 
-    /// @notice Tests that `setConfig` with `BASE_FEE_VAULT_CONFIG` config type updates the values correctly.
+    /// @dev Tests that `setConfig` with `BASE_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_baseFeeVault_succeeds(
         address _recipient,
         uint88 _minWithdrawalAmount,
@@ -268,23 +289,13 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     {
         Types.ConfigType configType = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
         Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
-        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
 
-        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(configType, abi.encode(data));
-        vm.stopPrank();
+        bytes32 data = _setFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
 
-        bytes memory config = l1Block.getConfig(configType);
-        assertEq(keccak256(config), keccak256(abi.encode(data)));
-
-        (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
-            Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
-        assertEq(recipient, _recipient);
-        assertEq(minWithdrawalAmount, _minWithdrawalAmount);
-        assertEq(uint8(network), uint8(withdrawalNetwork));
+        _assertConfigData(configType, data, _recipient, _minWithdrawalAmount, withdrawalNetwork);
     }
 
-    /// @notice Tests that `setConfig` with `SEQUENCER_FEE_VAULT_CONFIG` config type updates the values correctly.
+    /// @dev Tests that `setConfig` with `SEQUENCER_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_sequencerFeeVault_succeeds(
         address _recipient,
         uint88 _minWithdrawalAmount,
@@ -294,39 +305,56 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     {
         Types.ConfigType configType = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
         Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
-        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
 
-        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(configType, abi.encode(data));
-        vm.stopPrank();
+        bytes32 data = _setFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
 
-        bytes memory config = l1Block.getConfig(configType);
-        assertEq(keccak256(config), keccak256(abi.encode(data)));
-
-        (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
-            Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
-        assertEq(recipient, _recipient);
-        assertEq(minWithdrawalAmount, _minWithdrawalAmount);
-        assertEq(uint8(network), uint8(withdrawalNetwork));
+        _assertConfigData(configType, data, _recipient, _minWithdrawalAmount, withdrawalNetwork);
     }
 
-    /// @notice Tests that `setConfig` with `L1_FEE_VAULT_CONFIG` config type updates the values correctly.
+    /// @dev Tests that `setConfig` with `L1_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_l1FeeVault_succeeds(address _recipient, uint88 _minWithdrawalAmount, bool _isL1) external {
         Types.ConfigType configType = Types.ConfigType.L1_FEE_VAULT_CONFIG;
         Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
-        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
 
-        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(configType, abi.encode(data));
-        vm.stopPrank();
+        bytes32 data = _setFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
 
-        bytes memory config = l1Block.getConfig(configType);
-        assertEq(keccak256(config), keccak256(abi.encode(data)));
+        _assertConfigData(configType, data, _recipient, _minWithdrawalAmount, withdrawalNetwork);
+    }
+
+    /// @dev Sets the fee vault config data for a given config type.
+    function _setFeeVaultConfigData(
+        Types.ConfigType configType,
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
+    )
+        internal
+        returns (bytes32 data_)
+    {
+        data_ = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, abi.encode(data_));
+    }
+
+    /// @dev Asserts that the config data is set correctly for a given configType.
+    function _assertConfigData(
+        Types.ConfigType _configType,
+        bytes32 _data,
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
+    )
+        internal
+        view
+    {
+        bytes memory config = l1Block.getConfig(_configType);
+        assertEq(keccak256(config), keccak256(abi.encode(_data)));
 
         (address recipient, uint256 minWithdrawalAmount, Types.WithdrawalNetwork network) =
             Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
         assertEq(recipient, _recipient);
         assertEq(minWithdrawalAmount, _minWithdrawalAmount);
-        assertEq(uint8(network), uint8(withdrawalNetwork));
+        assertEq(uint8(network), uint8(_withdrawalNetwork));
     }
 }
