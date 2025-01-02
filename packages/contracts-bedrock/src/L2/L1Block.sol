@@ -224,10 +224,10 @@ contract L1Block is ISemver, IGasToken {
         } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             config_ = abi.encode(Storage.getBytes32(L1_FEE_VAULT_CONFIG_SLOT));
         } else if (_type == Types.ConfigType.GAS_PAYING_TOKEN) {
-            (address token, uint8 decimals) = GasPayingToken.getToken();
-            string memory name = GasPayingToken.getName();
-            string memory symbol = GasPayingToken.getSymbol();
-            config_ = abi.encode(token, decimals, name, symbol);
+            (address token, uint8 decimals) = gasPayingToken();
+            string memory name = gasPayingTokenName();
+            string memory symbol = gasPayingTokenSymbol();
+            config_ = abi.encode(token, decimals, GasPayingToken.sanitize(name), GasPayingToken.sanitize(symbol));
         }
     }
 
