@@ -144,7 +144,7 @@
   {
     "inputs": [
       {
-        "internalType": "enum ConfigType",
+        "internalType": "enum Types.ConfigType",
         "name": "_type",
         "type": "uint8"
       }
@@ -273,7 +273,7 @@
   {
     "inputs": [
       {
-        "internalType": "enum ConfigType",
+        "internalType": "enum Types.ConfigType",
         "name": "_type",
         "type": "uint8"
       },

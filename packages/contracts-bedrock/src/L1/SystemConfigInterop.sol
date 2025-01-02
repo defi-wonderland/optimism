@@ -68,7 +68,7 @@ contract SystemConfigInterop is SystemConfig {
         Storage.setAddress(DEPENDENCY_MANAGER_SLOT, _dependencyManager);
     }
 
-    /// @custom:semver +interop-beta.8
+    /// @custom:semver +interop-beta.9
     function version() public pure override returns (string memory) {
         return string.concat(super.version(), "+interop-beta.9");
     }
