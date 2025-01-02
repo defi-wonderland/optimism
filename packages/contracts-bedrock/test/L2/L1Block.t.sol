@@ -230,7 +230,10 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     {
         vm.assume(_nonDepositor != Constants.DEPOSITOR_ACCOUNT);
 
-        Types.ConfigType configType = Types.ConfigType(bound(_configTypeSeed, 0, 5)); // 6 ConfigTypes
+        // IMPORTANT: It's important to keep this in sync with the number of ConfigTypes.
+        // If the number of ConfigTypes changes, `maxConfigTypeValue` should be updated.
+        uint256 maxConfigTypeValue = 5; // 6 ConfigTypes
+        Types.ConfigType configType = Types.ConfigType(bound(_configTypeSeed, 0, maxConfigTypeValue));
 
         vm.expectRevert(NotDepositor.selector);
         vm.prank(_nonDepositor);
