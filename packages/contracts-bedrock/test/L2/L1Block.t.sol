@@ -291,9 +291,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         external
     {
         Types.ConfigType configType = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
-        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
-
-        _assertConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
+        _assertConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
     /// @dev Tests that `setConfig` with `SEQUENCER_FEE_VAULT_CONFIG` config type updates the values correctly.
@@ -305,17 +303,13 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         external
     {
         Types.ConfigType configType = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
-        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
-
-        _assertConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
+        _assertConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
     /// @dev Tests that `setConfig` with `L1_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_l1FeeVault_succeeds(address _recipient, uint88 _minWithdrawalAmount, bool _isL1) external {
         Types.ConfigType configType = Types.ConfigType.L1_FEE_VAULT_CONFIG;
-        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
-
-        _assertConfigData(configType, _recipient, _minWithdrawalAmount, withdrawalNetwork);
+        _assertConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
     /// @dev Asserts that the config data is set correctly for a given configType.
@@ -323,11 +317,13 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         Types.ConfigType _configType,
         address _recipient,
         uint88 _minWithdrawalAmount,
-        Types.WithdrawalNetwork _withdrawalNetwork
+        bool _isL1
     )
         internal
     {
-        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
+        Types.WithdrawalNetwork withdrawalNetwork = _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
+
+        bytes32 data = Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
         bytes memory encodedData = abi.encode(data);
 
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
@@ -340,6 +336,6 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
             Encoding.decodeFeeVaultConfig(abi.decode(config, (bytes32)));
         assertEq(recipient, _recipient);
         assertEq(minWithdrawalAmount, _minWithdrawalAmount);
-        assertEq(uint8(network), uint8(_withdrawalNetwork));
+        assertEq(uint8(network), uint8(withdrawalNetwork));
     }
 }
