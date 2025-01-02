@@ -17,9 +17,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Interfaces
-import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
-import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
-import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
 import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
