@@ -36,7 +36,7 @@ contract Setup is PropertiesAsserts {
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
     uint256 public constant OP_CHAIN_ID = 10;
-    uint256 public constant CHAIN_ID = 1;
+    uint256 public constant CHAIN_ID_ONE = 1;
 
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
     IDeployer825 public constant DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825);
@@ -64,11 +64,11 @@ contract Setup is PropertiesAsserts {
 
     // VM
     IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
-    // Actors
+    // System addresses
     address public immutable dependencyManager = vm.addr(uint256(keccak256("DependencyManager")));
     address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
     address public immutable proxyOwner = vm.addr(uint256(keccak256("ProxyOwner")));
-    address public immutable userOne = vm.addr(uint256(keccak256("UserOne")));
+    address public immutable relayer = vm.addr(uint256(keccak256("Relayer")));
     ProxyAdmin public immutable proxyAdmin;
 
     // Predefined addresses
@@ -82,7 +82,7 @@ contract Setup is PropertiesAsserts {
     bytes internal _proxyCode;
 
     constructor() {
-        vm.chainId(CHAIN_ID);
+        vm.chainId(CHAIN_ID_ONE);
 
         // Deploy ProxyAdmin
         proxyAdmin = new ProxyAdmin(proxyOwner);

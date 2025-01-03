@@ -5,9 +5,14 @@ import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./Handler.t.sol";
 import { Helpers } from "./utils/Helpers.sol";
 import { console } from "forge-std/Console.sol";
+import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
 contract FuzzTest is Handler {
     using Helpers for *;
+
+    /// @notice Event selector for the SentMessage event.
+    bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
+        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
 
     bool initialized;
 
@@ -20,6 +25,7 @@ contract FuzzTest is Handler {
         _;
     }
 
+    // TODO: Move it to be an internal function inside the constructor
     /// @notice Tests the contracts vars are set up correctly
     function test_setup() public isInitialized {
         /* Contracts with some storage intialization on setup */
@@ -92,12 +98,9 @@ contract FuzzTest is Handler {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
-        _chainId = clampGt(_chainId, CHAIN_ID);
+        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
         // Set the amount to a valid one
         _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
-
-        // Mint tokens to the actor
-        SUPER_TOKEN.mint(currentActor(), _amount);
 
         // Get state before call
         uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
@@ -109,16 +112,56 @@ contract FuzzTest is Handler {
             assert(SUPER_TOKEN.balanceOf(currentActor()) == balanceBefore - _amount);
             assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore - _amount);
         } catch {
-            // TODO: make possible to revert due to insufficient balance
-            assert(false);
+            // Could revert if the actor doesn't have enough balance
+            assert(balanceBefore < _amount);
         }
     }
 
     /// @custom:property-id 2
     /// @custom:property Relaying SuperchainERC20s sent from origin increases the token's totalSupply and the
-    // target's
-    /// balance on the destination chain by exactly the input amount
-    function test_relaySuperchainERC20(address _from, address _to, uint256 _amount) public {
-        // try L2_TO_L2_MESSENGER.relayMessage(_id, _sentMessage);
+    /// target's balance on the destination chain by exactly the input amount
+    function test_relaySuperchainERC20(
+        Identifier memory _id,
+        address _from,
+        uint256 _amount,
+        uint256 _nonce,
+        uint256 _actorIndex
+    )
+        public
+        isInitialized
+    {
+        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
+
+        // Ensure the id is valid
+        _id.origin = address(L2_TO_L2_MESSENGER);
+        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
+
+        // Ensure the message is valid
+        address targetActor = getActorByRawIndex(_actorIndex);
+        address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
+        bytes memory message =
+            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _from, targetActor, _amount));
+        address crossChainSender = address(SUPERCHAIN_TOKEN_BRIDGE);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _nonce), // topics
+            abi.encode(crossChainSender, message) // data
+        );
+
+        // Get state before call
+        uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
+        uint256 balanceBefore = SUPER_TOKEN.balanceOf(targetActor);
+
+        // Relay the message
+        vm.prank(relayer);
+        /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
+        (bool _success,) = address(L2_TO_L2_MESSENGER).call(
+            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
+        );
+        // Shouldn't fail
+        if (!_success) assert(false);
+
+        // Check the state is right after the call
+        assert(SUPER_TOKEN.balanceOf(targetActor) == balanceBefore + _amount);
+        assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore + _amount);
     }
 }
