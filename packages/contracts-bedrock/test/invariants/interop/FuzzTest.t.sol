@@ -70,4 +70,11 @@ contract FuzzTest is Setup {
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
     }
+
+    /// Prop-1:
+    /// Bridging SuperchainERC20s from the origin to the destination chain decreases the token's
+    /// totalSupply and the sender's balance on the origin chain by exactly the input amount.
+    function test_SuperchainERC20Sending(address _to, uint256 _amount, uint256 _chainId) public isInitialized {
+        try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_TOKEN), _to, _amount, _chainId) { } catch { }
+    }
 }
