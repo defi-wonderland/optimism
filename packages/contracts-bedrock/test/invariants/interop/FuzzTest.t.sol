@@ -7,16 +7,26 @@ import { Helpers } from "./utils/Helpers.sol";
 contract FuzzTest is Setup {
     using Helpers for *;
 
+    bool initialized;
+
+    modifier isInitialized() {
+        if (!initialized) {
+            initializeEverything();
+            initialized = true;
+            _;
+        }
+    }
+
     /// @notice Tests the contracts vars are set up correctly
-    function test_setup() public {
+    function test_setup() public isInitialized {
         /* Contracts with some storage intialization on setup */
         // Portal
         assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
         assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
         // TODO: Values set on `initialize` are failing, fix
-        // assert(address(PORTAL.systemConfig()) == systemConfigAddress);
-        // assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
-        // assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
+        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
+        assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
+        assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
 
         // Shared Lockbox
         assert(address(SHARED_LOCKBOX.SUPERCHAIN_CONFIG()) == superchainConfigAddress);
@@ -24,26 +34,26 @@ contract FuzzTest is Setup {
         // Superchain Config
         assert(address(SUPERCHAIN_CONFIG.SHARED_LOCKBOX()) == sharedLockboxAddress);
         // TODO: Values set on `initialize` are failing, fix
-        // assert(SUPERCHAIN_CONFIG.guardian() == guardian);
-        // assert(SUPERCHAIN_CONFIG.dependencyManager() == dependencyManager);
-        // assert(SUPERCHAIN_CONFIG.paused() == false);
+        assert(SUPERCHAIN_CONFIG.guardian() == guardian);
+        assert(SUPERCHAIN_CONFIG.dependencyManager() == dependencyManager);
+        assert(SUPERCHAIN_CONFIG.paused() == false);
 
         // // System Config
         // TODO: Values set on `initialize` are failing, fix
-        // assert(SYSTEM_CONFIG.startBlock() == block.number);
-        // assert(SYSTEM_CONFIG.basefeeScalar() == 0);
-        // assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
-        // assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
-        // assert(SYSTEM_CONFIG.gasLimit() == 60000000);
-        // assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
-        // assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
-        // assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
-        // assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
-        // (address gasPayingToken,) = SYSTEM_CONFIG.gasPayingToken();
-        // assert(gasPayingToken == Constants.ETHER);
-        // bytes memory resourceConfig = abi.encode(SYSTEM_CONFIG.resourceConfig());
-        // bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
-        // assert(resourceConfig.hashBytes() == defaultResourceConfig.hashBytes());
+        assert(SYSTEM_CONFIG.startBlock() == block.number);
+        assert(SYSTEM_CONFIG.basefeeScalar() == 0);
+        assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
+        assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
+        assert(SYSTEM_CONFIG.gasLimit() == 60000000);
+        assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
+        assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
+        assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
+        assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
+        (address gasPayingToken,) = SYSTEM_CONFIG.gasPayingToken();
+        assert(gasPayingToken == Constants.ETHER);
+        bytes memory resourceConfig = abi.encode(SYSTEM_CONFIG.resourceConfig());
+        bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
+        assert(resourceConfig.hashBytes() == defaultResourceConfig.hashBytes());
 
         // SuperchainERC20
         string memory tokenName = "Super Token";
