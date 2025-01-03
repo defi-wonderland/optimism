@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import { IStdCheats } from "./interfaces/IStdCheats.sol";
 import { IDeployer815 } from "./interfaces/IDeployer815.sol";
 import { IDeployer825 } from "./interfaces/IDeployer825.sol";
+import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
 
 // Interfaces 0.8.15
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
@@ -18,7 +19,7 @@ import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 // Interfaces 0.8.25
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
-import { ISuperchainERC20 } from "interfaces/L2/ISuperchainERC20.sol";
+import { ISuperToken } from "./interfaces/ISuperToken.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
 
 // Libraries and Constants
@@ -31,10 +32,11 @@ import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
-contract Setup {
+contract Setup is PropertiesAsserts {
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
     uint256 public constant OP_CHAIN_ID = 10;
+    uint256 public constant CHAIN_ID = 1;
 
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
     IDeployer825 public constant DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825);
@@ -57,7 +59,7 @@ contract Setup {
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     ISuperchainTokenBridge public immutable SUPERCHAIN_TOKEN_BRIDGE =
         ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
-    ISuperchainERC20 public immutable SUPER_TOKEN;
+    ISuperToken public immutable SUPER_TOKEN;
 
     // VM
     IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
@@ -65,6 +67,7 @@ contract Setup {
     address public immutable dependencyManager = vm.addr(uint256(keccak256("DependencyManager")));
     address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
     address public immutable proxyOwner = vm.addr(uint256(keccak256("ProxyOwner")));
+    address public immutable userOne = vm.addr(uint256(keccak256("UserOne")));
     ProxyAdmin public immutable proxyAdmin;
 
     // Predefined addresses
@@ -78,6 +81,8 @@ contract Setup {
     bytes internal _proxyCode;
 
     constructor() {
+        vm.chainId(CHAIN_ID);
+
         // Deploy ProxyAdmin
         proxyAdmin = new ProxyAdmin(proxyOwner);
 
@@ -127,7 +132,7 @@ contract Setup {
         );
 
         // Deploy SuperchainToken
-        SUPER_TOKEN = ISuperchainERC20(DEPLOYER_8_25.deploySuperchainERC20());
+        SUPER_TOKEN = ISuperToken(DEPLOYER_8_25.deploySuperchainERC20());
 
         // Deploy SuperchainConfig
         _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(sharedLockboxAddress), true);

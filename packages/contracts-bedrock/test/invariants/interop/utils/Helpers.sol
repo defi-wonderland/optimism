@@ -8,4 +8,8 @@ library Helpers {
     function hashBytes(bytes memory _input) internal pure returns (bytes32) {
         return keccak256(_input);
     }
+
+    function toAddress(uint256 _input) internal pure returns (address) {
+        return address(uint160(_input));
+    }
 }

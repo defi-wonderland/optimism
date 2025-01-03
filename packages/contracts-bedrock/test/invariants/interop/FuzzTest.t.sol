@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Setup, Constants, ConfigType, GameType } from "./Setup.sol";
+import { Setup, Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
 import { Helpers } from "./utils/Helpers.sol";
+import { Actors } from "./Actors.t.sol";
 
-contract FuzzTest is Setup {
+contract FuzzTest is Setup, Actors {
     using Helpers for *;
 
     bool initialized;
@@ -74,7 +75,34 @@ contract FuzzTest is Setup {
     /// Prop-1:
     /// Bridging SuperchainERC20s from the origin to the destination chain decreases the token's
     /// totalSupply and the sender's balance on the origin chain by exactly the input amount.
-    function test_SuperchainERC20Sending(address _to, uint256 _amount, uint256 _chainId) public isInitialized {
-        try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_TOKEN), _to, _amount, _chainId) { } catch { }
+    function test_SuperchainERC20Sending(
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        public
+        isInitialized
+        withActor(msg.sender)
+    {
+        vm.assume(_to != address(0));
+        vm.assume(_to != address(CROSS_L2_INBOX));
+        vm.assume(_to != address(L2_TO_L2_MESSENGER));
+
+        _chainId = clampGt(_chainId, CHAIN_ID);
+
+        // Mint tokens to the actor
+        SUPER_TOKEN.mint(currentActor(), _amount);
+
+        uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
+        uint256 balanceBefore = SUPER_TOKEN.balanceOf(currentActor());
+
+        // Call the function
+        vm.prank(currentActor());
+        try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_TOKEN), _to, _amount, _chainId) {
+            assert(SUPER_TOKEN.balanceOf(currentActor()) == balanceBefore - _amount);
+            assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore - _amount);
+        } catch {
+            assert(false);
+        }
     }
 }
