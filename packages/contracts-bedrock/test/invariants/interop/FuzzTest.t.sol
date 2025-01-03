@@ -16,8 +16,8 @@ contract FuzzTest is Handler {
         if (!initialized) {
             _initializeEverything();
             initialized = true;
-            _;
         }
+        _;
     }
 
     /// @notice Tests the contracts vars are set up correctly
@@ -40,7 +40,8 @@ contract FuzzTest is Handler {
         assert(SUPERCHAIN_CONFIG.paused() == false);
 
         // System Config
-        assert(SYSTEM_CONFIG.startBlock() == block.number);
+        uint256 sysConfigStartBlock = SYSTEM_CONFIG.startBlock();
+        assert(sysConfigStartBlock > 0 && sysConfigStartBlock <= block.number);
         assert(SYSTEM_CONFIG.basefeeScalar() == 0);
         assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
         assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
