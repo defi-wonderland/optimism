@@ -133,35 +133,9 @@ contract Setup {
         _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(sharedLockboxAddress), true);
         SUPERCHAIN_CONFIG = ISuperchainConfig(superchainConfigAddress);
 
-        // Initialize SuperchainConfig
-        SUPERCHAIN_CONFIG.initialize(guardian, dependencyManager, false);
-
         // Deploy SystemConfigInterop
         _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
         SYSTEM_CONFIG = ISystemConfig(systemConfigAddress);
-
-        // Initialize SystemConfigInterop
-        ISystemConfig.Addresses memory _addresses = ISystemConfig.Addresses({
-            l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
-            l1ERC721Bridge: address(0),
-            l1StandardBridge: address(0),
-            disputeGameFactory: _disputeGameFactory,
-            optimismPortal: optimismPortalAddress,
-            optimismMintableERC20Factory: address(0),
-            gasPayingToken: Constants.ETHER
-        });
-        IResourceMetering.ResourceConfig memory _config = Constants.DEFAULT_RESOURCE_CONFIG();
-        SYSTEM_CONFIG.initialize(
-            address(proxyAdmin),
-            0,
-            0,
-            0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
-            60000000,
-            0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
-            _config,
-            0xFF00000000000000000000000000000000000010,
-            _addresses
-        );
 
         // Deploy SharedLockbox
         _setCode(sharedLockboxAddress, DEPLOYER_8_15.deploySharedLockbox(superchainConfigAddress), true);
@@ -206,19 +180,6 @@ contract Setup {
         proxyAdmin.upgrade(payable(optimismPortalAddress), portalMockImplementation);
 
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
-
-        // Initialize OptimismPortal
-        /// NOTE: Using low-level call only because Medusa crashes otherwise
-        (success,) = address(PORTAL).call(
-            abi.encodeWithSelector(
-                IOptimismPortalInterop.initialize.selector,
-                IDisputeGameFactory(_disputeGameFactory),
-                ISystemConfig(systemConfigAddress),
-                ISuperchainConfig(superchainConfigAddress),
-                GameType.wrap(0)
-            )
-        );
-        if (!success) revert("Setup: Failed to initialize OptimismPortal");
     }
 
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
@@ -235,5 +196,46 @@ contract Setup {
         } else {
             vm.etch(_target, _implementation.code);
         }
+    }
+
+    function initializeEverything() internal {
+        // Initialize SuperchainConfig
+        SUPERCHAIN_CONFIG.initialize(guardian, dependencyManager, false);
+
+        // Initialize SystemConfigInterop
+        ISystemConfig.Addresses memory _addresses = ISystemConfig.Addresses({
+            l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
+            l1ERC721Bridge: address(0),
+            l1StandardBridge: address(0),
+            disputeGameFactory: _disputeGameFactory,
+            optimismPortal: optimismPortalAddress,
+            optimismMintableERC20Factory: address(0),
+            gasPayingToken: Constants.ETHER
+        });
+        IResourceMetering.ResourceConfig memory _config = Constants.DEFAULT_RESOURCE_CONFIG();
+        SYSTEM_CONFIG.initialize(
+            address(proxyAdmin),
+            0,
+            0,
+            0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
+            60000000,
+            0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
+            _config,
+            0xFF00000000000000000000000000000000000010,
+            _addresses
+        );
+
+        // Initialize OptimismPortal
+        /// NOTE: Using low-level call only because Medusa crashes otherwise
+        (bool success,) = address(PORTAL).call(
+            abi.encodeWithSelector(
+                IOptimismPortalInterop.initialize.selector,
+                IDisputeGameFactory(_disputeGameFactory),
+                ISystemConfig(systemConfigAddress),
+                ISuperchainConfig(superchainConfigAddress),
+                GameType.wrap(0)
+            )
+        );
+        if (!success) revert("Setup: Failed to initialize OptimismPortal");
     }
 }
