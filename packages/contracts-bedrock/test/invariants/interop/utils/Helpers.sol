@@ -4,4 +4,8 @@ library Helpers {
     function hashString(string memory _input) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_input));
     }
+
+    function hashBytes(bytes memory _input) internal pure returns (bytes32) {
+        return keccak256(_input);
+    }
 }

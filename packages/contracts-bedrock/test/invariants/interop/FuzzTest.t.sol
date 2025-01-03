@@ -5,7 +5,7 @@ import { Setup, Constants, ConfigType, GameType } from "./Setup.sol";
 import { Helpers } from "./utils/Helpers.sol";
 
 contract FuzzTest is Setup {
-    using Helpers for string;
+    using Helpers for *;
 
     /// @notice Tests the contracts vars are set up correctly
     function test_setup() public {
@@ -28,9 +28,22 @@ contract FuzzTest is Setup {
         // assert(SUPERCHAIN_CONFIG.dependencyManager() == dependencyManager);
         // assert(SUPERCHAIN_CONFIG.paused() == false);
 
-        // System Config
-        // TODO: Test initializations
-        // assert(SYSTEM_CONFIG.startBlock(), block.number);
+        // // System Config
+        // TODO: Values set on `initialize` are failing, fix
+        // assert(SYSTEM_CONFIG.startBlock() == block.number);
+        // assert(SYSTEM_CONFIG.basefeeScalar() == 0);
+        // assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
+        // assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
+        // assert(SYSTEM_CONFIG.gasLimit() == 60000000);
+        // assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
+        // assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
+        // assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
+        // assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
+        // (address gasPayingToken,) = SYSTEM_CONFIG.gasPayingToken();
+        // assert(gasPayingToken == Constants.ETHER);
+        // bytes memory resourceConfig = abi.encode(SYSTEM_CONFIG.resourceConfig());
+        // bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
+        // assert(resourceConfig.hashBytes() == defaultResourceConfig.hashBytes());
 
         // SuperchainERC20
         string memory tokenName = "Super Token";
