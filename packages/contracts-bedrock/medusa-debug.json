@@ -2,7 +2,7 @@
 	"fuzzing": {
 		"workers": 10,
 		"workerResetLimit": 50,
-		"timeout": 30,
+		"timeout": 10,
 		"testLimit": 0,
 		"shrinkLimit": 5000,
 		"callSequenceLength": 100,
