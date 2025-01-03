@@ -41,6 +41,7 @@ contract Setup is PropertiesAsserts {
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
     IDeployer825 public constant DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825);
 
+    address internal constant _DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
@@ -242,5 +243,9 @@ contract Setup is PropertiesAsserts {
             )
         );
         if (!success) revert("Setup: Failed to initialize OptimismPortal");
+
+        // set interop start on Inbox
+        vm.prank(_DEPOSITOR_ACCOUNT);
+        CROSS_L2_INBOX.setInteropStart();
     }
 }

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Setup, Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
+import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
+import { Handler } from "./Handler.t.sol";
 import { Helpers } from "./utils/Helpers.sol";
-import { Actors } from "./Actors.t.sol";
+import { console } from "forge-std/Console.sol";
 
-contract FuzzTest is Setup, Actors {
+contract FuzzTest is Handler {
     using Helpers for *;
 
     bool initialized;
@@ -38,7 +39,7 @@ contract FuzzTest is Setup, Actors {
         assert(SUPERCHAIN_CONFIG.dependencyManager() == dependencyManager);
         assert(SUPERCHAIN_CONFIG.paused() == false);
 
-        // // System Config
+        // System Config
         assert(SYSTEM_CONFIG.startBlock() == block.number);
         assert(SYSTEM_CONFIG.basefeeScalar() == 0);
         assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
@@ -60,6 +61,10 @@ contract FuzzTest is Setup, Actors {
         assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
         assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
 
+        // CrossL2Inbox
+        uint256 interopStart = CROSS_L2_INBOX.interopStart();
+        assert(interopStart > 0 && interopStart <= block.timestamp);
+
         /* Contracts without any storage intialization on setup */
         // Check that it has a version, not checking which one to make the test more future proof
         string memory emptyString = "";
@@ -67,15 +72,14 @@ contract FuzzTest is Setup, Actors {
         assert(ETH_LIQUIDITY.version().hashString() != emptyStringHash);
         assert(L1_BLOCK.version().hashString() != emptyStringHash);
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
-        assert(CROSS_L2_INBOX.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
     }
 
-    /// Prop-1:
-    /// Bridging SuperchainERC20s from the origin to the destination chain decreases the token's
-    /// totalSupply and the sender's balance on the origin chain by exactly the input amount.
-    function test_SuperchainERC20Sending(
+    /// @custom:property-id 1
+    /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply and
+    /// the sender's balance on the origin chain by exactly the input amount.
+    function test_sendSuperchainERC20(
         address _to,
         uint256 _amount,
         uint256 _chainId
@@ -84,15 +88,17 @@ contract FuzzTest is Setup, Actors {
         isInitialized
         withActor(msg.sender)
     {
-        vm.assume(_to != address(0));
-        vm.assume(_to != address(CROSS_L2_INBOX));
-        vm.assume(_to != address(L2_TO_L2_MESSENGER));
-
+        // Check the target address is valid
+        require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
+        // Set the chain id to a valid one
         _chainId = clampGt(_chainId, CHAIN_ID);
+        // Set the amount to a valid one
+        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
         // Mint tokens to the actor
         SUPER_TOKEN.mint(currentActor(), _amount);
 
+        // Get state before call
         uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 balanceBefore = SUPER_TOKEN.balanceOf(currentActor());
 
@@ -102,7 +108,16 @@ contract FuzzTest is Setup, Actors {
             assert(SUPER_TOKEN.balanceOf(currentActor()) == balanceBefore - _amount);
             assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore - _amount);
         } catch {
+            // TODO: make possible to revert due to insufficient balance
             assert(false);
         }
+    }
+
+    /// @custom:property-id 2
+    /// @custom:property Relaying SuperchainERC20s sent from origin increases the token's totalSupply and the
+    // target's
+    /// balance on the destination chain by exactly the input amount
+    function test_relaySuperchainERC20(address _from, address _to, uint256 _amount) public {
+        // try L2_TO_L2_MESSENGER.relayMessage(_id, _sentMessage);
     }
 }
