@@ -68,8 +68,8 @@ contract Setup {
     ProxyAdmin public immutable proxyAdmin;
 
     // Predefined addresses
-    address public sharedLockboxAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
-    address public superchainConfigAddress = vm.addr(uint256(keccak256("SharedLockbox")));
+    address public sharedLockboxAddress = vm.addr(uint256(keccak256("SharedLockbox")));
+    address public superchainConfigAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
     address public systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
     address public optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
 
