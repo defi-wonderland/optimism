@@ -164,4 +164,97 @@ contract FuzzTest is Handler {
         assert(SUPER_TOKEN.balanceOf(targetActor) == balanceBefore + _amount);
         assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore + _amount);
     }
+
+    /// @custom:property-id 3
+    /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination
+    /// increases the ETHLiquidity Ether balance and decreases the sender's SuperchainWETH balance on
+    /// origin by exactly the input amount, while the SuperchainWETH Ether balance remains the same on that chain.
+    function test_bridgeSuperchainWETH(
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        public
+        isInitialized
+        withActor(msg.sender)
+    {
+        // Check the target address is valid
+        require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
+        // Set the chain id to a valid one
+        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
+        // Set the amount to a valid one
+        _amount = clampLte(_amount, type(uint256).max - SUPER_WETH.totalSupply());
+
+        // Get WETH
+        vm.prank(currentActor());
+        SUPER_WETH.deposit{ value: _amount }();
+
+        // Get state before call
+        uint256 balanceBefore = SUPER_WETH.balanceOf(currentActor());
+        uint256 totalSupplyBefore = SUPER_WETH.totalSupply();
+        uint256 etherBalanceBefore = address(ETH_LIQUIDITY).balance;
+        uint256 wethEthBalanceBefore = address(SUPER_WETH).balance;
+
+        // Call the function
+        vm.prank(currentActor());
+        try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_WETH), _to, _amount, _chainId) {
+            assert(SUPER_WETH.balanceOf(currentActor()) == balanceBefore - _amount);
+            assert(SUPER_WETH.totalSupply() == totalSupplyBefore - _amount);
+            assert(address(ETH_LIQUIDITY).balance == etherBalanceBefore + _amount);
+            assert(address(SUPER_WETH).balance == wethEthBalanceBefore);
+        } catch {
+            assert(false);
+        }
+    }
+
+    /// @custom:property-id 4
+    /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBrdige on destination
+    /// decreases the ETHLiquidity Ether balance and increases the target’s SuperchainWETH balance on destination by
+    /// exactly the input amount, while the SuperchainWETH ether balance remains the same on that chain.
+    function test_relaySuperchainWETH(
+        Identifier memory _id,
+        address _from,
+        uint256 _amount,
+        uint256 _nonce,
+        uint256 _actorIndex
+    )
+        public
+        isInitialized
+    {
+        _amount = clampLte(_amount, type(uint256).max - address(ETH_LIQUIDITY).balance);
+
+        // Ensure the id is valid
+        _id.origin = address(L2_TO_L2_MESSENGER);
+        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
+
+        // Ensure the message is valid
+        address targetActor = getActorByRawIndex(_actorIndex);
+        address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
+        bytes memory message =
+            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _from, targetActor, _amount));
+        address crossChainSender = address(SUPERCHAIN_TOKEN_BRIDGE);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _nonce), // topics
+            abi.encode(crossChainSender, message) // data
+        );
+
+        // Get state before call
+        uint256 balanceBefore = SUPER_WETH.balanceOf(targetActor);
+        uint256 etherBalanceBefore = address(ETH_LIQUIDITY).balance;
+        uint256 wethEthBalanceBefore = address(SUPER_WETH).balance;
+
+        // Relay the message
+        vm.prank(relayer);
+        /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
+        (bool _success,) = address(L2_TO_L2_MESSENGER).call(
+            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
+        );
+        // Shouldn't fail
+        if (!_success) assertWithMsg(false, "Relay message failed");
+
+        // Check the state is right after the call
+        assert(SUPER_WETH.balanceOf(targetActor) == balanceBefore + _amount);
+        assert(address(ETH_LIQUIDITY).balance == etherBalanceBefore - _amount);
+        assert(address(SUPER_WETH).balance == wethEthBalanceBefore);
+    }
 }
