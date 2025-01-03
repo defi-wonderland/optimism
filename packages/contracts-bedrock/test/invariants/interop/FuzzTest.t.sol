@@ -9,9 +9,10 @@ contract FuzzTest is Setup {
 
     bool initialized;
 
+    /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
     modifier isInitialized() {
         if (!initialized) {
-            initializeEverything();
+            _initializeEverything();
             initialized = true;
             _;
         }
@@ -23,7 +24,6 @@ contract FuzzTest is Setup {
         // Portal
         assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
         assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
-        // TODO: Values set on `initialize` are failing, fix
         assert(address(PORTAL.systemConfig()) == systemConfigAddress);
         assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
         assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
@@ -33,13 +33,11 @@ contract FuzzTest is Setup {
 
         // Superchain Config
         assert(address(SUPERCHAIN_CONFIG.SHARED_LOCKBOX()) == sharedLockboxAddress);
-        // TODO: Values set on `initialize` are failing, fix
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
         assert(SUPERCHAIN_CONFIG.dependencyManager() == dependencyManager);
         assert(SUPERCHAIN_CONFIG.paused() == false);
 
         // // System Config
-        // TODO: Values set on `initialize` are failing, fix
         assert(SYSTEM_CONFIG.startBlock() == block.number);
         assert(SYSTEM_CONFIG.basefeeScalar() == 0);
         assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);

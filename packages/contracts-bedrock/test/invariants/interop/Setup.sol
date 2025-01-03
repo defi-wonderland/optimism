@@ -198,7 +198,7 @@ contract Setup {
         }
     }
 
-    function initializeEverything() internal {
+    function _initializeEverything() internal {
         // Initialize SuperchainConfig
         SUPERCHAIN_CONFIG.initialize(guardian, dependencyManager, false);
 
