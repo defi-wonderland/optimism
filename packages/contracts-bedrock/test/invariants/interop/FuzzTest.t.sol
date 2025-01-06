@@ -266,7 +266,6 @@ contract FuzzTest is Handler {
         });
 
         // Relay the message
-
         vm.prank(relayer);
         /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
         (bool _success,) = address(L2_TO_L2_MESSENGER).call(
