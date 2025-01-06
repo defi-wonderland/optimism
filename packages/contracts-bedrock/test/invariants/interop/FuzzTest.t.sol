@@ -235,8 +235,6 @@ contract FuzzTest is Handler {
             _msg.amount, type(uint256).max - Helpers.max(address(ETH_LIQUIDITY).balance, address(SUPER_WETH).balance)
         );
 
-        vm.deal(address(ETH_LIQUIDITY), _msg.amount);
-
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
         _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
