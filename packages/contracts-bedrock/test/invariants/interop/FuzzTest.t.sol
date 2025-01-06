@@ -168,6 +168,7 @@ contract FuzzTest is Handler {
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
 
+        // If it fails, it should only be because the message was already relayed
         if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
 
         // Check the state is right after the call
