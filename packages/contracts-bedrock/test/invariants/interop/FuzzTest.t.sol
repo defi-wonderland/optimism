@@ -252,9 +252,9 @@ contract FuzzTest is Handler {
         );
 
         // Get state before call
-        uint256 balanceBefore = SUPER_WETH.balanceOf(targetActor);
-        uint256 etherBalanceBefore = address(ETH_LIQUIDITY).balance;
-        uint256 wethEthBalanceBefore = address(SUPER_WETH).balance;
+        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(targetActor);
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+        uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: block.chainid,
