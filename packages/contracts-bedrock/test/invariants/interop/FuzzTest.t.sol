@@ -219,7 +219,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 4
     /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBrdige on destination
     /// decreases the ETHLiquidity Ether balance and increases the target’s SuperchainWETH balance on destination by
-    /// exactly the input amount, while the SuperchainWETH ether balance is increased by the same amount.Que p
+    /// exactly the input amount, while the SuperchainWETH ether balance is increased by the same amount.
     function test_relaySuperchainWETH(
         Identifier memory _id,
         address _from,
