@@ -182,9 +182,9 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 3
-    /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination
-    /// increases the ETHLiquidity Ether balance and decreases the sender's SuperchainWETH balance on
-    /// origin by exactly the input amount, while the SuperchainWETH Ether balance is decreased by the same amount.
+    /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases the
+    /// ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
+    /// SuperchainWETH Ether balance by exactly the input amount.
     function test_bridgeSuperchainWETH(
         address _to,
         uint256 _amount,
@@ -218,9 +218,9 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 4
-    /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBridge on destination
-    /// decreases the ETHLiquidity Ether balance and increases the target’s SuperchainWETH balance on destination by
-    /// exactly the input amount, while the SuperchainWETH Ether balance is increased by the same amount.
+    /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBridge on destination decreases
+    /// the ETHLiquidity Ether balance, and increases the target’s SuperchainWETH balance on destination as well as
+    /// SuperchainWETH Ether balance by exactly the input amount.
     function test_relaySuperchainWETH(
         Identifier memory _id,
         Message memory _msg,
