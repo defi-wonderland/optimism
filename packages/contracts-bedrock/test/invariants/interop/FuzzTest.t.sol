@@ -104,17 +104,17 @@ contract FuzzTest is Handler {
         _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
         // Get state before call
-        uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
-        uint256 balanceBefore = SUPER_TOKEN.balanceOf(currentActor());
+        uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(currentActor());
 
         // Call the function
         vm.prank(currentActor());
         try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_TOKEN), _to, _amount, _chainId) {
-            assert(SUPER_TOKEN.balanceOf(currentActor()) == balanceBefore - _amount);
-            assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore - _amount);
+            assert(SUPER_TOKEN.balanceOf(currentActor()) == actorSTokenBalanceBefore - _amount);
+            assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore - _amount);
         } catch {
             // Could revert if the actor doesn't have enough balance
-            assert(balanceBefore < _amount);
+            assert(actorSTokenBalanceBefore < _amount);
         }
     }
 
@@ -149,8 +149,8 @@ contract FuzzTest is Handler {
         );
 
         // Get state before call
-        uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
-        uint256 balanceBefore = SUPER_TOKEN.balanceOf(targetActor);
+        uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: block.chainid,
@@ -172,8 +172,8 @@ contract FuzzTest is Handler {
         if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
 
         // Check the state is right after the call
-        assert(SUPER_TOKEN.balanceOf(targetActor) == balanceBefore + _amount);
-        assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore + _amount);
+        assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _amount);
+        assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _amount);
     }
 
     /// @custom:property-id 3
@@ -196,23 +196,19 @@ contract FuzzTest is Handler {
         // Set the amount to a valid one
         _amount = clampLte(_amount, type(uint256).max - SUPER_WETH.totalSupply());
 
-        // Get WETH
-        vm.prank(currentActor());
-        SUPER_WETH.deposit{ value: _amount }();
-
         // Get state before call
-        uint256 balanceBefore = SUPER_WETH.balanceOf(currentActor());
-        uint256 etherBalanceBefore = address(ETH_LIQUIDITY).balance;
-        uint256 wethEthBalanceBefore = address(SUPER_WETH).balance;
+        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(currentActor());
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+        uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Call the function
         vm.prank(currentActor());
         try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_WETH), _to, _amount, _chainId) {
-            assert(SUPER_WETH.balanceOf(currentActor()) == balanceBefore - _amount);
-            assert(address(ETH_LIQUIDITY).balance == etherBalanceBefore + _amount);
-            assert(address(SUPER_WETH).balance == wethEthBalanceBefore);
+            assert(SUPER_WETH.balanceOf(currentActor()) == actorSWethBalanceBefore - _amount);
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
+            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore);
         } catch {
-            assert(false);
+            assert(actorSWethBalanceBefore < _amount);
         }
     }
 
@@ -272,11 +268,12 @@ contract FuzzTest is Handler {
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
 
+        // If it fails, it should only be because the message was already relayed
         if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
 
         // Check the state is right after the call
-        assert(SUPER_WETH.balanceOf(targetActor) == balanceBefore + _amount);
-        assert(address(ETH_LIQUIDITY).balance == etherBalanceBefore - _amount);
-        assert(address(SUPER_WETH).balance == wethEthBalanceBefore + _amount);
+        assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _amount);
+        assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _amount);
+        assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _amount);
     }
 }
