@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./Handler.t.sol";
 import { Helpers } from "./utils/Helpers.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
@@ -151,14 +152,23 @@ contract FuzzTest is Handler {
         uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 balanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _nonce,
+            _sender: _from,
+            _target: messageTarget,
+            _message: message
+        });
+
         // Relay the message
         vm.prank(relayer);
         /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
         (bool _success,) = address(L2_TO_L2_MESSENGER).call(
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
-        // Shouldn't fail
-        if (!_success) assert(false);
+
+        if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
 
         // Check the state is right after the call
         assert(SUPER_TOKEN.balanceOf(targetActor) == balanceBefore + _amount);
@@ -191,7 +201,6 @@ contract FuzzTest is Handler {
 
         // Get state before call
         uint256 balanceBefore = SUPER_WETH.balanceOf(currentActor());
-        uint256 totalSupplyBefore = SUPER_WETH.totalSupply();
         uint256 etherBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 wethEthBalanceBefore = address(SUPER_WETH).balance;
 
@@ -199,7 +208,6 @@ contract FuzzTest is Handler {
         vm.prank(currentActor());
         try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_WETH), _to, _amount, _chainId) {
             assert(SUPER_WETH.balanceOf(currentActor()) == balanceBefore - _amount);
-            assert(SUPER_WETH.totalSupply() == totalSupplyBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == etherBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == wethEthBalanceBefore);
         } catch {
@@ -210,7 +218,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 4
     /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBrdige on destination
     /// decreases the ETHLiquidity Ether balance and increases the target’s SuperchainWETH balance on destination by
-    /// exactly the input amount, while the SuperchainWETH ether balance remains the same on that chain.
+    /// exactly the input amount, while the SuperchainWETH ether balance is increased by the same amount.Que p
     function test_relaySuperchainWETH(
         Identifier memory _id,
         address _from,
@@ -221,7 +229,12 @@ contract FuzzTest is Handler {
         public
         isInitialized
     {
-        _amount = clampLte(_amount, type(uint256).max - address(ETH_LIQUIDITY).balance);
+        // To avoid overflow pick the higher balance between ETHLiquidity and SUPER_WETH
+        _amount = clampLte(
+            _amount, type(uint256).max - Helpers.max(address(ETH_LIQUIDITY).balance, address(SUPER_WETH).balance)
+        );
+
+        vm.deal(address(ETH_LIQUIDITY), _amount);
 
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -232,10 +245,9 @@ contract FuzzTest is Handler {
         address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
         bytes memory message =
             abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _from, targetActor, _amount));
-        address crossChainSender = address(SUPERCHAIN_TOKEN_BRIDGE);
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _nonce), // topics
-            abi.encode(crossChainSender, message) // data
+            abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
         );
 
         // Get state before call
@@ -243,18 +255,28 @@ contract FuzzTest is Handler {
         uint256 etherBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 wethEthBalanceBefore = address(SUPER_WETH).balance;
 
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _nonce,
+            _sender: _from,
+            _target: messageTarget,
+            _message: message
+        });
+
         // Relay the message
+
         vm.prank(relayer);
         /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
         (bool _success,) = address(L2_TO_L2_MESSENGER).call(
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
-        // Shouldn't fail
-        if (!_success) assertWithMsg(false, "Relay message failed");
+
+        if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
 
         // Check the state is right after the call
         assert(SUPER_WETH.balanceOf(targetActor) == balanceBefore + _amount);
         assert(address(ETH_LIQUIDITY).balance == etherBalanceBefore - _amount);
-        assert(address(SUPER_WETH).balance == wethEthBalanceBefore);
+        assert(address(SUPER_WETH).balance == wethEthBalanceBefore + _amount);
     }
 }

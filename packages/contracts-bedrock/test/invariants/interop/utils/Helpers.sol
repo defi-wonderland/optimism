@@ -12,4 +12,8 @@ library Helpers {
     function toAddress(uint256 _input) internal pure returns (address) {
         return address(uint160(_input));
     }
+
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
 }
