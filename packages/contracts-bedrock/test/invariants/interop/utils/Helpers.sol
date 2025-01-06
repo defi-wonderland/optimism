@@ -13,7 +13,7 @@ library Helpers {
         return address(uint160(_input));
     }
 
-    function max(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >= b ? a : b;
+    function max(uint256 _a, uint256 _b) internal pure returns (uint256) {
+        return _a >= _b ? _a : _b;
     }
 }
