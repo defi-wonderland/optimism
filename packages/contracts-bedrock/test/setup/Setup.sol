@@ -311,8 +311,16 @@ contract Setup {
         labelPreinstall(Preinstalls.CreateX);
 
         configureFeeVaults();
+        configureCrossDomainMessenger();
 
         console.log("Setup: completed L2 genesis");
+    }
+
+    function configureCrossDomainMessenger() internal {
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(
+            Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS, abi.encode(address(l1CrossDomainMessenger))
+        );
     }
 
     function configureFeeVaults() internal {

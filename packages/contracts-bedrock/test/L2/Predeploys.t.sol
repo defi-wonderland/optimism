@@ -23,8 +23,8 @@ contract PredeploysBaseTest is CommonTest {
 
     /// @dev Returns true if the predeploy is initializable.
     function _isInitializable(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.L2_CROSS_DOMAIN_MESSENGER || _addr == Predeploys.L2_STANDARD_BRIDGE
-            || _addr == Predeploys.L2_ERC721_BRIDGE || _addr == Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY;
+        return _addr == Predeploys.L2_STANDARD_BRIDGE || _addr == Predeploys.L2_ERC721_BRIDGE
+            || _addr == Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY;
     }
 
     /// @dev Returns true if the predeploy uses immutables.
