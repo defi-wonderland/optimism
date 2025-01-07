@@ -31,7 +31,7 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
-import { HandlerActors, Actors } from "./Actors.t.sol";
+import { HandlerActors, Actors } from "./helpers/Actors.t.sol";
 
 contract Setup is PropertiesAsserts, HandlerActors {
     // Constants

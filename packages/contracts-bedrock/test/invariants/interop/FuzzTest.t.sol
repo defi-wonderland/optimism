@@ -2,15 +2,15 @@
 pragma solidity ^0.8.0;
 
 import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
-import { Handler } from "./Handler.t.sol";
-import { Helpers } from "./utils/Helpers.sol";
+import { Handler } from "./helpers/Handler.t.sol";
+import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { Actors } from "./Actors.t.sol";
+import { Actors } from "./helpers/Actors.t.sol";
 
 contract FuzzTest is Handler {
-    using Helpers for *;
+    using Utils for *;
 
     struct Message {
         address from;
@@ -221,7 +221,7 @@ contract FuzzTest is Handler {
         // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
         // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
         _message.amount = clampLte(
-            _message.amount, Helpers.min(address(ETH_LIQUIDITY).balance, type(uint256).max - SUPER_WETH.totalSupply())
+            _message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - SUPER_WETH.totalSupply())
         );
 
         // Ensure the id is valid

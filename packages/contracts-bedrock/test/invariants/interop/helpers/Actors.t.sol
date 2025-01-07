@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import { GhostStorage } from "./GhostStorage.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { IStdCheats } from "./interfaces/IStdCheats.sol";
+import { IStdCheats } from "../interfaces/IStdCheats.sol";
 
 // Actors handler, reusing the msg.sender used by Medusa (defined in the json)
 // and tracking them, allowing to aggregate balances for instance.
