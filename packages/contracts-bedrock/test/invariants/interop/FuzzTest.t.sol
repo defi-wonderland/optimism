@@ -174,11 +174,13 @@ contract FuzzTest is Handler {
         );
 
         // If it fails, it should only be because the message was already relayed
-        if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
-
-        // Check the state is right after the call
-        assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _amount);
-        assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _amount);
+        if (!_success) {
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+        } else {
+            // Check the state is right after the call
+            assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _amount);
+            assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _amount);
+        }
     }
 
     /// @custom:property-id 3
@@ -260,7 +262,7 @@ contract FuzzTest is Handler {
             _source: _id.chainId,
             _nonce: _msg.nonce,
             _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: messageTarget,
             _message: message
         });
 
@@ -272,11 +274,13 @@ contract FuzzTest is Handler {
         );
 
         // If it fails, it should only be because the message was already relayed
-        if (!_success) assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
-
-        // Check the state is right after the call
-        assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _msg.amount);
-        assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _msg.amount);
-        assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _msg.amount);
+        if (!_success) {
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+        } else {
+            // Check the state is right after the call
+            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _msg.amount);
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _msg.amount);
+            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _msg.amount);
+        }
     }
 }
