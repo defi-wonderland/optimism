@@ -4,11 +4,18 @@ pragma solidity ^0.8.0;
 import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./Handler.t.sol";
 import { Helpers } from "./utils/Helpers.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
 contract FuzzTest is Handler {
     using Helpers for *;
+
+    struct Message {
+        address from;
+        uint256 amount;
+        uint256 nonce;
+    }
 
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
@@ -103,17 +110,17 @@ contract FuzzTest is Handler {
         _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
         // Get state before call
-        uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
-        uint256 balanceBefore = SUPER_TOKEN.balanceOf(currentActor());
+        uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(currentActor());
 
         // Call the function
         vm.prank(currentActor());
         try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_TOKEN), _to, _amount, _chainId) {
-            assert(SUPER_TOKEN.balanceOf(currentActor()) == balanceBefore - _amount);
-            assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore - _amount);
+            assert(SUPER_TOKEN.balanceOf(currentActor()) == actorSTokenBalanceBefore - _amount);
+            assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore - _amount);
         } catch {
             // Could revert if the actor doesn't have enough balance
-            assert(balanceBefore < _amount);
+            assert(actorSTokenBalanceBefore < _amount);
         }
     }
 
@@ -122,15 +129,111 @@ contract FuzzTest is Handler {
     /// target's balance on the destination chain by exactly the input amount
     function test_relaySuperchainERC20(
         Identifier memory _id,
-        address _from,
-        uint256 _amount,
-        uint256 _nonce,
+        Message memory _message,
         uint256 _actorIndex
     )
         public
         isInitialized
     {
-        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
+        _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_TOKEN.totalSupply());
+
+        // Ensure the id is valid
+        _id.origin = address(L2_TO_L2_MESSENGER);
+        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
+
+        // Ensure the message is valid
+        address targetActor = getActorByRawIndex(_actorIndex);
+        bytes memory message = abi.encodeCall(
+            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _message.from, targetActor, _message.amount)
+        );
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce), // topics
+            abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
+        );
+
+        // Get state before call
+        uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
+
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: message
+        });
+
+        // Relay the message
+        vm.prank(relayer);
+        /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
+        (bool _success,) = address(L2_TO_L2_MESSENGER).call(
+            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
+        );
+
+        // If it fails, it should only be because the message was already relayed
+        if (_success) {
+            // Check the state is right after the call
+            assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
+            assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
+        } else {
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+        }
+    }
+
+    /// @custom:property-id 3
+    /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases the
+    /// ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
+    /// SuperchainWETH Ether balance by exactly the input amount.
+    function test_bridgeSuperchainWETH(
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        public
+        isInitialized
+        withActor(msg.sender)
+    {
+        // Check the target address is valid
+        require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
+        // Set the chain id to a valid one
+        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
+        // Set the amount to a valid one
+        _amount = clampLte(_amount, type(uint256).max - SUPER_WETH.totalSupply());
+
+        // Get state before call
+        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(currentActor());
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+        uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
+
+        // Call the function
+        vm.prank(currentActor());
+        try SUPERCHAIN_TOKEN_BRIDGE.sendERC20(address(SUPER_WETH), _to, _amount, _chainId) {
+            assert(SUPER_WETH.balanceOf(currentActor()) == actorSWethBalanceBefore - _amount);
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
+            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
+        } catch {
+            assert(actorSWethBalanceBefore < _amount);
+        }
+    }
+
+    /// @custom:property-id 4
+    /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBridge on destination decreases
+    /// the ETHLiquidity Ether balance, and increases the target’s SuperchainWETH balance on destination as well as
+    /// SuperchainWETH Ether balance by exactly the input amount.
+    function test_relaySuperchainWETH(
+        Identifier memory _id,
+        Message memory _message,
+        uint256 _actorIndex
+    )
+        public
+        isInitialized
+    {
+        // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
+        // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
+        _message.amount = clampLte(
+            _message.amount, Helpers.min(address(ETH_LIQUIDITY).balance, type(uint256).max - SUPER_WETH.totalSupply())
+        );
 
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -139,17 +242,27 @@ contract FuzzTest is Handler {
         // Ensure the message is valid
         address targetActor = getActorByRawIndex(_actorIndex);
         address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
-        bytes memory message =
-            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _from, targetActor, _amount));
-        address crossChainSender = address(SUPERCHAIN_TOKEN_BRIDGE);
+        bytes memory message = abi.encodeCall(
+            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, targetActor, _message.amount)
+        );
         bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _nonce), // topics
-            abi.encode(crossChainSender, message) // data
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
+            abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
         );
 
         // Get state before call
-        uint256 totalSupplyBefore = SUPER_TOKEN.totalSupply();
-        uint256 balanceBefore = SUPER_TOKEN.balanceOf(targetActor);
+        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(targetActor);
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+        uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
+
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: messageTarget,
+            _message: message
+        });
 
         // Relay the message
         vm.prank(relayer);
@@ -157,11 +270,15 @@ contract FuzzTest is Handler {
         (bool _success,) = address(L2_TO_L2_MESSENGER).call(
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
-        // Shouldn't fail
-        if (!_success) assert(false);
 
-        // Check the state is right after the call
-        assert(SUPER_TOKEN.balanceOf(targetActor) == balanceBefore + _amount);
-        assert(SUPER_TOKEN.totalSupply() == totalSupplyBefore + _amount);
+        // If it fails, it should only be because the message was already relayed
+        if (_success) {
+            // Check the state is right after the call
+            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
+        } else {
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+        }
     }
 }
