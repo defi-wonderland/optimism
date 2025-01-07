@@ -281,4 +281,64 @@ contract FuzzTest is Handler {
             assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
         }
     }
+
+    /// @custom:property-id 8
+    /// @custom:property ETHLiquidity#mint() MUST never be callable such that balance would decrease below 0
+    function test_mintSuperchainWETH(
+        Identifier memory _id,
+        Message memory _message,
+        address _target
+    )
+        public
+        isInitialized
+    {
+        // Ensure the id is valid
+        _id.origin = address(L2_TO_L2_MESSENGER);
+        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
+
+        bytes memory message = abi.encodeCall(SUPER_WETH.relayETH, (_message.from, _target, _message.amount));
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPER_WETH), _message.nonce), // topics
+            abi.encode(address(SUPER_WETH), message) // data
+        );
+
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPER_WETH),
+            _target: address(SUPER_WETH),
+            _message: message
+        });
+
+        // Get state before call
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+
+        // Relay the message
+        vm.prank(relayer);
+        /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
+        (bool _success,) = address(L2_TO_L2_MESSENGER).call(
+            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
+        );
+
+        if (_success) {
+            console.log("Balance before: ", ethLiquidityEthBalanceBefore);
+            console.log("Balance after : ", address(ETH_LIQUIDITY).balance);
+            if (_target != address(ETH_LIQUIDITY)) {
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+            } else {
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
+            }
+        } else {
+            assertWithMsg(
+                _message.amount > ethLiquidityEthBalanceBefore // Insufficient balance
+                    || L2_TO_L2_MESSENGER.successfulMessages(messageHash), // Already relayed
+                "Unkonwn Revert Error"
+            );
+        }
+    }
+
+    /// @custom:property-id 9
+    /// @custom:property ETHLiquidity#burn() MUST never be callable such that balance would increase beyond
+    /// type(uint256).max
 }
