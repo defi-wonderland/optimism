@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -18,7 +19,10 @@ import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPort
 /// @notice The L1CrossDomainMessenger is a message passing interface between L1 and L2 responsible
 ///         for sending and receiving data on the L1 side. Users are encouraged to use this
 ///         interface instead of interacting with lower-level contracts directly.
-contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
+contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver, Initializable {
+    /// @notice Spacer to give the initializer a full slot, to avoid offsetting the superchainConfig slot.
+    bytes30 private spacer_250_2_30;
+
     /// @notice Contract of the SuperchainConfig.
     ISuperchainConfig public superchainConfig;
 
@@ -53,7 +57,6 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         superchainConfig = _superchainConfig;
         portal = _portal;
         systemConfig = _systemConfig;
-        __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
     }
 
     /// @inheritdoc CrossDomainMessenger
@@ -82,7 +85,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @inheritdoc CrossDomainMessenger
     function _isOtherMessenger() internal view override returns (bool) {
-        return msg.sender == address(portal) && portal.l2Sender() == address(otherMessenger);
+        return msg.sender == address(portal) && portal.l2Sender() == address(otherMessenger());
     }
 
     /// @inheritdoc CrossDomainMessenger
@@ -93,5 +96,10 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @inheritdoc CrossDomainMessenger
     function paused() public view override returns (bool) {
         return superchainConfig.paused();
+    }
+
+    /// @inheritdoc CrossDomainMessenger
+    function otherMessenger() public view virtual override returns (CrossDomainMessenger) {
+        return CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 }
