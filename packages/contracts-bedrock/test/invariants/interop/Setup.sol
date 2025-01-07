@@ -186,6 +186,8 @@ contract Setup is PropertiesAsserts {
         proxyAdmin.upgrade(payable(optimismPortalAddress), portalMockImplementation);
 
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
+
+        vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
     }
 
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
