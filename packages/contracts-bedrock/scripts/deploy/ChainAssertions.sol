@@ -161,7 +161,12 @@ library ChainAssertions {
         require(address(messenger) != address(0), "CHECK-L1XDM-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({ _contractAddress: address(messenger), _isProxy: _isProxy, _slot: 0, _offset: 20 });
+        DeployUtils.assertInitialized({
+            _contractAddress: address(messenger),
+            _isProxy: _isProxy,
+            _slot: 250,
+            _offset: 0
+        });
 
         if (_isProxy) {
             require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-20");
@@ -172,8 +177,8 @@ library ChainAssertions {
             bytes32 xdmSenderSlot = _vm.load(address(messenger), bytes32(uint256(204)));
             require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER, "CHECK-L1XDM-70");
         } else {
-            require(address(messenger.OTHER_MESSENGER()) == address(0), "CHECK-L1XDM-80");
-            require(address(messenger.otherMessenger()) == address(0), "CHECK-L1XDM-90");
+            require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-80");
+            require(address(messenger.otherMessenger()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-90");
             require(address(messenger.PORTAL()) == address(0), "CHECK-L1XDM-100");
             require(address(messenger.portal()) == address(0), "CHECK-L1XDM-110");
             require(address(messenger.superchainConfig()) == address(0), "CHECK-L1XDM-120");

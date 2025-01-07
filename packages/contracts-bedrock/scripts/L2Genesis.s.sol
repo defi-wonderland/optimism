@@ -23,8 +23,6 @@ import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMin
 import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
 import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
-import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
-import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
@@ -250,7 +248,7 @@ contract L2Genesis is Deployer {
         setDeployerWhitelist(); // 2
         // 3,4,5: legacy, not used in OP-Stack.
         setWETH(); // 6: WETH (not behind a proxy)
-        setL2CrossDomainMessenger(_l1Dependencies.l1CrossDomainMessengerProxy); // 7
+        setL2CrossDomainMessenger(); // 7
         // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
         setGasPriceOracle(); // f
         setL2StandardBridge(_l1Dependencies.l1StandardBridgeProxy); // 10
@@ -296,14 +294,8 @@ contract L2Genesis is Deployer {
     }
 
     /// @notice This predeploy is following the safety invariant #1.
-    function setL2CrossDomainMessenger(address payable _l1CrossDomainMessengerProxy) public {
-        address impl = _setImplementationCode(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
-
-        IL2CrossDomainMessenger(impl).initialize({ _l1CrossDomainMessenger: ICrossDomainMessenger(address(0)) });
-
-        IL2CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).initialize({
-            _l1CrossDomainMessenger: ICrossDomainMessenger(_l1CrossDomainMessengerProxy)
-        });
+    function setL2CrossDomainMessenger() public {
+        _setImplementationCode(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 
     /// @notice This predeploy is following the safety invariant #1.

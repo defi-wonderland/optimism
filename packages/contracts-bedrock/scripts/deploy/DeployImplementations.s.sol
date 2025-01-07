@@ -34,6 +34,8 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
 import { BaseDeployIO } from "scripts/deploy/BaseDeployIO.sol";
 
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
 // See DeploySuperchain.s.sol for detailed comments on the script architecture used here.
 contract DeployImplementationsInput is BaseDeployIO {
     bytes32 internal _salt;
@@ -358,10 +360,10 @@ contract DeployImplementationsOutput is BaseDeployIO {
     function assertValidL1CrossDomainMessengerImpl(DeployImplementationsInput) internal view {
         IL1CrossDomainMessenger messenger = l1CrossDomainMessengerImpl();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(messenger), _isProxy: false, _slot: 0, _offset: 20 });
+        DeployUtils.assertInitialized({ _contractAddress: address(messenger), _isProxy: false, _slot: 250, _offset: 0 });
 
-        require(address(messenger.OTHER_MESSENGER()) == address(0), "L1xDM-10");
-        require(address(messenger.otherMessenger()) == address(0), "L1xDM-20");
+        require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L1xDM-10");
+        require(address(messenger.otherMessenger()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L1xDM-20");
         require(address(messenger.PORTAL()) == address(0), "L1xDM-30");
         require(address(messenger.portal()) == address(0), "L1xDM-40");
         require(address(messenger.superchainConfig()) == address(0), "L1xDM-50");
