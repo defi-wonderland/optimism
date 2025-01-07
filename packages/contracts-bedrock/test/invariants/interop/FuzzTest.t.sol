@@ -100,19 +100,29 @@ contract FuzzTest is Handler {
         // Set the chain id to a valid one
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
         // Set the amount to a valid one
-        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
+        uint256 totalSupply = SUPER_TOKEN.totalSupply();
+        _amount = clampLte(_amount, totalSupply);
 
         // Get state before call
-        uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
-        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(address(currentActor()));
+        Actors _actor = currentActor();
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(address(_actor));
+        uint256 sTokenTotalSupplyBefore = totalSupply;
+        console.log("actorSTokenBalanceBefore0 : %d", actorSTokenBalanceBefore);
+        console.log("total supply bef          : %d", sTokenTotalSupplyBefore);
+        console.log("amount bef                : %d", _amount);
 
         // Call the token bridge from the actor
-        Actors _actor = currentActor();
         (bool _success,) = _actor.callSuperchainTokenBridge(
-            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.sendERC20, (address(SUPER_TOKEN), _to, _amount, _chainId))
+            abi.encodeWithSelector(
+                SUPERCHAIN_TOKEN_BRIDGE.sendERC20.selector, address(SUPER_TOKEN), _to, _amount, _chainId
+            )
         );
         if (_success) {
-            assert(SUPER_TOKEN.balanceOf(address(currentActor())) == actorSTokenBalanceBefore - _amount);
+            // TODO: Fails here, on both conditions as if the call was not successful
+            console.log("total supply af           : %d", sTokenTotalSupplyBefore);
+            console.log("amount: %d", _amount);
+            console.log("actorSTokenBalanceAfter: 1 %d", SUPER_TOKEN.balanceOf(address(_actor)));
+            assert(SUPER_TOKEN.balanceOf(address(_actor)) == actorSTokenBalanceBefore - _amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore - _amount);
         } else {
             assert(actorSTokenBalanceBefore < _amount);
@@ -178,29 +188,33 @@ contract FuzzTest is Handler {
     /// @custom:property-id 3
     /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases the
     /// ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
-    /// SuperchainWETH Ether balance by exactly the input amount.
-    function test_bridgeSuperchainWETH(address _to, uint256 _amount, uint256 _chainId) public isInitialized {
+    /// SuperchainWETH total supply and Ether balance by exactly the input amount.
+    function test_sendSuperchainWETH(address _to, uint256 _amount, uint256 _chainId) public isInitialized {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
         // Set the amount to a valid one
-        _amount = clampLte(_amount, type(uint256).max - SUPER_WETH.totalSupply());
+        uint256 totalSupply = SUPER_WETH.totalSupply();
+        _amount = clampLte(_amount, type(uint256).max - totalSupply);
 
         // Get state before call
-        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(address(currentActor()));
+        Actors _actor = currentActor();
+        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(address(_actor));
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Call the token bridge from the actor
-        Actors _actor = currentActor();
         (bool _success,) = _actor.callSuperchainTokenBridge(
-            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.sendERC20, (address(SUPER_TOKEN), _to, _amount, _chainId))
+            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.sendERC20, (address(SUPER_WETH), _to, _amount, _chainId))
         );
         if (_success) {
-            assert(SUPER_WETH.balanceOf(address(currentActor())) == actorSWethBalanceBefore - _amount);
+            // TODO: Doesn't enter here
+            assert(false);
+            assert(SUPER_WETH.balanceOf(address(_actor)) == actorSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
+            assert(SUPER_WETH.totalSupply() == totalSupply - _amount);
         } else {
             assert(actorSWethBalanceBefore < _amount);
         }
@@ -209,7 +223,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 4
     /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBridge on destination decreases
     /// the ETHLiquidity Ether balance, and increases the target’s SuperchainWETH balance on destination as well as
-    /// SuperchainWETH Ether balance by exactly the input amount.
+    /// SuperchainWETH total supply and Ether balance by exactly the input amount.
     function test_relaySuperchainWETH(
         Identifier memory _id,
         Message memory _message,
@@ -220,9 +234,9 @@ contract FuzzTest is Handler {
     {
         // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
         // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
-        _message.amount = clampLte(
-            _message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - SUPER_WETH.totalSupply())
-        );
+        uint256 totalSupplyBefore = SUPER_WETH.totalSupply();
+        _message.amount =
+            clampLte(_message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - totalSupplyBefore));
 
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -254,6 +268,7 @@ contract FuzzTest is Handler {
             assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
+            assert(SUPER_WETH.totalSupply() == totalSupplyBefore + _message.amount);
         } else {
             // If it fails, it should only be because the message was already relayed
             bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({

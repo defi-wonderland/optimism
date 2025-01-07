@@ -19,8 +19,10 @@ contract Actors {
 
     function callSuperchainTokenBridge(bytes memory _payload) public returns (bool _success, bytes memory _ret) {
         emit ActorsLog(string.concat("call using actor: ", _vm.toString(address(this))));
+        emit ActorsLog(string.concat("stoken bridge address: ", _vm.toString(superchainTokenBridge)));
 
         (_success, _ret) = superchainTokenBridge.call(_payload);
+        emit ActorsLog(_vm.toString(_ret));
 
         if (!_success) {
             emit ActorsLog(_vm.toString(_ret));

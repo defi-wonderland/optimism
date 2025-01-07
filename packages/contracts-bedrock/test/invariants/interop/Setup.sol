@@ -189,6 +189,8 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
         // Give the initial ether balance to ETHLiquidity
         vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
+
+        _addActors();
     }
 
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
@@ -255,8 +257,9 @@ contract Setup is PropertiesAsserts, HandlerActors {
     function _addActors() internal {
         for (uint256 i; i < numberOfActors; i++) {
             Actors _newActor = new Actors();
-
             _ghost_actors.push(address(_newActor));
+
+            // TODO: mint superchain erc20 tokens here, but without minting anything for 2 addresses
         }
     }
 }
