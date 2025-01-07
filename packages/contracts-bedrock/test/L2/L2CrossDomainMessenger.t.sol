@@ -8,6 +8,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { stdError } from "forge-std/StdError.sol";
 
 // Libraries
+import { Constants } from "src/libraries/Constants.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Types } from "src/libraries/Types.sol";
@@ -411,5 +412,15 @@ contract L2CrossDomainMessenger_Test is CommonTest {
             0,
             hex"1111"
         );
+    }
+
+    function test_setConfig_succeeds(address _l1CrossDomainMessengerAddress) external {
+        Types.ConfigType configType = Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS;
+        bytes memory data = abi.encode(_l1CrossDomainMessengerAddress);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, data);
+
+        assertEq(address(l2CrossDomainMessenger.otherMessenger()), address(_l1CrossDomainMessengerAddress));
     }
 }
