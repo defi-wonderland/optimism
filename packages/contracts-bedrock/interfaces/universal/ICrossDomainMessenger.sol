@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 interface ICrossDomainMessenger {
     event FailedRelayedMessage(bytes32 indexed msgHash);
-    event Initialized(uint8 version);
     event RelayedMessage(bytes32 indexed msgHash);
     event SentMessage(address indexed target, address sender, bytes message, uint256 messageNonce, uint256 gasLimit);
     event SentMessageExtension1(address indexed sender, uint256 value);
