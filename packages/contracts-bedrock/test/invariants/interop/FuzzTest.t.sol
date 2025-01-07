@@ -129,16 +129,13 @@ contract FuzzTest is Handler {
     /// target's balance on the destination chain by exactly the input amount
     function test_relaySuperchainERC20(
         Identifier memory _id,
-        address _from,
-        uint256 _amount,
-        uint256 _nonce,
+        Message memory _message,
         uint256 _actorIndex
     )
         public
         isInitialized
-        withActor(msg.sender)
     {
-        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
+        _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -146,10 +143,11 @@ contract FuzzTest is Handler {
 
         // Ensure the message is valid
         address targetActor = getActorByRawIndex(_actorIndex);
-        bytes memory message =
-            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _from, targetActor, _amount));
+        bytes memory message = abi.encodeCall(
+            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _message.from, targetActor, _message.amount)
+        );
         bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _nonce), // topics
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce), // topics
             abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
         );
 
@@ -160,7 +158,7 @@ contract FuzzTest is Handler {
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: block.chainid,
             _source: _id.chainId,
-            _nonce: _nonce,
+            _nonce: _message.nonce,
             _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
             _target: address(SUPERCHAIN_TOKEN_BRIDGE),
             _message: message
@@ -174,12 +172,12 @@ contract FuzzTest is Handler {
         );
 
         // If it fails, it should only be because the message was already relayed
-        if (!_success) {
-            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
-        } else {
+        if (_success) {
             // Check the state is right after the call
-            assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _amount);
-            assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _amount);
+            assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
+            assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
+        } else {
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
         }
     }
 
@@ -225,16 +223,16 @@ contract FuzzTest is Handler {
     /// SuperchainWETH Ether balance by exactly the input amount.
     function test_relaySuperchainWETH(
         Identifier memory _id,
-        Message memory _msg,
+        Message memory _message,
         uint256 _actorIndex
     )
         public
         isInitialized
-        withActor(msg.sender)
     {
-        // To avoid overflow pick the higher balance between ETHLiquidity and SUPER_WETH
-        _msg.amount = clampLte(
-            _msg.amount, type(uint256).max - Helpers.max(address(ETH_LIQUIDITY).balance, address(SUPER_WETH).balance)
+        // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
+        // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
+        _message.amount = clampLte(
+            _message.amount, Helpers.min(address(ETH_LIQUIDITY).balance, type(uint256).max - SUPER_WETH.totalSupply())
         );
 
         // Ensure the id is valid
@@ -245,10 +243,10 @@ contract FuzzTest is Handler {
         address targetActor = getActorByRawIndex(_actorIndex);
         address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
         bytes memory message = abi.encodeCall(
-            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _msg.from, targetActor, _msg.amount)
+            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, targetActor, _message.amount)
         );
         bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _msg.nonce), // topics
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
             abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
         );
 
@@ -260,7 +258,7 @@ contract FuzzTest is Handler {
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: block.chainid,
             _source: _id.chainId,
-            _nonce: _msg.nonce,
+            _nonce: _message.nonce,
             _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
             _target: messageTarget,
             _message: message
@@ -274,13 +272,13 @@ contract FuzzTest is Handler {
         );
 
         // If it fails, it should only be because the message was already relayed
-        if (!_success) {
-            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
-        } else {
+        if (_success) {
             // Check the state is right after the call
-            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _msg.amount);
-            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _msg.amount);
-            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _msg.amount);
+            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
+        } else {
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
         }
     }
 }
