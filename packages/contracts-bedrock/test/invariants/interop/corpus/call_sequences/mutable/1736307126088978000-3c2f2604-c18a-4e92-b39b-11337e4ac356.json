@@ -1,0 +1,817 @@
+[
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000020000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xab2f47b10000000000000000000000000000000000000000000000000000000000060000b07e6c58382e92c7906f469a38edc9014382f660748d0a89f3fe6849c06d15220000000000000000000000000000000000000000000000000000000000000031aac74000ca6131465223feebbaf5e50e9c0e82bb49031c23ac408ecbdf25df768a87ee3559444bc3d51e62f27c962e87638cfa1d3dace785690922a4cece33ba0000000000000000000000006a11ab577507f972c0d0f7daefba314e91bb7b2aa77b5aa528dfb90993ac7a9c28326f2971620f37e2a1b3051f48f8faba91228a8ba673c02acc9f7b7ca122b313a9483ca6a9ac7f2924504ab4333782f41d2a74e30f740336c1212c5579f8e538070064aa06b8168c4b4cb0429ae353db347b9c",
+   "dataAbiValues": {
+    "methodSignature": "test_relaySuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)",
+    "inputValues": [
+     {
+      "blockNumber": "79830431847814368370865523871470255206395788086853815562637672601230481626402",
+      "chainId": "62659341512144442278767661054555704789237297373637774893133571779967922877370",
+      "logIndex": "49",
+      "origin": "0x0000000000000000000000000000000000060000",
+      "timestamp": "77245228558125444685073542247262091753586042591374451619413234676850699394934"
+     },
+     {
+      "amount": "75754193512240165250946313541909444227542619850048387211497718914715221041802",
+      "from": "0x6A11ab577507F972C0D0f7DaefBA314e91bB7b2a",
+      "nonce": "63165581447474174051152520078117578076666115206254637955988254721308171774580"
+     },
+     "102702320023595526284776245374204383784652601416961282436938778390225042570140"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 0,
+  "blockTimestampDelay": 79481
+ },
+ {
+  "call": {
+   "from": "0x00000000000000000000000000000000000a0000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x1b422ccd000000000000000000000000000000000000000000000000000000000007000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000ea37600866b41f1e8ce9efc31a6f29aa723d00b63c49fdc13ff7cde460b4e1b62b9f5ea83d0efc3e1b6a26c7205c52ce63c65e0e7eca8dc76aea87a2dac28c370000000000000000000000000000000000000000000000000000000000005208ffffffffffffffffffffffffffffffffffffffffffffffffffffc7c88af7e6ff3ebc872f3c7bc6662570c88fb61c604a9e479ed9475f3c5d43972bbdd68ccd5dfffffffffffffffffffffffffff0c20928cd7f810ece604847447add2f4153fe",
+   "dataAbiValues": {
+    "methodSignature": "test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)",
+    "inputValues": [
+     {
+      "blockNumber": "5708990770823839524233143877797980545530986496",
+      "chainId": "19731034472238070598732466396273746610078621760741680393481854049244854520887",
+      "logIndex": "5708990770823839524233143877797980545530986496",
+      "origin": "0x0000000000000000000000000000000000070000",
+      "timestamp": "105939045951191962710933555029840488789023386044811289273142861560537087795638"
+     },
+     {
+      "amount": "115792089237316195423570985008687907853269984665640564039457583946102291818239",
+      "from": "0x0000000000000000000000000000000000005208",
+      "nonce": "28376496869584817995465370348406632071708194480309880822672996357526197685597"
+     },
+     "115792089237316195423570985008687567944247056366225026270391163755308861445118"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 56080,
+  "blockTimestampDelay": 335351
+ },
+ {
+  "call": {
+   "from": "0x00000000000000000000000000000000000a0000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x159137c20000000000000000000000000000000000000000000000000000000000000005",
+   "dataAbiValues": {
+    "methodSignature": "handler_depositSuperchainWETH(uint256)",
+    "inputValues": [
+     "5"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 4143,
+  "blockTimestampDelay": 400957
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000030000",
+   "to": "0x4200000000000000000000000000000000000825",
+   "nonce": 3,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x90a2514e",
+   "dataAbiValues": {
+    "methodSignature": "deployCrossL2Inbox()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 2433,
+  "blockTimestampDelay": 3026
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000040000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xac2699d40000000000000000000000008c06c702de6eab7789601ae3c34c311f61e1430e0000000000000000000000005dad7678b9d8db8b63c0a728031badca504b372e100000000000000000000000000000000000000000000000000000000000000043d2689edb1e4cbd0d49acdf542ef9cdcb61ee38c82f01342ad77102e023e5ab",
+   "dataAbiValues": {
+    "methodSignature": "callBridgeSendERC20(address,address,uint256,uint256)",
+    "inputValues": [
+     "0x8C06C702De6eAb7789601ae3c34C311f61e1430e",
+     "0x5daD7678B9D8db8b63c0a728031BAdca504B372E",
+     "7237005577332262213973186563042994240829374041602535252466099000494570602496",
+     "30676720803049804832243532346041296116800900656265198175609344678323028223403"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 5288,
+  "blockTimestampDelay": 282613
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000060000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xeffd7b460000000000000000000000000000000000000000000000000000000000000013000000000000000000000000a2f58f06e979508d608694cc7bdeacb4fecfad4400000000000000000000000000000000000000000000000000000000000000a01da813f7094350274c80dd206b5685c236f28f55a6f4213bdb4cee8e902530f9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa0",
+   "dataAbiValues": {
+    "methodSignature": "callBridgeRelayERC20(address,address,address,uint256,uint256)",
+    "inputValues": [
+     "0x0000000000000000000000000000000000000013",
+     "0xa2F58F06E979508D608694cc7BDeAcB4fEcFad44",
+     "0x00000000000000000000000000000000000000a0",
+     "13414040709060411265194895724861623777988755774124312314975339981677844050169",
+     "115792089237316195423570985008687907853269984665640564039457584007913129639840"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 50514,
+  "blockTimestampDelay": 95145
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000080000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x159137c2a137d46c381ce3fd8fb263c92b0cdb50887f1993bb2d5eb43393729dd8a0ed94",
+   "dataAbiValues": {
+    "methodSignature": "handler_depositSuperchainWETH(uint256)",
+    "inputValues": [
+     "72921011298277832549930978031141083461115882420718061735177161976092542692756"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 12041,
+  "blockTimestampDelay": 143026
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000090000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xab2f47b10000000000000000000000009461a139918a05a19ca3193391c3aded3ee0fd0e360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d37870b000000000000000000000000000000014551231950b75fc4402da1732fc8863d0dca3ecb65ecdb51444d1d38c7d1e93b856c4cfb7110216db8ef59d44a1ce8a2fdd577492a3665d86dd1534c6d26b51d34928ab787cbdcac9c4ca6178be8a0d4000000000000000000000000000000000000000000000000000000006352211e10a71a50d7076b51181c870a748f1fc75d443bb8dce273ddec4fa045239703bfffffffffffffffffc517ad273fffffffffffffffffffffffffffffeb78bc576000000000000000000000000000000000000000000000000000000000004371a0",
+   "dataAbiValues": {
+    "methodSignature": "test_relaySuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)",
+    "inputValues": [
+     {
+      "blockNumber": "24440054405305269366569402256811496959409073762505157381672968839269610653451",
+      "chainId": "114812312396701061120632069378794552854790392824379268376719085966722867962068",
+      "logIndex": "432420386565659656852420866394968065597",
+      "origin": "0x9461A139918a05a19Ca3193391c3aDeD3Ee0Fd0e",
+      "timestamp": "6237403530544349786921640964483897479388487852587411505047411873722637543586"
+     },
+     {
+      "amount": "7532250661996197116845548331253513666631820892316678601331407490271893980095",
+      "from": "0x000000000000000000000000000000006352211E",
+      "nonce": "115792089237316195422126576964798956862479976140150701762429429257407595042656"
+     },
+     "4420000"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 7578,
+  "blockTimestampDelay": 12606
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000020000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xb6e86f3f29a259f924726af0a27ce674a8a933307d1cc92a25fc071422c657f313461902",
+   "dataAbiValues": {
+    "methodSignature": "handler_withdrawSuperchainWETH(uint256)",
+    "inputValues": [
+     "18831676988697915891258187873455155519857969882868812266173218407787908176130"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 28417,
+  "blockTimestampDelay": 269391
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000060000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x2d9a58140000000000000000000000004200000000000000000000000000000000000016941103f5c32d0a4eeef5cacf0be87709fe331ec0ae8263a353b1dd3ca95e8f5b00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000012eb9358748df6343ee30d9d01fec734f425c00000000000000000000000000000",
+   "dataAbiValues": {
+    "methodSignature": "directCall(address,uint256,bytes)",
+    "inputValues": [
+     "0x4200000000000000000000000000000000000016",
+     "66972365321405057202945181924837028613807038170942143209618469354209487523675",
+     "eb9358748df6343ee30d9d01fec734f425c0"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 38665,
+  "blockTimestampDelay": 394500
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000090000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x9e2e176f00000000000000000000000011110000000000000000000000000000000011112d483af8e13a614c00ffe828fc5715aec582f2517f1481bc35120c4655e08f8115c08a61643a0e700458c7abf7b0b7da6a2c3ebcc664df953bde8c594138f04d",
+   "dataAbiValues": {
+    "methodSignature": "test_sendSuperchainWETH(address,uint256,uint256)",
+    "inputValues": [
+     "0x1111000000000000000000000000000000001111",
+     "20481698185985200246168985437047401669444599470775012770176916393868526653313",
+     "9838759523351839941745999855881614037313885177257503529898892984459808272461"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 28991,
+  "blockTimestampDelay": 159430
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000090000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xbdb69d62",
+   "dataAbiValues": {
+    "methodSignature": "deployL1Block()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 21204,
+  "blockTimestampDelay": 499623
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000050000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xbdb69d62",
+   "dataAbiValues": {
+    "methodSignature": "deployL1Block()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 0,
+  "blockTimestampDelay": 0
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000030000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 4,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x6e3fc054",
+   "dataAbiValues": {
+    "methodSignature": "property_setupSanityCheck()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 19,
+  "blockTimestampDelay": 360588
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000090000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 3,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x1cf0cb7b",
+   "dataAbiValues": {
+    "methodSignature": "deployETHLiquidity()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 0,
+  "blockTimestampDelay": 0
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000020000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x3cf73406e8115639f86fe5388fd91a94850bfd5e716306c7818a8a01fecb45bebb52c60e8f73b6c0c79420ae1cdddcbaf4e190840275105c86f3233671d10c8e1cac1231",
+   "dataAbiValues": {
+    "methodSignature": "deployOptimismPortal(uint256,uint256)",
+    "inputValues": [
+     "104967212384485298081411131378931605912883630735086097812567380577666955658766",
+     "64885186075019565936424279024808390725394788422233205964130102329838679102001"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 56145,
+  "blockTimestampDelay": 273344
+ },
+ {
+  "call": {
+   "from": "0x00000000000000000000000000000000000a0000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xb6e86f3f0000000000000000000000000000000000000000000000000000000000000104",
+   "dataAbiValues": {
+    "methodSignature": "handler_withdrawSuperchainWETH(uint256)",
+    "inputValues": [
+     "260"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 6523,
+  "blockTimestampDelay": 72976
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000060000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x9e2e176f00000000000000000000000000000000000000000000000000000000000000fc02f9f7cdf61a965bcae4510f5fe1ce4b8d571f5232f48d8a9829069c3c64faee06234e56376e1935006cb20f0ff572dd16f84c181e1f3ea9348633b76cf16b0b",
+   "dataAbiValues": {
+    "methodSignature": "test_sendSuperchainWETH(address,uint256,uint256)",
+    "inputValues": [
+     "0x00000000000000000000000000000000000000fc",
+     "1346280900350835656934990202896316889846123380812067837297878525150021090030",
+     "2776257399374772743950690475404490042021023672413284333904909141011374107403"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 56454,
+  "blockTimestampDelay": 360620
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000070000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x417a4988000000000000000000000000771269753351449260f9a0dea7102de6cc061168",
+   "dataAbiValues": {
+    "methodSignature": "deployLiquidityMigrator(address)",
+    "inputValues": [
+     "0x771269753351449260F9A0dEa7102de6cC061168"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 23861,
+  "blockTimestampDelay": 326199
+ },
+ {
+  "call": {
+   "from": "0x00000000000000000000000000000000000a0000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 3,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x6e3fc054",
+   "dataAbiValues": {
+    "methodSignature": "property_setupSanityCheck()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 0,
+  "blockTimestampDelay": 399351
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000010000",
+   "to": "0x4200000000000000000000000000000000000825",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x20859cfc",
+   "dataAbiValues": {
+    "methodSignature": "deployL2ToL2CrossDomainMessenger()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 59110,
+  "blockTimestampDelay": 135155
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000030000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 5,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x22e86e06000000000000000000000000000f3df6d732807ef1319fb7b8bb8522d0beac02",
+   "dataAbiValues": {
+    "methodSignature": "deploySharedLockbox(address)",
+    "inputValues": [
+     "0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 36973,
+  "blockTimestampDelay": 92522
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000070000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xbdb69d62",
+   "dataAbiValues": {
+    "methodSignature": "deployL1Block()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 21,
+  "blockTimestampDelay": 29
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000060000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 3,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x1b422ccd0000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000006352211e0000000000000000000000000000000000000000000000000000000070a082319711ae3b436b87ce81cb9b00418725bdc4e060933dfdf088bae411aab81ed042ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff92000000000000000000000000fffffffebaaedce6af48a03bbfd25e8cd0364141ad74732ad81e6732adcb817bcfe73b0ef5e57d4c4579d54b54caff2d49172cded4675d30667024691338e73185c5bb823eb71e8ec6cc3f50fa68171b432f9e050000000000000000000000000000000000000000000000000000000000000000",
+   "dataAbiValues": {
+    "methodSignature": "test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)",
+    "inputValues": [
+     {
+      "blockNumber": "1666326814",
+      "chainId": "115792089237316195423570985008687907853269984665640564039457584007913129639826",
+      "logIndex": "1889567281",
+      "origin": "0x0000000000000000000000000000000000020000",
+      "timestamp": "68330479037775811119564804329117401041882472171520702146232141031206408867906"
+     },
+     {
+      "amount": "78455871920326980823302515053199431190664517636058714287593027142515506490590",
+      "from": "0xFFFFfFFEbAaedcE6Af48a03BbfD25e8CD0364141",
+      "nonce": "96072952314600325853889174409381859519743617479808152825202728659563366555141"
+     },
+     "0"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 40827,
+  "blockTimestampDelay": 419908
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000080000",
+   "to": "0x4200000000000000000000000000000000000825",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x20859cfc",
+   "dataAbiValues": {
+    "methodSignature": "deployL2ToL2CrossDomainMessenger()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 23741,
+  "blockTimestampDelay": 360606
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000040000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x3cf73406ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe48714c444d1b4240066e0afdbb62780f3f4adf11383caa18b6b737e445e321cc1",
+   "dataAbiValues": {
+    "methodSignature": "deployOptimismPortal(uint256,uint256)",
+    "inputValues": [
+     "115792089237316195423570985008687907853269984665640564039457584007913129639908",
+     "61098926097681248949836323897255296744890929308994604059324534180572550012097"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 12460,
+  "blockTimestampDelay": 479839
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000010000",
+   "to": "0x4200000000000000000000000000000000000825",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x90a2514e",
+   "dataAbiValues": {
+    "methodSignature": "deployCrossL2Inbox()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 7,
+  "blockTimestampDelay": 36
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000050000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x9f91680a",
+   "dataAbiValues": {
+    "methodSignature": "deploySuperchainWETH()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 21216,
+  "blockTimestampDelay": 251065
+ },
+ {
+  "call": {
+   "from": "0x00000000000000000000000000000000000a0000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 4,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xcbd433f40000000000000000000000000000000000000000000000000000000000000038",
+   "dataAbiValues": {
+    "methodSignature": "deployProxy(address)",
+    "inputValues": [
+     "0x0000000000000000000000000000000000000038"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 24241,
+  "blockTimestampDelay": 521275
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000010000",
+   "to": "0x4200000000000000000000000000000000000825",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x97ce94e1",
+   "dataAbiValues": {
+    "methodSignature": "deploySuperchainERC20()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 21038,
+  "blockTimestampDelay": 389753
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000040000",
+   "to": "0x4200000000000000000000000000000000000825",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x20859cfc",
+   "dataAbiValues": {
+    "methodSignature": "deployL2ToL2CrossDomainMessenger()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 14761,
+  "blockTimestampDelay": 29291
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000020000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 3,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xbdb69d62",
+   "dataAbiValues": {
+    "methodSignature": "deployL1Block()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 4390,
+  "blockTimestampDelay": 84088
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000050000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x1cf0cb7b",
+   "dataAbiValues": {
+    "methodSignature": "deployETHLiquidity()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 3054,
+  "blockTimestampDelay": 461519
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000070000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 2,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x02eb1c0c0000000000000000000000000000000000000000000000000000000000000012",
+   "dataAbiValues": {
+    "methodSignature": "deploySuperchainConfig(address)",
+    "inputValues": [
+     "0x0000000000000000000000000000000000000012"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 44351,
+  "blockTimestampDelay": 501409
+ }
+]

@@ -1,0 +1,58 @@
+[
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000080000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x9f91680a",
+   "dataAbiValues": {
+    "methodSignature": "deploySuperchainWETH()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 6492,
+  "blockTimestampDelay": 10738
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000010000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0xab2f47b1000000000000000000000000420000000000000000000000000000000000000f00000000000000000000000069f4d1788e39c87893c980c06edf4b7f686e2938fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5fb6db6db6db6db6db6db6db6dedf35baa3717edf35baa3717edf35baa3717b6e000000000000000000000000000042004200420042004200420042004200420000000000000000000000000047afe2aa183482984861ec2551a9af3582620b55000000000000000000000000000000000000000000000000000000000000009f00000000000000000000000000000000000000000000000000000000000000bffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff800",
+   "dataAbiValues": {
+    "methodSignature": "test_relaySuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)",
+    "inputValues": [
+     {
+      "blockNumber": "604903660255638792852612252146389342460933187896",
+      "chainId": "5749498601882557543288128418931360586023424",
+      "logIndex": "115792089237316195423570985008687907853269984665640564039457584007913129639925",
+      "origin": "0x420000000000000000000000000000000000000F",
+      "timestamp": "113724373358078406219578645990695281793083910952490702496027007410549858335598"
+     },
+     {
+      "amount": "159",
+      "from": "0x47afe2AA183482984861eC2551a9aF3582620B55",
+      "nonce": "191"
+     },
+     "115792089237316195423570985008687907853269984665640564039457584007913129637888"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 8068,
+  "blockTimestampDelay": 360624
+ }
+]

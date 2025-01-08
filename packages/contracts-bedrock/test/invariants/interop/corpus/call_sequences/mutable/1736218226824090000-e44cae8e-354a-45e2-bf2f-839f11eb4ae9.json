@@ -1,0 +1,72 @@
+[
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000090000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x77493bf3",
+   "dataAbiValues": {
+    "methodSignature": "test_setup()",
+    "inputValues": []
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 46762,
+  "blockTimestampDelay": 581599
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000060000",
+   "to": "0xdbb516dbcc8c91a999eb6706cd0a03eaaff6cdc0",
+   "nonce": 0,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x471c7d43000000000000000000000000bc97c15b93b200e78290d8d3d16e1dac8991f4e9fffffffffffffffffffffffda4623c7a9c3cd1a3d0923e6d118f109a0668751f00000000000000000000000000000000000090b81f65e139c9cd69e5d71a1d35",
+   "dataAbiValues": {
+    "methodSignature": "test_bridgeSuperchainWETH(address,uint256,uint256)",
+    "inputValues": [
+     "0xbC97c15b93b200E78290d8D3D16e1dAc8991f4e9",
+     "115792089237316195423570985005241868169181121621197213276490092720762758133023",
+     "2935254682028875886393372729548085"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 37513,
+  "blockTimestampDelay": 319346
+ },
+ {
+  "call": {
+   "from": "0x0000000000000000000000000000000000090000",
+   "to": "0x4200000000000000000000000000000000000815",
+   "nonce": 1,
+   "value": "0x0",
+   "gasLimit": 12500000,
+   "gasPrice": "0x1",
+   "gasFeeCap": "0x0",
+   "gasTipCap": "0x0",
+   "data": "0x3cf73406414382376468a0c3d063b0ce59d24a4e38fc677193179dbb76b3b5ce2855a6112a952e357098df6f7c7e79b20fc5577bde97a6516e24df61d209c46a144e3c37",
+   "dataAbiValues": {
+    "methodSignature": "deployOptimismPortal(uint256,uint256)",
+    "inputValues": [
+     "29519612631648887085503390062755217559623024572877051352439080807383635961361",
+     "19260718774216158188757015381416025175052123755402448666334241564189399071799"
+    ]
+   },
+   "AccessList": null,
+   "SkipAccountChecks": false
+  },
+  "blockNumberDelay": 14134,
+  "blockTimestampDelay": 137272
+ }
+]
