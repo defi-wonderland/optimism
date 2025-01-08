@@ -12,17 +12,10 @@ import { Actors } from "./helpers/Actors.t.sol";
 contract FuzzTest is Handler {
     using Utils for *;
 
-    struct Message {
-        address from;
-        uint256 amount;
-        uint256 nonce;
-    }
-
-    /// @notice Event selector for the SentMessage event.
-    bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
-        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
-
     bool initialized;
+
+    // TODO: Remove
+    uint256 seed = uint256(uint160(address(this)));
 
     /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
     modifier isInitialized() {
@@ -104,22 +97,14 @@ contract FuzzTest is Handler {
         _amount = clampLte(_amount, totalSupply);
 
         // Get state before call
-        Actors _actor = currentActor();
-        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(address(_actor));
+        Actors actor = currentActor();
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(address(actor));
         uint256 sTokenTotalSupplyBefore = totalSupply;
-        console.log("actorSTokenBalanceBefore0 : %d", actorSTokenBalanceBefore);
-        console.log("total supply bef          : %d", sTokenTotalSupplyBefore);
-        console.log("amount bef                : %d", _amount);
 
         // Call the token bridge from the actor
-        (bool success) = _actor.callBridgeSendERC20(address(SUPER_TOKEN), _to, _amount, _chainId);
-
+        (bool success) = actor.callBridgeSendERC20(address(SUPER_TOKEN), _to, _amount, _chainId);
         if (success) {
-            // TODO: Fails here, on both conditions as if the call was not successful
-            console.log("total supply af           : %d", sTokenTotalSupplyBefore);
-            console.log("amount: %d", _amount);
-            console.log("actorSTokenBalanceAfter: 1 %d", SUPER_TOKEN.balanceOf(address(_actor)));
-            assert(SUPER_TOKEN.balanceOf(address(_actor)) == actorSTokenBalanceBefore - _amount);
+            assert(SUPER_TOKEN.balanceOf(address(actor)) == actorSTokenBalanceBefore - _amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore - _amount);
         } else {
             assert(actorSTokenBalanceBefore < _amount);
@@ -158,8 +143,8 @@ contract FuzzTest is Handler {
         uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
         // Relay the message by calling the messenger from the actor
-        Actors _actor = currentActor();
-        (bool success) = _actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        Actors actor = currentActor();
+        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
             // Check the state is right after the call
@@ -195,15 +180,15 @@ contract FuzzTest is Handler {
         _amount = clampLte(_amount, Utils.min(address(SUPER_WETH).balance, totalSupply));
 
         // Get state before call
-        Actors _actor = currentActor();
-        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(address(_actor));
+        Actors actor = currentActor();
+        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(address(actor));
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Call the token bridge from the actor
-        (bool success) = _actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
+        (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
         if (success) {
-            assert(SUPER_WETH.balanceOf(address(_actor)) == actorSWethBalanceBefore - _amount);
+            assert(SUPER_WETH.balanceOf(address(actor)) == actorSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
             assert(SUPER_WETH.totalSupply() == totalSupply - _amount);
@@ -251,8 +236,8 @@ contract FuzzTest is Handler {
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Relay the message by calling the messenger from the actor
-        Actors _actor = currentActor();
-        (bool success) = _actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        Actors actor = currentActor();
+        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
             assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
