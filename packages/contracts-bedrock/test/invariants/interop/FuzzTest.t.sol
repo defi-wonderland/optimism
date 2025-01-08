@@ -319,4 +319,16 @@ contract FuzzTest is Handler {
     /// @custom:property-id 9
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that balance would increase beyond
     /// type(uint256).max
+    function test_burnSuperchainWETH(address _to, uint256 _chainId, uint256 _amount) public isInitialized {
+        bool success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+
+        // Get state before call
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+
+        if (success) {
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
+        } else {
+            assertWithMsg(_to == address(0), "Unknown Revert Error");
+        }
+    }
 }

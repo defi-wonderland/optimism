@@ -5,6 +5,7 @@ import { GhostStorage } from "./GhostStorage.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IStdCheats } from "../interfaces/IStdCheats.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
+import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
@@ -19,6 +20,7 @@ contract Actors {
 
     address public superchainTokenBridge = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
     address public l2ToL2ToCDM = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+    address public superchainWETH = Predeploys.SUPERCHAIN_WETH;
 
     function callBridgeRelayERC20(
         address _token,
@@ -64,6 +66,14 @@ contract Actors {
         // though it's the same as the one used in the interface.
         (_success,) =
             l2ToL2ToCDM.call(abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _id, _message));
+    }
+
+    function callSuperchainWETHSendETH(address _to, uint256 _chainId) public payable returns (bool _success) {
+        try ISuperchainWETH(payable(superchainWETH)).sendETH(_to, _chainId) {
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     function directCall(
