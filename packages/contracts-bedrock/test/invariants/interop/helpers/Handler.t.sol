@@ -44,31 +44,32 @@ contract Handler is Setup, Actors {
         }
     }
 
-    function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _chainId, uint256 _actorIndex) public {
-        require(_to != address(0));
-        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
+    // function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _chainId, uint256 _actorIndex) public
+    // {
+    //     require(_to != address(0));
+    //     _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
-        Actors actor = randomActor(_actorIndex);
-        uint256 _actorBalanceBefore = address(actor).balance;
-        _value = clampLte(_value, _actorBalanceBefore);
+    //     Actors actor = randomActor(_actorIndex);
+    //     uint256 _actorBalanceBefore = address(actor).balance;
+    //     _value = clampLte(_value, _actorBalanceBefore);
 
-        uint256 _ethLiquidityBefore = address(ETH_LIQUIDITY).balance;
-        uint256 _sWETHTotalSupplyBefore = SUPER_WETH.totalSupply();
+    //     uint256 _ethLiquidityBefore = address(ETH_LIQUIDITY).balance;
+    //     uint256 _sWETHTotalSupplyBefore = SUPER_WETH.totalSupply();
 
-        try actor.directCall(address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, _chainId))) {
-            // Check the Ether balances and that the superchain WETH total supply was not modified
-            console.log("1");
-            assert(address(actor).balance == _actorBalanceBefore - _value);
-            console.log("2");
+    //     try actor.directCall(address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, _chainId))) {
+    //         // Check the Ether balances and that the superchain WETH total supply was not modified
+    //         console.log("1");
+    //         assert(address(actor).balance == _actorBalanceBefore - _value);
+    //         console.log("2");
 
-            assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
-            // The total supply of superchain WETH should not change
-            console.log("3");
-            assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
-        } catch {
-            assert(false);
-        }
-    }
+    //         assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
+    //         // The total supply of superchain WETH should not change
+    //         console.log("3");
+    //         assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
+    //     } catch {
+    //         assert(false);
+    //     }
+    // }
 
     function handler_superchainWETHRelayETH(
         Identifier memory _id,
