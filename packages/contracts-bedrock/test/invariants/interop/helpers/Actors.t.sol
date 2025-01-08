@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import { GhostStorage } from "./GhostStorage.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IStdCheats } from "../interfaces/IStdCheats.sol";
+import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
+import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
 // Actors handler, reusing the msg.sender used by Medusa (defined in the json)
 // and tracking them, allowing to aggregate balances for instance.
@@ -17,42 +20,50 @@ contract Actors {
     address public superchainTokenBridge = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
     address public l2ToL2ToCDM = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
-    function callSuperchainTokenBridge(bytes memory _payload) public returns (bool _success, bytes memory _ret) {
-        emit ActorsLog(string.concat("call using actor: ", _vm.toString(address(this))));
-        emit ActorsLog(string.concat("stoken bridge address: ", _vm.toString(superchainTokenBridge)));
-
-        (_success, _ret) = superchainTokenBridge.call(_payload);
-        emit ActorsLog(_vm.toString(_ret));
-
-        if (!_success) {
-            emit ActorsLog(_vm.toString(_ret));
-            return (_success, _ret);
+    function callBridgeRelayERC20(
+        address _token,
+        address _from,
+        address _to,
+        uint256 _amount,
+        uint256 _source
+    )
+        public
+        returns (bool)
+    {
+        try ISuperchainTokenBridge(superchainTokenBridge).relayERC20(_token, _from, _to, _amount) {
+            return true;
+        } catch {
+            return false;
         }
-
-        // TODO: Check if needed in the campaign afterwards
-        if (_ret.length != 0) {
-            _ret = abi.decode(_ret, (bytes));
-        }
-
-        return (_success, _ret);
     }
 
-    function callL2ToL2Messenger(bytes memory _payload) public returns (bool _success, bytes memory _ret) {
-        emit ActorsLog(string.concat("call using actor: ", _vm.toString(address(this))));
-
-        (_success, _ret) = l2ToL2ToCDM.call(_payload);
-
-        if (!_success) {
-            emit ActorsLog(_vm.toString(_ret));
-            return (_success, _ret);
+    function callBridgeSendERC20(
+        address _token,
+        address _to,
+        uint256 _amount,
+        uint256 _chainId
+    )
+        public
+        returns (bool)
+    {
+        try ISuperchainTokenBridge(superchainTokenBridge).sendERC20(_token, _to, _amount, _chainId) {
+            return true;
+        } catch {
+            return false;
         }
+    }
 
-        // TODO: Check if needed in the campaign afterwards
-        if (_ret.length != 0) {
-            _ret = abi.decode(_ret, (bytes));
-        }
-
-        return (_success, _ret);
+    function callL2ToL2MessengerRelayMessage(
+        Identifier memory _id,
+        bytes memory _message
+    )
+        public
+        returns (bool _success)
+    {
+        // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
+        // though it's the same as the one used in the interface.
+        (_success,) =
+            l2ToL2ToCDM.call(abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _id, _message));
     }
 
     function directCall(

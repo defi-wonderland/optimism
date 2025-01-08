@@ -7,22 +7,22 @@ import { Actors } from "./Actors.t.sol";
 contract Handler is Setup, Actors {
     uint256 internal constant _ZERO_VALUE = 0;
 
-    /// @notice Mint SUPER_TOKEN to an actor
-    /// @param _amount Amount to mint
-    function handler_mintSuperchainERC20(uint256 _amount) public {
-        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
+    // /// @notice Mint SUPER_TOKEN to an actor
+    // /// @param _amount Amount to mint
+    // function handler_mintSuperchainERC20(uint256 _amount) public {
+    //     _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
-        // direct call instead
-        Actors actor = currentActor();
+    //     // direct call instead
+    //     Actors actor = currentActor();
 
-        try actor.directCall(
-            address(SUPER_TOKEN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(SUPER_TOKEN.mint.selector, address(actor), _amount)
-        ) { } catch {
-            assert(false);
-        }
-    }
+    //     try actor.directCall(
+    //         address(SUPER_TOKEN),
+    //         _ZERO_VALUE,
+    //         abi.encodeWithSelector(SUPER_TOKEN.mint.selector, address(actor), _amount)
+    //     ) { } catch {
+    //         assert(false);
+    //     }
+    // }
 
     function handler_depositSuperchainWETH(uint256 _value) public {
         _value = clampLte(_value, type(uint256).max - SUPER_WETH.totalSupply());

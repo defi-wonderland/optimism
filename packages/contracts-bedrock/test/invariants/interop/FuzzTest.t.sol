@@ -112,12 +112,9 @@ contract FuzzTest is Handler {
         console.log("amount bef                : %d", _amount);
 
         // Call the token bridge from the actor
-        (bool _success,) = _actor.callSuperchainTokenBridge(
-            abi.encodeWithSelector(
-                SUPERCHAIN_TOKEN_BRIDGE.sendERC20.selector, address(SUPER_TOKEN), _to, _amount, _chainId
-            )
-        );
-        if (_success) {
+        (bool success) = _actor.callBridgeSendERC20(address(SUPER_TOKEN), _to, _amount, _chainId);
+
+        if (success) {
             // TODO: Fails here, on both conditions as if the call was not successful
             console.log("total supply af           : %d", sTokenTotalSupplyBefore);
             console.log("amount: %d", _amount);
@@ -162,11 +159,9 @@ contract FuzzTest is Handler {
 
         // Relay the message by calling the messenger from the actor
         Actors _actor = currentActor();
-        (bool _success,) = _actor.callL2ToL2Messenger(
-            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
-        );
+        (bool success) = _actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
-        if (_success) {
+        if (success) {
             // Check the state is right after the call
             assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
@@ -196,7 +191,8 @@ contract FuzzTest is Handler {
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
         // Set the amount to a valid one
         uint256 totalSupply = SUPER_WETH.totalSupply();
-        _amount = clampLte(_amount, type(uint256).max - totalSupply);
+        // TODO: Check if actually total sup and eth balance can differ and whether that should be an expected behavior
+        _amount = clampLte(_amount, Utils.min(address(SUPER_WETH).balance, totalSupply));
 
         // Get state before call
         Actors _actor = currentActor();
@@ -205,12 +201,8 @@ contract FuzzTest is Handler {
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Call the token bridge from the actor
-        (bool _success,) = _actor.callSuperchainTokenBridge(
-            abi.encodeCall(SUPERCHAIN_TOKEN_BRIDGE.sendERC20, (address(SUPER_WETH), _to, _amount, _chainId))
-        );
-        if (_success) {
-            // TODO: Doesn't enter here
-            assert(false);
+        (bool success) = _actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
+        if (success) {
             assert(SUPER_WETH.balanceOf(address(_actor)) == actorSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
@@ -260,11 +252,9 @@ contract FuzzTest is Handler {
 
         // Relay the message by calling the messenger from the actor
         Actors _actor = currentActor();
-        (bool _success,) = _actor.callL2ToL2Messenger(
-            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
-        );
+        (bool success) = _actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
-        if (_success) {
+        if (success) {
             assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);

@@ -259,7 +259,12 @@ contract Setup is PropertiesAsserts, HandlerActors {
             Actors _newActor = new Actors();
             _ghost_actors.push(address(_newActor));
 
-            // TODO: mint superchain erc20 tokens here, but without minting anything for 2 addresses
+            // Mint SUPER_TOKEN to the actor, but only for the first 8 actors
+            if (i > 8) continue;
+            uint256 amount = uint256(keccak256(abi.encode(address(_newActor))));
+            // Avoid minting too much on the setup
+            amount = clampLte(amount, type(uint128).max);
+            SUPER_TOKEN.mint(address(_newActor), amount);
         }
     }
 }
