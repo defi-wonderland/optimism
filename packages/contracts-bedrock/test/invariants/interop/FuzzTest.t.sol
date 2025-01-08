@@ -308,7 +308,8 @@ contract FuzzTest is Handler {
             console.log("Amount: ");
 
             assertWithMsg(
-                _message.amount > ethLiquidityEthBalanceBefore // Insufficient balance
+                Utils.checkOverflow(address(SUPER_WETH).balance, _message.amount)
+                    || Utils.checkInsufficientBalance(_message.amount, ethLiquidityEthBalanceBefore)
                     || L2_TO_L2_MESSENGER.successfulMessages(messageHash), // Already relayed
                 "Unkonwn Revert Error"
             );
