@@ -300,7 +300,7 @@ func TestInteropBlockBuilding(t *testing.T) {
 		{
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
-			// Send an executing message, but with different payload.
+			// Emitting an executing message, but with different payload.
 			if s2.(*interopE2ESystem).config.mempoolFiltering {
 				// We expect the traqnsaction to be filtered out by the mempool if mempool filtering is enabled.
 				// ValidateMessage the ErrTxFilteredOut error is checked when sending the tx.
@@ -318,7 +318,7 @@ func TestInteropBlockBuilding(t *testing.T) {
 		{
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
-			// Send an executing message with the correct identifier / payload
+			// Emit an executing message with the correct identifier / payload
 			rec, err := s2.ValidateMessage(ctx, chainB, "Alice", identifier, payloadHash, nil)
 			require.NoError(t, err, "expecting tx to be confirmed")
 			t.Logf("confirmed executing msg in block %s", rec.BlockNumber)

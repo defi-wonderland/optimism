@@ -767,7 +767,7 @@ func (s *interopE2ESystem) ValidateMessage(
 	} else {
 		require.NoError(s.t, err)
 	}
-	s.logger.Info("Executing message", "tx", tx.Hash(), "to", tx.To(), "data", hexutil.Bytes(tx.Data()))
+	s.logger.Info("Validating message", "tx", tx.Hash(), "to", tx.To(), "data", hexutil.Bytes(tx.Data()))
 	return bind.WaitMined(ctx, s.L2GethClient(id), tx)
 }
 
