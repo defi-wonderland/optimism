@@ -44,45 +44,41 @@ contract Handler is Setup, Actors {
         }
     }
 
-    // function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _chainId, uint256 _actorIndex) public
-    // {
-    //     require(_to != address(0));
-    //     _chainId = clampGt(_chainId, CHAIN_ID_ONE);
+    function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _chainId, uint256 _actorIndex) public {
+        require(_to != address(0));
+        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
-    //     Actors actor = randomActor(_actorIndex);
-    //     uint256 _actorBalanceBefore = address(actor).balance;
-    //     _value = clampLte(_value, _actorBalanceBefore);
+        // Get state before call
+        Actors actor = randomActor(_actorIndex);
+        uint256 actorBalanceBefore = address(actor).balance;
+        uint256 sWethBalanceBefore = address(SUPER_WETH).balance;
+        uint256 _ethLiquidityBefore = address(ETH_LIQUIDITY).balance;
+        uint256 _sWETHTotalSupplyBefore = SUPER_WETH.totalSupply();
 
-    //     uint256 _ethLiquidityBefore = address(ETH_LIQUIDITY).balance;
-    //     uint256 _sWETHTotalSupplyBefore = SUPER_WETH.totalSupply();
+        // Clamp the value to prevent an overflow or a revert due to insufficient balance
+        _value = clampLte(_value, Utils.min(type(uint256).max - sWethBalanceBefore, actorBalanceBefore));
 
-    //     try actor.directCall(address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, _chainId))) {
-    //         // Check the Ether balances and that the superchain WETH total supply was not modified
-    //         console.log("1");
-    //         assert(address(actor).balance == _actorBalanceBefore - _value);
-    //         console.log("2");
-
-    //         assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
-    //         // The total supply of superchain WETH should not change
-    //         console.log("3");
-    //         assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
-    //     } catch {
-    //         assert(false);
-    //     }
-    // }
+        try actor.directCall(address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, _chainId))) {
+            // Check the Ether balances and that the superchain WETH total supply was not modified
+            assert(address(actor).balance == actorBalanceBefore - _value);
+            assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
+            // The total supply of superchain WETH should not change
+            assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
+        } catch {
+            assert(false);
+        }
+    }
 
     function handler_superchainWETHRelayETH(
         Identifier memory _id,
         Message memory _message,
-        uint256 _toActorIndex,
-        uint256 _chainId
+        uint256 _toActorIndex
     )
         public
     {
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);
         _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
-        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
         _message.amount = clampLte(_message.amount, address(ETH_LIQUIDITY).balance - address(SUPER_WETH).balance);
 
         // Get state before the call
