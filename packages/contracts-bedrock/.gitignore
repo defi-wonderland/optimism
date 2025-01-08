@@ -41,3 +41,7 @@ deploy-config/devnetL1.json
 
 # Getting Started guide deploy config
 deploy-config/getting-started.json
+
+# Medusa
+# TODO: Uncomment
+test/invariants/interop/corpus

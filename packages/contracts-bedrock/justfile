@@ -118,6 +118,15 @@ coverage: build-go-ffi
 coverage-lcov: build-go-ffi
   forge coverage --report lcov
 
+# runs medusa on a foundry profile that allows faster compilation by omitting
+# to build other tests and scripts
+test-medusa *ARGS:
+  FOUNDRY_PROFILE=medusa medusa fuzz {{ARGS}}
+
+# runs medusa on a foundry profile that allows faster compilation by omitting
+# to build other tests and scripts and deletes corpus before running
+test-medusa-debug:
+  TEMP_DIR=$(mktemp -d) && FOUNDRY_PROFILE=medusa medusa fuzz --corpus-dir "$TEMP_DIR" --config medusa-debug.json && rm -rf "$TEMP_DIR"
 
 ########################################################
 #                        DEPLOY                        #

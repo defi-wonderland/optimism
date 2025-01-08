@@ -114,6 +114,19 @@ timeout = 300
 optimizer = false
 
 ################################################################
+#                         PROFILE: MEDUSA                      #
+################################################################
+
+# workaround: pass --foundry-compile-all, so it doesnt add --skip '*/test/**'
+# '*/scripts/**', which causes an empty compilation with this file structure, but
+# define 'test/medusa' as the only directory visible to foundry, so it only
+# compiles files present there and those imported by them.
+[profile.medusa]
+src = 'test/invariants/interop/'
+test = 'test/invariants/interop/'
+script = 'test/invariants/interop/'
+
+################################################################
 #                         PROFILE: KONTROL                     #
 ################################################################
 
