@@ -31,8 +31,9 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { HandlerActors, Actors } from "./helpers/Actors.t.sol";
 
-contract Setup is PropertiesAsserts {
+contract Setup is PropertiesAsserts, HandlerActors {
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
     uint256 public constant OP_CHAIN_ID = 10;
@@ -68,7 +69,6 @@ contract Setup is PropertiesAsserts {
     address public immutable dependencyManager = vm.addr(uint256(keccak256("DependencyManager")));
     address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
     address public immutable proxyOwner = vm.addr(uint256(keccak256("ProxyOwner")));
-    address public immutable relayer = vm.addr(uint256(keccak256("Relayer")));
     ProxyAdmin public immutable proxyAdmin;
 
     // Predefined addresses
@@ -187,7 +187,10 @@ contract Setup is PropertiesAsserts {
 
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
 
+        // Give the initial ether balance to ETHLiquidity
         vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
+
+        _addActors();
     }
 
     /// @dev Set the code of a contract if it is not a proxy, otherwise set the code of the proxy and upgrade it.
@@ -206,7 +209,7 @@ contract Setup is PropertiesAsserts {
         }
     }
 
-    function _initializeEverything() internal {
+    function _initializeProxies() internal {
         // Initialize SuperchainConfig
         SUPERCHAIN_CONFIG.initialize(guardian, dependencyManager, false);
 
@@ -249,5 +252,19 @@ contract Setup is PropertiesAsserts {
         // set interop start on Inbox
         vm.prank(_DEPOSITOR_ACCOUNT);
         CROSS_L2_INBOX.setInteropStart();
+    }
+
+    function _addActors() internal {
+        for (uint256 i; i < numberOfActors; i++) {
+            Actors _newActor = new Actors();
+            _ghost_actors.push(address(_newActor));
+
+            // Mint SUPER_TOKEN to the actor, but only for the first 8 actors
+            if (i > 8) continue;
+            uint256 amount = uint256(keccak256(abi.encode(address(_newActor))));
+            // Avoid minting too much on the setup
+            amount = clampLte(amount, type(uint128).max);
+            SUPER_TOKEN.mint(address(_newActor), amount);
+        }
     }
 }
