@@ -294,24 +294,12 @@ contract FuzzTest is Handler {
             abi.encode(address(SUPER_WETH), message) // data
         );
 
-        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: block.chainid,
-            _source: _id.chainId,
-            _nonce: _message.nonce,
-            _sender: address(SUPER_WETH),
-            _target: address(SUPER_WETH),
-            _message: message
-        });
-
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         // Relay the message
-        vm.prank(relayer);
-        /// NOTE: High-level call failing due id's type mismatch, which is wrong since they're the same
-        (bool _success,) = address(L2_TO_L2_MESSENGER).call(
-            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
-        );
+
+        bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
             console.log("Balance before: ", ethLiquidityEthBalanceBefore);
@@ -322,6 +310,18 @@ contract FuzzTest is Handler {
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
             }
         } else {
+            bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+                _destination: block.chainid,
+                _source: _id.chainId,
+                _nonce: _message.nonce,
+                _sender: address(SUPER_WETH),
+                _target: address(SUPER_WETH),
+                _message: message
+            });
+
+            console.log("Balance before: ", ethLiquidityEthBalanceBefore);
+            console.log("Amount: ");
+
             assertWithMsg(
                 _message.amount > ethLiquidityEthBalanceBefore // Insufficient balance
                     || L2_TO_L2_MESSENGER.successfulMessages(messageHash), // Already relayed
