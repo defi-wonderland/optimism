@@ -18,6 +18,8 @@ import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import { console } from "forge-std/Console.sol";
+
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000024
 /// @title SuperchainWETH
@@ -131,8 +133,13 @@ contract SuperchainWETH is WETH98, IERC7802, ISemver {
             revert NotCustomGasToken();
         }
 
+        console.log("msg.value: %s", msg.value);
+        console.log("address(this).balamce: %s", address(this).balance);
+
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
+
+        console.log("address(this).balamce AFTER: %s", address(this).balance);
 
         msgHash_ = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage({
             _destination: _chainId,

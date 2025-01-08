@@ -76,9 +76,10 @@ contract Actors {
     {
         emit ActorsLog(string.concat("call using actor: ", _vm.toString(address(this))));
 
-        _vm.deal(payable(address(this)), _msgValue);
-
         (_success, _returnData) = _target.call{ value: _msgValue }(_payload);
+        if (!_success) {
+            revert(string.concat("call failed: ", _vm.toString(abi.decode(_returnData, (bytes)))));
+        }
     }
 
     receive() external payable { }
