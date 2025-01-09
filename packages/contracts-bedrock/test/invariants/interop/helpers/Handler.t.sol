@@ -5,10 +5,11 @@ import { Setup } from "../Setup.sol";
 import { Actors } from "./Actors.t.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Utils } from "../utils/Utils.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 
 import "forge-std/Test.sol";
 
-contract Handler is Setup, Actors {
+contract Handler is Setup {
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
@@ -94,6 +95,17 @@ contract Handler is Setup, Actors {
             abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
             abi.encode(address(SUPER_WETH), message) // data
         );
+
+        // Ensure the message is not already relayed
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPER_WETH),
+            _target: address(SUPER_WETH),
+            _message: message
+        });
+        require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         Actors actor = randomActor(_toActorIndex);
         try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
