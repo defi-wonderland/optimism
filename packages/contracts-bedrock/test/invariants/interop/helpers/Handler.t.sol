@@ -95,6 +95,9 @@ contract Handler is Setup {
             abi.encode(address(SUPER_WETH), message) // data
         );
 
+        // Ensure the message is not already relayed
+        require(!L2_TO_L2_MESSENGER.successfulMessages(_id, sentMessage));
+
         Actors actor = randomActor(_toActorIndex);
         try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
             // Check the Ether balances
