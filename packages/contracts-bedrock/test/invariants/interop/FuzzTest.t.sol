@@ -287,8 +287,6 @@ contract FuzzTest is Handler {
         bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
-            console.log("Balance before: ", ethLiquidityEthBalanceBefore);
-            console.log("Balance after : ", address(ETH_LIQUIDITY).balance);
             if (_target != address(ETH_LIQUIDITY)) {
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             } else {
@@ -304,9 +302,6 @@ contract FuzzTest is Handler {
                 _message: message
             });
 
-            console.log("Balance before: ", ethLiquidityEthBalanceBefore);
-            console.log("Amount: ");
-
             assertWithMsg(
                 Utils.checkOverflow(address(SUPER_WETH).balance, _message.amount)
                     || Utils.checkInsufficientBalance(_message.amount, ethLiquidityEthBalanceBefore)
@@ -320,15 +315,17 @@ contract FuzzTest is Handler {
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that balance would increase beyond
     /// type(uint256).max
     function test_burnSuperchainWETH(address _to, uint256 _chainId, uint256 _amount) public isInitialized {
-        bool success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+        if (_to == address(0)) revert();
 
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
+        bool success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+
         if (success) {
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
-            assertWithMsg(_to == address(0), "Unknown Revert Error");
+            assertWithMsg(false, "Unknown Revert Error");
         }
     }
 }
