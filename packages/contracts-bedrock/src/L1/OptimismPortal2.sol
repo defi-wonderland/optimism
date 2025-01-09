@@ -750,4 +750,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256) {
         return proofSubmitters[_withdrawalHash].length;
     }
+
+    function migrateLiquidity() external {
+        // delegate call to implementation holding the function with the same signature
+        address newImplementation = superchainConfig.migrationManager();
+        require(newImplementation != address(0), "OptimismPortal2: migration manager not set");
+        (bool success, ) = newImplementation.delegatecall(abi.encodeWithSignature("migrateLiquidity()"));
+        require(success, "OptimismPortal2: migration failed");
+    }
 }

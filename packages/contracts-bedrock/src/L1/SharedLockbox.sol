@@ -75,6 +75,9 @@ contract SharedLockbox is ISemver {
     /// @notice Authorizes a portal to interact with the lockbox.
     function authorizePortal(address _portal) external {
         _whenNotPaused();
+        // authorizedPortals[msg.sender] == true
+        // IPortal(msg.sender).l2Sender() == MAGIC_L2_SENDER
+        
         if (msg.sender != address(SUPERCHAIN_CONFIG)) revert Unauthorized();
 
         authorizedPortals[_portal] = true;
