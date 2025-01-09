@@ -6,9 +6,13 @@ enum ConfigType {
 }
 
 interface IL1BlockInterop {
+    error AlreadyDependency();
+    error DependencySetSizeTooLarge();
     error NotCrossL2Inbox();
     error NotDepositor();
+    error Unauthorized();
 
+    event DependencyAdded(uint256 indexed chainId);
     event GasPayingTokenSet(address indexed token, uint8 indexed decimals, bytes32 name, bytes32 symbol);
 
     function DEPOSITOR_ACCOUNT() external pure returns (address addr_);
@@ -45,6 +49,9 @@ interface IL1BlockInterop {
     function setL1BlockValuesInterop() external;
     function timestamp() external view returns (uint64);
     function version() external pure returns (string memory);
+    function dependencySetSize() external view returns (uint8);
+    function isInDependencySet(uint256 _chainId) external view returns (bool);
+    function addDependency(uint256 _chainId) external;
 
     function __constructor__() external;
 }

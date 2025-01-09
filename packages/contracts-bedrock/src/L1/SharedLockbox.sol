@@ -28,9 +28,6 @@ contract SharedLockbox is ISemver {
     /// @notice The address of the SuperchainConfig contract.
     ISuperchainConfig public immutable SUPERCHAIN_CONFIG;
 
-    /// @notice OptimismPortals that are part of the dependency cluster authorized to interact with the SharedLockbox
-    mapping(address => bool) public authorizedPortals;
-
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
     function version() public view virtual returns (string memory) {
@@ -56,7 +53,7 @@ contract SharedLockbox is ISemver {
     /// @notice Locks ETH in the lockbox.
     ///         Called by an authorized portal when migrating its ETH liquidity or when depositing with some ETH value.
     function lockETH() external payable {
-        if (!authorizedPortals[msg.sender]) revert Unauthorized();
+        if (!SUPERCHAIN_CONFIG.authorizedPortals(msg.sender)) revert Unauthorized();
 
         emit ETHLocked(msg.sender, msg.value);
     }
@@ -65,22 +62,10 @@ contract SharedLockbox is ISemver {
     ///         Called by an authorized portal when finalizing a withdrawal that requires ETH.
     function unlockETH(uint256 _value) external {
         _whenNotPaused();
-        if (!authorizedPortals[msg.sender]) revert Unauthorized();
+        if (!SUPERCHAIN_CONFIG.authorizedPortals(msg.sender)) revert Unauthorized();
 
         // Using `donateETH` to avoid triggering a deposit
         IOptimismPortal(payable(msg.sender)).donateETH{ value: _value }();
         emit ETHUnlocked(msg.sender, _value);
-    }
-
-    /// @notice Authorizes a portal to interact with the lockbox.
-    function authorizePortal(address _portal) external {
-        _whenNotPaused();
-        // authorizedPortals[msg.sender] == true
-        // IPortal(msg.sender).l2Sender() == MAGIC_L2_SENDER
-        
-        if (msg.sender != address(SUPERCHAIN_CONFIG)) revert Unauthorized();
-
-        authorizedPortals[_portal] = true;
-        emit PortalAuthorized(_portal);
     }
 }

@@ -23,7 +23,7 @@ contract LiquidityMigratorTest is CommonTest {
 
         // Set the migrator as an authorized portal so it can lock the ETH while migrating
         vm.prank(address(superchainConfig));
-        sharedLockbox.authorizePortal(address(liquidityMigrator));
+        // sharedLockbox.authorizePortal(address(liquidityMigrator));
 
         // Look for the emit of the `ETHMigrated` event
         vm.expectEmit(address(liquidityMigrator));

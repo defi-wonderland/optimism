@@ -8,11 +8,13 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { Storage } from "src/libraries/Storage.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @custom:proxied true
 /// @custom:audit none This contracts is not yet audited.
@@ -77,6 +79,9 @@ contract SuperchainConfig is Initializable, ISemver {
 
     // Dependency set of chains that are part of the same cluster
     EnumerableSet.UintSet internal _dependencySet;
+
+    /// @notice OptimismPortals that are part of the dependency cluster
+    mapping(address => bool) public authorizedPortals;
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor(address _sharedLockbox) {
@@ -153,19 +158,31 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @param _chainId         The chain ID.
     /// @param _systemConfig    The SystemConfig contract address of the chain to add.
     function addDependency(uint256 _chainId, address _systemConfig) external {
-        if (msg.sender != dependencyManager()) revert Unauthorized();
+        if (!authorizedPortals[msg.sender]) revert Unauthorized();
+        if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Predeploys.UPGRADE_HANDLER) revert Unauthorized();
 
         if (_dependencySet.length() == type(uint8).max) revert DependencySetTooLarge();
-        if (_chainId == block.chainid) revert InvalidChainID();
+        if (_chainId == block.chainid) revert InvalidChainID(); // TODO: is this check really necessary?
 
         // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
         if (!_dependencySet.add(_chainId)) revert DependencyAlreadyAdded();
 
-        // Authorize the portal on the shared lockbox
         address portal = ISystemConfig(_systemConfig).optimismPortal();
-        SHARED_LOCKBOX.authorizePortal(portal);
+        _joinSharedLockbox(portal);
 
         emit DependencyAdded(_chainId, _systemConfig, portal);
+    }
+
+    error InvalidSuperchainConfig();
+
+    function _joinSharedLockbox(address _portal) internal {
+        if (address(IOptimismPortal2(payable(_portal)).superchainConfig()) != address(this)) {
+            revert InvalidSuperchainConfig();
+        }
+
+        authorizedPortals[_portal] = true;
+
+        IOptimismPortal2(payable(_portal)).migrateLiquidity();
     }
 
     /// @notice Checks if a chain is part or not of the dependency set.

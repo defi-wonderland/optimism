@@ -19,6 +19,7 @@ interface ISuperchainConfig is IDependencySet {
     error DependencySetTooLarge();
     error InvalidChainID();
     error DependencyAlreadyAdded();
+    error InvalidSuperchainConfig();
 
     function GUARDIAN_SLOT() external view returns (bytes32);
     function PAUSED_SLOT() external view returns (bytes32);
@@ -34,6 +35,7 @@ interface ISuperchainConfig is IDependencySet {
     function addDependency(uint256 _chainId, address _systemConfig) external;
     function dependencySet() external view returns (uint256[] memory);
     function dependencySetSize() external view returns (uint8);
+    function authorizedPortals(address) external view returns (bool);
 
     function __constructor__(address _sharedLockbox) external;
 }

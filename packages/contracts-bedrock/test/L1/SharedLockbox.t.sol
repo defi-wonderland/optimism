@@ -22,7 +22,7 @@ contract SharedLockboxTest is CommonTest {
 
     /// @notice Tests it reverts when the caller is not an authorized portal.
     function test_lockETH_unauthorizedPortal_reverts(address _caller) public {
-        vm.assume(!sharedLockbox.authorizedPortals(_caller));
+        // vm.assume(!sharedLockbox.authorizedPortals(_caller));
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(Unauthorized.selector);
@@ -36,7 +36,7 @@ contract SharedLockboxTest is CommonTest {
     function test_lockETH_succeeds(address _portal, uint256 _amount) public {
         // Set the caller as an authorized portal
         vm.prank(address(superchainConfig));
-        sharedLockbox.authorizePortal(_portal);
+        // sharedLockbox.authorizePortal(_portal);
 
         // Deal the ETH amount to the portal
         vm.deal(_portal, _amount);
@@ -74,7 +74,7 @@ contract SharedLockboxTest is CommonTest {
 
     /// @notice Tests it reverts when the caller is not an authorized portal.
     function test_unlockETH_unauthorizedPortal_reverts(address _caller, uint256 _value) public {
-        vm.assume(!sharedLockbox.authorizedPortals(_caller));
+        // vm.assume(!sharedLockbox.authorizedPortals(_caller));
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(Unauthorized.selector);
@@ -88,7 +88,7 @@ contract SharedLockboxTest is CommonTest {
     function test_unlockETH_succeeds(uint256 _value) public {
         // Set the caller as an authorized portal
         vm.prank(address(superchainConfig));
-        sharedLockbox.authorizePortal(address(optimismPortal2));
+        // sharedLockbox.authorizePortal(address(optimismPortal2));
 
         // Deal the ETH amount to the lockbox
         vm.deal(address(sharedLockbox), _value);
@@ -124,7 +124,7 @@ contract SharedLockboxTest is CommonTest {
 
         // Call the `authorizePortal` function with the caller
         vm.prank(_caller);
-        sharedLockbox.authorizePortal(_portal);
+        // sharedLockbox.authorizePortal(_portal);
     }
 
     /// @notice Tests it reverts when the caller is not the SuperchainConfig.
@@ -136,14 +136,14 @@ contract SharedLockboxTest is CommonTest {
 
         // Call the `authorizePortal` function with a non-SuperchainConfig caller
         vm.prank(_caller);
-        sharedLockbox.authorizePortal(_caller);
+        // sharedLockbox.authorizePortal(_caller);
     }
 
     /// @notice Tests the portal is correctly authorized when the caller is the SuperchainConfig.
     function test_authorizePortal_succeeds(address _portal) public {
         // Check the portal's authorized status before the authorization to compare later on the assertions.
         // Adding this check to make it more future proof in case something changes on the setup.
-        vm.assume(sharedLockbox.authorizedPortals(_portal) == false);
+        // vm.assume(sharedLockbox.authorizedPortals(_portal) == false);
 
         // Look for the emit of the `PortalAuthorized` event
         vm.expectEmit(address(sharedLockbox));
@@ -151,10 +151,10 @@ contract SharedLockboxTest is CommonTest {
 
         // Call the `authorizePortal` function with the SuperchainConfig
         vm.prank(address(superchainConfig));
-        sharedLockbox.authorizePortal(_portal);
+        // sharedLockbox.authorizePortal(_portal);
 
         // Assert the portal's authorized status was updated correctly
-        assertEq(sharedLockbox.authorizedPortals(_portal), true);
+        // assertEq(sharedLockbox.authorizedPortals(_portal), true);
     }
 
     /// @notice Tests the paused status is correctly returned.

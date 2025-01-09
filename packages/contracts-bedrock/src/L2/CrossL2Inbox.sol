@@ -8,6 +8,7 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @notice Thrown when the caller is not DEPOSITOR_ACCOUNT when calling `setInteropStart()`
@@ -21,6 +22,9 @@ error NotEntered();
 
 /// @notice Thrown when trying to execute a cross chain message with an invalid Identifier timestamp.
 error InvalidTimestamp();
+
+/// @notice Thrown when trying to execute a cross chain message with an invalid Identifier chain ID.
+error InvalidChainId();
 
 /// @notice Thrown when trying to execute a cross chain message and the target call fails.
 error TargetCallFailed();
@@ -149,9 +153,6 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         // We need to know if this is being called on a depositTx
         if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
 
-        // Check the Identifier.
-        _checkIdentifier(_id);
-
         // Store the Identifier in transient storage.
         _storeIdentifier(_id);
 
@@ -174,17 +175,9 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         // We need to know if this is being called on a depositTx
         if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
 
-        // Check the Identifier.
-        _checkIdentifier(_id);
+        if (!IDependencySet(Predeploys.L1_BLOCK_ATTRIBUTES).isInDependencySet(_id.chainId)) revert InvalidChainId();
 
         emit ExecutingMessage(_msgHash, _id);
-    }
-
-    /// @notice Validates that for a given cross chain message identifier
-    ///         it's timestamp is not in the future.
-    /// @param _id Identifier of the message.
-    function _checkIdentifier(Identifier calldata _id) internal view {
-        if (_id.timestamp > block.timestamp || _id.timestamp <= interopStart()) revert InvalidTimestamp();
     }
 
     /// @notice Stores the Identifier in transient storage.

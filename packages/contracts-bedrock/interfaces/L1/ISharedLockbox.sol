@@ -19,8 +19,6 @@ interface ISharedLockbox is ISemver {
 
     function SUPERCHAIN_CONFIG() external view returns (ISuperchainConfig);
 
-    function authorizedPortals(address) external view returns (bool);
-
     function __constructor__(address _superchainConfig) external;
 
     function paused() external view returns (bool);
@@ -28,6 +26,4 @@ interface ISharedLockbox is ISemver {
     function unlockETH(uint256 _value) external;
 
     function lockETH() external payable;
-
-    function authorizePortal(address _portal) external;
 }

@@ -5,10 +5,17 @@ pragma solidity 0.8.15;
 import { L1Block } from "src/L2/L1Block.sol";
 
 // Libraries
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { NotDepositor, NotCrossL2Inbox } from "src/libraries/L1BlockErrors.sol";
+import {
+    NotDepositor,
+    NotCrossL2Inbox,
+    DependencySetSizeTooLarge,
+    AlreadyDependency
+} from "src/libraries/L1BlockErrors.sol";
+import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
 /// @notice Enum representing different types of configurations that can be set on L1BlockInterop.
 /// @custom:value SET_GAS_PAYING_TOKEN  Represents the config type for setting the gas paying token.
@@ -21,6 +28,14 @@ enum ConfigType {
 /// @title L1BlockInterop
 /// @notice Interop extenstions of L1Block.
 contract L1BlockInterop is L1Block {
+    using EnumerableSet for EnumerableSet.UintSet;
+
+    /// @notice Event emitted when a new dependency is added to the interop dependency set.
+    event DependencyAdded(uint256 indexed chainId);
+
+    /// @notice The interop dependency set, containing the chain IDs in it.
+    EnumerableSet.UintSet dependencySet;
+
     /// @notice Storage slot that the isDeposit is stored at.
     ///         This is a custom slot that is not part of the standard storage layout.
     /// keccak256(abi.encode(uint256(keccak256("l1Block.identifier.isDeposit")) - 1)) & ~bytes32(uint256(0xff))
@@ -38,6 +53,20 @@ contract L1BlockInterop is L1Block {
         assembly {
             isDeposit_ := sload(IS_DEPOSIT_SLOT)
         }
+    }
+
+    /// @notice Returns true if a chain ID is in the interop dependency set and false otherwise.
+    ///         The chain's chain ID is always considered to be in the dependency set.
+    /// @param _chainId The chain ID to check.
+    /// @return True if the chain ID to check is in the interop dependency set. False otherwise.
+    function isInDependencySet(uint256 _chainId) public view returns (bool) {
+        return _chainId == block.chainid || dependencySet.contains(_chainId);
+    }
+
+    /// @notice Returns the size of the interop dependency set.
+    /// @return The size of the interop dependency set.
+    function dependencySetSize() external view returns (uint8) {
+        return uint8(dependencySet.length());
     }
 
     /// @notice Updates the `isDeposit` flag and sets the L1 block values for an Interop upgraded chain.
@@ -83,5 +112,17 @@ contract L1BlockInterop is L1Block {
         GasPayingToken.set({ _token: token, _decimals: decimals, _name: name, _symbol: symbol });
 
         emit GasPayingTokenSet({ token: token, decimals: decimals, name: name, symbol: symbol });
+    }
+
+    /// @notice Add a dependency to the interop dependency set.
+    /// @param _chainId The chain ID to add to the dependency set.
+    function addDependency(uint256 _chainId) external {
+        if (msg.sender != Predeploys.UPGRADE_HANDLER) revert Unauthorized();
+
+        if (dependencySet.length() == type(uint8).max) revert DependencySetSizeTooLarge();
+
+        if (_chainId == block.chainid || !dependencySet.add(_chainId)) revert AlreadyDependency();
+
+        emit DependencyAdded(_chainId);
     }
 }
