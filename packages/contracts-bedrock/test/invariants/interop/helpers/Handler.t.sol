@@ -5,6 +5,7 @@ import { Setup } from "../Setup.sol";
 import { Actors } from "./Actors.t.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Utils } from "../utils/Utils.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 
 import "forge-std/Test.sol";
 
@@ -94,6 +95,17 @@ contract Handler is Setup {
             abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
             abi.encode(address(SUPER_WETH), message) // data
         );
+
+        // Ensure the message is not already relayed
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPER_WETH),
+            _target: address(SUPER_WETH),
+            _message: message
+        });
+        require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         Actors actor = randomActor(_toActorIndex);
         try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
