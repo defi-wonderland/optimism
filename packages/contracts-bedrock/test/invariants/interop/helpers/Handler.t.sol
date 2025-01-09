@@ -8,7 +8,7 @@ import { Utils } from "../utils/Utils.sol";
 
 import "forge-std/Test.sol";
 
-contract Handler is Setup, Actors {
+contract Handler is Setup {
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
