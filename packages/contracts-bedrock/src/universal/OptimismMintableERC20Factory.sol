@@ -4,9 +4,6 @@ pragma solidity 0.8.15;
 // Contracts
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 
-// Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismERC20Factory } from "interfaces/L2/IOptimismERC20Factory.sol";

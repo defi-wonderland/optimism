@@ -9,6 +9,4 @@ interface IOptimismERC20Factory {
     /// @param _localToken The address of the ERC20 token to check the deployment.
     /// @return remoteToken_ The address of the remote token if it is deployed or `address(0)` if not.
     function deployments(address _localToken) external view returns (address remoteToken_);
-
-    function bridge() external view returns (address);
 }
