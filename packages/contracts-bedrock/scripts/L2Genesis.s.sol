@@ -341,13 +341,7 @@ contract L2Genesis is Deployer {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setOptimismMintableERC20Factory() public {
-        address impl = _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
-
-        IOptimismMintableERC20Factory(impl).initialize({ _bridge: address(0) });
-
-        IOptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY).initialize({
-            _bridge: Predeploys.L2_STANDARD_BRIDGE
-        });
+        _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
     }
 
     /// @notice This predeploy is following the safety invariant #2,
