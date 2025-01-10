@@ -283,7 +283,6 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         // Relay the message
-
         bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
