@@ -302,11 +302,9 @@ contract FuzzTest is Handler {
                 _message: message
             });
 
-            assertWithMsg(
-                Utils.checkOverflow(address(SUPER_WETH).balance, _message.amount)
-                    || !Utils.checkBalance(ethLiquidityEthBalanceBefore, _message.amount)
-                    || L2_TO_L2_MESSENGER.successfulMessages(messageHash), // Already relayed
-                "Unkonwn Revert Error"
+            assert(
+                address(SUPER_WETH).balance > type(uint256).max - _message.amount
+                    || ethLiquidityEthBalanceBefore < _message.amount || L2_TO_L2_MESSENGER.successfulMessages(messageHash)
             );
         }
     }
@@ -316,7 +314,6 @@ contract FuzzTest is Handler {
     /// type(uint256).max
     function test_burnSuperchainWETH(address _to, uint256 _chainId, uint256 _amount) public isInitialized {
         require(_to != address(0));
-        require(Utils.checkBalance(address(currentActor()).balance, _amount));
 
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
@@ -328,7 +325,7 @@ contract FuzzTest is Handler {
         if (success) {
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
-            assertWithMsg(false, "Unknown Revert Error");
+            assert(address(currentActor()).balance < _amount);
         }
     }
 }

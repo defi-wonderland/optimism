@@ -20,12 +20,4 @@ library Utils {
     function min(uint256 _a, uint256 _b) internal pure returns (uint256) {
         return _a <= _b ? _a : _b;
     }
-
-    function checkOverflow(uint256 _a, uint256 _b) internal pure returns (bool) {
-        return _a > type(uint256).max - _b;
-    }
-
-    function checkBalance(uint256 _balance, uint256 _amount) internal pure returns (bool) {
-        return _amount <= _balance;
-    }
 }
