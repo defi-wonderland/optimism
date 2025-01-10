@@ -22,7 +22,8 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
-import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
+import { IL1OptimismMintableERC20Factory as IOptimismMintableERC20Factory } from
+    "interfaces/L1/IL1OptimismMintableERC20Factory.sol";
 
 import { OPContractsManagerInterop } from "src/L1/OPContractsManagerInterop.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
@@ -397,7 +398,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
     function assertValidOptimismMintableERC20FactoryImpl(DeployImplementationsInput) internal view {
         IOptimismMintableERC20Factory factory = optimismMintableERC20FactoryImpl();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: false, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: false, _slot: 51, _offset: 0 });
 
         require(address(factory.BRIDGE()) == address(0), "MERC20F-10");
         require(address(factory.bridge()) == address(0), "MERC20F-20");
@@ -644,13 +645,13 @@ contract DeployImplementations is Script {
             vm.broadcast(msg.sender);
             impl = IOptimismMintableERC20Factory(
                 DeployUtils.create1({
-                    _name: "OptimismMintableERC20Factory",
+                    _name: "L1OptimismMintableERC20Factory",
                     _args: DeployUtils.encodeConstructor(abi.encodeCall(IOptimismMintableERC20Factory.__constructor__, ()))
                 })
             );
         }
 
-        vm.label(address(impl), "OptimismMintableERC20FactoryImpl");
+        vm.label(address(impl), "L1OptimismMintableERC20FactoryImpl");
         _dio.set(_dio.optimismMintableERC20FactoryImpl.selector, address(impl));
     }
 

@@ -320,7 +320,7 @@ library ChainAssertions {
         require(address(factory) != address(0), "CHECK-MERC20F-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: _isProxy, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: _isProxy, _slot: 51, _offset: 0 });
 
         if (_isProxy) {
             require(factory.BRIDGE() == _contracts.L1StandardBridge, "CHECK-MERC20F-10");

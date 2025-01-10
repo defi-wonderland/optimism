@@ -120,7 +120,7 @@ contract Deploy is Deployer {
             DelayedWETH: getAddress("DelayedWETHProxy"),
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETHProxy"),
             AnchorStateRegistry: getAddress("AnchorStateRegistryProxy"),
-            OptimismMintableERC20Factory: getAddress("OptimismMintableERC20FactoryProxy"),
+            OptimismMintableERC20Factory: getAddress("L1OptimismMintableERC20FactoryProxy"),
             OptimismPortal: getAddress("OptimismPortalProxy"),
             SystemConfig: getAddress("SystemConfigProxy"),
             L1ERC721Bridge: getAddress("L1ERC721BridgeProxy"),
@@ -139,7 +139,7 @@ contract Deploy is Deployer {
             DelayedWETH: getAddress("DelayedWETH"),
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETH"),
             AnchorStateRegistry: getAddress("AnchorStateRegistry"),
-            OptimismMintableERC20Factory: getAddress("OptimismMintableERC20Factory"),
+            OptimismMintableERC20Factory: getAddress("L1OptimismMintableERC20Factory"),
             OptimismPortal: getAddress("OptimismPortal2"),
             SystemConfig: getAddress("SystemConfig"),
             L1ERC721Bridge: getAddress("L1ERC721Bridge"),
@@ -307,7 +307,9 @@ contract Deploy is Deployer {
         di.run(dii, dio);
 
         save("L1CrossDomainMessenger", address(dio.l1CrossDomainMessengerImpl()));
+        // Save under both names for backwards compatibility
         save("OptimismMintableERC20Factory", address(dio.optimismMintableERC20FactoryImpl()));
+        save("L1OptimismMintableERC20Factory", address(dio.optimismMintableERC20FactoryImpl()));
         save("SystemConfig", address(dio.systemConfigImpl()));
         save("L1StandardBridge", address(dio.l1StandardBridgeImpl()));
         save("L1ERC721Bridge", address(dio.l1ERC721BridgeImpl()));
@@ -525,7 +527,7 @@ contract Deploy is Deployer {
                         l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
-                        optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
+                        optimismMintableERC20Factory: mustGetAddress("L1OptimismMintableERC20FactoryProxy"),
                         gasPayingToken: customGasTokenAddress
                     })
                 )

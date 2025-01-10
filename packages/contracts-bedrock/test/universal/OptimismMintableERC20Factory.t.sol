@@ -8,7 +8,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Contracts
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
-import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
+import { L2OptimismMintableERC20Factory } from "src/L2/L2OptimismMintableERC20Factory.sol";
 
 // Interfaces
 import { IProxy } from "interfaces/universal/IProxy.sol";
@@ -20,7 +20,8 @@ contract OptimismMintableTokenFactory_Test is CommonTest {
 
     /// @notice Tests that the constructor is initialized correctly.
     function test_constructor_succeeds() external {
-        IOptimismMintableERC20Factory impl = IOptimismMintableERC20Factory(address(new OptimismMintableERC20Factory()));
+        IOptimismMintableERC20Factory impl =
+            IOptimismMintableERC20Factory(address(new L2OptimismMintableERC20Factory()));
         assertEq(address(impl.BRIDGE()), address(0));
         assertEq(address(impl.bridge()), address(0));
     }
