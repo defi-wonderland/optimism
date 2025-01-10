@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.15;
+
+// Contracts
+import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
+
+// Libraries
+import { Types } from "src/libraries/Types.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Interfaces
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
+
+/// @custom:proxied true
+/// @custom:predeployed 0x4200000000000000000000000000000000000012
+/// @title L2OptimismMintableERC20Factory
+/// @notice L2OptimismMintableERC20Factory is a factory contract that generates OptimismMintableERC20
+///         contracts on the network it's deployed to. Simplifies the deployment process for users
+///         who may be less familiar with deploying smart contracts. Designed to be backwards
+///         compatible with the older StandardL2ERC20Factory contract.
+contract L2OptimismMintableERC20Factory is OptimismMintableERC20Factory {
+    /// @custom:semver 1.3.1-beta.5
+    /// @notice Semantic version.
+    ///         The semver MUST be bumped any time that there is a change in
+    ///         the OptimismMintableERC20 token contract since this contract
+    ///         is responsible for deploying OptimismMintableERC20 contracts.
+    string public constant version = "1.3.1-beta.5";
+
+    function bridge() public view virtual override returns (address) {
+        bytes memory config =
+            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.STANDARD_BRIDGE_ADDRESS);
+        return abi.decode(config, (address));
+    }
+}
