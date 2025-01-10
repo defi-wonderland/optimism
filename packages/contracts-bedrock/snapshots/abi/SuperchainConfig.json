@@ -12,19 +12,6 @@
   },
   {
     "inputs": [],
-    "name": "DEPENDENCY_MANAGER_SLOT",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "GUARDIAN_SLOT",
     "outputs": [
       {
@@ -81,13 +68,19 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "dependencyManager",
-    "outputs": [
+    "inputs": [
       {
         "internalType": "address",
-        "name": "dependencyManager_",
+        "name": "",
         "type": "address"
+      }
+    ],
+    "name": "authorizedPortals",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -140,17 +133,25 @@
         "type": "address"
       },
       {
-        "internalType": "address",
-        "name": "_dependencyManager",
-        "type": "address"
-      },
-      {
         "internalType": "bool",
         "name": "_paused",
         "type": "bool"
       }
     ],
     "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_initialPortal",
+        "type": "address"
+      }
+    ],
+    "name": "initializePortal",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -309,6 +310,11 @@
   {
     "inputs": [],
     "name": "InvalidChainID",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidSuperchainConfig",
     "type": "error"
   },
   {

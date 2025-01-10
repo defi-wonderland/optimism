@@ -23,11 +23,10 @@ interface ISuperchainConfig is IDependencySet {
 
     function GUARDIAN_SLOT() external view returns (bytes32);
     function PAUSED_SLOT() external view returns (bytes32);
-    function DEPENDENCY_MANAGER_SLOT() external view returns (bytes32);
     function SHARED_LOCKBOX() external view returns (ISharedLockbox);
     function guardian() external view returns (address guardian_);
-    function dependencyManager() external view returns (address dependencyManager_);
-    function initialize(address _guardian, address _dependencyManager, bool _paused) external;
+    function initialize(address _guardian, bool _paused) external;
+    function initializePortal(address _initialPortal) external;
     function pause(string memory _identifier) external;
     function paused() external view returns (bool paused_);
     function unpause() external;

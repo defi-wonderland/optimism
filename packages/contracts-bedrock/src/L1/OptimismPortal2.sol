@@ -180,6 +180,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param updatedAt   The timestamp at which the respected game type was updated.
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
 
+    /// @notice Emitted when the contract migrates the ETH liquidity to the SharedLockbox.
+    /// @param amount Amount of ETH migrated.
+    event ETHMigrated(uint256 amount);
+
     /// @notice Reverts when paused.
     function _whenNotPaused() internal view {
         if (paused()) revert CallPaused();
@@ -751,8 +755,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         return proofSubmitters[_withdrawalHash].length;
     }
 
-    event ETHMigrated(uint256 amount);
-
+    /// @notice Migrates the ETH liquidity to the SharedLockbox. This function will only be called once by the
+    ///         SuperchainConfig when adding this chain to the dependency set.
     function migrateLiquidity() external {
         if (msg.sender != address(superchainConfig)) revert Unauthorized();
 

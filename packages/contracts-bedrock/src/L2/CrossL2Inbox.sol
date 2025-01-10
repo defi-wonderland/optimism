@@ -8,7 +8,6 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @notice Thrown when the caller is not DEPOSITOR_ACCOUNT when calling `setInteropStart()`
@@ -22,9 +21,6 @@ error NotEntered();
 
 /// @notice Thrown when trying to execute a cross chain message with an invalid Identifier timestamp.
 error InvalidTimestamp();
-
-/// @notice Thrown when trying to execute a cross chain message with an invalid Identifier chain ID.
-error InvalidChainId();
 
 /// @notice Thrown when trying to execute a cross chain message and the target call fails.
 error TargetCallFailed();
@@ -174,8 +170,6 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
         // We need to know if this is being called on a depositTx
         if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
-
-        if (!IDependencySet(Predeploys.L1_BLOCK_ATTRIBUTES).isInDependencySet(_id.chainId)) revert InvalidChainId();
 
         emit ExecutingMessage(_msgHash, _id);
     }

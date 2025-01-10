@@ -25,10 +25,8 @@ contract SuperchainConfig is Initializable, ISemver {
 
     /// @notice Enum representing different types of updates.
     /// @custom:value GUARDIAN            Represents an update to the guardian.
-    /// @custom:value DEPENDENCY_MANAGER  Represents an update to the dependency manager.
     enum UpdateType {
-        GUARDIAN,
-        DEPENDENCY_MANAGER
+        GUARDIAN
     }
 
     /// @notice Whether or not the Superchain is paused.
@@ -37,11 +35,6 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @notice The address of the guardian, which can pause withdrawals from the System.
     ///         It can only be modified by an upgrade.
     bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256("superchainConfig.guardian")) - 1);
-
-    /// @notice The address of the dependency manager, which can add a chain to the dependency set.
-    ///         It can only be modified by an upgrade.
-    bytes32 public constant DEPENDENCY_MANAGER_SLOT =
-        bytes32(uint256(keccak256("superchainConfig.dependencyManager")) - 1);
 
     // The Shared Lockbox contract
     ISharedLockbox public immutable SHARED_LOCKBOX;
@@ -73,6 +66,9 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @notice Thrown when the input dependency is already added to the set.
     error DependencyAlreadyAdded();
 
+    /// @notice Thrown when a OptimismPortal does not have the right SuperchainConfig.
+    error InvalidSuperchainConfig();
+
     /// @notice Semantic version.
     /// @custom:semver 1.1.1-beta.5
     string public constant version = "1.1.1-beta.5";
@@ -91,24 +87,25 @@ contract SuperchainConfig is Initializable, ISemver {
 
     /// @notice Initializer.
     /// @param _guardian             Address of the guardian, can pause the OptimismPortal.
-    /// @param _dependencyManager    Address of the dependencyManager, can add a chain to the dependency set.
     /// @param _paused               Initial paused status.
-    function initialize(address _guardian, address _dependencyManager, bool _paused) external initializer {
+    function initialize(address _guardian, bool _paused) external initializer {
         _setGuardian(_guardian);
-        _setDependencyManager(_dependencyManager);
         if (_paused) {
             _pause("Initializer paused");
         }
     }
 
+    // TODO: check if this function makes sense
+    /// @notice Initializes the first portal of the cluster.
+    /// @param _initialPortal The address of the initial portal.
+    function initializePortal(address _initialPortal) external {
+        require(msg.sender == guardian(), "SuperchainConfig: only guardian can initialize a portal");
+        _joinSharedLockbox(_initialPortal);
+    }
+
     /// @notice Getter for the guardian address.
     function guardian() public view returns (address guardian_) {
         guardian_ = Storage.getAddress(GUARDIAN_SLOT);
-    }
-
-    /// @notice Getter for the dependency manager address.
-    function dependencyManager() public view returns (address dependencyManager_) {
-        dependencyManager_ = Storage.getAddress(DEPENDENCY_MANAGER_SLOT);
     }
 
     /// @notice Getter for the current paused status.
@@ -145,21 +142,14 @@ contract SuperchainConfig is Initializable, ISemver {
         emit ConfigUpdate(UpdateType.GUARDIAN, abi.encode(_guardian));
     }
 
-    /// @notice Sets the dependency manager address. This is only callable during initialization, so an upgrade
-    ///         will be required to change the dependency manager.
-    /// @param _dependencyManager The new dependency manager address.
-    function _setDependencyManager(address _dependencyManager) internal {
-        Storage.setAddress(DEPENDENCY_MANAGER_SLOT, _dependencyManager);
-        emit ConfigUpdate(UpdateType.DEPENDENCY_MANAGER, abi.encode(_dependencyManager));
-    }
-
     /// @notice Adds a new dependency to the dependency set. It also authorizes it's OptimismPortal on the
-    ///         SharedLockbox. Can only be called by the dependency manager.
-    /// @param _chainId         The chain ID.
+    ///         SharedLockbox and migrate it's ETH liquidity to it. Can only be called by an authorized
+    ///         OptimismPortal via a withdrawal transaction initiated by the DependencyManager.
+    /// @param _chainId         The chain ID to add.
     /// @param _systemConfig    The SystemConfig contract address of the chain to add.
     function addDependency(uint256 _chainId, address _systemConfig) external {
         if (!authorizedPortals[msg.sender]) revert Unauthorized();
-        if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Predeploys.UPGRADE_HANDLER) revert Unauthorized();
+        if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Predeploys.DEPENDENCY_MANAGER) revert Unauthorized();
 
         if (_dependencySet.length() == type(uint8).max) revert DependencySetTooLarge();
         if (_chainId == block.chainid) revert InvalidChainID(); // TODO: is this check really necessary?
@@ -173,8 +163,9 @@ contract SuperchainConfig is Initializable, ISemver {
         emit DependencyAdded(_chainId, _systemConfig, portal);
     }
 
-    error InvalidSuperchainConfig();
-
+    /// @notice Authorize a portal to interact with the SharedLockbox. It also migrates the ETH liquidity
+    ///         from the portal to the SharedLockbox.
+    /// @param _portal The address of the portal to authorize.
     function _joinSharedLockbox(address _portal) internal {
         if (address(IOptimismPortal2(payable(_portal)).superchainConfig()) != address(this)) {
             revert InvalidSuperchainConfig();
@@ -182,6 +173,7 @@ contract SuperchainConfig is Initializable, ISemver {
 
         authorizedPortals[_portal] = true;
 
+        // Migrate the ETH liquidity from the OptimismPortal to the SharedLockbox
         IOptimismPortal2(payable(_portal)).migrateLiquidity();
     }
 
