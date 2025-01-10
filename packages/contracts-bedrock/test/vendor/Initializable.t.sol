@@ -313,7 +313,7 @@ contract Initializer_Test is CommonTest {
         // L1OptimismMintableERC20FactoryImpl
         contracts.push(
             InitializeableContract({
-                name: "OptimismMintableERC20Factory",
+                name: "L1OptimismMintableERC20Factory",
                 target: deploy.mustGetAddress("OptimismMintableERC20Factory"),
                 initCalldata: abi.encodeCall(l1OptimismMintableERC20Factory.initialize, (address(l1StandardBridge)))
             })
@@ -321,7 +321,7 @@ contract Initializer_Test is CommonTest {
         // L1OptimismMintableERC20FactoryProxy
         contracts.push(
             InitializeableContract({
-                name: "OptimismMintableERC20FactoryProxy",
+                name: "L1OptimismMintableERC20FactoryProxy",
                 target: address(l1OptimismMintableERC20Factory),
                 initCalldata: abi.encodeCall(l1OptimismMintableERC20Factory.initialize, (address(l1StandardBridge)))
             })

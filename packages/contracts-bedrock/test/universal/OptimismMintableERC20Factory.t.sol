@@ -22,8 +22,8 @@ contract OptimismMintableTokenFactory_Test is CommonTest {
     function test_constructor_succeeds() external {
         IOptimismMintableERC20Factory impl =
             IOptimismMintableERC20Factory(address(new L2OptimismMintableERC20Factory()));
-        assertEq(address(impl.BRIDGE()), address(0));
-        assertEq(address(impl.bridge()), address(0));
+        assertEq(address(impl.BRIDGE()), address(l2StandardBridge));
+        assertEq(address(impl.bridge()), address(l2StandardBridge));
     }
 
     /// @notice Tests that the proxy is initialized correctly.
