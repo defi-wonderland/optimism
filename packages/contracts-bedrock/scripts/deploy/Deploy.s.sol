@@ -328,7 +328,7 @@ contract Deploy is Deployer {
         ChainAssertions.checkL1StandardBridge({ _contracts: contracts, _isProxy: false });
         ChainAssertions.checkL1ERC721Bridge({ _contracts: contracts, _isProxy: false });
         ChainAssertions.checkOptimismPortal2({ _contracts: contracts, _cfg: cfg, _isProxy: false });
-        ChainAssertions.checkOptimismMintableERC20Factory({ _contracts: contracts, _isProxy: false });
+        ChainAssertions.checkL1OptimismMintableERC20Factory({ _contracts: contracts, _isProxy: false });
         ChainAssertions.checkDisputeGameFactory({ _contracts: contracts, _expectedOwner: address(0), _isProxy: false });
         ChainAssertions.checkDelayedWETH({
             _contracts: contracts,
@@ -372,7 +372,9 @@ contract Deploy is Deployer {
         save("AddressManager", address(deployOutput.addressManager));
         save("L1ERC721BridgeProxy", address(deployOutput.l1ERC721BridgeProxy));
         save("SystemConfigProxy", address(deployOutput.systemConfigProxy));
+        // Save under both names for backwards compatibility
         save("OptimismMintableERC20FactoryProxy", address(deployOutput.optimismMintableERC20FactoryProxy));
+        save("L1OptimismMintableERC20FactoryProxy", address(deployOutput.optimismMintableERC20FactoryProxy));
         save("L1StandardBridgeProxy", address(deployOutput.l1StandardBridgeProxy));
         save("L1CrossDomainMessengerProxy", address(deployOutput.l1CrossDomainMessengerProxy));
 
@@ -527,7 +529,7 @@ contract Deploy is Deployer {
                         l1StandardBridge: mustGetAddress("L1StandardBridgeProxy"),
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
-                        optimismMintableERC20Factory: mustGetAddress("L1OptimismMintableERC20FactoryProxy"),
+                        optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
                         gasPayingToken: customGasTokenAddress
                     })
                 )

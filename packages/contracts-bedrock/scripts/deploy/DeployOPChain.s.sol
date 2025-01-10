@@ -599,7 +599,7 @@ contract DeployOPChain is Script {
     function assertValidOptimismMintableERC20Factory(DeployOPChainInput, DeployOPChainOutput _doo) internal {
         IOptimismMintableERC20Factory factory = _doo.optimismMintableERC20FactoryProxy();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: true, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: true, _slot: 51, _offset: 0 });
 
         require(factory.BRIDGE() == address(_doo.l1StandardBridgeProxy()), "MERC20F-10");
         require(factory.bridge() == address(_doo.l1StandardBridgeProxy()), "MERC20F-20");

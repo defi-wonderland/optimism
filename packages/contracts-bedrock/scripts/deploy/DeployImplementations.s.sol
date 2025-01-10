@@ -651,7 +651,7 @@ contract DeployImplementations is Script {
             );
         }
 
-        vm.label(address(impl), "L1OptimismMintableERC20FactoryImpl");
+        vm.label(address(impl), "OptimismMintableERC20FactoryImpl");
         _dio.set(_dio.optimismMintableERC20FactoryImpl.selector, address(impl));
     }
 

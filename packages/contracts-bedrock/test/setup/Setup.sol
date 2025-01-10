@@ -211,7 +211,7 @@ contract Setup {
         addressManager = IAddressManager(deploy.mustGetAddress("AddressManager"));
         l1ERC721Bridge = IL1ERC721Bridge(deploy.mustGetAddress("L1ERC721BridgeProxy"));
         l1OptimismMintableERC20Factory =
-            IL1OptimismMintableERC20Factory(deploy.mustGetAddress("OptimismMintableERC20FactoryProxy"));
+            IL1OptimismMintableERC20Factory(deploy.mustGetAddress("L1OptimismMintableERC20FactoryProxy"));
         protocolVersions = IProtocolVersions(deploy.mustGetAddress("ProtocolVersionsProxy"));
         superchainConfig = ISuperchainConfig(deploy.mustGetAddress("SuperchainConfigProxy"));
         anchorStateRegistry = IAnchorStateRegistry(deploy.mustGetAddress("AnchorStateRegistryProxy"));
@@ -230,8 +230,8 @@ contract Setup {
         vm.label(address(addressManager), "AddressManager");
         vm.label(address(l1ERC721Bridge), "L1ERC721Bridge");
         vm.label(deploy.mustGetAddress("L1ERC721BridgeProxy"), "L1ERC721BridgeProxy");
-        vm.label(address(l1OptimismMintableERC20Factory), "OptimismMintableERC20Factory");
-        vm.label(deploy.mustGetAddress("OptimismMintableERC20FactoryProxy"), "L1OptimismMintableERC20FactoryProxy");
+        vm.label(address(l1OptimismMintableERC20Factory), "L1OptimismMintableERC20Factory");
+        vm.label(deploy.mustGetAddress("L1OptimismMintableERC20FactoryProxy"), "L1OptimismMintableERC20FactoryProxy");
         vm.label(address(protocolVersions), "ProtocolVersions");
         vm.label(deploy.mustGetAddress("ProtocolVersionsProxy"), "ProtocolVersionsProxy");
         vm.label(address(superchainConfig), "SuperchainConfig");
@@ -320,7 +320,7 @@ contract Setup {
 
     function configureBridges() internal {
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(Types.ConfigType.STANDARD_BRIDGE_ADDRESS, abi.encode(address(l1StandardBridge)));
+        l1Block.setConfig(Types.ConfigType.STANDARD_BRIDGE_ADDRESS, abi.encode(address(l2StandardBridge)));
         vm.stopPrank();
     }
 
