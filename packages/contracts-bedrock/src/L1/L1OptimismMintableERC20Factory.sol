@@ -29,7 +29,7 @@ contract L1OptimismMintableERC20Factory is OptimismMintableERC20Factory, Initial
 
     /// @notice Initializes the contract.
     /// @param _bridge Contract of the bridge on this domain.
-    function initialize(address _bridge) public initializer {
+    function initialize(address _bridge) external initializer {
         standardBridge = _bridge;
     }
 
