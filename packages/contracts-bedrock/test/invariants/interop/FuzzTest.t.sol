@@ -258,4 +258,23 @@ contract FuzzTest is Handler {
             assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
         }
     }
+
+    /// @custom:property-id 6
+    /// @custom:property The ETHLiquidity#mint call MUST always revert when the caller is not the SuperchainWETH
+    /// contract
+    function test_mintRevertsIfCallerNotSuperWETH(address _caller, uint256 _amount) public isInitialized {
+        require(_caller != address(ETH_LIQUIDITY));
+
+        _amount = clampLte(_amount, address(ETH_LIQUIDITY).balance);
+
+        (bool success) =
+            _prankNewActorAndCall(_caller, address(ETH_LIQUIDITY), abi.encodeCall(ETH_LIQUIDITY.mint, (_amount)));
+        if (!success) {
+            console.log("Caller false: ", _caller);
+            assert(_caller != address(SUPER_WETH));
+        } else {
+            console.log("Caller true: ", _caller);
+            assert(_caller == address(SUPER_WETH));
+        }
+    }
 }

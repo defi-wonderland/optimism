@@ -15,21 +15,12 @@ import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMes
 contract Actors {
     event ActorsLog(string);
 
-    IStdCheats internal _vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
+    IStdCheats internal vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address public superchainTokenBridge = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
     address public l2ToL2ToCDM = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
-    function callBridgeRelayERC20(
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        uint256 _source
-    )
-        public
-        returns (bool)
-    {
+    function callBridgeRelayERC20(address _token, address _from, address _to, uint256 _amount) public returns (bool) {
         try ISuperchainTokenBridge(superchainTokenBridge).relayERC20(_token, _from, _to, _amount) {
             return true;
         } catch {
@@ -74,7 +65,7 @@ contract Actors {
         public
         returns (bool _success, bytes memory _returnData)
     {
-        emit ActorsLog(string.concat("call using actor: ", _vm.toString(address(this))));
+        emit ActorsLog(string.concat("call using actor: ", vm.toString(address(this))));
 
         (_success, _returnData) = _target.call{ value: _msgValue }(_payload);
     }
@@ -83,6 +74,9 @@ contract Actors {
 }
 
 contract HandlerActors is GhostStorage {
+    // VM
+    IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
+
     function currentActor() public view returns (Actors _actor) {
         uint256 _seed = uint256(uint160(msg.sender));
         _actor = Actors(payable(_ghost_actors[(_seed % _ghost_actors.length) - 1]));
@@ -90,5 +84,27 @@ contract HandlerActors is GhostStorage {
 
     function randomActor(uint256 _seed) public view returns (Actors _actor) {
         _actor = Actors(payable(_ghost_actors[_seed % _ghost_actors.length]));
+    }
+
+    /// NOTE: Needed because prank is failing
+    function _prankNewActorAndCall(
+        address _caller,
+        address _target,
+        bytes memory _data
+    )
+        internal
+        returns (bool success)
+    {
+        // get code before
+        bytes memory originalCode = address(_caller).code;
+
+        // set code to be an actor
+        vm.etch(_caller, address(currentActor()).code);
+
+        // Call target through direct call
+        (success,) = _caller.call(abi.encodeCall(Actors.directCall, (_target, 0, _data)));
+
+        // Set code back to original
+        vm.etch(_caller, originalCode);
     }
 }
