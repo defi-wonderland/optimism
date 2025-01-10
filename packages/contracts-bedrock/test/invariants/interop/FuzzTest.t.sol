@@ -304,7 +304,7 @@ contract FuzzTest is Handler {
 
             assertWithMsg(
                 Utils.checkOverflow(address(SUPER_WETH).balance, _message.amount)
-                    || Utils.checkInsufficientBalance(_message.amount, ethLiquidityEthBalanceBefore)
+                    || !Utils.checkBalance(ethLiquidityEthBalanceBefore, _message.amount)
                     || L2_TO_L2_MESSENGER.successfulMessages(messageHash), // Already relayed
                 "Unkonwn Revert Error"
             );
@@ -315,7 +315,10 @@ contract FuzzTest is Handler {
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that balance would increase beyond
     /// type(uint256).max
     function test_burnSuperchainWETH(address _to, uint256 _chainId, uint256 _amount) public isInitialized {
-        if (_to == address(0)) revert();
+        require(_to != address(0));
+        require(Utils.checkBalance(address(currentActor()).balance, _amount));
+
+        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;

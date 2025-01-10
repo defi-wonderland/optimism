@@ -25,7 +25,7 @@ library Utils {
         return _a > type(uint256).max - _b;
     }
 
-    function checkInsufficientBalance(uint256 _balance, uint256 _amount) internal pure returns (bool) {
-        return _amount > _balance;
+    function checkBalance(uint256 _balance, uint256 _amount) internal pure returns (bool) {
+        return _amount <= _balance;
     }
 }

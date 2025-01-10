@@ -69,7 +69,7 @@ contract Actors {
     }
 
     function callSuperchainWETHSendETH(address _to, uint256 _chainId) public payable returns (bool _success) {
-        try ISuperchainWETH(payable(superchainWETH)).sendETH(_to, _chainId) {
+        try ISuperchainWETH(payable(superchainWETH)).sendETH{ value: msg.value }(_to, _chainId) {
             return true;
         } catch {
             return false;
