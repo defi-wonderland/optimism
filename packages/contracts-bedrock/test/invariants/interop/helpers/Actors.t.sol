@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import { GhostStorage } from "./GhostStorage.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { IStdCheats } from "../interfaces/IStdCheats.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { vm } from "../utils/VM.sol";
 
 // Actors handler, reusing the msg.sender used by Medusa (defined in the json)
 // and tracking them, allowing to aggregate balances for instance.
@@ -15,8 +15,6 @@ import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMes
 // Also allows to call the superchain token bridge and the L2 to L2 messenger.
 contract Actors {
     event ActorsLog(string);
-
-    IStdCheats internal _vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address public superchainTokenBridge = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
     address public l2ToL2ToCDM = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
@@ -84,7 +82,7 @@ contract Actors {
         public
         returns (bool _success, bytes memory _returnData)
     {
-        emit ActorsLog(string.concat("call using actor: ", _vm.toString(address(this))));
+        emit ActorsLog(string.concat("call using actor: ", vm.toString(address(this))));
 
         (_success, _returnData) = _target.call{ value: _msgValue }(_payload);
     }

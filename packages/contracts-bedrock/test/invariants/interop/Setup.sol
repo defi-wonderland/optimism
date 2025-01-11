@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 // Testing
-import { IStdCheats } from "./interfaces/IStdCheats.sol";
+import { vm } from "./utils/VM.sol";
 import { IDeployer815 } from "./interfaces/IDeployer815.sol";
 import { IDeployer825 } from "./interfaces/IDeployer825.sol";
 import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
@@ -63,8 +63,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
     ISuperToken public immutable SUPER_TOKEN;
 
-    // VM
-    IStdCheats public vm = IStdCheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
     // System addresses
     address public immutable dependencyManager = vm.addr(uint256(keccak256("DependencyManager")));
     address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
