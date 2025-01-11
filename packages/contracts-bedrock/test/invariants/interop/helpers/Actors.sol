@@ -20,16 +20,7 @@ contract Actors {
     address public l2ToL2ToCDM = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
     address public superchainWETH = Predeploys.SUPERCHAIN_WETH;
 
-    function callBridgeRelayERC20(
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        uint256 _source
-    )
-        public
-        returns (bool)
-    {
+    function callBridgeRelayERC20(address _token, address _from, address _to, uint256 _amount) public returns (bool) {
         try ISuperchainTokenBridge(superchainTokenBridge).relayERC20(_token, _from, _to, _amount) {
             return true;
         } catch {
