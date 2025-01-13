@@ -267,55 +267,76 @@ func (cfg *Config) CheckL2GenesisBlockHash(ctx context.Context, client L2Client)
 	return nil
 }
 
-var dependencySetTimestamps []uint64
-var nextDependencySetTimestampIndex int
+// dependencySetActivation stores sorted timestamp-dependencies pairs
+type dependencySetActivation struct {
+	timestamp uint64
+	chainIDs  []*big.Int
+}
 
-// IsDependencySetUpdate returns true when its the first timestamp past the
-// activation height. Timestamps increment.
+var (
+	// Store activations in sorted order
+	dependencySetActivations []dependencySetActivation
+	// Track latest activated dependency update position
+	latestActivationIndex int = -1
+)
+
+// IsDependencySetUpdate checks for any new chain dependencies that activate between
+// the previous and next block timestamps. Returns nil if no new dependencies activate,
+// or a slice of chain IDs for newly activated dependencies.
 func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimestamp uint64) []*big.Int {
+	// Return early if no cluster config exists
 	if cfg.ClusterConfig == nil {
-		panic("missing cluster config")
+		return nil
 	}
-	// initialize keys array
-	if dependencySetTimestamps == nil {
-		keys := make([]uint64, 0, len(cfg.ClusterConfig.DependencySet))
-		for k := range cfg.ClusterConfig.DependencySet {
-			keys = append(keys, k)
-		}
-		dependencySetTimestamps = keys
 
-		for i, dependencyTimestamp := range dependencySetTimestamps {
-			nextDependencySetTimestampIndex = i
-			if dependencyTimestamp > previousBlockTimestamp {
+	// Initialize activations on first call
+	if dependencySetActivations == nil {
+		// Convert map to array for more efficient lookups
+		dependencySetActivations = make([]dependencySetActivation, 0, len(cfg.ClusterConfig.DependencySet))
+		for ts, deps := range cfg.ClusterConfig.DependencySet {
+			dependencySetActivations = append(dependencySetActivations, dependencySetActivation{
+				timestamp: ts,
+				chainIDs:  deps,
+			})
+		}
+		// find the latest activation index by searching backwards
+		for i := len(dependencySetActivations) - 1; i >= 0; i-- {
+			if dependencySetActivations[i].timestamp <= previousBlockTimestamp {
+				latestActivationIndex = i
 				break
 			}
 		}
 	}
 
-	// Quick checks for empty sets or if we've processed all timestamps
-	if len(dependencySetTimestamps) == 0 ||
-		nextDependencySetTimestampIndex >= len(dependencySetTimestamps) {
+	// Quick return if no activations available
+	if len(dependencySetActivations) == 0 ||
+		latestActivationIndex == len(dependencySetActivations)-1 {
 		return nil
 	}
 
-	// Check if we haven't reached next activation time yet
-	if dependencySetTimestamps[nextDependencySetTimestampIndex] > nextBlockTimestamp {
-		return nil
-	}
+	// Find any new dependency activations in this time window
+	var newDependencies []*big.Int
+	nextIndex := latestActivationIndex + 1
+	for i := nextIndex; i < len(dependencySetActivations); i++ {
+		activation := dependencySetActivations[i]
 
-	// Collect all new dependencies activated in this time window
-	var dependencies []*big.Int
-	for i := nextDependencySetTimestampIndex; i < len(dependencySetTimestamps); i++ {
-		timestamp := dependencySetTimestamps[i]
-		if timestamp > nextBlockTimestamp {
+		// Break if we've passed the next block timestamp
+		if activation.timestamp > nextBlockTimestamp {
 			break
 		}
-		if timestamp > previousBlockTimestamp {
-			dependencies = append(dependencies, cfg.ClusterConfig.DependencySet[timestamp]...)
-			nextDependencySetTimestampIndex = i + 1
+
+		// Add dependencies if they activate after previous block
+		if activation.timestamp > previousBlockTimestamp {
+			newDependencies = append(newDependencies, activation.chainIDs...)
+			latestActivationIndex = i
 		}
 	}
-	return dependencies
+
+	// Return new dependencies if any
+	if len(newDependencies) == 0 {
+		return nil
+	}
+	return newDependencies
 }
 
 // Check verifies that the given configuration makes sense
