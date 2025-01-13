@@ -17,9 +17,9 @@ interface ISuperchainConfig is IDependencySet {
 
     error Unauthorized();
     error DependencySetTooLarge();
-    error InvalidChainID();
     error DependencyAlreadyAdded();
     error InvalidSuperchainConfig();
+    error PortalAlreadyAuthorized();
 
     function GUARDIAN_SLOT() external view returns (bytes32);
     function PAUSED_SLOT() external view returns (bytes32);

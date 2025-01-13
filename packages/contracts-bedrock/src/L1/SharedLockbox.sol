@@ -40,6 +40,7 @@ contract SharedLockbox is Initializable, ISemver {
         return "1.0.0-beta.1";
     }
 
+    /// @notice Constructs the SharedLockbox contract.
     constructor() {
         _disableInitializers();
     }

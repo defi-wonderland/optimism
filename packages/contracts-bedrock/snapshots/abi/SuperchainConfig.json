@@ -326,12 +326,12 @@
   },
   {
     "inputs": [],
-    "name": "InvalidChainID",
+    "name": "InvalidSuperchainConfig",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "InvalidSuperchainConfig",
+    "name": "PortalAlreadyAuthorized",
     "type": "error"
   },
   {

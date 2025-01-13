@@ -25,7 +25,6 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
-import { ILiquidityMigrator } from "interfaces/L1/ILiquidityMigrator.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
@@ -574,12 +573,5 @@ library ChainAssertions {
         } else {
             require(address(sharedLockbox.superchainConfig()) == address(0), "CHECK-SLB-30");
         }
-    }
-
-    /// @notice Asserts that the LiquidityMigrator is setup correctly
-    function checkLiquidityMigrator(Types.ContractSet memory _contracts, address _liquidityMigrator) internal view {
-        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
-
-        require(ILiquidityMigrator(_liquidityMigrator).SHARED_LOCKBOX() == sharedLockbox, "LM-10");
     }
 }

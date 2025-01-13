@@ -15,10 +15,6 @@
     "initCodeHash": "0x7d7030359826f64714ef0c2a5198901812fb0a99e949f23fe54ccf87a0df2e67",
     "sourceCodeHash": "0xa91b445bdc666a02ba18e3b91ba94b6d54bbe65da714002fc734814201319d57"
   },
-  "src/L1/LiquidityMigrator.sol": {
-    "initCodeHash": "0x708f764a2de821caa3d520c93f1951e24128b136a5c41b06e2b1444a1a34e2e8",
-    "sourceCodeHash": "0x4f719e707583e2b23b9fcbd6e70935df099f45ac0efc50d1156051609bc26f69"
-  },
   "src/L1/OPContractsManager.sol": {
     "initCodeHash": "0x4b413cbe79bd10d41d8f3e9f0408e773dd49ced823d457b9f9aa92f446828105",
     "sourceCodeHash": "0xe5179a20ae40d4e4773c52df98bac67e73e04044bec9e8750073b4e2f14fe81b"
@@ -37,11 +33,11 @@
   },
   "src/L1/SharedLockbox.sol": {
     "initCodeHash": "0x5be299e092d2656272cdd52c5ee5d6ddd07621d0090cc35bf70a74c200c5a05b",
-    "sourceCodeHash": "0x775c5bfcd8fbb28bd6ef9ccc79671dda9a6b90bd216b3a350105af13782122d3"
+    "sourceCodeHash": "0xf39b0c0269ee8c4f76b1955f746d6f37d0b5055c5dda412e57894888c0e13ed1"
   },
   "src/L1/SuperchainConfig.sol": {
-    "initCodeHash": "0x3e387e58b9dfcbf05c91fd88a740a79641b518d661c3d45a635976ec892a882d",
-    "sourceCodeHash": "0x8d3b0acfb14c7144894556dfb538d9b27768311bc905d6002d5b73cde97ba4b8"
+    "initCodeHash": "0xf15cee15d37d7d3b5695a749791482ae8153dbc41a67f3e14bd34d4f9d501c08",
+    "sourceCodeHash": "0x4671830f4ebf6a56610a8a9e27c1182d3a23d8af80512eafd8a32252febe86bc"
   },
   "src/L1/SystemConfig.sol": {
     "initCodeHash": "0xbb18eef17cdc1d0d307b0241e818820063e3ce3c7021ea3bb3a85ff6e79659e1",
@@ -56,8 +52,8 @@
     "sourceCodeHash": "0xfa56426153227e798150f6becc30a33fd20a3c6e0d73c797a3922dd631acbb57"
   },
   "src/L2/CrossL2Inbox.sol": {
-    "initCodeHash": "0x27e70c4a874662ec88a3e318e533173ad94aa8ebb7d0ab1f9f0afa93e5cda85d",
-    "sourceCodeHash": "0x51b5f4464fab163b8b539133c7f746f8ced5378580f302f85bbb17e108fd3c41"
+    "initCodeHash": "0x8bbf318357b2529530b538095d6ef238c8791006295c95bbe4a5025828a1bc13",
+    "sourceCodeHash": "0xc3b3f050c2b54b9513a50bfce2fb916eeae4fefc097788d240d8479a02d0fc13"
   },
   "src/L2/DependencyManager.sol": {
     "initCodeHash": "0xb2e0d759cef5b82efd3b4644b6490c1db2d6d865075937d5b07f23121912a46d",

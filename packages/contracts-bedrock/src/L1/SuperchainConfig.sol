@@ -63,14 +63,14 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @notice Thrown when the dependency set is too large to add a new dependency.
     error DependencySetTooLarge();
 
-    /// @notice Thrown when the input chain ID is the same as the current chain ID.
-    error InvalidChainID();
-
     /// @notice Thrown when the input dependency is already added to the set.
     error DependencyAlreadyAdded();
 
     /// @notice Thrown when a OptimismPortal does not have the right SuperchainConfig.
     error InvalidSuperchainConfig();
+
+    /// @notice Thrown when trying to add an OptimismPortal that is already authorized.
+    error PortalAlreadyAuthorized();
 
     /// @notice Semantic version.
     /// @custom:semver 1.1.1-beta.5
@@ -178,7 +178,6 @@ contract SuperchainConfig is Initializable, ISemver {
         }
 
         if (_dependencySet.length() == type(uint8).max) revert DependencySetTooLarge();
-        if (_chainId == block.chainid) revert InvalidChainID(); // TODO: is this check really necessary?
 
         // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
         if (!_dependencySet.add(_chainId)) revert DependencyAlreadyAdded();
@@ -196,6 +195,8 @@ contract SuperchainConfig is Initializable, ISemver {
         if (address(IOptimismPortal2(payable(_portal)).superchainConfig()) != address(this)) {
             revert InvalidSuperchainConfig();
         }
+
+        if (authorizedPortals[_portal]) revert PortalAlreadyAuthorized();
 
         authorizedPortals[_portal] = true;
 
