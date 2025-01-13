@@ -65,6 +65,16 @@ type AltDAConfig struct {
 	DAResolveWindow uint64 `json:"da_resolve_window"`
 }
 
+type ClusterConfig struct {
+	// DependencySet represents the chains that are in the cluster.
+	DependencySet map[uint64][]*big.Int `json:"dependency_set"`
+	// SystemConfig represents the L1 SystemConfig contract addresses for each chain in the cluster.
+	SystemConfig map[uint64]common.Address `json:"system_config"`
+	// SuperchainConfig represents the shared L1 SuperchainConfig contract
+	// address for the cluster.
+	SuperchainConfig common.Address `json:"superchain_config"`
+}
+
 type Config struct {
 	// Genesis anchor point of the rollup
 	Genesis Genesis `json:"genesis"`
@@ -143,6 +153,9 @@ type Config struct {
 
 	// AltDAConfig. We are in the process of migrating to the AltDAConfig from these legacy top level values
 	AltDAConfig *AltDAConfig `json:"alt_da,omitempty"`
+
+	// ClusterConfig represents the config for a cluster of chains
+	ClusterConfig *ClusterConfig `json:"cluster_config,omitempty"`
 }
 
 // ValidateL1Config checks L1 config variables for errors.
@@ -254,6 +267,49 @@ func (cfg *Config) CheckL2GenesisBlockHash(ctx context.Context, client L2Client)
 	return nil
 }
 
+var dependencySetTimestamps []uint64
+var nextDependencySetTimestampIndex int
+var nextTimestamp uint64
+
+// IsDependencySetUpdate returns true when its the first timestamp past the
+// activation height. Timestamps increment.
+func (cfg *Config) IsDependencySetUpdate(previous, next uint64) []*big.Int {
+	if cfg.ClusterConfig == nil {
+		panic("missing cluster config")
+	}
+	// initialize keys array
+	if dependencySetTimestamps == nil {
+		keys := make([]uint64, 0, len(cfg.ClusterConfig.DependencySet))
+		for k := range cfg.ClusterConfig.DependencySet {
+			keys = append(keys, k)
+		}
+		dependencySetTimestamps = keys
+
+		for i, dependencyTimestamp := range dependencySetTimestamps {
+			nextDependencySetTimestampIndex = i
+			if dependencyTimestamp > previous {
+				break
+			}
+		}
+		nextTimestamp = dependencySetTimestamps[nextDependencySetTimestampIndex]
+	}
+
+	if len(dependencySetTimestamps) == 0 || nextDependencySetTimestampIndex == len(dependencySetTimestamps)-1 {
+		return nil
+	}
+
+	if nextTimestamp > previous && nextTimestamp <= next {
+		// save current timestamp
+		currentTimestamp := dependencySetTimestamps[nextDependencySetTimestampIndex]
+		// increment cache
+		nextDependencySetTimestampIndex++
+		nextTimestamp = dependencySetTimestamps[nextDependencySetTimestampIndex]
+		return cfg.ClusterConfig.DependencySet[currentTimestamp]
+	}
+
+	return nil
+}
+
 // Check verifies that the given configuration makes sense
 func (cfg *Config) Check() error {
 	if cfg.BlockTime == 0 {
@@ -313,6 +369,9 @@ func (cfg *Config) Check() error {
 	if err := validateAltDAConfig(cfg); err != nil {
 		return err
 	}
+	if err := validateClusterConfig(cfg); err != nil {
+		return err
+	}
 
 	if err := checkFork(cfg.RegolithTime, cfg.CanyonTime, Regolith, Canyon); err != nil {
 		return err
@@ -351,6 +410,17 @@ func validateAltDAConfig(cfg *Config) error {
 			return errors.New("Must set da_challenge_contract_address for keccak commitments")
 		} else if cfg.AltDAConfig.CommitmentType == altda.GenericCommitmentString && cfg.AltDAConfig.DAChallengeAddress != (common.Address{}) {
 			return errors.New("Must set empty da_challenge_contract_address for generic commitments")
+		}
+	}
+	return nil
+}
+
+// validateClusterConfig checks that the cluster config is correct.
+// TODO: some way to guarantee this is set when interop activates
+func validateClusterConfig(cfg *Config) error {
+	if cfg.ClusterConfig != nil {
+		if cfg.ClusterConfig.SuperchainConfig == (common.Address{}) {
+			return errors.New("superchain config contract not configured")
 		}
 	}
 	return nil

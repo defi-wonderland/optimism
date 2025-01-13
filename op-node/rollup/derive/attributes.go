@@ -136,6 +136,17 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 			return nil, NewCriticalError(fmt.Errorf("failed to create depositsCompleteTx: %w", err))
 		}
 		afterForceIncludeTxs = append(afterForceIncludeTxs, depositsCompleteTx)
+
+		newDependencies := ba.rollupCfg.IsDependencySetUpdate(l2Parent.Time, nextL2Time)
+		if newDependencies != nil {
+			for _, newDependency := range newDependencies {
+				dependencySetUpdateTx, err := AddDependencyBytes(seqNumber, l1Info, newDependency)
+				if err != nil {
+					return nil, NewCriticalError(fmt.Errorf("failed to create dependencySetUpdateTx: %w", err))
+				}
+				afterForceIncludeTxs = append(afterForceIncludeTxs, dependencySetUpdateTx)
+			}
+		}
 	}
 
 	txs := make([]hexutil.Bytes, 0, 1+len(depositTxs)+len(afterForceIncludeTxs)+len(upgradeTxs))

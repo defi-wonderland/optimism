@@ -22,6 +22,7 @@ const (
 	L1InfoFuncEcotoneSignature = "setL1BlockValuesEcotone()"
 	L1InfoFuncInteropSignature = "setL1BlockValuesInterop()"
 	DepositsCompleteSignature  = "depositsComplete()"
+	AddDependencySignature     = "addDependency(address,uint256,address)"
 	L1InfoArguments            = 8
 	L1InfoBedrockLen           = 4 + 32*L1InfoArguments
 	L1InfoEcotoneLen           = 4 + 32*5 // after Ecotone upgrade, args are packed into 5 32-byte slots
@@ -32,6 +33,8 @@ const (
 	// GasBenchMark_L1BlockInterop_DepositsComplete_Warm:test_depositsComplete_benchmark() (gas: 5768)
 	// see `test_depositsComplete_benchmark` at: `/packages/contracts-bedrock/test/BenchmarkTest.t.sol`
 	DepositsCompleteGas = uint64(21_000 + 15_000)
+	AddDependencyLen    = 4 + 32*3
+	AddDependencyGas    = uint64(21_000 + 250_000)
 )
 
 var (
@@ -39,6 +42,7 @@ var (
 	L1InfoFuncEcotoneBytes4 = crypto.Keccak256([]byte(L1InfoFuncEcotoneSignature))[:4]
 	L1InfoFuncInteropBytes4 = crypto.Keccak256([]byte(L1InfoFuncInteropSignature))[:4]
 	DepositsCompleteBytes4  = crypto.Keccak256([]byte(DepositsCompleteSignature))[:4]
+	AddDependencyBytes4     = crypto.Keccak256([]byte(AddDependencySignature))[:4]
 	L1InfoDepositerAddress  = common.HexToAddress("0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001")
 	L1BlockAddress          = predeploys.L1BlockAddr
 	ErrInvalidFormat        = errors.New("invalid ecotone l1 block info format")
@@ -422,4 +426,35 @@ func DepositsCompleteBytes(seqNumber uint64, l1Info eth.BlockInfo) ([]byte, erro
 		return nil, fmt.Errorf("failed to encode DepositsComplete tx: %w", err)
 	}
 	return opaqueDepositsCompleteTx, nil
+}
+
+func AddDependencyDeposit(seqNumber uint64, block eth.BlockInfo, newDependency *big.Int) (*types.DepositTx, error) {
+	source := AfterForceIncludeSource{
+		L1BlockHash: block.Hash(),
+		SeqNumber:   seqNumber,
+	}
+	out := &types.DepositTx{
+		SourceHash:          source.SourceHash(),
+		From:                L1InfoDepositerAddress,
+		To:                  &L1BlockAddress,
+		Mint:                nil,
+		Value:               big.NewInt(0),
+		Gas:                 AddDependencyGas,
+		IsSystemTransaction: false,
+		Data:                AddDependencyBytes4,
+	}
+	return out, nil
+}
+
+func AddDependencyBytes(seqNumber uint64, l1Info eth.BlockInfo, newDependency *big.Int) ([]byte, error) {
+	dep, err := AddDependencyDeposit(seqNumber, l1Info, newDependency)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AddDependency tx: %w", err)
+	}
+	addDependencyTx := types.NewTx(dep)
+	opaqueAddDependencyTx, err := addDependencyTx.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode AddDependency tx: %w", err)
+	}
+	return opaqueAddDependencyTx, nil
 }
