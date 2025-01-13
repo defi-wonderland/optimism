@@ -284,9 +284,8 @@ var (
 // the previous and next block timestamps. Returns nil if no new dependencies activate,
 // or a slice of chain IDs for newly activated dependencies.
 func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimestamp uint64) []*big.Int {
-	// Return early if no cluster config exists
 	if cfg.ClusterConfig == nil {
-		return nil
+		panic("missing cluster config")
 	}
 
 	// Initialize activations on first call
