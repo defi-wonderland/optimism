@@ -14,12 +14,6 @@ struct Identifier {
 interface ICrossL2Inbox {
     error ReentrantCall();
 
-    /// @notice Thrown when the caller is not DEPOSITOR_ACCOUNT when calling `setInteropStart()`
-    error NotDepositor();
-
-    /// @notice Thrown when attempting to set interop start when it's already set.
-    error InteropStartAlreadySet();
-
     /// @notice Thrown when a non-written transient storage slot is attempted to be read from.
     error NotEntered();
 
@@ -32,10 +26,6 @@ interface ICrossL2Inbox {
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
 
     function version() external view returns (string memory);
-
-    /// @notice Returns the interop start timestamp.
-    /// @return interopStart_ interop start timestamp.
-    function interopStart() external view returns (uint256 interopStart_);
 
     /// @notice Returns the origin address of the Identifier.
     function origin() external view returns (address);
@@ -51,8 +41,6 @@ interface ICrossL2Inbox {
 
     /// @notice Returns the chain ID of the Identifier.
     function chainId() external view returns (uint256);
-
-    function setInteropStart() external;
 
     /// @notice Executes a cross chain message on the destination chain.
     /// @param _id An Identifier pointing to the initiating message.
