@@ -261,7 +261,8 @@ contract FuzzTest is Handler {
     function test_mintSuperchainWETH(
         Identifier memory _id,
         Message memory _message,
-        address _target
+        address _target,
+        bool _txPath
     )
         public
         isInitialized
@@ -270,11 +271,38 @@ contract FuzzTest is Handler {
         _id.origin = address(L2_TO_L2_MESSENGER);
         _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
 
-        bytes memory message = abi.encodeCall(SUPER_WETH.relayETH, (_message.from, _target, _message.amount));
-        bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPER_WETH), _message.nonce), // topics
-            abi.encode(address(SUPER_WETH), message) // data
-        );
+        bytes memory message;
+        bytes memory sentMessage;
+
+        // Select minting path: SuperchainWETH or SupertokenBridge
+        if (_txPath) {
+            message = abi.encodeCall(SUPER_WETH.relayETH, (_message.from, _target, _message.amount));
+            sentMessage = abi.encodePacked(
+                abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPER_WETH), _message.nonce), // topics
+                abi.encode(address(SUPER_WETH), message) // data
+            );
+        } else {
+            message = abi.encodeCall(
+                SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, _target, _message.amount)
+            );
+            sentMessage = abi.encodePacked(
+                abi.encode(
+                    _SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce
+                ), // topics
+                abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
+            );
+        }
+
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: _txPath ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: _txPath ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: message
+        });
+
+        require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
@@ -283,32 +311,35 @@ contract FuzzTest is Handler {
         bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
-            if (_target != address(ETH_LIQUIDITY)) {
-                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+            if (_txPath) {
+                if (_target != address(ETH_LIQUIDITY)) {
+                    assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+                } else {
+                    assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
+                }
             } else {
-                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             }
         } else {
-            bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-                _destination: block.chainid,
-                _source: _id.chainId,
-                _nonce: _message.nonce,
-                _sender: address(SUPER_WETH),
-                _target: address(SUPER_WETH),
-                _message: message
-            });
-
             assert(
-                address(SUPER_WETH).balance > type(uint256).max - _message.amount
-                    || ethLiquidityEthBalanceBefore < _message.amount || L2_TO_L2_MESSENGER.successfulMessages(messageHash)
+                address(SUPER_WETH).balance > type(uint256).max - _message.amount // Check for overflow in
+                    // SuperchainWETH
+                    || ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
             );
         }
     }
 
     /// @custom:property-id 9
-    /// @custom:property ETHLiquidity#burn() MUST never be callable such that balance would increase beyond
-    /// type(uint256).max
-    function test_burnSuperchainWETH(address _to, uint256 _chainId, uint256 _amount) public isInitialized {
+    /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
+    function test_burnSuperchainWETH(
+        address _to,
+        uint256 _chainId,
+        uint256 _amount,
+        bool _txPath
+    )
+        public
+        isInitialized
+    {
         require(_to != address(0));
 
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
@@ -316,12 +347,20 @@ contract FuzzTest is Handler {
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
-        bool success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+        bool _success;
+        if (_txPath) {
+            _amount = clampLte(_amount, Utils.min(address(currentActor()).balance, address(SUPER_WETH).balance));
+            _success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+        } else {
+            _amount =
+                clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(address(currentActor())), address(SUPER_WETH).balance));
+            _success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
+        }
 
-        if (success) {
+        if (_success) {
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
-            assert(address(currentActor()).balance < _amount);
+            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Check for overflow in ETHLiquidity
         }
     }
 }
