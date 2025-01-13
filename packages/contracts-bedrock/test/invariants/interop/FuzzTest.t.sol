@@ -14,9 +14,6 @@ contract FuzzTest is Handler {
 
     bool initialized;
 
-    // TODO: Remove
-    uint256 seed = uint256(uint160(address(this)));
-
     /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
     modifier isInitialized() {
         if (!initialized) {
