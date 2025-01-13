@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 // Contracts
 import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
 import { L2ToL2CrossDomainMessenger } from "src/L2/L2ToL2CrossDomainMessenger.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { SuperchainERC20ForToBProperties } from "../helpers/SuperchainERC20ForToBProperties.t.sol";
 import { SuperchainTokenBridge } from "src/L2/SuperchainTokenBridge.sol";
 
 contract Deployer825 {
@@ -17,25 +17,10 @@ contract Deployer825 {
     }
 
     function deploySuperchainERC20() public returns (address superchainERC20) {
-        superchainERC20 = address(new SuperToken());
+        superchainERC20 = address(new SuperchainERC20ForToBProperties());
     }
 
     function deploySuperchainTokenBridge() public returns (address superchainTokenBridge) {
         superchainTokenBridge = address(new SuperchainTokenBridge());
-    }
-}
-
-contract SuperToken is SuperchainERC20 {
-    function name() public pure override returns (string memory) {
-        return "Super Token";
-    }
-
-    /// @dev Returns the symbol of the token.
-    function symbol() public pure override returns (string memory) {
-        return "SUP";
-    }
-
-    function mint(address _to, uint256 _amount) public {
-        _mint(_to, _amount);
     }
 }
