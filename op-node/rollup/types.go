@@ -269,11 +269,10 @@ func (cfg *Config) CheckL2GenesisBlockHash(ctx context.Context, client L2Client)
 
 var dependencySetTimestamps []uint64
 var nextDependencySetTimestampIndex int
-var nextTimestamp uint64
 
 // IsDependencySetUpdate returns true when its the first timestamp past the
 // activation height. Timestamps increment.
-func (cfg *Config) IsDependencySetUpdate(previous, next uint64) []*big.Int {
+func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimestamp uint64) []*big.Int {
 	if cfg.ClusterConfig == nil {
 		panic("missing cluster config")
 	}
@@ -287,27 +286,36 @@ func (cfg *Config) IsDependencySetUpdate(previous, next uint64) []*big.Int {
 
 		for i, dependencyTimestamp := range dependencySetTimestamps {
 			nextDependencySetTimestampIndex = i
-			if dependencyTimestamp > previous {
+			if dependencyTimestamp > previousBlockTimestamp {
 				break
 			}
 		}
-		nextTimestamp = dependencySetTimestamps[nextDependencySetTimestampIndex]
 	}
 
-	if len(dependencySetTimestamps) == 0 || nextDependencySetTimestampIndex == len(dependencySetTimestamps)-1 {
+	// Quick checks for empty sets or if we've processed all timestamps
+	if len(dependencySetTimestamps) == 0 ||
+		nextDependencySetTimestampIndex >= len(dependencySetTimestamps) {
 		return nil
 	}
 
-	if nextTimestamp > previous && nextTimestamp <= next {
-		// save current timestamp
-		currentTimestamp := dependencySetTimestamps[nextDependencySetTimestampIndex]
-		// increment cache
-		nextDependencySetTimestampIndex++
-		nextTimestamp = dependencySetTimestamps[nextDependencySetTimestampIndex]
-		return cfg.ClusterConfig.DependencySet[currentTimestamp]
+	// Check if we haven't reached next activation time yet
+	if dependencySetTimestamps[nextDependencySetTimestampIndex] > nextBlockTimestamp {
+		return nil
 	}
 
-	return nil
+	// Collect all new dependencies activated in this time window
+	var dependencies []*big.Int
+	for i := nextDependencySetTimestampIndex; i < len(dependencySetTimestamps); i++ {
+		timestamp := dependencySetTimestamps[i]
+		if timestamp > nextBlockTimestamp {
+			break
+		}
+		if timestamp > previousBlockTimestamp {
+			dependencies = append(dependencies, cfg.ClusterConfig.DependencySet[timestamp]...)
+			nextDependencySetTimestampIndex = i + 1
+		}
+	}
+	return dependencies
 }
 
 // Check verifies that the given configuration makes sense
