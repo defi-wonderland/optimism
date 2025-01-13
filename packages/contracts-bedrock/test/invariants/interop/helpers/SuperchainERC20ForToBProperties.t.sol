@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
-import "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
-import "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
-import "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalMintableProperties.sol";
-import "@crytic/properties/contracts/ERC20/external/properties/ERC20ExternalBurnableProperties.sol";
+import "properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
+import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
+import "properties/contracts/ERC20/external/properties/ERC20ExternalMintableProperties.sol";
+import "properties/contracts/ERC20/external/properties/ERC20ExternalBurnableProperties.sol";
 
 contract SuperchainERC20ForToBProperties is
     SuperchainERC20,

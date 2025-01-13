@@ -32,7 +32,7 @@ remappings = [
   'kontrol-cheatcodes/=lib/kontrol-cheatcodes/src',
   'gelato/=lib/automate/contracts',
   'interfaces/=interfaces',
-  '@crytic/properties/=properties/'
+  'properties/=lib/properties/'
 ]
 
 fs_permissions = [
