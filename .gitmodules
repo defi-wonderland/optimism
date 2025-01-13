@@ -38,3 +38,6 @@
 [submodule "packages/contracts-bedrock/properties"]
 	path = packages/contracts-bedrock/properties
 	url = https://github.com/crytic/properties.git
+[submodule "packages/contracts-bedrock/lib/properties"]
+	path = packages/contracts-bedrock/lib/properties
+	url = https://github.com/crytic/properties
