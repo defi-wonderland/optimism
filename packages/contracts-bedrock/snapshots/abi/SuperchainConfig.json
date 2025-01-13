@@ -1,14 +1,21 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sharedLockbox",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "CLUSTER_MANAGER_SLOT",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -31,19 +38,6 @@
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "SHARED_LOCKBOX",
-    "outputs": [
-      {
-        "internalType": "contract ISharedLockbox",
-        "name": "",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -81,6 +75,19 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "clusterManager",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "clusterManager_",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -133,25 +140,22 @@
         "type": "address"
       },
       {
+        "internalType": "address",
+        "name": "_clusterManager",
+        "type": "address"
+      },
+      {
         "internalType": "bool",
         "name": "_paused",
         "type": "bool"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
+      },
       {
         "internalType": "address",
-        "name": "_initialPortal",
+        "name": "_sharedLockbox",
         "type": "address"
       }
     ],
-    "name": "initializePortal",
+    "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -196,6 +200,19 @@
         "internalType": "bool",
         "name": "paused_",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "sharedLockbox",
+    "outputs": [
+      {
+        "internalType": "contract ISharedLockbox",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",

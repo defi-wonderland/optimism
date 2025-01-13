@@ -58,7 +58,7 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "SuperchainConfigImpl",
                 target: deploy.mustGetAddress("SuperchainConfigImpl"),
-                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), false))
+                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), address(0), false, address(0)))
             })
         );
         // SuperchainConfigProxy
@@ -66,7 +66,23 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "SuperchainConfigProxy",
                 target: address(superchainConfig),
-                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), false))
+                initCalldata: abi.encodeCall(superchainConfig.initialize, (address(0), address(0), false, address(0)))
+            })
+        );
+        // ShareLockboxImpl
+        contracts.push(
+            InitializeableContract({
+                name: "SharedLockboxImpl",
+                target: deploy.mustGetAddress("SharedLockboxImpl"),
+                initCalldata: abi.encodeCall(sharedLockbox.initialize, (address(0)))
+            })
+        );
+        // SharedLockboxProxy
+        contracts.push(
+            InitializeableContract({
+                name: "SharedLockboxProxy",
+                target: address(sharedLockbox),
+                initCalldata: abi.encodeCall(sharedLockbox.initialize, (address(0)))
             })
         );
         // L1CrossDomainMessengerImpl

@@ -14,6 +14,13 @@
     "type": "bool"
   },
   {
+    "bytes": "20",
+    "label": "sharedLockbox",
+    "offset": 2,
+    "slot": "0",
+    "type": "contract ISharedLockbox"
+  },
+  {
     "bytes": "64",
     "label": "_dependencySet",
     "offset": 0,

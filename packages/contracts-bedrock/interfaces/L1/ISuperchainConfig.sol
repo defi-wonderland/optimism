@@ -23,10 +23,11 @@ interface ISuperchainConfig is IDependencySet {
 
     function GUARDIAN_SLOT() external view returns (bytes32);
     function PAUSED_SLOT() external view returns (bytes32);
-    function SHARED_LOCKBOX() external view returns (ISharedLockbox);
+    function CLUSTER_MANAGER_SLOT() external view returns (bytes32);
+    function sharedLockbox() external view returns (ISharedLockbox);
     function guardian() external view returns (address guardian_);
-    function initialize(address _guardian, bool _paused) external;
-    function initializePortal(address _initialPortal) external;
+    function clusterManager() external view returns (address clusterManager_);
+    function initialize(address _guardian, address _clusterManager, bool _paused, address _sharedLockbox) external;
     function pause(string memory _identifier) external;
     function paused() external view returns (bool paused_);
     function unpause() external;
@@ -36,5 +37,5 @@ interface ISuperchainConfig is IDependencySet {
     function dependencySetSize() external view returns (uint8);
     function authorizedPortals(address) external view returns (bool);
 
-    function __constructor__(address _sharedLockbox) external;
+    function __constructor__() external;
 }

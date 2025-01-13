@@ -139,10 +139,8 @@ contract OptimismPortal2_Test is CommonTest {
     /// @dev Tests that `sharedLockbox` returns correctly
     function testFuzz_sharedLockbox_succeeds(address _caller, address _lockbox) external {
         // Mock and expect the SuperchainConfig's SharedLockbox
-        vm.mockCall(
-            address(superchainConfig), abi.encodeCall(superchainConfig.SHARED_LOCKBOX, ()), abi.encode(_lockbox)
-        );
-        vm.expectCall(address(superchainConfig), 0, abi.encodeCall(superchainConfig.SHARED_LOCKBOX, ()));
+        vm.mockCall(address(superchainConfig), abi.encodeCall(superchainConfig.sharedLockbox, ()), abi.encode(_lockbox));
+        vm.expectCall(address(superchainConfig), 0, abi.encodeCall(superchainConfig.sharedLockbox, ()));
 
         vm.prank(_caller);
         address _result = address(optimismPortal2.sharedLockbox());

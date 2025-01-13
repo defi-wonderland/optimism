@@ -281,7 +281,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Getter for the address of the shared lockbox.
     function sharedLockbox() public view returns (ISharedLockbox) {
-        return superchainConfig.SHARED_LOCKBOX();
+        return superchainConfig.sharedLockbox();
     }
 
     /// @notice Computes the minimum gas limit for a deposit.

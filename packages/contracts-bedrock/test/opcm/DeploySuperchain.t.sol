@@ -208,10 +208,12 @@ contract DeploySuperchain_Test is Test {
         assertEq(address(dso.superchainProxyAdmin().owner()), superchainProxyAdminOwner, "100");
         assertEq(address(dso.protocolVersionsProxy().owner()), protocolVersionsOwner, "200");
         assertEq(address(dso.superchainConfigProxy().guardian()), guardian, "300");
-        assertEq(dso.superchainConfigProxy().paused(), paused, "400");
-        assertEq(unwrap(dso.protocolVersionsProxy().required()), unwrap(requiredProtocolVersion), "500");
-        assertEq(unwrap(dso.protocolVersionsProxy().recommended()), unwrap(recommendedProtocolVersion), "600");
-        assertEq(address(dso.sharedLockboxProxy().SUPERCHAIN_CONFIG()), address(dso.superchainConfigProxy()), "700");
+        assertEq(address(dso.superchainConfigProxy().clusterManager()), superchainProxyAdminOwner, "400");
+        assertEq(dso.superchainConfigProxy().paused(), paused, "500");
+        assertEq(address(dso.superchainConfigProxy().sharedLockbox()), address(dso.sharedLockboxProxy()), "600");
+        assertEq(unwrap(dso.protocolVersionsProxy().required()), unwrap(requiredProtocolVersion), "700");
+        assertEq(unwrap(dso.protocolVersionsProxy().recommended()), unwrap(recommendedProtocolVersion), "800");
+        assertEq(address(dso.sharedLockboxProxy().superchainConfig()), address(dso.superchainConfigProxy()), "900");
 
         // Architecture assertions.
         // We prank as the zero address due to the Proxy's `proxyCallIfNotAdmin` modifier.
@@ -220,11 +222,12 @@ contract DeploySuperchain_Test is Test {
         Proxy sharedLockboxProxy = Proxy(payable(address(dso.sharedLockboxProxy())));
 
         vm.startPrank(address(0));
-        assertEq(superchainConfigProxy.implementation(), address(dso.superchainConfigImpl()), "700");
-        assertEq(protocolVersionsProxy.implementation(), address(dso.protocolVersionsImpl()), "800");
-        assertEq(superchainConfigProxy.admin(), protocolVersionsProxy.admin(), "900");
-        assertEq(superchainConfigProxy.admin(), address(dso.superchainProxyAdmin()), "1000");
-        assertEq(sharedLockboxProxy.implementation(), address(dso.sharedLockboxImpl()), "1100");
+        assertEq(superchainConfigProxy.implementation(), address(dso.superchainConfigImpl()), "1000");
+        assertEq(protocolVersionsProxy.implementation(), address(dso.protocolVersionsImpl()), "1100");
+        assertEq(superchainConfigProxy.admin(), protocolVersionsProxy.admin(), "1200");
+        assertEq(superchainConfigProxy.admin(), address(dso.superchainProxyAdmin()), "1300");
+        assertEq(sharedLockboxProxy.implementation(), address(dso.sharedLockboxImpl()), "1400");
+        assertEq(sharedLockboxProxy.admin(), address(dso.superchainProxyAdmin()), "1500");
         vm.stopPrank();
 
         // Ensure that `checkOutput` passes. This is called by the `run` function during execution,

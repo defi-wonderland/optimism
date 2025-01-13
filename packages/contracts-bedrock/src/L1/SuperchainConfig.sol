@@ -25,8 +25,10 @@ contract SuperchainConfig is Initializable, ISemver {
 
     /// @notice Enum representing different types of updates.
     /// @custom:value GUARDIAN            Represents an update to the guardian.
+    /// @custom:value CLUSTER_MANAGER     Represents an update to the cluster manager.
     enum UpdateType {
-        GUARDIAN
+        GUARDIAN,
+        CLUSTER_MANAGER
     }
 
     /// @notice Whether or not the Superchain is paused.
@@ -36,8 +38,9 @@ contract SuperchainConfig is Initializable, ISemver {
     ///         It can only be modified by an upgrade.
     bytes32 public constant GUARDIAN_SLOT = bytes32(uint256(keccak256("superchainConfig.guardian")) - 1);
 
-    // The Shared Lockbox contract
-    ISharedLockbox public immutable SHARED_LOCKBOX;
+    /// @notice The address of the cluster manager, which can add a chain to the dependency set.
+    ///         It can only be modified by an upgrade.
+    bytes32 public constant CLUSTER_MANAGER_SLOT = bytes32(uint256(keccak256("superchainConfig.clusterManager")) - 1);
 
     /// @notice Emitted when the pause is triggered.
     /// @param identifier A string helping to identify provenance of the pause transaction.
@@ -73,6 +76,9 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @custom:semver 1.1.1-beta.5
     string public constant version = "1.1.1-beta.5";
 
+    /// @notice The Shared Lockbox contract
+    ISharedLockbox public sharedLockbox;
+
     // Dependency set of chains that are part of the same cluster
     EnumerableSet.UintSet internal _dependencySet;
 
@@ -80,32 +86,40 @@ contract SuperchainConfig is Initializable, ISemver {
     mapping(address => bool) public authorizedPortals;
 
     /// @notice Constructs the SuperchainConfig contract.
-    constructor(address _sharedLockbox) {
-        SHARED_LOCKBOX = ISharedLockbox(_sharedLockbox);
+    constructor() {
         _disableInitializers();
     }
 
     /// @notice Initializer.
     /// @param _guardian             Address of the guardian, can pause the OptimismPortal.
+    /// @param _clusterManager       Address of the clusterManager, can add a chain to the dependency set.
     /// @param _paused               Initial paused status.
-    function initialize(address _guardian, bool _paused) external initializer {
+    /// @param _sharedLockbox        Address of the SharedLockbox contract.
+    function initialize(
+        address _guardian,
+        address _clusterManager,
+        bool _paused,
+        address _sharedLockbox
+    )
+        external
+        initializer
+    {
         _setGuardian(_guardian);
+        _setClusterManager(_clusterManager);
         if (_paused) {
             _pause("Initializer paused");
         }
-    }
-
-    // TODO: check if this function makes sense
-    /// @notice Initializes the first portal of the cluster.
-    /// @param _initialPortal The address of the initial portal.
-    function initializePortal(address _initialPortal) external {
-        require(msg.sender == guardian(), "SuperchainConfig: only guardian can initialize a portal");
-        _joinSharedLockbox(_initialPortal);
+        sharedLockbox = ISharedLockbox(_sharedLockbox);
     }
 
     /// @notice Getter for the guardian address.
     function guardian() public view returns (address guardian_) {
         guardian_ = Storage.getAddress(GUARDIAN_SLOT);
+    }
+
+    /// @notice Getter for the cluster manager address.
+    function clusterManager() public view returns (address clusterManager_) {
+        clusterManager_ = Storage.getAddress(CLUSTER_MANAGER_SLOT);
     }
 
     /// @notice Getter for the current paused status.
@@ -142,14 +156,26 @@ contract SuperchainConfig is Initializable, ISemver {
         emit ConfigUpdate(UpdateType.GUARDIAN, abi.encode(_guardian));
     }
 
+    /// @notice Sets the cluster manager address. This is only callable during initialization, so an upgrade
+    ///         will be required to change the cluster manager.
+    /// @param _clusterManager The new cluster manager address.
+    function _setClusterManager(address _clusterManager) internal {
+        Storage.setAddress(CLUSTER_MANAGER_SLOT, _clusterManager);
+        emit ConfigUpdate(UpdateType.CLUSTER_MANAGER, abi.encode(_clusterManager));
+    }
+
     /// @notice Adds a new dependency to the dependency set. It also authorizes it's OptimismPortal on the
     ///         SharedLockbox and migrate it's ETH liquidity to it. Can only be called by an authorized
     ///         OptimismPortal via a withdrawal transaction initiated by the DependencyManager.
     /// @param _chainId         The chain ID to add.
     /// @param _systemConfig    The SystemConfig contract address of the chain to add.
     function addDependency(uint256 _chainId, address _systemConfig) external {
-        if (!authorizedPortals[msg.sender]) revert Unauthorized();
-        if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Predeploys.DEPENDENCY_MANAGER) revert Unauthorized();
+        if (msg.sender != clusterManager()) {
+            if (!authorizedPortals[msg.sender]) revert Unauthorized();
+            if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Predeploys.DEPENDENCY_MANAGER) {
+                revert Unauthorized();
+            }
+        }
 
         if (_dependencySet.length() == type(uint8).max) revert DependencySetTooLarge();
         if (_chainId == block.chainid) revert InvalidChainID(); // TODO: is this check really necessary?

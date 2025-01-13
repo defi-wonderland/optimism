@@ -9,7 +9,7 @@ import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
 // Target contract
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { SuperchainConfig, ISharedLockbox, ISystemConfig } from "src/L1/SuperchainConfig.sol";
+import { SuperchainConfig, ISystemConfig } from "src/L1/SuperchainConfig.sol";
 
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -24,7 +24,8 @@ contract SuperchainConfig_Init_Test is CommonTest {
     function test_initialize_succeeds() external view {
         assertFalse(superchainConfig.paused());
         assertEq(superchainConfig.guardian(), deploy.cfg().superchainConfigGuardian());
-        assertEq(superchainConfig.dependencyManager(), deploy.cfg().finalSystemOwner());
+        assertEq(superchainConfig.clusterManager(), deploy.cfg().finalSystemOwner());
+        assertEq(address(superchainConfig.sharedLockbox()), address(sharedLockbox));
     }
 
     /// @dev Tests that it can be intialized as paused.
@@ -38,9 +39,7 @@ contract SuperchainConfig_Init_Test is CommonTest {
         ISuperchainConfig newImpl = ISuperchainConfig(
             DeployUtils.create1({
                 _name: "SuperchainConfig",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(ISuperchainConfig.__constructor__, (address(sharedLockbox)))
-                )
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(ISuperchainConfig.__constructor__, ()))
             })
         );
 
@@ -49,13 +48,14 @@ contract SuperchainConfig_Init_Test is CommonTest {
             address(newImpl),
             abi.encodeCall(
                 ISuperchainConfig.initialize,
-                (deploy.cfg().superchainConfigGuardian(), deploy.cfg().finalSystemOwner(), true)
+                (deploy.cfg().superchainConfigGuardian(), deploy.cfg().finalSystemOwner(), true, address(sharedLockbox))
             )
         );
 
         assertTrue(ISuperchainConfig(address(newProxy)).paused());
         assertEq(ISuperchainConfig(address(newProxy)).guardian(), deploy.cfg().superchainConfigGuardian());
-        assertEq(ISuperchainConfig(address(newProxy)).dependencyManager(), deploy.cfg().finalSystemOwner());
+        assertEq(ISuperchainConfig(address(newProxy)).clusterManager(), deploy.cfg().finalSystemOwner());
+        assertEq(address(ISuperchainConfig(address(newProxy)).sharedLockbox()), address(sharedLockbox));
     }
 }
 
@@ -142,7 +142,7 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
     )
         external
     {
-        vm.assume(_caller != superchainConfig.dependencyManager());
+        vm.assume(_caller != superchainConfig.clusterManager());
 
         vm.expectRevert(Unauthorized.selector);
         vm.prank(_caller);
@@ -151,7 +151,7 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
 
     /// @notice Tests that `addDependency` reverts when the dependency set is too large.
     function test_addDependency_dependencySetTooLarge_reverts() external {
-        vm.startPrank(superchainConfig.dependencyManager());
+        vm.startPrank(superchainConfig.clusterManager());
 
         // Add the maximum number of dependencies to the dependency set
         uint256 i;
@@ -172,7 +172,7 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
 
     /// @notice Tests that `addDependency` reverts when the chain ID is the same as the current chain ID.
     function test_addDependency_sameChainID_reverts() external {
-        vm.prank(superchainConfig.dependencyManager());
+        vm.prank(superchainConfig.clusterManager());
         vm.expectRevert(SuperchainConfig.InvalidChainID.selector);
         superchainConfig.addDependency(block.chainid, address(systemConfig));
     }
@@ -181,7 +181,7 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
     function test_addDependency_chainAlreadyExists_reverts(uint256 _chainId) external {
         vm.assume(_chainId != block.chainid);
 
-        vm.startPrank(superchainConfig.dependencyManager());
+        vm.startPrank(superchainConfig.clusterManager());
         superchainConfig.addDependency(_chainId, address(systemConfig));
 
         vm.expectRevert(SuperchainConfig.DependencyAlreadyAdded.selector);
@@ -210,7 +210,7 @@ contract SuperchainConfig_AddDependency_Test is CommonTest {
         emit DependencyAdded(_chainId, address(systemConfig), _portal);
 
         // Add the new chain to the dependency set
-        vm.prank(superchainConfig.dependencyManager());
+        vm.prank(superchainConfig.clusterManager());
         superchainConfig.addDependency(_chainId, address(systemConfig));
 
         // Check that the new chain is in the dependency set
@@ -230,7 +230,7 @@ contract SuperchainConfig_IsInDependencySet_Test is CommonTest {
     /// @dev Tests that `isInDependencySet` returns true when the chain is in the dependency set.
     function test_isInDependencySet_true_succeeds(uint256 _chainId) external {
         vm.assume(_chainId != block.chainid);
-        vm.prank(superchainConfig.dependencyManager());
+        vm.prank(superchainConfig.clusterManager());
         superchainConfig.addDependency(_chainId, address(systemConfig));
         assertTrue(superchainConfig.isInDependencySet(_chainId));
     }
@@ -249,7 +249,7 @@ contract SuperchainConfig_DependencySet_Test is CommonTest {
             if (_chainIdsArray[i] != block.chainid) chainIds.add(_chainIdsArray[i]);
         }
 
-        vm.startPrank(superchainConfig.dependencyManager());
+        vm.startPrank(superchainConfig.clusterManager());
 
         // Add the dependencies to the dependency set
         for (uint256 i; i < chainIds.length(); i++) {

@@ -441,6 +441,8 @@ library ChainAssertions {
         view
     {
         ISuperchainConfig superchainConfig = ISuperchainConfig(_contracts.SuperchainConfig);
+        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
+
         console.log(
             "Running chain assertions on the SuperchainConfig %s at %s",
             _isProxy ? "proxy" : "implementation",
@@ -458,10 +460,14 @@ library ChainAssertions {
 
         if (_isProxy) {
             require(superchainConfig.guardian() == _cfg.superchainConfigGuardian(), "CHECK-SC-20");
-            require(superchainConfig.paused() == _isPaused, "CHECK-SC-30");
+            require(superchainConfig.clusterManager() == _cfg.finalSystemOwner(), "CHECK-SC-30");
+            require(superchainConfig.paused() == _isPaused, "CHECK-SC-40");
+            require(address(superchainConfig.sharedLockbox()) == address(sharedLockbox), "CHECK-SC-50");
         } else {
-            require(superchainConfig.guardian() == address(0), "CHECK-SC-40");
-            require(superchainConfig.paused() == false, "CHECK-SC-50");
+            require(superchainConfig.guardian() == address(0), "CHECK-SC-60");
+            require(superchainConfig.clusterManager() == address(0), "CHECK-SC-70");
+            require(superchainConfig.paused() == false, "CHECK-SC-80");
+            require(address(superchainConfig.sharedLockbox()) == address(0), "CHECK-SC-90");
         }
     }
 
@@ -554,7 +560,20 @@ library ChainAssertions {
         );
 
         require(address(sharedLockbox) != address(0), "CHECK-SLB-10");
-        require(sharedLockbox.SUPERCHAIN_CONFIG() == superchainConfig, "CHECK-SLB-20");
+
+        // Check that the contract is initialized
+        DeployUtils.assertInitialized({
+            _contractAddress: address(sharedLockbox),
+            _isProxy: _isProxy,
+            _slot: 0,
+            _offset: 0
+        });
+
+        if (_isProxy) {
+            require(sharedLockbox.superchainConfig() == superchainConfig, "CHECK-SLB-20");
+        } else {
+            require(address(sharedLockbox.superchainConfig()) == address(0), "CHECK-SLB-30");
+        }
     }
 
     /// @notice Asserts that the LiquidityMigrator is setup correctly

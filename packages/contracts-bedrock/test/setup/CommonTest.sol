@@ -92,12 +92,21 @@ contract CommonTest is Test, Setup, Events {
         // Deploy L2
         Setup.L2();
 
-        // Authorize portals to interact with the SharedLockbox.
-        vm.prank(address(superchainConfig.guardian()));
-        superchainConfig.initializePortal(address(optimismPortal2));
+        // Add L2 chain as cluster dependency
+        _addDependency();
 
         // Call bridge initializer setup function
         bridgeInitializerSetUp();
+    }
+
+    function _addDependency() internal {
+        vm.chainId(deploy.cfg().l1ChainID());
+        uint256 l2ChainID = deploy.cfg().l2ChainID();
+
+        vm.prank(address(superchainConfig.clusterManager()));
+        superchainConfig.addDependency(l2ChainID, address(systemConfig));
+
+        vm.chainId(l2ChainID);
     }
 
     function bridgeInitializerSetUp() public {

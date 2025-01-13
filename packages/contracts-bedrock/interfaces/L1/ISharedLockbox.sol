@@ -8,22 +8,18 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 /// @notice Interface for the SharedLockbox contract
 interface ISharedLockbox is ISemver {
     error Unauthorized();
-
     error Paused();
 
+    event Initialized(uint8 version);
     event ETHLocked(address indexed portal, uint256 amount);
-
     event ETHUnlocked(address indexed portal, uint256 amount);
-
     event PortalAuthorized(address indexed portal);
 
-    function SUPERCHAIN_CONFIG() external view returns (ISuperchainConfig);
-
-    function __constructor__(address _superchainConfig) external;
-
+    function superchainConfig() external view returns (ISuperchainConfig);
+    function initialize(address _superchainConfig) external;
     function paused() external view returns (bool);
-
     function unlockETH(uint256 _value) external;
-
     function lockETH() external payable;
+
+    function __constructor__() external;
 }

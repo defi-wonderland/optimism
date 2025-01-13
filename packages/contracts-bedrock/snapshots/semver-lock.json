@@ -24,11 +24,11 @@
     "sourceCodeHash": "0xe5179a20ae40d4e4773c52df98bac67e73e04044bec9e8750073b4e2f14fe81b"
   },
   "src/L1/OptimismPortal2.sol": {
-    "initCodeHash": "0x8860c54ff111ab2e035b2dc373c2ccf42ca0eba501f33378f1617d4a17c13f1f",
-    "sourceCodeHash": "0x06f48c86ee00a56aab5daa0279fdf5698388c242c2445b9b0686919a5f1972ae"
+    "initCodeHash": "0x787f75140a443368065b31b780f9098145a97439bbd05ec0c0e998b10c5f9cec",
+    "sourceCodeHash": "0x378095eeaef3b0e94ab0e42598ec8f7b2295393e05fd57a2e652a8646f32edae"
   },
   "src/L1/OptimismPortalInterop.sol": {
-    "initCodeHash": "0x07b58c12b4b7fd4bb365fec6c6d5e099ff232dbdb30a83b5a208d76cf60d1f48",
+    "initCodeHash": "0x330541f6bcdc9abbfaf7bab0ac53295daeb302fda8bf38f4da599a021237c530",
     "sourceCodeHash": "0xcbd298a6a8bdb5afc8ee18796a3a506104e43ac9532e5e4c56885128f2c234f2"
   },
   "src/L1/ProtocolVersions.sol": {
@@ -36,12 +36,12 @@
     "sourceCodeHash": "0xd4284db247fc1e686bd4b57755c7ac9a073a173d6df4f93448eb7fb5518882f7"
   },
   "src/L1/SharedLockbox.sol": {
-    "initCodeHash": "0x4cf0fe16afe42b76c098ba947e654fffdf3730d4f46aa53b4a55f4dad0589d5c",
-    "sourceCodeHash": "0x5c12e1d01b13adc8bc6d168ef83edc5fb7b3369b44c3719715e69e728d6fe173"
+    "initCodeHash": "0x5be299e092d2656272cdd52c5ee5d6ddd07621d0090cc35bf70a74c200c5a05b",
+    "sourceCodeHash": "0x775c5bfcd8fbb28bd6ef9ccc79671dda9a6b90bd216b3a350105af13782122d3"
   },
   "src/L1/SuperchainConfig.sol": {
-    "initCodeHash": "0xa1110f2f9df94fbc39e37e91b41a028faff0d9ad262681732f69c695df2d74ab",
-    "sourceCodeHash": "0x6a5aa8917a78175cb4c353bc5c786227493119eb06dead2bf445d377547c7221"
+    "initCodeHash": "0x3e387e58b9dfcbf05c91fd88a740a79641b518d661c3d45a635976ec892a882d",
+    "sourceCodeHash": "0x8d3b0acfb14c7144894556dfb538d9b27768311bc905d6002d5b73cde97ba4b8"
   },
   "src/L1/SystemConfig.sol": {
     "initCodeHash": "0xbb18eef17cdc1d0d307b0241e818820063e3ce3c7021ea3bb3a85ff6e79659e1",
@@ -56,8 +56,8 @@
     "sourceCodeHash": "0xfa56426153227e798150f6becc30a33fd20a3c6e0d73c797a3922dd631acbb57"
   },
   "src/L2/CrossL2Inbox.sol": {
-    "initCodeHash": "0xe78068e86100103a20984e5ab1342db525f9a1325fc5c56bb2c64a0a685feff9",
-    "sourceCodeHash": "0xa0138015439cc917ac445bed5ab10d50bd89eea598e278633e22ff5c4fbe53b1"
+    "initCodeHash": "0x27e70c4a874662ec88a3e318e533173ad94aa8ebb7d0ab1f9f0afa93e5cda85d",
+    "sourceCodeHash": "0x51b5f4464fab163b8b539133c7f746f8ced5378580f302f85bbb17e108fd3c41"
   },
   "src/L2/DependencyManager.sol": {
     "initCodeHash": "0xb2e0d759cef5b82efd3b4644b6490c1db2d6d865075937d5b07f23121912a46d",
