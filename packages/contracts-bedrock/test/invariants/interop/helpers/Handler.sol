@@ -27,8 +27,9 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         vm.deal(address(actor), _value);
 
-        try actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector)) { }
-        catch {
+        try actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector)) {
+            _ghost_superWethTotalSupply += _value;
+        } catch {
             assert(false);
         }
     }
@@ -39,7 +40,9 @@ contract Handler is Setup {
 
         try actor.directCall(
             address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.withdraw.selector, _value)
-        ) { } catch {
+        ) {
+            _ghost_superWethTotalSupply -= _value;
+        } catch {
             assert(false);
         }
     }

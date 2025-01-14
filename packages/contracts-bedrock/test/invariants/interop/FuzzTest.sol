@@ -185,6 +185,8 @@ contract FuzzTest is Handler {
         // Call the token bridge from the actor
         (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
         if (success) {
+            _ghost_superWethTotalSupply -= _amount;
+
             assert(SUPER_WETH.balanceOf(address(actor)) == actorSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
@@ -237,6 +239,8 @@ contract FuzzTest is Handler {
         (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
+            _ghost_superWethTotalSupply += _message.amount;
+
             assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
@@ -319,6 +323,7 @@ contract FuzzTest is Handler {
                     assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
                 }
             } else {
+                if (_target != address(ETH_LIQUIDITY)) _ghost_superWethTotalSupply += _message.amount;
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             }
         } else {
@@ -358,9 +363,18 @@ contract FuzzTest is Handler {
         }
 
         if (_success) {
+            if (_txPath) _ghost_superWethTotalSupply -= _amount;
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
             assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Check for overflow in ETHLiquidity
         }
+    }
+
+    /// @custom:property-id 14
+    /// @custom:property The total sum of SuperchainWETH user balances MUST be equal to the total supply
+    function test_superWETHSupplyEqualsBalances() public {
+        console.log("ghost var     %d", _ghost_superWethTotalSupply);
+        console.log("Total Supply: %d", SUPER_WETH.totalSupply());
+        assert(_ghost_superWethTotalSupply == SUPER_WETH.totalSupply());
     }
 }
