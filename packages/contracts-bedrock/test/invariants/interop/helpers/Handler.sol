@@ -2,12 +2,11 @@
 pragma solidity ^0.8.0;
 
 import { Setup } from "../Setup.sol";
-import { Actors } from "./Actors.t.sol";
+import { Actors } from "./Actors.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Utils } from "../utils/Utils.sol";
+import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-
-import "forge-std/Test.sol";
 
 contract Handler is Setup {
     /// @notice Event selector for the SentMessage event.
