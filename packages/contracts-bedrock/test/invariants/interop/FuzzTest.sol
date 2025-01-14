@@ -325,7 +325,7 @@ contract FuzzTest is Handler {
             assert(
                 // Checks overflow in SuperchainWETH
                 address(SUPER_WETH).balance > type(uint256).max - _message.amount 
-                    || ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
+                    || ethLiquidityEthBalanceBefore < _message.amount // Checks underflow in ETHLiquidity
             );
         }
     }
