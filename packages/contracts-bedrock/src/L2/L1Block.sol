@@ -33,6 +33,9 @@ contract L1Block is ISemver, IGasToken {
     bytes32 internal constant SEQUENCER_FEE_VAULT_CONFIG_SLOT =
         bytes32(uint256(keccak256("opstack.sequencerfeevaultconfig")) - 1);
 
+    /// @notice Storage slot for the remote chain id configuration
+    bytes32 internal constant REMOTE_CHAIN_ID_SLOT = bytes32(uint256(keccak256("opstack.remotechainid")) - 1);
+
     /// @notice Address of the special depositor account.
     function DEPOSITOR_ACCOUNT() public pure returns (address addr_) {
         addr_ = Constants.DEPOSITOR_ACCOUNT;
@@ -208,6 +211,8 @@ contract L1Block is ISemver, IGasToken {
             Storage.setBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
         } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
+        } else if (_type == Types.ConfigType.REMOTE_CHAIN_ID) {
+            Storage.setUint(REMOTE_CHAIN_ID_SLOT, abi.decode(_value, (uint256)));
         }
     }
 
@@ -226,6 +231,8 @@ contract L1Block is ISemver, IGasToken {
             string memory name = gasPayingTokenName();
             string memory symbol = gasPayingTokenSymbol();
             config_ = abi.encode(token, decimals, GasPayingToken.sanitize(name), GasPayingToken.sanitize(symbol));
+        } else if (_type == Types.ConfigType.REMOTE_CHAIN_ID) {
+            config_ = abi.encode(Storage.getUint(REMOTE_CHAIN_ID_SLOT));
         }
     }
 
