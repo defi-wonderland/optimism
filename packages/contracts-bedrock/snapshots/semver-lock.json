@@ -57,7 +57,7 @@
   },
   "src/L2/DependencyManager.sol": {
     "initCodeHash": "0xb2e0d759cef5b82efd3b4644b6490c1db2d6d865075937d5b07f23121912a46d",
-    "sourceCodeHash": "0x83a147bd73641667e5c80bc49201feb41641bdc383bead3925c778b1ab3e51b1"
+    "sourceCodeHash": "0xa143e095ca4a0678a317854b639b061ae8e5899e16ca9ffa3fddf5fc5288a996"
   },
   "src/L2/ETHLiquidity.sol": {
     "initCodeHash": "0xbb16de6a3f678db7301694a000f315154f25f9660c8dcec4b0bef20bc7cfdebd",
