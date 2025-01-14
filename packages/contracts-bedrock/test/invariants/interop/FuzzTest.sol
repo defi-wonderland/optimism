@@ -276,6 +276,7 @@ contract FuzzTest is Handler {
 
         // Select minting path: SuperchainWETH or SupertokenBridge
         if (_callSuperWETH) {
+            _message.amount = clampLte(_message.amount, type(uint256).max - address(SUPER_WETH).balance);
             message = abi.encodeCall(SUPER_WETH.relayETH, (_message.from, _target, _message.amount));
             sentMessage = abi.encodePacked(
                 abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPER_WETH), _message.nonce), // topics
@@ -312,20 +313,14 @@ contract FuzzTest is Handler {
         bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
-            if (_callSuperWETH) {
-                if (_target != address(ETH_LIQUIDITY)) {
-                    assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
-                } else {
-                    assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
-                }
+            if (_callSuperWETH && _target == address(ETH_LIQUIDITY)) {
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
             } else {
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             }
         } else {
             assert(
-                address(SUPER_WETH).balance > type(uint256).max - _message.amount // Check for overflow in
-                    // SuperchainWETH
-                    || ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
+                ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
             );
         }
     }
