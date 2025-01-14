@@ -311,8 +311,16 @@ contract Setup {
         labelPreinstall(Preinstalls.CreateX);
 
         configureFeeVaults();
+        configureRemoteChainId();
 
         console.log("Setup: completed L2 genesis");
+    }
+
+    function configureRemoteChainId() internal {
+        console.log("Remote chain ID: %d", deploy.cfg().l1ChainID());
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(Types.ConfigType.REMOTE_CHAIN_ID, abi.encode(deploy.cfg().l1ChainID()));
+        vm.stopPrank();
     }
 
     function configureFeeVaults() internal {

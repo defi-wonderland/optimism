@@ -282,6 +282,20 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         assertEq(symbol, GasPayingToken.sanitize(LibString.fromSmallString(_symbol)));
     }
 
+    function test_setConfig_remoteChainId_succeeds(uint256 _remoteChainId) external {
+        Types.ConfigType configType = Types.ConfigType.REMOTE_CHAIN_ID;
+        bytes memory data = abi.encode(_remoteChainId);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, data);
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(keccak256(config), keccak256(data));
+
+        uint256 remoteChainId = abi.decode(config, (uint256));
+        assertEq(remoteChainId, _remoteChainId);
+    }
+
     /// @dev Tests that `setConfig` with `BASE_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_baseFeeVault_succeeds(
         address _recipient,
