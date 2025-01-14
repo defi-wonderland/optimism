@@ -28,7 +28,7 @@ contract Handler is Setup {
         vm.deal(address(actor), _value);
 
         try actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector)) {
-            _ghost_superWethTotalSupply += _value;
+            _ghost_superWethBalancesSum += _value;
         } catch {
             assert(false);
         }
@@ -41,7 +41,7 @@ contract Handler is Setup {
         try actor.directCall(
             address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.withdraw.selector, _value)
         ) {
-            _ghost_superWethTotalSupply -= _value;
+            _ghost_superWethBalancesSum -= _value;
         } catch {
             assert(false);
         }

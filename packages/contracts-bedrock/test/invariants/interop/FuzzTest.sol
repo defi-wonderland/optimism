@@ -185,7 +185,7 @@ contract FuzzTest is Handler {
         // Call the token bridge from the actor
         (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
         if (success) {
-            _ghost_superWethTotalSupply -= _amount;
+            _ghost_superWethBalancesSum -= _amount;
 
             assert(SUPER_WETH.balanceOf(address(actor)) == actorSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
@@ -239,7 +239,7 @@ contract FuzzTest is Handler {
         (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
-            _ghost_superWethTotalSupply += _message.amount;
+            _ghost_superWethBalancesSum += _message.amount;
 
             assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
@@ -299,6 +299,7 @@ contract FuzzTest is Handler {
             );
         }
 
+        // Ensure the message is not already relayed
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: block.chainid,
             _source: _id.chainId,
@@ -307,7 +308,6 @@ contract FuzzTest is Handler {
             _target: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
             _message: message
         });
-
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         // Get state before call
@@ -317,16 +317,21 @@ contract FuzzTest is Handler {
         bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
+            // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx path
+            if (_callSuperWETH && _target == address(SUPER_WETH)) _ghost_superWethEtherSent += _message.amount;
+            // Otherwise, only if it was minted through `crosschainMint()`, the total supply should be updated
+            else if (!_callSuperWETH) _ghost_superWethBalancesSum += _message.amount;
+
+            // If the tx path was `relayETH` and the target was ETHLiquidity, the balance should be the same
             if (_callSuperWETH && _target == address(ETH_LIQUIDITY)) {
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
             } else {
-                if (_target != address(ETH_LIQUIDITY)) _ghost_superWethTotalSupply += _message.amount;
+                // Balance should be the same independently of the tx path, as long as the target is not ETHLiquidity
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             }
         } else {
-            assert(
-                ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
-            );
+            // Check for underflow in ETHLiquidity
+            assert(ethLiquidityEthBalanceBefore < _message.amount);
         }
     }
 
@@ -358,7 +363,7 @@ contract FuzzTest is Handler {
         }
 
         if (_success) {
-            if (_txPath) _ghost_superWethTotalSupply -= _amount;
+            if (!_callSuperWETH) _ghost_superWethBalancesSum -= _amount;
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
             assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Checks overflow in ETHLiquidity
@@ -366,10 +371,9 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 14
-    /// @custom:property The total sum of SuperchainWETH user balances MUST be equal to the total supply
+    /// @custom:property The total sum of SuperchainWETH user balances MUST be equal or less to the total supply
     function test_superWETHSupplyEqualsBalances() public {
-        console.log("ghost var     %d", _ghost_superWethTotalSupply);
-        console.log("Total Supply: %d", SUPER_WETH.totalSupply());
-        assert(_ghost_superWethTotalSupply == SUPER_WETH.totalSupply());
+        // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
+        assert(_ghost_superWethBalancesSum == SUPER_WETH.totalSupply() - _ghost_superWethEtherSent);
     }
 }
