@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
-import { Handler } from "./helpers/Handler.t.sol";
+import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { Actors } from "./helpers/Actors.t.sol";
+import { Actors } from "./helpers/Actors.sol";
 
 contract FuzzTest is Handler {
     using Utils for *;
@@ -253,6 +253,109 @@ contract FuzzTest is Handler {
             });
 
             assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+        }
+    }
+
+    /// @custom:property-id 8
+    /// @custom:property ETHLiquidity#mint() MUST never be callable such that its balance would decrease below 0
+    function test_mintSuperchainWETH(
+        Identifier memory _id,
+        Message memory _message,
+        address _target,
+        bool _callSuperWETH
+    )
+        public
+        isInitialized
+    {
+        // Ensure the id is valid
+        _id.origin = address(L2_TO_L2_MESSENGER);
+        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
+
+        bytes memory message;
+        bytes memory sentMessage;
+
+        // Select minting path: SuperchainWETH or SupertokenBridge
+        if (_callSuperWETH) {
+            _message.amount = clampLte(_message.amount, type(uint256).max - address(SUPER_WETH).balance);
+            message = abi.encodeCall(SUPER_WETH.relayETH, (_message.from, _target, _message.amount));
+            sentMessage = abi.encodePacked(
+                abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPER_WETH), _message.nonce), // topics
+                abi.encode(address(SUPER_WETH), message) // data
+            );
+        } else {
+            _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_WETH.totalSupply());
+            message = abi.encodeCall(
+                SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, _target, _message.amount)
+            );
+            sentMessage = abi.encodePacked(
+                abi.encode(
+                    _SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce
+                ), // topics
+                abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
+            );
+        }
+
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: message
+        });
+
+        require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+
+        // Get state before call
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+
+        // Relay the message
+        bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
+
+        if (_success) {
+            if (_callSuperWETH && _target == address(ETH_LIQUIDITY)) {
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
+            } else {
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+            }
+        } else {
+            assert(
+                ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
+            );
+        }
+    }
+
+    /// @custom:property-id 9
+    /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
+    function test_burnSuperchainWETH(
+        address _to,
+        uint256 _chainId,
+        uint256 _amount,
+        bool _callSuperWETH
+    )
+        public
+        isInitialized
+    {
+        _to = clampGt(_to, address(0));
+        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
+
+        // Get state before call
+        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
+
+        bool _success;
+        if (_callSuperWETH) {
+            _amount = clampLte(_amount, Utils.min(address(currentActor()).balance, address(SUPER_WETH).balance));
+            _success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+        } else {
+            _amount =
+                clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(address(currentActor())), address(SUPER_WETH).balance));
+            _success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
+        }
+
+        if (_success) {
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
+        } else {
+            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Checks overflow in ETHLiquidity
         }
     }
 }
