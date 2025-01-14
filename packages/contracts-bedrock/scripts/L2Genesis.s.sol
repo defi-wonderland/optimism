@@ -17,7 +17,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Interfaces
-import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
 import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
@@ -352,24 +351,7 @@ contract L2Genesis is Deployer {
 
     /// @notice This predeploy is following the safety invariant #2,
     function setOptimismMintableERC721Factory() public {
-        IOptimismMintableERC721Factory factory = IOptimismMintableERC721Factory(
-            DeployUtils.create1(
-                "OptimismMintableERC721Factory",
-                DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IOptimismMintableERC721Factory.__constructor__, (Predeploys.L2_ERC721_BRIDGE, cfg.l1ChainID())
-                    )
-                )
-            )
-        );
-
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
-        console.log("Setting %s implementation at: %s", "OptimismMintableERC721Factory", impl);
-        vm.etch(impl, address(factory).code);
-
-        /// Reset so its not included state dump
-        vm.etch(address(factory), "");
-        vm.resetNonce(address(factory));
+        _setImplementationCode(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
     }
 
     /// @notice This predeploy is following the safety invariant #1.
