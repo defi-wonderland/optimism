@@ -262,7 +262,7 @@ contract FuzzTest is Handler {
         Identifier memory _id,
         Message memory _message,
         address _target,
-        bool _txPath
+        bool _callSuperWETH
     )
         public
         isInitialized
@@ -275,7 +275,7 @@ contract FuzzTest is Handler {
         bytes memory sentMessage;
 
         // Select minting path: SuperchainWETH or SupertokenBridge
-        if (_txPath) {
+        if (_callSuperWETH) {
             message = abi.encodeCall(SUPER_WETH.relayETH, (_message.from, _target, _message.amount));
             sentMessage = abi.encodePacked(
                 abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPER_WETH), _message.nonce), // topics
@@ -298,8 +298,8 @@ contract FuzzTest is Handler {
             _destination: block.chainid,
             _source: _id.chainId,
             _nonce: _message.nonce,
-            _sender: _txPath ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: _txPath ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+            _sender: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
             _message: message
         });
 
@@ -312,7 +312,7 @@ contract FuzzTest is Handler {
         bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (_success) {
-            if (_txPath) {
+            if (_callSuperWETH) {
                 if (_target != address(ETH_LIQUIDITY)) {
                     assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
                 } else {
@@ -336,7 +336,7 @@ contract FuzzTest is Handler {
         address _to,
         uint256 _chainId,
         uint256 _amount,
-        bool _txPath
+        bool _callSuperWETH
     )
         public
         isInitialized
@@ -348,7 +348,7 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         bool _success;
-        if (_txPath) {
+        if (_callSuperWETH) {
             _amount = clampLte(_amount, Utils.min(address(currentActor()).balance, address(SUPER_WETH).balance));
             _success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
         } else {
