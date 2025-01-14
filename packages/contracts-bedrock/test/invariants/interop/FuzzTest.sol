@@ -360,7 +360,7 @@ contract FuzzTest is Handler {
         if (_success) {
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
-            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Check for overflow in ETHLiquidity
+            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Checks overflow in ETHLiquidity
         }
     }
 }
