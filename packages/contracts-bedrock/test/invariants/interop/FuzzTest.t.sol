@@ -282,6 +282,7 @@ contract FuzzTest is Handler {
                 abi.encode(address(SUPER_WETH), message) // data
             );
         } else {
+            _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_WETH.totalSupply());
             message = abi.encodeCall(
                 SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, _target, _message.amount)
             );
@@ -340,8 +341,7 @@ contract FuzzTest is Handler {
         public
         isInitialized
     {
-        require(_to != address(0));
-
+        _to = clampGt(_to, address(0));
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
         // Get state before call
