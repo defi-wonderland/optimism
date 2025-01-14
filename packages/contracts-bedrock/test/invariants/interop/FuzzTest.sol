@@ -257,7 +257,7 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 8
-    /// @custom:property ETHLiquidity#mint() MUST never be callable such that balance would decrease below 0
+    /// @custom:property ETHLiquidity#mint() MUST never be callable such that its balance would decrease below 0
     function test_mintSuperchainWETH(
         Identifier memory _id,
         Message memory _message,
