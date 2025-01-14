@@ -92,7 +92,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Mock the call over the `isInDependencySet` function to return true
         vm.mockCall(
-            Predeploys.L1_BLOCK_ATTRIBUTES,
+            Predeploys.DEPENDENCY_MANAGER,
             abi.encodeCall(IDependencySet.isInDependencySet, (_destination)),
             abi.encode(true)
         );

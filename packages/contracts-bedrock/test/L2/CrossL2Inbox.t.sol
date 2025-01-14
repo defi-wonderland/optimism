@@ -1,27 +1,32 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.15;
 
 // Testing utilities
-import { Test } from "forge-std/Test.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Target contracts
-import { CrossL2Inbox, Identifier, NoExecutingDeposits } from "src/L2/CrossL2Inbox.sol";
+import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @title CrossL2InboxTest
 /// @dev Contract for testing the CrossL2Inbox contract.
-contract CrossL2InboxTest is Test {
+contract CrossL2InboxTest is CommonTest {
+    error NoExecutingDeposits();
+
+    event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
+
     /// @dev CrossL2Inbox contract instance.
-    CrossL2Inbox crossL2Inbox;
+    ICrossL2Inbox crossL2Inbox;
 
     /// @dev Sets up the test suite.
-    function setUp() public {
-        // Deploy the CrossL2Inbox contract
-        vm.etch(Predeploys.CROSS_L2_INBOX, address(new CrossL2Inbox()).code);
-        crossL2Inbox = CrossL2Inbox(Predeploys.CROSS_L2_INBOX);
+    function setUp() public virtual override {
+        super.enableInterop();
+        super.setUp();
+
+        crossL2Inbox = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
     }
 
     function testFuzz_validateMessage_succeeds(Identifier memory _id, bytes32 _messageHash) external {
@@ -34,7 +39,7 @@ contract CrossL2InboxTest is Test {
 
         // Look for the emit ExecutingMessage event
         vm.expectEmit(Predeploys.CROSS_L2_INBOX);
-        emit CrossL2Inbox.ExecutingMessage(_messageHash, _id);
+        emit ExecutingMessage(_messageHash, _id);
 
         // Call the validateMessage function
         crossL2Inbox.validateMessage(_id, _messageHash);
