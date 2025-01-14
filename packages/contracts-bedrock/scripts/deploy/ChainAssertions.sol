@@ -561,12 +561,7 @@ library ChainAssertions {
         require(address(sharedLockbox) != address(0), "CHECK-SLB-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({
-            _contractAddress: address(sharedLockbox),
-            _isProxy: _isProxy,
-            _slot: 0,
-            _offset: 0
-        });
+        DeployUtils.assertInitializedOZv5({ _contractAddress: address(sharedLockbox), _isProxy: _isProxy });
 
         if (_isProxy) {
             require(sharedLockbox.superchainConfig() == superchainConfig, "CHECK-SLB-20");

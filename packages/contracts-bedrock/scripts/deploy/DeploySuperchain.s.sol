@@ -315,7 +315,7 @@ contract DeploySuperchainOutput is BaseDeployIO {
     function assertValidSharedLockbox() internal {
         // Proxy checks.
         ISharedLockbox sl = sharedLockboxProxy();
-        DeployUtils.assertInitialized({ _contractAddress: address(sl), _isProxy: true, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitializedOZv5({ _contractAddress: address(sl), _isProxy: true });
 
         vm.startPrank(address(0));
         require(IProxy(payable(address(sl))).implementation() == address(sharedLockboxImpl()), "SLB-10");

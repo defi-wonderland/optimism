@@ -12,26 +12,5 @@
     "offset": 1,
     "slot": "0",
     "type": "bool"
-  },
-  {
-    "bytes": "20",
-    "label": "sharedLockbox",
-    "offset": 2,
-    "slot": "0",
-    "type": "contract ISharedLockbox"
-  },
-  {
-    "bytes": "64",
-    "label": "_dependencySet",
-    "offset": 0,
-    "slot": "1",
-    "type": "struct EnumerableSet.UintSet"
-  },
-  {
-    "bytes": "32",
-    "label": "authorizedPortals",
-    "offset": 0,
-    "slot": "3",
-    "type": "mapping(address => bool)"
   }
 ]

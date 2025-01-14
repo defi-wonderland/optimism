@@ -9,13 +9,15 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 interface ISharedLockbox is ISemver {
     error Unauthorized();
     error Paused();
+    error InvalidInitialization();
+    error NotInitializing();
 
-    event Initialized(uint8 version);
+    event Initialized(uint64 version);
     event ETHLocked(address indexed portal, uint256 amount);
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
 
-    function superchainConfig() external view returns (ISuperchainConfig);
+    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
     function initialize(address _superchainConfig) external;
     function paused() external view returns (bool);
     function unlockETH(uint256 _value) external;

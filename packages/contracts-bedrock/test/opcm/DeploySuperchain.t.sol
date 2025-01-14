@@ -7,7 +7,7 @@ import { stdToml } from "forge-std/StdToml.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
-import { SharedLockbox } from "src/L1/SharedLockbox.sol";
+import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { IProtocolVersions, ProtocolVersion } from "interfaces/L1/IProtocolVersions.sol";
 import { DeploySuperchainInput, DeploySuperchain, DeploySuperchainOutput } from "scripts/deploy/DeploySuperchain.s.sol";
 
@@ -61,8 +61,8 @@ contract DeploySuperchainOutput_Test is Test {
         SuperchainConfig superchainConfigProxy = SuperchainConfig(makeAddr("superchainConfigProxy"));
         IProtocolVersions protocolVersionsImpl = IProtocolVersions(makeAddr("protocolVersionsImpl"));
         IProtocolVersions protocolVersionsProxy = IProtocolVersions(makeAddr("protocolVersionsProxy"));
-        SharedLockbox sharedLockboxImpl = SharedLockbox(makeAddr("sharedLockboxImpl"));
-        SharedLockbox sharedLockboxProxy = SharedLockbox(makeAddr("sharedLockboxProxy"));
+        ISharedLockbox sharedLockboxImpl = ISharedLockbox(makeAddr("sharedLockboxImpl"));
+        ISharedLockbox sharedLockboxProxy = ISharedLockbox(makeAddr("sharedLockboxProxy"));
 
         // Ensure each address has code, since these are expected to be contracts.
         vm.etch(address(superchainProxyAdmin), hex"01");

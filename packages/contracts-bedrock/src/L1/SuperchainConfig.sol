@@ -76,14 +76,28 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @custom:semver 1.1.1-beta.5
     string public constant version = "1.1.1-beta.5";
 
-    /// @notice The Shared Lockbox contract
-    ISharedLockbox public sharedLockbox;
+    /// @notice Storage slot that the SuperchainConfigDependencies struct is stored at.
+    /// keccak256(abi.encode(uint256(keccak256("superchainConfig.dependencies")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 internal constant SUPERCHAIN_CONFIG_DEPENDENCIES_SLOT =
+        0x342033bc92db70f979584a5299db090f7892d8d8c6e2e81871d9009f08fc2400;
 
-    // Dependency set of chains that are part of the same cluster
-    EnumerableSet.UintSet internal _dependencySet;
+    /// @notice Storage struct for the SuperchainConfig dependencies data.
+    /// @custom:storage-location erc7201:superchainConfig.dependencies
+    struct SuperchainConfigDependencies {
+        /// @notice The Shared Lockbox contract
+        ISharedLockbox sharedLockbox;
+        /// @notice Dependency set of chains that are part of the same cluster
+        EnumerableSet.UintSet dependencySet;
+        /// @notice OptimismPortals that are part of the dependency cluster
+        mapping(address => bool) authorizedPortals;
+    }
 
-    /// @notice OptimismPortals that are part of the dependency cluster
-    mapping(address => bool) public authorizedPortals;
+    /// @notice Returns the storage for the SuperchainConfigDependencies.
+    function _dependenciesStorage() private pure returns (SuperchainConfigDependencies storage storage_) {
+        assembly {
+            storage_.slot := SUPERCHAIN_CONFIG_DEPENDENCIES_SLOT
+        }
+    }
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor() {
@@ -109,7 +123,7 @@ contract SuperchainConfig is Initializable, ISemver {
         if (_paused) {
             _pause("Initializer paused");
         }
-        sharedLockbox = ISharedLockbox(_sharedLockbox);
+        _dependenciesStorage().sharedLockbox = ISharedLockbox(_sharedLockbox);
     }
 
     /// @notice Getter for the guardian address.
@@ -170,17 +184,19 @@ contract SuperchainConfig is Initializable, ISemver {
     /// @param _chainId         The chain ID to add.
     /// @param _systemConfig    The SystemConfig contract address of the chain to add.
     function addDependency(uint256 _chainId, address _systemConfig) external {
+        SuperchainConfigDependencies storage dependenciesStorage = _dependenciesStorage();
+
         if (msg.sender != clusterManager()) {
-            if (!authorizedPortals[msg.sender]) revert Unauthorized();
+            if (!dependenciesStorage.authorizedPortals[msg.sender]) revert Unauthorized();
             if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Predeploys.DEPENDENCY_MANAGER) {
                 revert Unauthorized();
             }
         }
 
-        if (_dependencySet.length() == type(uint8).max) revert DependencySetTooLarge();
+        if (dependenciesStorage.dependencySet.length() == type(uint8).max) revert DependencySetTooLarge();
 
         // Add to the dependency set and check it is not already added (`add()` returns false if it already exists)
-        if (!_dependencySet.add(_chainId)) revert DependencyAlreadyAdded();
+        if (!dependenciesStorage.dependencySet.add(_chainId)) revert DependencyAlreadyAdded();
 
         address portal = ISystemConfig(_systemConfig).optimismPortal();
         _joinSharedLockbox(portal);
@@ -192,32 +208,45 @@ contract SuperchainConfig is Initializable, ISemver {
     ///         from the portal to the SharedLockbox.
     /// @param _portal The address of the portal to authorize.
     function _joinSharedLockbox(address _portal) internal {
+        SuperchainConfigDependencies storage dependenciesStorage = _dependenciesStorage();
+
         if (address(IOptimismPortal2(payable(_portal)).superchainConfig()) != address(this)) {
             revert InvalidSuperchainConfig();
         }
 
-        if (authorizedPortals[_portal]) revert PortalAlreadyAuthorized();
+        if (dependenciesStorage.authorizedPortals[_portal]) revert PortalAlreadyAuthorized();
 
-        authorizedPortals[_portal] = true;
+        dependenciesStorage.authorizedPortals[_portal] = true;
 
         // Migrate the ETH liquidity from the OptimismPortal to the SharedLockbox
         IOptimismPortal2(payable(_portal)).migrateLiquidity();
     }
 
+    /// @notice Getter for the SharedLockbox contract.
+    function sharedLockbox() public view returns (ISharedLockbox sharedLockbox_) {
+        sharedLockbox_ = _dependenciesStorage().sharedLockbox;
+    }
+
     /// @notice Checks if a chain is part or not of the dependency set.
     /// @param _chainId The chain ID to check for.
     function isInDependencySet(uint256 _chainId) public view returns (bool) {
-        return _dependencySet.contains(_chainId);
+        return _dependenciesStorage().dependencySet.contains(_chainId);
     }
 
     /// @notice Getter for the chain ids list on the dependency set.
     function dependencySet() external view returns (uint256[] memory) {
-        return _dependencySet.values();
+        return _dependenciesStorage().dependencySet.values();
     }
 
     /// @notice Returns the size of the dependency set.
     /// @return The size of the dependency set.
     function dependencySetSize() external view returns (uint8) {
-        return uint8(_dependencySet.length());
+        return uint8(_dependenciesStorage().dependencySet.length());
+    }
+
+    /// @notice Checks if a portal is authorized to interact with the SharedLockbox.
+    /// @param _portal The address of the portal to check for.
+    function authorizedPortals(address _portal) public view returns (bool) {
+        return _dependenciesStorage().authorizedPortals[_portal];
     }
 }

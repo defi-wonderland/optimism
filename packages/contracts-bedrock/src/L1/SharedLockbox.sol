@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.25;
 
 // Contracts
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 // Libraries
 import { Unauthorized, Paused } from "src/libraries/errors/CommonErrors.sol";
+import { Storage } from "src/libraries/Storage.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -32,7 +33,7 @@ contract SharedLockbox is Initializable, ISemver {
     event PortalAuthorized(address indexed portal);
 
     /// @notice The address of the SuperchainConfig contract.
-    ISuperchainConfig public superchainConfig;
+    bytes32 internal constant SUPERCHAIN_CONFIG_SLOT = bytes32(uint256(keccak256("sharedLockbox.superchainConfig")) - 1);
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
@@ -48,7 +49,12 @@ contract SharedLockbox is Initializable, ISemver {
     /// @notice Initializer.
     /// @param _superchainConfig The address of the SuperchainConfig contract.
     function initialize(address _superchainConfig) external initializer {
-        superchainConfig = ISuperchainConfig(_superchainConfig);
+        Storage.setAddress(SUPERCHAIN_CONFIG_SLOT, _superchainConfig);
+    }
+
+    /// @notice Getter for the SuperchainConfig contract.
+    function superchainConfig() public view returns (ISuperchainConfig superchainConfig_) {
+        superchainConfig_ = ISuperchainConfig(Storage.getAddress(SUPERCHAIN_CONFIG_SLOT));
     }
 
     /// @notice Reverts when paused.
@@ -58,13 +64,13 @@ contract SharedLockbox is Initializable, ISemver {
 
     /// @notice Getter for the current paused status.
     function paused() public view returns (bool) {
-        return superchainConfig.paused();
+        return superchainConfig().paused();
     }
 
     /// @notice Locks ETH in the lockbox.
     ///         Called by an authorized portal when migrating its ETH liquidity or when depositing with some ETH value.
     function lockETH() external payable {
-        if (!superchainConfig.authorizedPortals(msg.sender)) revert Unauthorized();
+        if (!superchainConfig().authorizedPortals(msg.sender)) revert Unauthorized();
 
         emit ETHLocked(msg.sender, msg.value);
     }
@@ -73,7 +79,7 @@ contract SharedLockbox is Initializable, ISemver {
     ///         Called by an authorized portal when finalizing a withdrawal that requires ETH.
     function unlockETH(uint256 _value) external {
         _whenNotPaused();
-        if (!superchainConfig.authorizedPortals(msg.sender)) revert Unauthorized();
+        if (!superchainConfig().authorizedPortals(msg.sender)) revert Unauthorized();
 
         // Using `donateETH` to avoid triggering a deposit
         IOptimismPortal(payable(msg.sender)).donateETH{ value: _value }();
