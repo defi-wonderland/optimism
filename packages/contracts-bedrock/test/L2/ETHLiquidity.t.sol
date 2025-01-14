@@ -177,4 +177,35 @@ contract ETHLiquidity_Test is CommonTest {
         assertEq(address(ethLiquidity).balance, STARTING_LIQUIDITY_BALANCE);
         assertEq(superchainWeth.balanceOf(address(ethLiquidity)), 0);
     }
+
+    /// @notice Tests that the mint function can only be called by the SuperchainWETH contract and it reverts otherwise.
+    /// @param _caller Address of the caller to call the mint function with.
+    /// @param _amount Amount of ETH (in wei) to call the mint function with.
+    function testFuzz_mint_onlyCallabeBySuperchainWETH(address _caller, uint256 _amount) public {
+        _amount = bound(_amount, 0, address(ethLiquidity).balance);
+
+        // `mint()` should revert if called by any address other than `SuperchainWETH`.
+        vm.prank(_caller);
+        try ethLiquidity.mint(_amount) {
+            assertEq(_caller, address(superchainWeth));
+        } catch {
+            assertNotEq(_caller, address(superchainWeth));
+        }
+    }
+
+    /// @notice Tests that the burn function can only be called by the SuperchainWETH contract and it reverts otherwise.
+    /// @param _caller Address of the caller to call the burn function with.
+    /// @param _amount Amount of ETH (in wei) to call the burn function with.
+    function testFuzz_burn_onlyCallabeBySuperchainWETH(address _caller, uint256 _amount) public {
+        _amount = bound(_amount, 0, type(uint256).max - address(ethLiquidity).balance);
+        vm.deal(_caller, _amount);
+
+        // `burn()` should revert if called by any address other than `SuperchainWETH`.
+        vm.prank(_caller);
+        try ethLiquidity.burn{ value: _amount }() {
+            assertEq(_caller, address(superchainWeth));
+        } catch {
+            assertNotEq(_caller, address(superchainWeth));
+        }
+    }
 }

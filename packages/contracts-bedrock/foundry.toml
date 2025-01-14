@@ -31,7 +31,8 @@ remappings = [
   'safe-contracts/=lib/safe-contracts/contracts',
   'kontrol-cheatcodes/=lib/kontrol-cheatcodes/src',
   'gelato/=lib/automate/contracts',
-  'interfaces/=interfaces'
+  'interfaces/=interfaces',
+  'properties/=lib/properties/'
 ]
 
 fs_permissions = [
