@@ -427,6 +427,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         bool success;
         (address token,) = gasPayingToken();
         if (token == Constants.ETHER) {
+            // This function unlocks ETH from the SharedLockbox when using the OptimismPortalInterop contract.
+            // If the interop version is not used, this function is a no-ops.
             if (_tx.value != 0) _unlockETH(_tx.value);
 
             // Trigger the call to the target contract. We use a custom low level method
@@ -568,6 +570,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
         if (token != Constants.ETHER && msg.value != 0) revert NoValue();
 
+        // This function locks ETH in the SharedLockbox when using the OptimismPortalInterop contract.
+        // If the interop version is not used, this function is a no-ops.
         if (token == Constants.ETHER && msg.value != 0) _lockETH();
 
         _depositTransaction({
