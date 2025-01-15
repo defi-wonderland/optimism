@@ -31,6 +31,7 @@ This campaign aims to develop a testing suite that fuzzes over the interop invar
 | 11  | SharedLockbox   | The `OptimismPortal` MUST lock the ETH amount on the `SharedLockbox` when on a deposit transaction with value greater than zero, without holding any ETH balance from the depositing users.                                                                                     |  [ ]   |
 | 12  | SharedLockbox   | The `OptimismPortal` MUST unlock the ETH amount being withdrawn from the `SharedLockbox` if it is greater than zero.                                                                                                                                                            |  [ ]   |
 | 13  | SharedLockbox   | The `LiquidityMigrator` MUST migrate the whole `OptimismPortal` ETH balance to the `SharedLockbox`.                                                                                                                                                                             |  [ ]   |
+| 14  | SuperchainERC20 | The total sum of `SuperchainWETH` user balances MUST be equal to the total supply.                                                                                                                                                                                              | [ x ]  |
 
 ---
 

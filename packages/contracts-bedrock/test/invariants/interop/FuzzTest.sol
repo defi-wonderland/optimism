@@ -185,6 +185,8 @@ contract FuzzTest is Handler {
         // Call the token bridge from the actor
         (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
         if (success) {
+            _ghost_superWethBalancesSum -= _amount;
+
             assert(SUPER_WETH.balanceOf(address(actor)) == actorSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
@@ -237,6 +239,8 @@ contract FuzzTest is Handler {
         (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
+            _ghost_superWethBalancesSum += _message.amount;
+
             assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
@@ -295,6 +299,7 @@ contract FuzzTest is Handler {
             );
         }
 
+        // Ensure the message is not already relayed
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: block.chainid,
             _source: _id.chainId,
@@ -303,30 +308,36 @@ contract FuzzTest is Handler {
             _target: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
             _message: message
         });
-
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         // Relay the message
-        bool _success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        bool success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
-        if (_success) {
+        if (success) {
+            // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx path
+            if (_callSuperWETH && _target == address(SUPER_WETH)) _ghost_superWethEtherSent += _message.amount;
+            // Otherwise, only if it was minted through `crosschainMint()`, the total supply should be updated
+            else if (!_callSuperWETH) _ghost_superWethBalancesSum += _message.amount;
+
+            // If the tx path was `relayETH` and the target was ETHLiquidity, the balance should be the same
             if (_callSuperWETH && _target == address(ETH_LIQUIDITY)) {
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore);
             } else {
+                // Balance should be the same independently of the tx path, as long as the target is not ETHLiquidity
                 assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             }
         } else {
-            assert(
-                ethLiquidityEthBalanceBefore < _message.amount // Check for underflow in ETHLiquidity
-            );
+            // Check underflow in ETHLiquidity
+            assert(ethLiquidityEthBalanceBefore < _message.amount);
         }
     }
 
     /// @custom:property-id 9
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
+    /// `type(uint256).max
     function test_burnSuperchainWETH(
         address _to,
         uint256 _chainId,
@@ -342,20 +353,29 @@ contract FuzzTest is Handler {
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
-        bool _success;
+        bool success;
         if (_callSuperWETH) {
             _amount = clampLte(_amount, Utils.min(address(currentActor()).balance, address(SUPER_WETH).balance));
-            _success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
+            success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, _chainId);
         } else {
             _amount =
                 clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(address(currentActor())), address(SUPER_WETH).balance));
-            _success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
+            success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, _chainId);
         }
 
-        if (_success) {
+        if (success) {
+            if (!_callSuperWETH) _ghost_superWethBalancesSum -= _amount;
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
         } else {
-            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount); // Checks overflow in ETHLiquidity
+            // Check overflow in ETHLiquidity
+            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount);
         }
+    }
+
+    /// @custom:property-id 14
+    /// @custom:property The total sum of SuperchainWETH user balances MUST be equal or less to the total supply
+    function test_superWETHSupplyEqualsBalances() public {
+        // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
+        assert(_ghost_superWethBalancesSum == SUPER_WETH.totalSupply() - _ghost_superWethEtherSent);
     }
 }
