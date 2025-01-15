@@ -7,9 +7,15 @@ import { stdToml } from "forge-std/StdToml.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { IProtocolVersions, ProtocolVersion } from "interfaces/L1/IProtocolVersions.sol";
-import { DeploySuperchainInput, DeploySuperchain, DeploySuperchainOutput } from "scripts/deploy/DeploySuperchain.s.sol";
+import {
+    DeploySuperchainInput,
+    DeploySuperchain,
+    DeploySuperchainInterop,
+    DeploySuperchainOutput
+} from "scripts/deploy/DeploySuperchain.s.sol";
 
 contract DeploySuperchainInput_Test is Test {
     DeploySuperchainInput dsi;
@@ -156,8 +162,9 @@ contract DeploySuperchain_Test is Test {
     bool defaultPaused = false;
     ProtocolVersion defaultRequiredProtocolVersion = ProtocolVersion.wrap(1);
     ProtocolVersion defaultRecommendedProtocolVersion = ProtocolVersion.wrap(2);
+    bool defaultIsInterop = false;
 
-    function setUp() public {
+    function setUp() public virtual {
         deploySuperchain = new DeploySuperchain();
         (dsi, dso) = deploySuperchain.etchIOContracts();
     }
@@ -188,39 +195,39 @@ contract DeploySuperchain_Test is Test {
         dsi.set(dsi.paused.selector, paused);
         dsi.set(dsi.requiredProtocolVersion.selector, requiredProtocolVersion);
         dsi.set(dsi.recommendedProtocolVersion.selector, recommendedProtocolVersion);
+        dsi.set(dsi.isInterop.selector, defaultIsInterop);
 
         // Run the deployment script.
         deploySuperchain.run(dsi, dso);
 
+        // Assert the output values.
+        _outputAsserts();
+
+        // Ensure that `checkOutput` passes. This is called by the `run` function during execution,
+        // so this just acts as a sanity check. It reverts on failure.
+        dso.checkOutput(dsi);
+    }
+
+    function _outputAsserts() internal virtual {
         // Assert inputs were properly passed through to the contract initializers.
-        assertEq(address(dso.superchainProxyAdmin().owner()), superchainProxyAdminOwner, "100");
-        assertEq(address(dso.protocolVersionsProxy().owner()), protocolVersionsOwner, "200");
-        assertEq(address(dso.superchainConfigProxy().guardian()), guardian, "300");
-        assertEq(address(dso.superchainConfigProxy().clusterManager()), superchainProxyAdminOwner, "400");
-        assertEq(dso.superchainConfigProxy().paused(), paused, "500");
-        assertEq(address(dso.superchainConfigProxy().sharedLockbox()), address(dso.sharedLockboxProxy()), "600");
-        assertEq(unwrap(dso.protocolVersionsProxy().required()), unwrap(requiredProtocolVersion), "700");
-        assertEq(unwrap(dso.protocolVersionsProxy().recommended()), unwrap(recommendedProtocolVersion), "800");
-        assertEq(address(dso.sharedLockboxProxy().superchainConfig()), address(dso.superchainConfigProxy()), "900");
+        assertEq(address(dso.superchainProxyAdmin().owner()), dsi.superchainProxyAdminOwner(), "100");
+        assertEq(address(dso.protocolVersionsProxy().owner()), dsi.protocolVersionsOwner(), "200");
+        assertEq(address(dso.superchainConfigProxy().guardian()), dsi.guardian(), "300");
+        assertEq(dso.superchainConfigProxy().paused(), dsi.paused(), "400");
+        assertEq(unwrap(dso.protocolVersionsProxy().required()), unwrap(dsi.requiredProtocolVersion()), "500");
+        assertEq(unwrap(dso.protocolVersionsProxy().recommended()), unwrap(dsi.recommendedProtocolVersion()), "600");
 
         // Architecture assertions.
         // We prank as the zero address due to the Proxy's `proxyCallIfNotAdmin` modifier.
         Proxy superchainConfigProxy = Proxy(payable(address(dso.superchainConfigProxy())));
         Proxy protocolVersionsProxy = Proxy(payable(address(dso.protocolVersionsProxy())));
-        Proxy sharedLockboxProxy = Proxy(payable(address(dso.sharedLockboxProxy())));
 
         vm.startPrank(address(0));
-        assertEq(superchainConfigProxy.implementation(), address(dso.superchainConfigImpl()), "1000");
-        assertEq(protocolVersionsProxy.implementation(), address(dso.protocolVersionsImpl()), "1100");
-        assertEq(superchainConfigProxy.admin(), protocolVersionsProxy.admin(), "1200");
-        assertEq(superchainConfigProxy.admin(), address(dso.superchainProxyAdmin()), "1300");
-        assertEq(sharedLockboxProxy.implementation(), address(dso.sharedLockboxImpl()), "1400");
-        assertEq(sharedLockboxProxy.admin(), address(dso.superchainProxyAdmin()), "1500");
+        assertEq(superchainConfigProxy.implementation(), address(dso.superchainConfigImpl()), "700");
+        assertEq(protocolVersionsProxy.implementation(), address(dso.protocolVersionsImpl()), "800");
+        assertEq(superchainConfigProxy.admin(), protocolVersionsProxy.admin(), "900");
+        assertEq(superchainConfigProxy.admin(), address(dso.superchainProxyAdmin()), "1000");
         vm.stopPrank();
-
-        // Ensure that `checkOutput` passes. This is called by the `run` function during execution,
-        // so this just acts as a sanity check. It reverts on failure.
-        dso.checkOutput(dsi);
     }
 
     function test_run_nullInput_reverts() public {
@@ -266,5 +273,35 @@ contract DeploySuperchain_Test is Test {
     function zeroOutSlotForSelector(bytes4 _selector) internal returns (uint256 slot_) {
         slot_ = stdstore.enable_packed_slots().target(address(dsi)).sig(_selector).find();
         vm.store(address(dsi), bytes32(slot_), bytes32(0));
+    }
+}
+
+contract DeploySuperchainInterop_Test is DeploySuperchain_Test {
+    function setUp() public virtual override {
+        super.setUp();
+        defaultIsInterop = true;
+        deploySuperchain = new DeploySuperchainInterop();
+    }
+
+    function _superchainConfig() internal view returns (ISuperchainConfigInterop) {
+        return ISuperchainConfigInterop(address(dso.superchainConfigProxy()));
+    }
+
+    function _outputAsserts() internal virtual override {
+        super._outputAsserts();
+
+        // Assert inputs were properly passed through to the contract initializers.
+        assertEq(address(_superchainConfig().clusterManager()), dsi.superchainProxyAdminOwner(), "1100");
+        assertEq(address(_superchainConfig().sharedLockbox()), address(dso.sharedLockboxProxy()), "1200");
+        assertEq(address(dso.sharedLockboxProxy().superchainConfig()), address(dso.superchainConfigProxy()), "1300");
+
+        // Architecture assertions.
+        // We prank as the zero address due to the Proxy's `proxyCallIfNotAdmin` modifier.
+        Proxy sharedLockboxProxy = Proxy(payable(address(dso.sharedLockboxProxy())));
+
+        vm.startPrank(address(0));
+        assertEq(sharedLockboxProxy.implementation(), address(dso.sharedLockboxImpl()), "1400");
+        assertEq(sharedLockboxProxy.admin(), address(dso.superchainProxyAdmin()), "1500");
+        vm.stopPrank();
     }
 }

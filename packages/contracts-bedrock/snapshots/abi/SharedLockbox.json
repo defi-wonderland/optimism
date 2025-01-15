@@ -42,7 +42,7 @@
     "name": "superchainConfig",
     "outputs": [
       {
-        "internalType": "contract ISuperchainConfig",
+        "internalType": "contract ISuperchainConfigInterop",
         "name": "superchainConfig_",
         "type": "address"
       }

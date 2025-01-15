@@ -22,6 +22,7 @@ import { console } from "forge-std/console.sol";
 // Interfaces
 import { IOptimismMintableERC20Full } from "interfaces/universal/IOptimismMintableERC20Full.sol";
 import { ILegacyMintableERC20Full } from "interfaces/legacy/ILegacyMintableERC20Full.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @title CommonTest
 /// @dev An extenstion to `Test` that sets up the optimism smart contracts.
@@ -93,7 +94,7 @@ contract CommonTest is Test, Setup, Events {
         Setup.L2();
 
         // Add L2 chain as cluster dependency
-        _addDependency();
+        if (useInteropOverride) _addDependency();
 
         // Call bridge initializer setup function
         bridgeInitializerSetUp();
@@ -103,8 +104,10 @@ contract CommonTest is Test, Setup, Events {
         vm.chainId(deploy.cfg().l1ChainID());
         uint256 l2ChainID = deploy.cfg().l2ChainID();
 
-        vm.prank(address(superchainConfig.clusterManager()));
-        superchainConfig.addDependency(l2ChainID, address(systemConfig));
+        ISuperchainConfigInterop superchainConfigInterop = ISuperchainConfigInterop(address(superchainConfig));
+
+        vm.prank(superchainConfigInterop.clusterManager());
+        superchainConfigInterop.addDependency(l2ChainID, address(systemConfig));
 
         vm.chainId(l2ChainID);
     }

@@ -7,7 +7,7 @@ import { Unauthorized, Paused as PausedError } from "src/libraries/errors/Common
 
 // Interfaces
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 contract SharedLockboxTest is CommonTest {
     event ETHLocked(address indexed portal, uint256 amount);
@@ -21,9 +21,13 @@ contract SharedLockboxTest is CommonTest {
         super.setUp();
     }
 
+    function _superchainConfig() internal view returns (ISuperchainConfigInterop) {
+        return ISuperchainConfigInterop(address(superchainConfig));
+    }
+
     /// @notice Tests it reverts when the caller is not an authorized portal.
     function test_lockETH_unauthorizedPortal_reverts(address _caller) public {
-        vm.assume(!superchainConfig.authorizedPortals(_caller));
+        vm.assume(!_superchainConfig().authorizedPortals(_caller));
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(Unauthorized.selector);
@@ -59,7 +63,9 @@ contract SharedLockboxTest is CommonTest {
     function test_lockETHWithDifferentPortal_succeeds(address _portal, uint256 _amount) public {
         // Mock the portal as an authorized portal
         vm.mockCall(
-            address(superchainConfig), abi.encodeCall(ISuperchainConfig.authorizedPortals, (_portal)), abi.encode(true)
+            address(superchainConfig),
+            abi.encodeCall(ISuperchainConfigInterop.authorizedPortals, (_portal)),
+            abi.encode(true)
         );
 
         // Deal the ETH amount to the portal
@@ -98,7 +104,7 @@ contract SharedLockboxTest is CommonTest {
 
     /// @notice Tests it reverts when the caller is not an authorized portal.
     function test_unlockETH_unauthorizedPortal_reverts(address _caller, uint256 _value) public {
-        vm.assume(!superchainConfig.authorizedPortals(_caller));
+        vm.assume(!_superchainConfig().authorizedPortals(_caller));
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(Unauthorized.selector);

@@ -11,6 +11,8 @@ import { Unauthorized } from "src/libraries/PortalErrors.sol";
 
 // Interfaces
 import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortalInterop
@@ -18,6 +20,10 @@ import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
 contract OptimismPortalInterop is OptimismPortal2 {
+    /// @notice Emitted when the contract migrates the ETH liquidity to the SharedLockbox.
+    /// @param amount Amount of ETH migrated.
+    event ETHMigrated(uint256 amount);
+
     constructor(
         uint256 _proofMaturityDelaySeconds,
         uint256 _disputeGameFinalityDelaySeconds
@@ -53,5 +59,33 @@ contract OptimismPortalInterop is OptimismPortal2 {
                 abi.encodeCall(IL1BlockInterop.setConfig, (_type, _value))
             )
         );
+    }
+
+    /// @notice Getter for the address of the shared lockbox.
+    function sharedLockbox() public view returns (ISharedLockbox) {
+        return ISuperchainConfigInterop(address(superchainConfig)).sharedLockbox();
+    }
+
+    /// @notice Unlock and receive the ETH from the shared lockbox.
+    /// @param _value Amount of ETH to unlock.
+    function _unlockETH(uint256 _value) internal virtual override {
+        sharedLockbox().unlockETH(_value);
+    }
+
+    /// @notice Locks the ETH in the shared lockbox.
+    function _lockETH() internal virtual override {
+        sharedLockbox().lockETH{ value: msg.value }();
+    }
+
+    /// @notice Migrates the ETH liquidity to the SharedLockbox. This function will only be called once by the
+    ///         SuperchainConfig when adding this chain to the dependency set.
+    function migrateLiquidity() external {
+        if (msg.sender != address(superchainConfig)) revert Unauthorized();
+
+        uint256 ethBalance = address(this).balance;
+
+        sharedLockbox().lockETH{ value: ethBalance }();
+
+        emit ETHMigrated(ethBalance);
     }
 }

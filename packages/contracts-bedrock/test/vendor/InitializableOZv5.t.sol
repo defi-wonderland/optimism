@@ -32,6 +32,7 @@ contract InitializerOZv5_Test is CommonTest {
     InitializeableContract[] contracts;
 
     function setUp() public override {
+        super.enableInterop();
         super.enableAltDA();
         super.setUp();
 

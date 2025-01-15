@@ -10,7 +10,7 @@ import { Constants } from "src/libraries/Constants.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
@@ -56,7 +56,7 @@ contract DependencyManager is ISemver {
         IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal(
             _superchainConfig,
             ADD_DEPENDENCY_WITHDRAWWAL_GAS_LIMIT,
-            abi.encodeCall(ISuperchainConfig.addDependency, (_chainId, _systemConfig))
+            abi.encodeCall(ISuperchainConfigInterop.addDependency, (_chainId, _systemConfig))
         );
 
         emit DependencyAdded(_chainId, _systemConfig, _superchainConfig);
