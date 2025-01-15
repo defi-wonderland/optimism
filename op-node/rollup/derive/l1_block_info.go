@@ -428,6 +428,10 @@ func DepositsCompleteBytes(seqNumber uint64, l1Info eth.BlockInfo) ([]byte, erro
 	return opaqueDepositsCompleteTx, nil
 }
 
+// AddDependencyDeposit creates a deposit transaction to add a new chainId to the dependency set.
+// The new dependency is added on L2 through the DependencyManager contract.
+// This triggers an L2 to L1 withdrawal, which calls the L1 SuperchainConfig with the added chainId and it's corresponding L1 SystemConfig address
+// It also enables the Portal to interact with the SharedLockbox, and migrates it's ETH liquidity.
 func AddDependencyDeposit(seqNumber uint64, block eth.BlockInfo, newDependency *big.Int) (*types.DepositTx, error) {
 	source := AfterForceIncludeSource{
 		L1BlockHash: block.Hash(),

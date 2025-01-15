@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -283,7 +284,7 @@ var (
 // IsDependencySetUpdate checks for any new chain dependencies that activate between
 // the previous and next block timestamps. Returns nil if no new dependencies activate,
 // or a slice of chain IDs for newly activated dependencies.
-func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimestamp uint64) []*big.Int {
+func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimestamp uint64) ([]*big.Int, bool) {
 	if cfg.ClusterConfig == nil {
 		panic("missing cluster config")
 	}
@@ -298,6 +299,12 @@ func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimest
 				chainIDs:  deps,
 			})
 		}
+
+		// order dependencySetActivations by timestamp
+		sort.Slice(dependencySetActivations, func(i, j int) bool {
+			return dependencySetActivations[i].timestamp < dependencySetActivations[j].timestamp
+		})
+
 		// find the latest activation index by searching backwards
 		for i := len(dependencySetActivations) - 1; i >= 0; i-- {
 			if dependencySetActivations[i].timestamp <= previousBlockTimestamp {
@@ -310,7 +317,7 @@ func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimest
 	// Quick return if no activations available
 	if len(dependencySetActivations) == 0 ||
 		latestActivationIndex == len(dependencySetActivations)-1 {
-		return nil
+		return nil, false
 	}
 
 	// Find any new dependency activations in this time window
@@ -333,9 +340,9 @@ func (cfg *Config) IsDependencySetUpdate(previousBlockTimestamp, nextBlockTimest
 
 	// Return new dependencies if any
 	if len(newDependencies) == 0 {
-		return nil
+		return nil, false
 	}
-	return newDependencies
+	return newDependencies, true
 }
 
 // Check verifies that the given configuration makes sense

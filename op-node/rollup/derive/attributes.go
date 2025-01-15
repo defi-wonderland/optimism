@@ -137,9 +137,9 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		}
 		afterForceIncludeTxs = append(afterForceIncludeTxs, depositsCompleteTx)
 
-		newDependencies := ba.rollupCfg.IsDependencySetUpdate(l2Parent.Time, nextL2Time)
-		if newDependencies != nil {
-			for _, newDependency := range newDependencies {
+		deps, isUpdate := ba.rollupCfg.IsDependencySetUpdate(l2Parent.Time, nextL2Time)
+		if isUpdate {
+			for _, newDependency := range deps {
 				dependencySetUpdateTx, err := AddDependencyBytes(seqNumber, l1Info, newDependency)
 				if err != nil {
 					return nil, NewCriticalError(fmt.Errorf("failed to create dependencySetUpdateTx: %w", err))
