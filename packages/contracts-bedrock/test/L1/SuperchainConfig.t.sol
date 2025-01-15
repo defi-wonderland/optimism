@@ -5,40 +5,12 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Target contract dependencies
 import { IProxy } from "interfaces/universal/IProxy.sol";
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
 // Target contract
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { SuperchainConfig, ISystemConfig, IOptimismPortal2 } from "src/L1/SuperchainConfig.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-
-contract SuperchainConfig_Base_Test is CommonTest {
-    function _mockAndExpect(address _target, bytes memory _calldata, bytes memory _returnData) internal {
-        vm.mockCall(_target, _calldata, _returnData);
-        vm.expectCall(_target, _calldata);
-    }
-
-    function _setUpPortal(uint256 _chainId) internal returns (address portal_) {
-        portal_ = address(bytes20(keccak256(abi.encodePacked(_chainId))));
-
-        // Mock the portal to return the correct superchain config address
-        _mockAndExpect(
-            portal_, abi.encodeCall(IOptimismPortal2.superchainConfig, ()), abi.encode(address(superchainConfig))
-        );
-        _mockAndExpect(portal_, abi.encodeCall(IOptimismPortal2.migrateLiquidity, ()), abi.encode());
-
-        // Store the PORTAL address we expect to be used in a call in the SystemConfig OptimsimPortal slot, and expect
-        // it to be called
-        vm.store(
-            address(systemConfig),
-            bytes32(uint256(keccak256("systemconfig.optimismportal")) - 1),
-            bytes32(uint256(uint160(portal_)))
-        );
-        vm.expectCall(address(systemConfig), abi.encodeCall(ISystemConfig.optimismPortal, ()));
-    }
-}
 
 contract SuperchainConfig_Init_Test is CommonTest {
     function setUp() public virtual override {
@@ -50,8 +22,6 @@ contract SuperchainConfig_Init_Test is CommonTest {
     function test_initialize_succeeds() external view {
         assertFalse(superchainConfig.paused());
         assertEq(superchainConfig.guardian(), deploy.cfg().superchainConfigGuardian());
-        assertEq(superchainConfig.clusterManager(), deploy.cfg().finalSystemOwner());
-        assertEq(address(superchainConfig.sharedLockbox()), address(sharedLockbox));
     }
 
     /// @dev Tests that it can be intialized as paused.
@@ -72,16 +42,11 @@ contract SuperchainConfig_Init_Test is CommonTest {
         vm.startPrank(alice);
         newProxy.upgradeToAndCall(
             address(newImpl),
-            abi.encodeCall(
-                ISuperchainConfig.initialize,
-                (deploy.cfg().superchainConfigGuardian(), deploy.cfg().finalSystemOwner(), true, address(sharedLockbox))
-            )
+            abi.encodeCall(ISuperchainConfig.initialize, (deploy.cfg().superchainConfigGuardian(), true))
         );
 
         assertTrue(ISuperchainConfig(address(newProxy)).paused());
         assertEq(ISuperchainConfig(address(newProxy)).guardian(), deploy.cfg().superchainConfigGuardian());
-        assertEq(ISuperchainConfig(address(newProxy)).clusterManager(), deploy.cfg().finalSystemOwner());
-        assertEq(address(ISuperchainConfig(address(newProxy)).sharedLockbox()), address(sharedLockbox));
     }
 }
 
@@ -144,160 +109,5 @@ contract SuperchainConfig_Unpause_Test is CommonTest {
         superchainConfig.unpause();
 
         assertFalse(superchainConfig.paused());
-    }
-}
-
-contract SuperchainConfig_AddDependency_Test is SuperchainConfig_Base_Test {
-    event DependencyAdded(uint256 indexed chainId, address indexed systemConfig, address indexed portal);
-
-    function setUp() public virtual override {
-        super.enableInterop();
-        super.setUp();
-    }
-
-    /// @notice Tests that `addDependency` reverts when called by an unauthorized address.
-    function test_addDependency_unauthorized_reverts(
-        address _caller,
-        uint256 _chainId,
-        address _systemConfig
-    )
-        external
-    {
-        vm.assume(_caller != superchainConfig.clusterManager());
-
-        vm.expectRevert(Unauthorized.selector);
-        vm.prank(_caller);
-        superchainConfig.addDependency(_chainId, _systemConfig);
-    }
-
-    /// @notice Tests that `addDependency` reverts when the dependency set is too large.
-    function test_addDependency_dependencySetTooLarge_reverts() external {
-        vm.startPrank(superchainConfig.clusterManager());
-        uint256 currentSize = superchainConfig.dependencySetSize();
-
-        // Add the maximum number of dependencies to the dependency set
-        uint256 i;
-        for (i; i < type(uint8).max - currentSize; i++) {
-            _setUpPortal(i);
-            superchainConfig.addDependency(i, address(systemConfig));
-        }
-
-        // Check that the dependency set is full and that expect the next call to revert
-        assertEq(superchainConfig.dependencySetSize(), type(uint8).max);
-        vm.expectRevert(SuperchainConfig.DependencySetTooLarge.selector);
-
-        // Try to add another dependency to the dependency set
-        uint256 chainId = i + 1;
-        superchainConfig.addDependency(chainId, address(systemConfig));
-
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that `addDependency` reverts when the chain is already in the dependency set.
-    function test_addDependency_chainAlreadyExists_reverts(uint256 _chainId) external {
-        vm.assume(_chainId != block.chainid);
-
-        // Mock the portal
-        _setUpPortal(_chainId);
-
-        vm.startPrank(superchainConfig.clusterManager());
-        superchainConfig.addDependency(_chainId, address(systemConfig));
-
-        vm.expectRevert(SuperchainConfig.DependencyAlreadyAdded.selector);
-        superchainConfig.addDependency(_chainId, address(systemConfig));
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that `addDependency` successfully adds a chain to the dependency set.
-    function test_addDependency_succeeds(uint256 _chainId) external {
-        vm.assume(!superchainConfig.isInDependencySet(_chainId));
-        uint256 currentSize = superchainConfig.dependencySetSize();
-
-        address portal = _setUpPortal(_chainId);
-
-        // Expect the DependencyAdded event to be emitted
-        vm.expectEmit(address(superchainConfig));
-        emit DependencyAdded(_chainId, address(systemConfig), portal);
-
-        // Add the new chain to the dependency set
-        vm.prank(superchainConfig.clusterManager());
-        superchainConfig.addDependency(_chainId, address(systemConfig));
-
-        // Check that the new chain is in the dependency set
-        assertTrue(superchainConfig.isInDependencySet(_chainId));
-        assertEq(superchainConfig.dependencySetSize(), currentSize + 1);
-    }
-}
-
-contract SuperchainConfig_IsInDependencySet_Test is SuperchainConfig_Base_Test {
-    /// @dev Tests that `isInDependencySet` returns false when the chain is not in the dependency set. Checking if empty
-    ///      to ensure that should always be false.
-    function test_isInDependencySet_false_succeeds(uint256 _chainId) external view {
-        vm.assume(_chainId != deploy.cfg().l2ChainID());
-        assertFalse(superchainConfig.isInDependencySet(_chainId));
-    }
-
-    /// @dev Tests that `isInDependencySet` returns true when the chain is in the dependency set.
-    function test_isInDependencySet_true_succeeds(uint256 _chainId) external {
-        vm.assume(_chainId != block.chainid);
-        _setUpPortal(_chainId);
-
-        vm.prank(superchainConfig.clusterManager());
-        superchainConfig.addDependency(_chainId, address(systemConfig));
-
-        assertTrue(superchainConfig.isInDependencySet(_chainId));
-    }
-}
-
-contract SuperchainConfig_DependencySet_Test is SuperchainConfig_Base_Test {
-    using EnumerableSet for EnumerableSet.UintSet;
-
-    EnumerableSet.UintSet internal chainIds;
-    uint256 currentSize;
-
-    function setUp() public virtual override {
-        super.setUp();
-        currentSize = superchainConfig.dependencySetSize();
-    }
-
-    function _addDependencies(uint256[] calldata _chainIdsArray) internal {
-        vm.assume(_chainIdsArray.length <= type(uint8).max - currentSize);
-
-        // Ensure there are no repeated values on the input array
-        for (uint256 i; i < _chainIdsArray.length; i++) {
-            if (_chainIdsArray[i] != block.chainid) chainIds.add(_chainIdsArray[i]);
-        }
-
-        vm.startPrank(superchainConfig.clusterManager());
-
-        // Add the dependencies to the dependency set
-        for (uint256 i; i < chainIds.length(); i++) {
-            _setUpPortal(i);
-            superchainConfig.addDependency(chainIds.at(i), address(systemConfig));
-        }
-
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that the dependency set returns properly the dependencies added.
-    function test_dependencySet_succeeds(uint256[] calldata _chainIdsArray) public {
-        _addDependencies(_chainIdsArray);
-
-        // Check that the dependency set has the same length as the dependencies
-        uint256[] memory dependencySet = superchainConfig.dependencySet();
-        assertEq(dependencySet.length, chainIds.length() + currentSize);
-
-        // Check that the dependency set has the same chain IDs as the dependencies
-        for (uint256 i; i < chainIds.length(); i++) {
-            assertEq(dependencySet[i + currentSize], chainIds.at(i));
-        }
-    }
-
-    /// @notice Tests that the dependency set size returns properly the number of dependencies added.
-    function test_dependencySetSize_succeeds(uint256[] calldata _chainIdsArray) public {
-        _addDependencies(_chainIdsArray);
-
-        // Check that the dependency set has the same length as the dependencies
-        assertEq(superchainConfig.dependencySetSize(), chainIds.length() + currentSize);
     }
 }

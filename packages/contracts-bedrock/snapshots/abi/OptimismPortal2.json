@@ -355,13 +355,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "migrateLiquidity",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint64",
@@ -652,19 +645,6 @@
   },
   {
     "inputs": [],
-    "name": "sharedLockbox",
-    "outputs": [
-      {
-        "internalType": "contract ISharedLockbox",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "superchainConfig",
     "outputs": [
       {
@@ -713,19 +693,6 @@
       }
     ],
     "name": "DisputeGameBlacklisted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "ETHMigrated",
     "type": "event"
   },
   {

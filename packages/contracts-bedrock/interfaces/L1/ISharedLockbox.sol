@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @title ISharedLockbox
 /// @notice Interface for the SharedLockbox contract
@@ -17,7 +17,7 @@ interface ISharedLockbox is ISemver {
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
 
-    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
+    function superchainConfig() external view returns (ISuperchainConfigInterop superchainConfig_);
     function initialize(address _superchainConfig) external;
     function paused() external view returns (bool);
     function unlockETH(uint256 _value) external;

@@ -7,7 +7,6 @@ import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 
 interface IOptimismPortal2 {
     error CustomGasTokenNotSupported();
@@ -44,7 +43,6 @@ interface IOptimismPortal2 {
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
-    event ETHMigrated(uint256 amount);
 
     receive() external payable;
 
@@ -72,7 +70,6 @@ interface IOptimismPortal2 {
     function disputeGameBlacklist(IDisputeGame) external view returns (bool);
     function disputeGameFactory() external view returns (IDisputeGameFactory);
     function disputeGameFinalityDelaySeconds() external view returns (uint256);
-    function sharedLockbox() external view returns (ISharedLockbox);
     function donateETH() external payable;
     function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external;
     function finalizeWithdrawalTransactionExternalProof(
@@ -117,7 +114,6 @@ interface IOptimismPortal2 {
     function superchainConfig() external view returns (ISuperchainConfig);
     function systemConfig() external view returns (ISystemConfig);
     function version() external pure returns (string memory);
-    function migrateLiquidity() external;
 
     function __constructor__(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) external;
 }

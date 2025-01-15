@@ -11,7 +11,7 @@ import { Storage } from "src/libraries/Storage.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @custom:proxied true
 /// @title SharedLockbox
@@ -53,8 +53,8 @@ contract SharedLockbox is Initializable, ISemver {
     }
 
     /// @notice Getter for the SuperchainConfig contract.
-    function superchainConfig() public view returns (ISuperchainConfig superchainConfig_) {
-        superchainConfig_ = ISuperchainConfig(Storage.getAddress(SUPERCHAIN_CONFIG_SLOT));
+    function superchainConfig() public view returns (ISuperchainConfigInterop superchainConfig_) {
+        superchainConfig_ = ISuperchainConfigInterop(Storage.getAddress(SUPERCHAIN_CONFIG_SLOT));
     }
 
     /// @notice Reverts when paused.

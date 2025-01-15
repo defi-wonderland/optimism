@@ -215,9 +215,12 @@ contract Setup {
         protocolVersions = IProtocolVersions(deploy.mustGetAddress("ProtocolVersionsProxy"));
         superchainConfig = ISuperchainConfig(deploy.mustGetAddress("SuperchainConfigProxy"));
         anchorStateRegistry = IAnchorStateRegistry(deploy.mustGetAddress("AnchorStateRegistryProxy"));
-        sharedLockbox = ISharedLockbox(deploy.mustGetAddress("SharedLockboxProxy"));
         disputeGameFactory = IDisputeGameFactory(deploy.mustGetAddress("DisputeGameFactoryProxy"));
         delayedWeth = IDelayedWETH(deploy.mustGetAddress("DelayedWETHProxy"));
+
+        if (deploy.cfg().useInterop()) {
+            sharedLockbox = ISharedLockbox(deploy.mustGetAddress("SharedLockboxProxy"));
+        }
 
         if (deploy.cfg().useAltDA()) {
             dataAvailabilityChallenge =

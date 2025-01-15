@@ -24,6 +24,7 @@ import { OPContractsManager } from "src/L1/OPContractsManager.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
@@ -440,7 +441,6 @@ library ChainAssertions {
         view
     {
         ISuperchainConfig superchainConfig = ISuperchainConfig(_contracts.SuperchainConfig);
-        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
 
         console.log(
             "Running chain assertions on the SuperchainConfig %s at %s",
@@ -459,15 +459,41 @@ library ChainAssertions {
 
         if (_isProxy) {
             require(superchainConfig.guardian() == _cfg.superchainConfigGuardian(), "CHECK-SC-20");
-            require(superchainConfig.clusterManager() == _cfg.finalSystemOwner(), "CHECK-SC-30");
-            require(superchainConfig.paused() == _isPaused, "CHECK-SC-40");
-            require(address(superchainConfig.sharedLockbox()) == address(sharedLockbox), "CHECK-SC-50");
+            require(superchainConfig.paused() == _isPaused, "CHECK-SC-30");
         } else {
-            require(superchainConfig.guardian() == address(0), "CHECK-SC-60");
-            require(superchainConfig.clusterManager() == address(0), "CHECK-SC-70");
-            require(superchainConfig.paused() == false, "CHECK-SC-80");
-            require(address(superchainConfig.sharedLockbox()) == address(0), "CHECK-SC-90");
+            require(superchainConfig.guardian() == address(0), "CHECK-SC-40");
+            require(superchainConfig.paused() == false, "CHECK-SC-50");
         }
+    }
+
+    /// @notice Asserts that the SuperchainConfigInterop is setup correctly
+    function checkSuperchainConfigInterop(
+        Types.ContractSet memory _contracts,
+        DeployConfig _cfg,
+        bool _isPaused,
+        bool _isProxy
+    )
+        internal
+        view
+    {
+        ISuperchainConfigInterop superchainConfig = ISuperchainConfigInterop(_contracts.SuperchainConfig);
+        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
+
+        console.log(
+            "Running chain assertions on the SuperchainConfigInterop %s at %s",
+            _isProxy ? "proxy" : "implementation",
+            address(superchainConfig)
+        );
+
+        if (_isProxy) {
+            require(superchainConfig.clusterManager() == _cfg.finalSystemOwner(), "CHECK-SCI-10");
+            require(address(superchainConfig.sharedLockbox()) == address(sharedLockbox), "CHECK-SCI-20");
+        } else {
+            require(superchainConfig.clusterManager() == address(0), "CHECK-SCI-30");
+            require(address(superchainConfig.sharedLockbox()) == address(0), "CHECK-SCI-40");
+        }
+
+        checkSuperchainConfig(_contracts, _cfg, _isPaused, _isProxy);
     }
 
     /// @notice Asserts that the OPContractsManager is setup correctly
@@ -550,7 +576,7 @@ library ChainAssertions {
     /// @notice Asserts that the SharedLockbox is setup correctly
     function checkSharedLockbox(Types.ContractSet memory _contracts, bool _isProxy) internal view {
         ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
-        ISuperchainConfig superchainConfig = ISuperchainConfig(_contracts.SuperchainConfig);
+        ISuperchainConfigInterop superchainConfig = ISuperchainConfigInterop(_contracts.SuperchainConfig);
 
         console.log(
             "Running chain assertions on the SharedLockbox %s at %s",

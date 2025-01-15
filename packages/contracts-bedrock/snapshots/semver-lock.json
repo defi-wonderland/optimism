@@ -20,12 +20,12 @@
     "sourceCodeHash": "0xe5179a20ae40d4e4773c52df98bac67e73e04044bec9e8750073b4e2f14fe81b"
   },
   "src/L1/OptimismPortal2.sol": {
-    "initCodeHash": "0x787f75140a443368065b31b780f9098145a97439bbd05ec0c0e998b10c5f9cec",
-    "sourceCodeHash": "0x378095eeaef3b0e94ab0e42598ec8f7b2295393e05fd57a2e652a8646f32edae"
+    "initCodeHash": "0x554049cefba17dabf4ae3b992ef9d4d3c25743b61289906f3deabf90bf3ddad0",
+    "sourceCodeHash": "0xe304335c8e100958a966df043c10e6b3a839cf297cec296e850daa7635d86d81"
   },
   "src/L1/OptimismPortalInterop.sol": {
-    "initCodeHash": "0x330541f6bcdc9abbfaf7bab0ac53295daeb302fda8bf38f4da599a021237c530",
-    "sourceCodeHash": "0xcbd298a6a8bdb5afc8ee18796a3a506104e43ac9532e5e4c56885128f2c234f2"
+    "initCodeHash": "0x9c71d39fc746f0dbd8b5fa2c97d1d98f4b949018b82b876844f35e36a40ea716",
+    "sourceCodeHash": "0x82ef47c95b1a80e691f97d3515c9832d05cfde7089450ecf118e7733dc02fab6"
   },
   "src/L1/ProtocolVersions.sol": {
     "initCodeHash": "0x0000ec89712d8b4609873f1ba76afffd4205bf9110818995c90134dbec12e91e",
@@ -33,11 +33,15 @@
   },
   "src/L1/SharedLockbox.sol": {
     "initCodeHash": "0x68ad298c875810ed64e09c714c2feed6d132c8c9442d33355dd4a278fc9ac66b",
-    "sourceCodeHash": "0x707559ef8da5e5e7b00e0073fcfc0382b2ca74653329bd722cd1985e5278af43"
+    "sourceCodeHash": "0x6037e76fb5f4052fb4a73550b3eb3e569470dc1ef80c8f3c38f729ca7bd6ec58"
   },
   "src/L1/SuperchainConfig.sol": {
-    "initCodeHash": "0xccdee163aa2160b34314343336674c324c78d32a5376933a981bc5c6b1990905",
-    "sourceCodeHash": "0x4a0d16caf75c39b30f04dfd1b1a256d9c3e9d4f35864484453784db150d728de"
+    "initCodeHash": "0xf20b1ea7a64a32a8cf0cd69f93d27ffd3154b651a9530d2d4d0e8d55d30b53c9",
+    "sourceCodeHash": "0xed2c0eca24f007f2be7a06422171425b91f5005fe947ecb3a3330bbac1565182"
+  },
+  "src/L1/SuperchainConfigInterop.sol": {
+    "initCodeHash": "0x09bfabd44a5390185df6777c6b5704c9da74a6d7642275cc1d49a4a5ee3ccc74",
+    "sourceCodeHash": "0x0be0b3b4a2ea22d18a211bb77c0f11b3c651fec2d264330a5a3cfcc6e89208cd"
   },
   "src/L1/SystemConfig.sol": {
     "initCodeHash": "0xbb18eef17cdc1d0d307b0241e818820063e3ce3c7021ea3bb3a85ff6e79659e1",
@@ -57,7 +61,7 @@
   },
   "src/L2/DependencyManager.sol": {
     "initCodeHash": "0xb2e0d759cef5b82efd3b4644b6490c1db2d6d865075937d5b07f23121912a46d",
-    "sourceCodeHash": "0xa143e095ca4a0678a317854b639b061ae8e5899e16ca9ffa3fddf5fc5288a996"
+    "sourceCodeHash": "0x9db9b334dcd328e9c1647de18a55ee240683c6296bb0684286b87c751b349f31"
   },
   "src/L2/ETHLiquidity.sol": {
     "initCodeHash": "0xbb16de6a3f678db7301694a000f315154f25f9660c8dcec4b0bef20bc7cfdebd",
