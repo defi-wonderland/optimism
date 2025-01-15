@@ -140,7 +140,7 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 		deps, isUpdate := ba.rollupCfg.IsDependencySetUpdate(l2Parent.Time, nextL2Time)
 		if isUpdate {
 			for _, newDependency := range deps {
-				dependencySetUpdateTx, err := AddDependencyBytes(seqNumber, l1Info, newDependency)
+				dependencySetUpdateTx, err := AddDependencyBytes(seqNumber, l1Info, ba.rollupCfg, newDependency)
 				if err != nil {
 					return nil, NewCriticalError(fmt.Errorf("failed to create dependencySetUpdateTx: %w", err))
 				}

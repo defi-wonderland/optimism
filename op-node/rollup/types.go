@@ -70,7 +70,7 @@ type ClusterConfig struct {
 	// DependencySet represents the chains that are in the cluster.
 	DependencySet map[uint64][]*big.Int `json:"dependency_set"`
 	// SystemConfig represents the L1 SystemConfig contract addresses for each chain in the cluster.
-	SystemConfig map[uint64]common.Address `json:"system_config"`
+	SystemConfig map[*big.Int]common.Address `json:"system_config"`
 	// SuperchainConfig represents the shared L1 SuperchainConfig contract
 	// address for the cluster.
 	SuperchainConfig common.Address `json:"superchain_config"`
