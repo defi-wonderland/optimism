@@ -43,4 +43,9 @@ contract SuperchainERC20ForToBProperties is
     function symbol() public pure override returns (string memory) {
         return "SUP";
     }
+
+    /// @notice Sets Permit2 contract's allowance at infinity.
+    function _givePermit2InfiniteAllowance() internal view virtual override returns (bool) {
+        return true;
+    }
 }
