@@ -165,7 +165,6 @@ contract Handler is Setup {
     {
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);
-        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
         _message.amount = clampLte(_message.amount, address(ETH_LIQUIDITY).balance - address(SUPER_WETH).balance);
 
         // Get state before the call

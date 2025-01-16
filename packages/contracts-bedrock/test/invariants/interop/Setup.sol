@@ -10,10 +10,9 @@ import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
 // Interfaces 0.8.15
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
 import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
-import { ILiquidityMigrator } from "interfaces/L1/ILiquidityMigrator.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 
 // Interfaces 0.8.25
@@ -23,7 +22,6 @@ import { ISuperToken } from "./interfaces/ISuperToken.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
 
 // Libraries and Constants
-import { Constants } from "src/libraries/Constants.sol";
 import { GameType } from "src/dispute/lib/Types.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
@@ -52,7 +50,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
     ISuperchainWETH public immutable SUPER_WETH = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
     IOptimismPortalInterop public immutable PORTAL;
     ISharedLockbox public immutable SHARED_LOCKBOX;
-    ISuperchainConfig public immutable SUPERCHAIN_CONFIG;
+    ISuperchainConfigInterop public immutable SUPERCHAIN_CONFIG;
     ISystemConfig public immutable SYSTEM_CONFIG;
 
     // Soldity 0.8.25 Contracts
@@ -134,24 +132,24 @@ contract Setup is PropertiesAsserts, HandlerActors {
         SUPER_TOKEN = ISuperToken(DEPLOYER_8_25.deploySuperchainERC20());
 
         // Deploy SuperchainConfig
-        _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(sharedLockboxAddress), true);
-        SUPERCHAIN_CONFIG = ISuperchainConfig(superchainConfigAddress);
+        _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(), true);
+        SUPERCHAIN_CONFIG = ISuperchainConfigInterop(superchainConfigAddress);
 
         // Deploy SystemConfigInterop
         _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
         SYSTEM_CONFIG = ISystemConfig(systemConfigAddress);
 
         // Deploy SharedLockbox
-        _setCode(sharedLockboxAddress, DEPLOYER_8_15.deploySharedLockbox(superchainConfigAddress), true);
+        _setCode(sharedLockboxAddress, DEPLOYER_8_25.deploySharedLockbox(), true);
         SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
 
-        // Add the dependency to the SuperchainConfig
-        vm.prank(dependencyManager);
-        /// NOTE: Using low-level call only because Medusa crashes otherwise
-        (bool success,) = address(SUPERCHAIN_CONFIG).call(
-            abi.encodeWithSelector(ISuperchainConfig.addDependency.selector, OP_CHAIN_ID, systemConfigAddress)
-        );
-        if (!success) revert("Setup: Failed to add dependency to SuperchainConfig");
+        // // Add the dependency to the SuperchainConfig
+        // vm.prank(dependencyManager);
+        // /// NOTE: Using low-level call only because Medusa crashes otherwise
+        // (bool success,) = address(SUPERCHAIN_CONFIG).call(
+        //     abi.encodeWithSelector(ISuperchainConfig.addDependency.selector, OP_CHAIN_ID, systemConfigAddress)
+        // );
+        // if (!success) revert("Setup: Failed to add dependency to SuperchainConfig");
 
         // Deal the initial ether to the portal address
         vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
@@ -161,24 +159,24 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Set implementation for the Portal proxy such as if it was using the current OptimismPortalMock
         _setCode(
             optimismPortalAddress,
-            DEPLOYER_8_15.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
             true
         );
 
-        // Deploy LiquidityMigrator on the OptimismPortal proxy address
-        address liquidityMigrator = DEPLOYER_8_15.deployLiquidityMigrator(sharedLockboxAddress);
-        vm.prank(proxyOwner);
-        /// NOTE: Using low-level call only because Medusa crashes otherwise
-        (success,) = address(proxyAdmin).call(
-            abi.encodeWithSelector(ProxyAdmin.upgrade.selector, payable(optimismPortalAddress), liquidityMigrator)
-        );
+        // // Deploy LiquidityMigrator on the OptimismPortal proxy address
+        // address liquidityMigrator = DEPLOYER_8_15.deployLiquidityMigrator(sharedLockboxAddress);
+        // vm.prank(proxyOwner);
+        // /// NOTE: Using low-level call only because Medusa crashes otherwise
+        // (success,) = address(proxyAdmin).call(
+        //     abi.encodeWithSelector(ProxyAdmin.upgrade.selector, payable(optimismPortalAddress), liquidityMigrator)
+        // );
 
-        // Migrate the liquidity
-        ILiquidityMigrator(optimismPortalAddress).migrateETH();
+        // TODO:Migrate the liquidity
+        // ILiquidityMigrator(optimismPortalAddress).migrateETH();
 
         // Deploy OptimismPortalMock
         address portalMockImplementation =
-            DEPLOYER_8_15.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds);
+            DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds);
         // Upgrade Proxy to OptimismPortalMock
         vm.prank(proxyOwner);
         proxyAdmin.upgrade(payable(optimismPortalAddress), portalMockImplementation);
@@ -209,7 +207,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
     function _initializeProxies() internal {
         // Initialize SuperchainConfig
-        SUPERCHAIN_CONFIG.initialize(guardian, dependencyManager, false);
+        SUPERCHAIN_CONFIG.initialize(guardian, false);
 
         // Initialize SystemConfigInterop
         ISystemConfig.Addresses memory _addresses = ISystemConfig.Addresses({
@@ -218,8 +216,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             l1StandardBridge: address(0),
             disputeGameFactory: _disputeGameFactory,
             optimismPortal: optimismPortalAddress,
-            optimismMintableERC20Factory: address(0),
-            gasPayingToken: Constants.ETHER
+            optimismMintableERC20Factory: address(0)
         });
         IResourceMetering.ResourceConfig memory _config = Constants.DEFAULT_RESOURCE_CONFIG();
         SYSTEM_CONFIG.initialize(
@@ -241,15 +238,14 @@ contract Setup is PropertiesAsserts, HandlerActors {
                 IOptimismPortalInterop.initialize.selector,
                 IDisputeGameFactory(_disputeGameFactory),
                 ISystemConfig(systemConfigAddress),
-                ISuperchainConfig(superchainConfigAddress),
+                ISuperchainConfigInterop(superchainConfigAddress),
                 GameType.wrap(0)
             )
         );
         if (!success) revert("Setup: Failed to initialize OptimismPortal");
 
-        // set interop start on Inbox
-        vm.prank(_DEPOSITOR_ACCOUNT);
-        CROSS_L2_INBOX.setInteropStart();
+        // TODO: Initialize SharedLockbox
+        SHARED_LOCKBOX.initialize(superchainConfigAddress);
     }
 
     function _addActors() internal {

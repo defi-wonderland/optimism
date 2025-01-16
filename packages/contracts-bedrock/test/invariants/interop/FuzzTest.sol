@@ -35,12 +35,11 @@ contract FuzzTest is Handler {
         assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
 
         // Shared Lockbox
-        assert(address(SHARED_LOCKBOX.SUPERCHAIN_CONFIG()) == superchainConfigAddress);
+        assert(address(SHARED_LOCKBOX.superchainConfig()) == superchainConfigAddress);
 
         // Superchain Config
-        assert(address(SUPERCHAIN_CONFIG.SHARED_LOCKBOX()) == sharedLockboxAddress);
+        assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
-        assert(SUPERCHAIN_CONFIG.dependencyManager() == dependencyManager);
         assert(SUPERCHAIN_CONFIG.paused() == false);
 
         // System Config
@@ -54,8 +53,6 @@ contract FuzzTest is Handler {
         assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
         assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
         assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
-        (address gasPayingToken,) = SYSTEM_CONFIG.gasPayingToken();
-        assert(gasPayingToken == Constants.ETHER);
         bytes memory resourceConfig = abi.encode(SYSTEM_CONFIG.resourceConfig());
         bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
         assert(resourceConfig.hashBytes() == defaultResourceConfig.hashBytes());
@@ -65,10 +62,6 @@ contract FuzzTest is Handler {
         string memory tokenSymbol = "SUP";
         assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
         assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
-
-        // CrossL2Inbox
-        uint256 interopStart = CROSS_L2_INBOX.interopStart();
-        assert(interopStart > 0 && interopStart <= block.timestamp);
 
         /* Contracts without any storage intialization on setup */
         // Check that it has a version, not checking which one to make the test more future proof
@@ -123,7 +116,6 @@ contract FuzzTest is Handler {
 
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
-        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
 
         // Ensure the message is valid
         address targetActor = address(randomActor(_actorIndex));
@@ -216,7 +208,6 @@ contract FuzzTest is Handler {
 
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
-        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
 
         // Ensure the message is valid
         address targetActor = address(randomActor(_actorIndex));
@@ -273,7 +264,6 @@ contract FuzzTest is Handler {
     {
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
-        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
 
         bytes memory message;
         bytes memory sentMessage;

@@ -9,4 +9,6 @@ interface IDeployer825 {
     function deploySuperchainTokenBridge() external returns (address superchainTokenBridge);
 
     function deploySuperchainERC20() external returns (address superchainERC20);
+
+    function deploySharedLockbox() external returns (address sharedLockbox);
 }
