@@ -93,14 +93,14 @@ contract OptimismPortalInterop is OptimismPortal2 {
     /// @notice Unlock and receive the ETH from the shared lockbox.
     /// @param _value Amount of ETH to unlock.
     function _unlockETH(uint256 _value) internal virtual override {
-        OptimismPortalStorage storage $ = _storage();
-        if ($.migrated) sharedLockbox().unlockETH(_value);
+        OptimismPortalStorage storage s = _storage();
+        if (s.migrated) sharedLockbox().unlockETH(_value);
     }
 
     /// @notice Locks the ETH in the shared lockbox.
     function _lockETH() internal virtual override {
-        OptimismPortalStorage storage $ = _storage();
-        if ($.migrated) sharedLockbox().lockETH{ value: msg.value }();
+        OptimismPortalStorage storage s = _storage();
+        if (s.migrated) sharedLockbox().lockETH{ value: msg.value }();
     }
 
     /// @notice Migrates the ETH liquidity to the SharedLockbox. This function will only be called once by the
