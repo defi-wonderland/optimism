@@ -317,13 +317,14 @@ contract InteropSmokeTest is Script {
         string memory _rpcUrl
     ) internal returns (bytes memory) {
         string[] memory cmds = new string[](7);
-        cmds[0] = "cast";
-        cmds[1] = "block";
-        cmds[2] = vm.toString(_blockNumber);
-        cmds[3] = "--field";
-        cmds[4] = _field;
-        cmds[5] = "--rpc-url";
-        cmds[6] = _rpcUrl;
+        uint256 i = 0;
+        cmds[i++] = "cast";
+        cmds[i++] = "block";
+        cmds[i++] = vm.toString(_blockNumber);
+        cmds[i++] = "--field";
+        cmds[i++] = _field;
+        cmds[i++] = "--rpc-url";
+        cmds[i++] = _rpcUrl;
         return vm.ffi(cmds);
     }
 }
