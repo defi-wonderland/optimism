@@ -329,7 +329,7 @@ contract InteropSmokeTest is Script {
     ) internal returns (bytes memory) {
         // Calculate array size based on whether we have value and async parameters
         uint256 cmdLength = 8;  // base length
-        if (_value > 0) cmdLength += 2;  // --value <amount>
+        if (_value > 0) cmdLength += 1;  // --value <amount>
         if (_async) cmdLength += 1;      // --async
 
         string[] memory cmds = new string[](cmdLength);
@@ -337,12 +337,9 @@ contract InteropSmokeTest is Script {
         cmds[i++] = "cast";
         cmds[i++] = "send";
         cmds[i++] = vm.toString(_target);
-        if (bytes(_calldata).length > 0) {
-            cmds[i++] = _calldata;
-        }
+        cmds[i++] = _calldata;
         if (_value > 0) {
-            cmds[i++] = "--value";
-            cmds[i++] = vm.toString(_value);
+            cmds[i++] = string.concat("--value ", vm.toString(_value));
         }
         cmds[i++] = "--rpc-url";
         cmds[i++] = _rpcUrl;
