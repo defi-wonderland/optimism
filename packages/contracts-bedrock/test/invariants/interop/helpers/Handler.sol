@@ -9,9 +9,14 @@ import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
 contract Handler is Setup {
+    mapping(address => uint256) public nonces;
+
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
+
+    bytes32 constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     struct Message {
         address from;
@@ -59,6 +64,52 @@ contract Handler is Setup {
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, address(fromActor), _to, _amount)
         ) { } catch {
+            assert(false);
+        }
+    }
+
+    function handler_permitSuperchainERC20(
+        uint256 _fromActorPK,
+        uint256 _callerActorIndex,
+        uint256 _amount,
+        uint256 _nonce
+    )
+        public
+    {
+        address fromActor = payable(vm.addr(_fromActorPK));
+
+        SUPER_TOKEN.mint(fromActor, 1e18);
+
+        Actors callerActor = randomActor(_callerActorIndex);
+
+        _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
+
+        bytes32 domainSeparator = SUPER_TOKEN.DOMAIN_SEPARATOR();
+
+        vm.prank(fromActor);
+        (uint8 _v, bytes32 _r, bytes32 _s) = vm.sign(
+            _fromActorPK,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    domainSeparator,
+                    keccak256(
+                        abi.encode(
+                            PERMIT_TYPEHASH,
+                            fromActor,
+                            address(callerActor),
+                            _amount,
+                            nonces[fromActor]++,
+                            block.timestamp
+                        )
+                    )
+                )
+            )
+        );
+
+        try SUPER_TOKEN.permit(fromActor, address(callerActor), _amount, block.timestamp, _v, _r, _s) {
+            assert(SUPER_TOKEN.allowance(fromActor, address(callerActor)) == _amount);
+        } catch {
             assert(false);
         }
     }
