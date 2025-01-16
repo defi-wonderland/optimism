@@ -98,19 +98,23 @@ contract OptimismPortalInterop is OptimismPortal2 {
         return _storage().migrated;
     }
 
-    /// @notice Unlock and receive the ETH from the shared lockbox.
+    /// @notice Unlock and receive the ETH from the SharedLockbox.
     /// @param _tx Withdrawal transaction to finalize.
     function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual override {
+        // We don't allow the SharedLockbox to be the target of a withdrawal.
+        // This is to prevent the SharedLockbox from being drained.
+        // This check needs to be done for every withdrawal.
+        if (_tx.target == address(sharedLockbox())) revert MessageTargetSharedLockbox();
+
         OptimismPortalStorage storage s = _storage();
 
         if (!s.migrated) return;
         if (_tx.value == 0) return;
-        if (_tx.target == address(sharedLockbox())) revert MessageTargetSharedLockbox();
 
         sharedLockbox().unlockETH(_tx.value);
     }
 
-    /// @notice Locks the ETH in the shared lockbox.
+    /// @notice Locks the ETH in the SharedLockbox.
     function _lockETH() internal virtual override {
         OptimismPortalStorage storage s = _storage();
         if (s.migrated) sharedLockbox().lockETH{ value: msg.value }();
