@@ -24,8 +24,8 @@
     "sourceCodeHash": "0xfc2e42014c74389c45cf2c29ef0404db63bc0888187a9e2a28d1e919e601c4dc"
   },
   "src/L1/OptimismPortalInterop.sol": {
-    "initCodeHash": "0x9c71d39fc746f0dbd8b5fa2c97d1d98f4b949018b82b876844f35e36a40ea716",
-    "sourceCodeHash": "0x82ef47c95b1a80e691f97d3515c9832d05cfde7089450ecf118e7733dc02fab6"
+    "initCodeHash": "0xb485c23b9b106db5d27df9cfeff4b77e8ac613675b8084a116763b456abbeccc",
+    "sourceCodeHash": "0xf16d492ceac631421ce359ed3e96f1147a2673fa73761c88c9d291ee20864828"
   },
   "src/L1/ProtocolVersions.sol": {
     "initCodeHash": "0x0000ec89712d8b4609873f1ba76afffd4205bf9110818995c90134dbec12e91e",
@@ -40,8 +40,8 @@
     "sourceCodeHash": "0xed2c0eca24f007f2be7a06422171425b91f5005fe947ecb3a3330bbac1565182"
   },
   "src/L1/SuperchainConfigInterop.sol": {
-    "initCodeHash": "0x09bfabd44a5390185df6777c6b5704c9da74a6d7642275cc1d49a4a5ee3ccc74",
-    "sourceCodeHash": "0x0be0b3b4a2ea22d18a211bb77c0f11b3c651fec2d264330a5a3cfcc6e89208cd"
+    "initCodeHash": "0x8a51d90aaa078feedb078baae78bb1807bb86742f14108d6d7264c4b8437e3f7",
+    "sourceCodeHash": "0x109aeff1a34e5a5aab6331e3aa4f69aec9591f3d908338205639569c26d3dbbe"
   },
   "src/L1/SystemConfig.sol": {
     "initCodeHash": "0xbb18eef17cdc1d0d307b0241e818820063e3ce3c7021ea3bb3a85ff6e79659e1",

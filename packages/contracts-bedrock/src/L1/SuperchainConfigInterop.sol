@@ -92,7 +92,9 @@ contract SuperchainConfigInterop is SuperchainConfig {
         _initialize(_guardian, _paused);
 
         _setClusterManager(_clusterManager);
-        _dependenciesStorage().sharedLockbox = ISharedLockbox(_sharedLockbox);
+
+        SuperchainConfigDependencies storage dependenciesStorage = _dependenciesStorage();
+        dependenciesStorage.sharedLockbox = ISharedLockbox(_sharedLockbox);
     }
 
     /// @notice Getter for the cluster manager address.
