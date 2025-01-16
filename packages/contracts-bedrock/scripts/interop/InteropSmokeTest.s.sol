@@ -80,19 +80,13 @@ contract InteropSmokeTest is Script {
         vm.createSelectFork(vm.rpcUrl(L2_1_RPC));
         uint256 prevBalance = _wethBalanceOf(DEPLOYER);
 
-        string[] memory cmds = new string[](11);
-        cmds[0] = "cast";
-        cmds[1] = "send";
-        cmds[2] = vm.toString(Predeploys.SUPERCHAIN_WETH);
-        cmds[3] = "--value";
-        cmds[4] = vm.toString(VALUE);
-        cmds[5] = "--rpc-url";
-        cmds[6] = L2_1_RPC;
-        cmds[7] = "--mnemonic";
-        cmds[8] = MNEMONIC;
-        cmds[9] = "--confirmations";
-        cmds[10] = "5";
-        vm.ffi(cmds);
+        _executeCastSend(
+            Predeploys.SUPERCHAIN_WETH,
+            "",  // empty calldata for direct value transfer
+            L2_1_RPC,
+            VALUE,
+            false
+        );
 
         vm.createSelectFork(vm.rpcUrl(L2_1_RPC));
         uint256 balance = _wethBalanceOf(DEPLOYER);
@@ -104,22 +98,19 @@ contract InteropSmokeTest is Script {
         uint256 prevBalance = _wethBalanceOf(DEPLOYER);
         uint256 beforeBlockNumber = block.number;
 
-        string[] memory cmds = new string[](14);
-        cmds[0] = "cast";
-        cmds[1] = "send";
-        cmds[2] = vm.toString(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
-        cmds[3] = "sendERC20(address,address,uint256,uint256)";
-        cmds[4] = vm.toString(Predeploys.SUPERCHAIN_WETH);
-        cmds[5] = vm.toString(DEPLOYER);
-        cmds[6] = vm.toString(VALUE);
-        cmds[7] = vm.toString(L2_2_CHAIN_ID);
-        cmds[8] = "--rpc-url";
-        cmds[9] = L2_1_RPC;
-        cmds[10] = "--mnemonic";
-        cmds[11] = MNEMONIC;
-        cmds[12] = "--confirmations";
-        cmds[13] = "5";
-        vm.ffi(cmds);
+        _executeCastSend(
+            Predeploys.SUPERCHAIN_TOKEN_BRIDGE,
+            string.concat(
+                "sendERC20(address,address,uint256,uint256) ",
+                vm.toString(Predeploys.SUPERCHAIN_WETH), " ",
+                vm.toString(DEPLOYER), " ",
+                vm.toString(VALUE), " ",
+                vm.toString(L2_2_CHAIN_ID)
+            ),
+            L2_1_RPC,
+            0,  // no value
+            false
+        );
 
         vm.createSelectFork(vm.rpcUrl(L2_1_RPC));
         uint256 balance = _wethBalanceOf(DEPLOYER);
@@ -135,15 +126,12 @@ contract InteropSmokeTest is Script {
         // console.log("Block data:");
         // console.logBytes(data);
 
-        string[] memory tmpCmds = new string[](7);
-        tmpCmds[0] = "cast";
-        tmpCmds[1] = "block";
-        tmpCmds[2] = vm.toString(log.blockNumber);
-        tmpCmds[3] = "--field";
-        tmpCmds[4] = "timestamp";
-        tmpCmds[5] = "--rpc-url";
-        tmpCmds[6] = L2_1_RPC;
-        bytes memory timestampResult = vm.ffi(tmpCmds);
+        bytes memory timestampResult = _executeCastBlock(
+            log.blockNumber,
+            "timestamp",
+            L2_1_RPC
+        );
+
         uint256 timestamp = vm.parseUint(vm.split(vm.toString(timestampResult), "x")[1]);
         console.log(timestamp);
 
@@ -173,22 +161,18 @@ contract InteropSmokeTest is Script {
         vm.createSelectFork(vm.rpcUrl(L2_2_RPC));
         uint256 prevBalance = _wethBalanceOf(DEPLOYER);
 
-        string[] memory cmds = new string[](9);
-        cmds[0] = "cast";
-        cmds[1] = "send";
-        cmds[2] = vm.toString(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        cmds[3] = vm.toString(
-            abi.encodeCall(
-                IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage,
-                (identifier, payload)
-            )
+        bytes memory result = _executeCastSend(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            vm.toString(
+                abi.encodeCall(
+                    IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage,
+                    (identifier, payload)
+                )
+            ),
+            L2_2_RPC,
+            0,  // no value
+            true
         );
-        cmds[4] = "--rpc-url";
-        cmds[5] = L2_2_RPC;
-        cmds[6] = "--mnemonic";
-        cmds[7] = MNEMONIC;
-        cmds[8] = "--async";
-        bytes memory result = vm.ffi(cmds);
 
         console.log("Relay result:");
         console.logBytes(result);
@@ -277,5 +261,63 @@ contract InteropSmokeTest is Script {
         require(balance == prevBalance + VALUE, "InteropSmokeTest: relaySuperchainWETH failed");
 
         vm.stopBroadcast();
+    }
+
+    /// @notice Executes a cast send command via FFI to interact with the blockchain
+    /// @dev This is a temporary implementation copied from cast.sol that should be moved to a shared library
+    /// @param _target The address of the contract to interact with
+    /// @param _calldata The calldata string to be passed to the contract (empty string for direct value transfers)
+    /// @param _rpcUrl The RPC endpoint URL to send the transaction to
+    /// @param _value The amount of ETH to send with the transaction (in wei)
+    /// @param _async Whether to wait for the transaction to be mined (false) or return immediately (true)
+    /// @return The raw bytes response from the cast command
+    function _executeCastSend(
+        address _target,
+        string memory _calldata,
+        string memory _rpcUrl,
+        uint256 _value,
+        bool _async
+    ) internal returns (bytes memory) {
+        // Calculate array size based on whether we have value and async parameters
+        uint256 cmdLength = 8;  // base length
+        if (_value > 0) cmdLength += 2;  // --value <amount>
+        if (_async) cmdLength += 1;      // --async
+
+        string[] memory cmds = new string[](cmdLength);
+        uint256 i = 0;
+        cmds[i++] = "cast";
+        cmds[i++] = "send";
+        cmds[i++] = vm.toString(_target);
+        if (bytes(_calldata).length > 0) {
+            cmds[i++] = _calldata;
+        }
+        if (_value > 0) {
+            cmds[i++] = "--value";
+            cmds[i++] = vm.toString(_value);
+        }
+        cmds[i++] = "--rpc-url";
+        cmds[i++] = _rpcUrl;
+        cmds[i++] = "--mnemonic";
+        cmds[i++] = MNEMONIC;
+        if (_async) {
+            cmds[i++] = "--async";
+        }
+        return vm.ffi(cmds);
+    }
+
+    function _executeCastBlock(
+        uint256 _blockNumber,
+        string memory _field,
+        string memory _rpcUrl
+    ) internal returns (bytes memory) {
+        string[] memory cmds = new string[](7);
+        cmds[0] = "cast";
+        cmds[1] = "block";
+        cmds[2] = vm.toString(_blockNumber);
+        cmds[3] = "--field";
+        cmds[4] = _field;
+        cmds[5] = "--rpc-url";
+        cmds[6] = _rpcUrl;
+        return vm.ffi(cmds);
     }
 }
