@@ -305,6 +305,12 @@ contract InteropSmokeTest is Script {
         return vm.ffi(cmds);
     }
 
+    /// @notice Executes a cast block command via FFI to get block information
+    /// @dev This is a temporary implementation copied from cast.sol that should be moved to a shared library
+    /// @param _blockNumber The block number to query
+    /// @param _field The block field to retrieve (e.g. timestamp, hash, etc)
+    /// @param _rpcUrl The RPC endpoint URL to query
+    /// @return The raw bytes response from the cast command
     function _executeCastBlock(
         uint256 _blockNumber,
         string memory _field,
