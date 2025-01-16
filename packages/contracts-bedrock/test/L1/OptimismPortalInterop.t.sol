@@ -23,6 +23,8 @@ import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import "src/dispute/lib/Types.sol";
 
 contract OptimismPortalInterop_Base_Test is CommonTest {
+    event ETHMigrated(uint256 amount);
+
     /// @notice Marked virtual to be overridden in
     ///         test/kontrol/deployment/DeploymentSummary.t.sol
     function setUp() public virtual override {
@@ -1652,5 +1654,45 @@ contract OptimismPortalInterop_ResourceFuzz_Test is OptimismPortalInterop_Base_T
             _isCreation: false,
             _data: hex""
         });
+    }
+}
+
+contract OptimismPortalInterop_MigrateLiquidity_Test is OptimismPortalInterop_Base_Test {
+    /// @notice Test that the `migrateLiquidity` function reverts if the caller is not the superchain config.
+    function test_migrateLiquidity_notSuperchainConfig_reverts(address _caller) external {
+        vm.assume(_caller != address(_superchainConfig()));
+        vm.expectRevert(Unauthorized.selector);
+        _optimismPortal().migrateLiquidity();
+    }
+
+    /// @notice Test that the `migrateLiquidity` function succeeds.
+    function test_migrateLiquidity_succeeds(uint256 _value) external {
+        vm.deal(address(_optimismPortal()), _value);
+
+        // Ensure that the contracts has the correct balance
+        assertEq(address(_optimismPortal()).balance, _value);
+        assertEq(address(sharedLockbox).balance, 0);
+
+        // TODO: Use new portal that is not migrated
+        // Assert the migrated flag is not set
+        // assertFalse(_optimismPortal().migrated());
+
+        // Expect call to the shared lockbox to lock the ETH
+        vm.expectCall(address(sharedLockbox), _value, abi.encodeCall(sharedLockbox.lockETH, ()));
+
+        // Expect emit ETHMigrated event
+        vm.expectEmit(address(_optimismPortal()));
+        emit ETHMigrated(_value);
+
+        // Migrate the liquidity
+        vm.prank(address(_superchainConfig()));
+        _optimismPortal().migrateLiquidity();
+
+        // Assert the migrated flag is set
+        assertTrue(_optimismPortal().migrated());
+
+        // Ensure that the contracts has the correct balance
+        assertEq(address(_optimismPortal()).balance, 0);
+        assertEq(address(sharedLockbox).balance, _value);
     }
 }

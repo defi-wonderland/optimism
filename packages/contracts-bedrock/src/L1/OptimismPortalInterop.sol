@@ -85,6 +85,11 @@ contract OptimismPortalInterop is OptimismPortal2 {
         return ISuperchainConfigInterop(address(superchainConfig)).sharedLockbox();
     }
 
+    /// @notice Getter for the migrated flag.
+    function migrated() external view returns (bool) {
+        return _storage().migrated;
+    }
+
     /// @notice Unlock and receive the ETH from the shared lockbox.
     /// @param _value Amount of ETH to unlock.
     function _unlockETH(uint256 _value) internal virtual override {

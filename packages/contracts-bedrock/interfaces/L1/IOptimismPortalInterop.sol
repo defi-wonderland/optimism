@@ -120,6 +120,7 @@ interface IOptimismPortalInterop {
     function systemConfig() external view returns (ISystemConfig);
     function version() external pure returns (string memory);
     function migrateLiquidity() external;
+    function migrated() external view returns (bool);
 
     function __constructor__(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) external;
 }
