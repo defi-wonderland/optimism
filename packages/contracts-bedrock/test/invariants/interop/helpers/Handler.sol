@@ -21,6 +21,48 @@ contract Handler is Setup {
 
     uint256 internal constant _ZERO_VALUE = 0;
 
+    function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public {
+        Actors actor = randomActor(_actorIndex);
+        _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(actor)));
+
+        try actor.directCall(
+            address(SUPER_TOKEN), _ZERO_VALUE, abi.encodeWithSelector(SUPER_TOKEN.transfer.selector, _to, _amount)
+        ) { } catch {
+            assert(false);
+        }
+    }
+
+    function handler_transferFromSuperchainERC20(
+        uint256 _fromActorIndex,
+        uint256 _callerActorIndex,
+        address _to,
+        uint256 _amount
+    )
+        public
+    {
+        Actors fromActor = randomActor(_fromActorIndex);
+        Actors callerActor = randomActor(_callerActorIndex);
+        _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
+
+        // Approve the spender to transfer the tokens
+        try fromActor.directCall(
+            address(SUPER_TOKEN),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(SUPER_TOKEN.approve.selector, address(callerActor), _amount)
+        ) { } catch {
+            assert(false);
+        }
+
+        // Transfer the tokens
+        try callerActor.directCall(
+            address(SUPER_TOKEN),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, address(fromActor), _to, _amount)
+        ) { } catch {
+            assert(false);
+        }
+    }
+
     function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public {
         _value = clampLte(_value, type(uint256).max - SUPER_WETH.totalSupply());
 
@@ -43,6 +85,48 @@ contract Handler is Setup {
         ) {
             _ghost_superWethBalancesSum -= _value;
         } catch {
+            assert(false);
+        }
+    }
+
+    function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public {
+        Actors actor = randomActor(_actorIndex);
+        _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(actor)));
+
+        try actor.directCall(
+            address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.transfer.selector, _to, _amount)
+        ) { } catch {
+            assert(false);
+        }
+    }
+
+    function handler_transferFromSuperchainWETH(
+        uint256 _fromActorIndex,
+        uint256 _callerActorIndex,
+        address _to,
+        uint256 _amount
+    )
+        public
+    {
+        Actors fromActor = randomActor(_fromActorIndex);
+        Actors callerActor = randomActor(_callerActorIndex);
+        _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(fromActor)));
+
+        // Approve the spender to transfer the tokens
+        try fromActor.directCall(
+            address(SUPER_WETH),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(SUPER_WETH.approve.selector, address(callerActor), _amount)
+        ) { } catch {
+            assert(false);
+        }
+
+        // Transfer the tokens
+        try callerActor.directCall(
+            address(SUPER_WETH),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(SUPER_WETH.transferFrom.selector, address(fromActor), _to, _amount)
+        ) { } catch {
             assert(false);
         }
     }
