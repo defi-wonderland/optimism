@@ -22,6 +22,7 @@ import { console } from "forge-std/console.sol";
 // Interfaces
 import { IOptimismMintableERC20Full } from "interfaces/universal/IOptimismMintableERC20Full.sol";
 import { ILegacyMintableERC20Full } from "interfaces/legacy/ILegacyMintableERC20Full.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @title CommonTest
 /// @dev An extenstion to `Test` that sets up the optimism smart contracts.
@@ -34,7 +35,6 @@ contract CommonTest is Test, Setup, Events {
     FFIInterface constant ffi = FFIInterface(address(uint160(uint256(keccak256(abi.encode("optimism.ffi"))))));
 
     bool useAltDAOverride;
-    bool useLegacyContracts;
     address customGasToken;
     bool useInteropOverride;
 
@@ -60,10 +60,6 @@ contract CommonTest is Test, Setup, Events {
         if (useAltDAOverride) {
             deploy.cfg().setUseAltDA(true);
         }
-        // We default to fault proofs unless explicitly disabled by useLegacyContracts
-        if (!useLegacyContracts) {
-            deploy.cfg().setUseFaultProofs(true);
-        }
         if (customGasToken != address(0)) {
             deploy.cfg().setUseCustomGasToken(customGasToken);
         }
@@ -73,7 +69,7 @@ contract CommonTest is Test, Setup, Events {
 
         if (isForkTest()) {
             // Skip any test suite which uses a nonstandard configuration.
-            if (useAltDAOverride || useLegacyContracts || customGasToken != address(0) || useInteropOverride) {
+            if (useAltDAOverride || customGasToken != address(0) || useInteropOverride) {
                 vm.skip(true);
             }
         } else {
@@ -97,12 +93,23 @@ contract CommonTest is Test, Setup, Events {
         // Deploy L2
         Setup.L2();
 
-        // Authorize portals to interact with the SharedLockbox.
-        vm.prank(address(superchainConfig));
-        sharedLockbox.authorizePortal(address(optimismPortal2));
+        // Add L2 chain as cluster dependency
+        if (useInteropOverride) _addDependency();
 
         // Call bridge initializer setup function
         bridgeInitializerSetUp();
+    }
+
+    function _addDependency() internal {
+        vm.chainId(deploy.cfg().l1ChainID());
+        uint256 l2ChainID = deploy.cfg().l2ChainID();
+
+        ISuperchainConfigInterop superchainConfigInterop = ISuperchainConfigInterop(address(superchainConfig));
+
+        vm.prank(superchainConfigInterop.clusterManager());
+        superchainConfigInterop.addDependency(l2ChainID, address(systemConfig));
+
+        vm.chainId(l2ChainID);
     }
 
     function bridgeInitializerSetUp() public {
@@ -175,16 +182,6 @@ contract CommonTest is Test, Setup, Events {
         emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data));
     }
 
-    function enableLegacyContracts() public {
-        // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
-        // set by the `setUp` function yet.
-        if (!(alice == address(0) && bob == address(0))) {
-            revert("CommonTest: Cannot enable fault proofs after deployment. Consider overriding `setUp`.");
-        }
-
-        useLegacyContracts = true;
-    }
-
     function enableAltDA() public {
         // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
         // set by the `setUp` function yet.
@@ -201,7 +198,7 @@ contract CommonTest is Test, Setup, Events {
         if (!(alice == address(0) && bob == address(0))) {
             revert("CommonTest: Cannot enable custom gas token after deployment. Consider overriding `setUp`.");
         }
-        require(_token != Constants.ETHER);
+        require(_token != Constants.ETHER, "CommonTest: Cannot set gas token to ETHER");
 
         customGasToken = _token;
     }
