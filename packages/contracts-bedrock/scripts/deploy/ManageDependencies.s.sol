@@ -49,7 +49,6 @@ contract ManageDependencies is Script {
         ISuperchainConfigInterop superchainConfig = _input.superchainConfig();
         ISystemConfig systemConfig = _input.systemConfig();
 
-        // Call the appropriate function based on the remove flag
         vm.broadcast(msg.sender);
         superchainConfig.addDependency(chainId, address(systemConfig));
     }
