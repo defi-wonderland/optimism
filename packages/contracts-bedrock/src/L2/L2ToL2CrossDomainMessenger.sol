@@ -136,7 +136,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         if (_target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
-        if (!IDependencySet(Predeploys.DEPENDENCY_MANAGER).isInDependencySet(_destination)) revert InvalidChainId();
+        // if (!IDependencySet(Predeploys.DEPENDENCY_MANAGER).isInDependencySet(_destination)) revert InvalidChainId();
 
         uint256 nonce = messageNonce();
         emit SentMessage(_destination, _target, nonce, msg.sender, _message);
