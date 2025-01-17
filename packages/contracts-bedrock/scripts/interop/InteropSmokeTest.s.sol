@@ -21,8 +21,8 @@ contract InteropSmokeTest is Script {
     address public immutable DEPLOYER = vm.rememberKey(PRIVATE_KEY);
 
     // TODO: The following constants can change during execution, so we need to pass them as arguments
-    string public constant L2_1_RPC = "http://127.0.0.1:61472";
-    string public constant L2_2_RPC = "http://127.0.0.1:61745";
+    string public constant L2_1_RPC = "http://127.0.0.1:59446";
+    string public constant L2_2_RPC = "http://127.0.0.1:59730";
     uint256 public constant L2_1_CHAIN_ID = 2151908;
     uint256 public constant L2_2_CHAIN_ID = 2151909;
     // string public constant L1_RPC = "http://127.0.0.1:8545";
@@ -32,39 +32,49 @@ contract InteropSmokeTest is Script {
     /// @dev This function tests the full flow of wrapping ETH into SuperchainWETH,
     ///      sending it cross-chain, and relaying the message on the destination chain
     function run() public {
-        // Log the start of the test
-        console.log("Running InteropSmokeTest...");
+        console.log("\n==== Starting InteropSmokeTest ====\n");
 
-        // Step 1: Wrap native ETH into SuperchainWETH on the source chain
+        console.log("Step 1: Wrapping native ETH into SuperchainWETH");
+        console.log("----------------------------------------");
         wrapSuperchainWETH_FFI();
+        console.log("");
 
-        // Step 2: Send the SuperchainWETH to the destination chain
-        // Returns the message identifier and payload needed for relaying
+        console.log("Step 2: Sending SuperchainWETH cross-chain");
+        console.log("----------------------------------------");
         (Identifier memory identifier, bytes memory payload) = sendSuperchainWETH_FFI();
+        console.log("");
 
-        // Step 3: Relay the message on the destination chain to complete the transfer
+        console.log("Step 3: Relaying message on destination chain");
+        console.log("----------------------------------------");
         relaySuperchainWETH_FFI(identifier, payload);
+        console.log("");
 
-        // Step 3b: Try to relay an invalid message and verify it fails
+        console.log("Step 3b: Testing invalid message relay");
+        console.log("----------------------------------------");
         testInvalidMessageRelay_FFI(identifier, payload);
+        console.log("");
 
-        // Step 4: Unwrap the SuperchainWETH on the destination chain
+        console.log("Step 4: Unwrapping SuperchainWETH");
+        console.log("----------------------------------------");
         unwrapSuperchainWETH_FFI();
+        console.log("");
 
-        // Step 5: Withdraw the native ETH from the destination chain to L1
+        console.log("Step 5: Withdrawing ETH to L1");
+        console.log("----------------------------------------");
         (bytes32 withdrawalHash, Types.WithdrawalTransaction memory withdrawalTx) = withdrawETH_FFI();
+        console.log("");
 
-        // Step 6: Finalize the withdrawal on L1
+        console.log("Step 6: Finalizing withdrawal on L1");
+        console.log("----------------------------------------");
         finalizeWithdrawalOnL1_FFI(withdrawalHash, withdrawalTx);
 
-        // Log completion
-        console.log("FINISH...");
+        console.log("\n==== InteropSmokeTest Completed Successfully ====\n");
     }
 
     /// @notice Wraps native ETH into SuperchainWETH on the source chain
     /// @dev Uses FFI to execute a cast send command that wraps ETH by sending value directly to the Super WETH contract
     function wrapSuperchainWETH_FFI() public {
-        console.log("Starting ETH wrapping process...");
+        console.log(unicode"→ Starting ETH wrapping process");
 
         // Create a fork of the source chain
         vm.createSelectFork(L2_1_RPC);
@@ -83,7 +93,6 @@ contract InteropSmokeTest is Script {
         );
 
         // Create new fork to get updated state
-        // vm.createSelectFork(L2_1_RPC);
         vm.createSelectFork(L2_1_RPC);
 
         // Verify the wrap was successful
@@ -91,7 +100,7 @@ contract InteropSmokeTest is Script {
         console.log("Final WETH balance:", balance);
         require(balance == prevBalance + VALUE, "InteropSmokeTest: wrapSuperchainWETH balance failed");
 
-        console.log("ETH successfully wrapped into SuperchainWETH");
+        console.log(unicode"✓ ETH successfully wrapped into SuperchainWETH");
     }
 
     /// @notice Sends SuperchainWETH tokens to the destination chain
@@ -99,7 +108,7 @@ contract InteropSmokeTest is Script {
     /// @return identifier The message identifier containing metadata about the cross-chain message
     /// @return payload The encoded message payload needed for relay
     function sendSuperchainWETH_FFI() public returns (Identifier memory identifier, bytes memory payload) {
-        console.log("Starting cross-chain WETH transfer...");
+        console.log(unicode"→ Initiating cross-chain WETH transfer");
 
         // Create fork of source chain
         vm.createSelectFork(L2_1_RPC);
@@ -159,7 +168,7 @@ contract InteropSmokeTest is Script {
             abi.encode(SENT_MESSAGE_EVENT_SELECTOR, log.topics[1], log.topics[2], log.topics[3]), log.data
         );
 
-        console.log("Cross-chain transfer message prepared successfully");
+        console.log(unicode"✓ Cross-chain transfer message prepared successfully");
     }
 
     /// @notice Relays the cross-chain message on the destination chain to complete the transfer
@@ -167,7 +176,7 @@ contract InteropSmokeTest is Script {
     /// @param identifier The message identifier containing metadata about the cross-chain message
     /// @param payload The encoded message payload to relay
     function relaySuperchainWETH_FFI(Identifier memory identifier, bytes memory payload) public {
-        console.log("Starting message relay on destination chain...");
+        console.log(unicode"→ Initiating message relay on destination chain");
 
         // Create fork of destination chain
         vm.createSelectFork(L2_2_RPC);
@@ -197,17 +206,18 @@ contract InteropSmokeTest is Script {
         console.log("Final WETH balance on destination:", balance);
         require(balance == prevBalance + VALUE, "InteropSmokeTest: relaySuperchainWETH balance failed");
 
-        console.log("Cross-chain transfer completed successfully");
+        console.log(unicode"✓ Cross-chain transfer completed successfully");
     }
 
     /// @notice Unwraps SuperchainWETH back to native ETH on the destination chain
     function unwrapSuperchainWETH_FFI() public {
-        console.log("Starting WETH unwrapping process...");
+        console.log(unicode"→ Initiating WETH unwrapping process");
 
         // Create fork of destination chain
         vm.createSelectFork(L2_2_RPC);
 
         uint256 prevBalance = _wethBalanceOf(DEPLOYER);
+        console.log("Initial WETH balance:", prevBalance);
 
         // Execute the unwrap
         _executeCastSend(
@@ -217,9 +227,10 @@ contract InteropSmokeTest is Script {
         // Verify the unwrap
         vm.createSelectFork(L2_2_RPC);
         uint256 balance = _wethBalanceOf(DEPLOYER);
+        console.log("Final WETH balance:", balance);
         require(balance == prevBalance - VALUE, "InteropSmokeTest: unwrapSuperchainWETH balance failed");
 
-        console.log("SuperchainWETH successfully unwrapped to ETH");
+        console.log(unicode"✓ SuperchainWETH successfully unwrapped to ETH");
     }
 
     /// @notice Withdraws native ETH from destination chain to L1
@@ -229,7 +240,7 @@ contract InteropSmokeTest is Script {
         public
         returns (bytes32 withdrawalHash, Types.WithdrawalTransaction memory withdrawalTx)
     {
-        console.log("Starting ETH withdrawal to L1...");
+        console.log(unicode"→ Initiating ETH withdrawal to L1");
 
         // Create fork of destination chain
         vm.createSelectFork(L2_2_RPC);
@@ -257,24 +268,6 @@ contract InteropSmokeTest is Script {
         // Parse the withdrawal transaction details from the logs
         require(logs.length > 0, "No withdrawal event found");
 
-        // /// @notice Emitted any time a withdrawal is initiated.
-        // /// @param nonce          Unique value corresponding to each withdrawal.
-        // /// @param sender         The L2 account address which initiated the withdrawal.
-        // /// @param target         The L1 account address the call will be send to.
-        // /// @param value          The ETH value submitted for withdrawal, to be forwarded to the target.
-        // /// @param gasLimit       The minimum amount of gas that must be provided when withdrawing.
-        // /// @param data           The data to be forwarded to the target on L1.
-        // /// @param withdrawalHash The hash of the withdrawal.
-        // event MessagePassed(
-        //     uint256 indexed nonce,
-        //     address indexed sender,
-        //     address indexed target,
-        //     uint256 value,
-        //     uint256 gasLimit,
-        //     bytes data,
-        //     bytes32 withdrawalHash
-        // );
-
         // The MessagePassed event contains: nonce, sender, target, value, gasLimit, data, withdrawalHash
         // The indexed parameters (nonce, sender, target) are in topics[1], topics[2], topics[3]
         VmSafe.EthGetLogs memory log = logs[0];
@@ -296,8 +289,8 @@ contract InteropSmokeTest is Script {
             data: data
         });
 
-        console.log("Withdrawal to L1 initiated successfully");
-        console.log("Withdrawal hash:", vm.toString(withdrawalHash));
+        console.log(unicode"✓ Withdrawal to L1 initiated successfully");
+        console.log("  Withdrawal hash:", vm.toString(withdrawalHash));
     }
 
     /// @notice Finalizes the withdrawal on L1 by proving and completing it
