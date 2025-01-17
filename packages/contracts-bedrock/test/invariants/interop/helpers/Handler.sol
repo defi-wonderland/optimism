@@ -68,47 +68,39 @@ contract Handler is Setup {
         }
     }
 
-    function handler_permitSuperchainERC20(
-        uint256 _fromActorPK,
-        uint256 _callerActorIndex,
-        uint256 _amount,
-        uint256 _nonce
-    )
-        public
-    {
-        address fromActor = payable(vm.addr(_fromActorPK));
+    function handler_permitSuperchainERC20(uint256 _fromPK, uint256 _callerActorIndex, uint256 _amount) public {
+        _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
-        SUPER_TOKEN.mint(fromActor, 1e18);
+        address fromEOA = vm.addr(_fromPK);
+
+        SUPER_TOKEN.mint(fromEOA, _amount);
 
         Actors callerActor = randomActor(_callerActorIndex);
 
-        _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
-
         bytes32 domainSeparator = SUPER_TOKEN.DOMAIN_SEPARATOR();
 
-        vm.prank(fromActor);
-        (uint8 _v, bytes32 _r, bytes32 _s) = vm.sign(
-            _fromActorPK,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    domainSeparator,
-                    keccak256(
-                        abi.encode(
-                            PERMIT_TYPEHASH,
-                            fromActor,
-                            address(callerActor),
-                            _amount,
-                            nonces[fromActor]++,
-                            block.timestamp
-                        )
-                    )
-                )
-            )
-        );
+        vm.prank(fromEOA);
+        (uint8 v, bytes32 r, bytes32 s) =
+            signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
 
-        try SUPER_TOKEN.permit(fromActor, address(callerActor), _amount, block.timestamp, _v, _r, _s) {
-            assert(SUPER_TOKEN.allowance(fromActor, address(callerActor)) == _amount);
+        // Call permit
+        try SUPER_TOKEN.permit(fromEOA, address(callerActor), _amount, block.timestamp, v, r, s) {
+            assert(SUPER_TOKEN.allowance(fromEOA, address(callerActor)) == _amount);
+            nonces[fromEOA]++;
+        } catch {
+            assert(false);
+        }
+
+        // Get callerActor's balance before
+        uint256 callerActorBalanceBefore = SUPER_TOKEN.balanceOf(address(callerActor));
+
+        // Call transferFrom
+        try callerActor.directCall(
+            address(SUPER_TOKEN),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, fromEOA, address(callerActor), _amount)
+        ) {
+            assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
         } catch {
             assert(false);
         }
@@ -254,5 +246,27 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
+    }
+
+    function signPermit(
+        uint256 _fromPK,
+        address _to,
+        uint256 _amount,
+        bytes32 _domainSeparator,
+        uint256 _nonce
+    )
+        internal
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        return vm.sign(
+            _fromPK,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    _domainSeparator,
+                    keccak256(abi.encode(PERMIT_TYPEHASH, vm.addr(_fromPK), _to, _amount, _nonce, block.timestamp))
+                )
+            )
+        );
     }
 }
