@@ -2,7 +2,13 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
+import {
+    OptimismPortal2,
+    IDisputeGameFactory,
+    ISystemConfig,
+    ISuperchainConfig,
+    GameType
+} from "src/L1/OptimismPortal2.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -39,6 +45,8 @@ contract OptimismPortalInterop is OptimismPortal2 {
     /// @notice Storage struct for the OptimismPortal specific storage data.
     /// @custom:storage-location erc7201:OptimismPortal.storage
     struct OptimismPortalStorage {
+        /// @notice The address of the SharedLockbox.
+        address sharedLockbox;
         /// @notice A flag indicating whether the contract has migrated the ETH liquidity to the SharedLockbox.
         bool migrated;
     }
@@ -60,6 +68,27 @@ contract OptimismPortalInterop is OptimismPortal2 {
     /// @custom:semver +interop-beta.10
     function version() public pure override returns (string memory) {
         return string.concat(super.version(), "+interop-beta.10");
+    }
+
+    /// @notice Initializer.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
+    /// @param _systemConfig Contract of the SystemConfig.
+    /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
+    function initialize(
+        IDisputeGameFactory _disputeGameFactory,
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig,
+        GameType _initialRespectedGameType
+    )
+        external
+        override
+        initializer
+    {
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
+
+        OptimismPortalStorage storage s = _storage();
+        s.sharedLockbox = address(ISuperchainConfigInterop(address(_superchainConfig)).sharedLockbox());
     }
 
     /// @notice Sets static configuration options for the L2 system.
@@ -90,7 +119,7 @@ contract OptimismPortalInterop is OptimismPortal2 {
 
     /// @notice Getter for the address of the shared lockbox.
     function sharedLockbox() public view returns (ISharedLockbox) {
-        return ISuperchainConfigInterop(address(superchainConfig)).sharedLockbox();
+        return ISharedLockbox(_storage().sharedLockbox);
     }
 
     /// @notice Getter for the migrated flag.

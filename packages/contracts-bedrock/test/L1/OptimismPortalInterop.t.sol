@@ -83,20 +83,6 @@ contract OptimismPortalInterop_Test is OptimismPortalInterop_Base_Test {
         assertEq(address(_optimismPortal().sharedLockbox()), address(sharedLockbox));
     }
 
-    /// @dev Tests that `sharedLockbox` returns correctly
-    function testFuzz_sharedLockbox_succeeds(address _caller, address _lockbox) external {
-        // Mock and expect the SuperchainConfig's SharedLockbox
-        vm.mockCall(
-            address(_superchainConfig()), abi.encodeCall(_superchainConfig().sharedLockbox, ()), abi.encode(_lockbox)
-        );
-        vm.expectCall(address(_superchainConfig()), 0, abi.encodeCall(_superchainConfig().sharedLockbox, ()));
-
-        vm.prank(_caller);
-        address _result = address(_optimismPortal().sharedLockbox());
-
-        assertEq(_result, _lockbox);
-    }
-
     /// @dev Tests that `receive` successdully deposits ETH.
     function testFuzz_receive_succeeds(uint256 _value) external {
         uint256 portalBalanceBefore = address(_optimismPortal()).balance;
