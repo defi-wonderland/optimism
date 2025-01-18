@@ -51,28 +51,30 @@ contract CrossL2Inbox is ISemver {
     /// chain via a special L1 deposit transaction.
     mapping(bytes32 => bool) public forceRegistered;
 
-    /// @notice Validates a cross chain message on the destination chain
-    ///         and emits an ExecutingMessage event. This function is useful
-    ///         for applications that understand the schema of the _message payload and want to
-    ///         process it in a custom way.
-    /// @param _id      Identifier of the message.
-    /// @param _msgHash Hash of the message payload to call target with.
+    /// @notice Validates a cross chain message on the destination chain.
+    /// @dev If called within a deposit transaction, checks if the message was force registered.
+    ///      Otherwise emits an ExecutingMessage event.
+    /// @param _id The identifier containing metadata about the message's origin
+    /// @param _msgHash The hash of the message payload to validate
+    /// @custom:throws NoExecutingDeposits If called within a deposit transaction and message is not force registered
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
-        // Return early if the message has already been force registered
-        if (forceRegistered[keccak256(abi.encode(_msgHash, _id))]) {
-            return;
-        }
         // We need to know if this is being called on a depositTx
-        if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
-        emit ExecutingMessage(_msgHash, _id);
+        if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) {
+            // Only if we're in a deposit, check if message is force registered
+            if (!forceRegistered[keccak256(abi.encode(_msgHash, _id))]) {
+                revert NoExecutingDeposits();
+            }
+        } else {
+            emit ExecutingMessage(_msgHash, _id);
+        }
     }
+
     /// @notice Force registers a message hash and identifier pair as validated.
     /// @dev This function can only be called by the DEPOSITOR_ACCOUNT (0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001).
     ///      Force registered messages will skip the ExecutingMessage event emission in validateMessage().
     /// @param _msgHash The hash of the message payload to register
     /// @param _id The identifier containing metadata about the message's origin
     /// @custom:security-note This is a privileged function that allows bypassing normal message validation
-
     function forceRegisterMessage(bytes32 _msgHash, Identifier calldata _id) external {
         // Only the depositor account can force register messages
         if (msg.sender != Constants.DEPOSITOR_ACCOUNT) revert Unauthorized();
