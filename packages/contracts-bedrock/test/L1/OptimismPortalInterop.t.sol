@@ -77,8 +77,21 @@ contract OptimismPortalInterop_Test is OptimismPortalInterop_Base_Test {
     /// @dev Tests that the initializer sets the correct values.
     /// @notice Marked virtual to be overridden in
     ///         test/kontrol/deployment/DeploymentSummary.t.sol
-    function test_initializeSharedLockbox_succeeds() external virtual {
-        returnIfForkTest("OptimismPortalInterop_Test: Do not check sharedLockbox on forked networks");
+    function test_initialize_succeeds() external virtual {
+        assertEq(address(_optimismPortal().disputeGameFactory()), address(disputeGameFactory));
+        assertEq(address(_optimismPortal().superchainConfig()), address(superchainConfig));
+        assertEq(_optimismPortal().l2Sender(), Constants.DEFAULT_L2_SENDER);
+        assertEq(_optimismPortal().paused(), false);
+        assertEq(address(_optimismPortal().systemConfig()), address(systemConfig));
+
+        returnIfForkTest("OptimismPortalInterop_Test: Do not check guardian and respectedGameType on forked networks");
+        address guardian = superchainConfig.guardian();
+        // This check is not valid for forked tests, as the guardian is not the same as the one in hardhat.json
+        assertEq(guardian, deploy.cfg().superchainConfigGuardian());
+
+        // This check is not valid on forked tests as the respectedGameType varies between OP Chains.
+        assertEq(_optimismPortal().respectedGameType().raw(), deploy.cfg().respectedGameType());
+
         // This check is not valid on forked tests as the sharedLockbox is not live.
         assertEq(address(_optimismPortal().sharedLockbox()), address(sharedLockbox));
     }
@@ -1744,7 +1757,7 @@ contract OptimismPortalInterop_InternalFunctions_Test is OptimismPortalInterop_B
 
         // Update the portal proxy implementation to the LiquidityMigrator contract
         vm.prank(proxyAdminOwner);
-        proxyAdmin.upgrade({ _proxy: payable(optimismPortal2), _implementation: address(mockPortal) });
+        proxyAdmin.upgrade({ _proxy: payable(_optimismPortal()), _implementation: address(mockPortal) });
 
         // Set the migrated flag to false
         _mockPortal().setMigrated(false);
