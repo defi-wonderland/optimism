@@ -92,7 +92,7 @@
   },
   {
     "bytes": "20",
-    "label": "xDomainMsgSender",
+    "label": "spacer_204_0_20",
     "offset": 0,
     "slot": "204",
     "type": "address"
@@ -119,10 +119,24 @@
     "type": "address"
   },
   {
-    "bytes": "1344",
-    "label": "__gap",
+    "bytes": "20",
+    "label": "xDomainMsgSender",
     "offset": 0,
     "slot": "208",
-    "type": "uint256[42]"
+    "type": "address"
+  },
+  {
+    "bytes": "12",
+    "label": "spacer_208_20_12",
+    "offset": 20,
+    "slot": "208",
+    "type": "bytes12"
+  },
+  {
+    "bytes": "1312",
+    "label": "__gap",
+    "offset": 0,
+    "slot": "209",
+    "type": "uint256[41]"
   }
 ]

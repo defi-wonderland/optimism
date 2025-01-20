@@ -4,7 +4,7 @@
     "sourceCodeHash": "0xae49c741c8cd546981ab59b85b88e9fc1055c4fae085e7078d601b42464f86e6"
   },
   "src/L1/L1CrossDomainMessenger.sol": {
-    "initCodeHash": "0x6de65f9eee00d46546b1285ce2674434543e8c99b8ecd45a1161c7592500edc1",
+    "initCodeHash": "0x435e70900508e70adf815efb01472d5ed25c76c37f2d058759a0b117cdc9f0ac",
     "sourceCodeHash": "0x9bde99068734765c56abd17204047add11fe2c003ebfa28aa500ac3cdae488ee"
   },
   "src/L1/L1ERC721Bridge.sol": {
@@ -72,7 +72,7 @@
     "sourceCodeHash": "0x598da55278583b9d9d55dfee7a5440cd23840362cee47323a9a5c9683e6512eb"
   },
   "src/L2/L2CrossDomainMessenger.sol": {
-    "initCodeHash": "0x11b84e7158d9f6f967506f3ac47b16e0fc08069f0458b71184ef7847ccf9bd10",
+    "initCodeHash": "0x46d5d80512c10206e4746a7656453498271dcbaf09c06972592c6cc5c3d58768",
     "sourceCodeHash": "0x9a45529c3302cd5559bf2f2f761b1f2b85d9492965655fb5c18474dffcba7ead"
   },
   "src/L2/L2ERC721Bridge.sol": {
