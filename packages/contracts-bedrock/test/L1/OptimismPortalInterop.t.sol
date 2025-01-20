@@ -7,19 +7,22 @@ import { VmSafe } from "forge-std/Vm.sol";
 
 // Libraries
 import { Constants } from "src/libraries/Constants.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import "src/libraries/PortalErrors.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
+// Target contracts
+import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
+
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
-import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import "src/dispute/lib/Types.sol";
 
 contract OptimismPortalInterop_Base_Test is CommonTest {
@@ -43,23 +46,6 @@ contract OptimismPortalInterop_Base_Test is CommonTest {
 }
 
 contract OptimismPortalInterop_Config_Test is OptimismPortalInterop_Base_Test {
-    /// @dev Tests that the config for the gas paying token can be set.
-    function testFuzz_setConfig_gasPayingToken_succeeds(bytes calldata _value) public {
-        vm.expectEmit(address(_optimismPortal()));
-        emitTransactionDeposited({
-            _from: Constants.DEPOSITOR_ACCOUNT,
-            _to: Predeploys.L1_BLOCK_ATTRIBUTES,
-            _value: 0,
-            _mint: 0,
-            _gasLimit: 200_000,
-            _isCreation: false,
-            _data: abi.encodeCall(IL1BlockInterop.setConfig, (ConfigType.SET_GAS_PAYING_TOKEN, _value))
-        });
-
-        vm.prank(address(_optimismPortal().systemConfig()));
-        _optimismPortal().setConfig(ConfigType.SET_GAS_PAYING_TOKEN, _value);
-    }
-
     /// @notice Tests that the version function returns a valid string. We avoid testing the
     ///         specific value of the string as it changes frequently.
     function test_version_succeeds() external view {
@@ -91,24 +77,23 @@ contract OptimismPortalInterop_Test is OptimismPortalInterop_Base_Test {
     /// @dev Tests that the initializer sets the correct values.
     /// @notice Marked virtual to be overridden in
     ///         test/kontrol/deployment/DeploymentSummary.t.sol
-    function test_initializeSharedLockbox_succeeds() external virtual {
-        returnIfForkTest("OptimismPortalInterop_Test: Do not check sharedLockbox on forked networks");
+    function test_initialize_succeeds() external virtual {
+        assertEq(address(_optimismPortal().disputeGameFactory()), address(disputeGameFactory));
+        assertEq(address(_optimismPortal().superchainConfig()), address(superchainConfig));
+        assertEq(_optimismPortal().l2Sender(), Constants.DEFAULT_L2_SENDER);
+        assertEq(_optimismPortal().paused(), false);
+        assertEq(address(_optimismPortal().systemConfig()), address(systemConfig));
+
+        returnIfForkTest("OptimismPortalInterop_Test: Do not check guardian and respectedGameType on forked networks");
+        address guardian = superchainConfig.guardian();
+        // This check is not valid for forked tests, as the guardian is not the same as the one in hardhat.json
+        assertEq(guardian, deploy.cfg().superchainConfigGuardian());
+
+        // This check is not valid on forked tests as the respectedGameType varies between OP Chains.
+        assertEq(_optimismPortal().respectedGameType().raw(), deploy.cfg().respectedGameType());
+
         // This check is not valid on forked tests as the sharedLockbox is not live.
         assertEq(address(_optimismPortal().sharedLockbox()), address(sharedLockbox));
-    }
-
-    /// @dev Tests that `sharedLockbox` returns correctly
-    function testFuzz_sharedLockbox_succeeds(address _caller, address _lockbox) external {
-        // Mock and expect the SuperchainConfig's SharedLockbox
-        vm.mockCall(
-            address(_superchainConfig()), abi.encodeCall(_superchainConfig().sharedLockbox, ()), abi.encode(_lockbox)
-        );
-        vm.expectCall(address(_superchainConfig()), 0, abi.encodeCall(_superchainConfig().sharedLockbox, ()));
-
-        vm.prank(_caller);
-        address _result = address(_optimismPortal().sharedLockbox());
-
-        assertEq(_result, _lockbox);
     }
 
     /// @dev Tests that `receive` successdully deposits ETH.
@@ -393,18 +378,23 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
 
     /// @dev Setup the system for a ready-to-use state.
     function setUp() public virtual override {
+        // Warp forward in time to ensure that the game is created after the retirement timestamp.
+        vm.warp(_optimismPortal().respectedGameTypeUpdatedAt() + 1 seconds);
+
+        // Set up the dummy game.
         _proposedBlockNumber = 0xFF;
         GameType respectedGameType = _optimismPortal().respectedGameType();
-        uint256 bondAmount = disputeGameFactory.initBonds(respectedGameType);
         game = IFaultDisputeGame(
             payable(
                 address(
-                    disputeGameFactory.create{ value: bondAmount }(
-                        _optimismPortal().respectedGameType(), Claim.wrap(_outputRoot), abi.encode(_proposedBlockNumber)
+                    disputeGameFactory.create{ value: disputeGameFactory.initBonds(respectedGameType) }(
+                        respectedGameType, Claim.wrap(_outputRoot), abi.encode(_proposedBlockNumber)
                     )
                 )
             )
         );
+
+        // Grab the index of the game we just created.
         _proposedGameIndex = disputeGameFactory.gameCount() - 1;
 
         // Warp beyond the chess clocks and finalize the game.
@@ -424,10 +414,68 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         assertFalse(_optimismPortal().finalizedWithdrawals(Hashing.hashWithdrawal(_defaultTx)));
     }
 
+    /// @dev Tests that `blacklistDisputeGame` reverts when called by a non-guardian.
+    function testFuzz_blacklist_onlyGuardian_reverts(address _act) external {
+        vm.assume(_act != address(_optimismPortal().guardian()));
+
+        vm.expectRevert(Unauthorized.selector);
+        _optimismPortal().blacklistDisputeGame(IDisputeGame(address(0xdead)));
+    }
+
+    /// @dev Tests that the guardian role can blacklist any dispute game.
+    function testFuzz_blacklist_guardian_succeeds(IDisputeGame _addr) external {
+        vm.expectEmit(address(_optimismPortal()));
+        emit DisputeGameBlacklisted(_addr);
+
+        vm.prank(_optimismPortal().guardian());
+        _optimismPortal().blacklistDisputeGame(_addr);
+
+        assertTrue(_optimismPortal().disputeGameBlacklist(_addr));
+    }
+
+    /// @dev Tests that `setRespectedGameType` reverts when called by a non-guardian.
+    function testFuzz_setRespectedGameType_onlyGuardian_reverts(address _act, GameType _ty) external {
+        vm.assume(_act != address(_optimismPortal().guardian()));
+
+        vm.prank(_act);
+        vm.expectRevert(Unauthorized.selector);
+        _optimismPortal().setRespectedGameType(_ty);
+    }
+
+    /// @dev Tests that the guardian role can set the respected game type to anything they want.
+    function testFuzz_setRespectedGameType_guardianCanSetRespectedGameType_succeeds(GameType _ty) external {
+        vm.assume(_ty.raw() != type(uint32).max);
+        uint64 respectedGameTypeUpdatedAt = _optimismPortal().respectedGameTypeUpdatedAt();
+        vm.expectEmit(address(_optimismPortal()));
+        emit RespectedGameTypeSet(_ty, Timestamp.wrap(respectedGameTypeUpdatedAt));
+        vm.prank(_optimismPortal().guardian());
+        _optimismPortal().setRespectedGameType(_ty);
+        // GameType changes, but the timestamp doesn't.
+        assertEq(_optimismPortal().respectedGameType().raw(), _ty.raw());
+        assertEq(_optimismPortal().respectedGameTypeUpdatedAt(), respectedGameTypeUpdatedAt);
+    }
+
+    /// @dev Tests that the guardian can set the `respectedGameTypeUpdatedAt` timestamp to current timestamp.
+    function testFuzz_setRespectedGameType_guardianCanSetRespectedGameTypeUpdatedAt_succeeds(uint64 _elapsed)
+        external
+    {
+        _elapsed = uint64(bound(_elapsed, 0, type(uint64).max - uint64(block.timestamp)));
+        GameType _ty = GameType.wrap(type(uint32).max);
+        uint64 _newRespectedGameTypeUpdatedAt = uint64(block.timestamp) + _elapsed;
+        GameType _existingGameType = _optimismPortal().respectedGameType();
+        vm.warp(_newRespectedGameTypeUpdatedAt);
+        emit RespectedGameTypeSet(_existingGameType, Timestamp.wrap(_newRespectedGameTypeUpdatedAt));
+        vm.prank(_optimismPortal().guardian());
+        _optimismPortal().setRespectedGameType(_ty);
+        // GameType doesn't change, but the timestamp does.
+        assertEq(_optimismPortal().respectedGameType().raw(), _existingGameType.raw());
+        assertEq(_optimismPortal().respectedGameTypeUpdatedAt(), _newRespectedGameTypeUpdatedAt);
+    }
+
     /// @dev Tests that `proveWithdrawalTransaction` reverts when paused.
     function test_proveWithdrawalTransaction_paused_reverts() external {
         vm.prank(_optimismPortal().guardian());
-        _superchainConfig().pause("identifier");
+        superchainConfig.pause("identifier");
 
         vm.expectRevert(CallPaused.selector);
         _optimismPortal().proveWithdrawalTransaction({
@@ -525,6 +573,60 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         });
     }
 
+    /// @dev Tests that `proveWithdrawalTransaction` reverts if the game was not the respected game type when created.
+    function test_proveWithdrawalTransaction_wasNotRespectedGameTypeWhenCreated_reverts() external {
+        vm.mockCall(address(game), abi.encodeCall(game.wasRespectedGameTypeWhenCreated, ()), abi.encode(false));
+        vm.expectRevert(InvalidGameType.selector);
+        _optimismPortal().proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+    }
+
+    /// @dev Tests that `proveWithdrawalTransaction` reverts if the game is a legacy game that does not implement
+    ///      `wasRespectedGameTypeWhenCreated`.
+    function test_proveWithdrawalTransaction_legacyGame_reverts() external {
+        vm.mockCallRevert(address(game), abi.encodeCall(game.wasRespectedGameTypeWhenCreated, ()), "");
+        vm.expectRevert(LegacyGame.selector);
+        _optimismPortal().proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+    }
+
+    /// @dev Tests that `proveWithdrawalTransaction` succeeds if the game was created after the
+    ///      game retirement timestamp.
+    function testFuzz_proveWithdrawalTransaction_createdAfterRetirementTimestamp_succeeds(uint64 _createdAt) external {
+        _createdAt = uint64(bound(_createdAt, _optimismPortal().respectedGameTypeUpdatedAt() + 1, type(uint64).max));
+        vm.mockCall(address(game), abi.encodeCall(game.createdAt, ()), abi.encode(uint64(_createdAt)));
+        _optimismPortal().proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+    }
+
+    /// @dev Tests that `proveWithdrawalTransaction` reverts if the game was created before or at
+    ///      the game retirement timestamp.
+    function testFuzz_proveWithdrawalTransaction_createdBeforeOrAtRetirementTimestamp_reverts(uint64 _createdAt)
+        external
+    {
+        _createdAt = uint64(bound(_createdAt, 0, _optimismPortal().respectedGameTypeUpdatedAt()));
+        vm.mockCall(address(game), abi.encodeCall(game.createdAt, ()), abi.encode(uint64(_createdAt)));
+        vm.expectRevert("OptimismPortal: dispute game created before respected game type was updated");
+        _optimismPortal().proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+    }
+
     /// @dev Tests that `proveWithdrawalTransaction` can be re-executed if the dispute game proven against has been
     ///      blacklisted.
     function test_proveWithdrawalTransaction_replayProveBlacklisted_succeeds() external {
@@ -612,13 +714,15 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
             _withdrawalProof: _withdrawalProof
         });
 
+        // Create a new game.
+        IDisputeGame newGame =
+            disputeGameFactory.create(GameType.wrap(0), Claim.wrap(_outputRoot), abi.encode(_proposedBlockNumber + 1));
+
         // Update the respected game type to 0xbeef.
         vm.prank(_optimismPortal().guardian());
         _optimismPortal().setRespectedGameType(GameType.wrap(0xbeef));
 
         // Create a new game and mock the game type as 0xbeef in the factory.
-        IDisputeGame newGame =
-            disputeGameFactory.create(GameType.wrap(0), Claim.wrap(_outputRoot), abi.encode(_proposedBlockNumber + 1));
         vm.mockCall(
             address(disputeGameFactory),
             abi.encodeCall(disputeGameFactory.gameAtIndex, (_proposedGameIndex + 1)),
@@ -757,10 +861,9 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         uint256 _proposedGameIndex_noData = disputeGameFactory.gameCount() - 1;
         // Warp beyond the chess clocks and finalize the game.
         vm.warp(block.timestamp + game_noData.maxClockDuration().raw() + 1 seconds);
-
-        // Fund the SharedLockbox so that we can withdraw ETH.
-        vm.deal(address(sharedLockbox), _defaultTx_noData.value);
-        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx_noData.value)));
+        // Fund the portal so that we can withdraw ETH.
+        vm.store(address(sharedLockbox), bytes32(uint256(61)), bytes32(uint256(0xFFFFFFFF)));
+        vm.deal(address(sharedLockbox), 0xFFFFFFFF);
 
         uint256 bobBalanceBefore = bob.balance;
 
@@ -790,10 +893,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
     function test_finalizeWithdrawalTransaction_provenWithdrawalHashEther_succeeds() external {
         uint256 bobBalanceBefore = address(bob).balance;
-
-        // Fund the SharedLockbox so that we can withdraw ETH.
-        vm.deal(address(sharedLockbox), _defaultTx.value);
-        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
 
         vm.expectEmit(address(_optimismPortal()));
         emit WithdrawalProven(_withdrawalHash, alice, bob);
@@ -830,10 +929,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
 
         // Warp 1 second into the future so that the proof is submitted after the timestamp of game creation.
         vm.warp(block.timestamp + 1 seconds);
-
-        // Fund the SharedLockbox so that we can withdraw ETH.
-        vm.deal(address(sharedLockbox), _defaultTx.value);
-        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
 
         // Prove the withdrawal transaction against the invalid dispute game, as 0xb0b.
         vm.expectEmit(true, true, true, true);
@@ -886,7 +981,7 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the contract is paused.
     function test_finalizeWithdrawalTransaction_paused_reverts() external {
         vm.prank(_optimismPortal().guardian());
-        _superchainConfig().pause("identifier");
+        superchainConfig.pause("identifier");
 
         vm.expectRevert(CallPaused.selector);
         _optimismPortal().finalizeWithdrawalTransaction(_defaultTx);
@@ -988,10 +1083,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         uint256 bobBalanceBefore = address(bob).balance;
         vm.etch(bob, hex"fe"); // Contract with just the invalid opcode.
 
-        // Fund the SharedLockbox so that we can withdraw ETH.
-        vm.deal(address(sharedLockbox), _defaultTx.value);
-        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
-
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         vm.expectEmit(true, true, true, true);
@@ -1018,10 +1109,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the withdrawal has already been
     ///      finalized.
     function test_finalizeWithdrawalTransaction_onReplay_reverts() external {
-        // Fund the SharedLockbox so that we can withdraw ETH.
-        vm.deal(address(sharedLockbox), _defaultTx.value);
-        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_defaultTx.value)));
-
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(_withdrawalHash, alice, bob);
         vm.expectEmit(true, true, true, true);
@@ -1119,10 +1206,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         // Return a mock output root from the game.
         vm.mockCall(address(game), abi.encodeCall(game.rootClaim, ()), abi.encode(outputRoot));
 
-        // Fund the SharedLockbox so that we can withdraw ETH.
-        vm.deal(address(sharedLockbox), _testTx.value);
-        vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (_testTx.value)));
-
         vm.expectEmit(true, true, true, true);
         emit WithdrawalProven(withdrawalHash, alice, address(this));
         vm.expectEmit(true, true, true, true);
@@ -1162,8 +1245,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
 
         // Total ETH supply is currently about 120M ETH.
         uint256 value = bound(_value, 0, 200_000_000 ether);
-
-        // Add ETH to the SharedLockbox for the portal to withdraw.
         vm.deal(address(sharedLockbox), value);
 
         uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
@@ -1213,10 +1294,89 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         // Warp past the finalization period
         vm.warp(block.timestamp + _optimismPortal().proofMaturityDelaySeconds() + 1);
 
-        // Expect call to the SharedLockbox to unlock the funds
-        if (value > 0) vm.expectCall(address(sharedLockbox), abi.encodeCall(sharedLockbox.unlockETH, (value)));
-
         // Finalize the withdrawal transaction
+        vm.expectCallMinGas(_tx.target, _tx.value, uint64(_tx.gasLimit), _tx.data);
+        _optimismPortal().finalizeWithdrawalTransaction(_tx);
+        assertTrue(_optimismPortal().finalizedWithdrawals(withdrawalHash));
+    }
+
+    /// @dev Tests that `finalizeWithdrawalTransaction` succeeds even if the respected game type is changed.
+    function test_finalizeWithdrawalTransaction_wasRespectedGameType_succeeds(
+        address _sender,
+        address _target,
+        uint256 _value,
+        uint256 _gasLimit,
+        bytes memory _data,
+        GameType _newGameType
+    )
+        external
+    {
+        vm.assume(
+            _target != address(_optimismPortal()) // Cannot call the optimism portal or a contract
+                && _target.code.length == 0 // No accounts with code
+                && _target != CONSOLE // The console has no code but behaves like a contract
+                && uint160(_target) > 9 // No precompiles (or zero address)
+        );
+
+        // Bound to prevent changes in respectedGameTypeUpdatedAt
+        _newGameType = GameType.wrap(uint32(bound(_newGameType.raw(), 0, type(uint32).max - 1)));
+
+        // Total ETH supply is currently about 120M ETH.
+        uint256 value = bound(_value, 0, 200_000_000 ether);
+        vm.deal(address(sharedLockbox), value);
+
+        uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
+        uint256 nonce = l2ToL1MessagePasser.messageNonce();
+
+        // Get a withdrawal transaction and mock proof from the differential testing script.
+        Types.WithdrawalTransaction memory _tx = Types.WithdrawalTransaction({
+            nonce: nonce,
+            sender: _sender,
+            target: _target,
+            value: value,
+            gasLimit: gasLimit,
+            data: _data
+        });
+        (
+            bytes32 stateRoot,
+            bytes32 storageRoot,
+            bytes32 outputRoot,
+            bytes32 withdrawalHash,
+            bytes[] memory withdrawalProof
+        ) = ffi.getProveWithdrawalTransactionInputs(_tx);
+
+        // Create the output root proof
+        Types.OutputRootProof memory proof = Types.OutputRootProof({
+            version: bytes32(uint256(0)),
+            stateRoot: stateRoot,
+            messagePasserStorageRoot: storageRoot,
+            latestBlockhash: bytes32(uint256(0))
+        });
+
+        // Ensure the values returned from ffi are correct
+        assertEq(outputRoot, Hashing.hashOutputRootProof(proof));
+        assertEq(withdrawalHash, Hashing.hashWithdrawal(_tx));
+
+        // Setup the dispute game to return the output root
+        vm.mockCall(address(game), abi.encodeCall(game.rootClaim, ()), abi.encode(outputRoot));
+
+        // Prove the withdrawal transaction
+        _optimismPortal().proveWithdrawalTransaction(_tx, _proposedGameIndex, proof, withdrawalProof);
+        (IDisputeGame _game,) = _optimismPortal().provenWithdrawals(withdrawalHash, address(this));
+        assertTrue(_game.rootClaim().raw() != bytes32(0));
+
+        // Resolve the dispute game
+        game.resolveClaim(0, 0);
+        game.resolve();
+
+        // Warp past the finalization period
+        vm.warp(block.timestamp + _optimismPortal().proofMaturityDelaySeconds() + 1);
+
+        // Change the respectedGameType
+        vm.prank(_optimismPortal().guardian());
+        _optimismPortal().setRespectedGameType(_newGameType);
+
+        // Withdrawal transaction still finalizable
         vm.expectCallMinGas(_tx.target, _tx.value, uint64(_tx.gasLimit), _tx.data);
         _optimismPortal().finalizeWithdrawalTransaction(_tx);
         assertTrue(_optimismPortal().finalizedWithdrawals(withdrawalHash));
@@ -1279,35 +1439,6 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         assertTrue(_optimismPortal().finalizedWithdrawals(_withdrawalHash));
     }
 
-    /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the respected game type has changed since the
-    ///      withdrawal was proven.
-    function test_finalizeWithdrawalTransaction_respectedTypeChangedSinceProving_reverts() external {
-        vm.expectEmit(true, true, true, true);
-        emit WithdrawalProven(_withdrawalHash, alice, bob);
-        vm.expectEmit(true, true, true, true);
-        emit WithdrawalProvenExtension1(_withdrawalHash, address(this));
-        _optimismPortal().proveWithdrawalTransaction({
-            _tx: _defaultTx,
-            _disputeGameIndex: _proposedGameIndex,
-            _outputRootProof: _outputRootProof,
-            _withdrawalProof: _withdrawalProof
-        });
-
-        // Warp past the finalization period.
-        vm.warp(block.timestamp + _optimismPortal().proofMaturityDelaySeconds() + 1);
-
-        // Resolve the dispute game.
-        game.resolveClaim(0, 0);
-        game.resolve();
-
-        // Change the respected game type in the portal.
-        vm.prank(_optimismPortal().guardian());
-        _optimismPortal().setRespectedGameType(GameType.wrap(0xFF));
-
-        vm.expectRevert(InvalidGameType.selector);
-        _optimismPortal().finalizeWithdrawalTransaction(_defaultTx);
-    }
-
     /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the respected game type was updated after the
     ///      dispute game was created.
     function test_finalizeWithdrawalTransaction_gameOlderThanRespectedGameTypeUpdate_reverts() external {
@@ -1329,14 +1460,75 @@ contract OptimismPortalInterop_FinalizeWithdrawal_Test is OptimismPortalInterop_
         game.resolveClaim(0, 0);
         game.resolve();
 
-        // Change the respected game type in the portal.
-        vm.prank(_optimismPortal().guardian());
-        _optimismPortal().setRespectedGameType(GameType.wrap(0xFF));
+        // Warp past the dispute game finality delay.
+        vm.warp(block.timestamp + _optimismPortal().disputeGameFinalityDelaySeconds() + 1);
 
-        // Mock the game's type so that we pass the correct game type check.
-        vm.mockCall(address(game), abi.encodeCall(game.gameType, ()), abi.encode(GameType.wrap(0xFF)));
+        // Set respectedGameTypeUpdatedAt.
+        vm.prank(_optimismPortal().guardian());
+        _optimismPortal().setRespectedGameType(GameType.wrap(type(uint32).max));
 
         vm.expectRevert("OptimismPortal: dispute game created before respected game type was updated");
+        _optimismPortal().finalizeWithdrawalTransaction(_defaultTx);
+    }
+
+    /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the game was not the respected game type when it was
+    /// created. `proveWithdrawalTransaction` should already prevent this, but we remove that assumption here.
+    function test_finalizeWithdrawalTransaction_gameWasNotRespectedGameType_reverts() external {
+        vm.expectEmit(address(_optimismPortal()));
+        emit WithdrawalProven(_withdrawalHash, alice, bob);
+        vm.expectEmit(address(_optimismPortal()));
+        emit WithdrawalProvenExtension1(_withdrawalHash, address(this));
+        _optimismPortal().proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+
+        // Warp past the finalization period.
+        vm.warp(block.timestamp + _optimismPortal().proofMaturityDelaySeconds() + 1);
+
+        // Resolve the dispute game.
+        game.resolveClaim(0, 0);
+        game.resolve();
+
+        // Warp past the dispute game finality delay.
+        vm.warp(block.timestamp + _optimismPortal().disputeGameFinalityDelaySeconds() + 1);
+
+        vm.mockCall(address(game), abi.encodeCall(game.wasRespectedGameTypeWhenCreated, ()), abi.encode(false));
+
+        vm.expectRevert(InvalidGameType.selector);
+        _optimismPortal().finalizeWithdrawalTransaction(_defaultTx);
+    }
+
+    /// @dev Tests that `finalizeWithdrawalTransaction` reverts if the game is a legacy game that does not implement
+    ///      `wasRespectedGameTypeWhenCreated`.  `proveWithdrawalTransaction` should already prevent this, but we remove
+    ///      that assumption here.
+    function test_finalizeWithdrawalTransaction_legacyGame_reverts() external {
+        vm.expectEmit(address(_optimismPortal()));
+        emit WithdrawalProven(_withdrawalHash, alice, bob);
+        vm.expectEmit(address(_optimismPortal()));
+        emit WithdrawalProvenExtension1(_withdrawalHash, address(this));
+        _optimismPortal().proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+
+        // Warp past the finalization period.
+        vm.warp(block.timestamp + _optimismPortal().proofMaturityDelaySeconds() + 1);
+
+        // Resolve the dispute game.
+        game.resolveClaim(0, 0);
+        game.resolve();
+
+        // Warp past the dispute game finality delay.
+        vm.warp(block.timestamp + _optimismPortal().disputeGameFinalityDelaySeconds() + 1);
+
+        vm.mockCallRevert(address(game), abi.encodeCall(game.wasRespectedGameTypeWhenCreated, ()), "");
+
+        vm.expectRevert(LegacyGame.selector);
         _optimismPortal().finalizeWithdrawalTransaction(_defaultTx);
     }
 
@@ -1520,5 +1712,231 @@ contract OptimismPortalInterop_MigrateLiquidity_Test is OptimismPortalInterop_Ba
         // Ensure that the contracts has the correct balance
         assertEq(address(_optimismPortal()).balance, 0);
         assertEq(address(sharedLockbox).balance, _value);
+    }
+}
+
+contract OptimismPortalInteropMock is OptimismPortalInterop {
+    constructor(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        OptimismPortalInterop(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds)
+    { }
+
+    function exposed_lockETH() external payable {
+        _lockETH();
+    }
+
+    function exposed_unlockETH(Types.WithdrawalTransaction memory _tx) external {
+        _unlockETH(_tx);
+    }
+
+    function setMigrated(bool _value) external {
+        OptimismPortalStorage storage store;
+        assembly {
+            store.slot := OPTIMISM_PORTAL_STORAGE_SLOT
+        }
+        store.migrated = _value;
+    }
+}
+
+contract OptimismPortalInterop_InternalFunctions_Test is OptimismPortalInterop_Base_Test {
+    function _mockPortal() internal view returns (OptimismPortalInteropMock) {
+        return OptimismPortalInteropMock(payable(address(_optimismPortal())));
+    }
+
+    function setUp() public virtual override {
+        super.setUp();
+        OptimismPortalInteropMock mockPortal = new OptimismPortalInteropMock(
+            _optimismPortal().proofMaturityDelaySeconds(), _optimismPortal().disputeGameFinalityDelaySeconds()
+        );
+
+        // Get the proxy admin address and it's owner
+        IProxyAdmin proxyAdmin = IProxyAdmin(artifacts.mustGetAddress("ProxyAdmin"));
+        address proxyAdminOwner = proxyAdmin.owner();
+
+        // Update the portal proxy implementation to the LiquidityMigrator contract
+        vm.prank(proxyAdminOwner);
+        proxyAdmin.upgrade({ _proxy: payable(_optimismPortal()), _implementation: address(mockPortal) });
+
+        // Set the migrated flag to false
+        _mockPortal().setMigrated(false);
+    }
+
+    /// @dev Tests _lockETH when not migrated
+    function testFuzz_lockETH_notMigrated_succeeds(uint256 _value) external {
+        vm.assume(_value > 0);
+        vm.deal(address(this), _value);
+
+        // Should not call lockETH on sharedLockbox since not migrated
+        vm.expectCall(address(sharedLockbox), 0, abi.encodeCall(sharedLockbox.lockETH, ()), 0);
+
+        _mockPortal().exposed_lockETH{ value: _value }();
+
+        assertEq(address(_mockPortal()).balance, _value);
+        assertEq(address(sharedLockbox).balance, 0);
+    }
+
+    /// @dev Tests _lockETH when value is zero
+    function test_lockETH_zeroValue_succeeds() external {
+        // Should not call lockETH on sharedLockbox since value is zero
+        vm.expectCall(address(sharedLockbox), 0, abi.encodeCall(sharedLockbox.lockETH, ()), 0);
+
+        _mockPortal().exposed_lockETH{ value: 0 }();
+
+        assertEq(address(_mockPortal()).balance, 0);
+        assertEq(address(sharedLockbox).balance, 0);
+    }
+
+    /// @dev Tests _lockETH when migrated
+    function testFuzz_lockETH_migrated_succeeds(uint256 _value) external {
+        vm.assume(_value > 0);
+        vm.deal(address(this), _value);
+
+        // Migrate the portal
+        vm.prank(address(superchainConfig));
+        _mockPortal().migrateLiquidity();
+
+        // Should call lockETH on sharedLockbox
+        vm.expectCall(address(sharedLockbox), _value, abi.encodeCall(sharedLockbox.lockETH, ()));
+
+        _mockPortal().exposed_lockETH{ value: _value }();
+
+        assertEq(address(_mockPortal()).balance, 0);
+        assertEq(address(sharedLockbox).balance, _value);
+    }
+
+    /// @dev Tests _unlockETH when not migrated
+    function testFuzz_unlockETH_notMigrated_succeeds(
+        uint256 _nonce,
+        address _sender,
+        address _target,
+        uint256 _value,
+        uint256 _gasLimit,
+        bytes memory _data
+    )
+        external
+    {
+        vm.assume(_value > 0);
+        vm.assume(_target != address(sharedLockbox));
+
+        Types.WithdrawalTransaction memory wTx = Types.WithdrawalTransaction({
+            nonce: _nonce,
+            sender: _sender,
+            target: _target,
+            value: _value,
+            gasLimit: _gasLimit,
+            data: _data
+        });
+
+        // Should not call unlockETH on sharedLockbox since not migrated
+        vm.expectCall(address(sharedLockbox), 0, abi.encodeCall(sharedLockbox.unlockETH, (wTx.value)), 0);
+
+        // Unlock the ETH
+        _mockPortal().exposed_unlockETH(wTx);
+
+        // Asserts
+        assertEq(address(_mockPortal()).balance, 0);
+        assertEq(address(sharedLockbox).balance, 0);
+    }
+
+    /// @dev Tests _unlockETH when migrated
+    function testFuzz_unlockETH_migrated_succeeds(
+        uint256 _nonce,
+        address _sender,
+        address _target,
+        uint256 _value,
+        uint256 _gasLimit,
+        bytes memory _data
+    )
+        external
+    {
+        vm.assume(_value > 0);
+        vm.assume(_target != address(sharedLockbox));
+
+        Types.WithdrawalTransaction memory wTx = Types.WithdrawalTransaction({
+            nonce: _nonce,
+            sender: _sender,
+            target: _target,
+            value: _value,
+            gasLimit: _gasLimit,
+            data: _data
+        });
+
+        // Fund the portal
+        vm.deal(address(_mockPortal()), wTx.value);
+
+        // Migrate the portal
+        vm.prank(address(superchainConfig));
+        _mockPortal().migrateLiquidity();
+
+        // Ensure that the portal has the correct balance
+        assertEq(address(_mockPortal()).balance, 0);
+        assertEq(address(sharedLockbox).balance, wTx.value);
+
+        // Should call unlockETH on sharedLockbox
+        vm.expectCall(address(sharedLockbox), 0, abi.encodeCall(sharedLockbox.unlockETH, (wTx.value)));
+
+        _mockPortal().exposed_unlockETH(wTx);
+
+        // Asserts
+        assertEq(address(_mockPortal()).balance, wTx.value);
+        assertEq(address(sharedLockbox).balance, 0);
+    }
+
+    /// @dev Tests _unlockETH reverts when target is sharedLockbox
+    function testFuzz_unlockETH_targetIsSharedLockbox_reverts(
+        uint256 _nonce,
+        address _sender,
+        uint256 _value,
+        uint256 _gasLimit,
+        bytes memory _data
+    )
+        external
+    {
+        vm.assume(_value > 0);
+
+        Types.WithdrawalTransaction memory wTx = Types.WithdrawalTransaction({
+            nonce: _nonce,
+            sender: _sender,
+            target: address(sharedLockbox), // Set target as sharedLockbox
+            value: _value,
+            gasLimit: _gasLimit,
+            data: _data
+        });
+
+        vm.expectRevert(IOptimismPortalInterop.MessageTargetSharedLockbox.selector);
+        _mockPortal().exposed_unlockETH(wTx);
+    }
+
+    /// @dev Tests _unlockETH when value is zero
+    function testFuzz_unlockETH_zeroValue_succeeds(
+        uint256 _nonce,
+        address _sender,
+        address _target,
+        uint256 _gasLimit,
+        bytes memory _data
+    )
+        external
+    {
+        vm.assume(_target != address(sharedLockbox));
+
+        Types.WithdrawalTransaction memory wTx = Types.WithdrawalTransaction({
+            nonce: _nonce,
+            sender: _sender,
+            target: _target,
+            value: 0, // Set value to zero
+            gasLimit: _gasLimit,
+            data: _data
+        });
+
+        // Should not call unlockETH on sharedLockbox since value is zero
+        vm.expectCall(address(sharedLockbox), 0, abi.encodeCall(sharedLockbox.unlockETH, (0)), 0);
+
+        _mockPortal().exposed_unlockETH(wTx);
+
+        // Asserts
+        assertEq(address(_mockPortal()).balance, 0);
+        assertEq(address(sharedLockbox).balance, 0);
     }
 }
