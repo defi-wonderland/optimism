@@ -414,6 +414,7 @@ contract L2CrossDomainMessenger_Test is CommonTest {
         );
     }
 
+    /// @dev Tests that the the otherMessenger can be set correctly through the L1Block contract's setConfig function.
     function test_setConfig_succeeds(address _l1CrossDomainMessengerAddress) external {
         Types.ConfigType configType = Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS;
         bytes memory data = abi.encode(_l1CrossDomainMessengerAddress);
