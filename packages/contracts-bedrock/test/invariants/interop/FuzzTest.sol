@@ -12,17 +12,6 @@ import { Actors } from "./helpers/Actors.sol";
 contract FuzzTest is Handler {
     using Utils for *;
 
-    bool initialized;
-
-    /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
-    modifier isInitialized() {
-        if (!initialized) {
-            _initializeProxies();
-            initialized = true;
-        }
-        _;
-    }
-
     /// @custom:property-id 0
     /// @custom:property Check setup proper deployment and initialization of the contracts
     function property_setupSanityCheck() public isInitialized {
