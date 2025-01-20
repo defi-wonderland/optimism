@@ -170,10 +170,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param updatedAt   The timestamp at which the respected game type was updated.
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
 
-    /// @notice Emitted when the contract migrates the ETH liquidity to the SharedLockbox.
-    /// @param amount Amount of ETH migrated.
-    event ETHMigrated(uint256 amount);
-
     /// @notice Reverts when paused.
     modifier whenNotPaused() {
         if (paused()) revert CallPaused();

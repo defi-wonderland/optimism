@@ -9,9 +9,6 @@ import { Storage } from "src/libraries/Storage.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @custom:proxied true
 /// @custom:audit none This contracts is not yet audited.
@@ -50,9 +47,6 @@ contract SuperchainConfig is Initializable, ISemver {
     function version() public pure virtual returns (string memory) {
         return "1.1.1-beta.5";
     }
-
-    /// @notice OptimismPortals that are part of the dependency cluster
-    mapping(address => bool) public authorizedPortals;
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor() {
