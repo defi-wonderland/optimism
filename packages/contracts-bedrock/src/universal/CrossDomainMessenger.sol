@@ -117,11 +117,12 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     ///         can therefore not be relayed again.
     mapping(bytes32 => bool) public successfulMessages;
 
-    /// @notice Address of the sender of the currently executing message on the other chain. If the
-    ///         value of this variable is the default value (0x00000000...dead) then no message is
-    ///         currently being executed. Use the xDomainMessageSender getter which will throw an
-    ///         error if this is the case.
-    address internal xDomainMsgSender;
+    /// @custom:legacy
+    /// @custom:spacer xDomainMsgSender
+    /// @notice Spacer for backwards compatibility. The storage slot was migrated when the
+    ///         initializer pattern was moved away from in the base contract to remove the
+    ///         need to set `Constants.DEFAULT_L2_SENDER` into storage during a call to `initialize`.
+    address private spacer_204_0_20;
 
     /// @notice Nonce for the next message to be sent, without the message version applied. Use the
     ///         messageNonce getter which will insert the message version into the nonce to give you
@@ -138,10 +139,18 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     /// @notice Spacer for backwards compatibility.
     address private spacer_207_0_20;
 
+    /// @notice Address of the sender of the currently executing message on the other chain. If the
+    ///         value of this variable is address(0) then no message is currently being executed.
+    ///         Use the xDomainMessageSender getter which will throw an error if this is the case.
+    address private xDomainMsgSender;
+
+    /// @notice Spacer to ensure that there is no collision with the xDomainMsgSender slot.
+    bytes12 private spacer_208_20_12;
+
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    ///         A gap size of 42 was chosen here, so that the first slot used in a child contract
+    ///         A gap size of 41 was chosen here, so that the first slot used in a child contract
     ///         would be 1 plus a multiple of 50.
-    uint256[42] private __gap;
+    uint256[41] private __gap;
 
     /// @notice Emitted whenever a message is sent to the other chain.
     /// @param target       Address of the recipient of the message.
