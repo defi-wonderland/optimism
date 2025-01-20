@@ -10,7 +10,7 @@ import { Constants } from "src/libraries/Constants.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
@@ -29,6 +29,9 @@ contract DependencyManager is ISemver {
 
     /// @notice Event emitted when a new dependency is added to the interop dependency set.
     event DependencyAdded(uint256 indexed chainId, address indexed systemConfig, address indexed superchainConfig);
+
+    /// @notice The minimum gas limit for the withdrawal tx to update the dependency set on L1.
+    uint256 internal constant ADD_DEPENDENCY_WITHDRAWWAL_GAS_LIMIT = 400_000;
 
     /// @notice The interop dependency set, containing the chain IDs in it.
     EnumerableSet.UintSet internal _dependencySet;
@@ -52,8 +55,8 @@ contract DependencyManager is ISemver {
         // Initiate a withdrawal tx to update the dependency set on L1.
         IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal(
             _superchainConfig,
-            400_000, // TODO: find an arbitrary value that is enough
-            abi.encodeCall(ISuperchainConfig.addDependency, (_chainId, _systemConfig))
+            ADD_DEPENDENCY_WITHDRAWWAL_GAS_LIMIT,
+            abi.encodeCall(ISuperchainConfigInterop.addDependency, (_chainId, _systemConfig))
         );
 
         emit DependencyAdded(_chainId, _systemConfig, _superchainConfig);
