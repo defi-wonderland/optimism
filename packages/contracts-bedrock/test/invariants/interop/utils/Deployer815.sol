@@ -8,7 +8,7 @@ import { OptimismPortalInteropMock } from "test/invariants/interop/mocks/Optimis
 import { Proxy } from "src/universal/Proxy.sol";
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
-import { SystemConfigInterop } from "src/L1/SystemConfigInterop.sol";
+import { SystemConfig } from "src/L1/SystemConfig.sol";
 
 contract Deployer815 {
     function deployETHLiquidity() public returns (address _ethLiquidity) {
@@ -43,6 +43,6 @@ contract Deployer815 {
     }
 
     function deploySystemConfig() public returns (address _systemConfig) {
-        _systemConfig = address(new SystemConfigInterop());
+        _systemConfig = address(new SystemConfig());
     }
 }
