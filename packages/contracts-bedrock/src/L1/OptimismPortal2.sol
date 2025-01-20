@@ -171,8 +171,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
 
     /// @notice Reverts when paused.
-    function _whenNotPaused() internal view {
+    modifier whenNotPaused() {
         if (paused()) revert CallPaused();
+        _;
     }
 
     /// @notice Semantic version.
@@ -193,6 +194,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
@@ -200,7 +202,24 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         GameType _initialRespectedGameType
     )
         external
+        virtual
         initializer
+    {
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
+    }
+
+    /// @notice Internal initializer function.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
+    /// @param _systemConfig Contract of the SystemConfig.
+    /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
+    function _initialize(
+        IDisputeGameFactory _disputeGameFactory,
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig,
+        GameType _initialRespectedGameType
+    )
+        internal
     {
         disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
@@ -292,9 +311,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         bytes[] calldata _withdrawalProof
     )
         external
+        whenNotPaused
     {
-        _whenNotPaused();
-
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
@@ -375,8 +393,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Finalizes a withdrawal transaction.
     /// @param _tx Withdrawal transaction to finalize.
-    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external {
-        _whenNotPaused();
+    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external whenNotPaused {
         finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
 
@@ -388,9 +405,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         address _proofSubmitter
     )
         public
+        whenNotPaused
     {
-        _whenNotPaused();
-
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
         // a defacto reentrancy guard.
@@ -410,7 +426,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
         // This function unlocks ETH from the SharedLockbox when using the OptimismPortalInterop contract.
         // If the interop version is not used, this function is a no-ops.
-        if (_tx.value != 0) _unlockETH(_tx.value);
+        _unlockETH(_tx);
 
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
@@ -458,7 +474,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     {
         // This function locks ETH in the SharedLockbox when using the OptimismPortalInterop contract.
         // If the interop version is not used, this function is a no-ops.
-        if (msg.value != 0) _lockETH();
+        _lockETH();
 
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
@@ -598,6 +614,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     function _lockETH() internal virtual { }
 
     /// @notice No-op function to be used to unlock ETH from the SharedLockbox in the interop contract.
-    /// @param _value Amount of ETH to unlock
-    function _unlockETH(uint256 _value) internal virtual { }
+    /// @param _tx Withdrawal transaction to finalize.
+    function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual { }
 }
