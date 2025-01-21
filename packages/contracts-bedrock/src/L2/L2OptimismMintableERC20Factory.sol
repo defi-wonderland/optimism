@@ -5,11 +5,7 @@ pragma solidity 0.8.15;
 import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
 
 // Libraries
-import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
-// Interfaces
-import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
 /// @custom:proxied true
 /// @custom:predeployed 0x4200000000000000000000000000000000000012
@@ -27,8 +23,6 @@ contract L2OptimismMintableERC20Factory is OptimismMintableERC20Factory {
     string public constant version = "1.3.1-beta.5";
 
     function bridge() public view virtual override returns (address) {
-        bytes memory config =
-            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.STANDARD_BRIDGE_ADDRESS);
-        return abi.decode(config, (address));
+        return Predeploys.L2_STANDARD_BRIDGE;
     }
 }
