@@ -320,9 +320,8 @@ contract Setup {
 
     /// @dev Sets the standard bridge address in the L1Block contract.
     function configureBridges() internal {
-        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(Types.ConfigType.STANDARD_BRIDGE_ADDRESS, abi.encode(address(l2StandardBridge)));
-        vm.stopPrank();
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS, abi.encode(address(l2StandardBridge)));
     }
 
     /// @dev Sets the L1CrossDomainMessenger address in the L1Block contract.
