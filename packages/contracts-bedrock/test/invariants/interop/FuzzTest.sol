@@ -12,26 +12,15 @@ import { Actors } from "./helpers/Actors.sol";
 contract FuzzTest is Handler {
     using Utils for *;
 
-    bool initialized;
-
-    /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
-    modifier isInitialized() {
-        if (!initialized) {
-            _initializeProxies();
-            initialized = true;
-        }
-        _;
-    }
-
     /// @custom:property-id 0
     /// @custom:property Check setup proper deployment and initialization of the contracts
-    function property_setupSanityCheck() public isInitialized {
+    function property_setupSanityCheck() public {
         /* Contracts with some storage intialization on setup */
         // Portal
         assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
         assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
-        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
         assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
+        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
         assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
 
         // Shared Lockbox
@@ -41,6 +30,8 @@ contract FuzzTest is Handler {
         assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
         assert(SUPERCHAIN_CONFIG.paused() == false);
+        assert(SUPERCHAIN_CONFIG.isInDependencySet(OP_CHAIN_ID));
+        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
 
         // System Config
         uint256 sysConfigStartBlock = SYSTEM_CONFIG.startBlock();
@@ -72,12 +63,13 @@ contract FuzzTest is Handler {
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
+        assert(false);
     }
 
     /// @custom:property-id 1
-    /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply and
-    /// the sender's balance on the origin chain by exactly the input amount.
-    function test_sendSuperchainERC20(address _to, uint256 _amount, uint256 _chainId) public isInitialized {
+    /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
+    /// and the sender's balance on the origin chain by exactly the input amount.
+    function test_sendSuperchainERC20(address _to, uint256 _amount, uint256 _chainId) public {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
@@ -104,14 +96,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 2
     /// @custom:property Relaying SuperchainERC20s sent from origin increases the token's totalSupply and the
     /// target's balance on the destination chain by exactly the input amount
-    function test_relaySuperchainERC20(
-        Identifier memory _id,
-        Message memory _message,
-        uint256 _actorIndex
-    )
-        public
-        isInitialized
-    {
+    function test_relaySuperchainERC20(Identifier memory _id, Message memory _message, uint256 _actorIndex) public {
         _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
         // Ensure the id is valid
@@ -155,10 +140,10 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 3
-    /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases the
-    /// ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
+    /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases
+    /// the ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
     /// SuperchainWETH total supply and Ether balance by exactly the input amount.
-    function test_sendSuperchainWETH(address _to, uint256 _amount, uint256 _chainId) public isInitialized {
+    function test_sendSuperchainWETH(address _to, uint256 _amount, uint256 _chainId) public {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
@@ -189,17 +174,10 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 4
-    /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBridge on destination decreases
-    /// the ETHLiquidity Ether balance, and increases the target’s SuperchainWETH balance on destination as well as
-    /// SuperchainWETH total supply and Ether balance by exactly the input amount.
-    function test_relaySuperchainWETH(
-        Identifier memory _id,
-        Message memory _message,
-        uint256 _actorIndex
-    )
-        public
-        isInitialized
-    {
+    /// @custom:property Relaying SuperchainWETH sent from origin through SuperchainTokenBridge on destination
+    /// decreases the ETHLiquidity Ether balance, and increases the target’s SuperchainWETH balance on destination as
+    /// well as SuperchainWETH total supply and Ether balance by exactly the input amount.
+    function test_relaySuperchainWETH(Identifier memory _id, Message memory _message, uint256 _actorIndex) public {
         // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
         // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
         uint256 totalSupplyBefore = SUPER_WETH.totalSupply();
@@ -260,7 +238,6 @@ contract FuzzTest is Handler {
         bool _callSuperWETH
     )
         public
-        isInitialized
     {
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -307,7 +284,8 @@ contract FuzzTest is Handler {
         bool success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
-            // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx path
+            // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx
+            // path
             if (_callSuperWETH && _target == address(SUPER_WETH)) _ghost_superWethEtherSent += _message.amount;
             // Otherwise, only if it was minted through `crosschainMint()`, the total supply should be updated
             else if (!_callSuperWETH) _ghost_superWethBalancesSum += _message.amount;
@@ -328,15 +306,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 9
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
     /// `type(uint256).max
-    function test_burnSuperchainWETH(
-        address _to,
-        uint256 _chainId,
-        uint256 _amount,
-        bool _callSuperWETH
-    )
-        public
-        isInitialized
-    {
+    function test_burnSuperchainWETH(address _to, uint256 _chainId, uint256 _amount, bool _callSuperWETH) public {
         _to = clampGt(_to, address(0));
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 

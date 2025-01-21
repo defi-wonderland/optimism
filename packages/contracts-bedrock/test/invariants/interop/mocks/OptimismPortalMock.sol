@@ -177,8 +177,9 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
 
     /// @notice Reverts when paused.
-    function _whenNotPaused() internal view {
+    modifier whenNotPaused() {
         if (paused()) revert CallPaused();
+        _;
     }
 
     /// @notice Semantic version.
@@ -199,6 +200,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
@@ -206,7 +208,24 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         GameType _initialRespectedGameType
     )
         external
+        virtual
         initializer
+    {
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
+    }
+
+    /// @notice Internal initializer function.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
+    /// @param _systemConfig Contract of the SystemConfig.
+    /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
+    function _initialize(
+        IDisputeGameFactory _disputeGameFactory,
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig,
+        GameType _initialRespectedGameType
+    )
+        internal
     {
         disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
@@ -289,21 +308,28 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     /// @notice Proves a withdrawal transaction.
     /// @param _tx               Withdrawal transaction to finalize.
     /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
+    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser contract's storage root.
+    /// @param _withdrawalProof  Inclusion proof of the withdrawal in L2ToL1MessagePasser contract.
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         uint256 _disputeGameIndex,
-        Types.OutputRootProof calldata,
-        bytes[] calldata
+        Types.OutputRootProof calldata _outputRootProof,
+        bytes[] calldata _withdrawalProof
     )
         external
+        whenNotPaused
     {
-        _whenNotPaused();
-
-        // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
-        bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
+        // Prevent users from creating a deposit transaction where this address is the message
+        // sender on L2. Because this is checked here, we do not need to check again in
+        // `finalizeWithdrawalTransaction`.
+        if (_tx.target == address(this)) revert BadTarget();
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
         (,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
+        Claim outputRoot = gameProxy.rootClaim();
+
+        // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
+        bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // Designate the withdrawalHash as proven by storing the `disputeGameProxy` & `timestamp` in the
         // `provenWithdrawals` mapping. A `withdrawalHash` can only be proven once unless the dispute game it proved
@@ -322,8 +348,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
 
     /// @notice Finalizes a withdrawal transaction.
     /// @param _tx Withdrawal transaction to finalize.
-    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external {
-        _whenNotPaused();
+    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external whenNotPaused {
         finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
 
@@ -335,9 +360,8 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         address _proofSubmitter
     )
         public
+        whenNotPaused
     {
-        _whenNotPaused();
-
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
         // a defacto reentrancy guard.
@@ -357,7 +381,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
 
         // This function unlocks ETH from the SharedLockbox when using the OptimismPortalInterop contract.
         // If the interop version is not used, this function is a no-ops.
-        if (_tx.value != 0) _unlockETH(_tx.value);
+        _unlockETH(_tx);
 
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
@@ -405,7 +429,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     {
         // This function locks ETH in the SharedLockbox when using the OptimismPortalInterop contract.
         // If the interop version is not used, this function is a no-ops.
-        if (msg.value != 0) _lockETH();
+        _lockETH();
 
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
@@ -545,17 +569,17 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     function _lockETH() internal virtual { }
 
     /// @notice No-op function to be used to unlock ETH from the SharedLockbox in the interop contract.
-    /// @param _value Amount of ETH to unlock
-    function _unlockETH(uint256 _value) internal virtual { }
+    /// @param _tx Withdrawal transaction to finalize.
+    function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual { }
 }
 
-/// @title OptimismPortalInteropMock
-/// @notice The OptimismPortalInteropMock contains the same logic as the `OptimismPortalInterop` contract, but inherits
-/// from the `OptimismPortal2Mock` contract instead.
 contract OptimismPortalInteropMock is OptimismPortal2Mock {
     /// @notice Emitted when the contract migrates the ETH liquidity to the SharedLockbox.
     /// @param amount Amount of ETH migrated.
     event ETHMigrated(uint256 amount);
+
+    /// @notice Error thrown when the withdrawal target is the SharedLockbox.
+    error MessageTargetSharedLockbox();
 
     /// @notice Storage slot that the OptimismPortalStorage struct is stored at.
     /// keccak256(abi.encode(uint256(keccak256("optimismPortal.storage")) - 1)) & ~bytes32(uint256(0xff));
@@ -565,6 +589,8 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
     /// @notice Storage struct for the OptimismPortal specific storage data.
     /// @custom:storage-location erc7201:OptimismPortal.storage
     struct OptimismPortalStorage {
+        /// @notice The address of the SharedLockbox.
+        address sharedLockbox;
         /// @notice A flag indicating whether the contract has migrated the ETH liquidity to the SharedLockbox.
         bool migrated;
     }
@@ -586,6 +612,27 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
     /// @custom:semver +interop-beta.10
     function version() public pure override returns (string memory) {
         return string.concat(super.version(), "+interop-beta.10");
+    }
+
+    /// @notice Initializer.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
+    /// @param _systemConfig Contract of the SystemConfig.
+    /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
+    function initialize(
+        IDisputeGameFactory _disputeGameFactory,
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig,
+        GameType _initialRespectedGameType
+    )
+        external
+        override
+        initializer
+    {
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
+
+        OptimismPortalStorage storage s = _storage();
+        s.sharedLockbox = address(ISuperchainConfigInterop(address(_superchainConfig)).sharedLockbox());
     }
 
     /// @notice Sets static configuration options for the L2 system.
@@ -615,8 +662,8 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
     }
 
     /// @notice Getter for the address of the shared lockbox.
-    function sharedLockbox() public view returns (ISharedLockbox) {
-        return ISuperchainConfigInterop(address(superchainConfig)).sharedLockbox();
+    function sharedLockbox() external view returns (ISharedLockbox) {
+        return ISharedLockbox(_storage().sharedLockbox);
     }
 
     /// @notice Getter for the migrated flag.
@@ -624,17 +671,30 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
         return _storage().migrated;
     }
 
-    /// @notice Unlock and receive the ETH from the shared lockbox.
-    /// @param _value Amount of ETH to unlock.
-    function _unlockETH(uint256 _value) internal virtual override {
+    /// @notice Unlock and receive the ETH from the SharedLockbox.
+    /// @param _tx Withdrawal transaction to finalize.
+    function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual override {
         OptimismPortalStorage storage s = _storage();
-        if (s.migrated) sharedLockbox().unlockETH(_value);
+
+        // We don't allow the SharedLockbox to be the target of a withdrawal.
+        // This is to prevent the SharedLockbox from being drained.
+        // This check needs to be done for every withdrawal.
+        if (_tx.target == s.sharedLockbox) revert MessageTargetSharedLockbox();
+
+        if (!s.migrated) return;
+        if (_tx.value == 0) return;
+
+        ISharedLockbox(s.sharedLockbox).unlockETH(_tx.value);
     }
 
-    /// @notice Locks the ETH in the shared lockbox.
+    /// @notice Locks the ETH in the SharedLockbox.
     function _lockETH() internal virtual override {
+        if (msg.value == 0) return;
+
         OptimismPortalStorage storage s = _storage();
-        if (s.migrated) sharedLockbox().lockETH{ value: msg.value }();
+        if (!s.migrated) return;
+
+        ISharedLockbox(s.sharedLockbox).lockETH{ value: msg.value }();
     }
 
     /// @notice Migrates the ETH liquidity to the SharedLockbox. This function will only be called once by the
@@ -647,7 +707,7 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
 
         uint256 ethBalance = address(this).balance;
 
-        sharedLockbox().lockETH{ value: ethBalance }();
+        ISharedLockbox(s.sharedLockbox).lockETH{ value: ethBalance }();
 
         emit ETHMigrated(ethBalance);
     }
