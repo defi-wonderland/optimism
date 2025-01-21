@@ -21,7 +21,19 @@ contract Handler is Setup {
 
     uint256 internal constant _ZERO_VALUE = 0;
 
-    function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public {
+    bool initialized;
+
+    /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
+    modifier isInitialized() {
+        if (!initialized) {
+            _initializeProxies();
+            _addDependencies();
+            initialized = true;
+        }
+        _;
+    }
+
+    function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public isInitialized {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(actor)));
 
@@ -63,7 +75,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public {
+    function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public isInitialized {
         _value = clampLte(_value, type(uint256).max - SUPER_WETH.totalSupply());
 
         Actors actor = randomActor(_actorIndex);
@@ -76,7 +88,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_withdrawSuperchainWETH(uint256 _value, uint256 _actorIndex) public {
+    function handler_withdrawSuperchainWETH(uint256 _value, uint256 _actorIndex) public isInitialized {
         Actors actor = randomActor(_actorIndex);
         _value = clampLte(_value, SUPER_WETH.balanceOf(address(actor)));
 
@@ -89,7 +101,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public {
+    function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public isInitialized {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(actor)));
 
@@ -131,9 +143,16 @@ contract Handler is Setup {
         }
     }
 
-    function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _chainId, uint256 _actorIndex) public {
+    function handler_superchainWETHSendETH(
+        address _to,
+        uint256 _value,
+        uint256 _chainId,
+        uint256 _actorIndex
+    )
+        public
+        isInitialized
+    {
         require(_to != address(0));
-        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
         // Get state before call
         Actors actor = randomActor(_actorIndex);

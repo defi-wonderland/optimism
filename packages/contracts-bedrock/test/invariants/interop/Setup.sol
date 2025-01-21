@@ -30,12 +30,13 @@ import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { HandlerActors, Actors } from "./helpers/Actors.sol";
+import { IDependencyManager } from "src/interfaces/L2/IDependencyManager.sol";
 
 contract Setup is PropertiesAsserts, HandlerActors {
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
-    uint256 public constant OP_CHAIN_ID = 10;
-    uint256 public constant CHAIN_ID_ONE = 1;
+    uint256 public constant CHAIN_A = 10;
+    uint256 public constant CHAIN_B = 130;
 
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
     IDeployer825 public constant DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825);
@@ -48,10 +49,16 @@ contract Setup is PropertiesAsserts, HandlerActors {
     IETHLiquidity public immutable ETH_LIQUIDITY = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
     IL1BlockInterop public immutable L1_BLOCK = IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES);
     ISuperchainWETH public immutable SUPER_WETH = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
-    IOptimismPortalInterop public immutable PORTAL;
     ISharedLockbox public immutable SHARED_LOCKBOX;
     ISuperchainConfigInterop public immutable SUPERCHAIN_CONFIG;
-    ISystemConfig public immutable SYSTEM_CONFIG;
+    // Chain A contracts
+    IOptimismPortalInterop public immutable PORTAL_A;
+    ISystemConfig public immutable SYSTEM_CONFIG_A;
+    IDependencyManager public immutable DEPENDENCY_MANAGER_A;
+    // Chain B contracts
+    IOptimismPortalInterop public immutable PORTAL_B;
+    ISystemConfig public immutable SYSTEM_CONFIG_B;
+    IDependencyManager public immutable DEPENDENCY_MANAGER_B;
 
     // Soldity 0.8.25 Contracts
     ICrossL2Inbox public immutable CROSS_L2_INBOX = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
@@ -70,23 +77,20 @@ contract Setup is PropertiesAsserts, HandlerActors {
     // Predefined addresses
     address public sharedLockboxAddress = vm.addr(uint256(keccak256("SharedLockbox")));
     address public superchainConfigAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
-    address public systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
-    address public optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
-
+    address public systemConfigAddressA = vm.addr(uint256(keccak256("SystemConfigA")));
+    address public optimismPortalAddressA = vm.addr(uint256(keccak256("OptimismPortalA")));
+    address public systemConfigAddressB = vm.addr(uint256(keccak256("SystemConfigB")));
+    address public optimismPortalAddressB = vm.addr(uint256(keccak256("OptimismPortalB")));
     // Internals
     address internal _disputeGameFactory = vm.addr(uint256(keccak256("DisputeGameFactory")));
     bytes internal _proxyCode;
 
     constructor() {
-        vm.chainId(CHAIN_ID_ONE);
-
         // Deploy ProxyAdmin
         proxyAdmin = new ProxyAdmin(proxyOwner);
-        assert(proxyAdmin.isUpgrading() == false);
 
         // Deploy Proxy
         _proxyCode = DEPLOYER_8_15.deployProxy(address(proxyAdmin)).code;
-        assert(_proxyCode.length > 0);
 
         // Deploy ETHLiquidity
         _setCode(
@@ -96,7 +100,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         );
         // Give the initial ether balance to ETHLiquidity
         vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
-        assert(address(ETH_LIQUIDITY).balance == type(uint248).max);
 
         // Deploy L1BlockInterop
         _setCode(
@@ -140,28 +143,49 @@ contract Setup is PropertiesAsserts, HandlerActors {
         _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfigInterop(), true);
         SUPERCHAIN_CONFIG = ISuperchainConfigInterop(superchainConfigAddress);
 
-        // Deploy SystemConfigInterop
-        _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
-        SYSTEM_CONFIG = ISystemConfig(systemConfigAddress);
-
         // Deploy SharedLockbox
         _setCode(sharedLockboxAddress, DEPLOYER_8_25.deploySharedLockbox(), true);
         SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
 
-        // Deal the initial ether to the portal address
-        vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
+        // Deploy SystemConfig for chain A
+        _setCode(systemConfigAddressA, DEPLOYER_8_15.deploySystemConfig(), true);
+        SYSTEM_CONFIG_A = ISystemConfig(systemConfigAddressA);
+
+        // Deploy SystemConfig for chain B
+        _setCode(systemConfigAddressB, DEPLOYER_8_15.deploySystemConfig(), true);
+        SYSTEM_CONFIG_B = ISystemConfig(systemConfigAddressB);
+
+        // Deal the initial ether to the portals addresses
+        vm.deal(optimismPortalAddressA, INITIAL_PORTAL_ETHER);
+        vm.deal(optimismPortalAddressB, INITIAL_PORTAL_ETHER);
 
         // These values are not important for the scope of this testing campaign
         (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
+
+        // Deploy OptimismPortal for chain A
         // Set implementation for the Portal proxy such as if it was using the current OptimismPortalMock
         _setCode(
-            optimismPortalAddress,
+            optimismPortalAddressA,
             DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
             true
         );
-        PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
+        PORTAL_A = IOptimismPortalInterop(payable(optimismPortalAddressA));
 
-        _initializeProxies();
+        // Deploy OptimismPortal for chain B
+        _setCode(
+            optimismPortalAddressB,
+            DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            true
+        );
+        PORTAL_B = IOptimismPortalInterop(payable(optimismPortalAddressB));
+
+        // Deploy DependencyManager for chain A
+        _setCode(dependencyManager, DEPLOYER_8_15.deployDependencyManager(), true);
+        DEPENDENCY_MANAGER_A = IDependencyManager(dependencyManager);
+
+        // Deploy DependencyManager for chain B
+        _setCode(dependencyManager, DEPLOYER_8_15.deployDependencyManager(), true);
+        DEPENDENCY_MANAGER_B = IDependencyManager(dependencyManager);
 
         _addActors();
     }
@@ -186,17 +210,63 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Initialize SuperchainConfig
         SUPERCHAIN_CONFIG.initialize(guardian, false, clusterManager, sharedLockboxAddress);
 
-        // Initialize SystemConfigInterop
+        // Initialize system config and portal for chain A
+        _initializeSystemConfig(systemConfigAddressA, optimismPortalAddressA);
+        _initializePortal(optimismPortalAddressA, systemConfigAddressA);
+
+        // Initialize system config and portal for chain B
+        _initializeSystemConfig(systemConfigAddressB, optimismPortalAddressB);
+        _initializePortal(optimismPortalAddressB, systemConfigAddressB);
+
+        // Initialize SharedLockbox
+        SHARED_LOCKBOX.initialize(superchainConfigAddress);
+    }
+
+    function _addActors() internal {
+        for (uint256 i; i < numberOfActors; i++) {
+            Actors _newActor = new Actors();
+            _ghost_actors.push(address(_newActor));
+
+            // Mint SUPER_TOKEN only to the first 8 actors
+            if (i > 8) continue;
+            uint256 amount = uint256(keccak256(abi.encode(address(_newActor))));
+            // Avoid minting too much on the setup
+            amount = clampLte(amount, type(uint128).max);
+            SUPER_TOKEN.mint(address(_newActor), amount);
+        }
+    }
+
+    function _addDependencies() internal {
+        // Add chain B as dependency of chain A on the L2 dependency manager
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        SUPERCHAIN_CONFIG.addDependency(superchainConfigAddress, CHAIN_B, systemConfigAddressB);
+
+        // TODO: Add the cluster manager as an actor, but without tracking it as an actor
+        // Add chain A to the dependency set
+        vm.prank(clusterManager);
+        SUPERCHAIN_CONFIG.addDependency(CHAIN_A, systemConfigAddressA);
+
+        // Add chain A as dependency of chain B on the L2 dependency manager
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        SUPERCHAIN_CONFIG.addDependency(superchainConfigAddress, CHAIN_A, systemConfigAddressA);
+
+        // TODO: Prove and finalize a withdrawal to add chain B to the dependency set
+        // Add chain B to the dependency set
+        vm.prank(clusterManager);
+        SUPERCHAIN_CONFIG.addDependency(CHAIN_B, systemConfigAddressB);
+    }
+
+    function _initializeSystemConfig(address _systemConfigAddress, address _optimismPortalAddress) internal {
         ISystemConfig.Addresses memory _addresses = ISystemConfig.Addresses({
             l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
             l1ERC721Bridge: address(0),
             l1StandardBridge: address(0),
             disputeGameFactory: _disputeGameFactory,
-            optimismPortal: optimismPortalAddress,
+            optimismPortal: _optimismPortalAddress,
             optimismMintableERC20Factory: address(0)
         });
         IResourceMetering.ResourceConfig memory _config = Constants.DEFAULT_RESOURCE_CONFIG();
-        SYSTEM_CONFIG.initialize(
+        ISystemConfig(_systemConfigAddress).initialize(
             address(proxyAdmin),
             0,
             0,
@@ -207,34 +277,14 @@ contract Setup is PropertiesAsserts, HandlerActors {
             0xFF00000000000000000000000000000000000010,
             _addresses
         );
+    }
 
-        // Initialize Portal
-        PORTAL.initialize(
+    function _initializePortal(address _portalAddress, address _systemConfigAddress) internal {
+        IOptimismPortalInterop(payable(_portalAddress)).initialize(
             IDisputeGameFactory(_disputeGameFactory),
-            ISystemConfig(systemConfigAddress),
+            ISystemConfig(_systemConfigAddress),
             ISuperchainConfigInterop(superchainConfigAddress),
             GameType.wrap(0)
         );
-
-        // Initialize SharedLockbox
-        SHARED_LOCKBOX.initialize(superchainConfigAddress);
-
-        // Add the dependency to the SuperchainConfig
-        vm.prank(clusterManager);
-        SUPERCHAIN_CONFIG.addDependency(OP_CHAIN_ID, systemConfigAddress);
-    }
-
-    function _addActors() internal {
-        for (uint256 i; i < numberOfActors; i++) {
-            Actors _newActor = new Actors();
-            _ghost_actors.push(address(_newActor));
-
-            // Mint SUPER_TOKEN to the actor, but only for the first 8 actors
-            if (i > 8) continue;
-            uint256 amount = uint256(keccak256(abi.encode(address(_newActor))));
-            // Avoid minting too much on the setup
-            amount = clampLte(amount, type(uint128).max);
-            SUPER_TOKEN.mint(address(_newActor), amount);
-        }
     }
 }

@@ -7,6 +7,7 @@ import { L2ToL2CrossDomainMessenger } from "src/L2/L2ToL2CrossDomainMessenger.so
 import { SuperchainERC20ForToBProperties } from "../helpers/SuperchainERC20ForToBProperties.t.sol";
 import { SuperchainTokenBridge } from "src/L2/SuperchainTokenBridge.sol";
 import { SharedLockbox } from "src/L1/SharedLockbox.sol";
+import { DependencyManager } from "src/L2/DependencyManager.sol";
 
 contract Deployer825 {
     function deployCrossL2Inbox() public returns (address crossL2Inbox) {
@@ -23,6 +24,10 @@ contract Deployer825 {
 
     function deploySuperchainTokenBridge() public returns (address superchainTokenBridge) {
         superchainTokenBridge = address(new SuperchainTokenBridge());
+    }
+
+    function deployDependencyManager() public returns (address dependencyManager) {
+        dependencyManager = address(new DependencyManager());
     }
 
     function deploySharedLockbox() public returns (address _sharedLockbox) {

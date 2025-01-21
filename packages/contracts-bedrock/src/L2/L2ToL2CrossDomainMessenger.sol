@@ -12,6 +12,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
+import { console } from "forge-std/console.sol";
+
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
 
@@ -133,15 +135,21 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _message     Message payload to call target with.
     /// @return The hash of the message being sent, used to track whether the message has successfully been relayed.
     function sendMessage(uint256 _destination, address _target, bytes calldata _message) external returns (bytes32) {
+        console.log("here");
         if (_destination == block.chainid) revert MessageDestinationSameChain();
+        console.log("1");
         if (_target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
+        console.log("2");
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
+        console.log("3");
         if (!IDependencySet(Predeploys.DEPENDENCY_MANAGER).isInDependencySet(_destination)) revert InvalidChainId();
+        console.log("4");
 
         uint256 nonce = messageNonce();
         emit SentMessage(_destination, _target, nonce, msg.sender, _message);
-
+        console.log("5");
         msgNonce++;
+        console.log("6");
 
         return Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
