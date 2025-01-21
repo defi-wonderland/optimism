@@ -7,6 +7,7 @@ import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
+import { ISignatureTransfer } from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 contract Handler is Setup {
     mapping(address => uint256) public nonces;
@@ -197,7 +198,8 @@ contract Handler is Setup {
     function handler_permit2SuperchainWETH(
         uint256 _fromPK,
         uint256 _callerActorIndex,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _nonce
     )
         public
         isInitialized
@@ -208,6 +210,8 @@ contract Handler is Setup {
         // Get the address of the EOA
         address fromEOA = vm.addr(_fromPK);
 
+        Actors callerActor = randomActor(_callerActorIndex);
+
         // Ensure the amount is less than the total supply of SUPER_WETH
         _amount = clampLte(_amount, type(uint256).max - SUPER_WETH.totalSupply());
 
@@ -216,9 +220,32 @@ contract Handler is Setup {
         vm.prank(fromEOA);
         SUPER_WETH.deposit{ value: _amount }();
 
-        assert(false);
+        ISignatureTransfer.TokenPermissions memory tokenPermissions =
+            ISignatureTransfer.TokenPermissions({ token: address(SUPER_WETH), amount: _amount });
 
-        assert(SUPER_WETH.balanceOf(address(fromEOA)) == _amount);
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(_fromPK, keccak256(abi.encode(fromEOA, address(callerActor), _amount, _nonce, block.timestamp)));
+
+        try callerActor.directCall(
+            address(permit2),
+            _ZERO_VALUE,
+            abi.encodeWithSignature(
+                "permitTransferFrom({{address,uint256},uint256,uint256},{{address,uint256},address,bytes})",
+                ISignatureTransfer.PermitTransferFrom({
+                    permitted: tokenPermissions,
+                    nonce: _nonce,
+                    deadline: block.timestamp
+                }),
+                ISignatureTransfer.SignatureTransferDetails({ to: address(callerActor), requestedAmount: _amount }),
+                fromEOA,
+                abi.encodePacked(v, r, s)
+            )
+        ) {
+            assert(SUPER_WETH.balanceOf(address(fromEOA)) == _amount);
+            assert(false);
+        } catch {
+            assert(false);
+        }
     }
 
     function handler_superchainWETHSendETH(
