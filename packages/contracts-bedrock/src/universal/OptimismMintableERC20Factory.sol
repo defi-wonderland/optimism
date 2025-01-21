@@ -26,7 +26,9 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     /// @notice Spacer to avoid packing into the initializer slot
     bytes30 private spacer_0_2_30;
 
-    /// @notice Address of the StandardBridge on this chain.
+    /// @custom:spacer bridge
+    /// @notice Spacer for backwards compatibility. The storage slot was migrated when the
+    ///         initializer pattern was moved away from.
     /// @custom:network-specific
     address private spacer_1_0_20;
 
@@ -51,13 +53,6 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     /// @param remoteToken Address of the corresponding token on the remote chain.
     /// @param deployer    Address of the account that deployed the token.
     event OptimismMintableERC20Created(address indexed localToken, address indexed remoteToken, address deployer);
-
-    // /// @notice The semver MUST be bumped any time that there is a change in
-    // ///         the OptimismMintableERC20 token contract since this contract
-    // ///         is responsible for deploying OptimismMintableERC20 contracts.
-    // /// @notice Semantic version.
-    // /// @custom:semver 1.10.1-beta.8
-    // string public constant version = "1.10.1-beta.8";
 
     /// @notice Getter function for the address of the StandardBridge on this chain.
     ///         Public getter is legacy and will be removed in the future. Use `bridge` instead.
