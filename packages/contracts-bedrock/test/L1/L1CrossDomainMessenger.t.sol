@@ -36,8 +36,8 @@ contract L1CrossDomainMessenger_Test is CommonTest {
 
         // The constructor now uses _disableInitializers, whereas OP Mainnet has the other messenger in storage
         returnIfForkTest("L1CrossDomainMessenger_Test: impl storage differs on forked network");
-        assertEq(address(impl.OTHER_MESSENGER()), address(0));
-        assertEq(address(impl.otherMessenger()), address(0));
+        assertEq(address(impl.OTHER_MESSENGER()), Predeploys.L2_CROSS_DOMAIN_MESSENGER);
+        assertEq(address(impl.otherMessenger()), Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 
     /// @dev Tests that the proxy is initialized correctly.

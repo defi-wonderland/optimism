@@ -7,6 +7,8 @@ import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPort
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 
 interface IL1CrossDomainMessenger is ICrossDomainMessenger {
+    event Initialized(uint8 version);
+
     function PORTAL() external view returns (IOptimismPortal);
     function initialize(
         ISuperchainConfig _superchainConfig,

@@ -8,6 +8,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { stdError } from "forge-std/StdError.sol";
 
 // Libraries
+import { Constants } from "src/libraries/Constants.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Types } from "src/libraries/Types.sol";
@@ -25,9 +26,9 @@ contract L2CrossDomainMessenger_Test is CommonTest {
     function test_constructor_succeeds() external view {
         IL2CrossDomainMessenger impl =
             IL2CrossDomainMessenger(EIP1967Helper.getImplementation(deploy.mustGetAddress("L2CrossDomainMessenger")));
-        assertEq(address(impl.OTHER_MESSENGER()), address(0));
-        assertEq(address(impl.otherMessenger()), address(0));
-        assertEq(address(impl.l1CrossDomainMessenger()), address(0));
+        assertEq(address(impl.OTHER_MESSENGER()), address(l1CrossDomainMessenger));
+        assertEq(address(impl.otherMessenger()), address(l1CrossDomainMessenger));
+        assertEq(address(impl.l1CrossDomainMessenger()), address(l1CrossDomainMessenger));
     }
 
     /// @dev Tests that the proxy is initialized correctly.
@@ -411,5 +412,16 @@ contract L2CrossDomainMessenger_Test is CommonTest {
             0,
             hex"1111"
         );
+    }
+
+    /// @dev Tests that the the otherMessenger can be set correctly through the L1Block contract's setConfig function.
+    function test_setConfig_succeeds(address _l1CrossDomainMessengerAddress) external {
+        Types.ConfigType configType = Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS;
+        bytes memory data = abi.encode(_l1CrossDomainMessengerAddress);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, data);
+
+        assertEq(address(l2CrossDomainMessenger.otherMessenger()), address(_l1CrossDomainMessengerAddress));
     }
 }
