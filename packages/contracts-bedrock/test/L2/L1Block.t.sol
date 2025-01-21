@@ -284,7 +284,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
 
     /// @dev Tests that `setConfig` with `STANDARD_BRIDGE_ADDRESS` config type updates the values correctly.
     function test_setConfig_standardBridge_succeeds(address _bridge) external {
-        Types.ConfigType configType = Types.ConfigType.STANDARD_BRIDGE_ADDRESS;
+        Types.ConfigType configType = Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS;
         bytes memory data = abi.encode(_bridge);
 
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
