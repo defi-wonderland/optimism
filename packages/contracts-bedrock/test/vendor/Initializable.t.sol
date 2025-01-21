@@ -242,14 +242,6 @@ contract Initializer_Test is CommonTest {
                 )
             })
         );
-        // L2CrossDomainMessenger
-        contracts.push(
-            InitializeableContract({
-                name: "L2CrossDomainMessenger",
-                target: address(l2CrossDomainMessenger),
-                initCalldata: abi.encodeCall(l2CrossDomainMessenger.initialize, (l1CrossDomainMessenger))
-            })
-        );
         // L1StandardBridgeImpl
         contracts.push(
             InitializeableContract({

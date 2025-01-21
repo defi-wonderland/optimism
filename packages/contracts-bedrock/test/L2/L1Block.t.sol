@@ -297,6 +297,21 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         assertEq(bridge, _bridge);
     }
 
+    /// @dev Tests that `setConfig` with `L1_CROSS_DOMAIN_MESSENGER_ADDRESS` config type updates the values correctly.
+    function test_setConfig_l1CrossDomainMessenger_succeeds(address _l1CrossDomainMessengerAddress) external {
+        Types.ConfigType configType = Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS;
+        bytes memory data = abi.encode(_l1CrossDomainMessengerAddress);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, data);
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(keccak256(config), keccak256(data));
+
+        address l1CrossDomainMessengerAddress = abi.decode(config, (address));
+        assertEq(l1CrossDomainMessengerAddress, _l1CrossDomainMessengerAddress);
+    }
+
     /// @dev Tests that `setConfig` with `BASE_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_baseFeeVault_succeeds(
         address _recipient,
@@ -306,7 +321,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         external
     {
         Types.ConfigType configType = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
-        _assertConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
+        _assertFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
     /// @dev Tests that `setConfig` with `SEQUENCER_FEE_VAULT_CONFIG` config type updates the values correctly.
@@ -318,17 +333,17 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         external
     {
         Types.ConfigType configType = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
-        _assertConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
+        _assertFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
     /// @dev Tests that `setConfig` with `L1_FEE_VAULT_CONFIG` config type updates the values correctly.
     function test_setConfig_l1FeeVault_succeeds(address _recipient, uint88 _minWithdrawalAmount, bool _isL1) external {
         Types.ConfigType configType = Types.ConfigType.L1_FEE_VAULT_CONFIG;
-        _assertConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
+        _assertFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
     /// @dev Asserts that the config data is set correctly for a given configType.
-    function _assertConfigData(
+    function _assertFeeVaultConfigData(
         Types.ConfigType _configType,
         address _recipient,
         uint88 _minWithdrawalAmount,

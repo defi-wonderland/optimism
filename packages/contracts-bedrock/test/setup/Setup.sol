@@ -313,22 +313,33 @@ contract Setup {
 
         configureFeeVaults();
         configureBridges();
+        configureCrossDomainMessenger();
 
         console.log("Setup: completed L2 genesis");
     }
 
+    /// @dev Sets the standard bridge address in the L1Block contract.
     function configureBridges() internal {
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
         l1Block.setConfig(Types.ConfigType.STANDARD_BRIDGE_ADDRESS, abi.encode(address(l2StandardBridge)));
         vm.stopPrank();
     }
 
+    /// @dev Sets the L1CrossDomainMessenger address in the L1Block contract.
+    function configureCrossDomainMessenger() internal {
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(
+            Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS, abi.encode(address(l1CrossDomainMessenger))
+        );
+        console.log("Setup: configured L1CrossDomainMessenger address");
+    }
+
+    /// @dev Sets the fee vaults configuration in the L1Block contract.
     function configureFeeVaults() internal {
         // These calls by the depositor account simulate the SystemConfig setting the
         // network specific configuration into L2. Ideally there is a library that automatically
         // translates TransactionDeposited and ConfigUpdate events into the appropriate calls
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
-
         bytes32 sequencerFeeVaultConfig = Encoding.encodeFeeVaultConfig({
             _recipient: deploy.cfg().sequencerFeeVaultRecipient(),
             _amount: deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount(),

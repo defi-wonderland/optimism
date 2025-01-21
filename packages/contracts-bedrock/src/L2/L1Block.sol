@@ -32,6 +32,9 @@ contract L1Block is ISemver, IGasToken {
     /// @notice Storage slot for the standard bridge address
     bytes32 internal constant STANDARD_BRIDGE_ADDRESS_SLOT =
         bytes32(uint256(keccak256("opstack.standardbridgeaddress")) - 1);
+    /// @notice Storage slot for the L1 cross domain messenger address
+    bytes32 internal constant L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT =
+        bytes32(uint256(keccak256("opstack.l1crossdomainmessengeraddress")) - 1);
 
     /// @notice Storage slot for the sequencer fee vault configuration
     bytes32 internal constant SEQUENCER_FEE_VAULT_CONFIG_SLOT =
@@ -214,6 +217,8 @@ contract L1Block is ISemver, IGasToken {
             Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
         } else if (_type == Types.ConfigType.STANDARD_BRIDGE_ADDRESS) {
             Storage.setAddress(STANDARD_BRIDGE_ADDRESS_SLOT, abi.decode(_value, (address)));
+        } else if (_type == Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS) {
+            Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT, abi.decode(_value, (address)));
         }
     }
 
@@ -234,6 +239,8 @@ contract L1Block is ISemver, IGasToken {
             config_ = abi.encode(token, decimals, GasPayingToken.sanitize(name), GasPayingToken.sanitize(symbol));
         } else if (_type == Types.ConfigType.STANDARD_BRIDGE_ADDRESS) {
             config_ = abi.encode(Storage.getAddress(STANDARD_BRIDGE_ADDRESS_SLOT));
+        } else if (_type == Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS) {
+            config_ = abi.encode(Storage.getAddress(L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT));
         }
     }
 

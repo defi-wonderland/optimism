@@ -2,7 +2,6 @@
 pragma solidity 0.8.15;
 
 // Libraries
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
@@ -11,21 +10,23 @@ import { Constants } from "src/libraries/Constants.sol";
 /// @custom:legacy
 /// @title CrossDomainMessengerLegacySpacer0
 /// @notice Contract only exists to add a spacer to the CrossDomainMessenger where the
-///         libAddressManager variable used to exist. Must be the first contract in the inheritance
-///         tree of the CrossDomainMessenger.
-contract CrossDomainMessengerLegacySpacer0 {
+///         libAddressManager variable and Initializable contract variables used to exist.
+abstract contract CrossDomainMessengerLegacySpacer {
     /// @custom:legacy
     /// @custom:spacer libAddressManager
     /// @notice Spacer for backwards compatibility.
     address private spacer_0_0_20;
-}
 
-/// @custom:legacy
-/// @title CrossDomainMessengerLegacySpacer1
-/// @notice Contract only exists to add a spacer to the CrossDomainMessenger where the
-///         PausableUpgradable and OwnableUpgradeable variables used to exist. Must be
-///         the third contract in the inheritance tree of the CrossDomainMessenger.
-contract CrossDomainMessengerLegacySpacer1 {
+    /// @custom:legacy
+    /// @custom:spacer Initializable's _initialized
+    /// @notice Spacer for backwards compatibility. Comes from OpenZeppelin Initializable.
+    uint8 private spacer_0_20_1;
+
+    /// @custom:legacy
+    /// @custom:spacer Initializable's _initializing
+    /// @notice Spacer for backwards compatibility. Comes from OpenZeppelin Initializable.
+    bool private spacer_0_21_1;
+
     /// @custom:legacy
     /// @custom:spacer ContextUpgradable's __gap
     /// @notice Spacer for backwards compatibility. Comes from OpenZeppelin
@@ -85,11 +86,7 @@ contract CrossDomainMessengerLegacySpacer1 {
 ///         chain it's deployed on. Currently only designed for message passing between two paired
 ///         chains and does not support one-to-many interactions.
 ///         Any changes to this contract MUST result in a semver bump for contracts that inherit it.
-abstract contract CrossDomainMessenger is
-    CrossDomainMessengerLegacySpacer0,
-    Initializable,
-    CrossDomainMessengerLegacySpacer1
-{
+abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     /// @notice Current message version identifier.
     uint16 public constant MESSAGE_VERSION = 1;
 
@@ -120,11 +117,12 @@ abstract contract CrossDomainMessenger is
     ///         can therefore not be relayed again.
     mapping(bytes32 => bool) public successfulMessages;
 
-    /// @notice Address of the sender of the currently executing message on the other chain. If the
-    ///         value of this variable is the default value (0x00000000...dead) then no message is
-    ///         currently being executed. Use the xDomainMessageSender getter which will throw an
-    ///         error if this is the case.
-    address internal xDomainMsgSender;
+    /// @custom:legacy
+    /// @custom:spacer xDomainMsgSender
+    /// @notice Spacer for backwards compatibility. The storage slot was migrated when the
+    ///         initializer pattern was moved away from in the base contract to remove the
+    ///         need to set `Constants.DEFAULT_L2_SENDER` into storage during a call to `initialize`.
+    address private spacer_204_0_20;
 
     /// @notice Nonce for the next message to be sent, without the message version applied. Use the
     ///         messageNonce getter which will insert the message version into the nonce to give you
@@ -136,14 +134,23 @@ abstract contract CrossDomainMessenger is
     ///         successfully executed on the first attempt.
     mapping(bytes32 => bool) public failedMessages;
 
-    /// @notice CrossDomainMessenger contract on the other chain.
-    /// @custom:network-specific
-    CrossDomainMessenger public otherMessenger;
+    /// @custom:legacy
+    /// @custom:spacer otherMessenger
+    /// @notice Spacer for backwards compatibility.
+    address private spacer_207_0_20;
+
+    /// @notice Address of the sender of the currently executing message on the other chain. If the
+    ///         value of this variable is address(0) then no message is currently being executed.
+    ///         Use the xDomainMessageSender getter which will throw an error if this is the case.
+    address private xDomainMsgSender;
+
+    /// @notice Spacer to ensure that there is no collision with the xDomainMsgSender slot.
+    bytes12 private spacer_208_20_12;
 
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    ///         A gap size of 43 was chosen here, so that the first slot used in a child contract
+    ///         A gap size of 41 was chosen here, so that the first slot used in a child contract
     ///         would be 1 plus a multiple of 50.
-    uint256[43] private __gap;
+    uint256[41] private __gap;
 
     /// @notice Emitted whenever a message is sent to the other chain.
     /// @param target       Address of the recipient of the message.
@@ -184,7 +191,7 @@ abstract contract CrossDomainMessenger is
         // guarantee the property that the call to the target contract will always have at least
         // the minimum gas limit specified by the user.
         _sendMessage({
-            _to: address(otherMessenger),
+            _to: address(otherMessenger()),
             _gasLimit: baseGas(_message, _minGasLimit),
             _value: msg.value,
             _data: abi.encodeWithSelector(
@@ -267,7 +274,7 @@ abstract contract CrossDomainMessenger is
         // is being re-entered. This marks the message as failed to allow it to be replayed.
         if (
             !SafeCall.hasMinGas(_minGasLimit, RELAY_RESERVED_GAS + RELAY_GAS_CHECK_BUFFER)
-                || xDomainMsgSender != Constants.DEFAULT_L2_SENDER
+                || getCrossDomainMessageSender() != Constants.DEFAULT_L2_SENDER
         ) {
             failedMessages[versionedHash] = true;
             emit FailedRelayedMessage(versionedHash);
@@ -284,9 +291,9 @@ abstract contract CrossDomainMessenger is
             return;
         }
 
-        xDomainMsgSender = _sender;
+        setCrossDomainMessageSender(_sender);
         bool success = SafeCall.call(_target, gasleft() - RELAY_RESERVED_GAS, _value, _message);
-        xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
+        setCrossDomainMessageSender(address(0));
 
         if (success) {
             // This check is identical to one above, but it ensures that the same message cannot be relayed
@@ -314,11 +321,9 @@ abstract contract CrossDomainMessenger is
     ///         currently being executed. Allows the recipient of a call to see who triggered it.
     /// @return Address of the sender of the currently executing message on the other chain.
     function xDomainMessageSender() external view returns (address) {
-        require(
-            xDomainMsgSender != Constants.DEFAULT_L2_SENDER, "CrossDomainMessenger: xDomainMessageSender is not set"
-        );
-
-        return xDomainMsgSender;
+        address sender = getCrossDomainMessageSender();
+        require(sender != Constants.DEFAULT_L2_SENDER, "CrossDomainMessenger: xDomainMessageSender is not set");
+        return sender;
     }
 
     /// @notice Retrieves the address of the paired CrossDomainMessenger contract on the other chain
@@ -326,7 +331,7 @@ abstract contract CrossDomainMessenger is
     /// @return CrossDomainMessenger contract on the other chain.
     /// @custom:legacy
     function OTHER_MESSENGER() public view returns (CrossDomainMessenger) {
-        return otherMessenger;
+        return otherMessenger();
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two
@@ -363,6 +368,24 @@ abstract contract CrossDomainMessenger is
         + RELAY_GAS_CHECK_BUFFER;
     }
 
+    /// @notice Returns the CrossDomainMessenger contract on the other chain.
+    /// @return CrossDomainMessenger contract on the other chain.
+    function otherMessenger() public view virtual returns (CrossDomainMessenger);
+
+    /// @notice Retrieves the address of the contract or wallet that initiated the currently
+    ///         executing message on the other chain.
+    /// @return Address of the sender of the currently executing message on the other chain.
+    function getCrossDomainMessageSender() internal view returns (address) {
+        if (xDomainMsgSender == address(0)) return Constants.DEFAULT_L2_SENDER;
+        return xDomainMsgSender;
+    }
+
+    /// @notice Setter function for the cross-domain message sender.
+    /// @param _address Address of the sender of the currently executing message on the other chain.
+    function setCrossDomainMessageSender(address _address) internal {
+        xDomainMsgSender = _address;
+    }
+
     /// @notice Returns the address of the gas token and the token's decimals.
     function gasPayingToken() internal view virtual returns (address, uint8);
 
@@ -370,19 +393,6 @@ abstract contract CrossDomainMessenger is
     function isCustomGasToken() internal view returns (bool) {
         (address token,) = gasPayingToken();
         return token != Constants.ETHER;
-    }
-
-    /// @notice Initializer.
-    /// @param _otherMessenger CrossDomainMessenger contract on the other chain.
-    function __CrossDomainMessenger_init(CrossDomainMessenger _otherMessenger) internal onlyInitializing {
-        // We only want to set the xDomainMsgSender to the default value if it hasn't been initialized yet,
-        // meaning that this is a fresh contract deployment.
-        // This prevents resetting the xDomainMsgSender to the default value during an upgrade, which would enable
-        // a reentrant withdrawal to sandwhich the upgrade replay a withdrawal twice.
-        if (xDomainMsgSender == address(0)) {
-            xDomainMsgSender = Constants.DEFAULT_L2_SENDER;
-        }
-        otherMessenger = _otherMessenger;
     }
 
     /// @notice Sends a low-level message to the other messenger. Needs to be implemented by child

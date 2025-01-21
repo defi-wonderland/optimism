@@ -5,6 +5,7 @@ pragma solidity 0.8.15;
 import { CrossDomainMessenger } from "src/universal/CrossDomainMessenger.sol";
 
 // Libraries
+import { Types } from "src/libraries/Types.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
@@ -23,23 +24,12 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
     /// @custom:semver 2.1.1-beta.7
     string public constant version = "2.1.1-beta.7";
 
-    /// @notice Constructs the L2CrossDomainMessenger contract.
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializer.
-    /// @param _l1CrossDomainMessenger L1CrossDomainMessenger contract on the other network.
-    function initialize(CrossDomainMessenger _l1CrossDomainMessenger) external initializer {
-        __CrossDomainMessenger_init({ _otherMessenger: _l1CrossDomainMessenger });
-    }
-
     /// @notice Getter for the remote messenger.
     ///         Public getter is legacy and will be removed in the future. Use `otherMessenger()` instead.
     /// @return L1CrossDomainMessenger contract.
     /// @custom:legacy
     function l1CrossDomainMessenger() public view returns (CrossDomainMessenger) {
-        return otherMessenger;
+        return otherMessenger();
     }
 
     /// @inheritdoc CrossDomainMessenger
@@ -56,11 +46,18 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @inheritdoc CrossDomainMessenger
     function _isOtherMessenger() internal view override returns (bool) {
-        return AddressAliasHelper.undoL1ToL2Alias(msg.sender) == address(otherMessenger);
+        return AddressAliasHelper.undoL1ToL2Alias(msg.sender) == address(otherMessenger());
     }
 
     /// @inheritdoc CrossDomainMessenger
     function _isUnsafeTarget(address _target) internal view override returns (bool) {
         return _target == address(this) || _target == address(Predeploys.L2_TO_L1_MESSAGE_PASSER);
+    }
+
+    /// @inheritdoc CrossDomainMessenger
+    function otherMessenger() public view virtual override returns (CrossDomainMessenger) {
+        bytes memory data =
+            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS);
+        return CrossDomainMessenger(abi.decode(data, (address)));
     }
 }
