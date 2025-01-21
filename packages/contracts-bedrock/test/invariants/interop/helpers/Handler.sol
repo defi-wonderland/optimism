@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 import { Setup, Preinstalls } from "../Setup.sol";
 import { Actors } from "./Actors.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
 import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-import { ISignatureTransfer } from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 contract Handler is Setup {
     mapping(address => uint256) public nonces;
@@ -196,53 +196,28 @@ contract Handler is Setup {
     }
 
     function handler_permit2SuperchainWETH(
-        uint256 _fromPK,
+        uint256 _fromActorIndex,
         uint256 _callerActorIndex,
-        uint256 _amount,
-        uint256 _nonce
+        uint256 _amount
     )
         public
         isInitialized
     {
-        // Cache permit2 address
-        address permit2 = Preinstalls.Permit2;
-
-        // Get the address of the EOA
-        address fromEOA = vm.addr(_fromPK);
-
+        Actors fromActor = randomActor(_fromActorIndex);
         Actors callerActor = randomActor(_callerActorIndex);
+        _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(fromActor)));
 
-        // Ensure the amount is less than the total supply of SUPER_WETH
-        _amount = clampLte(_amount, type(uint256).max - SUPER_WETH.totalSupply());
+        // Get callerActor's balance before
+        uint256 callerActorBalanceBefore = SUPER_WETH.balanceOf(address(callerActor));
 
-        vm.deal(fromEOA, _amount);
-
-        vm.prank(fromEOA);
-        SUPER_WETH.deposit{ value: _amount }();
-
-        ISignatureTransfer.TokenPermissions memory tokenPermissions =
-            ISignatureTransfer.TokenPermissions({ token: address(SUPER_WETH), amount: _amount });
-
-        (uint8 v, bytes32 r, bytes32 s) =
-            vm.sign(_fromPK, keccak256(abi.encode(fromEOA, address(callerActor), _amount, _nonce, block.timestamp)));
-
-        try callerActor.directCall(
-            address(permit2),
-            _ZERO_VALUE,
-            abi.encodeWithSignature(
-                "permitTransferFrom({{address,uint256},uint256,uint256},{{address,uint256},address,bytes})",
-                ISignatureTransfer.PermitTransferFrom({
-                    permitted: tokenPermissions,
-                    nonce: _nonce,
-                    deadline: block.timestamp
-                }),
-                ISignatureTransfer.SignatureTransferDetails({ to: address(callerActor), requestedAmount: _amount }),
-                fromEOA,
-                abi.encodePacked(v, r, s)
-            )
+        try Permit2(Preinstalls.Permit2).permitTransferFrom(
+            address(SUPER_WETH), address(fromActor), address(callerActor), _amount
         ) {
-            assert(SUPER_WETH.balanceOf(address(fromEOA)) == _amount);
-            assert(false);
+            if (address(callerActor) == address(fromActor)) {
+                assert(SUPER_WETH.balanceOf(address(callerActor)) == callerActorBalanceBefore);
+            } else {
+                assert(SUPER_WETH.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
+            }
         } catch {
             assert(false);
         }
