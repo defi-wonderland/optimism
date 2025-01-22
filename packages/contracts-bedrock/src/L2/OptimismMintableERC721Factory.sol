@@ -47,9 +47,8 @@ contract OptimismMintableERC721Factory is ISemver {
         require(_remoteToken != address(0), "OptimismMintableERC721Factory: L1 token address cannot be address(0)");
 
         bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol));
-        address localToken = address(
-            new OptimismMintableERC721{ salt: salt }(address(bridge()), remoteChainID(), _remoteToken, _name, _symbol)
-        );
+        address localToken =
+            address(new OptimismMintableERC721{ salt: salt }(bridge(), remoteChainID(), _remoteToken, _name, _symbol));
 
         isOptimismMintableERC721[localToken] = true;
         emit OptimismMintableERC721Created(localToken, _remoteToken, msg.sender);
