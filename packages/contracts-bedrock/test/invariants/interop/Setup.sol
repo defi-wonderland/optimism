@@ -201,9 +201,35 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Initialize SuperchainConfig
         SUPERCHAIN_CONFIG.initialize(guardian, false, clusterManager, sharedLockboxAddress);
 
-        // Initialize system config and portal
-        _initializeSystemConfig(systemConfigAddress, optimismPortalAddress);
-        _initializePortal(optimismPortalAddress, systemConfigAddress);
+        // Initialize SystemConfig
+        ISystemConfig.Addresses memory addresses = ISystemConfig.Addresses({
+            l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
+            l1ERC721Bridge: address(0),
+            l1StandardBridge: address(0),
+            disputeGameFactory: _disputeGameFactory,
+            optimismPortal: optimismPortalAddress,
+            optimismMintableERC20Factory: address(0)
+        });
+        IResourceMetering.ResourceConfig memory config = Constants.DEFAULT_RESOURCE_CONFIG();
+        SYSTEM_CONFIG.initialize(
+            address(proxyAdmin),
+            0,
+            0,
+            0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
+            60000000,
+            0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
+            config,
+            0xFF00000000000000000000000000000000000010,
+            addresses
+        );
+
+        // Initialize Portal
+        PORTAL.initialize(
+            IDisputeGameFactory(_disputeGameFactory),
+            ISystemConfig(systemConfigAddress),
+            ISuperchainConfigInterop(superchainConfigAddress),
+            GameType.wrap(0)
+        );
 
         // Initialize SharedLockbox
         SHARED_LOCKBOX.initialize(superchainConfigAddress);
@@ -238,38 +264,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
             superchainConfigAddress,
             0,
             abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (ORIGIN_CHAIN_ID, systemConfigAddress))
-        );
-    }
-
-    function _initializeSystemConfig(address _systemConfigAddress, address _optimismPortalAddress) internal {
-        ISystemConfig.Addresses memory _addresses = ISystemConfig.Addresses({
-            l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
-            l1ERC721Bridge: address(0),
-            l1StandardBridge: address(0),
-            disputeGameFactory: _disputeGameFactory,
-            optimismPortal: _optimismPortalAddress,
-            optimismMintableERC20Factory: address(0)
-        });
-        IResourceMetering.ResourceConfig memory _config = Constants.DEFAULT_RESOURCE_CONFIG();
-        ISystemConfig(_systemConfigAddress).initialize(
-            address(proxyAdmin),
-            0,
-            0,
-            0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
-            60000000,
-            0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
-            _config,
-            0xFF00000000000000000000000000000000000010,
-            _addresses
-        );
-    }
-
-    function _initializePortal(address _portalAddress, address _systemConfigAddress) internal {
-        IOptimismPortalInterop(payable(_portalAddress)).initialize(
-            IDisputeGameFactory(_disputeGameFactory),
-            ISystemConfig(_systemConfigAddress),
-            ISuperchainConfigInterop(superchainConfigAddress),
-            GameType.wrap(0)
         );
     }
 }
