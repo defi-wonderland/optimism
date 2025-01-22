@@ -16,19 +16,12 @@ contract FuzzTest is Handler {
     /// @custom:property Check setup proper deployment and initialization of the contracts
     function property_setupSanityCheck() public isInitialized {
         /* Contracts with some storage intialization on setup */
-        // Portal A
-        assert(PORTAL_A.proofMaturityDelaySeconds() == 1 weeks);
-        assert(PORTAL_A.disputeGameFinalityDelaySeconds() == 3.5 days);
-        assert(address(PORTAL_A.superchainConfig()) == superchainConfigAddress);
-        assert(address(PORTAL_A.systemConfig()) == systemConfigAddressA);
-        assert(address(PORTAL_A.disputeGameFactory()) == _disputeGameFactory);
-
-        // Portal B
-        assert(PORTAL_B.proofMaturityDelaySeconds() == 1 weeks);
-        assert(PORTAL_B.disputeGameFinalityDelaySeconds() == 3.5 days);
-        assert(address(PORTAL_B.superchainConfig()) == superchainConfigAddress);
-        assert(address(PORTAL_B.systemConfig()) == systemConfigAddressB);
-        assert(address(PORTAL_B.disputeGameFactory()) == _disputeGameFactory);
+        // Portal
+        assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
+        assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
+        assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
+        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
+        assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
 
         // Shared Lockbox
         assert(address(SHARED_LOCKBOX.superchainConfig()) == superchainConfigAddress);
@@ -37,39 +30,23 @@ contract FuzzTest is Handler {
         assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
         assert(SUPERCHAIN_CONFIG.paused() == false);
-        assert(SUPERCHAIN_CONFIG.isInDependencySet(CHAIN_A));
-        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddressA));
-        assert(SUPERCHAIN_CONFIG.isInDependencySet(CHAIN_B));
-        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddressB));
+        assert(SUPERCHAIN_CONFIG.isInDependencySet(ORIGIN_CHAIN_ID));
+        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
 
-        // System Config A
-        uint256 systemConfigAStartBlock = SYSTEM_CONFIG_A.startBlock();
+        // System Config
+        uint256 systemConfigAStartBlock = SYSTEM_CONFIG.startBlock();
         assert(systemConfigAStartBlock > 0 && systemConfigAStartBlock <= block.number);
-        assert(SYSTEM_CONFIG_A.basefeeScalar() == 0);
-        assert(SYSTEM_CONFIG_A.blobbasefeeScalar() == 0);
-        assert(SYSTEM_CONFIG_A.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
-        assert(SYSTEM_CONFIG_A.gasLimit() == 60000000);
-        assert(SYSTEM_CONFIG_A.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
-        assert(SYSTEM_CONFIG_A.batchInbox() == 0xFF00000000000000000000000000000000000010);
-        assert(SYSTEM_CONFIG_A.disputeGameFactory() == _disputeGameFactory);
-        assert(SYSTEM_CONFIG_A.optimismPortal() == address(PORTAL_A));
-        bytes memory resourceConfigA = abi.encode(SYSTEM_CONFIG_A.resourceConfig());
+        assert(SYSTEM_CONFIG.basefeeScalar() == 0);
+        assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
+        assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
+        assert(SYSTEM_CONFIG.gasLimit() == 60000000);
+        assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
+        assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
+        assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
+        assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
+        bytes memory resourceConfigA = abi.encode(SYSTEM_CONFIG.resourceConfig());
         bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
         assert(resourceConfigA.hashBytes() == defaultResourceConfig.hashBytes());
-
-        // System Config B
-        uint256 systemConfigBStartBlock = SYSTEM_CONFIG_B.startBlock();
-        assert(systemConfigBStartBlock > 0 && systemConfigBStartBlock <= block.number);
-        assert(SYSTEM_CONFIG_B.basefeeScalar() == 0);
-        assert(SYSTEM_CONFIG_B.blobbasefeeScalar() == 0);
-        assert(SYSTEM_CONFIG_B.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
-        assert(SYSTEM_CONFIG_B.gasLimit() == 60000000);
-        assert(SYSTEM_CONFIG_B.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
-        assert(SYSTEM_CONFIG_B.batchInbox() == 0xFF00000000000000000000000000000000000010);
-        assert(SYSTEM_CONFIG_B.disputeGameFactory() == _disputeGameFactory);
-        assert(SYSTEM_CONFIG_B.optimismPortal() == address(PORTAL_B));
-        bytes memory resourceConfigB = abi.encode(SYSTEM_CONFIG_B.resourceConfig());
-        assert(resourceConfigB.hashBytes() == defaultResourceConfig.hashBytes());
 
         // SuperchainERC20
         string memory tokenName = "Super Token";
@@ -86,6 +63,7 @@ contract FuzzTest is Handler {
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
+        assert(DEPENDENCY_MANAGER.version().hashString() != emptyStringHash);
     }
 
     /// @custom:property-id 1
@@ -105,7 +83,7 @@ contract FuzzTest is Handler {
         uint256 sTokenTotalSupplyBefore = totalSupply;
 
         // Call the token bridge from the actor
-        (bool success) = actor.callBridgeSendERC20(address(SUPER_TOKEN), _to, _amount, CHAIN_B);
+        (bool success) = actor.callBridgeSendERC20(address(SUPER_TOKEN), _to, _amount, DESTINATION_CHAIN_ID);
         if (success) {
             assert(SUPER_TOKEN.balanceOf(address(actor)) == actorSTokenBalanceBefore - _amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore - _amount);
@@ -132,11 +110,12 @@ contract FuzzTest is Handler {
 
         // Ensure the message is valid
         address targetActor = address(randomActor(_actorIndex));
+        address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
         bytes memory message = abi.encodeCall(
             SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _message.from, targetActor, _message.amount)
         );
         bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce), // topics
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
             abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
         );
 
@@ -146,7 +125,11 @@ contract FuzzTest is Handler {
 
         // Relay the message by calling the messenger from the actor
         Actors actor = currentActor();
-        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        (bool success,) = actor.directCall(
+            address(L2_TO_L2_MESSENGER),
+            0,
+            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
+        );
 
         if (success) {
             // Check the state is right after the call
@@ -187,7 +170,7 @@ contract FuzzTest is Handler {
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Call the token bridge from the actor
-        (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, CHAIN_B);
+        (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID);
         if (success) {
             _ghost_superWethBalancesSum -= _amount;
 
@@ -272,6 +255,7 @@ contract FuzzTest is Handler {
         bool _callSuperWETH
     )
         public
+        isInitialized
     {
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -349,11 +333,11 @@ contract FuzzTest is Handler {
         bool success;
         if (_callSuperWETH) {
             _amount = clampLte(_amount, Utils.min(address(currentActor()).balance, address(SUPER_WETH).balance));
-            success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, CHAIN_B);
+            success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, DESTINATION_CHAIN_ID);
         } else {
             _amount =
                 clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(address(currentActor())), address(SUPER_WETH).balance));
-            success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, CHAIN_B);
+            success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID);
         }
 
         if (success) {

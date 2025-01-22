@@ -9,6 +9,7 @@ import { Proxy } from "src/universal/Proxy.sol";
 import { SuperchainConfigInterop } from "src/L1/SuperchainConfigInterop.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
+import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
 
 contract Deployer815 {
     function deployETHLiquidity() public returns (address _ethLiquidity) {
@@ -44,5 +45,9 @@ contract Deployer815 {
 
     function deploySystemConfig() public returns (address _systemConfig) {
         _systemConfig = address(new SystemConfig());
+    }
+
+    function deployL2ToL1MessagePasser() public returns (address _l2ToL1MessagePasser) {
+        _l2ToL1MessagePasser = address(new L2ToL1MessagePasser());
     }
 }

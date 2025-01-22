@@ -27,7 +27,7 @@ contract Handler is Setup {
     modifier isInitialized() {
         if (!initialized) {
             _initializeProxies();
-            _addDependencies();
+            _addDependency();
             initialized = true;
         }
         _;
@@ -51,6 +51,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
+        isInitialized
     {
         Actors fromActor = randomActor(_fromActorIndex);
         Actors callerActor = randomActor(_callerActorIndex);
@@ -119,6 +120,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
+        isInitialized
     {
         Actors fromActor = randomActor(_fromActorIndex);
         Actors callerActor = randomActor(_callerActorIndex);
@@ -143,15 +145,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_superchainWETHSendETH(
-        address _to,
-        uint256 _value,
-        uint256 _chainId,
-        uint256 _actorIndex
-    )
-        public
-        isInitialized
-    {
+    function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _actorIndex) public isInitialized {
         require(_to != address(0));
 
         // Get state before call
@@ -164,7 +158,9 @@ contract Handler is Setup {
         // Clamp the value to prevent an overflow or a revert due to insufficient balance
         _value = clampLte(_value, Utils.min(type(uint256).max - sWethBalanceBefore, actorBalanceBefore));
 
-        try actor.directCall(address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, _chainId))) {
+        try actor.directCall(
+            address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, DESTINATION_CHAIN_ID))
+        ) {
             // Check the Ether balances and that the superchain WETH total supply was not modified
             assert(address(actor).balance == actorBalanceBefore - _value);
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
@@ -181,6 +177,7 @@ contract Handler is Setup {
         uint256 _toActorIndex
     )
         public
+        isInitialized
     {
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);

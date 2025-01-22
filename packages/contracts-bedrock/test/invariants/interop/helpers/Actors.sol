@@ -76,6 +76,8 @@ contract Actors {
         emit ActorsLog(string.concat("call using actor: ", vm.toString(address(this))));
 
         (_success, _returnData) = _target.call{ value: _msgValue }(_payload);
+
+        emit ActorsLog(string.concat("return data: ", vm.toString(_returnData)));
     }
 
     receive() external payable { }

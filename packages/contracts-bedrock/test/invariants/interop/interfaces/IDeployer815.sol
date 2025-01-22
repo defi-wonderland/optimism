@@ -22,4 +22,6 @@ interface IDeployer815 {
     function deploySuperchainWETH() external returns (address superchainWETH);
 
     function deploySystemConfig() external returns (address systemConfig);
+
+    function deployL2ToL1MessagePasser() external returns (address l2ToL1MessagePasser);
 }
