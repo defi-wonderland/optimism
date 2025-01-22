@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: AGPL-3
+pragma solidity ^0.8.0;
+
+import { vm } from "../utils/VM.sol";
+import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
+import "properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
+import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
+
+contract SuperchainWETHForToBProperties is
+    SuperchainWETH,
+    CryticERC20ExternalBasicProperties,
+    CryticERC20ExternalIncreaseAllowanceProperties
+{
+    /// @notice This is used by CryticERC20ExternalBasicProperties to check the ERC20 properties
+    bool public isMintableOrBurnable;
+    uint256 public initialSupply;
+
+    constructor() {
+        token = ITokenMock(address(this));
+
+        vm.deal(address(this), INITIAL_BALANCE * 4);
+        _mint(USER1, INITIAL_BALANCE);
+        _mint(USER2, INITIAL_BALANCE);
+        _mint(USER3, INITIAL_BALANCE);
+        _mint(msg.sender, INITIAL_BALANCE);
+
+        isMintableOrBurnable = true;
+        initialSupply = address(this).balance;
+    }
+}
