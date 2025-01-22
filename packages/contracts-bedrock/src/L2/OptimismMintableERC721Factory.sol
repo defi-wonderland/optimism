@@ -70,6 +70,8 @@ contract OptimismMintableERC721Factory is ISemver {
     }
 
     /// @notice Returns the remote chain id
+    ///         Public getter is legacy and will be removed in the future. Use `remoteChainID()` instead.
+    /// @custom:legacy
     function REMOTE_CHAIN_ID() external view returns (uint256) {
         return remoteChainID();
     }
