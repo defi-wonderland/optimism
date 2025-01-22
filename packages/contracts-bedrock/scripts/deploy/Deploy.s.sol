@@ -120,7 +120,7 @@ contract Deploy is Deployer {
             DelayedWETH: getAddress("DelayedWETHProxy"),
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETHProxy"),
             AnchorStateRegistry: getAddress("AnchorStateRegistryProxy"),
-            OptimismMintableERC20Factory: getAddress("OptimismMintableERC20FactoryProxy"),
+            OptimismMintableERC20Factory: getAddress("L1OptimismMintableERC20FactoryProxy"),
             OptimismPortal: getAddress("OptimismPortalProxy"),
             SystemConfig: getAddress("SystemConfigProxy"),
             L1ERC721Bridge: getAddress("L1ERC721BridgeProxy"),
@@ -139,7 +139,7 @@ contract Deploy is Deployer {
             DelayedWETH: getAddress("DelayedWETH"),
             PermissionedDelayedWETH: getAddress("PermissionedDelayedWETH"),
             AnchorStateRegistry: getAddress("AnchorStateRegistry"),
-            OptimismMintableERC20Factory: getAddress("OptimismMintableERC20Factory"),
+            OptimismMintableERC20Factory: getAddress("L1OptimismMintableERC20Factory"),
             OptimismPortal: getAddress("OptimismPortal2"),
             SystemConfig: getAddress("SystemConfig"),
             L1ERC721Bridge: getAddress("L1ERC721Bridge"),
@@ -307,7 +307,9 @@ contract Deploy is Deployer {
         di.run(dii, dio);
 
         save("L1CrossDomainMessenger", address(dio.l1CrossDomainMessengerImpl()));
+        // Save under both names for backwards compatibility
         save("OptimismMintableERC20Factory", address(dio.optimismMintableERC20FactoryImpl()));
+        save("L1OptimismMintableERC20Factory", address(dio.optimismMintableERC20FactoryImpl()));
         save("SystemConfig", address(dio.systemConfigImpl()));
         save("L1StandardBridge", address(dio.l1StandardBridgeImpl()));
         save("L1ERC721Bridge", address(dio.l1ERC721BridgeImpl()));
@@ -326,7 +328,7 @@ contract Deploy is Deployer {
         ChainAssertions.checkL1StandardBridge({ _contracts: contracts, _isProxy: false });
         ChainAssertions.checkL1ERC721Bridge({ _contracts: contracts, _isProxy: false });
         ChainAssertions.checkOptimismPortal2({ _contracts: contracts, _cfg: cfg, _isProxy: false });
-        ChainAssertions.checkOptimismMintableERC20Factory({ _contracts: contracts, _isProxy: false });
+        ChainAssertions.checkL1OptimismMintableERC20Factory({ _contracts: contracts, _isProxy: false });
         ChainAssertions.checkDisputeGameFactory({ _contracts: contracts, _expectedOwner: address(0), _isProxy: false });
         ChainAssertions.checkDelayedWETH({
             _contracts: contracts,
@@ -370,7 +372,9 @@ contract Deploy is Deployer {
         save("AddressManager", address(deployOutput.addressManager));
         save("L1ERC721BridgeProxy", address(deployOutput.l1ERC721BridgeProxy));
         save("SystemConfigProxy", address(deployOutput.systemConfigProxy));
+        // Save under both names for backwards compatibility
         save("OptimismMintableERC20FactoryProxy", address(deployOutput.optimismMintableERC20FactoryProxy));
+        save("L1OptimismMintableERC20FactoryProxy", address(deployOutput.optimismMintableERC20FactoryProxy));
         save("L1StandardBridgeProxy", address(deployOutput.l1StandardBridgeProxy));
         save("L1CrossDomainMessengerProxy", address(deployOutput.l1CrossDomainMessengerProxy));
 

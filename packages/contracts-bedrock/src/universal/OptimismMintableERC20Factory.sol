@@ -2,7 +2,6 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
 
 // Interfaces
@@ -16,14 +15,21 @@ import { IOptimismERC20Factory } from "interfaces/L2/IOptimismERC20Factory.sol";
 ///         contracts on the network it's deployed to. Simplifies the deployment process for users
 ///         who may be less familiar with deploying smart contracts. Designed to be backwards
 ///         compatible with the older StandardL2ERC20Factory contract.
-contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20Factory {
+abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory {
+    /// @custom:spacer Initilizable's _initialized slot spacing.
+    uint8 private spacer_0_0_1;
+
+    /// @custom:spacer Intializable's _initializing slot spacing.
+    bool private spacer_0_1_1;
+
     /// @custom:spacer OptimismMintableERC20Factory's initializer slot spacing
     /// @notice Spacer to avoid packing into the initializer slot
     bytes30 private spacer_0_2_30;
 
-    /// @notice Address of the StandardBridge on this chain.
-    /// @custom:network-specific
-    address public bridge;
+    /// @custom:spacer bridge
+    /// @notice Spacer for backwards compatibility. The storage slot was migrated when the
+    ///         initializer pattern was moved away from.
+    address private spacer_1_0_20;
 
     /// @notice Mapping of local token address to remote token address.
     ///         This is used to keep track of the token deployments.
@@ -47,30 +53,12 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
     /// @param deployer    Address of the account that deployed the token.
     event OptimismMintableERC20Created(address indexed localToken, address indexed remoteToken, address deployer);
 
-    /// @notice The semver MUST be bumped any time that there is a change in
-    ///         the OptimismMintableERC20 token contract since this contract
-    ///         is responsible for deploying OptimismMintableERC20 contracts.
-    /// @notice Semantic version.
-    /// @custom:semver 1.10.1-beta.8
-    string public constant version = "1.10.1-beta.8";
-
-    /// @notice Constructs the OptimismMintableERC20Factory contract.
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract.
-    /// @param _bridge Address of the StandardBridge on this chain.
-    function initialize(address _bridge) external initializer {
-        bridge = _bridge;
-    }
-
     /// @notice Getter function for the address of the StandardBridge on this chain.
     ///         Public getter is legacy and will be removed in the future. Use `bridge` instead.
     /// @return Address of the StandardBridge on this chain.
     /// @custom:legacy
     function BRIDGE() external view returns (address) {
-        return bridge;
+        return bridge();
     }
 
     /// @custom:legacy
@@ -127,7 +115,7 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
         bytes32 salt = keccak256(abi.encode(_remoteToken, _name, _symbol, _decimals));
 
         address localToken =
-            address(new OptimismMintableERC20{ salt: salt }(bridge, _remoteToken, _name, _symbol, _decimals));
+            address(new OptimismMintableERC20{ salt: salt }(bridge(), _remoteToken, _name, _symbol, _decimals));
 
         deployments[localToken] = _remoteToken;
 
@@ -140,4 +128,8 @@ contract OptimismMintableERC20Factory is ISemver, Initializable, IOptimismERC20F
 
         return localToken;
     }
+
+    /// @notice Returns the address of the standard bridge on this chain.
+    /// @return Address of the standard bridge on this chain.
+    function bridge() public view virtual returns (address);
 }

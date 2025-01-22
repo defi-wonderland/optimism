@@ -49,7 +49,7 @@ library ChainAssertions {
         checkSystemConfig({ _contracts: _prox, _cfg: _cfg, _isProxy: true });
         checkL1CrossDomainMessenger({ _contracts: _prox, _vm: _vm, _isProxy: true });
         checkL1StandardBridge({ _contracts: _prox, _isProxy: true });
-        checkOptimismMintableERC20Factory({ _contracts: _prox, _isProxy: true });
+        checkL1OptimismMintableERC20Factory({ _contracts: _prox, _isProxy: true });
         checkL1ERC721Bridge({ _contracts: _prox, _isProxy: true });
         checkOptimismPortal2({ _contracts: _prox, _cfg: _cfg, _isProxy: true });
         checkProtocolVersions({ _contracts: _prox, _cfg: _cfg, _isProxy: true });
@@ -161,22 +161,26 @@ library ChainAssertions {
         require(address(messenger) != address(0), "CHECK-L1XDM-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({ _contractAddress: address(messenger), _isProxy: _isProxy, _slot: 0, _offset: 20 });
+        DeployUtils.assertInitialized({
+            _contractAddress: address(messenger),
+            _isProxy: _isProxy,
+            _slot: 250,
+            _offset: 0
+        });
+
+        require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-20");
+        require(address(messenger.otherMessenger()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-30");
 
         if (_isProxy) {
-            require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-20");
-            require(address(messenger.otherMessenger()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "CHECK-L1XDM-30");
             require(address(messenger.PORTAL()) == _contracts.OptimismPortal, "CHECK-L1XDM-40");
             require(address(messenger.portal()) == _contracts.OptimismPortal, "CHECK-L1XDM-50");
             require(address(messenger.superchainConfig()) == _contracts.SuperchainConfig, "CHECK-L1XDM-60");
             bytes32 xdmSenderSlot = _vm.load(address(messenger), bytes32(uint256(204)));
             require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER, "CHECK-L1XDM-70");
         } else {
-            require(address(messenger.OTHER_MESSENGER()) == address(0), "CHECK-L1XDM-80");
-            require(address(messenger.otherMessenger()) == address(0), "CHECK-L1XDM-90");
-            require(address(messenger.PORTAL()) == address(0), "CHECK-L1XDM-100");
-            require(address(messenger.portal()) == address(0), "CHECK-L1XDM-110");
-            require(address(messenger.superchainConfig()) == address(0), "CHECK-L1XDM-120");
+            require(address(messenger.PORTAL()) == address(0), "CHECK-L1XDM-80");
+            require(address(messenger.portal()) == address(0), "CHECK-L1XDM-90");
+            require(address(messenger.superchainConfig()) == address(0), "CHECK-L1XDM-100");
         }
     }
 
@@ -310,7 +314,7 @@ library ChainAssertions {
     }
 
     /// @notice Asserts that the OptimismMintableERC20Factory is setup correctly
-    function checkOptimismMintableERC20Factory(Types.ContractSet memory _contracts, bool _isProxy) internal view {
+    function checkL1OptimismMintableERC20Factory(Types.ContractSet memory _contracts, bool _isProxy) internal view {
         IOptimismMintableERC20Factory factory = IOptimismMintableERC20Factory(_contracts.OptimismMintableERC20Factory);
         console.log(
             "Running chain assertions on the OptimismMintableERC20Factory %s at %s",
@@ -320,7 +324,7 @@ library ChainAssertions {
         require(address(factory) != address(0), "CHECK-MERC20F-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: _isProxy, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: _isProxy, _slot: 51, _offset: 0 });
 
         if (_isProxy) {
             require(factory.BRIDGE() == _contracts.L1StandardBridge, "CHECK-MERC20F-10");

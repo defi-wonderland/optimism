@@ -860,6 +860,25 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "LivenessModule", _sel: _getSel("safe()") });
         _addSpec({ _name: "LivenessModule", _sel: _getSel("thresholdPercentage()") });
         _addSpec({ _name: "LivenessModule", _sel: _getSel("version()") });
+
+        // L1OptimismMintableERC20Factory
+        _addSpec({ _name: "L1OptimismMintableERC20Factory", _sel: _getSel("BRIDGE()") });
+        _addSpec({ _name: "L1OptimismMintableERC20Factory", _sel: _getSel("bridge()") });
+        _addSpec({
+            _name: "L1OptimismMintableERC20Factory",
+            _sel: _getSel("createOptimismMintableERC20(address,string,string)")
+        });
+        _addSpec({
+            _name: "L1OptimismMintableERC20Factory",
+            _sel: _getSel("createOptimismMintableERC20WithDecimals(address,string,string,uint8)")
+        });
+        _addSpec({
+            _name: "L1OptimismMintableERC20Factory",
+            _sel: _getSel("createStandardL2Token(address,string,string)")
+        });
+        _addSpec({ _name: "L1OptimismMintableERC20Factory", _sel: _getSel("deployments(address)") });
+        _addSpec({ _name: "L1OptimismMintableERC20Factory", _sel: _getSel("version()") });
+        _addSpec({ _name: "L1OptimismMintableERC20Factory", _sel: _getSel("initialize(address)") });
     }
 
     /// @dev Computes the selector from a function signature.

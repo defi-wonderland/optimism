@@ -27,7 +27,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
-import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
+import { IL1OptimismMintableERC20Factory } from "interfaces/L1/IL1OptimismMintableERC20Factory.sol";
 
 contract OPContractsManager is ISemver {
     // -------- Structs --------
@@ -69,7 +69,7 @@ contract OPContractsManager is ISemver {
         IAddressManager addressManager;
         IL1ERC721Bridge l1ERC721BridgeProxy;
         ISystemConfig systemConfigProxy;
-        IOptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
+        IL1OptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
         IL1StandardBridge l1StandardBridgeProxy;
         IL1CrossDomainMessenger l1CrossDomainMessengerProxy;
         // Fault proof contracts below.
@@ -225,7 +225,7 @@ contract OPContractsManager is ISemver {
             IOptimismPortal2(payable(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "OptimismPortal")));
         output.systemConfigProxy =
             ISystemConfig(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "SystemConfig"));
-        output.optimismMintableERC20FactoryProxy = IOptimismMintableERC20Factory(
+        output.optimismMintableERC20FactoryProxy = IL1OptimismMintableERC20Factory(
             deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "OptimismMintableERC20Factory")
         );
         output.disputeGameFactoryProxy =
@@ -304,7 +304,8 @@ contract OPContractsManager is ISemver {
             output.opChainProxyAdmin, address(output.systemConfigProxy), implementation.systemConfigImpl, data
         );
 
-        data = encodeOptimismMintableERC20FactoryInitializer(IOptimismMintableERC20Factory.initialize.selector, output);
+        data =
+            encodeOptimismMintableERC20FactoryInitializer(IL1OptimismMintableERC20Factory.initialize.selector, output);
         upgradeAndCall(
             output.opChainProxyAdmin,
             address(output.optimismMintableERC20FactoryProxy),

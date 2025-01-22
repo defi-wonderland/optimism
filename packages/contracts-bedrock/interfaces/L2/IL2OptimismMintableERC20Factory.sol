@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IOptimismMintableERC20Factory {
+interface IL2OptimismMintableERC20Factory {
     event OptimismMintableERC20Created(address indexed localToken, address indexed remoteToken, address deployer);
     event StandardL2TokenCreated(address indexed remoteToken, address indexed localToken);
 

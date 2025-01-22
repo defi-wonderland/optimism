@@ -570,7 +570,7 @@ contract DeployOPChain is Script {
     function assertValidL1CrossDomainMessenger(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {
         IL1CrossDomainMessenger messenger = _doo.l1CrossDomainMessengerProxy();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(messenger), _isProxy: true, _slot: 0, _offset: 20 });
+        DeployUtils.assertInitialized({ _contractAddress: address(messenger), _isProxy: true, _slot: 250, _offset: 0 });
 
         require(address(messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L1xDM-10");
         require(address(messenger.otherMessenger()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L1xDM-20");
@@ -580,7 +580,7 @@ contract DeployOPChain is Script {
         require(address(messenger.superchainConfig()) == address(_doi.opcm().superchainConfig()), "L1xDM-50");
 
         bytes32 xdmSenderSlot = vm.load(address(messenger), bytes32(uint256(204)));
-        require(address(uint160(uint256(xdmSenderSlot))) == Constants.DEFAULT_L2_SENDER, "L1xDM-60");
+        require(address(uint160(uint256(xdmSenderSlot))) == address(0), "L1xDM-60");
     }
 
     function assertValidL1StandardBridge(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {
@@ -599,7 +599,7 @@ contract DeployOPChain is Script {
     function assertValidOptimismMintableERC20Factory(DeployOPChainInput, DeployOPChainOutput _doo) internal {
         IOptimismMintableERC20Factory factory = _doo.optimismMintableERC20FactoryProxy();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: true, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(factory), _isProxy: true, _slot: 51, _offset: 0 });
 
         require(factory.BRIDGE() == address(_doo.l1StandardBridgeProxy()), "MERC20F-10");
         require(factory.bridge() == address(_doo.l1StandardBridgeProxy()), "MERC20F-20");

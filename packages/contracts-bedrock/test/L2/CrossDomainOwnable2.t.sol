@@ -42,7 +42,7 @@ contract CrossDomainOwnable2_Test is CommonTest {
     /// @dev Tests that the `onlyOwner` modifier reverts when not called by the owner.
     function test_onlyOwner_notOwner_reverts() external {
         // set the xDomainMsgSender storage slot
-        bytes32 key = bytes32(uint256(204));
+        bytes32 key = bytes32(uint256(208));
         bytes32 value = Bytes32AddressLib.fillLast12Bytes(address(alice));
         vm.store(address(l2CrossDomainMessenger), key, value);
 
