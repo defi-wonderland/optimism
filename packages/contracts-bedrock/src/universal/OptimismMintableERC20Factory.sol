@@ -29,7 +29,6 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     /// @custom:spacer bridge
     /// @notice Spacer for backwards compatibility. The storage slot was migrated when the
     ///         initializer pattern was moved away from.
-    /// @custom:network-specific
     address private spacer_1_0_20;
 
     /// @notice Mapping of local token address to remote token address.
