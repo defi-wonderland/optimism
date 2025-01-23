@@ -315,8 +315,15 @@ contract Setup {
         configureRemoteChainId();
         configureBridges();
         configureCrossDomainMessenger();
-
+        configureL1ERC721Bridge();
         console.log("Setup: completed L2 genesis");
+    }
+
+    /// @dev Sets the L1 ERC721 bridge address in the L1Block contract.
+    function configureL1ERC721Bridge() internal {
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS, abi.encode(address(l1ERC721Bridge)));
+        console.log("Setup: configured L1ERC721Bridge address");
     }
 
     /// @dev Sets the remote chain id in the L1Block contract.
