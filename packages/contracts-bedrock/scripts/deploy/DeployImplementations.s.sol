@@ -376,10 +376,10 @@ contract DeployImplementationsOutput is BaseDeployIO {
     function assertValidL1ERC721BridgeImpl(DeployImplementationsInput) internal view {
         IL1ERC721Bridge bridge = l1ERC721BridgeImpl();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: false, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: false, _slot: 48, _offset: 0 });
 
-        require(address(bridge.OTHER_BRIDGE()) == address(0), "L721B-10");
-        require(address(bridge.otherBridge()) == address(0), "L721B-20");
+        require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE, "L721B-10");
+        require(address(bridge.otherBridge()) == Predeploys.L2_ERC721_BRIDGE, "L721B-20");
         require(address(bridge.MESSENGER()) == address(0), "L721B-30");
         require(address(bridge.messenger()) == address(0), "L721B-40");
         require(address(bridge.superchainConfig()) == address(0), "L721B-50");

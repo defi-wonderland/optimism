@@ -76,8 +76,8 @@ contract L1ERC721Bridge_Test is CommonTest {
 
         // The constructor now uses _disableInitializers, whereas OP Mainnet has the other bridge in storage
         returnIfForkTest("L1ERC721Bridge_Test: impl storage differs on forked network");
-        assertEq(address(impl.OTHER_BRIDGE()), address(0));
-        assertEq(address(impl.otherBridge()), address(0));
+        assertEq(address(impl.OTHER_BRIDGE()), Predeploys.L2_ERC721_BRIDGE);
+        assertEq(address(impl.otherBridge()), Predeploys.L2_ERC721_BRIDGE);
     }
 
     /// @dev Tests that the proxy is initialized with the correct values.

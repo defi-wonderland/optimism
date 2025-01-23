@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { ERC721Bridge } from "src/universal/ERC721Bridge.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -19,13 +20,16 @@ import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
 /// @notice The L1 ERC721 bridge is a contract which works together with the L2 ERC721 bridge to
 ///         make it possible to transfer ERC721 tokens from Ethereum to Optimism. This contract
 ///         acts as an escrow for ERC721 tokens deposited into L2.
-contract L1ERC721Bridge is ERC721Bridge, ISemver {
+contract L1ERC721Bridge is ERC721Bridge, Initializable, ISemver {
     /// @notice Mapping of L1 token to L2 token to ID to boolean, indicating if the given L1 token
     ///         by ID was deposited for a given L2 token.
     mapping(address => mapping(address => mapping(uint256 => bool))) public deposits;
 
     /// @notice Address of the SuperchainConfig contract.
     ISuperchainConfig public superchainConfig;
+
+    /// @notice Contract of the CrossDomainMessenger on this chain.
+    ICrossDomainMessenger internal crossDomainMessenger;
 
     /// @notice Semantic version.
     /// @custom:semver 2.2.0-beta.3
@@ -41,7 +45,7 @@ contract L1ERC721Bridge is ERC721Bridge, ISemver {
     /// @param _superchainConfig Contract of the SuperchainConfig contract on this network.
     function initialize(ICrossDomainMessenger _messenger, ISuperchainConfig _superchainConfig) external initializer {
         superchainConfig = _superchainConfig;
-        __ERC721Bridge_init({ _messenger: _messenger, _otherBridge: ERC721Bridge(payable(Predeploys.L2_ERC721_BRIDGE)) });
+        crossDomainMessenger = _messenger;
     }
 
     /// @inheritdoc ERC721Bridge
@@ -116,7 +120,17 @@ contract L1ERC721Bridge is ERC721Bridge, ISemver {
         IERC721(_localToken).transferFrom({ from: _from, to: address(this), tokenId: _tokenId });
 
         // Send calldata into L2
-        messenger.sendMessage({ _target: address(otherBridge), _message: message, _minGasLimit: _minGasLimit });
+        messenger().sendMessage({ _target: address(otherBridge()), _message: message, _minGasLimit: _minGasLimit });
         emit ERC721BridgeInitiated(_localToken, _remoteToken, _from, _to, _tokenId, _extraData);
+    }
+
+    /// @inheritdoc ERC721Bridge
+    function messenger() public view override returns (ICrossDomainMessenger) {
+        return ICrossDomainMessenger(crossDomainMessenger);
+    }
+
+    /// @inheritdoc ERC721Bridge
+    function otherBridge() public pure override returns (ERC721Bridge) {
+        return ERC721Bridge(payable(Predeploys.L2_ERC721_BRIDGE));
     }
 }

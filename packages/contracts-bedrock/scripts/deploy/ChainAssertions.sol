@@ -347,7 +347,7 @@ library ChainAssertions {
         require(address(bridge) != address(0), "CHECK-L1ERC721B-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: _isProxy, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: _isProxy, _slot: 48, _offset: 0 });
 
         if (_isProxy) {
             require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE, "CHECK-L1ERC721B-10");
@@ -356,8 +356,8 @@ library ChainAssertions {
             require(address(bridge.messenger()) == _contracts.L1CrossDomainMessenger, "CHECK-L1ERC721B-40");
             require(address(bridge.superchainConfig()) == _contracts.SuperchainConfig, "CHECK-L1ERC721B-50");
         } else {
-            require(address(bridge.OTHER_BRIDGE()) == address(0), "CHECK-L1ERC721B-60");
-            require(address(bridge.otherBridge()) == address(0), "CHECK-L1ERC721B-70");
+            require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE, "CHECK-L1ERC721B-60");
+            require(address(bridge.otherBridge()) == Predeploys.L2_ERC721_BRIDGE, "CHECK-L1ERC721B-70");
             require(address(bridge.MESSENGER()) == address(0), "CHECK-L1ERC721B-80");
             require(address(bridge.messenger()) == address(0), "CHECK-L1ERC721B-90");
             require(address(bridge.superchainConfig()) == address(0), "CHECK-L1ERC721B-100");

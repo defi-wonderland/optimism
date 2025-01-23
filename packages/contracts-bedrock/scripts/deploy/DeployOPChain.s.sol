@@ -608,7 +608,7 @@ contract DeployOPChain is Script {
     function assertValidL1ERC721Bridge(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {
         IL1ERC721Bridge bridge = _doo.l1ERC721BridgeProxy();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: true, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: true, _slot: 48, _offset: 0 });
 
         require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_ERC721_BRIDGE, "L721B-10");
         require(address(bridge.otherBridge()) == Predeploys.L2_ERC721_BRIDGE, "L721B-20");
