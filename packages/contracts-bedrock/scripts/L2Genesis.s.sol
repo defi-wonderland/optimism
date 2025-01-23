@@ -19,7 +19,6 @@ import { Preinstalls } from "src/libraries/Preinstalls.sol";
 // Interfaces
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
-import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
@@ -253,7 +252,7 @@ contract L2Genesis is Deployer {
         setSequencerFeeVault(); // 11
         setOptimismMintableERC20Factory(); // 12
         setL1BlockNumber(); // 13
-        setL2ERC721Bridge(_l1Dependencies.l1ERC721BridgeProxy); // 14
+        setL2ERC721Bridge(); // 14
         setL1Block(); // 15
         setL2ToL1MessagePasser(); // 16
         setOptimismMintableERC721Factory(); // 17
@@ -316,12 +315,8 @@ contract L2Genesis is Deployer {
     }
 
     /// @notice This predeploy is following the safety invariant #1.
-    function setL2ERC721Bridge(address payable _l1ERC721BridgeProxy) public {
-        address impl = _setImplementationCode(Predeploys.L2_ERC721_BRIDGE);
-
-        IL2ERC721Bridge(impl).initialize({ _l1ERC721Bridge: payable(address(0)) });
-
-        IL2ERC721Bridge(Predeploys.L2_ERC721_BRIDGE).initialize({ _l1ERC721Bridge: payable(_l1ERC721BridgeProxy) });
+    function setL2ERC721Bridge() public {
+        _setImplementationCode(Predeploys.L2_ERC721_BRIDGE);
     }
 
     /// @notice This predeploy is following the safety invariant #2,
