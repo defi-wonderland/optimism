@@ -348,11 +348,6 @@ abstract contract PropertiesAsserts {
         }
     }
 
-    /// @notice address version of clampGt
-    function clampGt(address a, address b) internal returns (address) {
-        return address(uint160(clampBetween(uint256(uint160(a)), uint256(uint160(b)), type(uint160).max + 1)));
-    }
-
     /// @notice clamps a to be greater than or equal to b
     function clampGte(uint256 a, uint256 b) internal returns (uint256) {
         if (!(a > b)) {

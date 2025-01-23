@@ -336,7 +336,8 @@ contract FuzzTest is Handler {
         public
         isInitialized
     {
-        _to = clampGt(_to, address(0));
+        if (_to == address(0)) _to = address(type(uint160).max);
+
         _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
         // Get state before call
