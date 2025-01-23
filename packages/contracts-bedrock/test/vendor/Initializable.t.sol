@@ -294,14 +294,6 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(l1ERC721Bridge.initialize, (l1CrossDomainMessenger, superchainConfig))
             })
         );
-        // L2ERC721Bridge
-        contracts.push(
-            InitializeableContract({
-                name: "L2ERC721Bridge",
-                target: address(l2ERC721Bridge),
-                initCalldata: abi.encodeCall(l2ERC721Bridge.initialize, (payable(address(l1ERC721Bridge))))
-            })
-        );
         // L1OptimismMintableERC20FactoryImpl
         contracts.push(
             InitializeableContract({

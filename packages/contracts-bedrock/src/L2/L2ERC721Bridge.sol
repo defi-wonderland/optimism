@@ -7,12 +7,14 @@ import { ERC721Bridge } from "src/universal/ERC721Bridge.sol";
 // Libraries
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IOptimismMintableERC721 } from "interfaces/L2/IOptimismMintableERC721.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000014
@@ -26,20 +28,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 contract L2ERC721Bridge is ERC721Bridge, ISemver {
     /// @custom:semver 1.8.0-beta.5
     string public constant version = "1.8.0-beta.5";
-
-    /// @notice Constructs the L2ERC721Bridge contract.
-    constructor() ERC721Bridge() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract.
-    /// @param _l1ERC721Bridge Address of the ERC721 bridge contract on the other network.
-    function initialize(address payable _l1ERC721Bridge) external initializer {
-        __ERC721Bridge_init({
-            _messenger: ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER),
-            _otherBridge: ERC721Bridge(_l1ERC721Bridge)
-        });
-    }
 
     /// @notice Completes an ERC721 bridge from the other domain and sends the ERC721 token to the
     ///         recipient on this domain.
@@ -121,9 +109,21 @@ contract L2ERC721Bridge is ERC721Bridge, ISemver {
 
         // Send message to L1 bridge
         // slither-disable-next-line reentrancy-events
-        messenger.sendMessage({ _target: address(otherBridge), _message: message, _minGasLimit: _minGasLimit });
+        messenger().sendMessage({ _target: address(otherBridge()), _message: message, _minGasLimit: _minGasLimit });
 
         // slither-disable-next-line reentrancy-events
         emit ERC721BridgeInitiated(_localToken, remoteToken, _from, _to, _tokenId, _extraData);
+    }
+
+    /// @inheritdoc ERC721Bridge
+    function messenger() public pure override returns (ICrossDomainMessenger) {
+        return ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
+    }
+
+    /// @inheritdoc ERC721Bridge
+    function otherBridge() public view override returns (ERC721Bridge) {
+        bytes memory data =
+            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS);
+        return ERC721Bridge(abi.decode(data, (address)));
     }
 }
