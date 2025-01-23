@@ -28,6 +28,7 @@ contract Handler is Setup {
         if (!initialized) {
             _initializeProxies();
             _addDependency();
+            _setupSanityCheck();
             initialized = true;
         }
         _;

@@ -6,6 +6,7 @@ import { vm } from "./utils/VM.sol";
 import { IDeployer815 } from "./interfaces/IDeployer815.sol";
 import { IDeployer825 } from "./interfaces/IDeployer825.sol";
 import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
+import { Utils } from "./utils/Utils.sol";
 
 // Interfaces 0.8.15
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
@@ -33,6 +34,8 @@ import { HandlerActors, Actors } from "./helpers/Actors.sol";
 import { IDependencyManager } from "interfaces/L2/IDependencyManager.sol";
 
 contract Setup is PropertiesAsserts, HandlerActors {
+    using Utils for *;
+
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
     uint256 public constant ORIGIN_CHAIN_ID = 10;
@@ -265,5 +268,58 @@ contract Setup is PropertiesAsserts, HandlerActors {
             0,
             abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (ORIGIN_CHAIN_ID, systemConfigAddress))
         );
+    }
+
+    /// Check setup proper deployment and initialization of the contracts
+    function _setupSanityCheck() internal {
+        /* Contracts with some storage intialization on setup */
+        // Portal
+        assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
+        assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
+        assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
+        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
+        assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
+
+        // Shared Lockbox
+        assert(address(SHARED_LOCKBOX.superchainConfig()) == superchainConfigAddress);
+
+        // Superchain Config
+        assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
+        assert(SUPERCHAIN_CONFIG.guardian() == guardian);
+        assert(SUPERCHAIN_CONFIG.paused() == false);
+        assert(SUPERCHAIN_CONFIG.isInDependencySet(ORIGIN_CHAIN_ID));
+        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
+
+        // System Config
+        uint256 systemConfigAStartBlock = SYSTEM_CONFIG.startBlock();
+        assert(systemConfigAStartBlock > 0 && systemConfigAStartBlock <= block.number);
+        assert(SYSTEM_CONFIG.basefeeScalar() == 0);
+        assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
+        assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
+        assert(SYSTEM_CONFIG.gasLimit() == 60000000);
+        assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
+        assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
+        assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
+        assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
+        bytes memory resourceConfigA = abi.encode(SYSTEM_CONFIG.resourceConfig());
+        bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
+        assert(resourceConfigA.hashBytes() == defaultResourceConfig.hashBytes());
+
+        // SuperchainERC20
+        string memory tokenName = "Super Token";
+        string memory tokenSymbol = "SUP";
+        assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
+        assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
+
+        /* Contracts without any storage intialization on setup */
+        // Check that it has a version, not checking which one to make the test more future proof
+        string memory emptyString = "";
+        bytes32 emptyStringHash = emptyString.hashString();
+        assert(ETH_LIQUIDITY.version().hashString() != emptyStringHash);
+        assert(L1_BLOCK.version().hashString() != emptyStringHash);
+        assert(SUPER_WETH.version().hashString() != emptyStringHash);
+        assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
+        assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
+        assert(DEPENDENCY_MANAGER.version().hashString() != emptyStringHash);
     }
 }

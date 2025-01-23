@@ -10,62 +10,6 @@ import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
 
 contract FuzzTest is Handler {
-    using Utils for *;
-
-    /// @custom:property-id 0
-    /// @custom:property Check setup proper deployment and initialization of the contracts
-    function property_setupSanityCheck() public isInitialized {
-        /* Contracts with some storage intialization on setup */
-        // Portal
-        assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
-        assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
-        assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
-        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
-        assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
-
-        // Shared Lockbox
-        assert(address(SHARED_LOCKBOX.superchainConfig()) == superchainConfigAddress);
-
-        // Superchain Config
-        assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
-        assert(SUPERCHAIN_CONFIG.guardian() == guardian);
-        assert(SUPERCHAIN_CONFIG.paused() == false);
-        assert(SUPERCHAIN_CONFIG.isInDependencySet(ORIGIN_CHAIN_ID));
-        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
-
-        // System Config
-        uint256 systemConfigAStartBlock = SYSTEM_CONFIG.startBlock();
-        assert(systemConfigAStartBlock > 0 && systemConfigAStartBlock <= block.number);
-        assert(SYSTEM_CONFIG.basefeeScalar() == 0);
-        assert(SYSTEM_CONFIG.blobbasefeeScalar() == 0);
-        assert(SYSTEM_CONFIG.batcherHash() == 0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985);
-        assert(SYSTEM_CONFIG.gasLimit() == 60000000);
-        assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
-        assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
-        assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
-        assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
-        bytes memory resourceConfigA = abi.encode(SYSTEM_CONFIG.resourceConfig());
-        bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());
-        assert(resourceConfigA.hashBytes() == defaultResourceConfig.hashBytes());
-
-        // SuperchainERC20
-        string memory tokenName = "Super Token";
-        string memory tokenSymbol = "SUP";
-        assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
-        assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
-
-        /* Contracts without any storage intialization on setup */
-        // Check that it has a version, not checking which one to make the test more future proof
-        string memory emptyString = "";
-        bytes32 emptyStringHash = emptyString.hashString();
-        assert(ETH_LIQUIDITY.version().hashString() != emptyStringHash);
-        assert(L1_BLOCK.version().hashString() != emptyStringHash);
-        assert(SUPER_WETH.version().hashString() != emptyStringHash);
-        assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
-        assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
-        assert(DEPENDENCY_MANAGER.version().hashString() != emptyStringHash);
-    }
-
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
     /// and the sender's balance on the origin chain by exactly the input amount.
@@ -123,26 +67,17 @@ contract FuzzTest is Handler {
         uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
-        // NOTE: This is no needed, but if removed, the call from the actor to relayMessage will not reach the function
-        // logic as if it didn't exist, but it won't revert and the test will fail.
-        // L2_TO_L2_MESSENGER.messageNonce();
-
         // Relay the message by calling the messenger from the actor
         Actors actor = currentActor();
-        (bool success,) = actor.directCall(
-            address(L2_TO_L2_MESSENGER),
-            0,
-            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
-        );
+        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
             // Check the state is right after the call
             assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
-            console.log("true");
             assert(false);
         } else {
-            // If it fails, it should only be because the message was already relayed
+            // Ensure the message was already relayed
             bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
                 _destination: block.chainid,
                 _source: _id.chainId,
@@ -151,10 +86,7 @@ contract FuzzTest is Handler {
                 _target: address(SUPERCHAIN_TOKEN_BRIDGE),
                 _message: message
             });
-
-            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
-            console.log("false");
-            assert(false);
+            assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
         }
     }
 
