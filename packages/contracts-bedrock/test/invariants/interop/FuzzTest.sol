@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Constants, ConfigType, GameType, Predeploys } from "./Setup.sol";
+import { Constants, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";

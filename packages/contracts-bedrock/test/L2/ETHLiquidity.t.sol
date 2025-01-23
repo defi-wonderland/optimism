@@ -138,26 +138,6 @@ contract ETHLiquidity_Test is CommonTest {
         assertEq(superchainWeth.balanceOf(address(ethLiquidity)), 0);
     }
 
-    /// @notice Tests that the mint function reverts when called on a custom gas token chain.
-    /// @param _amount Amount of ETH (in wei) to call the mint function with.
-    function testFuzz_mint_fromCustomGasTokenChain_fails(uint256 _amount) public {
-        // Assume
-        _amount = bound(_amount, 0, type(uint248).max - 1);
-
-        // Arrange
-        vm.mockCall(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(true));
-
-        // Act
-        vm.prank(address(superchainWeth));
-        vm.expectRevert(NotCustomGasToken.selector);
-        ethLiquidity.mint(_amount);
-
-        // Assert
-        assertEq(address(superchainWeth).balance, 0);
-        assertEq(address(ethLiquidity).balance, STARTING_LIQUIDITY_BALANCE);
-        assertEq(superchainWeth.balanceOf(address(ethLiquidity)), 0);
-    }
-
     /// @notice Tests that the mint function can only be called by the SuperchainWETH contract and it reverts otherwise.
     /// @param _caller Address of the caller to call the mint function with.
     /// @param _amount Amount of ETH (in wei) to call the mint function with.

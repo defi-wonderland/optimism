@@ -10,7 +10,7 @@ import { Utils } from "./utils/Utils.sol";
 
 // Interfaces 0.8.15
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
-import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
