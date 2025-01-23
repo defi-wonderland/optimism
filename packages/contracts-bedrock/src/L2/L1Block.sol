@@ -44,6 +44,10 @@ contract L1Block is ISemver, IGasToken {
     /// @notice Storage slot for the remote chain id configuration
     bytes32 internal constant REMOTE_CHAIN_ID_SLOT = bytes32(uint256(keccak256("opstack.remotechainid")) - 1);
 
+    /// @notice Storage slot for the L1 ERC721 bridge address configuration
+    bytes32 internal constant L1_ERC_721_BRIDGE_ADDRESS_SLOT =
+        bytes32(uint256(keccak256("opstack.l1erc721bridgeaddress")) - 1);
+
     /// @notice Address of the special depositor account.
     function DEPOSITOR_ACCOUNT() public pure returns (address addr_) {
         addr_ = Constants.DEPOSITOR_ACCOUNT;
@@ -225,6 +229,8 @@ contract L1Block is ISemver, IGasToken {
             Storage.setAddress(L1_STANDARD_BRIDGE_ADDRESS_SLOT, abi.decode(_value, (address)));
         } else if (_type == Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS) {
             Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT, abi.decode(_value, (address)));
+        } else if (_type == Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS) {
+            Storage.setAddress(L1_ERC_721_BRIDGE_ADDRESS_SLOT, abi.decode(_value, (address)));
         }
     }
 
@@ -249,6 +255,8 @@ contract L1Block is ISemver, IGasToken {
             config_ = abi.encode(Storage.getAddress(L1_STANDARD_BRIDGE_ADDRESS_SLOT));
         } else if (_type == Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS) {
             config_ = abi.encode(Storage.getAddress(L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT));
+        } else if (_type == Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS) {
+            config_ = abi.encode(Storage.getAddress(L1_ERC_721_BRIDGE_ADDRESS_SLOT));
         }
     }
 

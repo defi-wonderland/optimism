@@ -86,6 +86,7 @@ library Types {
     /// @custom:value L1_STANDARD_BRIDGE_ADDRESS Represents the config type for setting the standard bridge address.
     /// @custom:value L1_CROSS_DOMAIN_MESSENGER_ADDRESS Represents the config type for setting the L1 Cross Domain
     ///               Messenger address.
+    /// @custom:value L1_ERC_721_BRIDGE_ADDRESS Represents the config type for setting the L1 ERC721 bridge address.
     /// @custom:value ADD_DEPENDENCY        Represents the config type for adding a chain to the interop dependency set.
     /// @custom:value REMOVE_DEPENDENCY     Represents the config type for removing a chain from the interop dependency
     /// set.
@@ -97,6 +98,7 @@ library Types {
         REMOTE_CHAIN_ID,
         L1_STANDARD_BRIDGE_ADDRESS,
         L1_CROSS_DOMAIN_MESSENGER_ADDRESS,
+        L1_ERC_721_BRIDGE_ADDRESS,
         ADD_DEPENDENCY,
         REMOVE_DEPENDENCY
     }

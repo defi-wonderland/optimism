@@ -282,6 +282,21 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         assertEq(symbol, GasPayingToken.sanitize(LibString.fromSmallString(_symbol)));
     }
 
+    /// @dev Tests that `setConfig` with `L1_ERC_721_BRIDGE_ADDRESS` config type updates the values correctly.
+    function test_setConfig_l1ERC721BridgeAddress_succeeds(address _l1ERC721BridgeAddress) external {
+        Types.ConfigType configType = Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS;
+        bytes memory data = abi.encode(_l1ERC721BridgeAddress);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setConfig(configType, data);
+
+        bytes memory config = l1Block.getConfig(configType);
+        assertEq(keccak256(config), keccak256(data));
+
+        address l1ERC721BridgeAddress = abi.decode(config, (address));
+        assertEq(l1ERC721BridgeAddress, _l1ERC721BridgeAddress);
+    }
+
     /// @dev Tests that `setConfig` with `REMOTE_CHAIN_ID` config type updates the values correctly.
     function test_setConfig_remoteChainId_succeeds(uint256 _remoteChainId) external {
         Types.ConfigType configType = Types.ConfigType.REMOTE_CHAIN_ID;
