@@ -8,6 +8,8 @@ import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
+import { console } from "forge-std/console.sol";
+
 contract Handler is Setup {
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
@@ -25,9 +27,13 @@ contract Handler is Setup {
 
     /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
     modifier isInitialized() {
+        console.log("isInitialized", initialized);
         if (!initialized) {
+            console.log("isInitialized 1");
             _initializeProxies();
+            console.log("isInitialized 2");
             _addDependency();
+            console.log("isInitialized 3");
             initialized = true;
         }
         _;

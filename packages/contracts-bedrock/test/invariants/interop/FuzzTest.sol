@@ -123,17 +123,9 @@ contract FuzzTest is Handler {
         uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
-        // NOTE: This is no needed, but if removed, the call from the actor to relayMessage will not reach the function
-        // logic as if it didn't exist, but it won't revert and the test will fail.
-        // L2_TO_L2_MESSENGER.messageNonce();
-
         // Relay the message by calling the messenger from the actor
         Actors actor = currentActor();
-        (bool success,) = actor.directCall(
-            address(L2_TO_L2_MESSENGER),
-            0,
-            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
-        );
+        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
 
         if (success) {
             // Check the state is right after the call

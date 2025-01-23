@@ -12,6 +12,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IDependencySet } from "interfaces/L2/IDependencySet.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
+import { console } from "forge-std/console.sol";
+
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
 
@@ -167,20 +169,27 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         nonReentrant
         returns (bytes memory returnData_)
     {
+        console.log("relayMessage");
         // Ensure the log came from the messenger. Since the log origin is the CDM, there isn't a scenario where
         // this can be invoked from the CrossL2Inbox as the SentMessage log is not calldata for this function
         if (_id.origin != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
             revert IdOriginNotL2ToL2CrossDomainMessenger();
         }
+        console.log("relayMessage 2");
         // Signal that this is a cross chain call that needs to have the identifier validated
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
+        console.log("relayMessage 3");
         // Decode the payload
         (uint256 destination, address target, uint256 nonce, address sender, bytes memory message) =
             _decodeSentMessagePayload(_sentMessage);
+        console.log("relayMessage 4");
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
+        console.log("relayMessage 5");
         if (target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
+        console.log("relayMessage 6");
         if (target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
+        console.log("relayMessage 7");
         uint256 source = _id.chainId;
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: destination,
@@ -190,20 +199,22 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _target: target,
             _message: message
         });
-
+        console.log("relayMessage 8");
         if (successfulMessages[messageHash]) {
             revert MessageAlreadyRelayed();
         }
-
+        console.log("relayMessage 9");
         _storeMessageMetadata(source, sender);
+        console.log("relayMessage 10");
         bool success;
         (success, returnData_) = target.call{ value: msg.value }(message);
         if (!success) {
             revert TargetCallFailed();
         }
+        console.log("relayMessage 11");
         successfulMessages[messageHash] = true;
         emit RelayedMessage(source, nonce, messageHash);
-
+        console.log("relayMessage 12");
         _storeMessageMetadata(0, address(0));
     }
 
