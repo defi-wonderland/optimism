@@ -99,7 +99,6 @@ contract Handler is Setup {
 
         bytes32 domainSeparator = SUPER_TOKEN.DOMAIN_SEPARATOR();
 
-        vm.prank(fromEOA);
         (uint8 v, bytes32 r, bytes32 s) =
             signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
 

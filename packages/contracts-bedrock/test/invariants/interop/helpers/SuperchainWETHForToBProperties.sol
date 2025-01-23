@@ -6,6 +6,12 @@ import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import "properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
 import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
 
+/**
+ * @notice This is a test-only version of SuperchainWETH used specifically for property testing.
+ * @dev This contract is kept separate from the campaign tests since it requires modifications
+ *      to test the properties. We avoid modifying the actual predeploy contract that is being
+ *      tested in the campaign.
+ */
 contract SuperchainWETHForToBProperties is
     SuperchainWETH,
     CryticERC20ExternalBasicProperties,
