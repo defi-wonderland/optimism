@@ -123,6 +123,10 @@ contract FuzzTest is Handler {
         uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
+        // NOTE: This is no needed, but if removed, the call from the actor to relayMessage will not reach the function
+        // logic as if it didn't exist, but it won't revert and the test will fail.
+        // L2_TO_L2_MESSENGER.messageNonce();
+
         // Relay the message by calling the messenger from the actor
         Actors actor = currentActor();
         (bool success,) = actor.directCall(
@@ -135,6 +139,8 @@ contract FuzzTest is Handler {
             // Check the state is right after the call
             assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
+            console.log("true");
+            assert(false);
         } else {
             // If it fails, it should only be because the message was already relayed
             bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -147,6 +153,8 @@ contract FuzzTest is Handler {
             });
 
             assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+            console.log("false");
+            assert(false);
         }
     }
 
