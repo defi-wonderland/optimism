@@ -195,30 +195,28 @@ contract Handler is Setup {
 
     function handler_permit2SuperchainWETH(
         uint256 _fromActorIndex,
-        uint256 _callerActorIndex,
+        address _spender,
         uint256 _amount
     )
         public
         isInitialized
     {
-        // Get actors
+        // Get actor
         Actors fromActor = randomActor(_fromActorIndex);
-        Actors callerActor = randomActor(_callerActorIndex);
 
         // Clamp the amount to prevent an insufficient balance revert
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(fromActor)));
 
         // Get callerActor's balance before
-        uint256 callerActorBalanceBefore = SUPER_WETH.balanceOf(address(callerActor));
+        uint256 callerActorBalanceBefore = SUPER_WETH.balanceOf(_spender);
 
         // Call mock permit to simulate the usage of Permit2 address to transfer the tokens
-        try Permit2(Preinstalls.Permit2).permitTransferFrom(
-            address(SUPER_WETH), address(fromActor), address(callerActor), _amount
-        ) {
-            if (address(callerActor) == address(fromActor)) {
-                assert(SUPER_WETH.balanceOf(address(callerActor)) == callerActorBalanceBefore);
+        try Permit2(Preinstalls.Permit2).permitTransferFrom(address(SUPER_WETH), address(fromActor), _spender, _amount)
+        {
+            if (_spender == address(fromActor)) {
+                assert(SUPER_WETH.balanceOf(_spender) == callerActorBalanceBefore);
             } else {
-                assert(SUPER_WETH.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
+                assert(SUPER_WETH.balanceOf(_spender) == callerActorBalanceBefore + _amount);
             }
         } catch {
             assert(false);
