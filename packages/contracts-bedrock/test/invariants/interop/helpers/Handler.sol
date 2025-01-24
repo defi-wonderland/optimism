@@ -149,7 +149,6 @@ contract Handler is Setup {
             } else {
                 assert(SUPER_TOKEN.balanceOf(_spender) == callerActorBalanceBefore + _amount);
             }
-            assert(false);
         } catch {
             assert(false);
         }
