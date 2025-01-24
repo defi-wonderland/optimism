@@ -91,14 +91,13 @@ contract Handler is Setup {
     {
         _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
+        // Mint tokens to the `fromEOA` address
         address fromEOA = vm.addr(_fromPK);
-
         SUPER_TOKEN.mint(fromEOA, _amount);
 
+        // Sign the allowance from the `fromEOA` address to the `callerActor` address
         Actors callerActor = randomActor(_callerActorIndex);
-
         bytes32 domainSeparator = SUPER_TOKEN.DOMAIN_SEPARATOR();
-
         (uint8 v, bytes32 r, bytes32 s) =
             signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
 
