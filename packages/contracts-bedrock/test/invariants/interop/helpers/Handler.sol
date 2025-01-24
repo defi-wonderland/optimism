@@ -201,13 +201,17 @@ contract Handler is Setup {
         public
         isInitialized
     {
+        // Get actors
         Actors fromActor = randomActor(_fromActorIndex);
         Actors callerActor = randomActor(_callerActorIndex);
+
+        // Clamp the amount to prevent an insufficient balance revert
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(fromActor)));
 
         // Get callerActor's balance before
         uint256 callerActorBalanceBefore = SUPER_WETH.balanceOf(address(callerActor));
 
+        // Call mock permit to simulate the usage of Permit2 address to transfer the tokens
         try Permit2(Preinstalls.Permit2).permitTransferFrom(
             address(SUPER_WETH), address(fromActor), address(callerActor), _amount
         ) {
