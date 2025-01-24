@@ -19,6 +19,8 @@ contract SuperchainERC20ForToBProperties is
     uint256 public initialSupply;
 
     constructor() {
+        token = ITokenMock(address(this));
+
         _mint(USER1, INITIAL_BALANCE);
         _mint(USER2, INITIAL_BALANCE);
         _mint(USER3, INITIAL_BALANCE);

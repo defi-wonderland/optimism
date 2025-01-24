@@ -9,7 +9,11 @@
     "corpusDirectory": "test/invariants/interop/corpus",
     "coverageEnabled": true,
     "coverageFormats": ["html", "lcov"],
-    "targetContracts": ["FuzzTest", "SuperchainERC20ForToBProperties"],
+    "targetContracts": [
+      "FuzzTest",
+      "SuperchainERC20ForToBProperties",
+      "SuperchainWETHForToBProperties"
+    ],
     "predeployedContracts": {
       "Deployer815": "0x4200000000000000000000000000000000000815",
       "Deployer825": "0x4200000000000000000000000000000000000825"

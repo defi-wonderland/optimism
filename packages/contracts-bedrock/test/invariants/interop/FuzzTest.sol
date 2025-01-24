@@ -75,7 +75,6 @@ contract FuzzTest is Handler {
             // Check the state is right after the call
             assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
-            assert(false);
         } else {
             // Ensure the message was already relayed
             bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -265,7 +264,7 @@ contract FuzzTest is Handler {
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
     /// `type(uint256).max
     function test_burnSuperchainWETH(address _to, uint256 _amount, bool _callSuperWETH) public isInitialized {
-        _to = clampGt(_to, address(0));
+        if (_to == address(0)) _to = address(type(uint160).max);
 
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;

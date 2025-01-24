@@ -1,0 +1,554 @@
+TEMP_DIR=$(mktemp -d) && FOUNDRY_PROFILE=medusa medusa fuzz --corpus-dir "$TEMP_DIR" --config medusa-debug.json && rm -rf "$TEMP_DIR"
+⇾ Reading the configuration file at: medusa-debug.json
+warn Disabling coverage may limit efficacy of fuzzing. Consider enabling coverage for better results.
+⇾ Compiling targets with crytic-compile
+⇾ Running command:
+/opt/homebrew/bin/crytic-compile . --export-format solc --foundry-compile-all --foundry-out-directory artifacts
+⇾ Finished compiling targets in 8s
+⇾ Running with a timeout of 30 seconds
+⇾ Initializing corpus
+⇾ Setting up test chain
+⇾ Finished setting up test chain
+⇾ Fuzzing with 10 workers
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_depositSuperchainWETH(uint256,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_permitSuperchainERC20(uint256,uint256,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_transferSuperchainWETH(address,uint256,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_transferFromSuperchainERC20(uint256,uint256,address,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_transferSuperchainERC20(address,uint256,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_transferFromSuperchainWETH(uint256,uint256,address,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_mintSuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),address,bool)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_superchainWETHSendETH(address,uint256,uint256,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_relaySuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_sendSuperchainERC20(address,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_sendSuperchainWETH(address,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_permit2SuperchainWETH(uint256,address,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_superchainWETHRelayETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_withdrawSuperchainWETH(uint256,uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_superWETHSupplyEqualsBalances()
+⇾ [NOT STARTED] Assertion Test: FuzzTest.test_burnSuperchainWETH(address,uint256,bool)
+⇾ [NOT STARTED] Assertion Test: FuzzTest.handler_permit2SuperchainERC20(uint256,address,uint256)
+⇾ fuzz: elapsed: 0s, calls: 0 (0/sec), seq/s: 0, coverage: 6926, corpus: 0, failures: 0/0, gas/s: 0
+⇾ [Worker 8] Shrinking call sequence with 3 call(s)
+⇾ [Worker 5] Shrinking call sequence with 72 call(s)
+⇾ fuzz: elapsed: 3s, calls: 55785 (18594/sec), seq/s: 184, coverage: 6926, corpus: 0, failures: 0/555, gas/s: 9692007380
+⇾ [Worker 0] Shrinking call sequence with 8 call(s)
+⇾ fuzz: elapsed: 6s, calls: 101731 (15314/sec), seq/s: 152, coverage: 6926, corpus: 0, failures: 0/1013, gas/s: 11925292191
+⇾ fuzz: elapsed: 9s, calls: 136145 (11468/sec), seq/s: 114, coverage: 6926, corpus: 0, failures: 0/1357, gas/s: 13345476964
+⇾ [Worker 3] Shrinking call sequence with 42 call(s)
+⇾ fuzz: elapsed: 12s, calls: 165416 (9749/sec), seq/s: 97, coverage: 6926, corpus: 0, failures: 0/1650, gas/s: 5180098710
+⇾ fuzz: elapsed: 15s, calls: 189779 (8112/sec), seq/s: 80, coverage: 6926, corpus: 0, failures: 0/1893, gas/s: 4236389550
+⇾ [FAILED] Assertion Test: FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+Test for method "FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)" resulted in an assertion failure after the following call sequence:
+[Call Sequence]
+1) FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)({origin: 0xf67cd114afe0bb0ec0d31d4ce5e320e05eaf8c5e, blockNumber: 119564644728125463735623932284864552942195084054185177335721666207877638, logIndex: 12577656981568563839328259416770011325077566180156202068500695674035094335020, timestamp: 51171061407660577784132888753809940158522641211689457980152065074461708642586, chainId: 31156222684316180325253388359469537389321653324484161280761282448409076184}, {from: 0xfe23d9b9113f9f9026d2cba47c91cc9ba7b15440, amount: 1938751068730630139080793702987178537399337284525274219151636159364048, nonce: 2878120528334744285541544999465921537903397292548885197067700606595329665}, 754565773334217169883569055885903437655209716114086525522484572777933661) (block=5, time=240420, gas=12500000, gasprice=1, value=0, sender=0x0000000000000000000000000000000000010000)
+[Execution Trace]
+ => [call] <unresolved contract>.<unresolved method>(msg_data=1b422ccd000000000000000000000000f67cd114afe0bb0ec0d31d4ce5e320e05eaf8c5e00001152e62f1b84353ef13bcf321f6bb10928b1d77de19ee53e801f157d0a061bceb39a5f69ba851f2da9304577c2b2dbccdf62bc60ec4f6550a50ad912ae2c7121cb5d1ae0338e4ab18f850b5ca701d0d3e55104ff7668ca6672e1fef7e91a0011a24087336e589baab48c495a9e35907e52a9ca1c95e91706ba83d329a1d8000000000000000000000000fe23d9b9113f9f9026d2cba47c91cc9ba7b1544000000047e98ac8116a989348e986957d22bf061f7c1889cddfb460d2fc617bd00001a1036c750f4a1a99c9c4c6c873c36dc3cb2f6978db07bdb34062c2456e8100006d54666b58fe7b96d8f5bd02a7afb4101fee05864c7918709aa944e0eb5d) (addr=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3, value=0, sender=0x0000000000000000000000000000000000010000)
+         => [call] Proxy.<unresolved method>(msg_data=8e355f7b00000000000000000000000090aa6c8442729496d80c11fce0a83781ad0719ce00000000000000000000000000000000000000000000000000000000000000000000000000000000000000008da9f903fd1d67cec09bef21a66656b76fa0ee9e000000000000000000000000dcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.initialize(address,bool,address,address)(0x90aa6c8442729496d80c11fce0a83781ad0719ce, false, 0x8da9f903fd1d67cec09bef21a66656b76fa0ee9e, 0xdcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [event] ConfigUpdate(0, 00000000000000000000000090aa6c8442729496d80c11fce0a83781ad0719ce)
+                         => [event] ConfigUpdate(1, 0000000000000000000000008da9f903fd1d67cec09bef21a66656b76fa0ee9e)
+                         => [event] Initialized(1)
+                         => [return ()]
+                 => [return]
+         => [call] Proxy.<unresolved method>(msg_data=ca407f0c000000000000000000000000a4e3c991b3d7001b23650c0cf6e1e396cefbd0e4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f329850000000000000000000000000000000000000000000000000000000003938700000000000000000000000000aaaa45d9549eda09e70937013520214382ffc4a20000000000000000000000000000000000000000000000000000000001312d00000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000ffffffffffffffffffffffffffffffff000000000000000000000000ff0000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc0000000000000000000000000000000000000000000000000000000000000000) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.initialize(address,uint32,uint32,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address))(0xa4e3c991b3d7001b23650c0cf6e1e396cefbd0e4, 0, 0, 0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985, 60000000, 0xaaaa45d9549eda09e70937013520214382ffc4a2, {maxResourceLimit: 20000000, elasticityMultiplier: 10, baseFeeMaxChangeDenominator: 8, minimumBaseFee: 1000000000, systemTxMaxGas: 1000000, maximumBaseFee: 340282366920938463463374607431768211455}, 0xff00000000000000000000000000000000000010, {l1CrossDomainMessenger: 0x0000000000000000000000000000000000000000, l1ERC721Bridge: 0x0000000000000000000000000000000000000000, l1StandardBridge: 0x0000000000000000000000000000000000000000, disputeGameFactory: 0x94d5ecb82a72ede55d2c5602c7a486be0dcecf50, optimismPortal: 0x533381fa5ecebb5dfd310441cc69ef3911c85edc, optimismMintableERC20Factory: 0x0000000000000000000000000000000000000000}) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [event] OwnershipTransferred(0x0000000000000000000000000000000000000000, 0x4b38070a432773e11b9e2a9967285dd7b1f862b3)
+                         => [event] OwnershipTransferred(0x4b38070a432773e11b9e2a9967285dd7b1f862b3, 0xa4e3c991b3d7001b23650c0cf6e1e396cefbd0e4)
+                         => [event] ConfigUpdate(0, 0, 0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985)
+                         => [event] ConfigUpdate(0, 1, 00000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000)
+                         => [event] ConfigUpdate(0, 2, 0000000000000000000000000000000000000000000000000000000003938700)
+                         => [event] Initialized(1)
+                         => [return ()]
+                 => [return]
+         => [call] Proxy.<unresolved method>(msg_data=8e819e5400000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000000) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=8e819e5400000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000000) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [call] Proxy.<unresolved method>(msg_data=77d6d540) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                 => [proxy call] Proxy -> SuperchainConfigInterop.sharedLockbox()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                         => [return (0xdcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+                                 => [return (return_data=000000000000000000000000dcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+                         => [event] Initialized(1)
+                         => [return]
+                 => [return]
+         => [call] Proxy.<unresolved method>(msg_data=c4d66de8000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SharedLockbox.initialize(address)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, code=0x4268cD44F18f55277E50D089B8F56937eCC65373, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [event] Initialized(1)
+                         => [return ()]
+                 => [return]
+         => [call] Actors.directCall(address,uint256,bytes)(0x4200000000000000000000000000000000000029, 0, 879e4fc5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [call] StdCheats.toString(address)(0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001) (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                         => [return ("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")]
+                 => [event] ActorsLog("call using actor: 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
+                 => [call] Proxy.<unresolved method>(msg_data=879e4fc5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x4200000000000000000000000000000000000029, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                         => [proxy call] Proxy -> DependencyManager.addDependency(address,uint256,address)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 130, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x4200000000000000000000000000000000000029, code=0x7bA37B1519173c980D34f1a4c508Ebc495Fb28fD, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                                 => [call] Proxy.<unresolved method>(msg_data=c2b3e5ac000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000061a8000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044cef339cd0000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d500000000000000000000000000000000000000000000000000000000) (addr=0x4200000000000000000000000000000000000016, value=0, sender=0x4200000000000000000000000000000000000029)
+                                         => [proxy call] Proxy -> L2ToL1MessagePasser.initiateWithdrawal(address,uint256,bytes)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 400000, cef339cd0000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x4200000000000000000000000000000000000016, code=0x696a7bEd3162d2BBbC0BaC3f95e16AA8826c15F7, value=0, sender=0x4200000000000000000000000000000000000029)
+                                                 => [event] MessagePassed(1766847064778384329583297500742918515827483896875618958121606201292619776, 0x4200000000000000000000000000000000000029, 0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 0, 400000, cef339cd0000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5, 9eb65ececffdef0a3595819605541046e59235b1326acde67426dd794c01b7bb)
+                                                 => [return ()]
+                                         => [return]
+                                 => [event] DependencyAdded(130, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5, 0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4)
+                                 => [return ()]
+                         => [return]
+                 => [call] StdCheats.toString(bytes)() (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                         => [return ("0x")]
+                 => [event] ActorsLog("return data: 0x")
+                 => [return (true, )]
+         => [call] Actors.directCall(address,uint256,bytes)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 0, cef339cd000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [call] StdCheats.toString(address)(0x8da9f903fd1d67cec09bef21a66656b76fa0ee9e) (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                         => [return ("0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e")]
+                 => [event] ActorsLog("call using actor: 0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e")
+                 => [call] Proxy.<unresolved method>(msg_data=cef339cd000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                         => [proxy call] Proxy -> SuperchainConfigInterop.addDependency(uint256,address)(10, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                                 => [call] Proxy.<unresolved method>(msg_data=0a49cb03) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                         => [proxy call] Proxy -> SystemConfig.optimismPortal()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                                 => [return (0x533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+                                         => [return (return_data=000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+                                 => [call] Proxy.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                         => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                                 => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                                         => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                                 => [call] Proxy.<unresolved method>(msg_data=bda204bb) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                         => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=bda204bb) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                                 => [call] Proxy.<unresolved method>(msg_data=1ee116bf) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, value=700000000000000000000000, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                                         => [proxy call] Proxy -> SharedLockbox.lockETH()() (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, code=0x4268cD44F18f55277E50D089B8F56937eCC65373, value=700000000000000000000000, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                                                 => [call] Proxy.<unresolved method>(msg_data=0fd11077000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69)
+                                                                         => [proxy call] Proxy -> SuperchainConfigInterop.authorizedPortals(address)(0x533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69)
+                                                                                 => [return (true)]
+                                                                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000000001)]
+                                                                 => [event] ETHLocked(0x533381fa5ecebb5dfd310441cc69ef3911c85edc, 700000000000000000000000)
+                                                                 => [return ()]
+                                                         => [return]
+                                                 => [event] ETHMigrated(700000000000000000000000)
+                                                 => [return]
+                                         => [return]
+                                 => [event] DependencyAdded(10, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5, 0x533381fa5ecebb5dfd310441cc69ef3911c85edc)
+                                 => [return ()]
+                         => [return]
+                 => [call] StdCheats.toString(bytes)() (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                         => [return ("0x")]
+                 => [event] ActorsLog("return data: 0x")
+                 => [return (true, )]
+         => [call] Proxy.<unresolved method>(msg_data=bf653a5c) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=bf653a5c) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000093a80)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000093a80)]
+         => [call] Proxy.<unresolved method>(msg_data=952b2797) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=952b2797) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000049d40)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000049d40)]
+         => [call] Proxy.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                 => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+         => [call] Proxy.<unresolved method>(msg_data=33d7e2bd) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=33d7e2bd) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5)]
+                 => [return (return_data=000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5)]
+         => [call] Proxy.<unresolved method>(msg_data=f2b4e617) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=f2b4e617) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=00000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+                 => [return (return_data=00000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+         => [call] Proxy.<unresolved method>(msg_data=35e80ab3) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SharedLockbox.superchainConfig()() (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, code=0x4268cD44F18f55277E50D089B8F56937eCC65373, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                 => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+         => [call] Proxy.<unresolved method>(msg_data=77d6d540) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.sharedLockbox()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0xdcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+                 => [return (return_data=000000000000000000000000dcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+         => [call] Proxy.<unresolved method>(msg_data=452a9320) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.guardian()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x90aa6c8442729496d80c11fce0a83781ad0719ce)]
+                 => [return (return_data=00000000000000000000000090aa6c8442729496d80c11fce0a83781ad0719ce)]
+         => [call] Proxy.<unresolved method>(msg_data=5c975abb) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.paused()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (false)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=e38bbc32000000000000000000000000000000000000000000000000000000000000000a) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.isInDependencySet(uint256)(10) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (true)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000001)]
+         => [call] Proxy.<unresolved method>(msg_data=0fd11077000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.authorizedPortals(address)(0x533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (true)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000001)]
+         => [call] Proxy.<unresolved method>(msg_data=48cd4cb1) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.startBlock()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (5)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000005)]
+         => [call] Proxy.<unresolved method>(msg_data=bfb14fb7) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.basefeeScalar()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=ec707517) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.blobbasefeeScalar()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=e81b2c6d) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.batcherHash()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985)]
+                 => [return (return_data=0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985)]
+         => [call] Proxy.<unresolved method>(msg_data=f68016b7) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.gasLimit()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (60000000)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000003938700)]
+         => [call] Proxy.<unresolved method>(msg_data=1fd19ee1) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.unsafeBlockSigner()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0xaaaa45d9549eda09e70937013520214382ffc4a2)]
+                 => [return (return_data=000000000000000000000000aaaa45d9549eda09e70937013520214382ffc4a2)]
+         => [call] Proxy.<unresolved method>(msg_data=dac6e63a) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.batchInbox()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0xff00000000000000000000000000000000000010)]
+                 => [return (return_data=000000000000000000000000ff00000000000000000000000000000000000010)]
+         => [call] Proxy.<unresolved method>(msg_data=f2b4e617) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.disputeGameFactory()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x94d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+                 => [return (return_data=00000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+         => [call] Proxy.<unresolved method>(msg_data=0a49cb03) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.optimismPortal()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+                 => [return (return_data=000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+         => [call] Proxy.<unresolved method>(msg_data=cc731b02) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.resourceConfig()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ({maxResourceLimit: 20000000, elasticityMultiplier: 10, baseFeeMaxChangeDenominator: 8, minimumBaseFee: 1000000000, systemTxMaxGas: 1000000, maximumBaseFee: 340282366920938463463374607431768211455})]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000001312d00000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000ffffffffffffffffffffffffffffffff)]
+         => [call] SuperchainERC20ForToBProperties.name()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return ("Super Token")]
+         => [call] SuperchainERC20ForToBProperties.symbol()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return ("SUP")]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000025, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> ETHLiquidity.version()() (addr=0x4200000000000000000000000000000000000025, code=0x019D3a4dCe8B6456088E575d32225C1D1B9d9E1F, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.6")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000c312e302e302d626574612e360000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000015, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> L1BlockInterop.version()() (addr=0x4200000000000000000000000000000000000015, code=0x109076B8f5E849b20277528A3e4b5B008d5eEe0B, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.5.1-beta.6+interop-beta.5")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001b312e352e312d626574612e362b696e7465726f702d626574612e350000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000024, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainWETH.version()() (addr=0x4200000000000000000000000000000000000024, code=0x4CcaA8d220F771F2FEABF6d06d58432D6B30cf10, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.14")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e302d626574612e313400000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000023, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> L2ToL2CrossDomainMessenger.version()() (addr=0x4200000000000000000000000000000000000023, code=0x8e319724F899D26AfCa403f6d3b6F1192483653a, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.15")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e302d626574612e313500000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000028, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainTokenBridge.version()() (addr=0x4200000000000000000000000000000000000028, code=0x453939146f059800605eD20289945DBEf069ec6F, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.4")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000c312e302e302d626574612e340000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000029, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> DependencyManager.version()() (addr=0x4200000000000000000000000000000000000029, code=0x7bA37B1519173c980D34f1a4c508Ebc495Fb28fD, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.1")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000c312e302e302d626574612e310000000000000000000000000000000000000000)]
+         => [call] SuperchainERC20ForToBProperties.totalSupply()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (1662832153038249216242825215692934772977)]
+         => [call] SuperchainERC20ForToBProperties.totalSupply()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (1662832153038249216242825215692934772977)]
+         => [call] SuperchainERC20ForToBProperties.balanceOf(address)(0xdc9e7309aafa94c22cb358f563e4c060941e6967) (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (228689729121294597572124126374521452530)]
+         => [call] Actors.callL2ToL2MessengerRelayMessage((address,uint256,uint256,uint256,uint256),bytes)({origin: 0x4200000000000000000000000000000000000023, blockNumber: 119564644728125463735623932284864552942195084054185177335721666207877638, logIndex: 12577656981568563839328259416770011325077566180156202068500695674035094335020, timestamp: 51171061407660577784132888753809940158522641211689457980152065074461708642586, chainId: 31156222684316180325253388359469537389321653324484161280761282448409076184}, 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320000000000000000000000000000000000000000000000000000000000000000100000000000000000000000042000000000000000000000000000000000000280001a1036c750f4a1a99c9c4c6c873c36dc3cb2f6978db07bdb34062c2456e810000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec6000000000000000000000000fe23d9b9113f9f9026d2cba47c91cc9ba7b15440000000000000000000000000dc9e7309aafa94c22cb358f563e4c060941e696700000047e98ac8116a989348e986957d22bf061f7c1889cddfb460d2fc617bd000000000000000000000000000000000000000000000000000000000) (addr=0xb2d5597CC044c7a6EE8D8D0b67Cef95A7feff9c9, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [call] Proxy.<unresolved method>(msg_data=8d1d298f000000000000000000000000420000000000000000000000000000000000002300001152e62f1b84353ef13bcf321f6bb10928b1d77de19ee53e801f157d0a061bceb39a5f69ba851f2da9304577c2b2dbccdf62bc60ec4f6550a50ad912ae2c7121cb5d1ae0338e4ab18f850b5ca701d0d3e55104ff7668ca6672e1fef7e91a0011a24087336e589baab48c495a9e35907e52a9ca1c95e91706ba83d329a1d800000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000180382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320000000000000000000000000000000000000000000000000000000000000000100000000000000000000000042000000000000000000000000000000000000280001a1036c750f4a1a99c9c4c6c873c36dc3cb2f6978db07bdb34062c2456e810000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec6000000000000000000000000fe23d9b9113f9f9026d2cba47c91cc9ba7b15440000000000000000000000000dc9e7309aafa94c22cb358f563e4c060941e696700000047e98ac8116a989348e986957d22bf061f7c1889cddfb460d2fc617bd000000000000000000000000000000000000000000000000000000000) (addr=0x4200000000000000000000000000000000000023, value=0, sender=0xb2d5597CC044c7a6EE8D8D0b67Cef95A7feff9c9)
+                         => [proxy call] Proxy -> L2ToL2CrossDomainMessenger.relayMessage((address,uint256,uint256,uint256,uint256),bytes)({origin: 0x4200000000000000000000000000000000000023, blockNumber: 119564644728125463735623932284864552942195084054185177335721666207877638, logIndex: 12577656981568563839328259416770011325077566180156202068500695674035094335020, timestamp: 51171061407660577784132888753809940158522641211689457980152065074461708642586, chainId: 31156222684316180325253388359469537389321653324484161280761282448409076184}, 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320000000000000000000000000000000000000000000000000000000000000000100000000000000000000000042000000000000000000000000000000000000280001a1036c750f4a1a99c9c4c6c873c36dc3cb2f6978db07bdb34062c2456e810000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec6000000000000000000000000fe23d9b9113f9f9026d2cba47c91cc9ba7b15440000000000000000000000000dc9e7309aafa94c22cb358f563e4c060941e696700000047e98ac8116a989348e986957d22bf061f7c1889cddfb460d2fc617bd000000000000000000000000000000000000000000000000000000000) (addr=0x4200000000000000000000000000000000000023, code=0x8e319724F899D26AfCa403f6d3b6F1192483653a, value=0, sender=0xb2d5597CC044c7a6EE8D8D0b67Cef95A7feff9c9)
+                                 => [call] Proxy.<unresolved method>(msg_data=ab4d6f75000000000000000000000000420000000000000000000000000000000000002300001152e62f1b84353ef13bcf321f6bb10928b1d77de19ee53e801f157d0a061bceb39a5f69ba851f2da9304577c2b2dbccdf62bc60ec4f6550a50ad912ae2c7121cb5d1ae0338e4ab18f850b5ca701d0d3e55104ff7668ca6672e1fef7e91a0011a24087336e589baab48c495a9e35907e52a9ca1c95e91706ba83d329a1d825a742588c8e553293b5daff901b10afc7b41ce2b547fac292d89884b3a97b0e) (addr=0x4200000000000000000000000000000000000022, value=0, sender=0x4200000000000000000000000000000000000023)
+                                         => [proxy call] Proxy -> CrossL2Inbox.validateMessage((address,uint256,uint256,uint256,uint256),bytes32)({origin: 0x4200000000000000000000000000000000000023, blockNumber: 119564644728125463735623932284864552942195084054185177335721666207877638, logIndex: 12577656981568563839328259416770011325077566180156202068500695674035094335020, timestamp: 51171061407660577784132888753809940158522641211689457980152065074461708642586, chainId: 31156222684316180325253388359469537389321653324484161280761282448409076184}, 25a742588c8e553293b5daff901b10afc7b41ce2b547fac292d89884b3a97b0e) (addr=0x4200000000000000000000000000000000000022, code=0x32dD31d0119b5026b3E36176620f3C9431947a56, value=0, sender=0x4200000000000000000000000000000000000023)
+                                                 => [call] Proxy.<unresolved method>(msg_data=7bc3b5ff) (addr=0x4200000000000000000000000000000000000015, value=<nil>, sender=0x4200000000000000000000000000000000000022)
+                                                         => [proxy call] Proxy -> L1BlockInterop.isDeposit()() (addr=0x4200000000000000000000000000000000000015, code=0x109076B8f5E849b20277528A3e4b5B008d5eEe0B, value=0, sender=0x4200000000000000000000000000000000000022)
+                                                                 => [return (false)]
+                                                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+                                                 => [event] ExecutingMessage(25a742588c8e553293b5daff901b10afc7b41ce2b547fac292d89884b3a97b0e, {origin: 0x4200000000000000000000000000000000000023, blockNumber: 119564644728125463735623932284864552942195084054185177335721666207877638, logIndex: 12577656981568563839328259416770011325077566180156202068500695674035094335020, timestamp: 51171061407660577784132888753809940158522641211689457980152065074461708642586, chainId: 31156222684316180325253388359469537389321653324484161280761282448409076184})
+                                                 => [return ()]
+                                         => [return]
+                                 => [call] Proxy.<unresolved method>(msg_data=7cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec6000000000000000000000000fe23d9b9113f9f9026d2cba47c91cc9ba7b15440000000000000000000000000dc9e7309aafa94c22cb358f563e4c060941e696700000047e98ac8116a989348e986957d22bf061f7c1889cddfb460d2fc617bd0) (addr=0x4200000000000000000000000000000000000028, value=0, sender=0x4200000000000000000000000000000000000023)
+                                         => [proxy call] Proxy -> SuperchainTokenBridge.relayERC20(address,address,address,uint256)(0x8b80186223918ae54a9adc6fd06abdbdace9dec6, 0xfe23d9b9113f9f9026d2cba47c91cc9ba7b15440, 0xdc9e7309aafa94c22cb358f563e4c060941e6967, 1938751068730630139080793702987178537399337284525274219151636159364048) (addr=0x4200000000000000000000000000000000000028, code=0x453939146f059800605eD20289945DBEf069ec6F, value=0, sender=0x4200000000000000000000000000000000000023)
+                                                 => [call] Proxy.<unresolved method>(msg_data=7936cbee) (addr=0x4200000000000000000000000000000000000023, value=<nil>, sender=0x4200000000000000000000000000000000000028)
+                                                         => [proxy call] Proxy -> L2ToL2CrossDomainMessenger.crossDomainMessageContext()() (addr=0x4200000000000000000000000000000000000023, code=0x8e319724F899D26AfCa403f6d3b6F1192483653a, value=0, sender=0x4200000000000000000000000000000000000028)
+                                                                 => [return (0x4200000000000000000000000000000000000028, 31156222684316180325253388359469537389321653324484161280761282448409076184)]
+                                                         => [return (return_data=00000000000000000000000042000000000000000000000000000000000000280011a24087336e589baab48c495a9e35907e52a9ca1c95e91706ba83d329a1d8)]
+                                                 => [call] SuperchainERC20ForToBProperties.crosschainMint(address,uint256)(0xdc9e7309aafa94c22cb358f563e4c060941e6967, 1938751068730630139080793702987178537399337284525274219151636159364048) (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=0, sender=0x4200000000000000000000000000000000000028)
+                                                         => [event] Transfer(0x0000000000000000000000000000000000000000, 0xdc9e7309aafa94c22cb358f563e4c060941e6967, 1938751068730630139080793702987178537399337284525274219151636159364048)
+                                                         => [event] CrosschainMint(0xdc9e7309aafa94c22cb358f563e4c060941e6967, 1938751068730630139080793702987178537399337284525274219151636159364048, 0x4200000000000000000000000000000000000028)
+                                                         => [return ()]
+                                                 => [event] RelayERC20(0x8b80186223918ae54a9adc6fd06abdbdace9dec6, 0xfe23d9b9113f9f9026d2cba47c91cc9ba7b15440, 0xdc9e7309aafa94c22cb358f563e4c060941e6967, 1938751068730630139080793702987178537399337284525274219151636159364048, 31156222684316180325253388359469537389321653324484161280761282448409076184)
+                                                 => [return ()]
+                                         => [return]
+                                 => [event] RelayedMessage(31156222684316180325253388359469537389321653324484161280761282448409076184, 2878120528334744285541544999465921537903397292548885197067700606595329665, 22af12ed964b7b548f2ab4106058f016a6ad3338461447d231015e4b6a46eae6)
+                                 => [return ()]
+                         => [return (return_data=00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000)]
+                 => [return (true)]
+         => [call] SuperchainERC20ForToBProperties.balanceOf(address)(0xdc9e7309aafa94c22cb358f563e4c060941e6967) (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (1938751068730630139080793702987407227128458579122846343278010680816578)]
+         => [call] SuperchainERC20ForToBProperties.totalSupply()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (1938751068730630139080793702988841369552375533741517044367329094137025)]
+         => [panic: assertion failed]
+
+
+⇾ fuzz: elapsed: 18s, calls: 216648 (8953/sec), seq/s: 89, coverage: 6926, corpus: 0, failures: 1/2163, gas/s: 4713435366
+⇾ fuzz: elapsed: 21s, calls: 256758 (13368/sec), seq/s: 134, coverage: 6926, corpus: 0, failures: 3/2566, gas/s: 18303557561
+⇾ fuzz: elapsed: 24s, calls: 304812 (16017/sec), seq/s: 159, coverage: 6926, corpus: 0, failures: 3/3045, gas/s: 23094993566
+⇾ fuzz: elapsed: 27s, calls: 355726 (16971/sec), seq/s: 169, coverage: 6926, corpus: 0, failures: 4/3554, gas/s: 16868515528
+⇾ Fuzzer stopped, test results follow below ...
+⇾ [PASSED] Assertion Test: FuzzTest.handler_depositSuperchainWETH(uint256,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_permit2SuperchainERC20(uint256,address,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_permit2SuperchainWETH(uint256,address,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_permitSuperchainERC20(uint256,uint256,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_superchainWETHRelayETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_superchainWETHSendETH(address,uint256,uint256,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_transferFromSuperchainERC20(uint256,uint256,address,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_transferFromSuperchainWETH(uint256,uint256,address,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_transferSuperchainERC20(address,uint256,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_transferSuperchainWETH(address,uint256,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.handler_withdrawSuperchainWETH(uint256,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.test_burnSuperchainWETH(address,uint256,bool)
+⇾ [PASSED] Assertion Test: FuzzTest.test_mintSuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),address,bool)
+⇾ [PASSED] Assertion Test: FuzzTest.test_relaySuperchainWETH((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.test_sendSuperchainERC20(address,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.test_sendSuperchainWETH(address,uint256)
+⇾ [PASSED] Assertion Test: FuzzTest.test_superWETHSupplyEqualsBalances()
+⇾ [FAILED] Assertion Test: FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)
+Test for method "FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)" resulted in an assertion failure after the following call sequence:
+[Call Sequence]
+1) FuzzTest.test_relaySuperchainERC20((address,uint256,uint256,uint256,uint256),(address,uint256,uint256),uint256)({origin: 0x8e319724f899d26afca403f6d3b6f1192483653a, blockNumber: 24921352502500888850129850751115466455875907316716901674926900245125497204288, logIndex: 107627659614281618439337010541014707271588549885094452938167989211094933075, timestamp: 241599298235109274729174547024903052543692436621453252196228810034220225904, chainId: 41095711580283592320336991707097017152664035885704689711188634980023152751104}, {from: 0x80a1d4e222ba04338b6cc341304d023e7d860f61, amount: 15769006382802551703906151129095319296715442019425918765479137031976839470738, nonce: 4348588413486771537555481057510222085476367578069168666881969205367210637787}, 409501874926806468456291514165216633792577253965786343832661174552881621397) (block=23884, time=65539, gas=12500000, gasprice=1, value=0, sender=0x0000000000000000000000000000000000010000)
+[Execution Trace]
+ => [call] <unresolved contract>.<unresolved method>(msg_data=1b422ccd0000000000000000000000008e319724f899d26afca403f6d3b6f1192483653a3718fc53db752ace4e04a8e7d54e70f837484133159223f159b3266d2601ae40003cea43c52f5b4f7ff8c5a73bf897025eb05649b8c5ae6b8916d27ef2515e530088bd8807b83189e52b769ba76340490bba1888fda2349d57e8050085cdd5705adb59359ac9cfd2a5ebab85210306a99ab0de6d414c1ed44219852d4c4d320000000000000000000000000080a1d4e222ba04338b6cc341304d023e7d860f6122dcf0faa73865d7275adee1d0b56855ce47904e57a1bcd69e1c52df149ede92099d36bce6b0944bebd660b4657a888f7ff251097e5532f1cee2d1046661f9db00e7c514bb6215e7c630f63559f19ed33338eab43474fee821e2f7f81e696995) (addr=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3, value=0, sender=0x0000000000000000000000000000000000010000)
+         => [call] Proxy.<unresolved method>(msg_data=8e355f7b00000000000000000000000090aa6c8442729496d80c11fce0a83781ad0719ce00000000000000000000000000000000000000000000000000000000000000000000000000000000000000008da9f903fd1d67cec09bef21a66656b76fa0ee9e000000000000000000000000dcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.initialize(address,bool,address,address)(0x90aa6c8442729496d80c11fce0a83781ad0719ce, false, 0x8da9f903fd1d67cec09bef21a66656b76fa0ee9e, 0xdcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [event] ConfigUpdate(0, 00000000000000000000000090aa6c8442729496d80c11fce0a83781ad0719ce)
+                         => [event] ConfigUpdate(1, 0000000000000000000000008da9f903fd1d67cec09bef21a66656b76fa0ee9e)
+                         => [event] Initialized(1)
+                         => [return ()]
+                 => [return]
+         => [call] Proxy.<unresolved method>(msg_data=ca407f0c000000000000000000000000a4e3c991b3d7001b23650c0cf6e1e396cefbd0e4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f329850000000000000000000000000000000000000000000000000000000003938700000000000000000000000000aaaa45d9549eda09e70937013520214382ffc4a20000000000000000000000000000000000000000000000000000000001312d00000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000ffffffffffffffffffffffffffffffff000000000000000000000000ff0000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc0000000000000000000000000000000000000000000000000000000000000000) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.initialize(address,uint32,uint32,bytes32,uint64,address,(uint32,uint8,uint8,uint32,uint32,uint128),address,(address,address,address,address,address,address))(0xa4e3c991b3d7001b23650c0cf6e1e396cefbd0e4, 0, 0, 0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985, 60000000, 0xaaaa45d9549eda09e70937013520214382ffc4a2, {maxResourceLimit: 20000000, elasticityMultiplier: 10, baseFeeMaxChangeDenominator: 8, minimumBaseFee: 1000000000, systemTxMaxGas: 1000000, maximumBaseFee: 340282366920938463463374607431768211455}, 0xff00000000000000000000000000000000000010, {l1CrossDomainMessenger: 0x0000000000000000000000000000000000000000, l1ERC721Bridge: 0x0000000000000000000000000000000000000000, l1StandardBridge: 0x0000000000000000000000000000000000000000, disputeGameFactory: 0x94d5ecb82a72ede55d2c5602c7a486be0dcecf50, optimismPortal: 0x533381fa5ecebb5dfd310441cc69ef3911c85edc, optimismMintableERC20Factory: 0x0000000000000000000000000000000000000000}) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [event] OwnershipTransferred(0x0000000000000000000000000000000000000000, 0x4b38070a432773e11b9e2a9967285dd7b1f862b3)
+                         => [event] OwnershipTransferred(0x4b38070a432773e11b9e2a9967285dd7b1f862b3, 0xa4e3c991b3d7001b23650c0cf6e1e396cefbd0e4)
+                         => [event] ConfigUpdate(0, 0, 0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985)
+                         => [event] ConfigUpdate(0, 1, 00000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000)
+                         => [event] ConfigUpdate(0, 2, 0000000000000000000000000000000000000000000000000000000003938700)
+                         => [event] Initialized(1)
+                         => [return ()]
+                 => [return]
+         => [call] Proxy.<unresolved method>(msg_data=8e819e5400000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000000) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=8e819e5400000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000000) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [call] Proxy.<unresolved method>(msg_data=77d6d540) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                 => [proxy call] Proxy -> SuperchainConfigInterop.sharedLockbox()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                         => [return (0xdcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+                                 => [return (return_data=000000000000000000000000dcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+                         => [event] Initialized(1)
+                         => [return]
+                 => [return]
+         => [call] Proxy.<unresolved method>(msg_data=c4d66de8000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SharedLockbox.initialize(address)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, code=0x4268cD44F18f55277E50D089B8F56937eCC65373, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [event] Initialized(1)
+                         => [return ()]
+                 => [return]
+         => [call] Actors.directCall(address,uint256,bytes)(0x4200000000000000000000000000000000000029, 0, 879e4fc5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [call] StdCheats.toString(address)(0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001) (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                         => [return ("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")]
+                 => [event] ActorsLog("call using actor: 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
+                 => [call] Proxy.<unresolved method>(msg_data=879e4fc5000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x4200000000000000000000000000000000000029, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                         => [proxy call] Proxy -> DependencyManager.addDependency(address,uint256,address)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 130, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x4200000000000000000000000000000000000029, code=0x7bA37B1519173c980D34f1a4c508Ebc495Fb28fD, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                                 => [call] Proxy.<unresolved method>(msg_data=c2b3e5ac000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef40000000000000000000000000000000000000000000000000000000000061a8000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000044cef339cd0000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d500000000000000000000000000000000000000000000000000000000) (addr=0x4200000000000000000000000000000000000016, value=0, sender=0x4200000000000000000000000000000000000029)
+                                         => [proxy call] Proxy -> L2ToL1MessagePasser.initiateWithdrawal(address,uint256,bytes)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 400000, cef339cd0000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x4200000000000000000000000000000000000016, code=0x696a7bEd3162d2BBbC0BaC3f95e16AA8826c15F7, value=0, sender=0x4200000000000000000000000000000000000029)
+                                                 => [event] MessagePassed(1766847064778384329583297500742918515827483896875618958121606201292619776, 0x4200000000000000000000000000000000000029, 0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 0, 400000, cef339cd0000000000000000000000000000000000000000000000000000000000000082000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5, 9eb65ececffdef0a3595819605541046e59235b1326acde67426dd794c01b7bb)
+                                                 => [return ()]
+                                         => [return]
+                                 => [event] DependencyAdded(130, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5, 0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4)
+                                 => [return ()]
+                         => [return]
+                 => [call] StdCheats.toString(bytes)() (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001)
+                         => [return ("0x")]
+                 => [event] ActorsLog("return data: 0x")
+                 => [return (true, )]
+         => [call] Actors.directCall(address,uint256,bytes)(0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4, 0, cef339cd000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [call] StdCheats.toString(address)(0x8da9f903fd1d67cec09bef21a66656b76fa0ee9e) (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                         => [return ("0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e")]
+                 => [event] ActorsLog("call using actor: 0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e")
+                 => [call] Proxy.<unresolved method>(msg_data=cef339cd000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                         => [proxy call] Proxy -> SuperchainConfigInterop.addDependency(uint256,address)(10, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                                 => [call] Proxy.<unresolved method>(msg_data=0a49cb03) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                         => [proxy call] Proxy -> SystemConfig.optimismPortal()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                                 => [return (0x533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+                                         => [return (return_data=000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+                                 => [call] Proxy.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                         => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                                 => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                                         => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                                 => [call] Proxy.<unresolved method>(msg_data=bda204bb) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                         => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=bda204bb) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4)
+                                                 => [call] Proxy.<unresolved method>(msg_data=1ee116bf) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, value=700000000000000000000000, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                                         => [proxy call] Proxy -> SharedLockbox.lockETH()() (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, code=0x4268cD44F18f55277E50D089B8F56937eCC65373, value=700000000000000000000000, sender=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC)
+                                                                 => [call] Proxy.<unresolved method>(msg_data=0fd11077000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69)
+                                                                         => [proxy call] Proxy -> SuperchainConfigInterop.authorizedPortals(address)(0x533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69)
+                                                                                 => [return (true)]
+                                                                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000000001)]
+                                                                 => [event] ETHLocked(0x533381fa5ecebb5dfd310441cc69ef3911c85edc, 700000000000000000000000)
+                                                                 => [return ()]
+                                                         => [return]
+                                                 => [event] ETHMigrated(700000000000000000000000)
+                                                 => [return]
+                                         => [return]
+                                 => [event] DependencyAdded(10, 0x631833401e317a27ee9b643a23fac3d9b1ce82d5, 0x533381fa5ecebb5dfd310441cc69ef3911c85edc)
+                                 => [return ()]
+                         => [return]
+                 => [call] StdCheats.toString(bytes)() (addr=0x7109709ECfa91a80626fF3989D68f67F5b1DD12D, value=0, sender=0x8DA9f903fd1d67ceC09beF21a66656B76Fa0EE9e)
+                         => [return ("0x")]
+                 => [event] ActorsLog("return data: 0x")
+                 => [return (true, )]
+         => [call] Proxy.<unresolved method>(msg_data=bf653a5c) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=bf653a5c) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000093a80)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000093a80)]
+         => [call] Proxy.<unresolved method>(msg_data=952b2797) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=952b2797) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000049d40)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000049d40)]
+         => [call] Proxy.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=35e80ab3) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                 => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+         => [call] Proxy.<unresolved method>(msg_data=33d7e2bd) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=33d7e2bd) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5)]
+                 => [return (return_data=000000000000000000000000631833401e317a27ee9b643a23fac3d9b1ce82d5)]
+         => [call] Proxy.<unresolved method>(msg_data=f2b4e617) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> <unresolved contract>.<unresolved method>(msg_data=f2b4e617) (addr=0x533381fa5ECeBB5dfD310441cc69Ef3911C85eDC, code=0xc59c0fd1F89BF2d087388872DB384C5E9774dD5A, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (return_data=00000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+                 => [return (return_data=00000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+         => [call] Proxy.<unresolved method>(msg_data=35e80ab3) (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SharedLockbox.superchainConfig()() (addr=0xdCAB0150D40D6Ef6C33d6F457A9a0ed4db3e7E69, code=0x4268cD44F18f55277E50D089B8F56937eCC65373, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+                 => [return (return_data=000000000000000000000000571d91a82a52fbaf44a383da208dfc0afb0f1ef4)]
+         => [call] Proxy.<unresolved method>(msg_data=77d6d540) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.sharedLockbox()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0xdcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+                 => [return (return_data=000000000000000000000000dcab0150d40d6ef6c33d6f457a9a0ed4db3e7e69)]
+         => [call] Proxy.<unresolved method>(msg_data=452a9320) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.guardian()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x90aa6c8442729496d80c11fce0a83781ad0719ce)]
+                 => [return (return_data=00000000000000000000000090aa6c8442729496d80c11fce0a83781ad0719ce)]
+         => [call] Proxy.<unresolved method>(msg_data=5c975abb) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.paused()() (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (false)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=e38bbc32000000000000000000000000000000000000000000000000000000000000000a) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.isInDependencySet(uint256)(10) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (true)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000001)]
+         => [call] Proxy.<unresolved method>(msg_data=0fd11077000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainConfigInterop.authorizedPortals(address)(0x533381fa5ecebb5dfd310441cc69ef3911c85edc) (addr=0x571d91A82A52FbAf44a383dA208DFc0AFB0f1eF4, code=0x7a7508a7393420ab9471e4086317efACE8C1A9C1, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (true)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000001)]
+         => [call] Proxy.<unresolved method>(msg_data=48cd4cb1) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.startBlock()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (23884)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000005d4c)]
+         => [call] Proxy.<unresolved method>(msg_data=bfb14fb7) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.basefeeScalar()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=ec707517) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.blobbasefeeScalar()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=e81b2c6d) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.batcherHash()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985)]
+                 => [return (return_data=0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985)]
+         => [call] Proxy.<unresolved method>(msg_data=f68016b7) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.gasLimit()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (60000000)]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000003938700)]
+         => [call] Proxy.<unresolved method>(msg_data=1fd19ee1) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.unsafeBlockSigner()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0xaaaa45d9549eda09e70937013520214382ffc4a2)]
+                 => [return (return_data=000000000000000000000000aaaa45d9549eda09e70937013520214382ffc4a2)]
+         => [call] Proxy.<unresolved method>(msg_data=dac6e63a) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.batchInbox()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0xff00000000000000000000000000000000000010)]
+                 => [return (return_data=000000000000000000000000ff00000000000000000000000000000000000010)]
+         => [call] Proxy.<unresolved method>(msg_data=f2b4e617) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.disputeGameFactory()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x94d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+                 => [return (return_data=00000000000000000000000094d5ecb82a72ede55d2c5602c7a486be0dcecf50)]
+         => [call] Proxy.<unresolved method>(msg_data=0a49cb03) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.optimismPortal()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return (0x533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+                 => [return (return_data=000000000000000000000000533381fa5ecebb5dfd310441cc69ef3911c85edc)]
+         => [call] Proxy.<unresolved method>(msg_data=cc731b02) (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SystemConfig.resourceConfig()() (addr=0x631833401E317A27EE9B643A23fAC3d9b1ce82D5, code=0x9ca9001BAAF8Ff4bd2a42EAc000477d5c262c8E6, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ({maxResourceLimit: 20000000, elasticityMultiplier: 10, baseFeeMaxChangeDenominator: 8, minimumBaseFee: 1000000000, systemTxMaxGas: 1000000, maximumBaseFee: 340282366920938463463374607431768211455})]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000001312d00000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000003b9aca0000000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000ffffffffffffffffffffffffffffffff)]
+         => [call] SuperchainERC20ForToBProperties.name()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return ("Super Token")]
+         => [call] SuperchainERC20ForToBProperties.symbol()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return ("SUP")]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000025, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> ETHLiquidity.version()() (addr=0x4200000000000000000000000000000000000025, code=0x019D3a4dCe8B6456088E575d32225C1D1B9d9E1F, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.6")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000c312e302e302d626574612e360000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000015, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> L1BlockInterop.version()() (addr=0x4200000000000000000000000000000000000015, code=0x109076B8f5E849b20277528A3e4b5B008d5eEe0B, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.5.1-beta.6+interop-beta.5")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001b312e352e312d626574612e362b696e7465726f702d626574612e350000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000024, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainWETH.version()() (addr=0x4200000000000000000000000000000000000024, code=0x4CcaA8d220F771F2FEABF6d06d58432D6B30cf10, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.14")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e302d626574612e313400000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000023, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> L2ToL2CrossDomainMessenger.version()() (addr=0x4200000000000000000000000000000000000023, code=0x8e319724F899D26AfCa403f6d3b6F1192483653a, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.15")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d312e302e302d626574612e313500000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000028, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> SuperchainTokenBridge.version()() (addr=0x4200000000000000000000000000000000000028, code=0x453939146f059800605eD20289945DBEf069ec6F, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.4")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000c312e302e302d626574612e340000000000000000000000000000000000000000)]
+         => [call] Proxy.<unresolved method>(msg_data=54fd4d50) (addr=0x4200000000000000000000000000000000000029, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [proxy call] Proxy -> DependencyManager.version()() (addr=0x4200000000000000000000000000000000000029, code=0x7bA37B1519173c980D34f1a4c508Ebc495Fb28fD, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                         => [return ("1.0.0-beta.1")]
+                 => [return (return_data=0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000c312e302e302d626574612e310000000000000000000000000000000000000000)]
+         => [call] SuperchainERC20ForToBProperties.totalSupply()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (1662832153038249216242825215692934772977)]
+         => [call] SuperchainERC20ForToBProperties.totalSupply()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (1662832153038249216242825215692934772977)]
+         => [call] SuperchainERC20ForToBProperties.balanceOf(address)(0x3903be251c37ad1de881d4dea64d3817b668b2f5) (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (302583163366390474638450019180823500906)]
+         => [call] Actors.callL2ToL2MessengerRelayMessage((address,uint256,uint256,uint256,uint256),bytes)({origin: 0x4200000000000000000000000000000000000023, blockNumber: 24921352502500888850129850751115466455875907316716901674926900245125497204288, logIndex: 107627659614281618439337010541014707271588549885094452938167989211094933075, timestamp: 241599298235109274729174547024903052543692436621453252196228810034220225904, chainId: 41095711580283592320336991707097017152664035885704689711188634980023152751104}, 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f32000000000000000000000000000000000000000000000000000000000000000010000000000000000000000004200000000000000000000000000000000000028099d36bce6b0944bebd660b4657a888f7ff251097e5532f1cee2d1046661f9db0000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec600000000000000000000000080a1d4e222ba04338b6cc341304d023e7d860f610000000000000000000000003903be251c37ad1de881d4dea64d3817b668b2f522dcf0faa73865d7275adee1d0b56855ce47904e57a1bcd69e1c52df149ede9200000000000000000000000000000000000000000000000000000000) (addr=0xb2d5597CC044c7a6EE8D8D0b67Cef95A7feff9c9, value=0, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [call] Proxy.<unresolved method>(msg_data=8d1d298f00000000000000000000000042000000000000000000000000000000000000233718fc53db752ace4e04a8e7d54e70f837484133159223f159b3266d2601ae40003cea43c52f5b4f7ff8c5a73bf897025eb05649b8c5ae6b8916d27ef2515e530088bd8807b83189e52b769ba76340490bba1888fda2349d57e8050085cdd5705adb59359ac9cfd2a5ebab85210306a99ab0de6d414c1ed44219852d4c4d320000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000180382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f32000000000000000000000000000000000000000000000000000000000000000010000000000000000000000004200000000000000000000000000000000000028099d36bce6b0944bebd660b4657a888f7ff251097e5532f1cee2d1046661f9db0000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec600000000000000000000000080a1d4e222ba04338b6cc341304d023e7d860f610000000000000000000000003903be251c37ad1de881d4dea64d3817b668b2f522dcf0faa73865d7275adee1d0b56855ce47904e57a1bcd69e1c52df149ede9200000000000000000000000000000000000000000000000000000000) (addr=0x4200000000000000000000000000000000000023, value=0, sender=0xb2d5597CC044c7a6EE8D8D0b67Cef95A7feff9c9)
+                         => [proxy call] Proxy -> L2ToL2CrossDomainMessenger.relayMessage((address,uint256,uint256,uint256,uint256),bytes)({origin: 0x4200000000000000000000000000000000000023, blockNumber: 24921352502500888850129850751115466455875907316716901674926900245125497204288, logIndex: 107627659614281618439337010541014707271588549885094452938167989211094933075, timestamp: 241599298235109274729174547024903052543692436621453252196228810034220225904, chainId: 41095711580283592320336991707097017152664035885704689711188634980023152751104}, 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f32000000000000000000000000000000000000000000000000000000000000000010000000000000000000000004200000000000000000000000000000000000028099d36bce6b0944bebd660b4657a888f7ff251097e5532f1cee2d1046661f9db0000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec600000000000000000000000080a1d4e222ba04338b6cc341304d023e7d860f610000000000000000000000003903be251c37ad1de881d4dea64d3817b668b2f522dcf0faa73865d7275adee1d0b56855ce47904e57a1bcd69e1c52df149ede9200000000000000000000000000000000000000000000000000000000) (addr=0x4200000000000000000000000000000000000023, code=0x8e319724F899D26AfCa403f6d3b6F1192483653a, value=0, sender=0xb2d5597CC044c7a6EE8D8D0b67Cef95A7feff9c9)
+                                 => [call] Proxy.<unresolved method>(msg_data=ab4d6f7500000000000000000000000042000000000000000000000000000000000000233718fc53db752ace4e04a8e7d54e70f837484133159223f159b3266d2601ae40003cea43c52f5b4f7ff8c5a73bf897025eb05649b8c5ae6b8916d27ef2515e530088bd8807b83189e52b769ba76340490bba1888fda2349d57e8050085cdd5705adb59359ac9cfd2a5ebab85210306a99ab0de6d414c1ed44219852d4c4d3200a94fdf4229728bd33b4d521e879464be351b58e1f78c25d8456c386bc41ac011) (addr=0x4200000000000000000000000000000000000022, value=0, sender=0x4200000000000000000000000000000000000023)
+                                         => [proxy call] Proxy -> CrossL2Inbox.validateMessage((address,uint256,uint256,uint256,uint256),bytes32)({origin: 0x4200000000000000000000000000000000000023, blockNumber: 24921352502500888850129850751115466455875907316716901674926900245125497204288, logIndex: 107627659614281618439337010541014707271588549885094452938167989211094933075, timestamp: 241599298235109274729174547024903052543692436621453252196228810034220225904, chainId: 41095711580283592320336991707097017152664035885704689711188634980023152751104}, a94fdf4229728bd33b4d521e879464be351b58e1f78c25d8456c386bc41ac011) (addr=0x4200000000000000000000000000000000000022, code=0x32dD31d0119b5026b3E36176620f3C9431947a56, value=0, sender=0x4200000000000000000000000000000000000023)
+                                                 => [call] Proxy.<unresolved method>(msg_data=7bc3b5ff) (addr=0x4200000000000000000000000000000000000015, value=<nil>, sender=0x4200000000000000000000000000000000000022)
+                                                         => [proxy call] Proxy -> L1BlockInterop.isDeposit()() (addr=0x4200000000000000000000000000000000000015, code=0x109076B8f5E849b20277528A3e4b5B008d5eEe0B, value=0, sender=0x4200000000000000000000000000000000000022)
+                                                                 => [return (false)]
+                                                         => [return (return_data=0000000000000000000000000000000000000000000000000000000000000000)]
+                                                 => [event] ExecutingMessage(a94fdf4229728bd33b4d521e879464be351b58e1f78c25d8456c386bc41ac011, {origin: 0x4200000000000000000000000000000000000023, blockNumber: 24921352502500888850129850751115466455875907316716901674926900245125497204288, logIndex: 107627659614281618439337010541014707271588549885094452938167989211094933075, timestamp: 241599298235109274729174547024903052543692436621453252196228810034220225904, chainId: 41095711580283592320336991707097017152664035885704689711188634980023152751104})
+                                                 => [return ()]
+                                         => [return]
+                                 => [call] Proxy.<unresolved method>(msg_data=7cfd6dbc0000000000000000000000008b80186223918ae54a9adc6fd06abdbdace9dec600000000000000000000000080a1d4e222ba04338b6cc341304d023e7d860f610000000000000000000000003903be251c37ad1de881d4dea64d3817b668b2f522dcf0faa73865d7275adee1d0b56855ce47904e57a1bcd69e1c52df149ede92) (addr=0x4200000000000000000000000000000000000028, value=0, sender=0x4200000000000000000000000000000000000023)
+                                         => [proxy call] Proxy -> SuperchainTokenBridge.relayERC20(address,address,address,uint256)(0x8b80186223918ae54a9adc6fd06abdbdace9dec6, 0x80a1d4e222ba04338b6cc341304d023e7d860f61, 0x3903be251c37ad1de881d4dea64d3817b668b2f5, 15769006382802551703906151129095319296715442019425918765479137031976839470738) (addr=0x4200000000000000000000000000000000000028, code=0x453939146f059800605eD20289945DBEf069ec6F, value=0, sender=0x4200000000000000000000000000000000000023)
+                                                 => [call] Proxy.<unresolved method>(msg_data=7936cbee) (addr=0x4200000000000000000000000000000000000023, value=<nil>, sender=0x4200000000000000000000000000000000000028)
+                                                         => [proxy call] Proxy -> L2ToL2CrossDomainMessenger.crossDomainMessageContext()() (addr=0x4200000000000000000000000000000000000023, code=0x8e319724F899D26AfCa403f6d3b6F1192483653a, value=0, sender=0x4200000000000000000000000000000000000028)
+                                                                 => [return (0x4200000000000000000000000000000000000028, 41095711580283592320336991707097017152664035885704689711188634980023152751104)]
+                                                         => [return (return_data=00000000000000000000000042000000000000000000000000000000000000285adb59359ac9cfd2a5ebab85210306a99ab0de6d414c1ed44219852d4c4d3200)]
+                                                 => [call] SuperchainERC20ForToBProperties.crosschainMint(address,uint256)(0x3903be251c37ad1de881d4dea64d3817b668b2f5, 15769006382802551703906151129095319296715442019425918765479137031976839470738) (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=0, sender=0x4200000000000000000000000000000000000028)
+                                                         => [event] Transfer(0x0000000000000000000000000000000000000000, 0x3903be251c37ad1de881d4dea64d3817b668b2f5, 15769006382802551703906151129095319296715442019425918765479137031976839470738)
+                                                         => [event] CrosschainMint(0x3903be251c37ad1de881d4dea64d3817b668b2f5, 15769006382802551703906151129095319296715442019425918765479137031976839470738, 0x4200000000000000000000000000000000000028)
+                                                         => [return ()]
+                                                 => [event] RelayERC20(0x8b80186223918ae54a9adc6fd06abdbdace9dec6, 0x80a1d4e222ba04338b6cc341304d023e7d860f61, 0x3903be251c37ad1de881d4dea64d3817b668b2f5, 15769006382802551703906151129095319296715442019425918765479137031976839470738, 41095711580283592320336991707097017152664035885704689711188634980023152751104)
+                                                 => [return ()]
+                                         => [return]
+                                 => [event] RelayedMessage(41095711580283592320336991707097017152664035885704689711188634980023152751104, 4348588413486771537555481057510222085476367578069168666881969205367210637787, 67a0ed37ca09cb6afd19597e7d1586e0f57503149d157762fc6d0d180523e082)
+                                 => [return ()]
+                         => [return (return_data=00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000)]
+                 => [return (true)]
+         => [call] SuperchainERC20ForToBProperties.balanceOf(address)(0x3903be251c37ad1de881d4dea64d3817b668b2f5) (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (15769006382802551703906151129095319297018025182792309240117587051157662971644)]
+         => [call] SuperchainERC20ForToBProperties.totalSupply()() (addr=0x8B80186223918aE54A9Adc6fd06ABDBDaCe9deC6, value=<nil>, sender=0x4B38070A432773e11B9E2A9967285Dd7b1f862B3)
+                 => [return (15769006382802551703906151129095319298378274172464167981721962247669774243715)]
+         => [panic: assertion failed]
+
+
+⇾ Test summary: 17 test(s) passed, 1 test(s) failed
+⇾ html report(s) saved to: /var/folders/hk/jg73lwnj1q74wy5cq9mnwxwr0000gn/T/tmp.U0fafsIzBr/coverage/coverage_report.html
+⇾ lcov report(s) saved to: /var/folders/hk/jg73lwnj1q74wy5cq9mnwxwr0000gn/T/tmp.U0fafsIzBr/coverage/lcov.info
+error: Recipe `test-medusa-debug` failed on line 133 with exit code 7
