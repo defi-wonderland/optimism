@@ -16,12 +16,12 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Libraries
-import { Constants } from "src/libraries/Constants.sol";
 import { console } from "forge-std/console.sol";
 
 // Interfaces
 import { IOptimismMintableERC20Full } from "interfaces/universal/IOptimismMintableERC20Full.sol";
 import { ILegacyMintableERC20Full } from "interfaces/legacy/ILegacyMintableERC20Full.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @title CommonTest
 /// @dev An extenstion to `Test` that sets up the optimism smart contracts.
@@ -34,9 +34,13 @@ contract CommonTest is Test, Setup, Events {
     FFIInterface constant ffi = FFIInterface(address(uint160(uint256(keccak256(abi.encode("optimism.ffi"))))));
 
     bool useAltDAOverride;
-    bool useLegacyContracts;
-    address customGasToken;
     bool useInteropOverride;
+
+    /// @dev This value is only used in forked tests. During forked tests, the default is to perform the upgrade before
+    ///      running the tests.
+    ///      This value should only be set to false in forked tests which are specifically testing the upgrade path
+    ///      itself, rather than simply ensuring that the tests pass after the upgrade.
+    bool useUpgradedFork = true;
 
     ERC20 L1Token;
     ERC20 BadL1Token;
@@ -60,20 +64,16 @@ contract CommonTest is Test, Setup, Events {
         if (useAltDAOverride) {
             deploy.cfg().setUseAltDA(true);
         }
-        // We default to fault proofs unless explicitly disabled by useLegacyContracts
-        if (!useLegacyContracts) {
-            deploy.cfg().setUseFaultProofs(true);
-        }
-        if (customGasToken != address(0)) {
-            deploy.cfg().setUseCustomGasToken(customGasToken);
-        }
         if (useInteropOverride) {
             deploy.cfg().setUseInterop(true);
+        }
+        if (useUpgradedFork) {
+            deploy.cfg().setUseUpgradedFork(true);
         }
 
         if (isForkTest()) {
             // Skip any test suite which uses a nonstandard configuration.
-            if (useAltDAOverride || useLegacyContracts || customGasToken != address(0) || useInteropOverride) {
+            if (useAltDAOverride || useInteropOverride) {
                 vm.skip(true);
             }
         } else {
@@ -97,12 +97,23 @@ contract CommonTest is Test, Setup, Events {
         // Deploy L2
         Setup.L2();
 
-        // Authorize portals to interact with the SharedLockbox.
-        vm.prank(address(superchainConfig));
-        sharedLockbox.authorizePortal(address(optimismPortal2));
+        // Add L2 chain as cluster dependency
+        if (useInteropOverride) _addDependency();
 
         // Call bridge initializer setup function
         bridgeInitializerSetUp();
+    }
+
+    function _addDependency() internal {
+        vm.chainId(deploy.cfg().l1ChainID());
+        uint256 l2ChainID = deploy.cfg().l2ChainID();
+
+        ISuperchainConfigInterop superchainConfigInterop = ISuperchainConfigInterop(address(superchainConfig));
+
+        vm.prank(superchainConfigInterop.clusterManager());
+        superchainConfigInterop.addDependency(l2ChainID, address(systemConfig));
+
+        vm.chainId(l2ChainID);
     }
 
     function bridgeInitializerSetUp() public {
@@ -175,44 +186,35 @@ contract CommonTest is Test, Setup, Events {
         emit TransactionDeposited(_from, _to, 0, abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data));
     }
 
-    function enableLegacyContracts() public {
-        // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
-        // set by the `setUp` function yet.
-        if (!(alice == address(0) && bob == address(0))) {
-            revert("CommonTest: Cannot enable fault proofs after deployment. Consider overriding `setUp`.");
+    /// @dev Checks if the system has already been deployed, based off of the heuristic that alice and bob have not been
+    ///      set by the `setUp` function yet.
+    function _checkNotDeployed(string memory _feature) internal view {
+        if (alice != address(0) && bob != address(0)) {
+            revert(
+                string.concat("CommonTest: Cannot enable ", _feature, " after deployment. Consider overriding `setUp`.")
+            );
         }
-
-        useLegacyContracts = true;
+        console.log("CommonTest: enabling", _feature);
     }
 
+    /// @dev Enables alternative data availability mode for testing
     function enableAltDA() public {
-        // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
-        // set by the `setUp` function yet.
-        if (!(alice == address(0) && bob == address(0))) {
-            revert("CommonTest: Cannot enable altda after deployment. Consider overriding `setUp`.");
-        }
-
+        _checkNotDeployed("altda");
         useAltDAOverride = true;
     }
 
-    function enableCustomGasToken(address _token) public {
-        // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
-        // set by the `setUp` function yet.
-        if (!(alice == address(0) && bob == address(0))) {
-            revert("CommonTest: Cannot enable custom gas token after deployment. Consider overriding `setUp`.");
-        }
-        require(_token != Constants.ETHER);
-
-        customGasToken = _token;
+    /// @dev Enables interoperability mode for testing
+    function enableInterop() public {
+        _checkNotDeployed("interop");
+        useInteropOverride = true;
     }
 
-    function enableInterop() public {
-        // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
-        // set by the `setUp` function yet.
-        if (!(alice == address(0) && bob == address(0))) {
-            revert("CommonTest: Cannot enable interop after deployment. Consider overriding `setUp`.");
-        }
+    /// @dev Disables upgrade mode for testing. By default the fork testing env will be upgraded to the latest
+    ///      implementation. This can be used to disable the upgrade which, is useful for tests targeting the upgrade
+    ///      process itself.
+    function disableUpgradedFork() public {
+        _checkNotDeployed("non-upgraded fork");
 
-        useInteropOverride = true;
+        useUpgradedFork = false;
     }
 }

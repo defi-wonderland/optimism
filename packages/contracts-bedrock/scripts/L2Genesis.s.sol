@@ -100,9 +100,9 @@ contract L2Genesis is Deployer {
 
     function artifactDependencies() internal view returns (L1Dependencies memory l1Dependencies_) {
         return L1Dependencies({
-            l1CrossDomainMessengerProxy: mustGetAddress("L1CrossDomainMessengerProxy"),
-            l1StandardBridgeProxy: mustGetAddress("L1StandardBridgeProxy"),
-            l1ERC721BridgeProxy: mustGetAddress("L1ERC721BridgeProxy")
+            l1CrossDomainMessengerProxy: artifacts.mustGetAddress("L1CrossDomainMessengerProxy"),
+            l1StandardBridgeProxy: artifacts.mustGetAddress("L1StandardBridgeProxy"),
+            l1ERC721BridgeProxy: artifacts.mustGetAddress("L1ERC721BridgeProxy")
         });
     }
 
@@ -280,6 +280,7 @@ contract L2Genesis is Deployer {
             setOptimismSuperchainERC20Factory(); // 26
             setOptimismSuperchainERC20Beacon(); // 27
             setSuperchainTokenBridge(); // 28
+            setDependencyManager(); // 29
         }
     }
 
@@ -593,6 +594,12 @@ contract L2Genesis is Deployer {
     ///         This contract has no initializer.
     function setSuperchainTokenBridge() internal {
         _setImplementationCode(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+    }
+
+    /// @notice This predeploy is following the safety invariant #1.
+    ///         This contract has no initializer.
+    function setDependencyManager() internal {
+        _setImplementationCode(Predeploys.DEPENDENCY_MANAGER);
     }
 
     /// @notice Sets all the preinstalls.

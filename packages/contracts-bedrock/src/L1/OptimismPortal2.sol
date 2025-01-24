@@ -12,15 +12,11 @@ import { Constants } from "src/libraries/Constants.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import {
     BadTarget,
     LargeCalldata,
     SmallGasLimit,
-    TransferFailed,
-    OnlyCustomGasToken,
-    NoValue,
     Unauthorized,
     CallPaused,
     GasEstimation,
@@ -32,7 +28,8 @@ import {
     Blacklisted,
     Unproven,
     ProposalNotValidated,
-    AlreadyFinalized
+    AlreadyFinalized,
+    LegacyGame
 } from "src/libraries/PortalErrors.sol";
 import { GameStatus, GameType, Claim, Timestamp } from "src/dispute/lib/Types.sol";
 
@@ -44,8 +41,6 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
-import { IL1Block } from "interfaces/L2/IL1Block.sol";
-import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortal2
@@ -58,7 +53,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Represents a proven withdrawal.
     /// @custom:field disputeGameProxy The address of the dispute game proxy that the withdrawal was proven against.
-    /// @custom:field timestamp        Timestamp at whcih the withdrawal was proven.
+    /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
     struct ProvenWithdrawal {
         IDisputeGame disputeGameProxy;
         uint64 timestamp;
@@ -135,12 +130,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     ///         proof submission should be used when finalizing a withdrawal.
     mapping(bytes32 => address[]) public proofSubmitters;
 
-    /// @notice Represents the amount of native asset minted in L2. This may not
-    ///         be 100% accurate due to the ability to send ether to the contract
-    ///         without triggering a deposit transaction. It also is used to prevent
-    ///         overflows for L2 account balances when custom gas tokens are used.
-    ///         It is not safe to trust `ERC20.balanceOf` as it may lie.
-    uint256 internal _balance;
+    /// @custom:legacy
+    /// @custom:spacer _balance
+    /// @notice Spacer taking up the legacy `_balance` slot.
+    uint256 private spacer_61_0_32;
 
     /// @notice Emitted when a transaction is deposited from L1 to L2.
     ///         The parameters of this event are read by the rollup node and used to derive deposit
@@ -178,14 +171,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     event RespectedGameTypeSet(GameType indexed newGameType, Timestamp indexed updatedAt);
 
     /// @notice Reverts when paused.
-    function _whenNotPaused() internal view {
+    modifier whenNotPaused() {
         if (paused()) revert CallPaused();
+        _;
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 3.11.0-beta.10
+    /// @custom:semver 3.12.0-beta.2
     function version() public pure virtual returns (string memory) {
-        return "3.11.0-beta.10";
+        return "3.12.0-beta.2";
     }
 
     /// @notice Constructs the OptimismPortal contract.
@@ -200,6 +194,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
@@ -207,7 +202,24 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         GameType _initialRespectedGameType
     )
         external
+        virtual
         initializer
+    {
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
+    }
+
+    /// @notice Internal initializer function.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
+    /// @param _systemConfig Contract of the SystemConfig.
+    /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _initialRespectedGameType Initial game type to be respected.
+    function _initialize(
+        IDisputeGameFactory _disputeGameFactory,
+        ISystemConfig _systemConfig,
+        ISuperchainConfig _superchainConfig,
+        GameType _initialRespectedGameType
+    )
+        internal
     {
         disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
@@ -227,23 +239,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         }
 
         __ResourceMetering_init();
-    }
-
-    /// @notice Getter for the balance of the contract.
-    function balance() public view returns (uint256) {
-        (address token,) = gasPayingToken();
-        if (token == Constants.ETHER) {
-            return address(this).balance;
-        } else {
-            return _balance;
-        }
-    }
-
-    /// @notice Returns the `_token` balance of the `_account`.
-    /// @param _token   Address of the token to check the balance of.
-    /// @param _account The address of the account to query the balance for.
-    function _balanceOf(address _token, address _account) internal view returns (uint256) {
-        return IERC20(_token).balanceOf(_account);
     }
 
     /// @notice Getter function for the address of the guardian.
@@ -267,11 +262,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @notice Getter for the dispute game finality delay.
     function disputeGameFinalityDelaySeconds() public view returns (uint256) {
         return DISPUTE_GAME_FINALITY_DELAY_SECONDS;
-    }
-
-    /// @notice Getter for the address of the shared lockbox.
-    function sharedLockbox() public view returns (ISharedLockbox) {
-        return superchainConfig.SHARED_LOCKBOX();
     }
 
     /// @notice Computes the minimum gas limit for a deposit.
@@ -298,11 +288,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Intentionally empty.
     }
 
-    /// @notice Returns the gas paying token and its decimals.
-    function gasPayingToken() internal view returns (address addr_, uint8 decimals_) {
-        (addr_, decimals_) = systemConfig.gasPayingToken();
-    }
-
     /// @notice Getter for the resource config.
     ///         Used internally by the ResourceMetering contract.
     ///         The SystemConfig is the source of truth for the resource config.
@@ -326,9 +311,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         bytes[] calldata _withdrawalProof
     )
         external
+        whenNotPaused
     {
-        _whenNotPaused();
-
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
@@ -340,6 +324,24 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
         // The game type of the dispute game must be the respected game type.
         if (gameType.raw() != respectedGameType.raw()) revert InvalidGameType();
+
+        // The game type of the DisputeGame must have been the respected game type at creation.
+        try gameProxy.wasRespectedGameTypeWhenCreated() returns (bool wasRespected_) {
+            if (!wasRespected_) revert InvalidGameType();
+        } catch {
+            revert LegacyGame();
+        }
+
+        // Game must have been created after the respected game type was updated. This check is a
+        // strict inequality because we want to prevent users from being able to prove or finalize
+        // withdrawals against games that were created in the same block that the retirement
+        // timestamp was set. If the retirement timestamp and game type are changed in the same
+        // block, such games could still be considered valid even if they used the old game type
+        // that we intended to invalidate.
+        require(
+            gameProxy.createdAt().raw() > respectedGameTypeUpdatedAt,
+            "OptimismPortal: dispute game created before respected game type was updated"
+        );
 
         // Verify that the output root can be generated with the elements in the proof.
         if (outputRoot.raw() != Hashing.hashOutputRootProof(_outputRootProof)) revert InvalidProof();
@@ -391,8 +393,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Finalizes a withdrawal transaction.
     /// @param _tx Withdrawal transaction to finalize.
-    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external {
-        _whenNotPaused();
+    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external whenNotPaused {
         finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
 
@@ -404,9 +405,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         address _proofSubmitter
     )
         public
+        whenNotPaused
     {
-        _whenNotPaused();
-
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
         // a defacto reentrancy guard.
@@ -424,53 +424,18 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
 
-        bool success;
-        (address token,) = gasPayingToken();
-        if (token == Constants.ETHER) {
-            // Unlock and receive the ETH from the shared lockbox.
-            if (_tx.value != 0) sharedLockbox().unlockETH(_tx.value);
+        // This function unlocks ETH from the SharedLockbox when using the OptimismPortalInterop contract.
+        // If the interop version is not used, this function is a no-ops.
+        _unlockETH(_tx);
 
-            // Trigger the call to the target contract. We use a custom low level method
-            // SafeCall.callWithMinGas to ensure two key properties
-            //   1. Target contracts cannot force this call to run out of gas by returning a very large
-            //      amount of data (and this is OK because we don't care about the returndata here).
-            //   2. The amount of gas provided to the execution context of the target is at least the
-            //      gas limit specified by the user. If there is not enough gas in the current context
-            //      to accomplish this, `callWithMinGas` will revert.
-            success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
-        } else {
-            // Cannot call the token contract directly from the portal. This would allow an attacker
-            // to call approve from a withdrawal and drain the balance of the portal.
-            if (_tx.target == token) revert BadTarget();
-
-            // Only transfer value when a non zero value is specified. This saves gas in the case of
-            // using the standard bridge or arbitrary message passing.
-            if (_tx.value != 0) {
-                // Update the contracts internal accounting of the amount of native asset in L2.
-                _balance -= _tx.value;
-
-                // Read the balance of the target contract before the transfer so the consistency
-                // of the transfer can be checked afterwards.
-                uint256 startBalance = _balanceOf(token, address(this));
-
-                // Transfer the ERC20 balance to the target, accounting for non standard ERC20
-                // implementations that may not return a boolean. This reverts if the low level
-                // call is not successful.
-                IERC20(token).safeTransfer({ to: _tx.target, value: _tx.value });
-
-                // The balance must be transferred exactly.
-                if (_balanceOf(token, address(this)) != startBalance - _tx.value) {
-                    revert TransferFailed();
-                }
-            }
-
-            // Make a call to the target contract only if there is calldata.
-            if (_tx.data.length != 0) {
-                success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, 0, _tx.data);
-            } else {
-                success = true;
-            }
-        }
+        // Trigger the call to the target contract. We use a custom low level method
+        // SafeCall.callWithMinGas to ensure two key properties
+        //   1. Target contracts cannot force this call to run out of gas by returning a very large
+        //      amount of data (and this is OK because we don't care about the returndata here).
+        //   2. The amount of gas provided to the execution context of the target is at least the
+        //      gas limit specified by the user. If there is not enough gas in the current context
+        //      to accomplish this, `callWithMinGas` will revert.
+        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
@@ -485,55 +450,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         if (!success && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert GasEstimation();
         }
-    }
-
-    /// @notice Entrypoint to depositing an ERC20 token as a custom gas token.
-    ///         This function depends on a well formed ERC20 token. There are only
-    ///         so many checks that can be done on chain for this so it is assumed
-    ///         that chain operators will deploy chains with well formed ERC20 tokens.
-    /// @param _to         Target address on L2.
-    /// @param _mint       Units of ERC20 token to deposit into L2.
-    /// @param _value      Units of ERC20 token to send on L2 to the recipient.
-    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
-    /// @param _data       Data to trigger the recipient with.
-    function depositERC20Transaction(
-        address _to,
-        uint256 _mint,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes memory _data
-    )
-        public
-        metered(_gasLimit)
-    {
-        // Can only be called if an ERC20 token is used for gas paying on L2
-        (address token,) = gasPayingToken();
-        if (token == Constants.ETHER) revert OnlyCustomGasToken();
-
-        // Gives overflow protection for L2 account balances.
-        _balance += _mint;
-
-        // Get the balance of the portal before the transfer.
-        uint256 startBalance = _balanceOf(token, address(this));
-
-        // Take ownership of the token. It is assumed that the user has given the portal an approval.
-        IERC20(token).safeTransferFrom({ from: msg.sender, to: address(this), value: _mint });
-
-        // Double check that the portal now has the exact amount of token.
-        if (_balanceOf(token, address(this)) != startBalance + _mint) {
-            revert TransferFailed();
-        }
-
-        _depositTransaction({
-            _to: _to,
-            _mint: _mint,
-            _value: _value,
-            _gasLimit: _gasLimit,
-            _isCreation: _isCreation,
-            _data: _data
-        });
     }
 
     /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
@@ -556,41 +472,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         payable
         metered(_gasLimit)
     {
-        (address token,) = gasPayingToken();
-        if (token != Constants.ETHER && msg.value != 0) revert NoValue();
+        // This function locks ETH in the SharedLockbox when using the OptimismPortalInterop contract.
+        // If the interop version is not used, this function is a no-ops.
+        _lockETH();
 
-        if (token == Constants.ETHER && msg.value != 0) {
-            // Lock the ETH in the shared lockbox.
-            sharedLockbox().lockETH{ value: msg.value }();
-        }
-
-        _depositTransaction({
-            _to: _to,
-            _mint: msg.value,
-            _value: _value,
-            _gasLimit: _gasLimit,
-            _isCreation: _isCreation,
-            _data: _data
-        });
-    }
-
-    /// @notice Common logic for creating deposit transactions.
-    /// @param _to         Target address on L2.
-    /// @param _mint       Units of asset to deposit into L2.
-    /// @param _value      Units of asset to send on L2 to the recipient.
-    /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
-    /// @param _data       Data to trigger the recipient with.
-    function _depositTransaction(
-        address _to,
-        uint256 _mint,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes memory _data
-    )
-        internal
-    {
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation && _to != address(0)) revert BadTarget();
@@ -614,36 +499,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_mint, _value, _gasLimit, _isCreation, _data);
+        bytes memory opaqueData = abi.encodePacked(msg.value, _value, _gasLimit, _isCreation, _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
         emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
-    }
-
-    /// @notice Sets the gas paying token for the L2 system. This token is used as the
-    ///         L2 native asset. Only the SystemConfig contract can call this function.
-    function setGasPayingToken(address _token, uint8 _decimals, bytes32 _name, bytes32 _symbol) external {
-        if (msg.sender != address(systemConfig)) revert Unauthorized();
-
-        // Set L2 deposit gas as used without paying burning gas. Ensures that deposits cannot use too much L2 gas.
-        // This value must be large enough to cover the cost of calling `L1Block.setGasPayingToken`.
-        useGas(SYSTEM_DEPOSIT_GAS_LIMIT);
-
-        // Emit the special deposit transaction directly that sets the gas paying
-        // token in the L1Block predeploy contract.
-        emit TransactionDeposited(
-            Constants.DEPOSITOR_ACCOUNT,
-            Predeploys.L1_BLOCK_ATTRIBUTES,
-            DEPOSIT_VERSION,
-            abi.encodePacked(
-                uint256(0), // mint
-                uint256(0), // value
-                uint64(SYSTEM_DEPOSIT_GAS_LIMIT), // gasLimit
-                false, // isCreation,
-                abi.encodeCall(IL1Block.setGasPayingToken, (_token, _decimals, _name, _symbol))
-            )
-        );
     }
 
     /// @notice Blacklists a dispute game. Should only be used in the event that a dispute game resolves incorrectly.
@@ -659,9 +519,16 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _gameType The game type to consult for output proposals.
     function setRespectedGameType(GameType _gameType) external {
         if (msg.sender != guardian()) revert Unauthorized();
-        respectedGameType = _gameType;
-        respectedGameTypeUpdatedAt = uint64(block.timestamp);
-        emit RespectedGameTypeSet(_gameType, Timestamp.wrap(respectedGameTypeUpdatedAt));
+        // respectedGameTypeUpdatedAt is now no longer set by default. We want to avoid modifying
+        // this function's signature as that would result in changes to the DeputyGuardianModule.
+        // We use type(uint32).max as a temporary solution to allow us to update the
+        // respectedGameTypeUpdatedAt timestamp without modifying this function's signature.
+        if (_gameType.raw() == type(uint32).max) {
+            respectedGameTypeUpdatedAt = uint64(block.timestamp);
+        } else {
+            respectedGameType = _gameType;
+        }
+        emit RespectedGameTypeSet(respectedGameType, Timestamp.wrap(respectedGameTypeUpdatedAt));
     }
 
     /// @notice Checks if a withdrawal can be finalized. This function will revert if the withdrawal cannot be
@@ -680,6 +547,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // a timestamp of zero.
         if (provenWithdrawal.timestamp == 0) revert Unproven();
 
+        // Grab the createdAt timestamp once.
         uint64 createdAt = disputeGameProxy.createdAt().raw();
 
         // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
@@ -701,15 +569,25 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // from finalizing withdrawals proven against non-finalized output roots.
         if (disputeGameProxy.status() != GameStatus.DEFENDER_WINS) revert ProposalNotValidated();
 
-        // The game type of the dispute game must be the respected game type. This was also checked in
-        // `proveWithdrawalTransaction`, but we check it again in case the respected game type has changed since
-        // the withdrawal was proven.
-        if (disputeGameProxy.gameType().raw() != respectedGameType.raw()) revert InvalidGameType();
+        // The game type of the dispute game must have been the respected game type at creation
+        // time. We check that the game type is the respected game type at proving time, but it's
+        // possible that the respected game type has since changed. Users can still use this game
+        // to finalize a withdrawal as long as it has not been otherwise invalidated.
+        // The game type of the DisputeGame must have been the respected game type at creation.
+        try disputeGameProxy.wasRespectedGameTypeWhenCreated() returns (bool wasRespected_) {
+            if (!wasRespected_) revert InvalidGameType();
+        } catch {
+            revert LegacyGame();
+        }
 
-        // The game must have been created after `respectedGameTypeUpdatedAt`. This is to prevent users from creating
-        // invalid disputes against a deployed game type while the off-chain challenge agents are not watching.
+        // Game must have been created after the respected game type was updated. This check is a
+        // strict inequality because we want to prevent users from being able to prove or finalize
+        // withdrawals against games that were created in the same block that the retirement
+        // timestamp was set. If the retirement timestamp and game type are changed in the same
+        // block, such games could still be considered valid even if they used the old game type
+        // that we intended to invalidate.
         require(
-            createdAt >= respectedGameTypeUpdatedAt,
+            createdAt > respectedGameTypeUpdatedAt,
             "OptimismPortal: dispute game created before respected game type was updated"
         );
 
@@ -731,4 +609,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256) {
         return proofSubmitters[_withdrawalHash].length;
     }
+
+    /// @notice No-op function to be used to lock ETH in the SharedLockbox in the interop contract.
+    function _lockETH() internal virtual { }
+
+    /// @notice No-op function to be used to unlock ETH from the SharedLockbox in the interop contract.
+    /// @param _tx Withdrawal transaction to finalize.
+    function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual { }
 }
