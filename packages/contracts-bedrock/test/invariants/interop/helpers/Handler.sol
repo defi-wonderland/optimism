@@ -124,6 +124,37 @@ contract Handler is Setup {
         }
     }
 
+    function handler_permit2SuperchainERC20(
+        uint256 _fromActorIndex,
+        address _spender,
+        uint256 _amount
+    )
+        public
+        isInitialized
+    {
+        // Get actor
+        Actors fromActor = randomActor(_fromActorIndex);
+
+        // Clamp the amount to prevent an insufficient balance revert
+        _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
+
+        // Get callerActor's balance before
+        uint256 callerActorBalanceBefore = SUPER_TOKEN.balanceOf(_spender);
+
+        // Call mock permit to simulate the usage of Permit2 address to transfer the tokens
+        try Permit2(Preinstalls.Permit2).permitTransferFrom(address(SUPER_TOKEN), address(fromActor), _spender, _amount)
+        {
+            if (_spender == address(fromActor)) {
+                assert(SUPER_TOKEN.balanceOf(_spender) == callerActorBalanceBefore);
+            } else {
+                assert(SUPER_TOKEN.balanceOf(_spender) == callerActorBalanceBefore + _amount);
+            }
+            assert(false);
+        } catch {
+            assert(false);
+        }
+    }
+
     function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public isInitialized {
         _value = clampLte(_value, type(uint256).max - SUPER_WETH.totalSupply());
 
