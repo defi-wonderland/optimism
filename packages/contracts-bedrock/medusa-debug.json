@@ -2,7 +2,7 @@
   "fuzzing": {
     "workers": 10,
     "workerResetLimit": 50,
-    "timeout": 60,
+    "timeout": 30,
     "testLimit": 0,
     "shrinkLimit": 5000,
     "callSequenceLength": 100,
@@ -12,7 +12,8 @@
     "targetContracts": ["FuzzTest"],
     "predeployedContracts": {
       "Deployer815": "0x4200000000000000000000000000000000000815",
-      "Deployer825": "0x4200000000000000000000000000000000000825"
+      "Deployer825": "0x4200000000000000000000000000000000000825",
+      "Permit2Mock": "0x000000000022D473030F116dDEE9F6B43aC78BA3"
     },
     "targetContractsBalances": [],
     "constructorArgs": {},

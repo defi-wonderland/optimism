@@ -30,6 +30,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { HandlerActors, Actors } from "./helpers/Actors.sol";
 
