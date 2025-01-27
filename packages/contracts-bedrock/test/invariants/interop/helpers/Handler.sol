@@ -27,6 +27,8 @@ contract Handler is Setup {
 
     bool initialized;
 
+    bool isMigrated;
+
     mapping(address => uint256) public nonces;
 
     /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
@@ -338,7 +340,23 @@ contract Handler is Setup {
     }
 
     function handler_addDependency() public {
-        // TODO: Add upgrade to OptimismPortalInterop
+        if (!isMigrated) {
+            (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
+            vm.store(
+                address(PORTAL),
+                _IMPLEMENTATION_SLOT,
+                bytes32(
+                    uint256(
+                        uint160(
+                            DEPLOYER_8_15.deployOptimismPortalInterop(
+                                proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds
+                            )
+                        )
+                    )
+                )
+            );
+            isMigrated = true;
+        }
 
         // Add destination chain as dependency of origin chain on the L2 dependency manager, using the depositor account
         Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
@@ -355,6 +373,9 @@ contract Handler is Setup {
             0,
             abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (ORIGIN_CHAIN_ID, systemConfigAddress))
         );
+
+        assert(SUPERCHAIN_CONFIG.isInDependencySet(ORIGIN_CHAIN_ID));
+        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
     }
 
     function signPermit(

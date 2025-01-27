@@ -15,6 +15,13 @@ interface IDeployer815 {
         external
         returns (address optimismPortal);
 
+    function deployOptimismPortal(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        external
+        returns (address optimismPortal);
+
     function deployProxy(address _admin) external returns (address proxy);
 
     function deploySuperchainConfigInterop() external returns (address superchainConfigInterop);
