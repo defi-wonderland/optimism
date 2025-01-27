@@ -355,6 +355,9 @@ contract Handler is Setup {
                     )
                 )
             );
+
+            PORTAL.migrateLiquidity();
+
             isMigrated = true;
         }
 
