@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Setup, Preinstalls } from "../Setup.sol";
+import { Setup, Preinstalls, Constants, Predeploys } from "../Setup.sol";
 import { Actors } from "./Actors.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
@@ -33,7 +33,6 @@ contract Handler is Setup {
     modifier isInitialized() {
         if (!initialized) {
             _initializeProxies();
-            _addDependency();
             _setupSanityCheck();
             initialized = true;
         }
@@ -336,6 +335,26 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
+    }
+
+    function handler_addDependency() public {
+        // TODO: Add upgrade to OptimismPortalInterop
+
+        // Add destination chain as dependency of origin chain on the L2 dependency manager, using the depositor account
+        Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
+            Predeploys.DEPENDENCY_MANAGER,
+            0,
+            abi.encodeCall(
+                DEPENDENCY_MANAGER.addDependency, (superchainConfigAddress, DESTINATION_CHAIN_ID, systemConfigAddress)
+            )
+        );
+
+        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
+        Actors(payable(clusterManager)).directCall(
+            superchainConfigAddress,
+            0,
+            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (ORIGIN_CHAIN_ID, systemConfigAddress))
+        );
     }
 
     function signPermit(

@@ -5,6 +5,7 @@ pragma solidity 0.8.15;
 import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
 import { L1BlockInterop } from "src/L2/L1BlockInterop.sol";
 import { OptimismPortalInteropMock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
+import { OptimismPortal2Mock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { SuperchainConfigInterop } from "src/L1/SuperchainConfigInterop.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
@@ -29,6 +30,16 @@ contract Deployer815 {
     {
         _optimismPortal =
             address(new OptimismPortalInteropMock(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
+    }
+
+    function deployOptimismPortal(
+        uint256 _proofMaturityDelaySeconds,
+        uint256 _disputeGameFinalityDelaySeconds
+    )
+        public
+        returns (address _optimismPortal)
+    {
+        _optimismPortal = address(new OptimismPortal2Mock(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds));
     }
 
     function deployProxy(address _admin) public returns (address proxy) {

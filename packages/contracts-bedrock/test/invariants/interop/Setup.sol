@@ -56,8 +56,8 @@ contract Setup is PropertiesAsserts, HandlerActors {
     ISharedLockbox public immutable SHARED_LOCKBOX;
     ISuperchainConfigInterop public immutable SUPERCHAIN_CONFIG;
     IDependencyManager public immutable DEPENDENCY_MANAGER = IDependencyManager(Predeploys.DEPENDENCY_MANAGER);
-    IOptimismPortalInterop public immutable PORTAL;
     ISystemConfig public immutable SYSTEM_CONFIG;
+    IOptimismPortalInterop public PORTAL;
 
     // Soldity 0.8.25 Contracts
     ICrossL2Inbox public immutable CROSS_L2_INBOX = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
@@ -170,7 +170,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Deploy OptimismPortal
         _setCode(
             optimismPortalAddress,
-            DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            DEPLOYER_8_15.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
             true
         );
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
@@ -251,24 +251,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
             amount = clampLte(amount, type(uint128).max);
             SUPER_TOKEN.mint(address(_newActor), amount);
         }
-    }
-
-    function _addDependency() internal {
-        // Add destination chain as dependency of origin chain on the L2 dependency manager, using the depositor account
-        Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
-            Predeploys.DEPENDENCY_MANAGER,
-            0,
-            abi.encodeCall(
-                DEPENDENCY_MANAGER.addDependency, (superchainConfigAddress, DESTINATION_CHAIN_ID, systemConfigAddress)
-            )
-        );
-
-        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
-        Actors(payable(clusterManager)).directCall(
-            superchainConfigAddress,
-            0,
-            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (ORIGIN_CHAIN_ID, systemConfigAddress))
-        );
     }
 
     /// Check setup proper deployment and initialization of the contracts
