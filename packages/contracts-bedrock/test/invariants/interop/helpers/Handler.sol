@@ -38,8 +38,6 @@ contract Handler is Setup {
             initialized = true;
         }
         _;
-        // TODO: Remove this
-        assert(false);
     }
 
     function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public isInitialized {
