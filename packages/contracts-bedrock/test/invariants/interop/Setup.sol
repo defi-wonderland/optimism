@@ -39,7 +39,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
-    uint256 public constant ORIGIN_CHAIN_ID = 10;
     uint256 public constant DESTINATION_CHAIN_ID = 130;
 
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
@@ -253,6 +252,21 @@ contract Setup is PropertiesAsserts, HandlerActors {
         }
     }
 
+    /// @dev Add destination chain on the L2 DependencySet, to enable L2 to L2 interoperability between this and the
+    /// destination chain
+    function _addChainOnDependencyManager() internal {
+        // Add destination chain as dependency of origin chain on the L2 dependency manager, using the depositor account
+        (bool success,) = Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
+            Predeploys.DEPENDENCY_MANAGER,
+            0,
+            abi.encodeCall(
+                DEPENDENCY_MANAGER.addDependency, (superchainConfigAddress, DESTINATION_CHAIN_ID, systemConfigAddress)
+            )
+        );
+
+        assert(success);
+    }
+
     /// Check setup proper deployment and initialization of the contracts
     function _setupSanityCheck() internal {
         /* Contracts with some storage intialization on setup */
@@ -270,8 +284,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
         assert(SUPERCHAIN_CONFIG.paused() == false);
-        //assert(SUPERCHAIN_CONFIG.isInDependencySet(ORIGIN_CHAIN_ID));
-        //assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
 
         // System Config
         uint256 systemConfigAStartBlock = SYSTEM_CONFIG.startBlock();
@@ -294,6 +306,11 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
         assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
 
+        // Dependency Manager
+        assert(DEPENDENCY_MANAGER.dependencySetSize() == 1);
+        assert(DEPENDENCY_MANAGER.isInDependencySet(DESTINATION_CHAIN_ID));
+        assert(DEPENDENCY_MANAGER.isInDependencySet(block.chainid));
+
         /* Contracts without any storage intialization on setup */
         // Check that it has a version, not checking which one to make the test more future proof
         string memory emptyString = "";
@@ -303,6 +320,5 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
-        assert(DEPENDENCY_MANAGER.version().hashString() != emptyStringHash);
     }
 }
