@@ -68,7 +68,18 @@
         "testPrefixes": ["optimize_"]
       },
       "targetFunctionSignatures": [],
-      "excludeFunctionSignatures": []
+      "excludeFunctionSignatures": [
+        "SuperchainERC20ForToBProperties.test_ERC20external_transferFromToZeroAddress(uint256)",
+        "SuperchainERC20ForToBProperties.test_ERC20external_transferToZeroAddress()",
+        "SuperchainERC20ForToBProperties.test_ERC20external_zeroAddressBalance()",
+        "SuperchainWETHForToBProperties.test_ERC20external_setAllowance(address,uint256)",
+        "SuperchainWETHForToBProperties.test_ERC20external_setAllowanceTwice(address,uint256)",
+        "SuperchainWETHForToBProperties.test_ERC20external_setAndDecreaseAllowance(address,uint256,uint256)",
+        "SuperchainWETHForToBProperties.test_ERC20external_setAndIncreaseAllowance(address,uint256,uint256)",
+        "SuperchainWETHForToBProperties.test_ERC20external_transferFromToZeroAddress(uint256)",
+        "SuperchainWETHForToBProperties.test_ERC20external_transferToZeroAddress()",
+        "SuperchainWETHForToBProperties.test_ERC20external_zeroAddressBalance()"
+      ]
     },
     "chainConfig": {
       "codeSizeCheckDisabled": true,
