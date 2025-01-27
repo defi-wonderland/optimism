@@ -56,8 +56,8 @@ contract Setup is PropertiesAsserts, HandlerActors {
     ISharedLockbox public immutable SHARED_LOCKBOX;
     ISuperchainConfigInterop public immutable SUPERCHAIN_CONFIG;
     IDependencyManager public immutable DEPENDENCY_MANAGER = IDependencyManager(Predeploys.DEPENDENCY_MANAGER);
+    IOptimismPortalInterop public immutable PORTAL;
     ISystemConfig public immutable SYSTEM_CONFIG;
-    IOptimismPortalInterop public PORTAL;
 
     // Soldity 0.8.25 Contracts
     ICrossL2Inbox public immutable CROSS_L2_INBOX = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
