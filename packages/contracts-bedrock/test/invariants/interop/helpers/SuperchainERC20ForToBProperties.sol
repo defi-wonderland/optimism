@@ -7,6 +7,8 @@ import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllo
 import "properties/contracts/ERC20/external/properties/ERC20ExternalMintableProperties.sol";
 import "properties/contracts/ERC20/external/properties/ERC20ExternalBurnableProperties.sol";
 
+/// @custom:property-id 5
+/// @custom:property The `SuperchainERC20` token MUST be compliant with the ERC20 standard
 contract SuperchainERC20ForToBProperties is
     SuperchainERC20,
     CryticERC20ExternalBasicProperties,

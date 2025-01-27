@@ -185,7 +185,7 @@ contract FuzzTest is Handler {
         }
     }
 
-    /// @custom:property-id 8
+    /// @custom:property-id 6
     /// @custom:property ETHLiquidity#mint() MUST never be callable such that its balance would decrease below 0
     function test_mintSuperchainWETH(
         Identifier memory _id,
@@ -260,7 +260,7 @@ contract FuzzTest is Handler {
         }
     }
 
-    /// @custom:property-id 9
+    /// @custom:property-id 7
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
     /// `type(uint256).max
     function test_burnSuperchainWETH(address _to, uint256 _amount, bool _callSuperWETH) public isInitialized {
@@ -288,7 +288,7 @@ contract FuzzTest is Handler {
         }
     }
 
-    /// @custom:property-id 14
+    /// @custom:property-id 8
     /// @custom:property The total sum of SuperchainWETH user balances MUST be equal or less to the total supply
     function test_superWETHSupplyEqualsBalances() public isInitialized {
         // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
