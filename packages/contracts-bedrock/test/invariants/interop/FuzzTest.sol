@@ -13,7 +13,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
     /// and the sender's balance on the origin chain by exactly the input amount.
-    function test_sendSuperchainERC20(address _to, uint256 _amount) public isInitialized {
+    function test_sendSuperchainERC20(address _to, uint256 _amount) public initialize {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
@@ -45,7 +45,7 @@ contract FuzzTest is Handler {
         uint256 _actorIndex
     )
         public
-        isInitialized
+        initialize
     {
         _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
@@ -93,7 +93,7 @@ contract FuzzTest is Handler {
     /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases
     /// the ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
     /// SuperchainWETH total supply and Ether balance by exactly the input amount.
-    function test_sendSuperchainWETH(address _to, uint256 _amount) public isInitialized {
+    function test_sendSuperchainWETH(address _to, uint256 _amount) public initialize {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
@@ -132,7 +132,7 @@ contract FuzzTest is Handler {
         uint256 _actorIndex
     )
         public
-        isInitialized
+        initialize
     {
         // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
         // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
@@ -194,7 +194,7 @@ contract FuzzTest is Handler {
         bool _callSuperWETH
     )
         public
-        isInitialized
+        initialize
     {
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -263,7 +263,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 7
     /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
     /// `type(uint256).max
-    function test_burnSuperchainWETH(address _to, uint256 _amount, bool _callSuperWETH) public isInitialized {
+    function test_burnSuperchainWETH(address _to, uint256 _amount, bool _callSuperWETH) public initialize {
         if (_to == address(0)) _to = address(type(uint160).max);
 
         // Get state before call
@@ -290,7 +290,7 @@ contract FuzzTest is Handler {
 
     /// @custom:property-id 8
     /// @custom:property The total sum of SuperchainWETH user balances MUST be equal or less to the total supply
-    function test_superWETHSupplyEqualsBalances() public isInitialized {
+    function test_superWETHSupplyEqualsBalances() public initialize {
         // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
         assert(_ghost_superWethBalancesSum == SUPER_WETH.totalSupply() - _ghost_superWethEtherSent);
     }
