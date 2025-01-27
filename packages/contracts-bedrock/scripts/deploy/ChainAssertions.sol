@@ -8,7 +8,6 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
 import { DeployConfig } from "scripts/deploy/DeployConfig.s.sol";
-import { ISystemConfigInterop } from "interfaces/L1/ISystemConfigInterop.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
 // Libraries
@@ -17,15 +16,13 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "scripts/libraries/Types.sol";
 import { Blueprint } from "src/libraries/Blueprint.sol";
 
-// Contracts
-import { OPContractsManager } from "src/L1/OPContractsManager.sol";
-
 // Interfaces
+import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
-import { ILiquidityMigrator } from "interfaces/L1/ILiquidityMigrator.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
@@ -46,7 +43,7 @@ library ChainAssertions {
         console.log("Running post-deploy assertions");
         IResourceMetering.ResourceConfig memory rcfg = ISystemConfig(_prox.SystemConfig).resourceConfig();
         IResourceMetering.ResourceConfig memory dflt = Constants.DEFAULT_RESOURCE_CONFIG();
-        require(keccak256(abi.encode(rcfg)) == keccak256(abi.encode(dflt)));
+        require(keccak256(abi.encode(rcfg)) == keccak256(abi.encode(dflt)), "CHECK-RCFG-10");
 
         checkSystemConfig({ _contracts: _prox, _cfg: _cfg, _isProxy: true });
         checkL1CrossDomainMessenger({ _contracts: _prox, _vm: _vm, _isProxy: true });
@@ -124,26 +121,6 @@ library ChainAssertions {
             require(config.optimismPortal() == address(0), "CHECK-SCFG-420");
             require(config.optimismMintableERC20Factory() == address(0), "CHECK-SCFG-430");
         }
-    }
-
-    /// @notice Asserts that the SystemConfigInterop is setup correctly
-    function checkSystemConfigInterop(
-        Types.ContractSet memory _contracts,
-        DeployConfig _cfg,
-        bool _isProxy
-    )
-        internal
-        view
-    {
-        ISystemConfigInterop config = ISystemConfigInterop(_contracts.SystemConfig);
-
-        console.log(
-            "Running chain assertions on the SystemConfigInterop %s at %s",
-            _isProxy ? "proxy" : "implementation",
-            address(config)
-        );
-
-        checkSystemConfig(_contracts, _cfg, _isProxy);
     }
 
     /// @notice Asserts that the L1CrossDomainMessenger is setup correctly
@@ -441,6 +418,7 @@ library ChainAssertions {
         view
     {
         ISuperchainConfig superchainConfig = ISuperchainConfig(_contracts.SuperchainConfig);
+
         console.log(
             "Running chain assertions on the SuperchainConfig %s at %s",
             _isProxy ? "proxy" : "implementation",
@@ -465,10 +443,40 @@ library ChainAssertions {
         }
     }
 
+    /// @notice Asserts that the SuperchainConfigInterop is setup correctly
+    function checkSuperchainConfigInterop(
+        Types.ContractSet memory _contracts,
+        DeployConfig _cfg,
+        bool _isPaused,
+        bool _isProxy
+    )
+        internal
+        view
+    {
+        ISuperchainConfigInterop superchainConfig = ISuperchainConfigInterop(_contracts.SuperchainConfig);
+        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
+
+        console.log(
+            "Running chain assertions on the SuperchainConfigInterop %s at %s",
+            _isProxy ? "proxy" : "implementation",
+            address(superchainConfig)
+        );
+
+        if (_isProxy) {
+            require(superchainConfig.clusterManager() == _cfg.finalSystemOwner(), "CHECK-SCI-10");
+            require(address(superchainConfig.sharedLockbox()) == address(sharedLockbox), "CHECK-SCI-20");
+        } else {
+            require(superchainConfig.clusterManager() == address(0), "CHECK-SCI-30");
+            require(address(superchainConfig.sharedLockbox()) == address(0), "CHECK-SCI-40");
+        }
+
+        checkSuperchainConfig(_contracts, _cfg, _isPaused, _isProxy);
+    }
+
     /// @notice Asserts that the OPContractsManager is setup correctly
     function checkOPContractsManager(
         Types.ContractSet memory _contracts,
-        OPContractsManager _opcm,
+        IOPContractsManager _opcm,
         IMIPS _mips
     )
         internal
@@ -490,7 +498,7 @@ library ChainAssertions {
         require(bytes(_opcm.l1ContractsRelease()).length > 0, "CHECK-OPCM-40");
 
         // Ensure that the OPCM impls are correctly saved
-        OPContractsManager.Implementations memory impls = _opcm.implementations();
+        IOPContractsManager.Implementations memory impls = _opcm.implementations();
         require(impls.l1ERC721BridgeImpl == _contracts.L1ERC721Bridge, "CHECK-OPCM-50");
         require(impls.optimismPortalImpl == _contracts.OptimismPortal, "CHECK-OPCM-60");
         require(impls.systemConfigImpl == _contracts.SystemConfig, "CHECK-OPCM-70");
@@ -502,7 +510,7 @@ library ChainAssertions {
         require(impls.mipsImpl == address(_mips), "CHECK-OPCM-130");
 
         // Verify that initCode is correctly set into the blueprints
-        OPContractsManager.Blueprints memory blueprints = _opcm.blueprints();
+        IOPContractsManager.Blueprints memory blueprints = _opcm.blueprints();
         Blueprint.Preamble memory addressManagerPreamble =
             Blueprint.parseBlueprintPreamble(address(blueprints.addressManager).code);
         require(keccak256(addressManagerPreamble.initcode) == keccak256(vm.getCode("AddressManager")), "CHECK-OPCM-140");
@@ -525,10 +533,6 @@ library ChainAssertions {
             Blueprint.parseBlueprintPreamble(address(blueprints.resolvedDelegateProxy).code);
         require(keccak256(rdProxyPreamble.initcode) == keccak256(vm.getCode("ResolvedDelegateProxy")), "CHECK-OPCM-180");
 
-        Blueprint.Preamble memory asrPreamble =
-            Blueprint.parseBlueprintPreamble(address(blueprints.anchorStateRegistry).code);
-        require(keccak256(asrPreamble.initcode) == keccak256(vm.getCode("AnchorStateRegistry")), "CHECK-OPCM-190");
-
         Blueprint.Preamble memory pdg1Preamble =
             Blueprint.parseBlueprintPreamble(address(blueprints.permissionedDisputeGame1).code);
         Blueprint.Preamble memory pdg2Preamble =
@@ -545,7 +549,7 @@ library ChainAssertions {
     /// @notice Asserts that the SharedLockbox is setup correctly
     function checkSharedLockbox(Types.ContractSet memory _contracts, bool _isProxy) internal view {
         ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
-        ISuperchainConfig superchainConfig = ISuperchainConfig(_contracts.SuperchainConfig);
+        ISuperchainConfigInterop superchainConfig = ISuperchainConfigInterop(_contracts.SuperchainConfig);
 
         console.log(
             "Running chain assertions on the SharedLockbox %s at %s",
@@ -554,13 +558,14 @@ library ChainAssertions {
         );
 
         require(address(sharedLockbox) != address(0), "CHECK-SLB-10");
-        require(sharedLockbox.SUPERCHAIN_CONFIG() == superchainConfig, "CHECK-SLB-20");
-    }
 
-    /// @notice Asserts that the LiquidityMigrator is setup correctly
-    function checkLiquidityMigrator(Types.ContractSet memory _contracts, address _liquidityMigrator) internal view {
-        ISharedLockbox sharedLockbox = ISharedLockbox(_contracts.SharedLockbox);
+        // Check that the contract is initialized
+        DeployUtils.assertInitializedOZv5({ _contractAddress: address(sharedLockbox), _isProxy: _isProxy });
 
-        require(ILiquidityMigrator(_liquidityMigrator).SHARED_LOCKBOX() == sharedLockbox, "LM-10");
+        if (_isProxy) {
+            require(sharedLockbox.superchainConfig() == superchainConfig, "CHECK-SLB-20");
+        } else {
+            require(address(sharedLockbox.superchainConfig()) == address(0), "CHECK-SLB-30");
+        }
     }
 }

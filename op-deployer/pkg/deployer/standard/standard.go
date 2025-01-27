@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	op_service "github.com/ethereum-optimism/optimism/op-service"
+
 	"github.com/BurntSushi/toml"
 
 	"github.com/ethereum-optimism/superchain-registry/superchain"
@@ -15,7 +19,7 @@ const (
 	GasLimit                        uint64 = 60_000_000
 	BasefeeScalar                   uint32 = 1368
 	BlobBaseFeeScalar               uint32 = 801949
-	WithdrawalDelaySeconds          uint64 = 604800
+	WithdrawalDelaySeconds          uint64 = 302400
 	MinProposalSizeBytes            uint64 = 126000
 	ChallengePeriodSeconds          uint64 = 86400
 	ProofMaturityDelaySeconds       uint64 = 604800
@@ -31,6 +35,7 @@ const (
 	Eip1559Elasticity               uint64 = 6
 
 	ContractsV160Tag        = "op-contracts/v1.6.0"
+	ContractsV180Tag        = "op-contracts/v1.8.0-rc.4"
 	ContractsV170Beta1L2Tag = "op-contracts/v1.7.0-beta.1+l2-contracts"
 )
 
@@ -46,7 +51,7 @@ var L1VersionsSepolia L1Versions
 
 var L1VersionsMainnet L1Versions
 
-var DefaultL1ContractsTag = ContractsV160Tag
+var DefaultL1ContractsTag = ContractsV180Tag
 
 var DefaultL2ContractsTag = ContractsV170Beta1L2Tag
 
@@ -116,6 +121,16 @@ var opcmBlueprintsByVersion = map[string]OPCMBlueprintsByChain{
 		},
 	},
 	"op-contracts/v1.8.0-rc.4": {
+		Mainnet: &OPCMBlueprints{
+			AddressManager:           common.HexToAddress("0x29aA24714c06914d9689e933cae2293C569AfeEa"),
+			Proxy:                    common.HexToAddress("0x3626ebD458c7f34FD98789A373593fF2fc227bA0"),
+			ProxyAdmin:               common.HexToAddress("0x7170678A5CFFb6872606d251B3CcdB27De962631"),
+			L1ChugSplashProxy:        common.HexToAddress("0x538906C8B000D621fd11B7e8642f504dD8730837"),
+			ResolvedDelegateProxy:    common.HexToAddress("0xF12bD34d6a1d26d230240ECEA761f77e2013926E"),
+			AnchorStateRegistry:      common.HexToAddress("0xbA7Be2bEE016568274a4D1E6c852Bb9a99FaAB8B"),
+			PermissionedDisputeGame1: common.HexToAddress("0x596A4334a28056c7943c8bcEf220F38cA5B42dC5"), // updated
+			PermissionedDisputeGame2: common.HexToAddress("0x4E3E5C09B07AAA3fe482F5A1f82a19e91944Fffc"), // updated
+		},
 		Sepolia: &OPCMBlueprints{
 			AddressManager:           common.HexToAddress("0x3125a4cB2179E04203D3Eb2b5784aaef9FD64216"),
 			Proxy:                    common.HexToAddress("0xe650ADb86a0de96e2c434D0a52E7D5B70980D6f1"),
@@ -234,6 +249,11 @@ func ManagerImplementationAddrFor(chainID uint64, tag string) (common.Address, e
 			// Verified against compiled bytecode at:
 			// https://github.com/ethereum-optimism/optimism/releases/tag/op-contracts-v160-artifacts-opcm-redesign-backport
 			return common.HexToAddress("0x9BC0A1eD534BFb31a6Be69e5b767Cba332f14347"), nil
+		case "op-contracts/v1.8.0-rc.4":
+			// Generated using the bootstrap command on 01/23/2025.
+			// Verified against compiled bytecode at:
+			// https://github.com/ethereum-optimism/optimism/releases/tag/op-contracts-v180-blueprints-script
+			return common.HexToAddress("0x5269eed89b0d04d909a0973439e2587e815ba932"), nil
 		default:
 			return common.Address{}, fmt.Errorf("unsupported mainnet tag: %s", tag)
 		}
@@ -317,6 +337,30 @@ func ArtifactsHashForTag(tag string) (common.Hash, error) {
 	default:
 		return common.Hash{}, fmt.Errorf("unsupported tag: %s", tag)
 	}
+}
+
+// DefaultHardforkScheduleForTag is used to determine which hardforks should be activated by default given a
+// contract tag. For example, passing in v1.6.0 will return all hardforks up to and including Granite. This allows
+// OP Deployer to set sane defaults for hardforks. This is not an ideal solution, but it will have to work until we get
+// to MCP L2.
+func DefaultHardforkScheduleForTag(tag string) *genesis.UpgradeScheduleDeployConfig {
+	sched := &genesis.UpgradeScheduleDeployConfig{
+		L2GenesisRegolithTimeOffset: op_service.U64UtilPtr(0),
+		L2GenesisCanyonTimeOffset:   op_service.U64UtilPtr(0),
+		L2GenesisDeltaTimeOffset:    op_service.U64UtilPtr(0),
+		L2GenesisEcotoneTimeOffset:  op_service.U64UtilPtr(0),
+		L2GenesisFjordTimeOffset:    op_service.U64UtilPtr(0),
+		L2GenesisGraniteTimeOffset:  op_service.U64UtilPtr(0),
+	}
+
+	switch tag {
+	case ContractsV160Tag, ContractsV170Beta1L2Tag:
+		return sched
+	default:
+		sched.ActivateForkAtGenesis(rollup.Holocene)
+	}
+
+	return sched
 }
 
 func standardArtifactsURL(checksum string) string {
