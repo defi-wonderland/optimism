@@ -6,6 +6,8 @@ import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import "properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
 import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
 
+/// @custom:property-id 9
+/// @custom:property The ERC20 logic of SuperchainWETH must be compliant with the ERC20 standard
 /**
  * @notice This is a test-only version of SuperchainWETH used specifically for property testing.
  * @dev This contract is kept separate from the campaign tests since it requires modifications

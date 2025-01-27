@@ -8,7 +8,7 @@ interface IDeployer815 {
 
     function deployLiquidityMigrator(address _sharedLockbox) external returns (address liquidityMigrator);
 
-    function deployOptimismPortal(
+    function deployOptimismPortalInterop(
         uint256 _proofMaturityDelaySeconds,
         uint256 _disputeGameFinalityDelaySeconds
     )
@@ -17,11 +17,11 @@ interface IDeployer815 {
 
     function deployProxy(address _admin) external returns (address proxy);
 
-    function deploySharedLockbox(address _superchainConfig) external returns (address sharedLockbox);
-
-    function deploySuperchainConfig(address _sharedLockbox) external returns (address superchainConfig);
+    function deploySuperchainConfigInterop() external returns (address superchainConfigInterop);
 
     function deploySuperchainWETH() external returns (address superchainWETH);
 
     function deploySystemConfig() external returns (address systemConfig);
+
+    function deployL2ToL1MessagePasser() external returns (address l2ToL1MessagePasser);
 }

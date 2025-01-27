@@ -10,17 +10,10 @@ import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
 contract Handler is Setup {
-    mapping(address => uint256) public nonces;
-
-    bool initialized;
-
-    /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
-    modifier isInitialized() {
-        if (!initialized) {
-            _initializeProxies();
-            initialized = true;
-        }
-        _;
+    struct Message {
+        address from;
+        uint256 amount;
+        uint256 nonce;
     }
 
     /// @notice Event selector for the SentMessage event.
@@ -30,13 +23,22 @@ contract Handler is Setup {
     bytes32 constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
-    struct Message {
-        address from;
-        uint256 amount;
-        uint256 nonce;
-    }
-
     uint256 internal constant _ZERO_VALUE = 0;
+
+    bool initialized;
+
+    mapping(address => uint256) public nonces;
+
+    /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
+    modifier isInitialized() {
+        if (!initialized) {
+            _initializeProxies();
+            _addDependency();
+            _setupSanityCheck();
+            initialized = true;
+        }
+        _;
+    }
 
     function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public isInitialized {
         Actors actor = randomActor(_actorIndex);
@@ -263,7 +265,6 @@ contract Handler is Setup {
         isInitialized
     {
         require(_to != address(0));
-        _chainId = clampGt(_chainId, CHAIN_ID_ONE);
 
         // Get state before call
         Actors actor = randomActor(_actorIndex);
@@ -275,7 +276,9 @@ contract Handler is Setup {
         // Clamp the value to prevent an overflow or a revert due to insufficient balance
         _value = clampLte(_value, Utils.min(type(uint256).max - sWethBalanceBefore, actorBalanceBefore));
 
-        try actor.directCall(address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, _chainId))) {
+        try actor.directCall(
+            address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, DESTINATION_CHAIN_ID))
+        ) {
             // Check the Ether balances and that the superchain WETH total supply was not modified
             assert(address(actor).balance == actorBalanceBefore - _value);
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
@@ -296,7 +299,6 @@ contract Handler is Setup {
     {
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);
-        _id.timestamp = clampBetween(_id.timestamp, CROSS_L2_INBOX.interopStart() + 1, block.timestamp);
         _message.amount = clampLte(_message.amount, address(ETH_LIQUIDITY).balance - address(SUPER_WETH).balance);
 
         // Get state before the call
