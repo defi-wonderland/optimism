@@ -19,6 +19,10 @@ import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 
+import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
+
+import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+
 import "forge-std/console.sol";
 
 contract Handler is Setup {
@@ -31,11 +35,6 @@ contract Handler is Setup {
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
-
-    /// @notice Storage slot that the OptimismPortalStorage struct is stored at.
-    /// keccak256(abi.encode(uint256(keccak256("optimismPortal.storage")) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 internal constant OPTIMISM_PORTAL_STORAGE_SLOT =
-        0x554bed1aae13f6a1ca3b124bc567e2e458d6903a211d2d3a4ec21fca3b2b6c00;
 
     bytes32 constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -336,8 +335,8 @@ contract Handler is Setup {
         Actors actor = randomActor(_toActorIndex);
         try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
             // Check the Ether balances
-            assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
+            assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
         } catch {
@@ -346,43 +345,59 @@ contract Handler is Setup {
     }
 
     function handler_migrateAndAddL1Dependency() public initialize {
-        if (!_ghost_isMigrated) {
-            vm.prank(address(proxyAdmin));
-            (bool success,) =
-                address(PORTAL).call(abi.encodeWithSignature("upgradeTo(address)", address(new StorageSetter())));
-            assert(success);
-            StorageSetter(address(PORTAL)).setBytes32(
-                OPTIMISM_PORTAL_STORAGE_SLOT, bytes32(abi.encodePacked(address(SHARED_LOCKBOX), true))
-            );
+        require(!_ghost_isMigrated);
 
-            (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
-            address newImplementation =
-                DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds);
-            vm.prank(address(proxyAdmin));
-            (success,) = address(PORTAL).call(abi.encodeWithSignature("upgradeTo(address)", newImplementation));
-            assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
+        // Upgrade the portal to the new implementation through the proxy admin
+        (bool success,) = proxyOwner.directCall(
+            address(proxyAdmin),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), address(new StorageSetter()))
+        );
 
-            try PORTAL.initialize(
+        assert(success);
+
+        try StorageSetter(address(PORTAL)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
+            // Assert the `_initialized` slot was set to false
+            assert(StorageSetter(address(PORTAL)).getBool(bytes32(0)) == false);
+        } catch {
+            assert(false);
+        }
+
+        // Deploy the new implementation
+        address newImplementation =
+            DEPLOYER_8_15.deployOptimismPortalInterop(PROOF_MATURITY_DELAY_SECONDS, DISPUTE_GAME_FINALITY_DELAY_SECONDS);
+        // Upgrade the portal to the new implementation through the proxy admin
+        bytes memory initializeCall = abi.encodeCall(
+            OptimismPortalInterop.initialize,
+            (
                 IDisputeGameFactory(_disputeGameFactory),
                 ISystemConfig(systemConfigAddress),
                 ISuperchainConfigInterop(superchainConfigAddress),
                 GameType.wrap(0)
-            ) { } catch {
-                assert(false);
-            }
+            )
+        );
 
-            // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
-            (success,) = Actors(payable(clusterManager)).directCall(
-                superchainConfigAddress,
-                0,
-                abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
-            );
-            assert(PORTAL.migrated());
-            _ghost_isMigrated = true;
-        }
+        (success,) = proxyOwner.directCall(
+            address(proxyAdmin),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector, address(PORTAL), newImplementation, initializeCall
+            )
+        );
+        assert(success);
+        assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
 
+        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
+        (success,) = Actors(payable(clusterManager)).directCall(
+            superchainConfigAddress,
+            0,
+            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
+        );
+        assert(PORTAL.migrated());
         assert(SUPERCHAIN_CONFIG.isInDependencySet(block.chainid));
-        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
+        assert(SUPERCHAIN_CONFIG.authorizedPortals(address(PORTAL)));
+
+        _ghost_isMigrated = true;
     }
 
     function signPermit(
