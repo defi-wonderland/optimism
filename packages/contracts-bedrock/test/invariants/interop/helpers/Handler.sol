@@ -379,7 +379,6 @@ contract Handler is Setup {
         );
 
         // Upgrade the portal to the new implementation through the proxy admin and call the initialize function
-        // OptimismPortalInterop.initialize will set the sharedLockbox address in the storage
         (success,) = proxyOwner.directCall(
             address(proxyAdmin),
             _ZERO_VALUE,
