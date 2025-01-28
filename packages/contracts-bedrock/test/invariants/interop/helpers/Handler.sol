@@ -356,6 +356,7 @@ contract Handler is Setup {
 
         assert(success);
 
+        // Reset the initialized flag to enable the new implementation to be initialized
         try StorageSetter(address(PORTAL)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
             // Assert the `_initialized` slot was set to false
             assert(StorageSetter(address(PORTAL)).getBool(bytes32(0)) == false);
@@ -377,6 +378,8 @@ contract Handler is Setup {
             )
         );
 
+        // Upgrade the portal to the new implementation through the proxy admin and call the initialize function
+        // OptimismPortalInterop.initialize will set the sharedLockbox address in the storage
         (success,) = proxyOwner.directCall(
             address(proxyAdmin),
             _ZERO_VALUE,
