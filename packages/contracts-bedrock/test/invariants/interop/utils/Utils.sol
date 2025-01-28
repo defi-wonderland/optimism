@@ -1,6 +1,11 @@
 pragma solidity ^0.8.0;
 
+import { vm } from "../utils/VM.sol";
+
 library Utils {
+    bytes32 constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
     function hashString(string memory _input) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_input));
     }

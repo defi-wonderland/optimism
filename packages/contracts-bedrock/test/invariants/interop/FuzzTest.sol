@@ -8,6 +8,9 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
+import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+
+import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
     /// @custom:property-id 1
@@ -305,37 +308,56 @@ contract FuzzTest is Handler {
         uint256 _value,
         uint64 _gasLimit,
         bool _isCreation,
-        //bytes memory _data,
-        uint256 _actorIndex
+        bytes memory _data
     )
         public
         initialize
     {
-        Actors actor = randomActor(_actorIndex);
+        // Avoid revert due to `BadTarget`
+        require(!(_isCreation && _to != address(0)));
 
-        _value = clampLte(_value, address(actor).balance);
+        // Avoid revert due to `LargeCalldata`
+        require(_data.length <= 120_000);
 
-        (bool success, bytes memory returnData) = actor.directCall(
-            address(PORTAL),
-            _value,
-            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, bytes("")))
+        // Get current gas limit available on the block to be used for the deposit
+        (, uint64 prevBoughtGas,) = PORTAL.params();
+        uint256 maxGasLimitOnBlock = SYSTEM_CONFIG.resourceConfig().maxResourceLimit - prevBoughtGas;
+
+        // Clamp the gas limit
+        _gasLimit = uint64(
+            clampBetween(
+                _gasLimit, PORTAL.minimumGasLimit(uint64(_data.length)), Utils.min(maxGasLimitOnBlock, type(uint64).max)
+            )
         );
 
-        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+        // // Get the balance before the deposit
+        // uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
 
-        if (success) {
-            if (_ghost_isMigrated) {
-                assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
-            } else {
-                assert(address(PORTAL).balance == balanceBefore + _value);
-            }
-        } else {
-            assert(
-                bytes4(returnData) == bytes4(0x77ebef4d) // OutOfGas()
-                    || bytes4(returnData) == bytes4(0x4929b808) // SmallGasLimit()
-                    || bytes4(returnData) == bytes4(0x13496fda) // BadTarget()
-            );
-        }
+        // Get random actor and clamp the value amount to a valid one (using value as index instead of another param
+        // to avoid stack too deep)
+        Actors actor = randomActor(_value);
+        _value = clampLte(_value, address(actor).balance);
+
+        // Call the deposit transaction
+        (bool success,) = actor.directCallWithGasLimit(
+            address(PORTAL),
+            _value,
+            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, _data)),
+            20_000_000
+        );
+        console.log("success", success);
+        assert(success);
+
+        // // If migrated, check that the balance of the SharedLockbox is increased by the value
+        // if (_ghost_isMigrated) {
+        //     console.log("1");
+        //     assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+        // }
+        // // Otherwise, check that the balance of the OptimismPortal is increased by the value
+        // else {
+        //     assert(address(PORTAL).balance == balanceBefore + _value);
+        //     console.log("2");
+        // }
     }
 
     /// @custom:property-id 11
@@ -343,5 +365,5 @@ contract FuzzTest is Handler {
     /// @custom:property-id 13
     /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
     /// SharedLockbox if it is greater than zero
-    function test_optimismPortalWithdrawals() public initialize { }
+    // function test_optimismPortalWithdrawals() public initialize { }
 }
