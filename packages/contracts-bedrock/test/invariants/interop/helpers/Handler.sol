@@ -403,10 +403,11 @@ contract Handler is Setup {
     }
 
     // Increases the block number, needed to avoid hitting the L2 block gas limit while depositing on the OptimismPortal
-    function handler_increaseBlockNumber(uint256 _blocks) public initialize {
-        // Clamp the number of blocks to roll to prevent an overflow
-        _blocks = clampLte(_blocks, type(uint256).max - block.number);
-        vm.roll(block.number + _blocks);
+    function handler_increaseBlockNumber(bool _increaseTwo) public initialize {
+        // Increase the block number by 2 if the _increaseTwo flag is true, otherwise increase it by 1 to handle
+        // different block gas limits on ResourceMetering.sol
+        uint256 blocks = _increaseTwo ? 2 : 1;
+        vm.roll(block.number + blocks);
     }
 
     function _signPermit(

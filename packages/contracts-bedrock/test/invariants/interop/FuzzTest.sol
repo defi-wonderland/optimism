@@ -10,8 +10,6 @@ import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 
-import { vm } from "./utils/VM.sol";
-
 contract FuzzTest is Handler {
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
