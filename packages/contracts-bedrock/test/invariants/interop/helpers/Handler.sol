@@ -32,6 +32,20 @@ contract Handler is Setup {
         uint256 nonce;
     }
 
+    /// @notice Storage struct for the OptimismPortal specific storage data.
+    /// @custom:storage-location erc7201:OptimismPortal.storage
+    struct OptimismPortalStorage {
+        /// @notice The address of the SharedLockbox.
+        address sharedLockbox;
+        /// @notice A flag indicating whether the contract has migrated the ETH liquidity to the SharedLockbox.
+        bool migrated;
+    }
+
+    /// @notice Storage slot that the OptimismPortalStorage struct is stored at.
+    /// keccak256(abi.encode(uint256(keccak256("optimismPortal.storage")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 internal constant OPTIMISM_PORTAL_STORAGE_SLOT =
+        0x554bed1aae13f6a1ca3b124bc567e2e458d6903a211d2d3a4ec21fca3b2b6c00;
+
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
@@ -356,33 +370,26 @@ contract Handler is Setup {
 
         assert(success);
 
-        try StorageSetter(address(PORTAL)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
-            // Assert the `_initialized` slot was set to false
-            assert(StorageSetter(address(PORTAL)).getBool(bytes32(0)) == false);
-        } catch {
+        // Set the storage to the new SharedLockbox address
+        OptimismPortalStorage memory optimismPortalStorage;
+        optimismPortalStorage.migrated = false;
+        optimismPortalStorage.sharedLockbox = address(SHARED_LOCKBOX);
+
+        try StorageSetter(address(PORTAL)).setBytes32(
+            OPTIMISM_PORTAL_STORAGE_SLOT, bytes32(abi.encode(optimismPortalStorage))
+        ) { } catch {
             assert(false);
         }
 
         // Deploy the new implementation
         address newImplementation =
             DEPLOYER_8_15.deployOptimismPortalInterop(PROOF_MATURITY_DELAY_SECONDS, DISPUTE_GAME_FINALITY_DELAY_SECONDS);
-        // Upgrade the portal to the new implementation through the proxy admin
-        bytes memory initializeCall = abi.encodeCall(
-            OptimismPortalInterop.initialize,
-            (
-                IDisputeGameFactory(_disputeGameFactory),
-                ISystemConfig(systemConfigAddress),
-                ISuperchainConfigInterop(superchainConfigAddress),
-                GameType.wrap(0)
-            )
-        );
 
+        // Upgrade the portal to the new implementation through the proxy admin
         (success,) = proxyOwner.directCall(
             address(proxyAdmin),
             _ZERO_VALUE,
-            abi.encodeWithSelector(
-                ProxyAdmin.upgradeAndCall.selector, address(PORTAL), newImplementation, initializeCall
-            )
+            abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), newImplementation)
         );
         assert(success);
         assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
