@@ -39,7 +39,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
     // Constants
     uint256 public constant INITIAL_PORTAL_ETHER = 700_000 ether;
-    uint256 public constant ORIGIN_CHAIN_ID = 10;
     uint256 public constant DESTINATION_CHAIN_ID = 130;
 
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
@@ -67,9 +66,13 @@ contract Setup is PropertiesAsserts, HandlerActors {
         ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
     ISuperToken public immutable SUPER_TOKEN;
 
+    // Portal Immutables - Values not important for the scope of this testing campaign
+    uint256 public immutable PROOF_MATURITY_DELAY_SECONDS = 1 weeks;
+    uint256 public immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS = 3.5 days;
+
     // System addresses
     address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
-    address public immutable proxyOwner = vm.addr(uint256(keccak256("ProxyOwner")));
+    Actors public immutable proxyOwner = Actors(payable(vm.addr(uint256(keccak256("ProxyOwner")))));
     ProxyAdmin public immutable proxyAdmin;
     address public immutable clusterManager = vm.addr(uint256(keccak256("ClusterManager")));
     // Predefined addresses
@@ -82,8 +85,12 @@ contract Setup is PropertiesAsserts, HandlerActors {
     bytes internal _proxyCode;
 
     constructor() {
+        // Etch the proxy owner to be an actor
+        bytes memory actorCode = address(new Actors()).code;
+        vm.etch(address(proxyOwner), actorCode);
+
         // Deploy ProxyAdmin
-        proxyAdmin = new ProxyAdmin(proxyOwner);
+        proxyAdmin = new ProxyAdmin(address(proxyOwner));
 
         // Deploy Proxy
         _proxyCode = DEPLOYER_8_15.deployProxy(address(proxyAdmin)).code;
@@ -164,19 +171,15 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Deal the initial ether to the portal address
         vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
 
-        // These values are not important for the scope of this testing campaign
-        (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
-
         // Deploy OptimismPortal
         _setCode(
             optimismPortalAddress,
-            DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS, DISPUTE_GAME_FINALITY_DELAY_SECONDS),
             true
         );
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
 
         // Set the cluster manager as an actor
-        bytes memory actorCode = address(new Actors()).code;
         vm.etch(clusterManager, actorCode);
 
         // Set the depositor account as an actor
@@ -253,9 +256,11 @@ contract Setup is PropertiesAsserts, HandlerActors {
         }
     }
 
-    function _addDependency() internal {
+    /// @dev Add destination chain on the L2 DependencySet, to enable L2 to L2 interoperability between this and the
+    /// destination chain
+    function _addChainOnDependencyManager() internal {
         // Add destination chain as dependency of origin chain on the L2 dependency manager, using the depositor account
-        Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
+        (bool success,) = Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
             Predeploys.DEPENDENCY_MANAGER,
             0,
             abi.encodeCall(
@@ -263,12 +268,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             )
         );
 
-        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
-        Actors(payable(clusterManager)).directCall(
-            superchainConfigAddress,
-            0,
-            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (ORIGIN_CHAIN_ID, systemConfigAddress))
-        );
+        assert(success);
     }
 
     /// Check setup proper deployment and initialization of the contracts
@@ -288,8 +288,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
         assert(SUPERCHAIN_CONFIG.paused() == false);
-        assert(SUPERCHAIN_CONFIG.isInDependencySet(ORIGIN_CHAIN_ID));
-        assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
 
         // System Config
         uint256 systemConfigAStartBlock = SYSTEM_CONFIG.startBlock();
@@ -312,6 +310,11 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
         assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
 
+        // Dependency Manager
+        assert(DEPENDENCY_MANAGER.dependencySetSize() == 1);
+        assert(DEPENDENCY_MANAGER.isInDependencySet(DESTINATION_CHAIN_ID));
+        assert(DEPENDENCY_MANAGER.isInDependencySet(block.chainid));
+
         /* Contracts without any storage intialization on setup */
         // Check that it has a version, not checking which one to make the test more future proof
         string memory emptyString = "";
@@ -321,6 +324,5 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
-        assert(DEPENDENCY_MANAGER.version().hashString() != emptyStringHash);
     }
 }

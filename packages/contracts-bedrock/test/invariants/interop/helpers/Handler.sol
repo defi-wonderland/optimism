@@ -1,13 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Setup, Preinstalls } from "../Setup.sol";
+import {
+    Setup,
+    Preinstalls,
+    Constants,
+    Predeploys,
+    IDisputeGameFactory,
+    ISystemConfig,
+    ISuperchainConfigInterop,
+    GameType
+} from "../Setup.sol";
 import { Actors } from "./Actors.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
 import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
+import { StorageSetter } from "src/universal/StorageSetter.sol";
+
+import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
+
+import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+
+import "forge-std/console.sol";
 
 contract Handler is Setup {
     struct Message {
@@ -25,22 +41,20 @@ contract Handler is Setup {
 
     uint256 internal constant _ZERO_VALUE = 0;
 
-    bool initialized;
-
     mapping(address => uint256) public nonces;
 
     /// NOTE: Using this modifier because the initialization is not working when called inside the constructor on medusa
-    modifier isInitialized() {
-        if (!initialized) {
+    modifier initialize() {
+        if (!_ghost_isInitialized) {
             _initializeProxies();
-            _addDependency();
+            _addChainOnDependencyManager();
             _setupSanityCheck();
-            initialized = true;
+            _ghost_isInitialized = true;
         }
         _;
     }
 
-    function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public isInitialized {
+    function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(actor)));
 
@@ -58,7 +72,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
-        isInitialized
+        initialize
     {
         Actors fromActor = randomActor(_fromActorIndex);
         Actors callerActor = randomActor(_callerActorIndex);
@@ -89,7 +103,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
-        isInitialized
+        initialize
     {
         _amount = clampLte(_amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
@@ -132,7 +146,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
-        isInitialized
+        initialize
     {
         // Get actor
         Actors fromActor = randomActor(_fromActorIndex);
@@ -156,7 +170,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public isInitialized {
+    function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public initialize {
         _value = clampLte(_value, type(uint256).max - SUPER_WETH.totalSupply());
 
         Actors actor = randomActor(_actorIndex);
@@ -169,7 +183,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_withdrawSuperchainWETH(uint256 _value, uint256 _actorIndex) public isInitialized {
+    function handler_withdrawSuperchainWETH(uint256 _value, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _value = clampLte(_value, SUPER_WETH.balanceOf(address(actor)));
 
@@ -182,7 +196,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public isInitialized {
+    function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(actor)));
 
@@ -200,7 +214,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
-        isInitialized
+        initialize
     {
         Actors fromActor = randomActor(_fromActorIndex);
         Actors callerActor = randomActor(_callerActorIndex);
@@ -231,7 +245,7 @@ contract Handler is Setup {
         uint256 _amount
     )
         public
-        isInitialized
+        initialize
     {
         // Get actor
         Actors fromActor = randomActor(_fromActorIndex);
@@ -255,15 +269,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_superchainWETHSendETH(
-        address _to,
-        uint256 _value,
-        uint256 _chainId,
-        uint256 _actorIndex
-    )
-        public
-        isInitialized
-    {
+    function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _actorIndex) public initialize {
         require(_to != address(0));
 
         // Get state before call
@@ -295,7 +301,7 @@ contract Handler is Setup {
         uint256 _toActorIndex
     )
         public
-        isInitialized
+        initialize
     {
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -329,13 +335,71 @@ contract Handler is Setup {
         Actors actor = randomActor(_toActorIndex);
         try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
             // Check the Ether balances
-            assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
+            assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
         } catch {
             assert(false);
         }
+    }
+
+    function handler_migrateAndAddL1Dependency() public initialize {
+        require(!_ghost_isMigrated);
+
+        // Upgrade the portal to the new implementation through the proxy admin
+        (bool success,) = proxyOwner.directCall(
+            address(proxyAdmin),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), address(new StorageSetter()))
+        );
+
+        assert(success);
+
+        // Reset the initialized flag to enable the new implementation to be initialized
+        try StorageSetter(address(PORTAL)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
+            // Assert the `_initialized` slot was set to false
+            assert(StorageSetter(address(PORTAL)).getBool(bytes32(0)) == false);
+        } catch {
+            assert(false);
+        }
+
+        // Deploy the new implementation
+        address newImplementation =
+            DEPLOYER_8_15.deployOptimismPortalInterop(PROOF_MATURITY_DELAY_SECONDS, DISPUTE_GAME_FINALITY_DELAY_SECONDS);
+        // Upgrade the portal to the new implementation through the proxy admin
+        bytes memory initializeCall = abi.encodeCall(
+            OptimismPortalInterop.initialize,
+            (
+                IDisputeGameFactory(_disputeGameFactory),
+                ISystemConfig(systemConfigAddress),
+                ISuperchainConfigInterop(superchainConfigAddress),
+                GameType.wrap(0)
+            )
+        );
+
+        // Upgrade the portal to the new implementation through the proxy admin and call the initialize function
+        (success,) = proxyOwner.directCall(
+            address(proxyAdmin),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(
+                ProxyAdmin.upgradeAndCall.selector, address(PORTAL), newImplementation, initializeCall
+            )
+        );
+        assert(success);
+        assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
+
+        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
+        (success,) = Actors(payable(clusterManager)).directCall(
+            superchainConfigAddress,
+            0,
+            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
+        );
+        assert(PORTAL.migrated());
+        assert(SUPERCHAIN_CONFIG.isInDependencySet(block.chainid));
+        assert(SUPERCHAIN_CONFIG.authorizedPortals(address(PORTAL)));
+
+        _ghost_isMigrated = true;
     }
 
     function signPermit(
