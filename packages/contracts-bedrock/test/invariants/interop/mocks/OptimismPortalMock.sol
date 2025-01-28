@@ -678,8 +678,10 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
         ISharedLockbox(s.sharedLockbox).lockETH{ value: msg.value }();
     }
 
+    event Touched(address, address);
     /// @notice Migrates the ETH liquidity to the SharedLockbox. This function will only be called once by the
     ///         SuperchainConfig when adding this chain to the dependency set.
+
     function migrateLiquidity() external {
         if (msg.sender != address(superchainConfig)) revert Unauthorized();
 
@@ -687,7 +689,7 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
         s.migrated = true;
 
         uint256 ethBalance = address(this).balance;
-
+        emit Touched(s.sharedLockbox, address(0));
         ISharedLockbox(s.sharedLockbox).lockETH{ value: ethBalance }();
 
         emit ETHMigrated(ethBalance);

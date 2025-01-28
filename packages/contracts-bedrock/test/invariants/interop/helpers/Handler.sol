@@ -1,13 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Setup, Preinstalls, Constants, Predeploys } from "../Setup.sol";
+import {
+    Setup,
+    Preinstalls,
+    Constants,
+    Predeploys,
+    IDisputeGameFactory,
+    ISystemConfig,
+    ISuperchainConfigInterop,
+    GameType
+} from "../Setup.sol";
 import { Actors } from "./Actors.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
 import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
+import { StorageSetter } from "src/universal/StorageSetter.sol";
 
 import "forge-std/console.sol";
 
@@ -21,6 +31,11 @@ contract Handler is Setup {
     /// @notice Event selector for the SentMessage event.
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
+
+    /// @notice Storage slot that the OptimismPortalStorage struct is stored at.
+    /// keccak256(abi.encode(uint256(keccak256("optimismPortal.storage")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 internal constant OPTIMISM_PORTAL_STORAGE_SLOT =
+        0x554bed1aae13f6a1ca3b124bc567e2e458d6903a211d2d3a4ec21fca3b2b6c00;
 
     bytes32 constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -255,15 +270,7 @@ contract Handler is Setup {
         }
     }
 
-    function handler_superchainWETHSendETH(
-        address _to,
-        uint256 _value,
-        uint256 _chainId,
-        uint256 _actorIndex
-    )
-        public
-        initialize
-    {
+    function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _actorIndex) public initialize {
         require(_to != address(0));
 
         // Get state before call
@@ -340,36 +347,40 @@ contract Handler is Setup {
 
     function handler_migrateAndAddL1Dependency() public initialize {
         if (!_ghost_isMigrated) {
-            (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
-            vm.store(
-                address(PORTAL),
-                _IMPLEMENTATION_SLOT,
-                bytes32(
-                    uint256(
-                        uint160(
-                            DEPLOYER_8_15.deployOptimismPortalInterop(
-                                proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds
-                            )
-                        )
-                    )
-                )
+            vm.prank(address(proxyAdmin));
+            (bool success,) =
+                address(PORTAL).call(abi.encodeWithSignature("upgradeTo(address)", address(new StorageSetter())));
+            assert(success);
+            StorageSetter(address(PORTAL)).setBytes32(
+                OPTIMISM_PORTAL_STORAGE_SLOT, bytes32(abi.encodePacked(address(SHARED_LOCKBOX), true))
             );
 
-            try PORTAL.migrateLiquidity() {
-                _ghost_isMigrated = true;
-            } catch {
+            (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
+            address newImplementation =
+                DEPLOYER_8_15.deployOptimismPortalInterop(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds);
+            vm.prank(address(proxyAdmin));
+            (success,) = address(PORTAL).call(abi.encodeWithSignature("upgradeTo(address)", newImplementation));
+            assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
+
+            try PORTAL.initialize(
+                IDisputeGameFactory(_disputeGameFactory),
+                ISystemConfig(systemConfigAddress),
+                ISuperchainConfigInterop(superchainConfigAddress),
+                GameType.wrap(0)
+            ) { } catch {
                 assert(false);
             }
+
+            // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
+            (success,) = Actors(payable(clusterManager)).directCall(
+                superchainConfigAddress,
+                0,
+                abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
+            );
+            assert(PORTAL.migrated());
+            _ghost_isMigrated = true;
         }
 
-        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
-        (bool success,) = Actors(payable(clusterManager)).directCall(
-            superchainConfigAddress,
-            0,
-            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
-        );
-
-        assert(success);
         assert(SUPERCHAIN_CONFIG.isInDependencySet(block.chainid));
         assert(SUPERCHAIN_CONFIG.authorizedPortals(optimismPortalAddress));
     }
