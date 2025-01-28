@@ -140,6 +140,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         uint256 nonce = messageNonce();
         emit SentMessage(_destination, _target, nonce, msg.sender, _message);
+
         msgNonce++;
 
         return Hashing.hashL2toL2CrossDomainMessage({
@@ -172,15 +173,19 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_id.origin != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
             revert IdOriginNotL2ToL2CrossDomainMessenger();
         }
+
         // Signal that this is a cross chain call that needs to have the identifier validated
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
+
         // Decode the payload
         (uint256 destination, address target, uint256 nonce, address sender, bytes memory message) =
             _decodeSentMessagePayload(_sentMessage);
+
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
         if (target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
         if (target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
+
         uint256 source = _id.chainId;
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: destination,
@@ -196,11 +201,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         _storeMessageMetadata(source, sender);
+
         bool success;
         (success, returnData_) = target.call{ value: msg.value }(message);
+
         if (!success) {
             revert TargetCallFailed();
         }
+
         successfulMessages[messageHash] = true;
         emit RelayedMessage(source, nonce, messageHash);
 
