@@ -66,9 +66,13 @@ contract Setup is PropertiesAsserts, HandlerActors {
         ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
     ISuperToken public immutable SUPER_TOKEN;
 
+    // Portal Immutables - Values not important for the scope of this testing campaign
+    uint256 public immutable PROOF_MATURITY_DELAY_SECONDS = 1 weeks;
+    uint256 public immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS = 3.5 days;
+
     // System addresses
     address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
-    address public immutable proxyOwner = vm.addr(uint256(keccak256("ProxyOwner")));
+    Actors public immutable proxyOwner = Actors(payable(vm.addr(uint256(keccak256("ProxyOwner")))));
     ProxyAdmin public immutable proxyAdmin;
     address public immutable clusterManager = vm.addr(uint256(keccak256("ClusterManager")));
     // Predefined addresses
@@ -81,8 +85,12 @@ contract Setup is PropertiesAsserts, HandlerActors {
     bytes internal _proxyCode;
 
     constructor() {
+        // Etch the proxy owner to be an actor
+        bytes memory actorCode = address(new Actors()).code;
+        vm.etch(address(proxyOwner), actorCode);
+
         // Deploy ProxyAdmin
-        proxyAdmin = new ProxyAdmin(proxyOwner);
+        proxyAdmin = new ProxyAdmin(address(proxyOwner));
 
         // Deploy Proxy
         _proxyCode = DEPLOYER_8_15.deployProxy(address(proxyAdmin)).code;
@@ -163,19 +171,15 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Deal the initial ether to the portal address
         vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
 
-        // These values are not important for the scope of this testing campaign
-        (uint256 proofMaturityDelaySeconds, uint256 disputeGameFinalityDelaySeconds) = (1 weeks, 3.5 days);
-
         // Deploy OptimismPortal
         _setCode(
             optimismPortalAddress,
-            DEPLOYER_8_15.deployOptimismPortal(proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds),
+            DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS, DISPUTE_GAME_FINALITY_DELAY_SECONDS),
             true
         );
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
 
         // Set the cluster manager as an actor
-        bytes memory actorCode = address(new Actors()).code;
         vm.etch(clusterManager, actorCode);
 
         // Set the depositor account as an actor
