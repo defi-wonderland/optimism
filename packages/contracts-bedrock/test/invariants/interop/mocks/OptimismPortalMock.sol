@@ -308,13 +308,11 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     /// @notice Proves a withdrawal transaction.
     /// @param _tx               Withdrawal transaction to finalize.
     /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
-    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser contract's storage root.
-    /// @param _withdrawalProof  Inclusion proof of the withdrawal in L2ToL1MessagePasser contract.
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         uint256 _disputeGameIndex,
-        Types.OutputRootProof calldata _outputRootProof,
-        bytes[] calldata _withdrawalProof
+        Types.OutputRootProof calldata,
+        bytes[] calldata
     )
         external
         whenNotPaused
@@ -326,7 +324,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
         (,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
-        Claim outputRoot = gameProxy.rootClaim();
+        //Claim outputRoot = gameProxy.rootClaim();
 
         // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);

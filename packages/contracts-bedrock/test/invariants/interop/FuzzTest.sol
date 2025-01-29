@@ -8,6 +8,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
+import { Types } from "src/libraries/Types.sol";
 
 contract FuzzTest is Handler {
     /// @custom:property-id 1
@@ -343,5 +344,29 @@ contract FuzzTest is Handler {
     /// @custom:property-id 13
     /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
     /// SharedLockbox if it is greater than zero
-    function test_optimismPortalWithdrawals() public initialize { }
+    function test_optimismPortalWithdrawals(
+        Types.WithdrawalTransaction memory _tx,
+        uint256 _actorIndex
+    )
+        public
+        initialize
+    {
+        require(_tx.target != address(PORTAL));
+
+        Actors actor = randomActor(_actorIndex);
+
+        // Setting not used parameters to empty values
+        bytes[] memory _withdrawalProof = new bytes[](0);
+        Types.OutputRootProof memory _outputRootProof;
+
+        console.log("Tx value: ", _tx.value);
+
+        (bool success, bytes memory returnData) = actor.directCall(
+            address(PORTAL),
+            _ZERO_VALUE,
+            abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, 0, _outputRootProof, _withdrawalProof))
+        );
+
+        assert(false);
+    }
 }

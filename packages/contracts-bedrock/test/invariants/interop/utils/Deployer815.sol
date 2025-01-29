@@ -11,6 +11,7 @@ import { SuperchainConfigInterop } from "src/L1/SuperchainConfigInterop.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
 import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
+import { DisputeGameFactoryMock } from "test/invariants/interop/mocks/DisputeGameFactoryMock.sol";
 
 contract Deployer815 {
     function deployETHLiquidity() public returns (address _ethLiquidity) {
@@ -60,5 +61,9 @@ contract Deployer815 {
 
     function deployL2ToL1MessagePasser() public returns (address _l2ToL1MessagePasser) {
         _l2ToL1MessagePasser = address(new L2ToL1MessagePasser());
+    }
+
+    function deployDisputeGameFactory() public returns (address _disputeGameFactory) {
+        _disputeGameFactory = address(new DisputeGameFactoryMock());
     }
 }
