@@ -308,7 +308,6 @@ contract FuzzTest is Handler {
     function test_optimismPortalDeposits(
         address _to,
         uint256 _value,
-        uint64 _gasLimit,
         bool _isCreation,
         bytes memory _data
     )
@@ -321,18 +320,19 @@ contract FuzzTest is Handler {
         // Avoid revert due to `LargeCalldata`
         require(_data.length <= 120_000);
 
+        uint64 gasLimit = 30_000_000;
         // Get current gas limit available on the block to be used for the deposit
         (, uint64 prevBoughtGas,) = PORTAL.params();
         uint256 maxGasLimitOnBlock = SYSTEM_CONFIG.resourceConfig().maxResourceLimit - prevBoughtGas;
 
         // Clamp the gas limit
-        _gasLimit = uint64(
+        gasLimit = uint64(
             clampBetween(
-                _gasLimit, PORTAL.minimumGasLimit(uint64(_data.length)), Utils.min(maxGasLimitOnBlock, type(uint64).max)
+                gasLimit, PORTAL.minimumGasLimit(uint64(_data.length)), Utils.min(maxGasLimitOnBlock, type(uint64).max)
             )
         );
 
-        // // Get the balance before the deposit
+        // Get the balance before the deposit
         // uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
 
         // Get random actor and clamp the value amount to a valid one (using value as index instead of another param
@@ -341,13 +341,11 @@ contract FuzzTest is Handler {
         _value = clampLte(_value, address(actor).balance);
 
         // Call the deposit transaction, increasing the actor's balance to avoid running out of gas
-        uint256 gasNeeded = _WITHDRAWAL_GAS_OVERHEAD + (_data.length * 16 + _gasLimit * 64 / 63);
-        vm.deal(address(actor), address(actor).balance + gasNeeded);
-        (bool success,) = actor.directCallWithGasLimit(
+        vm.deal(address(actor), address(actor).balance + gasLimit);
+        (bool success,) = actor.directCall(
             address(PORTAL),
             _value,
-            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, _data)),
-            gasNeeded // hardcoding this, doesn't work either: 20_000_000
+            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, gasLimit, _isCreation, _data))
         );
         console.log("success", success);
         assert(success);
