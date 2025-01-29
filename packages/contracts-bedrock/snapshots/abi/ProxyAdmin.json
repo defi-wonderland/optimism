@@ -135,7 +135,7 @@
     "name": "proxyType",
     "outputs": [
       {
-        "internalType": "enum ProxyAdmin.ProxyType",
+        "internalType": "enum Types.ProxyType",
         "name": "",
         "type": "uint8"
       }
@@ -207,7 +207,7 @@
         "type": "address"
       },
       {
-        "internalType": "enum ProxyAdmin.ProxyType",
+        "internalType": "enum Types.ProxyType",
         "name": "_type",
         "type": "uint8"
       }

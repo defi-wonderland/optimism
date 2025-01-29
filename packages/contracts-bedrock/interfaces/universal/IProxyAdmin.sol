@@ -2,14 +2,9 @@
 pragma solidity ^0.8.0;
 
 import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
+import { Types } from "src/libraries/Types.sol";
 
 interface IProxyAdmin {
-    enum ProxyType {
-        ERC1967,
-        CHUGSPLASH,
-        RESOLVED
-    }
-
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     function addressManager() external view returns (IAddressManager);
@@ -19,12 +14,12 @@ interface IProxyAdmin {
     function implementationName(address) external view returns (string memory);
     function isUpgrading() external view returns (bool);
     function owner() external view returns (address);
-    function proxyType(address) external view returns (ProxyType);
+    function proxyType(address) external view returns (Types.ProxyType);
     function renounceOwnership() external;
     function setAddress(string memory _name, address _address) external;
     function setAddressManager(IAddressManager _address) external;
     function setImplementationName(address _address, string memory _name) external;
-    function setProxyType(address _address, ProxyType _type) external;
+    function setProxyType(address _address, Types.ProxyType _type) external;
     function setUpgrading(bool _upgrading) external;
     function transferOwnership(address newOwner) external; // nosemgrep
     function upgrade(address payable _proxy, address _implementation) external;

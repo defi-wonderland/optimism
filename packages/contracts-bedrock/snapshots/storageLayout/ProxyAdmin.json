@@ -11,7 +11,7 @@
     "label": "proxyType",
     "offset": 0,
     "slot": "1",
-    "type": "mapping(address => enum ProxyAdmin.ProxyType)"
+    "type": "mapping(address => enum Types.ProxyType)"
   },
   {
     "bytes": "32",

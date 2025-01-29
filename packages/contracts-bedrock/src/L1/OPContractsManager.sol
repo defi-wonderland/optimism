@@ -28,6 +28,7 @@ import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.s
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { IL1OptimismMintableERC20Factory } from "interfaces/L1/IL1OptimismMintableERC20Factory.sol";
+import { Types } from "src/libraries/Types.sol";
 
 contract OPContractsManager is ISemver {
     // -------- Structs --------
@@ -243,7 +244,7 @@ contract OPContractsManager is ISemver {
                 )
             )
         );
-        output.opChainProxyAdmin.setProxyType(address(output.l1StandardBridgeProxy), IProxyAdmin.ProxyType.CHUGSPLASH);
+        output.opChainProxyAdmin.setProxyType(address(output.l1StandardBridgeProxy), Types.ProxyType.CHUGSPLASH);
         string memory contractName = "OVM_L1CrossDomainMessenger";
         output.l1CrossDomainMessengerProxy = IL1CrossDomainMessenger(
             Blueprint.deployFrom(
@@ -252,9 +253,7 @@ contract OPContractsManager is ISemver {
                 abi.encode(output.addressManager, contractName)
             )
         );
-        output.opChainProxyAdmin.setProxyType(
-            address(output.l1CrossDomainMessengerProxy), IProxyAdmin.ProxyType.RESOLVED
-        );
+        output.opChainProxyAdmin.setProxyType(address(output.l1CrossDomainMessengerProxy), Types.ProxyType.RESOLVED);
         output.opChainProxyAdmin.setImplementationName(address(output.l1CrossDomainMessengerProxy), contractName);
         // Now that all proxies are deployed, we can transfer ownership of the AddressManager to the ProxyAdmin.
         output.addressManager.transferOwnership(address(output.opChainProxyAdmin));
