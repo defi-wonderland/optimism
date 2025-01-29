@@ -10,7 +10,11 @@ import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 
+import { vm } from "./utils/VM.sol";
+
 contract FuzzTest is Handler {
+    uint256 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
+
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
     /// and the sender's balance on the origin chain by exactly the input amount.
@@ -336,12 +340,14 @@ contract FuzzTest is Handler {
         Actors actor = randomActor(_value);
         _value = clampLte(_value, address(actor).balance);
 
-        // Call the deposit transaction
+        // Call the deposit transaction, increasing the actor's balance to avoid running out of gas
+        uint256 gasNeeded = _WITHDRAWAL_GAS_OVERHEAD + (_data.length * 16 + _gasLimit * 64 / 63);
+        vm.deal(address(actor), address(actor).balance + gasNeeded);
         (bool success,) = actor.directCallWithGasLimit(
             address(PORTAL),
             _value,
             abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, _data)),
-            20_000_000
+            gasNeeded // hardcoding this, doesn't work either: 20_000_000
         );
         console.log("success", success);
         assert(success);
