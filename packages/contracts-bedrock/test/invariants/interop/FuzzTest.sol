@@ -9,6 +9,7 @@ import { console } from "forge-std/Console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
+import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
     /// @custom:property-id 1
@@ -366,6 +367,13 @@ contract FuzzTest is Handler {
             _ZERO_VALUE,
             abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, 0, _outputRootProof, _withdrawalProof))
         );
+
+        require(success);
+
+        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
+
+        (success, returnData) =
+            actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
 
         assert(false);
     }
