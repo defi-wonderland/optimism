@@ -13,7 +13,7 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
-    uint256 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
+    uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
 
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
@@ -320,46 +320,23 @@ contract FuzzTest is Handler {
         // Avoid revert due to `LargeCalldata`
         require(_data.length <= 120_000);
 
-        uint64 gasLimit = 30_000_000;
-        // Get current gas limit available on the block to be used for the deposit
-        (, uint64 prevBoughtGas,) = PORTAL.params();
-        uint256 maxGasLimitOnBlock = SYSTEM_CONFIG.resourceConfig().maxResourceLimit - prevBoughtGas;
+        // Get the gas limit for the deposit transaction to succeed
+        uint64 gasLimit = uint64(_WITHDRAWAL_GAS_OVERHEAD + (_data.length * 16) * 64 / 63);
 
-        // Clamp the gas limit
-        gasLimit = uint64(
-            clampBetween(
-                gasLimit, PORTAL.minimumGasLimit(uint64(_data.length)), Utils.min(maxGasLimitOnBlock, type(uint64).max)
-            )
-        );
-
-        // Get the balance before the deposit
-        // uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
-
-        // Get random actor and clamp the value amount to a valid one (using value as index instead of another param
-        // to avoid stack too deep)
         Actors actor = randomActor(_value);
         _value = clampLte(_value, address(actor).balance);
+        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
 
-        // Call the deposit transaction, increasing the actor's balance to avoid running out of gas
-        vm.deal(address(actor), address(actor).balance + gasLimit);
+        // Deposit the transaction
         (bool success,) = actor.directCall(
             address(PORTAL),
             _value,
             abi.encodeCall(PORTAL.depositTransaction, (_to, _value, gasLimit, _isCreation, _data))
         );
-        console.log("success", success);
         assert(success);
 
-        // // If migrated, check that the balance of the SharedLockbox is increased by the value
-        // if (_ghost_isMigrated) {
-        //     console.log("1");
-        //     assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
-        // }
-        // // Otherwise, check that the balance of the OptimismPortal is increased by the value
-        // else {
-        //     assert(address(PORTAL).balance == balanceBefore + _value);
-        //     console.log("2");
-        // }
+        if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+        else assert(address(PORTAL).balance == balanceBefore + _value);
     }
 
     /// @custom:property-id 11
