@@ -9,8 +9,6 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Burn } from "src/libraries/Burn.sol";
 import { Arithmetic } from "src/libraries/Arithmetic.sol";
 
-import "forge-std/console.sol";
-
 /// @custom:upgradeable
 /// @title ResourceMetering
 /// @notice ResourceMetering implements an EIP-1559 style resource metering system where pricing
@@ -68,13 +66,10 @@ abstract contract ResourceMetering is Initializable {
     modifier metered(uint64 _amount) {
         // Record initial gas amount so we can refund for it later.
         uint256 initialGas = gasleft();
-        console.log("initialGas", initialGas);
 
         // Run the underlying function.
         _;
 
-        console.log("after");
-        console.log("gasleft", gasleft());
         // Run the metering function.
         _metered(_amount, initialGas);
     }
@@ -151,10 +146,7 @@ abstract contract ResourceMetering is Initializable {
         // effectively like a dynamic stipend (with a minimum value).
         uint256 usedGas = _initialGas - gasleft();
         if (gasCost > usedGas) {
-            console.log("gasCost", gasCost);
-            console.log("usedGas", usedGas);
             Burn.gas(gasCost - usedGas);
-            console.log("gas burned");
         }
     }
 
