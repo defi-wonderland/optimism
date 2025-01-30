@@ -8,8 +8,6 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
-import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-
 import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
