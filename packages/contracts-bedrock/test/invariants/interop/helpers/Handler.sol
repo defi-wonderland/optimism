@@ -53,9 +53,10 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(actor)));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_TOKEN), _ZERO_VALUE, abi.encodeWithSelector(SUPER_TOKEN.transfer.selector, _to, _amount)
-        ) { } catch {
+        );
+        if (success) { } else {
             assert(false);
         }
     }
@@ -74,20 +75,22 @@ contract Handler is Setup {
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
 
         // Approve the spender to transfer the tokens
-        try fromActor.directCall(
+        (bool success,) = fromActor.directCall(
             address(SUPER_TOKEN),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.approve.selector, address(callerActor), _amount)
-        ) { } catch {
+        );
+        if (success) { } else {
             assert(false);
         }
 
         // Transfer the tokens
-        try callerActor.directCall(
+        (success,) = callerActor.directCall(
             address(SUPER_TOKEN),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, address(fromActor), _to, _amount)
-        ) { } catch {
+        );
+        if (success) { } else {
             assert(false);
         }
     }
@@ -124,13 +127,14 @@ contract Handler is Setup {
         uint256 callerActorBalanceBefore = SUPER_TOKEN.balanceOf(address(callerActor));
 
         // Call transferFrom
-        try callerActor.directCall(
+        (bool success,) = callerActor.directCall(
             address(SUPER_TOKEN),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, fromEOA, address(callerActor), _amount)
-        ) {
+        );
+        if (success) {
             assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
-        } catch {
+        } else {
             assert(false);
         }
     }
@@ -171,9 +175,11 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         vm.deal(address(actor), _value);
 
-        try actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector)) {
+        (bool success,) =
+            actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector));
+        if (success) {
             _ghost_superWethBalancesSum += _value;
-        } catch {
+        } else {
             assert(false);
         }
     }
@@ -182,11 +188,12 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         _value = clampLte(_value, SUPER_WETH.balanceOf(address(actor)));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.withdraw.selector, _value)
-        ) {
+        );
+        if (success) {
             _ghost_superWethBalancesSum -= _value;
-        } catch {
+        } else {
             assert(false);
         }
     }
@@ -195,9 +202,10 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(actor)));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.transfer.selector, _to, _amount)
-        ) { } catch {
+        );
+        if (success) { } else {
             assert(false);
         }
     }
@@ -225,11 +233,12 @@ contract Handler is Setup {
         }
 
         // Transfer the tokens
-        try callerActor.directCall(
+        (bool success,) = callerActor.directCall(
             address(SUPER_WETH),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_WETH.transferFrom.selector, address(fromActor), _to, _amount)
-        ) { } catch {
+        );
+        if (success) { } else {
             assert(false);
         }
     }
@@ -277,15 +286,16 @@ contract Handler is Setup {
         // Clamp the value to prevent an overflow or a revert due to insufficient balance
         _value = clampLte(_value, Utils.min(type(uint256).max - sWethBalanceBefore, actorBalanceBefore));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, DESTINATION_CHAIN_ID))
-        ) {
+        );
+        if (success) {
             // Check the Ether balances and that the superchain WETH total supply was not modified
             assert(actor.ethBalance() == actorBalanceBefore - _value);
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
-        } catch {
+        } else {
             assert(false);
         }
     }
@@ -328,13 +338,14 @@ contract Handler is Setup {
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         Actors actor = randomActor(_toActorIndex);
-        try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
+        bool success = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        if (success) {
             // Check the Ether balances
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
             assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
-        } catch {
+        } else {
             assert(false);
         }
     }
@@ -412,11 +423,63 @@ contract Handler is Setup {
         // Get balances before
         uint256 actorBalanceBefore = actor.ethBalance();
         uint256 portalBalanceBefore = address(PORTAL).balance;
-        try actor.directCall(address(PORTAL), _amount, abi.encodeWithSelector(PORTAL.donateETH.selector)) {
+
+        (bool success,) = actor.directCall(address(PORTAL), _amount, abi.encodeWithSelector(PORTAL.donateETH.selector));
+        if (success) {
             assert(actor.ethBalance() == actorBalanceBefore - _amount);
             assert(address(PORTAL).balance == portalBalanceBefore + _amount);
-        } catch {
+        } else {
             assert(false);
+        }
+    }
+
+    function handler_L2ToL2MessengerRelayMessage(
+        uint256 _relayerActorIndex,
+        Identifier memory _id,
+        address _target,
+        uint256 _nonce,
+        address _sender,
+        bytes memory _message
+    )
+        public
+        initialize
+    {
+        require(_id.chainId == block.chainid);
+        require(_target != address(CROSS_L2_INBOX));
+        require(_sender != address(L2_TO_L2_MESSENGER));
+
+        // Ensure the id inputs are valid
+        _id.origin = address(L2_TO_L2_MESSENGER);
+
+        // Build the message
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, _target, _nonce), // topics
+            abi.encode(_sender, _message) // data
+        );
+
+        // Ensure the message is not already relayed
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _nonce,
+            _sender: _sender,
+            _target: _target,
+            _message: _message
+        });
+        require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+
+        Actors actor = randomActor(_relayerActorIndex);
+        (bool success, bytes memory returnData) = actor.directCall(
+            address(L2_TO_L2_MESSENGER),
+            0,
+            abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
+        );
+        if (success) {
+            assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+        } else {
+            assert(
+                bytes4(returnData) == bytes4(0xeda86850) // TargetCallFailed()
+            );
         }
     }
 }
