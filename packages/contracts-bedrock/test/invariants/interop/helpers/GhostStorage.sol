@@ -12,4 +12,7 @@ contract GhostStorage {
     // Whether the contract the OptimismPortal has been migrated on L1 and setup to interact with the SharedLockbox
     // feature
     bool internal _ghost_isMigrated;
+
+    mapping(address => bool) internal _ghost_isL1Contract;
+    mapping(address => bool) internal _ghost_isL2Contract;
 }
