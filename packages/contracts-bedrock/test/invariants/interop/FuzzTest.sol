@@ -377,8 +377,6 @@ contract FuzzTest is Handler {
 
         assert(success);
 
-        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
-
         uint256 portalBalanceBefore = address(PORTAL).balance;
         uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
 
