@@ -8,8 +8,12 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
+import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
+    uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
+    uint256 internal constant _DATA_LENGTH_MAX_LIMIT = 120_000;
+
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
     /// and the sender's balance on the origin chain by exactly the input amount.
@@ -291,5 +295,44 @@ contract FuzzTest is Handler {
     function test_superWETHSupplyEqualsBalances() public initialize {
         // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
         assert(_ghost_superWethBalancesSum == SUPER_WETH.totalSupply() - _ghost_superWethEtherSent);
+    }
+
+    /// @custom:property-id 10
+    /// @custom:property Before migration, deposits with value greater than zero MUST keep the ETH in the OptimismPortal
+    /// @custom:property-id 12
+    /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the SharedLockbox when on a
+    /// deposit transaction with value greater than zero, without holding any ETH balance from the depositing users
+    function test_optimismPortalDeposits(
+        address _to,
+        uint256 _value,
+        bool _isCreation,
+        bytes memory _data
+    )
+        public
+        initialize
+    {
+        // Avoid revert due to `BadTarget`
+        require(!(_isCreation && _to != address(0)));
+
+        // Avoid revert due to `LargeCalldata`
+        require(_data.length <= _DATA_LENGTH_MAX_LIMIT);
+
+        // Get the gas limit for the deposit transaction to succeed
+        uint64 gasLimit = uint64(_WITHDRAWAL_GAS_OVERHEAD + (_data.length * 16) * 64 / 63);
+
+        Actors actor = randomActor(_value);
+        _value = clampLte(_value, address(actor).balance);
+        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+
+        // Deposit the transaction
+        (bool success,) = actor.directCall(
+            address(PORTAL),
+            _value,
+            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, gasLimit, _isCreation, _data))
+        );
+        assert(success);
+
+        if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+        else assert(address(PORTAL).balance == balanceBefore + _value);
     }
 }

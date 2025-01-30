@@ -23,8 +23,6 @@ import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
-import "forge-std/console.sol";
-
 contract Handler is Setup {
     struct Message {
         address from;
@@ -36,7 +34,7 @@ contract Handler is Setup {
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
 
-    bytes32 constant PERMIT_TYPEHASH =
+    bytes32 internal constant _PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     uint256 internal constant _ZERO_VALUE = 0;
@@ -115,7 +113,7 @@ contract Handler is Setup {
         Actors callerActor = randomActor(_callerActorIndex);
         bytes32 domainSeparator = SUPER_TOKEN.DOMAIN_SEPARATOR();
         (uint8 v, bytes32 r, bytes32 s) =
-            signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
+            _signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
 
         // Call permit
         try SUPER_TOKEN.permit(fromEOA, address(callerActor), _amount, block.timestamp, v, r, s) {
@@ -402,7 +400,15 @@ contract Handler is Setup {
         _ghost_isMigrated = true;
     }
 
-    function signPermit(
+    // Increases the block number, needed to avoid hitting the L2 block gas limit while depositing on the OptimismPortal
+    function handler_increaseBlockNumber(bool _increaseTwo) public initialize {
+        // Increase the block number by 2 if the _increaseTwo flag is true, otherwise increase it by 1 to handle
+        // different block gas limits on ResourceMetering.sol
+        uint256 blocks = _increaseTwo ? 2 : 1;
+        vm.roll(block.number + blocks);
+    }
+
+    function _signPermit(
         uint256 _fromPK,
         address _to,
         uint256 _amount,
@@ -418,7 +424,7 @@ contract Handler is Setup {
                 abi.encodePacked(
                     "\x19\x01",
                     _domainSeparator,
-                    keccak256(abi.encode(PERMIT_TYPEHASH, vm.addr(_fromPK), _to, _amount, _nonce, block.timestamp))
+                    keccak256(abi.encode(_PERMIT_TYPEHASH, vm.addr(_fromPK), _to, _amount, _nonce, block.timestamp))
                 )
             )
         );
