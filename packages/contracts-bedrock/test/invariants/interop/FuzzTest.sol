@@ -5,7 +5,7 @@ import { Constants, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-import { console } from "forge-std/Console.sol";
+import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
@@ -338,11 +338,4 @@ contract FuzzTest is Handler {
         if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
         else assert(address(PORTAL).balance == balanceBefore + _value);
     }
-
-    /// @custom:property-id 11
-    /// @custom:property Before migration, withdrawals MUST use the OptimismPortal’s own ETH balance
-    /// @custom:property-id 13
-    /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
-    /// SharedLockbox if it is greater than zero
-    // function test_optimismPortalWithdrawals() public initialize { }
 }
