@@ -47,8 +47,6 @@ import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Error thrown when attempting to use custom gas token specific actions.
 error CustomGasTokenNotSupported();
 
@@ -429,10 +427,6 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         payable
         metered(_gasLimit)
     {
-        console.log("depositTransaction");
-        console.log("gasLimit", _gasLimit);
-        console.log("initialGas", gasleft());
-
         // This function locks ETH in the SharedLockbox when using the OptimismPortalInterop contract.
         // If the interop version is not used, this function is a no-ops.
         _lockETH();
