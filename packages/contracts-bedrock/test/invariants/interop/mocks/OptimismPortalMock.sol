@@ -321,18 +321,15 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         // `finalizeWithdrawalTransaction`.
         if (_tx.target == address(this)) revert BadTarget();
 
-        // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
-        // No used in this mock finalizationWithdrawalTransaction()
-        IDisputeGame gameProxy = IDisputeGame(address(0));
-
         // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // Designate the withdrawalHash as proven by storing the `disputeGameProxy` & `timestamp` in the
         // `provenWithdrawals` mapping. A `withdrawalHash` can only be proven once unless the dispute game it proved
         // against resolves against the favor of the root claim.
+        // disputeGameProxy is not used in this mock finalizationWithdrawalTransaction()
         provenWithdrawals[withdrawalHash][msg.sender] =
-            ProvenWithdrawal({ disputeGameProxy: gameProxy, timestamp: uint64(block.timestamp) });
+            ProvenWithdrawal({ disputeGameProxy: IDisputeGame(address(0)), timestamp: uint64(block.timestamp) });
 
         // Emit a `WithdrawalProven` event.
         emit WithdrawalProven(withdrawalHash, _tx.sender, _tx.target);
