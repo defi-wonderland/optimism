@@ -96,11 +96,9 @@ contract FuzzTest is Handler {
     function test_sendSuperchainWETH(address _to, uint256 _amount) public initialize {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
-        // Set the chain id to a valid one
         // Set the amount to a valid one
         uint256 totalSupply = SUPER_WETH.totalSupply();
-        // TODO: Check if actually total sup and eth balance can differ and whether that should be an expected behavior
-        _amount = clampLte(_amount, Utils.min(address(SUPER_WETH).balance, totalSupply));
+        _amount = clampLte(_amount, totalSupply);
 
         // Get state before call
         Actors actor = currentActor();
