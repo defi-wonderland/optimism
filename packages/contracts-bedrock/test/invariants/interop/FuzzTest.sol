@@ -302,43 +302,43 @@ contract FuzzTest is Handler {
     /// @custom:property-id 12
     /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the SharedLockbox when on a
     /// deposit transaction with value greater than zero, without holding any ETH balance from the depositing users
-    // function test_optimismPortalDeposits(
-    //     address _to,
-    //     uint256 _value,
-    //     uint64 _gasLimit,
-    //     bool _isCreation,
-    //     //bytes memory _data,
-    //     uint256 _actorIndex
-    // )
-    //     public
-    //     initialize
-    // {
-    //     Actors actor = randomActor(_actorIndex);
+    function test_optimismPortalDeposits(
+        address _to,
+        uint256 _value,
+        uint64 _gasLimit,
+        bool _isCreation,
+        //bytes memory _data,
+        uint256 _actorIndex
+    )
+        public
+        initialize
+    {
+        Actors actor = randomActor(_actorIndex);
 
-    //     _value = clampLte(_value, address(actor).balance);
+        _value = clampLte(_value, address(actor).balance);
 
-    //     (bool success, bytes memory returnData) = actor.directCall(
-    //         address(PORTAL),
-    //         _value,
-    //         abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, bytes("")))
-    //     );
+        (bool success, bytes memory returnData) = actor.directCall(
+            address(PORTAL),
+            _value,
+            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, bytes("")))
+        );
 
-    //     uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
 
-    //     if (success) {
-    //         if (_ghost_isMigrated) {
-    //             assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
-    //         } else {
-    //             assert(address(PORTAL).balance == balanceBefore + _value);
-    //         }
-    //     } else {
-    //         assert(
-    //             bytes4(returnData) == bytes4(0x77ebef4d) // OutOfGas()
-    //                 || bytes4(returnData) == bytes4(0x4929b808) // SmallGasLimit()
-    //                 || bytes4(returnData) == bytes4(0x13496fda) // BadTarget()
-    //         );
-    //     }
-    // }
+        if (success) {
+            if (_ghost_isMigrated) {
+                assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+            } else {
+                assert(address(PORTAL).balance == balanceBefore + _value);
+            }
+        } else {
+            assert(
+                bytes4(returnData) == bytes4(0x77ebef4d) // OutOfGas()
+                    || bytes4(returnData) == bytes4(0x4929b808) // SmallGasLimit()
+                    || bytes4(returnData) == bytes4(0x13496fda) // BadTarget()
+            );
+        }
+    }
 
     /// @custom:property-id 11
     /// @custom:property Before migration, withdrawals MUST use the OptimismPortal’s own ETH balance
