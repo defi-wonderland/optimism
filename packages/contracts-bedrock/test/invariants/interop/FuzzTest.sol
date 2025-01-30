@@ -297,4 +297,125 @@ contract FuzzTest is Handler {
         // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
         assert(_ghost_superWethBalancesSum == SUPER_WETH.totalSupply() - _ghost_superWethEtherSent);
     }
+
+    /// @custom:property-id 10
+    /// @custom:property Before migration, deposits with value greater than zero MUST keep the ETH in the OptimismPortal
+    /// @custom:property-id 12
+    /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the SharedLockbox when on a
+    /// deposit transaction with value greater than zero, without holding any ETH balance from the depositing users
+    function test_optimismPortalDeposits(
+        address _to,
+        uint256 _value,
+        bool _isCreation,
+        bytes memory _data
+    )
+        public
+        initialize
+    {
+        // Avoid revert due to `BadTarget`
+        require(!(_isCreation && _to != address(0)));
+
+        // Avoid revert due to `LargeCalldata`
+        require(_data.length <= _DATA_LENGTH_MAX_LIMIT);
+
+        // Get the gas limit for the deposit transaction to succeed
+        uint64 gasLimit = uint64(_WITHDRAWAL_GAS_OVERHEAD + (_data.length * 16) * 64 / 63);
+
+        Actors actor = randomActor(_value);
+        _value = clampLte(_value, address(actor).balance);
+        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+
+        // Deposit the transaction
+        (bool success,) = actor.directCall(
+            address(PORTAL),
+            _value,
+            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, gasLimit, _isCreation, _data))
+        );
+        assert(success);
+
+        if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+        else assert(address(PORTAL).balance == balanceBefore + _value);
+    }
+
+    /// @custom:property-id 11
+    /// @custom:property Before migration, withdrawals MUST use the OptimismPortal’s own ETH balance
+    /// @custom:property-id 13
+    /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
+    /// SharedLockbox if it is greater than zero
+    function test_optimismPortalWithdrawals(
+        Types.WithdrawalTransaction memory _tx,
+        uint256 _actorIndex
+    )
+        public
+        initialize
+    {
+        bool success;
+        bytes memory returnData;
+
+        require(_tx.target != address(PORTAL));
+        require(_tx.target != address(SHARED_LOCKBOX));
+
+        // Gas is limit is out of scope
+        _tx.gasLimit = type(uint256).max;
+
+        if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(SHARED_LOCKBOX).balance);
+        else _tx.value = clampLte(_tx.value, address(PORTAL).balance);
+
+        Actors actor = randomActor(_actorIndex);
+
+        // Setting not used parameters to empty values
+        bytes[] memory _withdrawalProof = new bytes[](0);
+        Types.OutputRootProof memory _outputRootProof;
+
+        (success,) = actor.directCall(
+            address(PORTAL),
+            _ZERO_VALUE,
+            abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, 0, _outputRootProof, _withdrawalProof))
+        );
+
+        assert(success);
+
+        uint256 portalBalanceBefore = address(PORTAL).balance;
+        uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
+
+        (success, returnData) =
+            actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
+
+        assert(success);
+
+        // Cast returnData to bool
+        bool safecallSuccess = abi.decode(returnData, (bool));
+
+        // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
+        if (safecallSuccess) {
+            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+            else assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
+            // If the withdrawal was to SuperWETH, the ether sent should be increased
+            if (_tx.target == address(SUPER_WETH)) _ghost_superWethEtherSent += _tx.value;
+        } else {
+            // If the safecall failed, the balance should be the same
+            // TODO: If portal behavior is changed, this will need to be updated
+            if (_ghost_isMigrated) {
+                assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+                assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
+            } else {
+                assert(address(PORTAL).balance == portalBalanceBefore);
+            }
+        }
+    }
+
+    /// @custom:property-id 15
+    /// @custom:property The CLUSTER_MANAGER role MUST only be modifiable during initialization
+    function test_sameClusterManager() public initialize {
+        assert(SUPERCHAIN_CONFIG.clusterManager() == clusterManager);
+
+        // Calling `initialize()` since it is the only way to update the cluster manager, it should revert and the state
+        // should not be updated
+        address newClusterManager = address(12345);
+        try SUPERCHAIN_CONFIG.initialize(address(0), false, newClusterManager, address(0)) {
+            assert(false);
+        } catch {
+            assert(SUPERCHAIN_CONFIG.clusterManager() == clusterManager);
+        }
+    }
 }
