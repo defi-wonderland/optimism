@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { console } from "forge-std/console.sol";
-
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
@@ -309,10 +307,9 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
 
     /// @notice Proves a withdrawal transaction.
     /// @param _tx               Withdrawal transaction to finalize.
-    /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
-        uint256 _disputeGameIndex,
+        uint256,
         Types.OutputRootProof calldata,
         bytes[] calldata
     )

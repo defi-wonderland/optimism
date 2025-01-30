@@ -379,7 +379,8 @@ contract FuzzTest is Handler {
 
         vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
 
-        uint256 portalBalanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+        uint256 portalBalanceBefore = address(PORTAL).balance;
+        uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
 
         (success, returnData) =
             actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
@@ -389,21 +390,21 @@ contract FuzzTest is Handler {
         // Cast returnData to bool
         bool safecallSuccess = abi.decode(returnData, (bool));
 
-        console.log("safecallSuccess", safecallSuccess);
-
         // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
         if (safecallSuccess) {
-            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == portalBalanceBefore - _tx.value);
+            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
             else assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
             // If the withdrawal was to SuperWETH, the ether sent should be increased
             if (_tx.target == address(SUPER_WETH)) _ghost_superWethEtherSent += _tx.value;
         } else {
             // If the safecall failed, the balance should be the same
-            console.log("portalBalanceBefore", portalBalanceBefore);
-            console.log("portalBalanceAfter", address(PORTAL).balance);
-            console.log("sharedLockboxBalanceAfter", address(SHARED_LOCKBOX).balance);
-            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == portalBalanceBefore);
-            else assert(address(PORTAL).balance == portalBalanceBefore);
+            // TODO: If portal behavior is changed, this will need to be updated
+            if (_ghost_isMigrated) {
+                assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+                assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
+            } else {
+                assert(address(PORTAL).balance == portalBalanceBefore);
+            }
         }
     }
 }
