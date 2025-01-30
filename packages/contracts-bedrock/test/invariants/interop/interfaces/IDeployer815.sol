@@ -31,6 +31,4 @@ interface IDeployer815 {
     function deploySystemConfig() external returns (address systemConfig);
 
     function deployL2ToL1MessagePasser() external returns (address l2ToL1MessagePasser);
-
-    function deployDisputeGameFactory() external returns (address disputeGameFactory);
 }

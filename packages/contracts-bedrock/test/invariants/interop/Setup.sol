@@ -179,9 +179,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         );
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
 
-        // Deploy DisputeGameFactory Mock
-        _setCode(_disputeGameFactory, DEPLOYER_8_15.deployDisputeGameFactory(), false);
-
         // Set the cluster manager as an actor
         vm.etch(clusterManager, actorCode);
 

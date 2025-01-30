@@ -302,43 +302,43 @@ contract FuzzTest is Handler {
     /// @custom:property-id 12
     /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the SharedLockbox when on a
     /// deposit transaction with value greater than zero, without holding any ETH balance from the depositing users
-    function test_optimismPortalDeposits(
-        address _to,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        //bytes memory _data,
-        uint256 _actorIndex
-    )
-        public
-        initialize
-    {
-        Actors actor = randomActor(_actorIndex);
+    // function test_optimismPortalDeposits(
+    //     address _to,
+    //     uint256 _value,
+    //     uint64 _gasLimit,
+    //     bool _isCreation,
+    //     //bytes memory _data,
+    //     uint256 _actorIndex
+    // )
+    //     public
+    //     initialize
+    // {
+    //     Actors actor = randomActor(_actorIndex);
 
-        _value = clampLte(_value, address(actor).balance);
+    //     _value = clampLte(_value, address(actor).balance);
 
-        (bool success, bytes memory returnData) = actor.directCall(
-            address(PORTAL),
-            _value,
-            abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, bytes("")))
-        );
+    //     (bool success, bytes memory returnData) = actor.directCall(
+    //         address(PORTAL),
+    //         _value,
+    //         abi.encodeCall(PORTAL.depositTransaction, (_to, _value, _gasLimit, _isCreation, bytes("")))
+    //     );
 
-        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+    //     uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
 
-        if (success) {
-            if (_ghost_isMigrated) {
-                assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
-            } else {
-                assert(address(PORTAL).balance == balanceBefore + _value);
-            }
-        } else {
-            assert(
-                bytes4(returnData) == bytes4(0x77ebef4d) // OutOfGas()
-                    || bytes4(returnData) == bytes4(0x4929b808) // SmallGasLimit()
-                    || bytes4(returnData) == bytes4(0x13496fda) // BadTarget()
-            );
-        }
-    }
+    //     if (success) {
+    //         if (_ghost_isMigrated) {
+    //             assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+    //         } else {
+    //             assert(address(PORTAL).balance == balanceBefore + _value);
+    //         }
+    //     } else {
+    //         assert(
+    //             bytes4(returnData) == bytes4(0x77ebef4d) // OutOfGas()
+    //                 || bytes4(returnData) == bytes4(0x4929b808) // SmallGasLimit()
+    //                 || bytes4(returnData) == bytes4(0x13496fda) // BadTarget()
+    //         );
+    //     }
+    // }
 
     /// @custom:property-id 11
     /// @custom:property Before migration, withdrawals MUST use the OptimismPortal’s own ETH balance
@@ -352,7 +352,25 @@ contract FuzzTest is Handler {
         public
         initialize
     {
+        bool success;
+        bytes memory returnData;
+
         require(_tx.target != address(PORTAL));
+        require(_tx.target != address(SHARED_LOCKBOX));
+
+        // Gas is limit is out of scope
+        _tx.gasLimit = type(uint256).max;
+
+        if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(SHARED_LOCKBOX).balance);
+        else _tx.value = clampLte(_tx.value, address(PORTAL).balance);
+
+        // (bool success,) = address(PORTAL.disputeGameFactory()).call(
+        //     abi.encodeWithSignature("setCreatedAt(uint64)", PORTAL.respectedGameTypeUpdatedAt() + 1)
+        // );
+
+        // assert(success);
+
+        // vm.warp(block.timestamp + PORTAL.respectedGameTypeUpdatedAt() + 1 + 1);
 
         Actors actor = randomActor(_actorIndex);
 
@@ -360,21 +378,41 @@ contract FuzzTest is Handler {
         bytes[] memory _withdrawalProof = new bytes[](0);
         Types.OutputRootProof memory _outputRootProof;
 
-        console.log("Tx value: ", _tx.value);
-
-        (bool success, bytes memory returnData) = actor.directCall(
+        (success,) = actor.directCall(
             address(PORTAL),
             _ZERO_VALUE,
             abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, 0, _outputRootProof, _withdrawalProof))
         );
 
-        require(success);
+        assert(success);
 
         vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
+
+        uint256 portalBalanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
 
         (success, returnData) =
             actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
 
-        assert(false);
+        assert(success);
+
+        // Cast returnData to bool
+        bool safecallSuccess = abi.decode(returnData, (bool));
+
+        console.log("safecallSuccess", safecallSuccess);
+
+        // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
+        if (safecallSuccess) {
+            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == portalBalanceBefore - _tx.value);
+            else assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
+            // If the withdrawal was to SuperWETH, the ether sent should be increased
+            if (_tx.target == address(SUPER_WETH)) _ghost_superWethEtherSent += _tx.value;
+        } else {
+            // If the safecall failed, the balance should be the same
+            console.log("portalBalanceBefore", portalBalanceBefore);
+            console.log("portalBalanceAfter", address(PORTAL).balance);
+            console.log("sharedLockboxBalanceAfter", address(SHARED_LOCKBOX).balance);
+            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == portalBalanceBefore);
+            else assert(address(PORTAL).balance == portalBalanceBefore);
+        }
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { console } from "forge-std/console.sol";
+
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
@@ -323,8 +325,8 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         if (_tx.target == address(this)) revert BadTarget();
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
-        (,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
-        //Claim outputRoot = gameProxy.rootClaim();
+        // No used in this mock finalizationWithdrawalTransaction()
+        IDisputeGame gameProxy = IDisputeGame(address(0));
 
         // Load the ProvenWithdrawal into memory, using the withdrawal hash as a unique identifier.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
@@ -346,8 +348,12 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
 
     /// @notice Finalizes a withdrawal transaction.
     /// @param _tx Withdrawal transaction to finalize.
-    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external whenNotPaused {
-        finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
+    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx)
+        external
+        whenNotPaused
+        returns (bool success)
+    {
+        return finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
 
     /// @notice Finalizes a withdrawal transaction, using an external proof submitter.
@@ -359,6 +365,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     )
         public
         whenNotPaused
+        returns (bool success)
     {
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
@@ -388,7 +395,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
@@ -490,67 +497,11 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     /// @param _proofSubmitter The submitter of the proof for the withdrawal hash
     function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) public view {
         ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash][_proofSubmitter];
-        IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
-
-        // The dispute game must not be blacklisted.
-        if (disputeGameBlacklist[disputeGameProxy]) revert Blacklisted();
 
         // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
         // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
         // a timestamp of zero.
         if (provenWithdrawal.timestamp == 0) revert Unproven();
-
-        // Grab the createdAt timestamp once.
-        uint64 createdAt = disputeGameProxy.createdAt().raw();
-
-        // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
-        // starting timestamp inside the Dispute Game. Not strictly necessary but extra layer of
-        // safety against weird bugs in the proving step.
-        require(
-            provenWithdrawal.timestamp > createdAt,
-            "OptimismPortal: withdrawal timestamp less than dispute game creation timestamp"
-        );
-
-        // A proven withdrawal must wait at least `PROOF_MATURITY_DELAY_SECONDS` before finalizing.
-        require(
-            block.timestamp - provenWithdrawal.timestamp > PROOF_MATURITY_DELAY_SECONDS,
-            "OptimismPortal: proven withdrawal has not matured yet"
-        );
-
-        // A proven withdrawal must wait until the dispute game it was proven against has been
-        // resolved in favor of the root claim (the output proposal). This is to prevent users
-        // from finalizing withdrawals proven against non-finalized output roots.
-        if (disputeGameProxy.status() != GameStatus.DEFENDER_WINS) revert ProposalNotValidated();
-
-        // The game type of the dispute game must have been the respected game type at creation
-        // time. We check that the game type is the respected game type at proving time, but it's
-        // possible that the respected game type has since changed. Users can still use this game
-        // to finalize a withdrawal as long as it has not been otherwise invalidated.
-        // The game type of the DisputeGame must have been the respected game type at creation.
-        try disputeGameProxy.wasRespectedGameTypeWhenCreated() returns (bool wasRespected_) {
-            if (!wasRespected_) revert InvalidGameType();
-        } catch {
-            revert LegacyGame();
-        }
-
-        // Game must have been created after the respected game type was updated. This check is a
-        // strict inequality because we want to prevent users from being able to prove or finalize
-        // withdrawals against games that were created in the same block that the retirement
-        // timestamp was set. If the retirement timestamp and game type are changed in the same
-        // block, such games could still be considered valid even if they used the old game type
-        // that we intended to invalidate.
-        require(
-            createdAt > respectedGameTypeUpdatedAt,
-            "OptimismPortal: dispute game created before respected game type was updated"
-        );
-
-        // Before a withdrawal can be finalized, the dispute game it was proven against must have been
-        // resolved for at least `DISPUTE_GAME_FINALITY_DELAY_SECONDS`. This is to allow for manual
-        // intervention in the event that a dispute game is resolved incorrectly.
-        require(
-            block.timestamp - disputeGameProxy.resolvedAt().raw() > DISPUTE_GAME_FINALITY_DELAY_SECONDS,
-            "OptimismPortal: output proposal in air-gap"
-        );
 
         // Check that this withdrawal has not already been finalized, this is replay protection.
         if (finalizedWithdrawals[_withdrawalHash]) revert AlreadyFinalized();
