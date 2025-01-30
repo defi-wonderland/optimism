@@ -335,6 +335,10 @@ contract FuzzTest is Handler {
         );
         assert(success);
 
+        if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+        else assert(address(PORTAL).balance == balanceBefore + _value);
+    }
+
     /// @custom:property-id 11
     /// @custom:property Before migration, withdrawals MUST use the OptimismPortal’s own ETH balance
     /// @custom:property-id 13
@@ -358,14 +362,6 @@ contract FuzzTest is Handler {
 
         if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(SHARED_LOCKBOX).balance);
         else _tx.value = clampLte(_tx.value, address(PORTAL).balance);
-
-        // (bool success,) = address(PORTAL.disputeGameFactory()).call(
-        //     abi.encodeWithSignature("setCreatedAt(uint64)", PORTAL.respectedGameTypeUpdatedAt() + 1)
-        // );
-
-        // assert(success);
-
-        // vm.warp(block.timestamp + PORTAL.respectedGameTypeUpdatedAt() + 1 + 1);
 
         Actors actor = randomActor(_actorIndex);
 
