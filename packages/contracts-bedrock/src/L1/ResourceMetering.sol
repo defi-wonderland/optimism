@@ -154,10 +154,6 @@ abstract contract ResourceMetering is Initializable {
     ///         when L2 system transactions are generated from L1.
     /// @param _amount Amount of the L2 gas resource requested.
     function useGas(uint32 _amount) internal {
-        ResourceConfig memory config = _resourceConfig();
-        if (params.prevBoughtGas > config.maxResourceLimit) {
-            revert OutOfGas();
-        }
         params.prevBoughtGas += uint64(_amount);
     }
 
