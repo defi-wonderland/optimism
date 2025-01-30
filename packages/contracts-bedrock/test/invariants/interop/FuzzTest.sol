@@ -5,7 +5,7 @@ import { Constants, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-import { console } from "forge-std/Console.sol";
+import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
 
