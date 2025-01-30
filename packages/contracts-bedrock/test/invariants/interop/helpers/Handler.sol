@@ -23,8 +23,6 @@ import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
-import "forge-std/console.sol";
-
 contract Handler is Setup {
     struct Message {
         address from;

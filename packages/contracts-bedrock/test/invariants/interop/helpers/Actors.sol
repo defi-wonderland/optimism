@@ -80,22 +80,6 @@ contract Actors {
         emit ActorsLog(string.concat("return data: ", vm.toString(_returnData)));
     }
 
-    function directCallWithGasLimit(
-        address _target,
-        uint256 _msgValue,
-        bytes memory _payload,
-        uint256 _gasLimit
-    )
-        public
-        returns (bool _success, bytes memory _returnData)
-    {
-        emit ActorsLog(string.concat("call using actor: ", vm.toString(address(this))));
-
-        (_success, _returnData) = _target.call{ value: _msgValue, gas: _gasLimit }(_payload);
-
-        emit ActorsLog(string.concat("return data: ", vm.toString(_returnData)));
-    }
-
     receive() external payable { }
 }
 

@@ -8,12 +8,11 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
-import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-
 import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
+    uint256 internal constant _DATA_LENGTH_MAX_LIMIT = 120_000;
 
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
@@ -318,7 +317,7 @@ contract FuzzTest is Handler {
         require(!(_isCreation && _to != address(0)));
 
         // Avoid revert due to `LargeCalldata`
-        require(_data.length <= 120_000);
+        require(_data.length <= _DATA_LENGTH_MAX_LIMIT);
 
         // Get the gas limit for the deposit transaction to succeed
         uint64 gasLimit = uint64(_WITHDRAWAL_GAS_OVERHEAD + (_data.length * 16) * 64 / 63);
