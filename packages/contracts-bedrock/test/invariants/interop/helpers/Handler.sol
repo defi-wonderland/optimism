@@ -272,7 +272,7 @@ contract Handler is Setup {
 
         // Get state before call
         Actors actor = randomActor(_actorIndex);
-        uint256 actorBalanceBefore = address(actor).balance;
+        uint256 actorBalanceBefore = actor.ethBalance();
         uint256 sWethBalanceBefore = address(SUPER_WETH).balance;
         uint256 _ethLiquidityBefore = address(ETH_LIQUIDITY).balance;
         uint256 _sWETHTotalSupplyBefore = SUPER_WETH.totalSupply();
@@ -284,7 +284,7 @@ contract Handler is Setup {
             address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, DESTINATION_CHAIN_ID))
         ) {
             // Check the Ether balances and that the superchain WETH total supply was not modified
-            assert(address(actor).balance == actorBalanceBefore - _value);
+            assert(actor.ethBalance() == actorBalanceBefore - _value);
             assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
@@ -307,7 +307,7 @@ contract Handler is Setup {
 
         // Get state before the call
         address targetActor = address(randomActor(_toActorIndex));
-        uint256 _tagretActorBalanceBefore = address(targetActor).balance;
+        uint256 _tagretActorBalanceBefore = targetActor.balance;
         uint256 _ethLiquidityBefore = address(ETH_LIQUIDITY).balance;
         uint256 _sWETHTotalSupplyBefore = SUPER_WETH.totalSupply();
 
@@ -406,6 +406,21 @@ contract Handler is Setup {
         // different block gas limits on ResourceMetering.sol
         uint256 blocks = _increaseTwo ? 2 : 1;
         vm.roll(block.number + blocks);
+    }
+
+    function handler_donateETH(uint256 _amount, uint256 _actorIndex) public initialize {
+        Actors actor = randomActor(_actorIndex);
+        _amount = clampLte(_amount, actor.ethBalance());
+
+        // Get balances before
+        uint256 actorBalanceBefore = actor.ethBalance();
+        uint256 portalBalanceBefore = address(PORTAL).balance;
+        try actor.directCall(address(PORTAL), _amount, abi.encodeWithSelector(PORTAL.donateETH.selector)) {
+            assert(actor.ethBalance() == actorBalanceBefore - _amount);
+            assert(address(PORTAL).balance == portalBalanceBefore + _amount);
+        } catch {
+            assert(false);
+        }
     }
 
     function _signPermit(

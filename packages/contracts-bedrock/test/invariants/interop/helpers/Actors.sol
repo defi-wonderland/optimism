@@ -80,6 +80,10 @@ contract Actors {
         emit ActorsLog(string.concat("return data: ", vm.toString(_returnData)));
     }
 
+    function ethBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
     receive() external payable { }
 }
 

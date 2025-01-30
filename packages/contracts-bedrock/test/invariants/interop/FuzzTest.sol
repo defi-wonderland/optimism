@@ -8,6 +8,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors } from "./helpers/Actors.sol";
+import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
 
 contract FuzzTest is Handler {
@@ -273,7 +274,7 @@ contract FuzzTest is Handler {
 
         bool success;
         if (_callSuperWETH) {
-            _amount = clampLte(_amount, Utils.min(address(currentActor()).balance, address(SUPER_WETH).balance));
+            _amount = clampLte(_amount, Utils.min(currentActor().ethBalance(), address(SUPER_WETH).balance));
             success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, DESTINATION_CHAIN_ID);
         } else {
             _amount =
@@ -334,6 +335,75 @@ contract FuzzTest is Handler {
 
         if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
         else assert(address(PORTAL).balance == balanceBefore + _value);
+    }
+
+    /// @custom:property-id 11
+    /// @custom:property Before migration, withdrawals MUST use the OptimismPortal's own ETH balance if the amount
+    /// being withdrawn is greater than zero
+    /// @custom:property-id 13
+    /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
+    /// SharedLockbox if it is greater than zero
+    function test_optimismPortalWithdrawals(
+        Types.WithdrawalTransaction memory _tx,
+        uint256 _actorIndex
+    )
+        public
+        initialize
+    {
+        require(_tx.target != address(PORTAL));
+        require(_tx.target != address(SHARED_LOCKBOX));
+        require(_tx.target != address(SUPER_WETH));
+
+        bool success;
+        bytes memory returnData;
+
+        // Setting not used parameters to empty values
+        bytes[] memory withdrawalProof = new bytes[](0);
+        Types.OutputRootProof memory outputRootProof;
+        uint256 disputeGameIndex = 0;
+
+        // Gas is limit is out of scope
+        _tx.gasLimit = type(uint256).max;
+
+        if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(SHARED_LOCKBOX).balance);
+        else _tx.value = clampLte(_tx.value, address(PORTAL).balance);
+
+        require(!PORTAL.finalizedWithdrawals(Hashing.hashWithdrawal(_tx)));
+
+        Actors actor = randomActor(_actorIndex);
+        (success,) = actor.directCall(
+            address(PORTAL),
+            _ZERO_VALUE,
+            abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, disputeGameIndex, outputRootProof, withdrawalProof))
+        );
+
+        assert(success);
+
+        uint256 portalBalanceBefore = address(PORTAL).balance;
+        uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
+
+        (success, returnData) =
+            actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
+
+        assert(success);
+
+        // Cast returnData to bool
+        bool safecallSuccess = abi.decode(returnData, (bool));
+
+        // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
+        if (safecallSuccess) {
+            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+            else assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
+        } else {
+            // If the safecall failed, the balance should be the same
+            // TODO: If portal behavior is changed, this will need to be updated
+            if (_ghost_isMigrated) {
+                assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+                assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
+            } else {
+                assert(address(PORTAL).balance == portalBalanceBefore);
+            }
+        }
     }
 
     /// @custom:property-id 15
