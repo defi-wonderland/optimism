@@ -199,6 +199,8 @@ contract FuzzTest is Handler {
         public
         initialize
     {
+        require(!_isL1Contract(_target));
+
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
 
@@ -352,7 +354,7 @@ contract FuzzTest is Handler {
     {
         require(_tx.target != address(PORTAL));
         require(_tx.target != address(SHARED_LOCKBOX));
-        require(_tx.target != address(SUPER_WETH));
+        require(!_isL2Contract(_tx.target));
 
         bool success;
         bytes memory returnData;

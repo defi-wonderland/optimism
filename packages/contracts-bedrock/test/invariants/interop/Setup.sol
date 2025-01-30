@@ -103,6 +103,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
         );
         // Give the initial ether balance to ETHLiquidity
         vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
+        _ghost_isL2Contract[Predeploys.ETH_LIQUIDITY] = true;
 
         // Deploy L1BlockInterop
         _setCode(
@@ -110,6 +111,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_15.deployL1Block(),
             !Predeploys.notProxied(Predeploys.L1_BLOCK_ATTRIBUTES)
         );
+        _ghost_isL2Contract[Predeploys.L1_BLOCK_ATTRIBUTES] = true;
 
         //  Deploy CrossL2Inbox
         _setCode(
@@ -117,6 +119,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_25.deployCrossL2Inbox(),
             !Predeploys.notProxied(Predeploys.CROSS_L2_INBOX)
         );
+        _ghost_isL2Contract[Predeploys.CROSS_L2_INBOX] = true;
 
         // Deploy L2ToL2CrossDomainMessenger
         _setCode(
@@ -124,6 +127,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_25.deployL2ToL2CrossDomainMessenger(),
             !Predeploys.notProxied(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         );
+        _ghost_isL2Contract[Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER] = true;
 
         // Deploy SuperchainTokenBridge
         _setCode(
@@ -131,6 +135,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_25.deploySuperchainTokenBridge(),
             !Predeploys.notProxied(Predeploys.SUPERCHAIN_TOKEN_BRIDGE)
         );
+        _ghost_isL2Contract[Predeploys.SUPERCHAIN_TOKEN_BRIDGE] = true;
 
         // Deploy L2ToL1MessagePasser
         _setCode(
@@ -138,6 +143,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_15.deployL2ToL1MessagePasser(),
             !Predeploys.notProxied(Predeploys.L2_TO_L1_MESSAGE_PASSER)
         );
+        _ghost_isL2Contract[Predeploys.L2_TO_L1_MESSAGE_PASSER] = true;
 
         // Deploy DependencyManager
         _setCode(
@@ -145,6 +151,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_25.deployDependencyManager(),
             !Predeploys.notProxied(Predeploys.DEPENDENCY_MANAGER)
         );
+        _ghost_isL2Contract[Predeploys.DEPENDENCY_MANAGER] = true;
 
         // Deploy SuperchainWETH
         _setCode(
@@ -152,21 +159,26 @@ contract Setup is PropertiesAsserts, HandlerActors {
             DEPLOYER_8_15.deploySuperchainWETH(),
             !Predeploys.notProxied(Predeploys.SUPERCHAIN_WETH)
         );
+        _ghost_isL2Contract[Predeploys.SUPERCHAIN_WETH] = true;
 
         // Deploy SuperchainToken
         SUPER_TOKEN = ISuperToken(DEPLOYER_8_25.deploySuperchainERC20());
+        _ghost_isL2Contract[address(SUPER_TOKEN)] = true;
 
         // Deploy SuperchainConfig
         _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfigInterop(), true);
         SUPERCHAIN_CONFIG = ISuperchainConfigInterop(superchainConfigAddress);
+        _ghost_isL1Contract[superchainConfigAddress] = true;
 
         // Deploy SharedLockbox
         _setCode(sharedLockboxAddress, DEPLOYER_8_25.deploySharedLockbox(), true);
         SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
+        _ghost_isL1Contract[sharedLockboxAddress] = true;
 
         // Deploy SystemConfig
         _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
         SYSTEM_CONFIG = ISystemConfig(systemConfigAddress);
+        _ghost_isL1Contract[systemConfigAddress] = true;
 
         // Deal the initial ether to the portal address
         vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
@@ -178,6 +190,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             true
         );
         PORTAL = IOptimismPortalInterop(payable(optimismPortalAddress));
+        _ghost_isL1Contract[optimismPortalAddress] = true;
 
         // Set the cluster manager as an actor
         vm.etch(clusterManager, actorCode);
@@ -324,5 +337,15 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
+    }
+
+    /// @dev Check if a contract is a L1 contract - Useful to don't mix up Ether balances state between L1 and L2
+    function _isL1Contract(address _contract) internal view returns (bool) {
+        return _ghost_isL1Contract[_contract];
+    }
+
+    /// @dev Check if a contract is a L2 contract - Useful to don't mix up Ether balances state between L1 and L2
+    function _isL2Contract(address _contract) internal view returns (bool) {
+        return _ghost_isL2Contract[_contract];
     }
 }

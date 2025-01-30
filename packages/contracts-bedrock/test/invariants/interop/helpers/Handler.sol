@@ -34,9 +34,6 @@ contract Handler is Setup {
     bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
 
-    bytes32 internal constant _PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-
     uint256 internal constant _ZERO_VALUE = 0;
 
     mapping(address => uint256) public nonces;
@@ -113,7 +110,7 @@ contract Handler is Setup {
         Actors callerActor = randomActor(_callerActorIndex);
         bytes32 domainSeparator = SUPER_TOKEN.DOMAIN_SEPARATOR();
         (uint8 v, bytes32 r, bytes32 s) =
-            _signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
+            Utils._signPermit(_fromPK, address(callerActor), _amount, domainSeparator, nonces[fromEOA]);
 
         // Call permit
         try SUPER_TOKEN.permit(fromEOA, address(callerActor), _amount, block.timestamp, v, r, s) {
@@ -421,27 +418,5 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
-    }
-
-    function _signPermit(
-        uint256 _fromPK,
-        address _to,
-        uint256 _amount,
-        bytes32 _domainSeparator,
-        uint256 _nonce
-    )
-        internal
-        returns (uint8 v, bytes32 r, bytes32 s)
-    {
-        return vm.sign(
-            _fromPK,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    _domainSeparator,
-                    keccak256(abi.encode(_PERMIT_TYPEHASH, vm.addr(_fromPK), _to, _amount, _nonce, block.timestamp))
-                )
-            )
-        );
     }
 }
