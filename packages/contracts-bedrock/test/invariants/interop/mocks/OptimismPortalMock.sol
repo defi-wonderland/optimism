@@ -342,10 +342,11 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
 
     /// @notice Finalizes a withdrawal transaction.
     /// @param _tx Withdrawal transaction to finalize.
+    /// @return success_ Used to track the success of the call on testing campaign.
     function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx)
         external
         whenNotPaused
-        returns (bool success)
+        returns (bool success_)
     {
         return finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
@@ -359,7 +360,7 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     )
         public
         whenNotPaused
-        returns (bool success)
+        returns (bool success_)
     {
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
@@ -389,19 +390,19 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        success_ = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
 
         // All withdrawals are immediately finalized. Replayability can
         // be achieved through contracts built on top of this contract
-        emit WithdrawalFinalized(withdrawalHash, success);
+        emit WithdrawalFinalized(withdrawalHash, success_);
 
         // Reverting here is useful for determining the exact gas cost to successfully execute the
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
-        if (!success && tx.origin == Constants.ESTIMATION_ADDRESS) {
+        if (!success_ && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert GasEstimation();
         }
     }
