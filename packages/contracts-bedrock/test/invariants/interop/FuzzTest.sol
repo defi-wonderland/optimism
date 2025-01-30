@@ -335,4 +335,19 @@ contract FuzzTest is Handler {
         if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
         else assert(address(PORTAL).balance == balanceBefore + _value);
     }
+
+    /// @custom:property-id 15
+    /// @custom:property The CLUSTER_MANAGER role MUST only be modifiable during initialization
+    function test_sameClusterManager() public initialize {
+        assert(SUPERCHAIN_CONFIG.clusterManager() == clusterManager);
+
+        // Calling `initialize()` since it is the only way to update the cluster manager, it should revert and the state
+        // should not be updated
+        address newClusterManager = address(12345);
+        try SUPERCHAIN_CONFIG.initialize(address(0), false, newClusterManager, address(0)) {
+            assert(false);
+        } catch {
+            assert(SUPERCHAIN_CONFIG.clusterManager() == clusterManager);
+        }
+    }
 }
