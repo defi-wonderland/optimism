@@ -445,7 +445,7 @@ contract Handler is Setup {
         initialize
     {
         require(_target != address(CROSS_L2_INBOX));
-        require(_sender != address(L2_TO_L2_MESSENGER));
+        require(_target != address(L2_TO_L2_MESSENGER));
         require(!_isL1Contract(_target));
 
         // Ensure the id inputs are valid
