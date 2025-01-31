@@ -53,11 +53,10 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(actor)));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_TOKEN), _ZERO_VALUE, abi.encodeWithSelector(SUPER_TOKEN.transfer.selector, _to, _amount)
-        ) { } catch {
-            assert(false);
-        }
+        );
+        assert(success);
     }
 
     function handler_transferFromSuperchainERC20(
@@ -74,22 +73,20 @@ contract Handler is Setup {
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
 
         // Approve the spender to transfer the tokens
-        try fromActor.directCall(
+        (bool success,) = fromActor.directCall(
             address(SUPER_TOKEN),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.approve.selector, address(callerActor), _amount)
-        ) { } catch {
-            assert(false);
-        }
+        );
+        assert(success);
 
         // Transfer the tokens
-        try callerActor.directCall(
+        (success,) = callerActor.directCall(
             address(SUPER_TOKEN),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, address(fromActor), _to, _amount)
-        ) { } catch {
-            assert(false);
-        }
+        );
+        assert(success);
     }
 
     function handler_permitSuperchainERC20(
@@ -124,13 +121,14 @@ contract Handler is Setup {
         uint256 callerActorBalanceBefore = SUPER_TOKEN.balanceOf(address(callerActor));
 
         // Call transferFrom
-        try callerActor.directCall(
+        (bool success,) = callerActor.directCall(
             address(SUPER_TOKEN),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, fromEOA, address(callerActor), _amount)
-        ) {
+        );
+        if (success) {
             assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
-        } catch {
+        } else {
             assert(false);
         }
     }
@@ -171,35 +169,32 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         vm.deal(address(actor), _value);
 
-        try actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector)) {
-            _ghost_superWethBalancesSum += _value;
-        } catch {
-            assert(false);
-        }
+        (bool success,) =
+            actor.directCall(address(SUPER_WETH), _value, abi.encodeWithSelector(SUPER_WETH.deposit.selector));
+        assert(success);
+
+        _ghost_superWethBalancesSum += _value;
     }
 
     function handler_withdrawSuperchainWETH(uint256 _value, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _value = clampLte(_value, SUPER_WETH.balanceOf(address(actor)));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.withdraw.selector, _value)
-        ) {
-            _ghost_superWethBalancesSum -= _value;
-        } catch {
-            assert(false);
-        }
+        );
+        assert(success);
+        _ghost_superWethBalancesSum -= _value;
     }
 
     function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(actor)));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.transfer.selector, _to, _amount)
-        ) { } catch {
-            assert(false);
-        }
+        );
+        assert(success);
     }
 
     function handler_transferFromSuperchainWETH(
@@ -225,13 +220,12 @@ contract Handler is Setup {
         }
 
         // Transfer the tokens
-        try callerActor.directCall(
+        (bool success,) = callerActor.directCall(
             address(SUPER_WETH),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_WETH.transferFrom.selector, address(fromActor), _to, _amount)
-        ) { } catch {
-            assert(false);
-        }
+        );
+        assert(success);
     }
 
     function handler_permit2SuperchainWETH(
@@ -277,17 +271,16 @@ contract Handler is Setup {
         // Clamp the value to prevent an overflow or a revert due to insufficient balance
         _value = clampLte(_value, Utils.min(type(uint256).max - sWethBalanceBefore, actorBalanceBefore));
 
-        try actor.directCall(
+        (bool success,) = actor.directCall(
             address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, DESTINATION_CHAIN_ID))
-        ) {
-            // Check the Ether balances and that the superchain WETH total supply was not modified
-            assert(actor.ethBalance() == actorBalanceBefore - _value);
-            assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
-            // The total supply of superchain WETH should not change
-            assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
-        } catch {
-            assert(false);
-        }
+        );
+        assert(success);
+
+        // Check the Ether balances and that the superchain WETH total supply was not modified
+        assert(actor.ethBalance() == actorBalanceBefore - _value);
+        assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
+        // The total supply of superchain WETH should not change
+        assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
     }
 
     function handler_superchainWETHRelayETH(
@@ -328,15 +321,13 @@ contract Handler is Setup {
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         Actors actor = randomActor(_toActorIndex);
-        try actor.callL2ToL2MessengerRelayMessage(_id, sentMessage) {
-            // Check the Ether balances
-            assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
-            assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
-            // The total supply of superchain WETH should not change
-            assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
-        } catch {
-            assert(false);
-        }
+        bool success = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        assert(success);
+        // Check the Ether balances
+        assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
+        assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
+        // The total supply of superchain WETH should not change
+        assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
     }
 
     function handler_migrateAndAddL1Dependency() public initialize {
@@ -412,11 +403,10 @@ contract Handler is Setup {
         // Get balances before
         uint256 actorBalanceBefore = actor.ethBalance();
         uint256 portalBalanceBefore = address(PORTAL).balance;
-        try actor.directCall(address(PORTAL), _amount, abi.encodeWithSelector(PORTAL.donateETH.selector)) {
-            assert(actor.ethBalance() == actorBalanceBefore - _amount);
-            assert(address(PORTAL).balance == portalBalanceBefore + _amount);
-        } catch {
-            assert(false);
-        }
+
+        (bool success,) = actor.directCall(address(PORTAL), _amount, abi.encodeWithSelector(PORTAL.donateETH.selector));
+        assert(success);
+        assert(actor.ethBalance() == actorBalanceBefore - _amount);
+        assert(address(PORTAL).balance == portalBalanceBefore + _amount);
     }
 }
