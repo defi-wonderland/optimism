@@ -24,6 +24,8 @@ import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 contract Handler is Setup {
+    error TargetCallFailed();
+
     struct Message {
         address from;
         uint256 amount;
@@ -275,6 +277,7 @@ contract Handler is Setup {
             address(SUPER_WETH), _value, abi.encodeCall(SUPER_WETH.sendETH, (_to, DESTINATION_CHAIN_ID))
         );
         assert(success);
+
         // Check the Ether balances and that the superchain WETH total supply was not modified
         assert(actor.ethBalance() == actorBalanceBefore - _value);
         assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore + _value);
@@ -411,6 +414,7 @@ contract Handler is Setup {
 
     function handler_L2ToL2MessengerRelayMessage(
         uint256 _relayerActorIndex,
+        uint256 _value,
         Identifier memory _id,
         address _target,
         uint256 _nonce,
@@ -423,6 +427,7 @@ contract Handler is Setup {
         require(_target != address(CROSS_L2_INBOX));
         require(_target != address(L2_TO_L2_MESSENGER));
         require(!_isL1Contract(_target));
+        require(!_isL1Contract(_sender));
 
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);
@@ -446,14 +451,13 @@ contract Handler is Setup {
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         Actors actor = randomActor(_relayerActorIndex);
+        _value = clampLte(_value, actor.ethBalance());
         (bool success, bytes memory returnData) = actor.directCall(
             address(L2_TO_L2_MESSENGER),
-            0,
+            _value,
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
         if (success) assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
         else assert(bytes4(returnData) == TargetCallFailed.selector);
-            );
-        }
     }
 }
