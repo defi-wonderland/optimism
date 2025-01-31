@@ -451,11 +451,8 @@ contract Handler is Setup {
             0,
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
-        if (success) {
-            assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
-        } else {
-            assert(
-                bytes4(returnData) == bytes4(0xeda86850) // TargetCallFailed()
+        if (success) assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+        else assert(bytes4(returnData) == TargetCallFailed.selector);
             );
         }
     }
