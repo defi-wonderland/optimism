@@ -211,16 +211,15 @@ contract Handler is Setup {
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(fromActor)));
 
         // Approve the spender to transfer the tokens
-        try fromActor.directCall(
+        (bool success,) = fromActor.directCall(
             address(SUPER_WETH),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_WETH.approve.selector, address(callerActor), _amount)
-        ) { } catch {
-            assert(false);
-        }
+        );
+        assert(success);
 
         // Transfer the tokens
-        (bool success,) = callerActor.directCall(
+        (success,) = callerActor.directCall(
             address(SUPER_WETH),
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_WETH.transferFrom.selector, address(fromActor), _to, _amount)
