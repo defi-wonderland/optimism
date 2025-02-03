@@ -79,7 +79,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
-    /// @param messageNonce Nonce associated with the messsage sent
+    /// @param messageNonce Nonce associated with the message sent
     /// @param sender       Address initiating this message call
     /// @param message      Message payload to call target with.
     event SentMessage(
