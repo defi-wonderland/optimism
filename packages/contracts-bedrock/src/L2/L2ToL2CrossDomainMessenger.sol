@@ -152,7 +152,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     ///         via cross chain call from the other messenger OR if the message was already received once and is
     ///         currently being replayed.
     /// @param _id          Identifier of the SentMessage event to be relayed
-    /// @param _sentMessage Message payload of the `SentMessage` event
+    /// @param _sentMessage Payload of the `SentMessage` event
     /// @return returnData_ Return data from the target contract call.
     function relayMessage(
         Identifier calldata _id,
@@ -163,8 +163,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         nonReentrant
         returns (bytes memory returnData_)
     {
-        // Ensure the log came from the messenger. Since the log origin is the CDM, there isn't a scenario where
-        // this can be invoked from the CrossL2Inbox as the SentMessage log is not calldata for this function
+        // Ensure the log came from the messenger.
         if (_id.origin != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
             revert IdOriginNotL2ToL2CrossDomainMessenger();
         }
@@ -227,6 +226,13 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
     }
 
+    /// @notice Decodes the payload of a SentMessage event.
+    /// @param _payload         Payload of the SentMessage event.
+    /// @return destination_    Destination chain ID.
+    /// @return target_         Target contract of the message.
+    /// @return nonce_          Nonce associated with the messsage sent.
+    /// @return sender_         Address initiating this message call.
+    /// @return message_        Message payload to call target with.
     function _decodeSentMessagePayload(bytes calldata _payload)
         internal
         pure
