@@ -416,8 +416,8 @@ contract Handler is Setup {
         uint256 _value,
         Identifier memory _id,
         address _target,
-        uint256 _nonce,
         address _sender,
+        uint256 _nonce,
         bytes memory _message
     )
         public
@@ -426,8 +426,7 @@ contract Handler is Setup {
         require(_target != address(CROSS_L2_INBOX));
         require(_target != address(L2_TO_L2_MESSENGER));
         require(!_isL1Contract(_target));
-        require(!_isL1Contract(_sender));
-
+        require(!_isL2Contract(_sender));
         // Ensure the id inputs are valid
         _id.origin = address(L2_TO_L2_MESSENGER);
         _id.chainId == block.chainid;
@@ -456,7 +455,13 @@ contract Handler is Setup {
             _value,
             abi.encodeWithSelector(L2_TO_L2_MESSENGER.relayMessage.selector, _id, sentMessage)
         );
-        if (success) assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
-        else assert(bytes4(returnData) == TargetCallFailed.selector);
+        if (success) {
+            assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+            if (_target == address(SUPER_WETH) && bytes4(_message) == hex"d0e30db0") {
+                _ghost_superWethBalancesSum += _value;
+            }
+        } else {
+            assert(bytes4(returnData) == TargetCallFailed.selector);
+        }
     }
 }
