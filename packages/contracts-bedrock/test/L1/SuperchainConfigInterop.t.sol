@@ -213,11 +213,12 @@ contract SuperchainConfigInterop_AddDependency_Test is SuperchainConfigInterop_B
     }
 
     /// @notice Tests that `addDependency` reverts when the portal is already authorized.
-    function test_addDependency_portalAlreadyAuthorized_reverts(uint256 _chainId) external {
+    function test_addDependency_portalAlreadyAuthorized_reverts(uint256 _chainId, uint256 _otherChainId) external {
         // Bound chainId to be within uint128 range but not equal to block.chainid
         _chainId = bound(_chainId, 1, type(uint128).max);
         vm.assume(_chainId != block.chainid);
-        vm.assume(_chainId + 1 != block.chainid);
+        vm.assume(_otherChainId != block.chainid);
+        vm.assume(_chainId != _otherChainId);
 
         _setUpPortal(_chainId);
 
@@ -227,7 +228,7 @@ contract SuperchainConfigInterop_AddDependency_Test is SuperchainConfigInterop_B
 
         vm.prank(_superchainConfigInterop().clusterManager());
         vm.expectRevert(SuperchainConfigInterop.PortalAlreadyAuthorized.selector);
-        _superchainConfigInterop().addDependency(_chainId + 1, address(systemConfig));
+        _superchainConfigInterop().addDependency(_otherChainId, address(systemConfig));
     }
 
     /// @notice Tests that `addDependency` reverts when the superchain is paused.
