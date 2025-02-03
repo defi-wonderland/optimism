@@ -222,8 +222,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _sender Address of the sender of the message.
     function _storeMessageMetadata(uint256 _source, address _sender) internal {
         assembly {
-            tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
+            tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
         }
     }
 
