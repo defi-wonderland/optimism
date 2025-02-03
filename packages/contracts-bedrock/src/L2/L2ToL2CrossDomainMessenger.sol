@@ -26,9 +26,6 @@ error MessageDestinationSameChain();
 /// @notice Thrown when attempting to relay a message whose destination chain is not the chain relaying it.
 error MessageDestinationNotRelayChain();
 
-/// @notice Thrown when attempting to relay a message whose target is CrossL2Inbox.
-error MessageTargetCrossL2Inbox();
-
 /// @notice Thrown when attempting to relay a message whose target is L2ToL2CrossDomainMessenger.
 error MessageTargetL2ToL2CrossDomainMessenger();
 
@@ -130,7 +127,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @return The hash of the message being sent, used to track whether the message has successfully been relayed.
     function sendMessage(uint256 _destination, address _target, bytes calldata _message) external returns (bytes32) {
         if (_destination == block.chainid) revert MessageDestinationSameChain();
-        if (_target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
         uint256 nonce = messageNonce();
@@ -177,8 +173,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
-        if (target == Predeploys.CROSS_L2_INBOX) revert MessageTargetCrossL2Inbox();
-        if (target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
         uint256 source = _id.chainId;
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
