@@ -216,6 +216,7 @@ contract SuperchainConfigInterop_AddDependency_Test is SuperchainConfigInterop_B
     function test_addDependency_portalAlreadyAuthorized_reverts(uint256 _chainId, uint256 _otherChainId) external {
         // Bound chainId to be within uint128 range but not equal to block.chainid
         _chainId = bound(_chainId, 1, type(uint128).max);
+        _otherChainId = bound(_otherChainId, 1, type(uint128).max);
         vm.assume(_chainId != block.chainid);
         vm.assume(_otherChainId != block.chainid);
         vm.assume(_chainId != _otherChainId);
