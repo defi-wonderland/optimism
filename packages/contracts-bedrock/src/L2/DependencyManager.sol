@@ -72,8 +72,8 @@ contract DependencyManager is ISemver {
 
     /// @notice Returns the size of the interop dependency set.
     /// @return The size of the interop dependency set.
-    function dependencySetSize() external view returns (uint8) {
-        return uint8(_dependencySet.length());
+    function dependencySetSize() external view returns (uint256) {
+        return _dependencySet.length();
     }
 
     /// @notice Getter for the chain ids list on the dependency set.
