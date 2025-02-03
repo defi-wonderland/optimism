@@ -188,6 +188,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             revert MessageAlreadyRelayed();
         }
 
+        successfulMessages[messageHash] = true;
         _storeMessageMetadata(source, sender);
 
         bool success;
@@ -197,7 +198,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             revert TargetCallFailed();
         }
 
-        successfulMessages[messageHash] = true;
         emit RelayedMessage(source, nonce, messageHash);
 
         _storeMessageMetadata(0, address(0));
