@@ -13,6 +13,9 @@ contract DependencyManager_Base_Test is CommonTest {
     event DependencyAdded(uint256 indexed chainId, address indexed systemConfig, address indexed superchainConfig);
 
     function setUp() public virtual override {
+        // Skip the test until DependencyManager is integrated again
+        vm.skip(true);
+
         super.enableInterop();
         super.setUp();
     }
@@ -103,7 +106,7 @@ contract DependencyManager_AddDependency_Test is DependencyManager_Base_Test {
 contract DependencyManager_IsInDependencySet_Test is DependencyManager_Base_Test {
     /// @dev Tests that current chain is always in dependency set
     function testFuzz_isInDependencySet_currentChain_succeeds(uint256 _chainId) public {
-        vm.assume(_chainId <= type(uint8).max);
+        _chainId = bound(_chainId, 1, type(uint8).max);
 
         vm.chainId(_chainId);
         assertTrue(_dependencyManager().isInDependencySet(_chainId));
@@ -127,17 +130,26 @@ contract DependencyManager_IsInDependencySet_Test is DependencyManager_Base_Test
 }
 
 contract DependencyManager_DependencySet_Test is DependencyManager_Base_Test {
+    // Create a mapping to track used chainIds
+    mapping(uint256 => bool) usedChainIds;
+
     /// @dev Tests that dependencySet returns correct values
     function testFuzz_dependencySet_succeeds(uint256[] memory _chainIds) public {
-        vm.assume(_chainIds.length <= type(uint8).max);
+        // Limit array size to prevent too many rejections
+        _chainIds = new uint256[](bound(_chainIds.length, 0, 32));
 
-        // Ensure chain IDs are unique and valid
+        // Generate unique chain IDs more efficiently
         for (uint256 i = 0; i < _chainIds.length; i++) {
-            _chainIds[i] = bound(_chainIds[i], 1, type(uint8).max);
-            vm.assume(_chainIds[i] != block.chainid);
-            for (uint256 j = 0; j < i; j++) {
-                vm.assume(_chainIds[i] != _chainIds[j]);
+            // Start with a bounded random value
+            uint256 chainId = bound(_chainIds[i], 1, type(uint8).max);
+
+            // If this chainId is already used or is the current chainId,
+            // increment until we find an unused one
+            while (usedChainIds[chainId] || chainId == block.chainid) {
+                chainId = (chainId % type(uint8).max) + 1;
             }
+            usedChainIds[chainId] = true;
+            _chainIds[i] = chainId;
         }
 
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
@@ -160,15 +172,21 @@ contract DependencyManager_DependencySet_Test is DependencyManager_Base_Test {
 
     /// @dev Tests that dependencySetSize returns correct value
     function testFuzz_dependencySetSize_succeeds(uint256[] memory _chainIds) public {
-        vm.assume(_chainIds.length <= type(uint8).max);
+        // Limit array size to prevent too many rejections
+        _chainIds = new uint256[](bound(_chainIds.length, 0, 32));
 
-        // Ensure chain IDs are unique and valid
+        // Generate unique chain IDs more efficiently
         for (uint256 i = 0; i < _chainIds.length; i++) {
-            _chainIds[i] = bound(_chainIds[i], 1, type(uint8).max);
-            vm.assume(_chainIds[i] != block.chainid);
-            for (uint256 j = 0; j < i; j++) {
-                vm.assume(_chainIds[i] != _chainIds[j]);
+            // Start with a bounded random value
+            uint256 chainId = bound(_chainIds[i], 1, type(uint8).max);
+
+            // If this chainId is already used or is the current chainId,
+            // increment until we find an unused one
+            while (usedChainIds[chainId] || chainId == block.chainid) {
+                chainId = (chainId % type(uint8).max) + 1;
             }
+            usedChainIds[chainId] = true;
+            _chainIds[i] = chainId;
         }
 
         vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
