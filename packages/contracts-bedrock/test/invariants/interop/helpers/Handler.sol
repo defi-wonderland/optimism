@@ -373,15 +373,25 @@ contract Handler is Setup {
         assert(success);
         assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
 
+        // Get balances before
+        uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
+        uint256 portalBalanceBefore = address(PORTAL).balance;
+
         // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
         (success,) = Actors(payable(clusterManager)).directCall(
             superchainConfigAddress,
             0,
             abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
         );
-        assert(PORTAL.migrated());
+        assert(success);
+
+        // Ensure the chain was added to the dependency set and the portal was migrated
         assert(SUPERCHAIN_CONFIG.isInDependencySet(block.chainid));
         assert(SUPERCHAIN_CONFIG.authorizedPortals(address(PORTAL)));
+        assert(PORTAL.migrated());
+        // Ensure the portal transferred all its balance to the SharedLockbox
+        assert(address(PORTAL).balance == 0);
+        assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore + portalBalanceBefore);
 
         _ghost_isMigrated = true;
     }
