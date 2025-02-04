@@ -12,16 +12,16 @@ import {
     GameType
 } from "../Setup.sol";
 import { Actors } from "./Actors.sol";
-import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { Identifier } from "../../interfaces/L2/ICrossL2Inbox.sol";
 import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
 import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
-import { Hashing } from "src/libraries/Hashing.sol";
-import { StorageSetter } from "src/universal/StorageSetter.sol";
+import { Hashing } from "../../src/libraries/Hashing.sol";
+import { StorageSetter } from "../../src/universal/StorageSetter.sol";
 
-import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
+import { OptimismPortalInterop } from "../../src/L1/OptimismPortalInterop.sol";
 
-import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+import { ProxyAdmin } from "../../src/universal/ProxyAdmin.sol";
 
 contract Handler is Setup {
     struct Message {

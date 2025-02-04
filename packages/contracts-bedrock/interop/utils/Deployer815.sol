@@ -2,16 +2,16 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
-import { L1BlockInterop } from "src/L2/L1BlockInterop.sol";
-import { OptimismPortalInteropMock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
-import { OptimismPortal2Mock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
-import { Proxy } from "src/universal/Proxy.sol";
-import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
-import { SuperchainConfigInterop } from "src/L1/SuperchainConfigInterop.sol";
-import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
-import { SystemConfig } from "src/L1/SystemConfig.sol";
-import { L2ToL1MessagePasser } from "src/L2/L2ToL1MessagePasser.sol";
+import { ETHLiquidity } from "../../src/L2/ETHLiquidity.sol";
+import { L1BlockInterop } from "../../src/L2/L1BlockInterop.sol";
+import { OptimismPortalInteropMock } from "../mocks/OptimismPortalMock.sol";
+import { OptimismPortal2Mock } from "../mocks/OptimismPortalMock.sol";
+import { Proxy } from "../../src/universal/Proxy.sol";
+import { SuperchainConfig } from "../../src/L1/SuperchainConfig.sol";
+import { SuperchainConfigInterop } from "../../src/L1/SuperchainConfigInterop.sol";
+import { SuperchainWETH } from "../../src/L2/SuperchainWETH.sol";
+import { SystemConfig } from "../../src/L1/SystemConfig.sol";
+import { L2ToL1MessagePasser } from "../../src/L2/L2ToL1MessagePasser.sol";
 
 contract Deployer815 {
     function deployETHLiquidity() public returns (address _ethLiquidity) {

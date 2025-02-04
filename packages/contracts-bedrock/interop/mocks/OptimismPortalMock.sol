@@ -2,18 +2,18 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { ResourceMetering } from "src/L1/ResourceMetering.sol";
+import { Initializable } from "../../lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import { ResourceMetering } from "../../src/L1/ResourceMetering.sol";
 
 // Libraries
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { SafeCall } from "src/libraries/SafeCall.sol";
-import { Constants } from "src/libraries/Constants.sol";
-import { Types } from "src/libraries/Types.sol";
-import { Hashing } from "src/libraries/Hashing.sol";
-import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
+import { SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeCall } from "../../src/libraries/SafeCall.sol";
+import { Constants } from "../../src/libraries/Constants.sol";
+import { Types } from "../../src/libraries/Types.sol";
+import { Hashing } from "../../src/libraries/Hashing.sol";
+import { SecureMerkleTrie } from "../../src/libraries/trie/SecureMerkleTrie.sol";
+import { Predeploys } from "../../src/libraries/Predeploys.sol";
+import { AddressAliasHelper } from "../../src/vendor/AddressAliasHelper.sol";
 import {
     BadTarget,
     LargeCalldata,
@@ -31,21 +31,21 @@ import {
     ProposalNotValidated,
     AlreadyFinalized,
     LegacyGame
-} from "src/libraries/PortalErrors.sol";
-import { GameStatus, GameType, Claim, Timestamp } from "src/dispute/lib/Types.sol";
+} from "../../src/libraries/PortalErrors.sol";
+import { GameStatus, GameType, Claim, Timestamp } from "../../src/dispute/lib/Types.sol";
 
 // Interfaces
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
-import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
-import { IL1Block } from "interfaces/L2/IL1Block.sol";
-import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
-import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
-import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
+import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { ISemver } from "../../interfaces/universal/ISemver.sol";
+import { ISystemConfig } from "../../interfaces/L1/ISystemConfig.sol";
+import { IResourceMetering } from "../../interfaces/L1/IResourceMetering.sol";
+import { ISuperchainConfig } from "../../interfaces/L1/ISuperchainConfig.sol";
+import { IDisputeGameFactory } from "../../interfaces/dispute/IDisputeGameFactory.sol";
+import { IDisputeGame } from "../../interfaces/dispute/IDisputeGame.sol";
+import { IL1Block } from "../../interfaces/L2/IL1Block.sol";
+import { ISharedLockbox } from "../../interfaces/L1/ISharedLockbox.sol";
+import { IL1BlockInterop } from "../../interfaces/L2/IL1BlockInterop.sol";
+import { ISuperchainConfigInterop } from "../../interfaces/L1/ISuperchainConfigInterop.sol";
 
 /// @notice Error thrown when attempting to use custom gas token specific actions.
 error CustomGasTokenNotSupported();

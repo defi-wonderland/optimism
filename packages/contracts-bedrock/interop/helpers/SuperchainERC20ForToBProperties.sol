@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3
 pragma solidity ^0.8.0;
 
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
-import "properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
-import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
-import "properties/contracts/ERC20/external/properties/ERC20ExternalMintableProperties.sol";
-import "properties/contracts/ERC20/external/properties/ERC20ExternalBurnableProperties.sol";
+import { SuperchainERC20 } from "../../src/L2/SuperchainERC20.sol";
+import "../../lib/properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
+import "../../lib/properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
+import "../../lib/properties/contracts/ERC20/external/properties/ERC20ExternalMintableProperties.sol";
+import "../../lib/properties/contracts/ERC20/external/properties/ERC20ExternalBurnableProperties.sol";
 
 /// @custom:property-id 5
 /// @custom:property The `SuperchainERC20` token MUST be compliant with the ERC20 standard

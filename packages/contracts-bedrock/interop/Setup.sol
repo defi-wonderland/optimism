@@ -9,30 +9,30 @@ import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
 import { Utils } from "./utils/Utils.sol";
 
 // Interfaces 0.8.15
-import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
-import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
-import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
-import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
-import { ISuperchainConfigInterop } from "interfaces/L1/ISuperchainConfigInterop.sol";
-import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
+import { IETHLiquidity } from "../interfaces/L2/IETHLiquidity.sol";
+import { IL1BlockInterop } from "../interfaces/L2/IL1BlockInterop.sol";
+import { IOptimismPortalInterop } from "../interfaces/L1/IOptimismPortalInterop.sol";
+import { ISharedLockbox } from "../interfaces/L1/ISharedLockbox.sol";
+import { ISuperchainConfigInterop } from "../interfaces/L1/ISuperchainConfigInterop.sol";
+import { ISuperchainWETH } from "../interfaces/L2/ISuperchainWETH.sol";
 
 // Interfaces 0.8.25
-import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
-import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { ICrossL2Inbox } from "../interfaces/L2/ICrossL2Inbox.sol";
+import { IL2ToL2CrossDomainMessenger } from "../interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { ISuperToken } from "./interfaces/ISuperToken.sol";
-import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
+import { ISuperchainTokenBridge } from "../interfaces/L2/ISuperchainTokenBridge.sol";
 
 // Libraries and Constants
-import { GameType } from "src/dispute/lib/Types.sol";
-import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Preinstalls } from "src/libraries/Preinstalls.sol";
-import { Constants } from "src/libraries/Constants.sol";
+import { GameType } from "../src/dispute/lib/Types.sol";
+import { IDisputeGameFactory } from "../interfaces/dispute/IDisputeGameFactory.sol";
+import { ISystemConfig } from "../interfaces/L1/ISystemConfig.sol";
+import { IResourceMetering } from "../interfaces/L1/IResourceMetering.sol";
+import { ProxyAdmin } from "../src/universal/ProxyAdmin.sol";
+import { Predeploys } from "../src/libraries/Predeploys.sol";
+import { Preinstalls } from "../src/libraries/Preinstalls.sol";
+import { Constants } from "../src/libraries/Constants.sol";
 import { HandlerActors, Actors } from "./helpers/Actors.sol";
-import { IDependencyManager } from "interfaces/L2/IDependencyManager.sol";
+import { IDependencyManager } from "../interfaces/L2/IDependencyManager.sol";
 
 contract Setup is PropertiesAsserts, HandlerActors {
     using Utils for *;

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import { vm } from "../utils/VM.sol";
-import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
-import "properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
-import "properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
+import { SuperchainWETH } from "../../src/L2/SuperchainWETH.sol";
+import "../../lib/properties/contracts/ERC20/external/properties/ERC20ExternalBasicProperties.sol";
+import "../../lib/properties/contracts/ERC20/external/properties/ERC20ExternalIncreaseAllowanceProperties.sol";
 
 /// @custom:property-id 9
 /// @custom:property The ERC20 logic of SuperchainWETH must be compliant with the ERC20 standard
