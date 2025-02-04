@@ -457,7 +457,7 @@ contract Handler is Setup {
         );
         if (success) {
             assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
-            if (_target == address(SUPER_WETH) && bytes4(_message) == hex"d0e30db0") {
+            if (_target == address(SUPER_WETH) && bytes4(_message) == SUPER_WETH.deposit.selector) {
                 _ghost_superWethBalancesSum += _value;
             }
         } else {
