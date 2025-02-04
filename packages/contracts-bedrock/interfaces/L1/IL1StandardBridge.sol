@@ -26,6 +26,8 @@ interface IL1StandardBridge is IStandardBridge {
     event ETHDepositInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
     event ETHWithdrawalFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
+    event Initialized(uint8 version);
+
     function depositERC20(
         address _l1Token,
         address _l2Token,

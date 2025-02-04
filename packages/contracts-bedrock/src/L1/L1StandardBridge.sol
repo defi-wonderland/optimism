@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { StandardBridge } from "src/universal/StandardBridge.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -23,7 +24,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L1StandardBridge is StandardBridge, ISemver {
+contract L1StandardBridge is StandardBridge, ISemver, Initializable {
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
     /// @param from      Address of the depositor.
@@ -78,11 +79,18 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @custom:semver 2.2.1-beta.5
     string public constant version = "2.2.1-beta.5";
 
+    /// @custom:spacer
+    /// @notice spacer to avoid superchainConfig being packed in Initializable's _initialized & _initializing slot
+    bytes30 spacer_49_2_30;
+
     /// @notice Address of the SuperchainConfig contract.
     ISuperchainConfig public superchainConfig;
 
     /// @notice Address of the SystemConfig contract.
     ISystemConfig public systemConfig;
+
+    /// @notice Contract for the CrossDomainMessenger on this network.
+    ICrossDomainMessenger internal crossDomainMessenger;
 
     /// @notice Constructs the L1StandardBridge contract.
     constructor() StandardBridge() {
@@ -102,10 +110,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     {
         superchainConfig = _superchainConfig;
         systemConfig = _systemConfig;
-        __StandardBridge_init({
-            _messenger: _messenger,
-            _otherBridge: StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE))
-        });
+        crossDomainMessenger = _messenger;
     }
 
     /// @inheritdoc StandardBridge
@@ -238,7 +243,7 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @notice Retrieves the access of the corresponding L2 bridge contract.
     /// @return Address of the corresponding L2 bridge contract.
     function l2TokenBridge() external view returns (address) {
-        return address(otherBridge);
+        return address(otherBridge());
     }
 
     /// @notice Internal function for initiating an ETH deposit.
@@ -338,5 +343,13 @@ contract L1StandardBridge is StandardBridge, ISemver {
     {
         emit ERC20WithdrawalFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
         super._emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+    }
+
+    function otherBridge() public view override returns (StandardBridge) {
+        return StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE));
+    }
+
+    function messenger() public view override returns (ICrossDomainMessenger) {
+        return ICrossDomainMessenger(crossDomainMessenger);
     }
 }
