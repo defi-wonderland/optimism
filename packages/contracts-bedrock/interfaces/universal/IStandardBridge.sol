@@ -22,7 +22,6 @@ interface IStandardBridge {
     );
     event ETHBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
     event ETHBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
-    event Initialized(uint8 version);
 
     receive() external payable;
 

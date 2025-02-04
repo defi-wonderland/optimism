@@ -67,7 +67,6 @@ interface IL2StandardBridgeInterop is IStandardBridge {
     function otherBridge() external view returns (IStandardBridge);
     function paused() external view returns (bool);
 
-    function initialize(IStandardBridge _otherBridge) external;
     function l1TokenBridge() external view returns (address);
     function withdraw(
         address _l2Token,
