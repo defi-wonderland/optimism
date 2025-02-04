@@ -308,6 +308,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         external
         whenNotPaused
     {
+        // Validate the withdrawal before it is proved.
+        _validateWithdrawal(_tx);
+
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
@@ -402,6 +405,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         public
         whenNotPaused
     {
+        // Validate the withdrawal before it is finalized.
+        _validateWithdrawal(_tx);
+
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
         // a defacto reentrancy guard.
@@ -604,6 +610,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256) {
         return proofSubmitters[_withdrawalHash].length;
     }
+
+    /// @notice No-op function to be used to validate a withdrawal before it is proved or finalized.
+    /// @param _tx Withdrawal transaction to validate.
+    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view virtual { }
 
     /// @notice No-op function to be used to lock ETH in the SharedLockbox in the interop contract.
     function _lockETH() internal virtual { }
