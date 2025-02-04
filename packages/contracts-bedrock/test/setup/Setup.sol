@@ -338,7 +338,7 @@ contract Setup {
     /// @dev Sets the standard bridge address in the L1Block contract.
     function configureBridges() internal {
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS, abi.encode(address(l2StandardBridge)));
+        l1Block.setConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS, abi.encode(address(l1StandardBridge)));
         console.log("Setup: configured L1StandardBridge address");
     }
 
