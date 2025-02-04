@@ -147,13 +147,16 @@ coverage-lcov-all *ARGS:
 # runs medusa on a foundry profile that allows faster compilation by omitting
 # to build other tests and scripts
 test-medusa *ARGS:
+  mv ./interop ./test/invariants/interop
   FOUNDRY_PROFILE=medusa medusa fuzz {{ARGS}}
+  mv ./test/invariants/interop ./interop
 
 # runs medusa on a foundry profile that allows faster compilation by omitting
 # to build other tests and scripts and deletes corpus before running
 test-medusa-debug:
+  mv ./interop ./test/invariants/interop
   TEMP_DIR=$(mktemp -d) && FOUNDRY_PROFILE=medusa medusa fuzz --corpus-dir "$TEMP_DIR" --config medusa-debug.json && rm -rf "$TEMP_DIR"
-
+  mv ./test/invariants/interop ./interop
 
 ########################################################
 #                        DEPLOY                        #
