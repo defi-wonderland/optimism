@@ -195,7 +195,7 @@ library ChainAssertions {
         require(address(bridge) != address(0), "CHECK-L1SB-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: _isProxy, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitialized({ _contractAddress: address(bridge), _isProxy: _isProxy, _slot: 49, _offset: 0 });
 
         if (_isProxy) {
             require(address(bridge.MESSENGER()) == _contracts.L1CrossDomainMessenger, "CHECK-L1SB-20");
@@ -206,8 +206,8 @@ library ChainAssertions {
         } else {
             require(address(bridge.MESSENGER()) == address(0), "CHECK-L1SB-70");
             require(address(bridge.messenger()) == address(0), "CHECK-L1SB-80");
-            require(address(bridge.OTHER_BRIDGE()) == address(0), "CHECK-L1SB-90");
-            require(address(bridge.otherBridge()) == address(0), "CHECK-L1SB-100");
+            require(address(bridge.OTHER_BRIDGE()) == Predeploys.L2_STANDARD_BRIDGE, "CHECK-L1SB-90");
+            require(address(bridge.otherBridge()) == Predeploys.L2_STANDARD_BRIDGE, "CHECK-L1SB-100");
             require(address(bridge.superchainConfig()) == address(0), "CHECK-L1SB-110");
         }
     }

@@ -18,8 +18,6 @@ import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Interfaces
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
-import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
-import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
@@ -248,7 +246,7 @@ contract L2Genesis is Deployer {
         setL2CrossDomainMessenger(); // 7
         // 8,9,A,B,C,D,E: legacy, not used in OP-Stack.
         setGasPriceOracle(); // f
-        setL2StandardBridge(_l1Dependencies.l1StandardBridgeProxy); // 10
+        setL2StandardBridge(); // 10
         setSequencerFeeVault(); // 11
         setOptimismMintableERC20Factory(); // 12
         setL1BlockNumber(); // 13
@@ -296,22 +294,15 @@ contract L2Genesis is Deployer {
     }
 
     /// @notice This predeploy is following the safety invariant #1.
-    function setL2StandardBridge(address payable _l1StandardBridgeProxy) public {
-        address impl;
+    function setL2StandardBridge() public {
         if (cfg.useInterop()) {
             string memory cname = "L2StandardBridgeInterop";
-            impl = Predeploys.predeployToCodeNamespace(Predeploys.L2_STANDARD_BRIDGE);
+            address impl = Predeploys.predeployToCodeNamespace(Predeploys.L2_STANDARD_BRIDGE);
             console.log("Setting %s implementation at: %s", cname, impl);
             vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
         } else {
-            impl = _setImplementationCode(Predeploys.L2_STANDARD_BRIDGE);
+            _setImplementationCode(Predeploys.L2_STANDARD_BRIDGE);
         }
-
-        IL2StandardBridge(payable(impl)).initialize({ _otherBridge: IStandardBridge(payable(address(0))) });
-
-        IL2StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).initialize({
-            _otherBridge: IStandardBridge(_l1StandardBridgeProxy)
-        });
     }
 
     /// @notice This predeploy is following the safety invariant #1.
