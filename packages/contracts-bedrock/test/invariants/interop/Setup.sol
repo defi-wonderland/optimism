@@ -54,7 +54,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
     ISuperchainWETH public immutable SUPER_WETH = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
     ISharedLockbox public immutable SHARED_LOCKBOX;
     ISuperchainConfigInterop public immutable SUPERCHAIN_CONFIG;
-    IDependencyManager public immutable DEPENDENCY_MANAGER = IDependencyManager(Predeploys.DEPENDENCY_MANAGER);
     IOptimismPortalInterop public immutable PORTAL;
     ISystemConfig public immutable SYSTEM_CONFIG;
 
@@ -144,14 +143,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
             !Predeploys.notProxied(Predeploys.L2_TO_L1_MESSAGE_PASSER)
         );
         _ghost_isL2Contract[Predeploys.L2_TO_L1_MESSAGE_PASSER] = true;
-
-        // Deploy DependencyManager
-        _setCode(
-            Predeploys.DEPENDENCY_MANAGER,
-            DEPLOYER_8_25.deployDependencyManager(),
-            !Predeploys.notProxied(Predeploys.DEPENDENCY_MANAGER)
-        );
-        _ghost_isL2Contract[Predeploys.DEPENDENCY_MANAGER] = true;
 
         // Deploy SuperchainWETH
         _setCode(
@@ -269,21 +260,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         }
     }
 
-    /// @dev Add destination chain on the L2 DependencySet, to enable L2 to L2 interoperability between this and the
-    /// destination chain
-    function _addChainOnDependencyManager() internal {
-        // Add destination chain as dependency of origin chain on the L2 dependency manager, using the depositor account
-        (bool success,) = Actors(payable(Constants.DEPOSITOR_ACCOUNT)).directCall(
-            Predeploys.DEPENDENCY_MANAGER,
-            0,
-            abi.encodeCall(
-                DEPENDENCY_MANAGER.addDependency, (superchainConfigAddress, DESTINATION_CHAIN_ID, systemConfigAddress)
-            )
-        );
-
-        assert(success);
-    }
-
     /// Check setup proper deployment and initialization of the contracts
     function _setupSanityCheck() internal {
         /* Contracts with some storage intialization on setup */
@@ -322,11 +298,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         string memory tokenSymbol = "SUP";
         assert(SUPER_TOKEN.name().hashString() == tokenName.hashString());
         assert(SUPER_TOKEN.symbol().hashString() == tokenSymbol.hashString());
-
-        // Dependency Manager
-        assert(DEPENDENCY_MANAGER.dependencySetSize() == 1);
-        assert(DEPENDENCY_MANAGER.isInDependencySet(DESTINATION_CHAIN_ID));
-        assert(DEPENDENCY_MANAGER.isInDependencySet(block.chainid));
 
         /* Contracts without any storage intialization on setup */
         // Check that it has a version, not checking which one to make the test more future proof

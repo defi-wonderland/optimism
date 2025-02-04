@@ -42,7 +42,6 @@ contract Handler is Setup {
     modifier initialize() {
         if (!_ghost_isInitialized) {
             _initializeProxies();
-            _addChainOnDependencyManager();
             _setupSanityCheck();
             _ghost_isInitialized = true;
         }
