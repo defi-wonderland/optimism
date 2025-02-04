@@ -230,6 +230,8 @@ contract L2Genesis is Deployer {
         }
     }
 
+    // TODO: Script to set the config values in the L1Block predeploy
+
     /// @notice Sets all the implementations for the predeploy proxies. For contracts without proxies,
     ///      sets the deployed bytecode at their expected predeploy address.
     ///      LEGACY_ERC20_ETH and L1_MESSAGE_SENDER are deprecated and are not set.
