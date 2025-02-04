@@ -294,6 +294,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         }
     }
 
+    /// @notice Validates a withdrawal before it is proved or finalized.
+    /// @param _tx Withdrawal transaction to validate.
+    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view virtual {
+        // Prevent users from creating a deposit transaction where this address is the message
+        // sender on L2. Because this is checked here, we do not need to check again in
+        // `finalizeWithdrawalTransaction`.
+        if (_tx.target == address(this)) revert BadTarget();
+    }
+
     /// @notice Proves a withdrawal transaction.
     /// @param _tx               Withdrawal transaction to finalize.
     /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
@@ -310,11 +319,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     {
         // Validate the withdrawal before it is proved.
         _validateWithdrawal(_tx);
-
-        // Prevent users from creating a deposit transaction where this address is the message
-        // sender on L2. Because this is checked here, we do not need to check again in
-        // `finalizeWithdrawalTransaction`.
-        if (_tx.target == address(this)) revert BadTarget();
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
         (GameType gameType,, IDisputeGame gameProxy) = disputeGameFactory.gameAtIndex(_disputeGameIndex);
@@ -610,10 +614,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256) {
         return proofSubmitters[_withdrawalHash].length;
     }
-
-    /// @notice No-op function to be used to validate a withdrawal before it is proved or finalized.
-    /// @param _tx Withdrawal transaction to validate.
-    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view virtual { }
 
     /// @notice No-op function to be used to lock ETH in the SharedLockbox in the interop contract.
     function _lockETH() internal virtual { }

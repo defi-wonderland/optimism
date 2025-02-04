@@ -97,7 +97,9 @@ contract OptimismPortalInterop is OptimismPortal2 {
 
     /// @notice Validates a withdrawal before it is proved or finalized.
     /// @param _tx Withdrawal transaction to validate.
-    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view override {
+    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view virtual override {
+        super._validateWithdrawal(_tx);
+
         OptimismPortalStorage storage s = _storage();
 
         // We don't allow the SharedLockbox to be the target of a withdrawal.
