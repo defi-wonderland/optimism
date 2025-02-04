@@ -32,9 +32,9 @@ contract L2StandardBridge_Test is CommonTest {
         // but the L2 cross-domain-messenger is always set to the predeploy address for both proxy and implementation.
         assertEq(address(impl.MESSENGER()), Predeploys.L2_CROSS_DOMAIN_MESSENGER, "constructor zero check MESSENGER");
         assertEq(address(impl.messenger()), Predeploys.L2_CROSS_DOMAIN_MESSENGER, "constructor zero check messenger");
-        assertEq(address(impl.OTHER_BRIDGE()), address(0), "constructor zero check OTHER_BRIDGE");
-        assertEq(address(impl.otherBridge()), address(0), "constructor zero check otherBridge");
-        assertEq(address(impl.l1TokenBridge()), address(0), "constructor zero check l1TokenBridge");
+        assertEq(address(impl.OTHER_BRIDGE()), address(l1StandardBridge), "constructor zero check OTHER_BRIDGE");
+        assertEq(address(impl.otherBridge()), address(l1StandardBridge), "constructor zero check otherBridge");
+        assertEq(address(impl.l1TokenBridge()), address(l1StandardBridge), "constructor zero check l1TokenBridge");
     }
 
     /// @dev Tests that the bridge is initialized correctly.

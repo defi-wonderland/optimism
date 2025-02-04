@@ -262,22 +262,6 @@ contract Initializer_Test is CommonTest {
                 )
             })
         );
-        // L2StandardBridge
-        contracts.push(
-            InitializeableContract({
-                name: "L2StandardBridge",
-                target: address(l2StandardBridge),
-                initCalldata: abi.encodeCall(l2StandardBridge.initialize, (l1StandardBridge))
-            })
-        );
-        // L2StandardBridgeInterop
-        contracts.push(
-            InitializeableContract({
-                name: "L2StandardBridgeInterop",
-                target: address(l2StandardBridge),
-                initCalldata: abi.encodeCall(l2StandardBridge.initialize, (l1StandardBridge))
-            })
-        );
         // L1ERC721BridgeImpl
         contracts.push(
             InitializeableContract({

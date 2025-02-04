@@ -23,7 +23,8 @@ contract PredeploysBaseTest is CommonTest {
 
     /// @dev Returns true if the predeploy is initializable.
     function _isInitializable(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.L2_STANDARD_BRIDGE;
+        // No predeploy is initializable
+        return false;
     }
 
     /// @dev Returns true if the predeploy uses immutables.
