@@ -7,6 +7,7 @@ import { L1BlockInterop } from "src/L2/L1BlockInterop.sol";
 import { OptimismPortalInteropMock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
 import { OptimismPortal2Mock } from "test/invariants/interop/mocks/OptimismPortalMock.sol";
 import { Proxy } from "src/universal/Proxy.sol";
+import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
 import { SuperchainConfigInterop } from "src/L1/SuperchainConfigInterop.sol";
 import { SuperchainWETH } from "src/L2/SuperchainWETH.sol";
 import { SystemConfig } from "src/L1/SystemConfig.sol";
@@ -48,6 +49,10 @@ contract Deployer815 {
 
     function deploySuperchainConfigInterop() public returns (address _superchainConfigInterop) {
         _superchainConfigInterop = address(new SuperchainConfigInterop());
+    }
+
+    function deploySuperchainConfig() public returns (address _superchainConfig) {
+        _superchainConfig = address(new SuperchainConfig());
     }
 
     function deploySuperchainWETH() public returns (address _superchainWETH) {

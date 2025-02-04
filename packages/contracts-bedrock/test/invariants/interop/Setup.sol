@@ -157,7 +157,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
         _ghost_isL2Contract[address(SUPER_TOKEN)] = true;
 
         // Deploy SuperchainConfig
-        _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfigInterop(), true);
+        _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(), true);
         SUPERCHAIN_CONFIG = ISuperchainConfigInterop(superchainConfigAddress);
         _ghost_isL1Contract[superchainConfigAddress] = true;
 
@@ -210,7 +210,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
     function _initializeProxies() internal {
         // Initialize SuperchainConfig
-        SUPERCHAIN_CONFIG.initialize(guardian, false, clusterManager, sharedLockboxAddress);
+        SUPERCHAIN_CONFIG.initialize(guardian, false);
 
         // Initialize SystemConfig
         ISystemConfig.Addresses memory addresses = ISystemConfig.Addresses({
@@ -274,7 +274,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(address(SHARED_LOCKBOX.superchainConfig()) == superchainConfigAddress);
 
         // Superchain Config
-        assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
         assert(SUPERCHAIN_CONFIG.guardian() == guardian);
         assert(SUPERCHAIN_CONFIG.paused() == false);
 

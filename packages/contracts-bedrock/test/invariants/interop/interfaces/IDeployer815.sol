@@ -24,6 +24,8 @@ interface IDeployer815 {
 
     function deployProxy(address _admin) external returns (address proxy);
 
+    function deploySuperchainConfig() external returns (address superchainConfig);
+
     function deploySuperchainConfigInterop() external returns (address superchainConfigInterop);
 
     function deploySuperchainWETH() external returns (address superchainWETH);

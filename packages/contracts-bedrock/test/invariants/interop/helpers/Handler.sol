@@ -331,13 +331,48 @@ contract Handler is Setup {
     function handler_migrateAndAddL1Dependency() public initialize {
         require(!_ghost_isMigrated);
 
-        // Upgrade the portal to the new implementation through the proxy admin
+        // Upgrade the superchain config to the new implementation through the proxy admin
         (bool success,) = proxyOwner.directCall(
+            address(proxyAdmin),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(
+                ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), address(new StorageSetter())
+            )
+        );
+        assert(success);
+
+        // Reset the initialized flag to enable the new implementation to be initialized
+        try StorageSetter(address(SUPERCHAIN_CONFIG)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
+            // Assert the `_initialized` slot was set to false
+            assert(StorageSetter(address(SUPERCHAIN_CONFIG)).getBool(bytes32(0)) == false);
+        } catch {
+            assert(false);
+        }
+
+        // Upgrade the superchain config interop to the new implementation through the proxy admin
+        (success,) = proxyOwner.directCall(
+            address(proxyAdmin),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(
+                ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), DEPLOYER_8_15.deploySuperchainConfigInterop()
+            )
+        );
+        assert(success);
+
+        // Initialize the superchain config interop
+        try SUPERCHAIN_CONFIG.initialize(guardian, false, clusterManager, sharedLockboxAddress) {
+            assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
+            assert(address(SUPERCHAIN_CONFIG.clusterManager()) == clusterManager);
+        } catch {
+            assert(false);
+        }
+
+        // Upgrade the portal to the new implementation through the proxy admin
+        (success,) = proxyOwner.directCall(
             address(proxyAdmin),
             _ZERO_VALUE,
             abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), address(new StorageSetter()))
         );
-
         assert(success);
 
         // Reset the initialized flag to enable the new implementation to be initialized
