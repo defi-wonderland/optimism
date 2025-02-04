@@ -21,12 +21,6 @@ contract PredeploysBaseTest is CommonTest {
         return _addr == Predeploys.L1_MESSAGE_SENDER;
     }
 
-    /// @dev Returns true if the predeploy is initializable.
-    function _isInitializable(address _addr) internal pure returns (bool) {
-        // No predeploy is initializable
-        return false;
-    }
-
     /// @dev Returns true if the predeploy uses immutables.
     function _usesImmutables(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.SEQUENCER_FEE_WALLET
@@ -103,10 +97,6 @@ contract PredeploysBaseTest is CommonTest {
             if (!_usesImmutables(addr) && !_interopCodeDiffer(addr)) {
                 // can't check bytecode if it's modified with immutables in genesis.
                 assertEq(implAddr.code, supposedCode, "proxy implementation contract should match contract source");
-            }
-
-            if (_isInitializable(addr)) {
-                assertEq(l2Genesis.loadInitializedSlot(cname), uint8(1));
             }
         }
     }
