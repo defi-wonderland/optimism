@@ -6,7 +6,7 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
+import { Types } from "src/libraries/Types.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
@@ -61,20 +61,6 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @custom:semver 1.11.1-beta.7
     function version() public pure virtual returns (string memory) {
         return "1.11.1-beta.7";
-    }
-
-    /// @notice Constructs the L2StandardBridge contract.
-    constructor() StandardBridge() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializer.
-    /// @param _otherBridge Contract for the corresponding bridge on the other chain.
-    function initialize(StandardBridge _otherBridge) external initializer {
-        __StandardBridge_init({
-            _messenger: ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER),
-            _otherBridge: _otherBridge
-        });
     }
 
     /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
@@ -146,7 +132,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
     /// @notice Retrieves the access of the corresponding L1 bridge contract.
     /// @return Address of the corresponding L1 bridge contract.
     function l1TokenBridge() external view returns (address) {
-        return address(otherBridge);
+        return address(otherBridge());
     }
 
     /// @custom:legacy
@@ -241,5 +227,19 @@ contract L2StandardBridge is StandardBridge, ISemver {
     {
         emit DepositFinalized(_remoteToken, _localToken, _from, _to, _amount, _extraData);
         super._emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+    }
+
+    /// @notice Returns the corresponding L1 standard bridge contract.
+    /// @inheritdoc StandardBridge
+    function otherBridge() public view override returns (StandardBridge) {
+        bytes memory data =
+            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS);
+        return StandardBridge(abi.decode(data, (address)));
+    }
+
+    /// @notice Returns the cross-domain messenger contract for the L2 domain.
+    /// @inheritdoc StandardBridge
+    function messenger() public view override returns (ICrossDomainMessenger) {
+        return ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 }
