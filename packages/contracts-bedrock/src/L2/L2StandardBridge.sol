@@ -7,7 +7,9 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
+
 // Interfaces
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { OptimismMintableERC20 } from "src/universal/OptimismMintableERC20.sol";
@@ -231,10 +233,10 @@ contract L2StandardBridge is StandardBridge, ISemver {
 
     /// @notice Returns the corresponding L1 standard bridge contract.
     /// @inheritdoc StandardBridge
-    function otherBridge() public view override returns (StandardBridge) {
+    function otherBridge() public view override returns (IStandardBridge) {
         bytes memory data =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS);
-        return StandardBridge(abi.decode(data, (address)));
+        return IStandardBridge(abi.decode(data, (address)));
     }
 
     /// @notice Returns the cross-domain messenger contract for the L2 domain.

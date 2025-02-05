@@ -9,6 +9,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
@@ -345,8 +346,8 @@ contract L1StandardBridge is StandardBridge, ISemver, Initializable {
         super._emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 
-    function otherBridge() public view override returns (StandardBridge) {
-        return StandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE));
+    function otherBridge() public view override returns (IStandardBridge) {
+        return IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE));
     }
 
     function messenger() public view override returns (ICrossDomainMessenger) {

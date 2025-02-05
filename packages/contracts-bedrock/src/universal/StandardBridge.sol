@@ -9,6 +9,7 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IOptimismMintableERC20 } from "interfaces/universal/IOptimismMintableERC20.sol";
 import { ILegacyMintableERC20 } from "interfaces/legacy/ILegacyMintableERC20.sol";
@@ -146,7 +147,7 @@ abstract contract StandardBridge {
     ///         Public getter is legacy and will be removed in the future. Use `otherBridge` instead.
     /// @return Contract of the bridge on the other network.
     /// @custom:legacy
-    function OTHER_BRIDGE() external view returns (StandardBridge) {
+    function OTHER_BRIDGE() external view returns (IStandardBridge) {
         return otherBridge();
     }
 
@@ -300,7 +301,7 @@ abstract contract StandardBridge {
     }
 
     /// @notice Getter for the other bridge contract.
-    function otherBridge() public view virtual returns (StandardBridge);
+    function otherBridge() public view virtual returns (IStandardBridge);
 
     /// @notice Getter for the messenger contract.
     function messenger() public view virtual returns (ICrossDomainMessenger);
