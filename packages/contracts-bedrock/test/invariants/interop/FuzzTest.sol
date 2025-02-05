@@ -386,7 +386,6 @@ contract FuzzTest is Handler {
 
         (success, returnData) =
             actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
-
         assert(success);
 
         // Cast returnData to bool
