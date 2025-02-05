@@ -15,7 +15,7 @@ import { ISharedLockbox } from "interfaces/L1/ISharedLockbox.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 
 /// @custom:proxied true
-/// @custom:audit none This contracts is not yet audited.
+/// @custom:audit none These contracts are not yet audited.
 /// @title SuperchainConfigInterop
 /// @notice The SuperchainConfig contract is used to manage configuration of global superchain values.
 ///         The interop version of the contract adds the ability to add dependencies to the dependency set
@@ -170,8 +170,8 @@ contract SuperchainConfigInterop is SuperchainConfig {
 
     /// @notice Returns the size of the dependency set.
     /// @return The size of the dependency set.
-    function dependencySetSize() external view returns (uint8) {
-        return uint8(_dependenciesStorage().dependencySet.length());
+    function dependencySetSize() external view returns (uint256) {
+        return _dependenciesStorage().dependencySet.length();
     }
 
     /// @notice Checks if a portal is authorized to interact with the SharedLockbox.
