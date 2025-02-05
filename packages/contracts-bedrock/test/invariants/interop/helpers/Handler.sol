@@ -457,8 +457,8 @@ contract Handler is Setup {
     /// @notice This function is used to send ether to the random addresses. To check how balance changes affect the
     /// behavior of contracts.
     function handler_SendETH(address payable _to, uint256 _amount) public initialize {
-        _amount = clampBetween(_amount, 1, 1 ether);
-        // Since the Medusa.callSequenceLength is set 50, the max amount of ether that can be sent is 50 * 1 ether.
+        _amount = clampBetween(_amount, 1, 10 ether);
+        // Since the Medusa.callSequenceLength is set 50, the max amount of ether that can be sent is 50 * 10 ether.
         vm.deal(address(this), _amount);
         new SafeSend{ value: _amount }(_to);
 
