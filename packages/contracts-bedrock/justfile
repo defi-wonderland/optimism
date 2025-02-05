@@ -152,8 +152,7 @@ test-medusa *ARGS:
 # runs medusa on a foundry profile that allows faster compilation by omitting
 # to build other tests and scripts and deletes corpus before running
 test-medusa-debug:
-  FOUNDRY_PROFILE=medusa medusa fuzz --corpus-dir "" --config medusa-debug.json
-
+  FOUNDRY_PROFILE=medusa medusa fuzz --config medusa-debug.json {{ARGS}}
 
 ########################################################
 #                        DEPLOY                        #
