@@ -37,6 +37,7 @@ This campaign aims to develop a testing suite that fuzzes over the interop invar
 ---
 
 **Note on Property 14:** Property marked as partially tested due to testing environment constraints. Full verification would require L1-L2 integration testing including sequencer and proof verification components, which exceeds the scope of this Interop-contracts focused campaign. The testing framework presents a fundamental limitation in its ability to switch between different chain environments during test execution. Additionally, L2 predeploys sharing the same address prevents accurate multi-L2 simulation. Attempting to implement this test on the campaign would require introducing numerous trust assumptions, mocks, and clamped values, resulting in poor coverage quality and unreliable test scenarios. Property is considered partially tested as all other SharedLockbox invariants are thoroughly covered in the test suite, with only this cross-chain balance verification remaining limited.
+Given the complexity of setting up the testing environment to cover this property, we recommend creating a dedicated monitoring script in a production environment to check the invariant is never broken.
 
 <br><br>
 
