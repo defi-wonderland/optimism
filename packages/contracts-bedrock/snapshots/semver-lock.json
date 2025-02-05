@@ -17,7 +17,7 @@
   },
   "src/L1/L1StandardBridge.sol": {
     "initCodeHash": "0xa34f9ec7ac6495de07e7ba6e107d373a31e8f8c31ede579aadd312d1456ab261",
-    "sourceCodeHash": "0xfa319523f085e601114b151f32fa5b4d3a7a20bd7d77972d0ffc9753e16a64d3"
+    "sourceCodeHash": "0x10023d2baf5b39127b84897b7178b521123b79eda9d37e3e1ac844a8d3a52044"
   },
   "src/L1/OPContractsManager.sol": {
     "initCodeHash": "0x9b704574a7005dc2aa8d6a3e0d85572493cc4bbd60033a23e437632a5fef7720",
@@ -89,7 +89,7 @@
   },
   "src/L2/L2StandardBridge.sol": {
     "initCodeHash": "0x783c4308a60fb053879cb5b01249a8036559922686ec8e47c27f5eda48f26d66",
-    "sourceCodeHash": "0x8390184e598dce2565709f41cb510e8ff9ff586ed02180e47dfc3eadb842b18c"
+    "sourceCodeHash": "0x037420b035f7b7ad3b738d774c066f66aa67694a5453fab8979f125df6b19335"
   },
   "src/L2/L2StandardBridgeInterop.sol": {
     "initCodeHash": "0x2b551b750c73efa12096b072deb8b4b67b4c73b58f1519fb0e8c94e2693d3356",
