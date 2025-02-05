@@ -26,6 +26,11 @@ This campaign involves deploying the following contracts:
 
 - ProxyAdmin
 - Actors
+- Deployer_8_15\*
+- Deployer_8_25\*
+
+\*The deployers are used to deploy contracts having dependencies with different compiler versions -- 0.8.15 and 0.8.25.
+In this way, both contracts versions are compatible with each other.
 
 ---
 
