@@ -277,14 +277,7 @@ contract L2Genesis is Deployer {
 
     function setProxyAdmin() public {
         // Note the ProxyAdmin implementation itself is behind a proxy that owns itself.
-        address impl = _setImplementationCode(Predeploys.PROXY_ADMIN);
-
-        bytes32 _ownerSlot = bytes32(0);
-
-        // there is no initialize() function, so we just set the storage manually.
-        vm.store(Predeploys.PROXY_ADMIN, _ownerSlot, bytes32(uint256(uint160(cfg.proxyAdminOwner()))));
-        // update the proxy to not be uninitialized (although not standard initialize pattern)
-        vm.store(impl, _ownerSlot, bytes32(uint256(uint160(cfg.proxyAdminOwner()))));
+        _setImplementationCode(Predeploys.PROXY_ADMIN);
     }
 
     function setL2ToL1MessagePasser() public {
