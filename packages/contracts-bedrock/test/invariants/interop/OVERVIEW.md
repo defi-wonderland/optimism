@@ -40,7 +40,43 @@ It's important to mention that for the `SharedLockbox` properties, we manage 2 d
 - After the Interop feature is enabled on L1
 
 We expose a `handler_migrateAndAddL1Dependency()` function so the fuzzer can migrate the system in different states. On it, we migrate the `SuperchainConfig` to `SuperchainConfigInterop`, the `OptimismPortal` to `OptimismPortalInterop`, and we call `addDependency()` to end up the migration process, having all the assrtions to ensure the process was done right.
-TODO: Add sequence diagram
+
+```mermaid
+sequenceDiagram
+    participant Handler
+    participant ProxyAdmin
+    participant SuperchainConfigProxy
+    participant OptimismPortalProxy
+    participant DEPLOYER_8_15
+
+    %% Update SuperchainConfig to StorageSetter and reset `initialize` flag
+    Handler->>+ProxyAdmin: upgrade(SuperchainConfigProxy, new StorageSetter())
+    ProxyAdmin->>SuperchainConfigProxy: upgradeTo(StorageSetter)
+    Handler->>SuperchainConfigProxy: reset `initialize` flag
+
+    %% upgrade SuperchainConfigProxy to use SuperchainConfigInterop as implementation
+    Handler->>DEPLOYER_8_15: deploySuperchainConfigInterop()
+    DEPLOYER_8_15-->>Handler: superchainConfigInteropImplementation
+    Handler->>+ProxyAdmin: upgrade(SuperchainConfigProxy, superchainConfigInteropImplementation)
+    ProxyAdmin->>SuperchainConfigProxy: upgradeTo(superchainConfigInteropImplementation)
+
+    %% Initialize SuperchainConfigInterop
+    Handler->>SuperchainConfigProxy: initialize(guardian, false, clusterManager, sharedLockbox)
+
+
+    %% Update OptimismPortal to StorageSetter and reset `initialize` flag
+    Handler->>+ProxyAdmin: upgrade(OptimismPortalProxy, new StorageSetter())
+    ProxyAdmin->>OptimismPortalProxy: upgradeTo(StorageSetter)
+    Handler->>OptimismPortalProxy: reset `initialize` flag
+
+    %% upgrade OptimismPortalProxy to use OptimismPortalInterop as implementaiton
+    Handler->>DEPLOYER_8_15: deployOptimismPortalInterop()
+    DEPLOYER_8_15-->>Handler: optimismPortalInteropImplementation
+    Handler->>+ProxyAdmin: upgradeAndCall(OptimismPortalProxy, optimismPortalInteropImplementation, initializeCall)
+    ProxyAdmin->>OptimismPortalProxy: upgradeToAndCall(optimismPortalInteropImplementation, initializeCall)
+
+    Handler->>Handler: Set _ghost_isMigrated = true
+```
 
 Since the sequencer is not part of the scope of this campaign, we didn't really care about sharing a single state between the L1 and L2, which allowed us to use a wider range of fuzzing values to use - being benefitial to found complex edge cases.
 
