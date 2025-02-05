@@ -18,6 +18,7 @@ import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
+import { SafeSend } from "src/universal/SafeSend.sol";
 
 import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
 
@@ -451,5 +452,16 @@ contract Handler is Setup {
         assert(success);
         assert(actor.ethBalance() == actorBalanceBefore - _amount);
         assert(address(PORTAL).balance == portalBalanceBefore + _amount);
+    }
+
+    /// @notice This function is used to send ether to the random addresses. To check how balance changes affect the
+    /// behavior of contracts.
+    function handler_SendETH(address payable _to, uint256 _amount) public initialize {
+        _amount = clampBetween(_amount, 1, 1 ether);
+        // Since the Medusa.callSequenceLength is set 50, the max amount of ether that can be sent is 50 * 1 ether.
+        vm.deal(address(this), _amount);
+        new SafeSend{ value: _amount }(_to);
+
+        if (_to == address(SUPER_WETH)) _ghost_superWethEtherSent += _amount;
     }
 }
