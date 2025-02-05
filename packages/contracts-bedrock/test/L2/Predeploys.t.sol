@@ -43,7 +43,7 @@ contract PredeploysBaseTest is CommonTest {
         );
     }
 
-    function _test_predeploys(bool _useInterop) internal {
+    function _test_predeploys(bool _useInterop) internal view {
         uint256 count = 2048;
         uint160 prefix = uint160(0x420) << 148;
 
@@ -119,7 +119,7 @@ contract PredeploysInteropTest is PredeploysBaseTest {
 
     /// @dev Tests that the predeploy addresses are set correctly. They have code
     ///      and the proxied accounts have the correct admin. Using interop.
-    function test_predeploys_succeeds() external {
+    function test_predeploys_succeeds() external view {
         _test_predeploys(true);
     }
 }
