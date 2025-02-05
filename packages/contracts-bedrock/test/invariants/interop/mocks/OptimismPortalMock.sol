@@ -305,6 +305,15 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         }
     }
 
+    /// @notice Validates a withdrawal before it is proved or finalized.
+    /// @param _tx Withdrawal transaction to validate.
+    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view virtual {
+        // Prevent users from creating a deposit transaction where this address is the message
+        // sender on L2. Because this is checked here, we do not need to check again in
+        // `finalizeWithdrawalTransaction`.
+        if (_tx.target == address(this)) revert BadTarget();
+    }
+
     /// @notice Proves a withdrawal transaction.
     /// @param _tx               Withdrawal transaction to finalize.
     function proveWithdrawalTransaction(
@@ -316,6 +325,9 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         external
         whenNotPaused
     {
+        // Validate the withdrawal before it is proved.
+        _validateWithdrawal(_tx);
+
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2. Because this is checked here, we do not need to check again in
         // `finalizeWithdrawalTransaction`.
@@ -589,15 +601,23 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
         return _storage().migrated;
     }
 
-    /// @notice Unlock and receive the ETH from the SharedLockbox.
-    /// @param _tx Withdrawal transaction to finalize.
-    function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual override {
+    /// @notice Validates a withdrawal before it is proved or finalized.
+    /// @param _tx Withdrawal transaction to validate.
+    function _validateWithdrawal(Types.WithdrawalTransaction memory _tx) internal view virtual override {
+        super._validateWithdrawal(_tx);
+
         OptimismPortalStorage storage s = _storage();
 
         // We don't allow the SharedLockbox to be the target of a withdrawal.
         // This is to prevent the SharedLockbox from being drained.
         // This check needs to be done for every withdrawal.
         if (_tx.target == s.sharedLockbox) revert MessageTargetSharedLockbox();
+    }
+
+    /// @notice Unlock and receive the ETH from the SharedLockbox.
+    /// @param _tx Withdrawal transaction to finalize.
+    function _unlockETH(Types.WithdrawalTransaction memory _tx) internal virtual override {
+        OptimismPortalStorage storage s = _storage();
 
         // If ETH liquidity has not been migrated to the SharedLockbox yet, maintain legacy behavior
         // where ETH accumulates in the portal contract itself rather than being managed by the lockbox
