@@ -1,7 +1,6 @@
 {
   "fuzzing": {
     "timeout": 30,
-    "corpusDirectory": "",
     "coverageEnabled": false,
     "coverageFormats": [],
     "targetContracts": ["FuzzTest"],
