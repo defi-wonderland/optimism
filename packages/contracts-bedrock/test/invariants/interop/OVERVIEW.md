@@ -1,6 +1,8 @@
 # Interop Advanced Testing Campaign Overview
 
-The campaign consist of the following contracts being deployed:
+This campaign involves deploying the following contracts:
+
+### Architecture
 
 **L1 Contracts**
 
@@ -20,26 +22,33 @@ The campaign consist of the following contracts being deployed:
 - SuperchainWETH
 - SuperchainERC20
 
-**Additional infrastructure contracts:**
+**Additional Infrastructure Contracts**
 
 - ProxyAdmin
 - Actors
 
-While developing the setup, we had to deploy the contracts in the constructor but initialize them using an `initialize()` modifier that is present in every test and handler. This is because if we tried to interact with the contracts on the constructor, Medusa crashed.
+---
 
-On constructor, we deploy the contracts managing between those which are proxies and those which are not. For the proxies, we deploy the `src/universal/Proxy.sol`, setting the `ProxyAdmin` as the owner, and the contract being proxied as the implementation. At the same time, the `ProxyAdmin` is another actor so we avoid using `prank` cheatcode, that in Medusa, can lead to issues or unexpected behavior.
+### Overview
 
-On `_initializeProxies()`, we initialize the proxies:
-TODO: Add sequence diagram
+We deployed contracts within the constructor but initialized them using an `initialize()` modifier present in every test and handler. This approach was necessary because interacting with contracts directly in the constructor caused Medusa to crash.
 
-On the `initialize()` modifier, we initialize the contracts, and then we check the setup worked well using the `_setupSanityCheck()` function.
+In the constructor, we managed the deployment of both proxy and non-proxy contracts. For proxies, we deployed `src/universal/Proxy.sol`, setting `ProxyAdmin` as the owner and the target contract as the implementation. To avoid using the `prank` cheatcode—which can lead to issues in Medusa—we deployed `ProxyAdmin` as another actor.
 
-It's important to mention that for the `SharedLockbox` properties, we manage 2 different states:
+In `_initializeProxies()`, we called `initialize()` on all proxies requiring initialization.
 
-- Before the Interop feature is enabled on L1
-- After the Interop feature is enabled on L1
+The `initialize()` modifier handled contract initialization and performed a `_setupSanityCheck()` to ensure the setup was correct.
 
-We expose a `handler_migrateAndAddL1Dependency()` function so the fuzzer can migrate the system in different states. On it, we migrate the `SuperchainConfig` to `SuperchainConfigInterop`, the `OptimismPortal` to `OptimismPortalInterop`, and we call `addDependency()` to end up the migration process, having all the assrtions to ensure the process was done right.
+---
+
+### Migration Process
+
+For the `SharedLockbox` properties, we managed two distinct states:
+
+- Before enabling the Interop feature on L1
+- After enabling the Interop feature on L1
+
+We provided a `handler_migrateAndAddL1Dependency()` function, allowing the fuzzer to migrate the system across different states. This function migrated `SuperchainConfig` to `SuperchainConfigInterop`, `OptimismPortal` to `OptimismPortalInterop`, and called `addDependency()` to complete the migration process, including assertions to confirm success.
 
 ```mermaid
 sequenceDiagram
@@ -61,7 +70,7 @@ sequenceDiagram
     ProxyAdmin->>SuperchainConfigProxy: upgradeTo(superchainConfigInteropImplementation)
 
     %% Initialize SuperchainConfigInterop
-    Handler->>SuperchainConfigProxy: initialize(guardian, false, clusterManager, sharedLockbox)
+    Handler->>SuperchainConfigProxy: initialize()
 
 
     %% Update OptimismPortal to StorageSetter and reset `initialize` flag
@@ -78,11 +87,13 @@ sequenceDiagram
     Handler->>Handler: Set _ghost_isMigrated = true
 ```
 
-Since the sequencer is not part of the scope of this campaign, we didn't really care about sharing a single state between the L1 and L2, which allowed us to use a wider range of fuzzing values to use - being benefitial to found complex edge cases.
+Since the sequencer was outside the scope of this campaign, we didn't focus on sharing a single state between L1 and L2. This allowed us to utilize a broader range of fuzzing values, helping identify complex edge cases.
 
-We excluded function signatures being broke on the `ToB/properties` dependency used to ensure the ERC20 properties compliance. All of the breaking test were informed.
+We excluded function signatures that were broken in the `ToB/properties` dependency used to ensure ERC20 compliance. All breaking tests were reported.
 
-### Other Acknowledgements
+---
 
-- We had to avoid the `prank` cheatcode, that's why we deploy an actor to be able to proxy the call we needed by a given address.
-- On the coverage the portal mocks don't appear to be covered, but we manually checked that they're.
+**Additional Notes**
+
+- To avoid using the `prank` cheatcode, we deployed an actor to proxy necessary calls from specific addresses.
+- Although portal mocks don't appear covered in the coverage report, we manually verified their coverage.
