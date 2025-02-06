@@ -72,7 +72,7 @@ contract PredeploysBaseTest is CommonTest {
 
             if (!isPredeploy) {
                 // All of the predeploys, even if inactive, have their admin set to the proxy admin
-                if (proxied) assertEq(EIP1967Helper.getAdmin(addr), Predeploys.PROXY_ADMIN, "Admin mismatch");
+                if (proxied) assertEq(EIP1967Helper.getAdmin(addr), Predeploys.L2_PROXY_ADMIN, "Admin mismatch");
                 continue;
             }
 

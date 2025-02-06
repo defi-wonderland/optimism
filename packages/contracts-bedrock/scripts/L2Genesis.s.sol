@@ -223,7 +223,7 @@ contract L2Genesis is Deployer {
             }
 
             vm.etch(addr, code);
-            EIP1967Helper.setAdmin(addr, Predeploys.PROXY_ADMIN);
+            EIP1967Helper.setAdmin(addr, Predeploys.L2_PROXY_ADMIN);
 
             if (Predeploys.isSupportedPredeploy(addr, cfg.useInterop())) {
                 address implementation = Predeploys.predeployToCodeNamespace(addr);
@@ -277,7 +277,7 @@ contract L2Genesis is Deployer {
 
     function setProxyAdmin() public {
         // Note the ProxyAdmin implementation itself is behind a proxy that owns itself.
-        _setImplementationCode(Predeploys.PROXY_ADMIN);
+        _setImplementationCode(Predeploys.L2_PROXY_ADMIN);
     }
 
     function setL2ToL1MessagePasser() public {

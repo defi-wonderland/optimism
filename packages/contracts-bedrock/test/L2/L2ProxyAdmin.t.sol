@@ -18,7 +18,7 @@ contract L2ProxyAdmin_Test is CommonTest {
 
     function setUp() public override {
         super.setUp();
-        admin = IL2ProxyAdmin(Predeploys.PROXY_ADMIN);
+        admin = IL2ProxyAdmin(Predeploys.L2_PROXY_ADMIN);
     }
 
     function test_owner() external {
