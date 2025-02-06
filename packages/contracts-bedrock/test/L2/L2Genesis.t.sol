@@ -182,7 +182,7 @@ contract L2GenesisTest is Test {
         // 16 prefunded dev accounts are excluded
         assertEq(expected, getJSONKeyCount(_path), "key count check");
 
-        // 2 slots: implementation, admin
-        assertEq(2, getStorageKeysCount(_path, Predeploys.L2_PROXY_ADMIN), "proxy admin storage check");
+        // 3 slots: implementation, admin, owner
+        assertEq(3, getStorageKeysCount(_path, Predeploys.L2_PROXY_ADMIN), "proxy admin storage check");
     }
 }

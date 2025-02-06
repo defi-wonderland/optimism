@@ -21,7 +21,7 @@ contract L2ProxyAdmin_Test is CommonTest {
         admin = IL2ProxyAdmin(Predeploys.L2_PROXY_ADMIN);
     }
 
-    function test_owner() external {
+    function test_owner() external view {
         assertEq(admin.owner(), Constants.DEPOSITOR_ACCOUNT);
     }
 
@@ -35,5 +35,12 @@ contract L2ProxyAdmin_Test is CommonTest {
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
         vm.expectRevert(IL2ProxyAdmin.OwnershipCannotBeRenounced.selector);
         admin.renounceOwnership();
+    }
+
+    function test_ownerSlot_isDeadAddress() external view {
+        // NOTE: This test is to ensure that the owner slot is set to a dead address.
+        // Check L2Genesis::setProxyAdmin() for more details.
+        bytes32 ownerSlot = vm.load(Predeploys.L2_PROXY_ADMIN, bytes32(0));
+        assertEq(ownerSlot, bytes32(uint256(uint160(0xdEad000000000000000000000000000000000000))));
     }
 }
