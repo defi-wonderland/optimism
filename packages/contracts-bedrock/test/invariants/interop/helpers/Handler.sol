@@ -333,8 +333,8 @@ contract Handler is Setup {
         require(!_ghost_isMigrated);
 
         // Upgrade the superchain config to the new implementation through the proxy admin
-        (bool success,) = proxyOwner.directCall(
-            address(proxyAdmin),
+        (bool success,) = PROXY_OWNER.directCall(
+            address(PROXY_ADMIN),
             _ZERO_VALUE,
             abi.encodeWithSelector(
                 ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), address(new StorageSetter())
@@ -351,8 +351,8 @@ contract Handler is Setup {
         }
 
         // Upgrade the superchain config interop to the new implementation through the proxy admin
-        (success,) = proxyOwner.directCall(
-            address(proxyAdmin),
+        (success,) = PROXY_OWNER.directCall(
+            address(PROXY_ADMIN),
             _ZERO_VALUE,
             abi.encodeWithSelector(
                 ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), DEPLOYER_8_15.deploySuperchainConfigInterop()
@@ -361,16 +361,16 @@ contract Handler is Setup {
         assert(success);
 
         // Initialize the superchain config interop
-        try SUPERCHAIN_CONFIG.initialize(guardian, false, clusterManager, sharedLockboxAddress) {
-            assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == sharedLockboxAddress);
-            assert(address(SUPERCHAIN_CONFIG.clusterManager()) == clusterManager);
+        try SUPERCHAIN_CONFIG.initialize(GUARDIAN, false, CLUSTER_MANAGER, address(SHARED_LOCKBOX)) {
+            assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == address(SHARED_LOCKBOX));
+            assert(address(SUPERCHAIN_CONFIG.clusterManager()) == CLUSTER_MANAGER);
         } catch {
             assert(false);
         }
 
         // Upgrade the portal to the new implementation through the proxy admin
-        (success,) = proxyOwner.directCall(
-            address(proxyAdmin),
+        (success,) = PROXY_OWNER.directCall(
+            address(PROXY_ADMIN),
             _ZERO_VALUE,
             abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), address(new StorageSetter()))
         );
@@ -391,16 +391,16 @@ contract Handler is Setup {
         bytes memory initializeCall = abi.encodeCall(
             OptimismPortalInterop.initialize,
             (
-                IDisputeGameFactory(_disputeGameFactory),
-                ISystemConfig(systemConfigAddress),
-                ISuperchainConfigInterop(superchainConfigAddress),
+                IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
+                ISystemConfig(address(SYSTEM_CONFIG)),
+                ISuperchainConfigInterop(address(SUPERCHAIN_CONFIG)),
                 GameType.wrap(0)
             )
         );
 
         // Upgrade the portal to the new implementation through the proxy admin and call the initialize function
-        (success,) = proxyOwner.directCall(
-            address(proxyAdmin),
+        (success,) = PROXY_OWNER.directCall(
+            address(PROXY_ADMIN),
             _ZERO_VALUE,
             abi.encodeWithSelector(
                 ProxyAdmin.upgradeAndCall.selector, address(PORTAL), newImplementation, initializeCall
@@ -414,10 +414,10 @@ contract Handler is Setup {
         uint256 portalBalanceBefore = address(PORTAL).balance;
 
         // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
-        (success,) = Actors(payable(clusterManager)).directCall(
-            superchainConfigAddress,
+        (success,) = Actors(payable(CLUSTER_MANAGER)).directCall(
+            address(SUPERCHAIN_CONFIG),
             0,
-            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, systemConfigAddress))
+            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, address(SYSTEM_CONFIG)))
         );
         assert(success);
 

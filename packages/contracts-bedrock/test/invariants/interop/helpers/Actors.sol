@@ -16,12 +16,12 @@ import { vm } from "../utils/VM.sol";
 contract Actors {
     event ActorsLog(string);
 
-    address public superchainTokenBridge = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
-    address public l2ToL2ToCDM = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-    address public superchainWETH = Predeploys.SUPERCHAIN_WETH;
+    address public immutable SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
+    address public immutable L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+    address public immutable SUPERCHAIN_WETH = Predeploys.SUPERCHAIN_WETH;
 
     function callBridgeRelayERC20(address _token, address _from, address _to, uint256 _amount) public returns (bool) {
-        try ISuperchainTokenBridge(superchainTokenBridge).relayERC20(_token, _from, _to, _amount) {
+        try ISuperchainTokenBridge(SUPERCHAIN_TOKEN_BRIDGE).relayERC20(_token, _from, _to, _amount) {
             return true;
         } catch {
             return false;
@@ -37,7 +37,7 @@ contract Actors {
         public
         returns (bool)
     {
-        try ISuperchainTokenBridge(superchainTokenBridge).sendERC20(_token, _to, _amount, _chainId) {
+        try ISuperchainTokenBridge(SUPERCHAIN_TOKEN_BRIDGE).sendERC20(_token, _to, _amount, _chainId) {
             return true;
         } catch {
             return false;
@@ -53,12 +53,13 @@ contract Actors {
     {
         // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
         // though it's the same as the one used in the interface.
-        (_success,) =
-            l2ToL2ToCDM.call(abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _id, _message));
+        (_success,) = L2_TO_L2_CROSS_DOMAIN_MESSENGER.call(
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _id, _message)
+        );
     }
 
     function callSuperchainWETHSendETH(address _to, uint256 _chainId) public payable returns (bool _success) {
-        try ISuperchainWETH(payable(superchainWETH)).sendETH{ value: msg.value }(_to, _chainId) {
+        try ISuperchainWETH(payable(SUPERCHAIN_WETH)).sendETH{ value: msg.value }(_to, _chainId) {
             return true;
         } catch {
             return false;
