@@ -197,12 +197,12 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Initializer.
-    /// @param _DISPUTE_GAME_FACTORY Contract of the DisputeGameFactory.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     /// @param _initialRespectedGameType Initial game type to be respected.
     function initialize(
-        IDisputeGameFactory _DISPUTE_GAME_FACTORY,
+        IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
         GameType _initialRespectedGameType
@@ -211,23 +211,23 @@ contract OptimismPortal2Mock is Initializable, ResourceMetering, ISemver {
         virtual
         initializer
     {
-        _initialize(_DISPUTE_GAME_FACTORY, _systemConfig, _superchainConfig, _initialRespectedGameType);
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
     }
 
     /// @notice Internal initializer function.
-    /// @param _DISPUTE_GAME_FACTORY Contract of the DisputeGameFactory.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     /// @param _initialRespectedGameType Initial game type to be respected.
     function _initialize(
-        IDisputeGameFactory _DISPUTE_GAME_FACTORY,
+        IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
         GameType _initialRespectedGameType
     )
         internal
     {
-        disputeGameFactory = _DISPUTE_GAME_FACTORY;
+        disputeGameFactory = _disputeGameFactory;
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
 
@@ -571,12 +571,12 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
     }
 
     /// @notice Initializer.
-    /// @param _DISPUTE_GAME_FACTORY Contract of the DisputeGameFactory.
+    /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
     /// @param _initialRespectedGameType Initial game type to be respected.
     function initialize(
-        IDisputeGameFactory _DISPUTE_GAME_FACTORY,
+        IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
         GameType _initialRespectedGameType
@@ -585,7 +585,7 @@ contract OptimismPortalInteropMock is OptimismPortal2Mock {
         override
         initializer
     {
-        _initialize(_DISPUTE_GAME_FACTORY, _systemConfig, _superchainConfig, _initialRespectedGameType);
+        _initialize(_disputeGameFactory, _systemConfig, _superchainConfig, _initialRespectedGameType);
 
         OptimismPortalStorage storage s = _storage();
         s.sharedLockbox = address(ISuperchainConfigInterop(address(_superchainConfig)).sharedLockbox());
