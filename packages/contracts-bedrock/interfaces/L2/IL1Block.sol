@@ -5,6 +5,8 @@ import { Types } from "src/libraries/Types.sol";
 
 interface IL1Block {
     error NotDepositor();
+    error IsthmusAlreadyActive();
+    error UnsafeCast();
 
     event GasPayingTokenSet(address indexed token, uint8 indexed decimals, bytes32 name, bytes32 symbol);
 
@@ -40,6 +42,8 @@ interface IL1Block {
     function version() external pure returns (string memory);
     function setConfig(Types.ConfigType _type, bytes memory _value) external;
     function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
+    function setIsthmus() external;
+    function isIsthmus() external view returns (bool);
 
     function __constructor__() external;
 }

@@ -18,3 +18,6 @@ error AlreadyDependency();
 
 /// @notice Error when the chain's chain ID is attempted to be removed from the interop dependency set.
 error CantRemovedDependency();
+
+/// @notice Error when the L1Block is already an Isthmus upgraded chain.
+error IsthmusAlreadyActive();
