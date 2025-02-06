@@ -5,12 +5,19 @@ pragma solidity 0.8.15;
 import { Constants } from "src/libraries/Constants.sol";
 import { GasPayingToken, IGasToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
-import { NotDepositor } from "src/libraries/L1BlockErrors.sol";
+import { NotDepositor, IsthmusAlreadyActive } from "src/libraries/L1BlockErrors.sol";
 import { Storage } from "src/libraries/Storage.sol";
 import { Types } from "src/libraries/Types.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
+import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000015
@@ -87,6 +94,11 @@ contract L1Block is ISemver, IGasToken {
 
     /// @notice The latest L1 blob base fee.
     uint256 public blobBaseFee;
+
+    /// @notice Whether the L1Block is an Isthmus upgraded chain.
+    /// @notice Note: This is only true for chains that were live before the Isthmus upgrade, and not for newly deployed
+    /// ones.
+    bool public isIsthmus;
 
     /// @custom:semver 1.5.1-beta.6
     function version() public pure virtual returns (string memory) {
@@ -277,5 +289,52 @@ contract L1Block is ISemver, IGasToken {
         GasPayingToken.set({ _token: _token, _decimals: _decimals, _name: _name, _symbol: _symbol });
 
         emit GasPayingTokenSet({ token: _token, decimals: _decimals, name: _name, symbol: _symbol });
+    }
+
+    /// @notice Sets the L1 block values for an Isthmus upgraded chain.
+    ///         This function is intended to be called only once, and only on existing chains which are undergoing
+    ///         the Isthmus upgrade. Chains deployed with the Isthmus upgrade activated will have the values set here
+    ///         already populated by the L2 Genesis generation process.
+    ///         In the case of an existing chain underoing the Isthmus upgrade, the expectation is that
+    ///         The upgrade flow will use the following series of Network upgrade automation transactions:
+    ///         1. Deploy a new `L1BlockImpl` contract.
+    ///         2. Upgrade only the `L1Block` contract to the new implementation by
+    ///            calling `L2ProxyAdmin.upgrade(address(L1BlockProxy), address(L1BlockImpl))`.
+    ///         3. Call `L1Block.setIsthmus()` to pull the values from L2 contracts.
+    ///         4. Upgrades the remainder of the L2 contracts via `L2ProxyAdmin.upgrade()`.
+    function setIsthmus() external {
+        if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
+        if (isIsthmus) revert IsthmusAlreadyActive();
+
+        isIsthmus = true;
+
+        Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.BASE_FEE_VAULT));
+        Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.L1_FEE_VAULT));
+        Storage.setBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.SEQUENCER_FEE_WALLET));
+
+        Storage.setAddress(
+            L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT,
+            address(ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).OTHER_MESSENGER())
+        );
+        Storage.setAddress(
+            L1_STANDARD_BRIDGE_ADDRESS_SLOT,
+            address(IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).OTHER_BRIDGE())
+        );
+        Storage.setAddress(
+            L1_ERC_721_BRIDGE_ADDRESS_SLOT, address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).otherBridge())
+        );
+        Storage.setUint(
+            REMOTE_CHAIN_ID_SLOT,
+            IOptimismMintableERC721Factory(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY).REMOTE_CHAIN_ID()
+        );
+    }
+
+    /// @notice Helper function for migrating deploy config.
+    function _migrateFeeVaultConfig(address _addr) internal view returns (bytes32) {
+        // Make sure to use legacy functions to avoid failure on upgrade.
+        address recipient = IFeeVault(payable(_addr)).RECIPIENT();
+        uint256 amount = IFeeVault(payable(_addr)).MIN_WITHDRAWAL_AMOUNT();
+        Types.WithdrawalNetwork network = IFeeVault(payable(_addr)).WITHDRAWAL_NETWORK();
+        return Encoding.encodeFeeVaultConfig(recipient, amount, Types.WithdrawalNetwork(uint8(network)));
     }
 }
