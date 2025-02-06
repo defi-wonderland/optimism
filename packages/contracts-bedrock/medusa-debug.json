@@ -1,4 +1,9 @@
 {
+  "slither": {
+    "useSlither": true,
+    "cachePath": "slither_results.json",
+    "args": ["--foundry-out-directory", "artifacts"]
+  },
   "fuzzing": {
     "timeout": 30,
     "coverageEnabled": false,
