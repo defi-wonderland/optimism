@@ -580,6 +580,49 @@ contract DeploySuperchain is Script {
 ///         and `deploySuperchainConfigProxy` methods to deploy the `SuperchainConfigInterop` implementation
 ///         and proxy contracts.
 contract DeploySuperchainInterop is DeploySuperchain {
+    /// @notice This is a copy of the `computeCreateAddress` function from `CreateX.sol`.
+    ///         This is needed because the `computeCreateAddress` function is not available in go cheatcodes.
+    ///         TODO: Remove this function once we have `vm.computeCreateAddress` cheatcode in go.
+    function _computeCreateAddress(address _deployer, uint256 _nonce) private pure returns (address computedAddress_) {
+        bytes memory data;
+        bytes1 len = bytes1(0x94);
+
+        // The integer zero is treated as an empty byte string and therefore has only one length prefix,
+        // 0x80, which is calculated via 0x80 + 0.
+        if (_nonce == 0x00) {
+            data = abi.encodePacked(bytes1(0xd6), len, _deployer, bytes1(0x80));
+        }
+        // A one-byte integer in the [0x00, 0x7f] range uses its own value as a length prefix, there is no
+        // additional "0x80 + length" prefix that precedes it.
+        else if (_nonce <= 0x7f) {
+            data = abi.encodePacked(bytes1(0xd6), len, _deployer, uint8(_nonce));
+        }
+        // In the case of `nonce > 0x7f` and `nonce <= type(uint8).max`, we have the following encoding scheme
+        // (the same calculation can be carried over for higher nonce bytes):
+        // 0xda = 0xc0 (short RLP prefix) + 0x1a (= the bytes length of: 0x94 + address + 0x84 + nonce, in hex),
+        // 0x94 = 0x80 + 0x14 (= the bytes length of an address, 20 bytes, in hex),
+        // 0x84 = 0x80 + 0x04 (= the bytes length of the nonce, 4 bytes, in hex).
+        else if (_nonce <= type(uint8).max) {
+            data = abi.encodePacked(bytes1(0xd7), len, _deployer, bytes1(0x81), uint8(_nonce));
+        } else if (_nonce <= type(uint16).max) {
+            data = abi.encodePacked(bytes1(0xd8), len, _deployer, bytes1(0x82), uint16(_nonce));
+        } else if (_nonce <= type(uint24).max) {
+            data = abi.encodePacked(bytes1(0xd9), len, _deployer, bytes1(0x83), uint24(_nonce));
+        } else if (_nonce <= type(uint32).max) {
+            data = abi.encodePacked(bytes1(0xda), len, _deployer, bytes1(0x84), uint32(_nonce));
+        } else if (_nonce <= type(uint40).max) {
+            data = abi.encodePacked(bytes1(0xdb), len, _deployer, bytes1(0x85), uint40(_nonce));
+        } else if (_nonce <= type(uint48).max) {
+            data = abi.encodePacked(bytes1(0xdc), len, _deployer, bytes1(0x86), uint48(_nonce));
+        } else if (_nonce <= type(uint56).max) {
+            data = abi.encodePacked(bytes1(0xdd), len, _deployer, bytes1(0x87), uint56(_nonce));
+        } else {
+            data = abi.encodePacked(bytes1(0xde), len, _deployer, bytes1(0x88), uint64(_nonce));
+        }
+
+        computedAddress_ = address(uint160(uint256(keccak256(data))));
+    }
+
     function deploySuperchainImplementationContracts(
         DeploySuperchainInput _dsi,
         DeploySuperchainOutput _dso
@@ -600,7 +643,7 @@ contract DeploySuperchainInterop is DeploySuperchain {
         override
     {
         // Precalculate the SuperchainConfig address. Needed in the SharedLockbox initialization.
-        address _precalculatedSuperchainConfigProxy = vm.computeCreateAddress(msg.sender, vm.getNonce(msg.sender) + 2);
+        address _precalculatedSuperchainConfigProxy = _computeCreateAddress(msg.sender, vm.getNonce(msg.sender) + 2);
 
         deploySharedLockboxProxy(_dso, _precalculatedSuperchainConfigProxy);
 
