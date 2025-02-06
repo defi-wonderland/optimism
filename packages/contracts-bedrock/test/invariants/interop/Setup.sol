@@ -44,7 +44,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
     IDeployer815 public constant DEPLOYER_8_15 = IDeployer815(0x4200000000000000000000000000000000000815);
     IDeployer825 public constant DEPLOYER_8_25 = IDeployer825(0x4200000000000000000000000000000000000825);
 
-    address internal constant _DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
@@ -70,29 +69,24 @@ contract Setup is PropertiesAsserts, HandlerActors {
     uint256 public immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS = 3.5 days;
 
     // System addresses
-    address public immutable guardian = vm.addr(uint256(keccak256("Guardian")));
-    Actors public immutable proxyOwner = Actors(payable(vm.addr(uint256(keccak256("ProxyOwner")))));
-    ProxyAdmin public immutable proxyAdmin;
-    address public immutable clusterManager = vm.addr(uint256(keccak256("ClusterManager")));
-    // Predefined addresses
-    address public sharedLockboxAddress = vm.addr(uint256(keccak256("SharedLockbox")));
-    address public superchainConfigAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
-    address public systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
-    address public optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
+    address public immutable CLUSTER_MANAGER = vm.addr(uint256(keccak256("ClusterManager")));
+    address public immutable GUARDIAN = vm.addr(uint256(keccak256("Guardian")));
+    Actors public immutable PROXY_OWNER = Actors(payable(vm.addr(uint256(keccak256("ProxyOwner")))));
+    ProxyAdmin public immutable PROXY_ADMIN;
     // Internals
-    address internal _disputeGameFactory = vm.addr(uint256(keccak256("DisputeGameFactory")));
+    address internal _DISPUTE_GAME_FACTORY = vm.addr(uint256(keccak256("DisputeGameFactory")));
     bytes internal _proxyCode;
 
     constructor() {
         // Etch the proxy owner to be an actor
         bytes memory actorCode = address(new Actors()).code;
-        vm.etch(address(proxyOwner), actorCode);
+        vm.etch(address(PROXY_OWNER), actorCode);
 
         // Deploy ProxyAdmin
-        proxyAdmin = new ProxyAdmin(address(proxyOwner));
+        PROXY_ADMIN = new ProxyAdmin(address(PROXY_OWNER));
 
         // Deploy Proxy
-        _proxyCode = DEPLOYER_8_15.deployProxy(address(proxyAdmin)).code;
+        _proxyCode = DEPLOYER_8_15.deployProxy(address(PROXY_ADMIN)).code;
 
         // Deploy ETHLiquidity
         _setCode(
@@ -157,21 +151,25 @@ contract Setup is PropertiesAsserts, HandlerActors {
         _ghost_isL2Contract[address(SUPER_TOKEN)] = true;
 
         // Deploy SuperchainConfig
+        address superchainConfigAddress = vm.addr(uint256(keccak256("SuperchainConfig")));
         _setCode(superchainConfigAddress, DEPLOYER_8_15.deploySuperchainConfig(), true);
         SUPERCHAIN_CONFIG = ISuperchainConfigInterop(superchainConfigAddress);
         _ghost_isL1Contract[superchainConfigAddress] = true;
 
         // Deploy SharedLockbox
+        address sharedLockboxAddress = vm.addr(uint256(keccak256("SharedLockbox")));
         _setCode(sharedLockboxAddress, DEPLOYER_8_25.deploySharedLockbox(), true);
         SHARED_LOCKBOX = ISharedLockbox(sharedLockboxAddress);
         _ghost_isL1Contract[sharedLockboxAddress] = true;
 
         // Deploy SystemConfig
+        address systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));
         _setCode(systemConfigAddress, DEPLOYER_8_15.deploySystemConfig(), true);
         SYSTEM_CONFIG = ISystemConfig(systemConfigAddress);
         _ghost_isL1Contract[systemConfigAddress] = true;
 
         // Deal the initial ether to the portal address
+        address optimismPortalAddress = vm.addr(uint256(keccak256("OptimismPortal")));
         vm.deal(optimismPortalAddress, INITIAL_PORTAL_ETHER);
 
         // Deploy OptimismPortal
@@ -184,7 +182,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
         _ghost_isL1Contract[optimismPortalAddress] = true;
 
         // Set the cluster manager as an actor
-        vm.etch(clusterManager, actorCode);
+        vm.etch(CLUSTER_MANAGER, actorCode);
 
         // Set the depositor account as an actor
         vm.etch(Constants.DEPOSITOR_ACCOUNT, actorCode);
@@ -199,10 +197,10 @@ contract Setup is PropertiesAsserts, HandlerActors {
         if (_isProxied) {
             vm.etch(_target, _proxyCode);
             vm.store(_target, _IMPLEMENTATION_SLOT, bytes32(uint256(uint160(_implementation))));
-            vm.store(_target, _ADMIN_SLOT, bytes32(uint256(uint160(address(proxyAdmin)))));
+            vm.store(_target, _ADMIN_SLOT, bytes32(uint256(uint160(address(PROXY_ADMIN)))));
 
             assert(address(uint160(uint256(vm.load(_target, _IMPLEMENTATION_SLOT)))) == _implementation);
-            assert(address(uint160(uint256(vm.load(_target, _ADMIN_SLOT)))) == address(proxyAdmin));
+            assert(address(uint160(uint256(vm.load(_target, _ADMIN_SLOT)))) == address(PROXY_ADMIN));
         } else {
             vm.etch(_target, _implementation.code);
         }
@@ -210,20 +208,20 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
     function _initializeProxies() internal {
         // Initialize SuperchainConfig
-        SUPERCHAIN_CONFIG.initialize(guardian, false);
+        SUPERCHAIN_CONFIG.initialize(GUARDIAN, false);
 
         // Initialize SystemConfig
         ISystemConfig.Addresses memory addresses = ISystemConfig.Addresses({
             l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
             l1ERC721Bridge: address(0),
             l1StandardBridge: address(0),
-            disputeGameFactory: _disputeGameFactory,
-            optimismPortal: optimismPortalAddress,
+            disputeGameFactory: _DISPUTE_GAME_FACTORY,
+            optimismPortal: address(PORTAL),
             optimismMintableERC20Factory: address(0)
         });
         IResourceMetering.ResourceConfig memory config = Constants.DEFAULT_RESOURCE_CONFIG();
         SYSTEM_CONFIG.initialize(
-            address(proxyAdmin),
+            address(PROXY_ADMIN),
             0,
             0,
             0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
@@ -236,18 +234,18 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
         // Initialize Portal
         PORTAL.initialize(
-            IDisputeGameFactory(_disputeGameFactory),
-            ISystemConfig(systemConfigAddress),
-            ISuperchainConfigInterop(superchainConfigAddress),
+            IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
+            ISystemConfig(address(SYSTEM_CONFIG)),
+            ISuperchainConfigInterop(address(SUPERCHAIN_CONFIG)),
             GameType.wrap(0)
         );
 
         // Initialize SharedLockbox
-        SHARED_LOCKBOX.initialize(superchainConfigAddress);
+        SHARED_LOCKBOX.initialize(address(SUPERCHAIN_CONFIG));
     }
 
     function _addActors() internal {
-        for (uint256 i; i < numberOfActors; i++) {
+        for (uint256 i; i < NUMBER_OF_ACTORS; i++) {
             Actors _newActor = new Actors();
             _ghost_actors.push(address(_newActor));
 
@@ -266,15 +264,15 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Portal
         assert(PORTAL.proofMaturityDelaySeconds() == 1 weeks);
         assert(PORTAL.disputeGameFinalityDelaySeconds() == 3.5 days);
-        assert(address(PORTAL.superchainConfig()) == superchainConfigAddress);
-        assert(address(PORTAL.systemConfig()) == systemConfigAddress);
-        assert(address(PORTAL.disputeGameFactory()) == _disputeGameFactory);
+        assert(address(PORTAL.superchainConfig()) == address(SUPERCHAIN_CONFIG));
+        assert(address(PORTAL.systemConfig()) == address(SYSTEM_CONFIG));
+        assert(address(PORTAL.disputeGameFactory()) == _DISPUTE_GAME_FACTORY);
 
         // Shared Lockbox
-        assert(address(SHARED_LOCKBOX.superchainConfig()) == superchainConfigAddress);
+        assert(address(SHARED_LOCKBOX.superchainConfig()) == address(SUPERCHAIN_CONFIG));
 
         // Superchain Config
-        assert(SUPERCHAIN_CONFIG.guardian() == guardian);
+        assert(SUPERCHAIN_CONFIG.guardian() == GUARDIAN);
         assert(SUPERCHAIN_CONFIG.paused() == false);
 
         // System Config
@@ -286,7 +284,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SYSTEM_CONFIG.gasLimit() == 60000000);
         assert(SYSTEM_CONFIG.unsafeBlockSigner() == 0xAAAA45d9549EDA09E70937013520214382Ffc4A2);
         assert(SYSTEM_CONFIG.batchInbox() == 0xFF00000000000000000000000000000000000010);
-        assert(SYSTEM_CONFIG.disputeGameFactory() == _disputeGameFactory);
+        assert(SYSTEM_CONFIG.disputeGameFactory() == _DISPUTE_GAME_FACTORY);
         assert(SYSTEM_CONFIG.optimismPortal() == address(PORTAL));
         bytes memory resourceConfigA = abi.encode(SYSTEM_CONFIG.resourceConfig());
         bytes memory defaultResourceConfig = abi.encode(Constants.DEFAULT_RESOURCE_CONFIG());

@@ -2,7 +2,12 @@
   "slither": {
     "useSlither": true,
     "cachePath": "slither_results.json",
-    "args": ["--foundry-out-directory", "artifacts"]
+    "args": [
+      "--foundry-out-directory",
+      "artifacts",
+      "--exclude",
+      "dangerous-strict-equalities,assembly-usage,boolean-equality,different-pragma-directives-are-used,incorrect-versions-of-solidity,low-level-calls,conformance-to-solidity-naming-conventions,too-many-digits,reentrancy-vulnerabilities-1,reentrancy-vulnerabilities-2,reentrancy-vulnerabilities-3,state-variables-that-could-be-declared-immutable"
+    ]
   },
   "fuzzing": {
     "workers": 10,
