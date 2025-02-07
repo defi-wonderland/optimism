@@ -126,11 +126,8 @@ contract Handler is Setup {
             _ZERO_VALUE,
             abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, fromEOA, address(callerActor), _amount)
         );
-        if (success) {
-            assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
-        } else {
-            assert(false);
-        }
+        assert(success);
+        assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
     }
 
     function handler_permit2SuperchainERC20(

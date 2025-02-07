@@ -378,7 +378,6 @@ contract FuzzTest is Handler {
             _ZERO_VALUE,
             abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, disputeGameIndex, outputRootProof, withdrawalProof))
         );
-
         assert(success);
 
         uint256 portalBalanceBefore = address(PORTAL).balance;
