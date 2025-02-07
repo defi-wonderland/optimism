@@ -4,9 +4,17 @@ This campaign involves deploying the following contracts:
 
 ### Architecture
 
+**Testing Contracts**
+
+- Setup: Contains the setup of the test.
+- Handler: Contains the handlers of the test.
+- FuzzTest: Where the properties are tested.
+- SuperchainERC20ForToBProperties: Tests the `SuperchainERC20` ERC20 compliance using the ToB properties depdency. It is used as the `SuperchainERC20` implementation on the campaign.
+- SuperchainWETHForToBProperties: Tests the `SuperchainWETH` ERC20 compliance using the ToB properties depdency. Only used for this specific case. On the rest of the campaign, the `SuperchainWETH` implementation is not modify to test the other properties.
+
 **L1 Contracts**
 
-- SuperchainConfigInterop
+- SuperchainConfig
 - SharedLockbox
 - SystemConfig
 - OptimismPortal
