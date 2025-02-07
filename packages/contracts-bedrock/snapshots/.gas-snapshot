@@ -10,4 +10,4 @@ GasBenchMark_L1StandardBridge_Deposit:test_depositERC20_benchmark_0() (gas: 5602
 GasBenchMark_L1StandardBridge_Deposit:test_depositERC20_benchmark_1() (gas: 4072356)
 GasBenchMark_L1StandardBridge_Deposit:test_depositETH_benchmark_0() (gas: 462814)
 GasBenchMark_L1StandardBridge_Deposit:test_depositETH_benchmark_1() (gas: 3508563)
-GasBenchMark_L1StandardBridge_Finalize:test_finalizeETHWithdrawal_benchmark() (gas: 70540)
+GasBenchMark_L1StandardBridge_Finalize:test_finalizeETHWithdrawal_benchmark() (gas: 70585)
