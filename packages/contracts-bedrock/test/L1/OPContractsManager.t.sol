@@ -49,6 +49,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
         doi.set(doi.unsafeBlockSigner.selector, unsafeBlockSigner);
         doi.set(doi.proposer.selector, proposer);
         doi.set(doi.challenger.selector, challenger);
+        doi.set(doi.feeVaultAdmin.selector, feeVaultAdmin);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
         doi.set(doi.l2ChainId.selector, l2ChainId);
@@ -73,7 +74,8 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
                 batcher: _doi.batcher(),
                 unsafeBlockSigner: _doi.unsafeBlockSigner(),
                 proposer: _doi.proposer(),
-                challenger: _doi.challenger()
+                challenger: _doi.challenger(),
+                feeVaultAdmin: _doi.feeVaultAdmin()
             }),
             basefeeScalar: _doi.basefeeScalar(),
             blobBasefeeScalar: _doi.blobBaseFeeScalar(),

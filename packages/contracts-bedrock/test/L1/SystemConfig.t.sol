@@ -31,6 +31,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
     address optimismMintableERC20Factory;
     uint32 basefeeScalar;
     uint32 blobbasefeeScalar;
+    address feeVaultAdmin;
 
     function setUp() public virtual override {
         super.setUp();
@@ -44,6 +45,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         unsafeBlockSigner = deploy.cfg().p2pSequencerAddress();
         systemConfigImpl = deploy.mustGetAddress("SystemConfig");
         optimismMintableERC20Factory = deploy.mustGetAddress("OptimismMintableERC20FactoryProxy");
+        feeVaultAdmin = deploy.cfg().systemConfigFeeVaultAdmin();
     }
 
     /// @dev Tests that constructor sets the correct values.
@@ -55,6 +57,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(impl.batcherHash(), bytes32(0));
         assertEq(impl.gasLimit(), 0);
         assertEq(impl.unsafeBlockSigner(), address(0));
+        assertEq(impl.feeVaultAdmin(), address(0));
         assertEq(impl.basefeeScalar(), 0);
         assertEq(impl.blobbasefeeScalar(), 0);
         IResourceMetering.ResourceConfig memory actual = impl.resourceConfig();
@@ -89,6 +92,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         assertEq(systemConfig.unsafeBlockSigner(), unsafeBlockSigner);
         assertEq(systemConfig.basefeeScalar(), basefeeScalar);
         assertEq(systemConfig.blobbasefeeScalar(), blobbasefeeScalar);
+        assertEq(systemConfig.feeVaultAdmin(), feeVaultAdmin);
         // Depends on `initialize` being called with defaults
         IResourceMetering.ResourceConfig memory rcfg = Constants.DEFAULT_RESOURCE_CONFIG();
         IResourceMetering.ResourceConfig memory actual = systemConfig.resourceConfig();
@@ -135,6 +139,7 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
             _batcherHash: bytes32(hex"abcd"),
             _gasLimit: minimumGasLimit - 1,
             _unsafeBlockSigner: address(1),
+            _feeVaultAdmin: address(1),
             _config: Constants.DEFAULT_RESOURCE_CONFIG(),
             _batchInbox: address(0),
             _addresses: ISystemConfig.Addresses({
@@ -165,6 +170,7 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
             _batcherHash: bytes32(hex"abcd"),
             _gasLimit: gasLimit,
             _unsafeBlockSigner: address(1),
+            _feeVaultAdmin: address(1),
             _config: Constants.DEFAULT_RESOURCE_CONFIG(),
             _batchInbox: address(0),
             _addresses: ISystemConfig.Addresses({
@@ -196,6 +202,7 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
             _batcherHash: bytes32(hex"abcd"),
             _gasLimit: gasLimit,
             _unsafeBlockSigner: address(1),
+            _feeVaultAdmin: address(1),
             _config: Constants.DEFAULT_RESOURCE_CONFIG(),
             _batchInbox: address(0),
             _addresses: ISystemConfig.Addresses({
@@ -306,6 +313,7 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             _batcherHash: bytes32(0),
             _gasLimit: gasLimit,
             _unsafeBlockSigner: address(0),
+            _feeVaultAdmin: address(0),
             _config: config,
             _batchInbox: address(0),
             _addresses: ISystemConfig.Addresses({
@@ -345,6 +353,7 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
             _batcherHash: bytes32(hex"abcd"),
             _gasLimit: 30_000_000,
             _unsafeBlockSigner: address(1),
+            _feeVaultAdmin: address(1),
             _config: Constants.DEFAULT_RESOURCE_CONFIG(),
             _batchInbox: address(0),
             _addresses: ISystemConfig.Addresses({
@@ -582,6 +591,12 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
         vm.expectRevert("SystemConfig: elasticity must be >= 1");
         systemConfig.setEIP1559Params({ _denominator: _denominator, _elasticity: 0 });
     }
+
+    /// @dev Tests that `setFeeVaultAdmin` reverts if the caller is not the owner.
+    function test_setFeeVaultAdmin_notOwner_reverts() external {
+        vm.expectRevert("Ownable: caller is not the owner");
+        systemConfig.setFeeVaultAdmin(address(0x20));
+    }
 }
 
 contract SystemConfig_Setters_Test is SystemConfig_Init {
@@ -668,5 +683,15 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         systemConfig.setEIP1559Params(_denominator, _elasticity);
         assertEq(systemConfig.eip1559Denominator(), _denominator);
         assertEq(systemConfig.eip1559Elasticity(), _elasticity);
+    }
+
+    /// @dev Tests that `setFeeVaultAdmin` updates the fee vault admin successfully.
+    function testFuzz_setFeeVaultAdmin_succeeds(address newFeeVaultAdmin) external {
+        vm.expectEmit(address(systemConfig));
+        emit ConfigUpdate(0, ISystemConfig.UpdateType.FEE_VAULT_ADMIN, abi.encode(newFeeVaultAdmin));
+
+        vm.prank(systemConfig.owner());
+        systemConfig.setFeeVaultAdmin(newFeeVaultAdmin);
+        assertEq(systemConfig.feeVaultAdmin(), newFeeVaultAdmin);
     }
 }

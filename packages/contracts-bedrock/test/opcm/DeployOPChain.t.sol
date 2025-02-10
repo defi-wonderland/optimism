@@ -37,6 +37,7 @@ contract DeployOPChainInput_Test is Test {
     address systemConfigOwner = makeAddr("systemConfigOwner");
     address batcher = makeAddr("batcher");
     address unsafeBlockSigner = makeAddr("unsafeBlockSigner");
+    address feeVaultAdmin = makeAddr("feeVaultAdmin");
     address proposer = makeAddr("proposer");
     address challenger = makeAddr("challenger");
     address opcm = makeAddr("opcm");
@@ -54,6 +55,7 @@ contract DeployOPChainInput_Test is Test {
         doi.set(doi.systemConfigOwner.selector, systemConfigOwner);
         doi.set(doi.batcher.selector, batcher);
         doi.set(doi.unsafeBlockSigner.selector, unsafeBlockSigner);
+        doi.set(doi.feeVaultAdmin.selector, feeVaultAdmin);
         doi.set(doi.proposer.selector, proposer);
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
@@ -70,11 +72,12 @@ contract DeployOPChainInput_Test is Test {
         assertEq(unsafeBlockSigner, doi.unsafeBlockSigner(), "500");
         assertEq(proposer, doi.proposer(), "600");
         assertEq(challenger, doi.challenger(), "700");
-        assertEq(basefeeScalar, doi.basefeeScalar(), "800");
-        assertEq(blobBaseFeeScalar, doi.blobBaseFeeScalar(), "900");
-        assertEq(l2ChainId, doi.l2ChainId(), "1000");
-        assertEq(opcm, address(doi.opcm()), "1100");
-        assertEq(true, doi.allowCustomDisputeParameters(), "1200");
+        assertEq(feeVaultAdmin, doi.feeVaultAdmin(), "800");
+        assertEq(basefeeScalar, doi.basefeeScalar(), "900");
+        assertEq(blobBaseFeeScalar, doi.blobBaseFeeScalar(), "1000");
+        assertEq(l2ChainId, doi.l2ChainId(), "1100");
+        assertEq(opcm, address(doi.opcm()), "1200");
+        assertEq(true, doi.allowCustomDisputeParameters(), "1300");
     }
 
     function test_getters_whenNotSet_reverts() public {
@@ -333,6 +336,7 @@ contract DeployOPChain_TestBase is Test {
     address unsafeBlockSigner = makeAddr("defaultUnsafeBlockSigner");
     address proposer = makeAddr("defaultProposer");
     address challenger = makeAddr("defaultChallenger");
+    address feeVaultAdmin = makeAddr("defaultFeeVaultAdmin");
     uint32 basefeeScalar = 100;
     uint32 blobBaseFeeScalar = 200;
     uint256 l2ChainId = 300;
@@ -436,6 +440,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         basefeeScalar = uint32(uint256(hash(_seed, 6)));
         blobBaseFeeScalar = uint32(uint256(hash(_seed, 7)));
         l2ChainId = uint256(hash(_seed, 8));
+        feeVaultAdmin = address(uint160(uint256(hash(_seed, 9))));
 
         // Set the initial anchor states. The typical usage we expect is to pass in one root per game type.
         uint256 cannonBlock = uint256(hash(_seed, 9));
@@ -460,6 +465,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.systemConfigOwner.selector, systemConfigOwner);
         doi.set(doi.batcher.selector, batcher);
         doi.set(doi.unsafeBlockSigner.selector, unsafeBlockSigner);
+        doi.set(doi.feeVaultAdmin.selector, feeVaultAdmin);
         doi.set(doi.proposer.selector, proposer);
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
@@ -486,17 +492,18 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(unsafeBlockSigner, doi.unsafeBlockSigner(), "400");
         assertEq(proposer, doi.proposer(), "500");
         assertEq(challenger, doi.challenger(), "600");
-        assertEq(basefeeScalar, doi.basefeeScalar(), "700");
-        assertEq(blobBaseFeeScalar, doi.blobBaseFeeScalar(), "800");
-        assertEq(l2ChainId, doi.l2ChainId(), "900");
-        assertEq(saltMixer, doi.saltMixer(), "1000");
-        assertEq(gasLimit, doi.gasLimit(), "1100");
-        assertEq(disputeGameType, GameType.unwrap(doi.disputeGameType()), "1200");
-        assertEq(disputeAbsolutePrestate, Claim.unwrap(doi.disputeAbsolutePrestate()), "1300");
-        assertEq(disputeMaxGameDepth, doi.disputeMaxGameDepth(), "1400");
-        assertEq(disputeSplitDepth, doi.disputeSplitDepth(), "1500");
-        assertEq(disputeClockExtension, Duration.unwrap(doi.disputeClockExtension()), "1600");
-        assertEq(disputeMaxClockDuration, Duration.unwrap(doi.disputeMaxClockDuration()), "1700");
+        assertEq(feeVaultAdmin, doi.feeVaultAdmin(), "700");
+        assertEq(basefeeScalar, doi.basefeeScalar(), "800");
+        assertEq(blobBaseFeeScalar, doi.blobBaseFeeScalar(), "900");
+        assertEq(l2ChainId, doi.l2ChainId(), "1000");
+        assertEq(saltMixer, doi.saltMixer(), "1100");
+        assertEq(gasLimit, doi.gasLimit(), "1200");
+        assertEq(disputeGameType, GameType.unwrap(doi.disputeGameType()), "1300");
+        assertEq(disputeAbsolutePrestate, Claim.unwrap(doi.disputeAbsolutePrestate()), "1400");
+        assertEq(disputeMaxGameDepth, doi.disputeMaxGameDepth(), "1500");
+        assertEq(disputeSplitDepth, doi.disputeSplitDepth(), "1600");
+        assertEq(disputeClockExtension, Duration.unwrap(doi.disputeClockExtension()), "1700");
+        assertEq(disputeMaxClockDuration, Duration.unwrap(doi.disputeMaxClockDuration()), "1800");
 
         // Assert inputs were properly passed through to the contract initializers.
         assertEq(address(doo.opChainProxyAdmin().owner()), opChainProxyAdminOwner, "2100");
@@ -506,6 +513,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(address(doo.systemConfigProxy().unsafeBlockSigner()), unsafeBlockSigner, "2400");
         assertEq(address(doo.permissionedDisputeGame().proposer()), proposer, "2500");
         assertEq(address(doo.permissionedDisputeGame().challenger()), challenger, "2600");
+        assertEq(address(doo.systemConfigProxy().feeVaultAdmin()), feeVaultAdmin, "2700");
 
         // TODO once we deploy the Permissionless Dispute Game
         // assertEq(address(doo.faultDisputeGame().proposer()), proposer, "2610");
@@ -567,6 +575,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.disputeSplitDepth.selector, disputeSplitDepth);
         doi.set(doi.disputeClockExtension.selector, disputeClockExtension);
         doi.set(doi.disputeMaxClockDuration.selector, disputeMaxClockDuration);
+        doi.set(doi.feeVaultAdmin.selector, feeVaultAdmin);
     }
 }
 

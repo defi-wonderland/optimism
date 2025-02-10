@@ -164,6 +164,7 @@ contract Initializer_Test is CommonTest {
                         bytes32(0),
                         1,
                         address(0),
+                        address(0),
                         IResourceMetering.ResourceConfig({
                             maxResourceLimit: 1,
                             elasticityMultiplier: 1,
@@ -199,6 +200,7 @@ contract Initializer_Test is CommonTest {
                         0,
                         bytes32(0),
                         1,
+                        address(0),
                         address(0),
                         IResourceMetering.ResourceConfig({
                             maxResourceLimit: 1,
