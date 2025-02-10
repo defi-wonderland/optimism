@@ -41,6 +41,7 @@ contract OPContractsManager is ISemver {
         address unsafeBlockSigner;
         address proposer;
         address challenger;
+        address feeVaultAdmin;
     }
 
     /// @notice The full set of inputs to deploy a new OP Stack chain.
@@ -467,21 +468,23 @@ contract OPContractsManager is ISemver {
         virtual
         returns (bytes memory)
     {
-        bytes4 selector = ISystemConfig.initialize.selector;
         (IResourceMetering.ResourceConfig memory referenceResourceConfig, ISystemConfig.Addresses memory opChainAddrs) =
-            defaultSystemConfigParams(selector, _input, _output);
+            defaultSystemConfigParams(ISystemConfig.initialize.selector, _input, _output);
 
-        return abi.encodeWithSelector(
-            selector,
-            _input.roles.systemConfigOwner,
-            _input.basefeeScalar,
-            _input.blobBasefeeScalar,
-            bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
-            _input.gasLimit,
-            _input.roles.unsafeBlockSigner,
-            referenceResourceConfig,
-            chainIdToBatchInboxAddress(_input.l2ChainId),
-            opChainAddrs
+        return abi.encodeCall(
+            ISystemConfig.initialize,
+            (
+                _input.roles.systemConfigOwner,
+                _input.basefeeScalar,
+                _input.blobBasefeeScalar,
+                bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
+                _input.gasLimit,
+                _input.roles.unsafeBlockSigner,
+                _input.roles.feeVaultAdmin,
+                referenceResourceConfig,
+                chainIdToBatchInboxAddress(_input.l2ChainId),
+                opChainAddrs
+            )
         );
     }
 
