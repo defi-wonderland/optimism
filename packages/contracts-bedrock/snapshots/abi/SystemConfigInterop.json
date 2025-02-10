@@ -248,6 +248,19 @@
   },
   {
     "inputs": [],
+    "name": "feeVaultAdmin",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "addr_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "gasLimit",
     "outputs": [
       {
@@ -333,6 +346,11 @@
       {
         "internalType": "address",
         "name": "_unsafeBlockSigner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_feeVaultAdmin",
         "type": "address"
       },
       {
@@ -460,6 +478,11 @@
       {
         "internalType": "address",
         "name": "_unsafeBlockSigner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_feeVaultAdmin",
         "type": "address"
       },
       {
@@ -787,6 +810,19 @@
       }
     ],
     "name": "setEIP1559Params",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_feeVaultAdmin",
+        "type": "address"
+      }
+    ],
+    "name": "setFeeVaultAdmin",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

@@ -241,6 +241,11 @@
                 "internalType": "address",
                 "name": "challenger",
                 "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "feeVaultAdmin",
+                "type": "address"
               }
             ],
             "internalType": "struct OPContractsManager.Roles",
@@ -512,6 +517,19 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "message",
+        "type": "bytes"
+      }
+    ],
+    "name": "Debug",
+    "type": "event"
   },
   {
     "anonymous": false,
