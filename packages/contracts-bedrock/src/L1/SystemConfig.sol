@@ -27,12 +27,14 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @custom:value GAS_LIMIT            Represents an update to gas limit on L2.
     /// @custom:value UNSAFE_BLOCK_SIGNER  Represents an update to the signer key for unsafe
     ///                                    block distrubution.
+    /// @custom:value FEE_VAULT_ADMIN      Represents an update to the fee vault admin.
     enum UpdateType {
         BATCHER,
         FEE_SCALARS,
         GAS_LIMIT,
         UNSAFE_BLOCK_SIGNER,
-        EIP_1559_PARAMS
+        EIP_1559_PARAMS,
+        FEE_VAULT_ADMIN
     }
 
     /// @notice Struct representing the addresses of L1 system contracts. These should be the
@@ -87,6 +89,9 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @notice Storage slot for the DisputeGameFactory address.
     bytes32 public constant DISPUTE_GAME_FACTORY_SLOT =
         bytes32(uint256(keccak256("systemconfig.disputegamefactory")) - 1);
+
+    /// @notice Storage slot that the feeAdmin address is stored at.
+    bytes32 internal constant FEE_VAULT_ADMIN_SLOT = bytes32(uint256(keccak256("systemconfig.feeVaultAdmin")) - 1);
 
     /// @notice The number of decimals that the gas paying token has.
     uint8 internal constant GAS_PAYING_TOKEN_DECIMALS = 18;
@@ -158,6 +163,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @param _batcherHash       Initial batcher hash.
     /// @param _gasLimit          Initial gas limit.
     /// @param _unsafeBlockSigner Initial unsafe block signer address.
+    /// @param _feeVaultAdmin     Initial fee vault admin address.
     /// @param _config            Initial ResourceConfig.
     /// @param _batchInbox        Batch inbox address. An identifier for the op-node to find
     ///                           canonical data.
@@ -169,6 +175,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         bytes32 _batcherHash,
         uint64 _gasLimit,
         address _unsafeBlockSigner,
+        address _feeVaultAdmin,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         SystemConfig.Addresses memory _addresses
@@ -185,6 +192,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
         _setGasLimit(_gasLimit);
 
         Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
+        Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _feeVaultAdmin);
         Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
         Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
         Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
@@ -263,6 +271,11 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     /// @notice Getter for the StartBlock number.
     function startBlock() external view returns (uint256 startBlock_) {
         startBlock_ = Storage.getUint(START_BLOCK_SLOT);
+    }
+
+    /// @notice Getter for the fee admin address.
+    function feeVaultAdmin() external view returns (address addr_) {
+        addr_ = Storage.getAddress(FEE_VAULT_ADMIN_SLOT);
     }
 
     /// @notice Getter for the gas paying asset address.
@@ -416,6 +429,21 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
 
         bytes memory data = abi.encode(uint256(_denominator) << 32 | uint64(_elasticity));
         emit ConfigUpdate(VERSION, UpdateType.EIP_1559_PARAMS, data);
+    }
+
+    /// @notice Updates the fee admin address. Can only be called by the owner.
+    /// @param _feeVaultAdmin New fee admin address.
+    function setFeeVaultAdmin(address _feeVaultAdmin) external onlyOwner {
+        _setFeeVaultAdmin(_feeVaultAdmin);
+    }
+
+    /// @notice Internal function for updating the fee admin address.
+    /// @param _feeVaultAdmin New fee admin address.
+    function _setFeeVaultAdmin(address _feeVaultAdmin) internal {
+        Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _feeVaultAdmin);
+
+        bytes memory data = abi.encode(_feeVaultAdmin);
+        emit ConfigUpdate(VERSION, UpdateType.FEE_VAULT_ADMIN, data);
     }
 
     /// @notice Sets the start block in a backwards compatible way. Proxies

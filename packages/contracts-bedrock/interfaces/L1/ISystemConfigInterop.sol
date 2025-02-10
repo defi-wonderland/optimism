@@ -48,11 +48,12 @@ interface ISystemConfigInterop {
     function setGasConfigEcotone(uint32 _basefeeScalar, uint32 _blobbasefeeScalar) external;
     function setGasLimit(uint64 _gasLimit) external;
     function setUnsafeBlockSigner(address _unsafeBlockSigner) external;
+    function setFeeVaultAdmin(address _feeVaultAdmin) external;
     function setEIP1559Params(uint32 _denominator, uint32 _elasticity) external;
     function startBlock() external view returns (uint256 startBlock_);
     function transferOwnership(address newOwner) external; // nosemgrep
     function unsafeBlockSigner() external view returns (address addr_);
-
+    function feeVaultAdmin() external view returns (address addr_);
     function addDependency(uint256 _chainId) external;
     function removeDependency(uint256 _chainId) external;
     function dependencyManager() external view returns (address);
@@ -63,6 +64,7 @@ interface ISystemConfigInterop {
         bytes32 _batcherHash,
         uint64 _gasLimit,
         address _unsafeBlockSigner,
+        address _feeVaultAdmin,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         ISystemConfig.Addresses memory _addresses,

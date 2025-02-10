@@ -34,6 +34,7 @@ contract SystemConfigInterop is SystemConfig {
     /// @param _batcherHash       Initial batcher hash.
     /// @param _gasLimit          Initial gas limit.
     /// @param _unsafeBlockSigner Initial unsafe block signer address.
+    /// @param _feeVaultAdmin     Initial fee vault admin address.
     /// @param _config            Initial ResourceConfig.
     /// @param _batchInbox        Batch inbox address. An identifier for the op-node to find
     ///                           canonical data.
@@ -46,6 +47,7 @@ contract SystemConfigInterop is SystemConfig {
         bytes32 _batcherHash,
         uint64 _gasLimit,
         address _unsafeBlockSigner,
+        address _feeVaultAdmin,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         SystemConfig.Addresses memory _addresses,
@@ -61,6 +63,7 @@ contract SystemConfigInterop is SystemConfig {
             _batcherHash: _batcherHash,
             _gasLimit: _gasLimit,
             _unsafeBlockSigner: _unsafeBlockSigner,
+            _feeVaultAdmin: _feeVaultAdmin,
             _config: _config,
             _batchInbox: _batchInbox,
             _addresses: _addresses
