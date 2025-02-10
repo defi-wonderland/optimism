@@ -9,6 +9,9 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Storage } from "src/libraries/Storage.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { GasPayingToken, IGasToken } from "src/libraries/GasPayingToken.sol";
+import { Types } from "src/libraries/Types.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
+import { StaticConfig } from "src/libraries/StaticConfig.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -274,7 +277,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
     }
 
     /// @notice Getter for the fee admin address.
-    function feeVaultAdmin() external view returns (address addr_) {
+    function feeVaultAdmin() public view returns (address addr_) {
         addr_ = Storage.getAddress(FEE_VAULT_ADMIN_SLOT);
     }
 
@@ -315,13 +318,57 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
 
             // Set the gas paying token in storage and in the OptimismPortal.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
-            IOptimismPortal2(payable(optimismPortal())).setGasPayingToken({
-                _token: _token,
-                _decimals: GAS_PAYING_TOKEN_DECIMALS,
-                _name: name,
-                _symbol: symbol
-            });
+            IOptimismPortal2(payable(optimismPortal())).setConfig(
+                Types.ConfigType.GAS_PAYING_TOKEN,
+                StaticConfig.encodeSetGasPayingToken({
+                    _token: _token,
+                    _decimals: GAS_PAYING_TOKEN_DECIMALS,
+                    _name: name,
+                    _symbol: symbol
+                })
+            );
         }
+    }
+
+    /// @notice Setter for the FeeVault predeploy configuration.
+    /// @param _type The FeeVault type.
+    /// @param _recipient Address that should receive the funds.
+    /// @param _min Minimum withdrawal amount allowed to be processed.
+    /// @param _network The network in which the fees should be withdrawn to.
+    function setFeeVaultConfig(
+        Types.ConfigType _type,
+        address _recipient,
+        uint256 _min,
+        Types.WithdrawalNetwork _network
+    )
+        external
+    {
+        require(msg.sender == feeVaultAdmin(), "SystemConfig: caller is not the fee admin");
+        _setFeeVaultConfig(_type, _recipient, _min, _network);
+    }
+
+    /// @notice Internal function for setting the FeeVault config by type.
+    /// @param _type The FeeVault type
+    /// @param _recipient Address that should receive the funds.
+    /// @param _min Minimum withdrawal amount allowed to be processed.
+    /// @param _network The network in which the fees should be withdrawn to.
+    function _setFeeVaultConfig(
+        Types.ConfigType _type,
+        address _recipient,
+        uint256 _min,
+        Types.WithdrawalNetwork _network
+    )
+        internal
+    {
+        require(
+            _type == Types.ConfigType.BASE_FEE_VAULT_CONFIG || _type == Types.ConfigType.L1_FEE_VAULT_CONFIG
+                || _type == Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG,
+            "SystemConfig: ConfigType is is not a Fee Vault Config type"
+        );
+        IOptimismPortal2(payable(optimismPortal())).setConfig({
+            _type: _type,
+            _value: abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, _network))
+        });
     }
 
     /// @notice Updates the unsafe block signer address. Can only be called by the owner.

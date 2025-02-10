@@ -57,6 +57,7 @@ interface ISystemConfigInterop {
     function addDependency(uint256 _chainId) external;
     function removeDependency(uint256 _chainId) external;
     function dependencyManager() external view returns (address);
+    function setFeeVaultConfig(address _feeVaultAdmin) external;
     function initialize(
         address _owner,
         uint32 _basefeeScalar,

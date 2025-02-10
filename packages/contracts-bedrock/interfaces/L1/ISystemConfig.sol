@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+import { Types } from "src/libraries/Types.sol";
 
 /// @notice This interface corresponds to the Custom Gas Token version of the SystemConfig contract.
 interface ISystemConfig {
@@ -81,6 +82,13 @@ interface ISystemConfig {
     function setGasLimit(uint64 _gasLimit) external;
     function setUnsafeBlockSigner(address _unsafeBlockSigner) external;
     function setFeeVaultAdmin(address _feeVaultAdmin) external;
+    function setFeeVaultConfig(
+        Types.ConfigType _type,
+        address _recipient,
+        uint256 _min,
+        Types.WithdrawalNetwork _network
+    )
+        external;
     function setEIP1559Params(uint32 _denominator, uint32 _elasticity) external;
     function startBlock() external view returns (uint256 startBlock_);
     function transferOwnership(address newOwner) external; // nosemgrep
