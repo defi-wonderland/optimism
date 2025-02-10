@@ -9,6 +9,8 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Storage } from "src/libraries/Storage.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { GasPayingToken, IGasToken } from "src/libraries/GasPayingToken.sol";
+import { StaticConfig } from "src/libraries/StaticConfig.sol";
+import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -300,14 +302,12 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
             bytes32 name = GasPayingToken.sanitize(ERC20(_token).name());
             bytes32 symbol = GasPayingToken.sanitize(ERC20(_token).symbol());
 
-            // Set the gas paying token in storage and in the OptimismPortal.
+            // Set the gas paying token in storage and call the OptimismPortal.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
-            IOptimismPortal2(payable(optimismPortal())).setGasPayingToken({
-                _token: _token,
-                _decimals: GAS_PAYING_TOKEN_DECIMALS,
-                _name: name,
-                _symbol: symbol
-            });
+            IOptimismPortal2(payable(optimismPortal())).setConfig(
+                Types.ConfigType.GAS_PAYING_TOKEN,
+                StaticConfig.encodeSetGasPayingToken(_token, GAS_PAYING_TOKEN_DECIMALS, name, symbol)
+            );
         }
     }
 
