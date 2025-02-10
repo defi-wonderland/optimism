@@ -91,6 +91,8 @@ contract DeployConfig is Script {
 
     bool public useInterop;
 
+    address public systemConfigFeeVaultAdmin;
+
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
         try vm.readFile(_path) returns (string memory data_) {
@@ -176,6 +178,8 @@ contract DeployConfig is Script {
         customGasTokenAddress = _readOr(_json, "$.customGasTokenAddress", address(0));
 
         useInterop = _readOr(_json, "$.useInterop", false);
+
+        systemConfigFeeVaultAdmin = stdJson.readAddress(_json, "$.systemConfigFeeVaultAdmin");
     }
 
     function fork() public view returns (Fork fork_) {

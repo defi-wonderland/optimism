@@ -42,6 +42,7 @@ contract DeployOPChainInput is BaseDeployIO {
     address internal _unsafeBlockSigner;
     address internal _proposer;
     address internal _challenger;
+    address internal _feeVaultAdmin;
 
     // TODO Add fault proofs inputs in a future PR.
     uint32 internal _basefeeScalar;
@@ -66,6 +67,7 @@ contract DeployOPChainInput is BaseDeployIO {
         else if (_sel == this.systemConfigOwner.selector) _systemConfigOwner = _addr;
         else if (_sel == this.batcher.selector) _batcher = _addr;
         else if (_sel == this.unsafeBlockSigner.selector) _unsafeBlockSigner = _addr;
+        else if (_sel == this.feeVaultAdmin.selector) _feeVaultAdmin = _addr;
         else if (_sel == this.proposer.selector) _proposer = _addr;
         else if (_sel == this.challenger.selector) _challenger = _addr;
         else if (_sel == this.opcm.selector) _opcm = OPContractsManager(_addr);
@@ -131,6 +133,11 @@ contract DeployOPChainInput is BaseDeployIO {
     function unsafeBlockSigner() public view returns (address) {
         require(_unsafeBlockSigner != address(0), "DeployOPChainInput: not set");
         return _unsafeBlockSigner;
+    }
+
+    function feeVaultAdmin() public view returns (address) {
+        require(_feeVaultAdmin != address(0), "DeployOPChainInput: not set");
+        return _feeVaultAdmin;
     }
 
     function proposer() public view returns (address) {
@@ -354,7 +361,8 @@ contract DeployOPChain is Script {
             batcher: _doi.batcher(),
             unsafeBlockSigner: _doi.unsafeBlockSigner(),
             proposer: _doi.proposer(),
-            challenger: _doi.challenger()
+            challenger: _doi.challenger(),
+            feeVaultAdmin: _doi.feeVaultAdmin()
         });
         OPContractsManager.DeployInput memory deployInput = OPContractsManager.DeployInput({
             roles: roles,
