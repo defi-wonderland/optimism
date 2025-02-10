@@ -145,7 +145,7 @@ contract L2GenesisTest is Test {
         // All proxies except 2 have the proxy 1967 admin slot set to the proxy admin
         assertEq(
             getPredeployCountWithSlotSetToValue(
-                _path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.PROXY_ADMIN)))
+                _path, Constants.PROXY_OWNER_ADDRESS, bytes32(uint256(uint160(Predeploys.L2_PROXY_ADMIN)))
             ),
             Predeploys.PREDEPLOY_COUNT - 2
         );
@@ -182,7 +182,7 @@ contract L2GenesisTest is Test {
         // 16 prefunded dev accounts are excluded
         assertEq(expected, getJSONKeyCount(_path), "key count check");
 
-        // 3 slots: implementation, owner, admin
-        assertEq(3, getStorageKeysCount(_path, Predeploys.PROXY_ADMIN), "proxy admin storage check");
+        // 3 slots: implementation, admin, owner
+        assertEq(3, getStorageKeysCount(_path, Predeploys.L2_PROXY_ADMIN), "proxy admin storage check");
     }
 }

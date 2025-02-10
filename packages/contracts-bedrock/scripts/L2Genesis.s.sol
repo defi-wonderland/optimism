@@ -220,7 +220,7 @@ contract L2Genesis is Deployer {
             }
 
             vm.etch(addr, code);
-            EIP1967Helper.setAdmin(addr, Predeploys.PROXY_ADMIN);
+            EIP1967Helper.setAdmin(addr, Predeploys.L2_PROXY_ADMIN);
 
             if (Predeploys.isSupportedPredeploy(addr, cfg.useInterop())) {
                 address implementation = Predeploys.predeployToCodeNamespace(addr);
@@ -276,14 +276,20 @@ contract L2Genesis is Deployer {
 
     function setProxyAdmin() public {
         // Note the ProxyAdmin implementation itself is behind a proxy that owns itself.
-        address impl = _setImplementationCode(Predeploys.PROXY_ADMIN);
+        address impl = _setImplementationCode(Predeploys.L2_PROXY_ADMIN);
 
         bytes32 _ownerSlot = bytes32(0);
 
+        // NOTE: Setting a dead address as the owner of the L2ProxyAdmin to explicitly indicate that the owner slot from
+        // Ownable is meant to be unused while not leaving it uninitialized. This address is different from the ones
+        // defined in Constants.
+        address owner = address(0xdEad000000000000000000000000000000000000);
+
         // there is no initialize() function, so we just set the storage manually.
-        vm.store(Predeploys.PROXY_ADMIN, _ownerSlot, bytes32(uint256(uint160(cfg.proxyAdminOwner()))));
+        vm.store(Predeploys.L2_PROXY_ADMIN, _ownerSlot, bytes32(uint256(uint160(owner))));
+
         // update the proxy to not be uninitialized (although not standard initialize pattern)
-        vm.store(impl, _ownerSlot, bytes32(uint256(uint160(cfg.proxyAdminOwner()))));
+        vm.store(impl, _ownerSlot, bytes32(uint256(uint160(owner))));
     }
 
     function setL2ToL1MessagePasser() public {

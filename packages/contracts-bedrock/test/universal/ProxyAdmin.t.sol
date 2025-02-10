@@ -14,6 +14,9 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
+// Libraries
+import { Types } from "src/libraries/Types.sol";
+
 contract ProxyAdmin_Test is Test {
     address alice = address(64);
 
@@ -83,9 +86,9 @@ contract ProxyAdmin_Test is Test {
         admin.setImplementationName(address(resolved), "a");
 
         // Set the proxy types
-        admin.setProxyType(address(proxy), IProxyAdmin.ProxyType.ERC1967);
-        admin.setProxyType(address(chugsplash), IProxyAdmin.ProxyType.CHUGSPLASH);
-        admin.setProxyType(address(resolved), IProxyAdmin.ProxyType.RESOLVED);
+        admin.setProxyType(address(proxy), Types.ProxyType.ERC1967);
+        admin.setProxyType(address(chugsplash), Types.ProxyType.CHUGSPLASH);
+        admin.setProxyType(address(resolved), Types.ProxyType.RESOLVED);
         vm.stopPrank();
 
         implementation = new SimpleStorage();
@@ -109,7 +112,7 @@ contract ProxyAdmin_Test is Test {
 
     function test_setProxyType_notOwner_reverts() external {
         vm.expectRevert("Ownable: caller is not the owner");
-        admin.setProxyType(address(0), IProxyAdmin.ProxyType.CHUGSPLASH);
+        admin.setProxyType(address(0), Types.ProxyType.CHUGSPLASH);
     }
 
     function test_owner_succeeds() external view {
@@ -117,9 +120,9 @@ contract ProxyAdmin_Test is Test {
     }
 
     function test_proxyType_succeeds() external view {
-        assertEq(uint256(admin.proxyType(address(proxy))), uint256(IProxyAdmin.ProxyType.ERC1967));
-        assertEq(uint256(admin.proxyType(address(chugsplash))), uint256(IProxyAdmin.ProxyType.CHUGSPLASH));
-        assertEq(uint256(admin.proxyType(address(resolved))), uint256(IProxyAdmin.ProxyType.RESOLVED));
+        assertEq(uint256(admin.proxyType(address(proxy))), uint256(Types.ProxyType.ERC1967));
+        assertEq(uint256(admin.proxyType(address(chugsplash))), uint256(Types.ProxyType.CHUGSPLASH));
+        assertEq(uint256(admin.proxyType(address(resolved))), uint256(Types.ProxyType.RESOLVED));
     }
 
     function test_erc1967GetProxyImplementation_succeeds() external {
@@ -179,7 +182,7 @@ contract ProxyAdmin_Test is Test {
     }
 
     function changeProxyAdmin(address payable _proxy) internal {
-        IProxyAdmin.ProxyType proxyType = admin.proxyType(address(_proxy));
+        Types.ProxyType proxyType = admin.proxyType(address(_proxy));
 
         vm.prank(alice);
         admin.changeProxyAdmin(_proxy, address(128));
@@ -188,13 +191,13 @@ contract ProxyAdmin_Test is Test {
         // no longer call the proxy interface except for
         // the ResolvedDelegate type on which anybody can
         // call the admin interface.
-        if (proxyType == IProxyAdmin.ProxyType.ERC1967) {
+        if (proxyType == Types.ProxyType.ERC1967) {
             vm.expectRevert("Proxy: implementation not initialized");
             admin.getProxyAdmin(_proxy);
-        } else if (proxyType == IProxyAdmin.ProxyType.CHUGSPLASH) {
+        } else if (proxyType == Types.ProxyType.CHUGSPLASH) {
             vm.expectRevert("L1ChugSplashProxy: implementation is not set yet");
             admin.getProxyAdmin(_proxy);
-        } else if (proxyType == IProxyAdmin.ProxyType.RESOLVED) {
+        } else if (proxyType == Types.ProxyType.RESOLVED) {
             // Just an empty block to show that all cases are covered
         } else {
             vm.expectRevert("ProxyAdmin: unknown proxy type");
@@ -203,11 +206,11 @@ contract ProxyAdmin_Test is Test {
         // Call the proxy contract directly to get the admin.
         // Different proxy types have different interfaces.
         vm.prank(address(128));
-        if (proxyType == IProxyAdmin.ProxyType.ERC1967) {
+        if (proxyType == Types.ProxyType.ERC1967) {
             assertEq(IProxy(payable(_proxy)).admin(), address(128));
-        } else if (proxyType == IProxyAdmin.ProxyType.CHUGSPLASH) {
+        } else if (proxyType == Types.ProxyType.CHUGSPLASH) {
             assertEq(IL1ChugSplashProxy(payable(_proxy)).getOwner(), address(128));
-        } else if (proxyType == IProxyAdmin.ProxyType.RESOLVED) {
+        } else if (proxyType == Types.ProxyType.RESOLVED) {
             assertEq(addressManager.owner(), address(128));
         } else {
             assert(false);

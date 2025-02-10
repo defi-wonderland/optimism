@@ -6,7 +6,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Libraries
 import { Constants } from "src/libraries/Constants.sol";
-
+import { Types } from "src/libraries/Types.sol";
 // Interfaces
 import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
 import { IL1ChugSplashProxy } from "interfaces/legacy/IL1ChugSplashProxy.sol";
@@ -19,18 +19,8 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 ///         based on the OpenZeppelin implementation. It has backwards compatibility logic to work
 ///         with the various types of proxies that have been deployed by Optimism in the past.
 contract ProxyAdmin is Ownable {
-    /// @notice The proxy types that the ProxyAdmin can manage.
-    /// @custom:value ERC1967    Represents an ERC1967 compliant transparent proxy interface.
-    /// @custom:value CHUGSPLASH Represents the Chugsplash proxy interface (legacy).
-    /// @custom:value RESOLVED   Represents the ResolvedDelegate proxy (legacy).
-    enum ProxyType {
-        ERC1967,
-        CHUGSPLASH,
-        RESOLVED
-    }
-
     /// @notice A mapping of proxy types, used for backwards compatibility.
-    mapping(address => ProxyType) public proxyType;
+    mapping(address => Types.ProxyType) public proxyType;
 
     /// @notice A reverse mapping of addresses to names held in the AddressManager. This must be
     ///         manually kept up to date with changes in the AddressManager for this contract
@@ -53,7 +43,7 @@ contract ProxyAdmin is Ownable {
     ///         proxy types.
     /// @param _address Address of the proxy.
     /// @param _type    Type of the proxy.
-    function setProxyType(address _address, ProxyType _type) external onlyOwner {
+    function setProxyType(address _address, Types.ProxyType _type) external onlyOwner {
         proxyType[_address] = _type;
     }
 
@@ -102,12 +92,12 @@ contract ProxyAdmin is Ownable {
     /// @param _proxy Address of the proxy to get the implementation of.
     /// @return Address of the implementation of the proxy.
     function getProxyImplementation(address _proxy) external view returns (address) {
-        ProxyType ptype = proxyType[_proxy];
-        if (ptype == ProxyType.ERC1967) {
+        Types.ProxyType ptype = proxyType[_proxy];
+        if (ptype == Types.ProxyType.ERC1967) {
             return IStaticERC1967Proxy(_proxy).implementation();
-        } else if (ptype == ProxyType.CHUGSPLASH) {
+        } else if (ptype == Types.ProxyType.CHUGSPLASH) {
             return IStaticL1ChugSplashProxy(_proxy).getImplementation();
-        } else if (ptype == ProxyType.RESOLVED) {
+        } else if (ptype == Types.ProxyType.RESOLVED) {
             return addressManager.getAddress(implementationName[_proxy]);
         } else {
             revert("ProxyAdmin: unknown proxy type");
@@ -118,12 +108,12 @@ contract ProxyAdmin is Ownable {
     /// @param _proxy Address of the proxy to get the admin of.
     /// @return Address of the admin of the proxy.
     function getProxyAdmin(address payable _proxy) external view returns (address) {
-        ProxyType ptype = proxyType[_proxy];
-        if (ptype == ProxyType.ERC1967) {
+        Types.ProxyType ptype = proxyType[_proxy];
+        if (ptype == Types.ProxyType.ERC1967) {
             return IStaticERC1967Proxy(_proxy).admin();
-        } else if (ptype == ProxyType.CHUGSPLASH) {
+        } else if (ptype == Types.ProxyType.CHUGSPLASH) {
             return IStaticL1ChugSplashProxy(_proxy).getOwner();
-        } else if (ptype == ProxyType.RESOLVED) {
+        } else if (ptype == Types.ProxyType.RESOLVED) {
             return addressManager.owner();
         } else {
             revert("ProxyAdmin: unknown proxy type");
@@ -134,12 +124,12 @@ contract ProxyAdmin is Ownable {
     /// @param _proxy    Address of the proxy to update.
     /// @param _newAdmin Address of the new proxy admin.
     function changeProxyAdmin(address payable _proxy, address _newAdmin) external onlyOwner {
-        ProxyType ptype = proxyType[_proxy];
-        if (ptype == ProxyType.ERC1967) {
+        Types.ProxyType ptype = proxyType[_proxy];
+        if (ptype == Types.ProxyType.ERC1967) {
             IProxy(_proxy).changeAdmin(_newAdmin);
-        } else if (ptype == ProxyType.CHUGSPLASH) {
+        } else if (ptype == Types.ProxyType.CHUGSPLASH) {
             IL1ChugSplashProxy(_proxy).setOwner(_newAdmin);
-        } else if (ptype == ProxyType.RESOLVED) {
+        } else if (ptype == Types.ProxyType.RESOLVED) {
             addressManager.transferOwnership(_newAdmin);
         } else {
             revert("ProxyAdmin: unknown proxy type");
@@ -150,14 +140,14 @@ contract ProxyAdmin is Ownable {
     /// @param _proxy          Address of the proxy to upgrade.
     /// @param _implementation Address of the new implementation address.
     function upgrade(address payable _proxy, address _implementation) public onlyOwner {
-        ProxyType ptype = proxyType[_proxy];
-        if (ptype == ProxyType.ERC1967) {
+        Types.ProxyType ptype = proxyType[_proxy];
+        if (ptype == Types.ProxyType.ERC1967) {
             IProxy(_proxy).upgradeTo(_implementation);
-        } else if (ptype == ProxyType.CHUGSPLASH) {
+        } else if (ptype == Types.ProxyType.CHUGSPLASH) {
             IL1ChugSplashProxy(_proxy).setStorage(
                 Constants.PROXY_IMPLEMENTATION_ADDRESS, bytes32(uint256(uint160(_implementation)))
             );
-        } else if (ptype == ProxyType.RESOLVED) {
+        } else if (ptype == Types.ProxyType.RESOLVED) {
             string memory name = implementationName[_proxy];
             addressManager.setAddress(name, _implementation);
         } else {
@@ -181,8 +171,8 @@ contract ProxyAdmin is Ownable {
         payable
         onlyOwner
     {
-        ProxyType ptype = proxyType[_proxy];
-        if (ptype == ProxyType.ERC1967) {
+        Types.ProxyType ptype = proxyType[_proxy];
+        if (ptype == Types.ProxyType.ERC1967) {
             IProxy(_proxy).upgradeToAndCall{ value: msg.value }(_implementation, _data);
         } else {
             // reverts if proxy type is unknown

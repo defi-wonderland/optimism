@@ -102,4 +102,14 @@ library Types {
         ADD_DEPENDENCY,
         REMOVE_DEPENDENCY
     }
+
+    /// @notice The proxy types that the ProxyAdmin can manage.
+    /// @custom:value ERC1967    Represents an ERC1967 compliant transparent proxy interface.
+    /// @custom:value CHUGSPLASH Represents the Chugsplash proxy interface (legacy).
+    /// @custom:value RESOLVED   Represents the ResolvedDelegate proxy (legacy).
+    enum ProxyType {
+        ERC1967,
+        CHUGSPLASH,
+        RESOLVED
+    }
 }
