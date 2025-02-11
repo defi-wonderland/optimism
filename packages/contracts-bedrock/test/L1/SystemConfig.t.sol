@@ -11,7 +11,9 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
-
+import { StaticConfig } from "src/libraries/StaticConfig.sol";
+import { Types } from "src/libraries/Types.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
@@ -487,7 +489,13 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
     function test_initialize_customGasTokenCall_succeeds() external {
         vm.expectCall(
             address(optimismPortal2),
-            abi.encodeCall(optimismPortal2.setGasPayingToken, (address(token), 18, bytes32("Silly"), bytes32("SIL")))
+            abi.encodeCall(
+                optimismPortal2.setConfig,
+                (
+                    Types.ConfigType.GAS_PAYING_TOKEN,
+                    StaticConfig.encodeSetGasPayingToken(address(token), 18, bytes32("Silly"), bytes32("SIL"))
+                )
+            )
         );
 
         vm.expectEmit(address(optimismPortal2));
@@ -500,7 +508,13 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
                 uint256(0), // value
                 uint64(200_000), // gasLimit
                 false, // isCreation,
-                abi.encodeCall(IL1Block.setGasPayingToken, (address(token), 18, bytes32("Silly"), bytes32("SIL")))
+                abi.encodeCall(
+                    IL1Block.setConfig,
+                    (
+                        Types.ConfigType.GAS_PAYING_TOKEN,
+                        StaticConfig.encodeSetGasPayingToken(address(token), 18, bytes32("Silly"), bytes32("SIL"))
+                    )
+                )
             )
         );
 
@@ -597,6 +611,13 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
         vm.expectRevert("Ownable: caller is not the owner");
         systemConfig.setFeeVaultAdmin(address(0x20));
     }
+
+    function test_setFeeVaultConfig_notOwner_reverts() external {
+        vm.expectRevert("SystemConfig: caller is not the fee admin");
+        systemConfig.setFeeVaultConfig(
+            Types.ConfigType.BASE_FEE_VAULT_CONFIG, address(0x20), 0, Types.WithdrawalNetwork.L1
+        );
+    }
 }
 
 contract SystemConfig_Setters_Test is SystemConfig_Init {
@@ -686,12 +707,40 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
     }
 
     /// @dev Tests that `setFeeVaultAdmin` updates the fee vault admin successfully.
-    function testFuzz_setFeeVaultAdmin_succeeds(address newFeeVaultAdmin) external {
+    function testFuzz_setFeeVaultAdmin_succeeds(address _newFeeVaultAdmin) external {
         vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.FEE_VAULT_ADMIN, abi.encode(newFeeVaultAdmin));
+        emit ConfigUpdate(0, ISystemConfig.UpdateType.FEE_VAULT_ADMIN, abi.encode(_newFeeVaultAdmin));
 
         vm.prank(systemConfig.owner());
-        systemConfig.setFeeVaultAdmin(newFeeVaultAdmin);
-        assertEq(systemConfig.feeVaultAdmin(), newFeeVaultAdmin);
+        systemConfig.setFeeVaultAdmin(_newFeeVaultAdmin);
+        assertEq(systemConfig.feeVaultAdmin(), _newFeeVaultAdmin);
+    }
+
+    /// @dev Tests that `setFeeVaultConfig` updates the fee vault config successfully.
+    function testFuzz_setFeeVaultConfig_succeeds(
+        uint8 _configTypeSeed,
+        address _recipient,
+        uint88 _min,
+        bool _isL2
+    )
+        external
+    {
+        Types.WithdrawalNetwork network = _isL2 ? Types.WithdrawalNetwork.L2 : Types.WithdrawalNetwork.L1;
+
+        Types.ConfigType[] memory types = new Types.ConfigType[](3);
+        types[0] = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
+        types[1] = Types.ConfigType.L1_FEE_VAULT_CONFIG;
+        types[2] = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
+
+        Types.ConfigType configType = types[_configTypeSeed % 3];
+        bytes memory data = abi.encodeCall(
+            optimismPortal2.setConfig,
+            (configType, abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, network)))
+        );
+        vm.expectCall(address(optimismPortal2), data);
+        vm.mockCall(address(optimismPortal2), data, abi.encode(true));
+
+        vm.prank(systemConfig.feeVaultAdmin());
+        systemConfig.setFeeVaultConfig(configType, _recipient, _min, network);
     }
 }

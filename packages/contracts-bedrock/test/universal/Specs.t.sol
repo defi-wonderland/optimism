@@ -266,7 +266,6 @@ contract Specification_Test is CommonTest {
             _name: "OptimismPortalInterop",
             _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
         });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
         _addSpec({
             _name: "OptimismPortalInterop",
             _sel: IOptimismPortalInterop.setConfig.selector,
@@ -318,7 +317,7 @@ contract Specification_Test is CommonTest {
             _name: "OptimismPortal2",
             _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
         });
-        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
+        _addSpec({ _name: "OptimismPortal2", _sel: IOptimismPortal2.setConfig.selector, _auth: Role.SYSTEMCONFIGOWNER });
 
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });
@@ -380,9 +379,10 @@ contract Specification_Test is CommonTest {
             _auth: Role.SYSTEMCONFIGOWNER
         });
         _addSpec({ _name: "SystemConfig", _sel: ISystemConfig.setFeeVaultAdmin.selector, _auth: Role.SYSTEMCONFIGOWNER });
+        _addSpec({ _name: "SystemConfig", _sel: ISystemConfig.feeVaultAdmin.selector });
+        _addSpec({ _name: "SystemConfig", _sel: ISystemConfig.setFeeVaultConfig.selector, _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("transferOwnership(address)"), _auth: Role.SYSTEMCONFIGOWNER });
         _addSpec({ _name: "SystemConfig", _sel: ISystemConfig.unsafeBlockSigner.selector });
-        _addSpec({ _name: "SystemConfig", _sel: _getSel("feeVaultAdmin()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("version()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("l1CrossDomainMessenger()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("l1ERC721Bridge()") });
@@ -458,13 +458,18 @@ contract Specification_Test is CommonTest {
             _sel: ISystemConfigInterop.setFeeVaultAdmin.selector,
             _auth: Role.SYSTEMCONFIGOWNER
         });
+        _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.feeVaultAdmin.selector });
+        _addSpec({
+            _name: "SystemConfigInterop",
+            _sel: ISystemConfigInterop.setFeeVaultConfig.selector,
+            _auth: Role.SYSTEMCONFIGOWNER
+        });
         _addSpec({
             _name: "SystemConfigInterop",
             _sel: _getSel("transferOwnership(address)"),
             _auth: Role.SYSTEMCONFIGOWNER
         });
         _addSpec({ _name: "SystemConfigInterop", _sel: ISystemConfigInterop.unsafeBlockSigner.selector });
-        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("feeVaultAdmin()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("version()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("l1CrossDomainMessenger()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("l1ERC721Bridge()") });

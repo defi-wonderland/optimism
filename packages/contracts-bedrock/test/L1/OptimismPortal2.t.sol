@@ -21,7 +21,8 @@ import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import "src/dispute/lib/Types.sol";
 import "src/libraries/PortalErrors.sol";
-
+import { StaticConfig } from "src/libraries/StaticConfig.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
@@ -331,12 +332,59 @@ contract OptimismPortal2_Test is CommonTest {
                 uint256(0), // value
                 uint64(200_000), // gasLimit
                 false, // isCreation,
-                abi.encodeCall(IL1Block.setGasPayingToken, (_token, _decimals, _name, _symbol))
+                abi.encodeCall(
+                    IL1Block.setConfig,
+                    (
+                        Types.ConfigType.GAS_PAYING_TOKEN,
+                        StaticConfig.encodeSetGasPayingToken(_token, _decimals, _name, _symbol)
+                    )
+                )
             )
         );
 
         vm.prank(address(systemConfig));
-        optimismPortal2.setGasPayingToken({ _token: _token, _decimals: _decimals, _name: _name, _symbol: _symbol });
+        optimismPortal2.setConfig(
+            Types.ConfigType.GAS_PAYING_TOKEN, StaticConfig.encodeSetGasPayingToken(_token, _decimals, _name, _symbol)
+        );
+    }
+
+    /// @dev Tests that `setFeeVaultConfig` succeeds for a valid config type.
+    function testFuzz_setFeeVaultConfig_succeeds(
+        uint8 _configTypeSeed,
+        address _recipient,
+        uint88 _min,
+        uint8 _networkSeed
+    )
+        external
+    {
+        Types.WithdrawalNetwork network = Types.WithdrawalNetwork(_networkSeed % 2);
+
+        Types.ConfigType[] memory types = new Types.ConfigType[](3);
+        types[0] = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
+        types[1] = Types.ConfigType.L1_FEE_VAULT_CONFIG;
+        types[2] = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
+
+        Types.ConfigType configType = types[_configTypeSeed % 3];
+
+        vm.expectEmit(address(optimismPortal2));
+        emit TransactionDeposited(
+            0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            0,
+            abi.encodePacked(
+                uint256(0), // mint
+                uint256(0), // value
+                uint64(200_000), // gasLimit
+                false, // isCreation,
+                abi.encodeCall(
+                    IL1Block.setConfig,
+                    (configType, abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, network)))
+                )
+            )
+        );
+
+        vm.prank(address(systemConfig));
+        optimismPortal2.setConfig(configType, abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, network)));
     }
 
     /// @notice Ensures that the deposit event is correct for the `setGasPayingToken`
@@ -366,7 +414,9 @@ contract OptimismPortal2_Test is CommonTest {
 
         vm.deal(address(systemConfig), 100 ether);
         vm.prank(address(systemConfig));
-        optimismPortal2.setGasPayingToken({ _token: _token, _decimals: 18, _name: name, _symbol: symbol });
+        optimismPortal2.setConfig(
+            Types.ConfigType.GAS_PAYING_TOKEN, StaticConfig.encodeSetGasPayingToken(_token, 18, name, symbol)
+        );
 
         vm.prank(Constants.DEPOSITOR_ACCOUNT, Constants.DEPOSITOR_ACCOUNT);
         optimismPortal2.depositTransaction({
@@ -374,7 +424,10 @@ contract OptimismPortal2_Test is CommonTest {
             _value: 0,
             _gasLimit: 200_000,
             _isCreation: false,
-            _data: abi.encodeCall(IL1Block.setGasPayingToken, (_token, 18, name, symbol))
+            _data: abi.encodeCall(
+                IL1Block.setConfig,
+                (Types.ConfigType.GAS_PAYING_TOKEN, StaticConfig.encodeSetGasPayingToken(_token, 18, name, symbol))
+            )
         });
 
         VmSafe.Log[] memory logs = vm.getRecordedLogs();
@@ -400,7 +453,9 @@ contract OptimismPortal2_Test is CommonTest {
         vm.assume(_caller != address(systemConfig));
         vm.prank(_caller);
         vm.expectRevert(Unauthorized.selector);
-        optimismPortal2.setGasPayingToken({ _token: address(0), _decimals: 0, _name: "", _symbol: "" });
+        optimismPortal2.setConfig(
+            Types.ConfigType.GAS_PAYING_TOKEN, StaticConfig.encodeSetGasPayingToken(address(0), 0, "", "")
+        );
     }
 
     /// @dev Tests that `depositERC20Transaction` reverts when the gas paying token is ether.
