@@ -24,12 +24,12 @@
     "sourceCodeHash": "0xae496c123e212e36c66c27b6ad3b46aa8cc03559aa4d23474d14a71050593c68"
   },
   "src/L1/OptimismPortal2.sol": {
-    "initCodeHash": "0xfd14fd690752519064d6de6c3e15d69ec9146bc8714e56ac286305773dbb1533",
-    "sourceCodeHash": "0x3dbd4601c67a43c42f403f6b28e6e2d8bf4f3d2cf2f2d8f7460026e0c6c66def"
+    "initCodeHash": "0x9c3eb13f0ca0c03f9f790cea52338a73f3f507612b476f95225ac5af1bdd7ac5",
+    "sourceCodeHash": "0x55932733c1f835694fb9df56f18a095c1da1776a8df90420086d6c94d0648fee"
   },
   "src/L1/OptimismPortalInterop.sol": {
-    "initCodeHash": "0xb434421b98dd60b3b4cee642a6ff4e704437ad3d1e46a579e1a8f7f3babea9e1",
-    "sourceCodeHash": "0x6bb30fecd4a8a0a4d0270f052405de4237ffea9ce3e0ffa868970aecaa233d40"
+    "initCodeHash": "0x2d152e1fd9fd4e3f4d45db3c22090eae9a4cc3cdc09c416a6e9d236b38bfcc54",
+    "sourceCodeHash": "0x698826b14fd57473b09ded4360d3f88645823e523770bc46efcb1cd282656f62"
   },
   "src/L1/ProtocolVersions.sol": {
     "initCodeHash": "0x0000ec89712d8b4609873f1ba76afffd4205bf9110818995c90134dbec12e91e",
@@ -40,11 +40,11 @@
     "sourceCodeHash": "0xafa784ea78818a382ff3a61e2d84be58c7978110c06b9273db68c0213ead02d3"
   },
   "src/L1/SystemConfig.sol": {
-    "initCodeHash": "0x48a468499a00aac38000dab95412ee7322363345be8aaccc8266b4d8bd0d3a3f",
-    "sourceCodeHash": "0xb9ab3a0888bdb40c5b569765d8a93c99c97305301a75d47e05c10ac53209f1b3"
+    "initCodeHash": "0x368a9bf189165976b5c30fa5a7806b00ba85503f01c55718c24e32b963332fb7",
+    "sourceCodeHash": "0x04114057f508ef860aa0ea57b1cd12d5db3f97b2122dfedd3e68bfb7c13e5c10"
   },
   "src/L1/SystemConfigInterop.sol": {
-    "initCodeHash": "0x69443cbcbac7a08674dc9bace6e6aea9b01e795bf964ee330e15783b51d198a2",
+    "initCodeHash": "0x63e7f20e73b337ce411aa37bbbfa54dae1c80fed239102e16cdca7cbbc5e97be",
     "sourceCodeHash": "0x55d53834214587d03ee570644dbf183c7137ba3ec846f5d496761a818a3b5153"
   },
   "src/L2/BaseFeeVault.sol": {
