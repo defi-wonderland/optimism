@@ -75,7 +75,8 @@ func (ba *FetchingAttributesBuilder) PreparePayloadAttributes(ctx context.Contex
 					epoch, info.ParentHash(), l2Parent.L1Origin))
 		}
 
-		deposits, err := DeriveDeposits(receipts, ba.rollupCfg.DepositContractAddress)
+		// Derive deposits and cross L2 deposits
+		deposits, err := DeriveDeposits(receipts, ba.rollupCfg.DepositContractAddress, ba.rollupCfg.IsInterop(nextL2Time))
 		if err != nil {
 			// deposits may never be ignored. Failing to process them is a critical error.
 			return nil, NewCriticalError(fmt.Errorf("failed to derive some deposits: %w", err))
