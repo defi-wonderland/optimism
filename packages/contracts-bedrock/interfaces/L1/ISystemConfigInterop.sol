@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+import { Types } from "src/libraries/Types.sol";
 
 interface ISystemConfigInterop {
     event ConfigUpdate(uint256 indexed version, ISystemConfig.UpdateType indexed updateType, bytes data);
@@ -57,7 +58,13 @@ interface ISystemConfigInterop {
     function addDependency(uint256 _chainId) external;
     function removeDependency(uint256 _chainId) external;
     function dependencyManager() external view returns (address);
-    function setFeeVaultConfig(address _feeVaultAdmin) external;
+    function setFeeVaultConfig(
+        Types.ConfigType _type,
+        address _recipient,
+        uint256 _min,
+        Types.WithdrawalNetwork _network
+    )
+        external;
     function initialize(
         address _owner,
         uint32 _basefeeScalar,
