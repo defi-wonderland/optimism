@@ -396,6 +396,144 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(systemPath.data, userPath.data);
     }
 
+    /// @dev Tests that the `setConfig` function succeeds.
+    function testFuzz_setConfig_succeeds(uint8 _configType, bytes memory _data) external {
+        _configType = uint8(bound(uint256(_configType), 0, uint256(type(Types.ConfigType).max)));
+
+        vm.expectEmit(address(optimismPortal2));
+        emit TransactionDeposited(
+            Constants.DEPOSITOR_ACCOUNT,
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            0,
+            abi.encodePacked(
+                uint256(0), // mint
+                uint256(0), // value
+                uint64(200_000), // gasLimit
+                false, // isCreation,
+                abi.encodeCall(IL1Block.setConfig, (Types.ConfigType(_configType), _data))
+            )
+        );
+
+        vm.prank(address(systemConfig));
+        optimismPortal2.setConfig(Types.ConfigType(_configType), _data);
+    }
+
+    function testFuzz_setConfig_correctEvent_succeeds(uint8 _configType, bytes memory _data) external {
+        _configType = uint8(bound(uint256(_configType), 0, uint256(type(Types.ConfigType).max)));
+
+        vm.recordLogs();
+        vm.prank(address(systemConfig));
+        optimismPortal2.setConfig(Types.ConfigType(_configType), _data);
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT, Constants.DEPOSITOR_ACCOUNT);
+        optimismPortal2.depositTransaction({
+            _to: Predeploys.L1_BLOCK_ATTRIBUTES,
+            _value: 0,
+            _gasLimit: 200_000,
+            _isCreation: false,
+            _data: abi.encodeCall(IL1Block.setConfig, (Types.ConfigType(_configType), _data))
+        });
+
+        VmSafe.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(logs.length, 2);
+
+        VmSafe.Log memory systemPath = logs[0];
+        VmSafe.Log memory userPath = logs[1];
+
+        assertEq(systemPath.topics.length, 4);
+        assertEq(systemPath.topics.length, userPath.topics.length);
+        assertEq(systemPath.topics[0], userPath.topics[0]);
+        assertEq(systemPath.topics[1], userPath.topics[1]);
+        assertEq(systemPath.topics[2], userPath.topics[2]);
+        assertEq(systemPath.topics[3], userPath.topics[3]);
+        assertEq(systemPath.data, userPath.data);
+    }
+
+    /// @dev Tests that the `setConfig` function reverts when called by a non-system config for any config type.
+    function testFuzz_setConfig_unauthorized_reverts(address _caller, uint8 _configType, bytes memory _data) external {
+        vm.assume(_caller != address(systemConfig));
+        _configType = uint8(bound(uint256(_configType), 0, uint256(type(Types.ConfigType).max)));
+
+        vm.expectRevert(Unauthorized.selector);
+        vm.prank(_caller);
+        optimismPortal2.setConfig(Types.ConfigType(_configType), _data);
+    }
+
+    /// @dev Tests that the upgrade function succeeds.
+    function testFuzz_upgrade_succeeds(uint32 _gasLimit, bytes memory _calldata) external {
+        vm.expectEmit(address(optimismPortal2));
+        emit TransactionDeposited(
+            Constants.DEPOSITOR_ACCOUNT,
+            Predeploys.L2_PROXY_ADMIN,
+            0,
+            abi.encodePacked(
+                uint256(0), // mint
+                uint256(0), // value
+                uint64(_gasLimit), // gasLimit
+                false, // isCreation,
+                _calldata
+            )
+        );
+
+        vm.prank(superchainConfig.upgrader());
+        optimismPortal2.upgrade(_gasLimit, _calldata);
+    }
+
+    /// @notice Ensures that the deposit event is correct for the `upgrade`
+    ///         code path that manually emits a deposit transaction outside of the
+    ///         `depositTransaction` function. This is a simple differential test.
+    function testFuzz_upgrade_correctEvent_succeeds(uint32 _gasLimit, bytes memory _calldata) external {
+        vm.assume(_calldata.length <= 120_000);
+        IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
+        _gasLimit =
+            uint32(bound(_gasLimit, optimismPortal2.minimumGasLimit(uint64(_calldata.length)), rcfg.maxResourceLimit));
+
+        vm.recordLogs();
+        vm.prank(superchainConfig.upgrader());
+        optimismPortal2.upgrade(_gasLimit, _calldata);
+
+        /// Roll the block number to ensure that the deposit transaction is processed in the next block
+        /// This is necessary otherwise the call fails with OutOfGas
+        vm.roll(block.number + 1);
+        vm.prank(Constants.DEPOSITOR_ACCOUNT, Constants.DEPOSITOR_ACCOUNT);
+        optimismPortal2.depositTransaction({
+            _to: Predeploys.L2_PROXY_ADMIN,
+            _value: 0,
+            _gasLimit: uint64(_gasLimit),
+            _isCreation: false,
+            _data: _calldata
+        });
+
+        VmSafe.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(logs.length, 2);
+
+        VmSafe.Log memory systemPath = logs[0];
+        VmSafe.Log memory userPath = logs[1];
+
+        assertEq(systemPath.topics.length, 4);
+        assertEq(systemPath.topics.length, userPath.topics.length);
+        assertEq(systemPath.topics[0], userPath.topics[0]);
+        assertEq(systemPath.topics[1], userPath.topics[1]);
+        assertEq(systemPath.topics[2], userPath.topics[2]);
+        assertEq(systemPath.topics[3], userPath.topics[3]);
+        assertEq(systemPath.data, userPath.data);
+    }
+
+    /// @dev Tests that the `upgrade` function reverts when called by a non-upgrader.
+    function testFuzz_upgrade_unauthorized_reverts(
+        address _caller,
+        uint32 _gasLimit,
+        bytes memory _calldata
+    )
+        external
+    {
+        vm.assume(_caller != superchainConfig.upgrader());
+
+        vm.expectRevert(Unauthorized.selector);
+        vm.prank(_caller);
+        optimismPortal2.upgrade(_gasLimit, _calldata);
+    }
+
     /// @dev Tests that the gas paying token cannot be set by a non-system config.
     function test_setGasPayingToken_notSystemConfig_fails(address _caller) external {
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
