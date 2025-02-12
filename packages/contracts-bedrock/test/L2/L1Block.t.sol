@@ -11,10 +11,20 @@ import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { LibString } from "@solady/utils/LibString.sol";
+import { FeeVault } from "src/L2/FeeVault.sol";
 import "src/libraries/L1BlockErrors.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Contracts
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
+import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
+import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
 
 contract L1BlockTest is CommonTest {
     address depositor;
+
+    bytes32 public constant IS_ISTHMUS_SLOT = bytes32(uint256(8));
 
     event GasPayingTokenSet(address indexed token, uint8 indexed decimals, bytes32 name, bytes32 symbol);
 
@@ -370,6 +380,126 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     function test_setConfig_l1FeeVault_succeeds(address _recipient, uint88 _minWithdrawalAmount, bool _isL1) external {
         Types.ConfigType configType = Types.ConfigType.L1_FEE_VAULT_CONFIG;
         _assertFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
+    }
+
+    /// @dev Tests that `setIsthmus` reverts if sender address is not the depositor account.
+    function test_setIsthmus_notDepositorReverts(address _caller) external {
+        vm.assume(_caller != Constants.DEPOSITOR_ACCOUNT);
+
+        vm.prank(_caller);
+        vm.expectRevert(NotDepositor.selector);
+        l1Block.setIsthmus();
+    }
+
+    /// @dev Tests that `setIsthmus` reverts if the L1Block is already an Isthmus upgraded chain.
+    function test_setIsthmus_ifAlreadySet_reverts() external {
+        vm.store(address(l1Block), IS_ISTHMUS_SLOT, bytes32(uint256(1)));
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        vm.expectRevert(IsthmusAlreadyActive.selector);
+        l1Block.setIsthmus();
+    }
+
+    /// @dev Tests that `setIsthmus` succeeds. Assumes that the fee vaults are already set up.
+    function test_setIsthmus_succeeds(
+        address[3] memory _recipients,
+        uint88[3] memory _minWithdrawalAmounts,
+        bool[3] memory _isL1,
+        address _l1CrossDomainMessengerAddress,
+        address _l1StandardBridgeAddress,
+        address _l1ERC721BridgeAddress,
+        uint256 _remoteChainId
+    )
+        external
+    {
+        // Fee vaults
+        bytes32 l1FeeVaultConfig =
+            _mockFeeVault(Predeploys.L1_FEE_VAULT, _recipients[0], _minWithdrawalAmounts[0], _isL1[0]);
+        bytes32 sequencerFeeVaultConfig =
+            _mockFeeVault(Predeploys.SEQUENCER_FEE_WALLET, _recipients[1], _minWithdrawalAmounts[1], _isL1[1]);
+        bytes32 baseFeeVaultConfig =
+            _mockFeeVault(Predeploys.BASE_FEE_VAULT, _recipients[2], _minWithdrawalAmounts[2], _isL1[2]);
+
+        // Predeploys.L2_CROSS_DOMAIN_MESSENGER
+        vm.mockCall(
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
+            abi.encodeCall(ICrossDomainMessenger.OTHER_MESSENGER, ()),
+            abi.encode(_l1CrossDomainMessengerAddress)
+        );
+        vm.expectCall(Predeploys.L2_CROSS_DOMAIN_MESSENGER, abi.encodeCall(ICrossDomainMessenger.OTHER_MESSENGER, ()));
+
+        // Predeploys.L2_STANDARD_BRIDGE
+        vm.mockCall(
+            Predeploys.L2_STANDARD_BRIDGE,
+            abi.encodeCall(IStandardBridge.OTHER_BRIDGE, ()),
+            abi.encode(_l1StandardBridgeAddress)
+        );
+        vm.expectCall(Predeploys.L2_STANDARD_BRIDGE, abi.encodeCall(IStandardBridge.OTHER_BRIDGE, ()));
+
+        // Predeploys.L2_ERC_721_BRIDGE
+        vm.mockCall(
+            Predeploys.L2_ERC721_BRIDGE,
+            abi.encodeCall(IERC721Bridge.OTHER_BRIDGE, ()),
+            abi.encode(_l1ERC721BridgeAddress)
+        );
+        vm.expectCall(Predeploys.L2_ERC721_BRIDGE, abi.encodeCall(IERC721Bridge.OTHER_BRIDGE, ()));
+
+        // Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
+        vm.mockCall(
+            Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY,
+            abi.encodeCall(IOptimismMintableERC721Factory.REMOTE_CHAIN_ID, ()),
+            abi.encode(_remoteChainId)
+        );
+        vm.expectCall(
+            Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY,
+            abi.encodeCall(IOptimismMintableERC721Factory.REMOTE_CHAIN_ID, ())
+        );
+
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setIsthmus();
+
+        assertEq(l1Block.isIsthmus(), true);
+
+        assertEq(l1Block.getConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG), abi.encode(l1FeeVaultConfig));
+        assertEq(l1Block.getConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG), abi.encode(sequencerFeeVaultConfig));
+        assertEq(l1Block.getConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG), abi.encode(baseFeeVaultConfig));
+        assertEq(
+            l1Block.getConfig(Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS),
+            abi.encode(_l1CrossDomainMessengerAddress)
+        );
+        assertEq(l1Block.getConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS), abi.encode(_l1StandardBridgeAddress));
+        assertEq(l1Block.getConfig(Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS), abi.encode(_l1ERC721BridgeAddress));
+        assertEq(l1Block.getConfig(Types.ConfigType.REMOTE_CHAIN_ID), abi.encode(_remoteChainId));
+    }
+
+    /// @dev Mocks a fee vault members call.
+    function _mockFeeVault(
+        address _feeVault,
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        bool _isL1
+    )
+        internal
+        returns (bytes32)
+    {
+        vm.mockCall(address(_feeVault), abi.encodeCall(FeeVault.RECIPIENT, ()), abi.encode(_recipient));
+        vm.expectCall(address(_feeVault), abi.encodeCall(FeeVault.RECIPIENT, ()));
+
+        vm.mockCall(
+            address(_feeVault), abi.encodeCall(FeeVault.MIN_WITHDRAWAL_AMOUNT, ()), abi.encode(_minWithdrawalAmount)
+        );
+        vm.expectCall(address(_feeVault), abi.encodeCall(FeeVault.MIN_WITHDRAWAL_AMOUNT, ()));
+
+        vm.mockCall(
+            address(_feeVault),
+            abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()),
+            abi.encode(_isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2)
+        );
+        vm.expectCall(address(_feeVault), abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()));
+
+        return Encoding.encodeFeeVaultConfig(
+            _recipient, _minWithdrawalAmount, _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2
+        );
     }
 
     /// @dev Asserts that the config data is set correctly for a given configType.
