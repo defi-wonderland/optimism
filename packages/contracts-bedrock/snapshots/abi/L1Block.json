@@ -168,6 +168,19 @@
   },
   {
     "inputs": [],
+    "name": "isIsthmus",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "l1FeeOverhead",
     "outputs": [
       {
@@ -260,6 +273,13 @@
       }
     ],
     "name": "setGasPayingToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "setIsthmus",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -378,7 +398,17 @@
   },
   {
     "inputs": [],
+    "name": "IsthmusAlreadyActive",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "NotDepositor",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UnsafeCast",
     "type": "error"
   }
 ]
