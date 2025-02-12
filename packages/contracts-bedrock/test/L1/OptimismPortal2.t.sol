@@ -324,7 +324,7 @@ contract OptimismPortal2_Test is CommonTest {
 
         vm.expectEmit(address(optimismPortal2));
         emit TransactionDeposited(
-            0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
+            Constants.DEPOSITOR_ACCOUNT,
             Predeploys.L1_BLOCK_ATTRIBUTES,
             0,
             abi.encodePacked(
@@ -364,11 +364,11 @@ contract OptimismPortal2_Test is CommonTest {
         types[1] = Types.ConfigType.L1_FEE_VAULT_CONFIG;
         types[2] = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
 
-        Types.ConfigType configType = types[_configTypeSeed % 3];
+        Types.ConfigType configType = types[_configTypeSeed % types.length];
 
         vm.expectEmit(address(optimismPortal2));
         emit TransactionDeposited(
-            0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001,
+            Constants.DEPOSITOR_ACCOUNT,
             Predeploys.L1_BLOCK_ATTRIBUTES,
             0,
             abi.encodePacked(
