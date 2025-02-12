@@ -865,9 +865,9 @@ contract Deploy is Deployer {
                 systemConfigOwner: cfg.finalSystemOwner(),
                 batcher: cfg.batchSenderAddress(),
                 unsafeBlockSigner: cfg.p2pSequencerAddress(),
-                feeVaultAdmin: cfg.systemConfigFeeVaultAdmin(),
                 proposer: cfg.l2OutputOracleProposer(),
-                challenger: cfg.l2OutputOracleChallenger()
+                challenger: cfg.l2OutputOracleChallenger(),
+                feeVaultAdmin: cfg.systemConfigFeeVaultAdmin()
             }),
             basefeeScalar: cfg.basefeeScalar(),
             blobBasefeeScalar: cfg.blobbasefeeScalar(),
