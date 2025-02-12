@@ -524,14 +524,20 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
 
 contract SystemConfig_Setters_TestFail is SystemConfig_Init {
     /// @dev Tests that `setBatcherHash` reverts if the caller is not the owner.
-    function test_setBatcherHash_notOwner_reverts() external {
+    function test_setBatcherHash_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setBatcherHash(bytes32(hex""));
     }
 
     /// @dev Tests that `setGasConfig` reverts if the caller is not the owner.
-    function test_setGasConfig_notOwner_reverts() external {
+    function test_setGasConfig_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setGasConfig(0, 0);
     }
 
@@ -544,22 +550,31 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
         systemConfig.setGasConfig({ _overhead: 0, _scalar: type(uint256).max });
     }
 
-    function test_setGasConfigEcotone_notOwner_reverts() external {
+    function test_setGasConfigEcotone_notOwner_reverts(address _caller) external {
         // TODO(opcm upgrades): remove skip once upgrade is implemented
         skipIfForkTest("SystemConfig_Setters_TestFail: 'setGasConfigEcotone' method DNE on op mainnet");
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setGasConfigEcotone({ _basefeeScalar: 0, _blobbasefeeScalar: 0 });
     }
 
     /// @dev Tests that `setGasLimit` reverts if the caller is not the owner.
-    function test_setGasLimit_notOwner_reverts() external {
+    function test_setGasLimit_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setGasLimit(0);
     }
 
     /// @dev Tests that `setUnsafeBlockSigner` reverts if the caller is not the owner.
-    function test_setUnsafeBlockSigner_notOwner_reverts() external {
+    function test_setUnsafeBlockSigner_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setUnsafeBlockSigner(address(0x20));
     }
 
@@ -580,10 +595,19 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
     }
 
     /// @dev Tests that `setEIP1559Params` reverts if the caller is not the owner.
-    function test_setEIP1559Params_notOwner_reverts(uint32 _denominator, uint32 _elasticity) external {
+    function test_setEIP1559Params_notOwner_reverts(
+        uint32 _denominator,
+        uint32 _elasticity,
+        address _caller
+    )
+        external
+    {
         // TODO(opcm upgrades): remove skip once upgrade is implemented
         skipIfForkTest("SystemConfig_Setters_TestFail: 'setEIP1559Params' method DNE on op mainnet");
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setEIP1559Params({ _denominator: _denominator, _elasticity: _elasticity });
     }
 
@@ -607,13 +631,19 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
     }
 
     /// @dev Tests that `setFeeVaultAdmin` reverts if the caller is not the owner.
-    function test_setFeeVaultAdmin_notOwner_reverts() external {
+    function test_setFeeVaultAdmin_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != systemConfig.owner());
+
         vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(_caller);
         systemConfig.setFeeVaultAdmin(address(0x20));
     }
 
-    function test_setFeeVaultConfig_notOwner_reverts() external {
+    function test_setFeeVaultConfig_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != systemConfig.feeVaultAdmin());
+
         vm.expectRevert("SystemConfig: caller is not the fee admin");
+        vm.prank(_caller);
         systemConfig.setFeeVaultConfig(
             Types.ConfigType.BASE_FEE_VAULT_CONFIG, address(0x20), 0, Types.WithdrawalNetwork.L1
         );
