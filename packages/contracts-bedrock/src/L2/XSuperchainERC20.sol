@@ -7,17 +7,7 @@ import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 
 /// @title XSuperchainERC20
 /// @notice A SuperchainERC20 + xERC20 implementation
-contract XSuperchainERC20 is SuperchainERC20, Ownable, IXERC20 {
-    /**
-     * @notice The name of the token
-     */
-    string private _name;
-
-    /**
-     * @notice The symbol of the token
-     */
-    string private _symbol;
-
+abstract contract XSuperchainERC20 is SuperchainERC20, Ownable, IXERC20 {
     /**
      * @notice The duration it takes for the limits to fully replenish
      */
@@ -41,18 +31,10 @@ contract XSuperchainERC20 is SuperchainERC20, Ownable, IXERC20 {
     /**
      * @notice Constructs the initial config of the XERC20
      *
-     * @param __name The name of the token
-     * @param __symbol The symbol of the token
      * @param _factory The factory which deployed this contract
      */
-    constructor(
-        string memory __name,
-        string memory __symbol,
-        address _factory
-    )
+    constructor(address _factory)
     {
-        _name = __name;
-        _symbol = __symbol;
         _transferOwnership(_factory);
         FACTORY = _factory;
     }
@@ -108,24 +90,6 @@ contract XSuperchainERC20 is SuperchainERC20, Ownable, IXERC20 {
         _changeMinterLimit(_bridge, _mintingLimit);
         _changeBurnerLimit(_bridge, _burningLimit);
         emit BridgeLimitsSet(_mintingLimit, _burningLimit, _bridge);
-    }
-
-    /**
-     * @notice Returns the name of the token
-     *
-     * @return _name The name of the token
-     */
-    function name() public view override returns (string memory) {
-        return _name;
-    }
-
-    /**
-     * @notice Returns the symbol of the token
-     *
-     * @return _symbol The symbol of the token
-     */
-    function symbol() public view override returns (string memory) {
-        return _symbol;
     }
 
     /**

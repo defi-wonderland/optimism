@@ -1,12 +1,12 @@
 import { SuperchainERC20Test } from "./SuperchainERC20.t.sol";
-import { XSuperchainERC20 } from "src/L2/xSuperchainERC20.sol";
+import { MockXSuperchainERC20Implementation } from "test/mocks/XSuperchainERC20Implementation.sol";
 import { Test } from "forge-std/Test.sol";
 import { IXERC20 } from "interfaces/L2/IXERC20.sol";
 import { IERC20Solady as IERC20 } from "interfaces/vendor/IERC20Solady.sol";
 
 contract XSuperchainERC20Test is SuperchainERC20Test {
     function setUp() public override {
-        superchainERC20 = new XSuperchainERC20("Test", "TEST", address(0));
+        superchainERC20 = new MockXSuperchainERC20Implementation(address(0));
     }
 }
 
@@ -15,7 +15,7 @@ abstract contract Base is Test {
   address internal _user = vm.addr(2);
   address internal _minter = vm.addr(3);
 
-  XSuperchainERC20 internal _xsuperchainERC20;
+  MockXSuperchainERC20Implementation internal _xsuperchainERC20;
 
   event BridgeLimitsSet(uint256 _mintingLimit, uint256 _burningLimit, address indexed _bridge);
   event LockboxSet(address _lockbox);
@@ -23,18 +23,18 @@ abstract contract Base is Test {
 
   function setUp() public virtual {
     vm.startPrank(_owner);
-    _xsuperchainERC20 = new XSuperchainERC20('Test', 'TEST', _owner);
+    _xsuperchainERC20 = new MockXSuperchainERC20Implementation(_owner);
     vm.stopPrank();
   }
 }
 
 contract XSuperchainERC20NamesTest is Base {
   function testName() public {
-    assertEq('Test', _xsuperchainERC20.name());
+    assertEq('XSuperchainERC20', _xsuperchainERC20.name());
   }
 
   function testSymbol() public {
-    assertEq('TEST', _xsuperchainERC20.symbol());
+    assertEq('XSCE', _xsuperchainERC20.symbol());
   }
 }
 
