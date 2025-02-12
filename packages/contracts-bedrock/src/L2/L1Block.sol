@@ -295,8 +295,8 @@ contract L1Block is ISemver, IGasToken {
     ///         This function is intended to be called only once, and only on existing chains which are undergoing
     ///         the Isthmus upgrade. Chains deployed with the Isthmus upgrade activated will have the values set here
     ///         already populated by the L2 Genesis generation process.
-    ///         In the case of an existing chain underoing the Isthmus upgrade, the expectation is that
-    ///         The upgrade flow will use the following series of Network upgrade automation transactions:
+    ///         In the case of an existing chain undergoing the Isthmus upgrade, the expectation is that
+    ///         the upgrade flow will use the following series of Network upgrade automation transactions:
     ///         1. Deploy a new `L1BlockImpl` contract.
     ///         2. Upgrade only the `L1Block` contract to the new implementation by
     ///            calling `L2ProxyAdmin.upgrade(address(L1BlockProxy), address(L1BlockImpl))`.
@@ -308,6 +308,7 @@ contract L1Block is ISemver, IGasToken {
 
         isIsthmus = true;
 
+        // NOTE: It's important to use legacy functions to avoid failure on upgrade.
         Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.BASE_FEE_VAULT));
         Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.L1_FEE_VAULT));
         Storage.setBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.SEQUENCER_FEE_WALLET));
@@ -321,7 +322,7 @@ contract L1Block is ISemver, IGasToken {
             address(IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).OTHER_BRIDGE())
         );
         Storage.setAddress(
-            L1_ERC_721_BRIDGE_ADDRESS_SLOT, address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).otherBridge())
+            L1_ERC_721_BRIDGE_ADDRESS_SLOT, address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).OTHER_BRIDGE())
         );
         Storage.setUint(
             REMOTE_CHAIN_ID_SLOT,
