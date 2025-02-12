@@ -29,7 +29,7 @@
   },
   "src/L1/OptimismPortalInterop.sol": {
     "initCodeHash": "0x3208eed10ca6ee6f1f2a8cd41449b624f98d37e6edc75fcfe8b4484d91cd9f45",
-    "sourceCodeHash": "0xfd77b28ba4060b1a9504414e405a56293a7c4e18b0adbdb8a7f8b36cd3346238"
+    "sourceCodeHash": "0x698826b14fd57473b09ded4360d3f88645823e523770bc46efcb1cd282656f62"
   },
   "src/L1/ProtocolVersions.sol": {
     "initCodeHash": "0x0000ec89712d8b4609873f1ba76afffd4205bf9110818995c90134dbec12e91e",

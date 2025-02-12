@@ -43,7 +43,8 @@ contract Specification_Test is CommonTest {
         DELAYEDWETHOWNER,
         COUNCILSAFE,
         COUNCILSAFEOWNER,
-        DEPENDENCYMANAGER
+        DEPENDENCYMANAGER,
+        UPGRADER
     }
 
     /// @notice Represents the specification of a function.
@@ -266,12 +267,13 @@ contract Specification_Test is CommonTest {
             _name: "OptimismPortalInterop",
             _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
         });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
         _addSpec({
             _name: "OptimismPortalInterop",
             _sel: IOptimismPortalInterop.setConfig.selector,
             _auth: Role.SYSTEMCONFIGOWNER
         });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: IOptimismPortalInterop.upgrade.selector, _auth: Role.UPGRADER });
+
 
         // OptimismPortal2
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)") });
@@ -318,7 +320,8 @@ contract Specification_Test is CommonTest {
             _name: "OptimismPortal2",
             _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
         });
-        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
+        _addSpec({ _name: "OptimismPortal2", _sel: IOptimismPortal2.setConfig.selector, _auth: Role.SYSTEMCONFIGOWNER });
+        _addSpec({ _name: "OptimismPortal2", _sel: IOptimismPortal2.upgrade.selector, _auth: Role.UPGRADER });
 
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });
@@ -348,11 +351,13 @@ contract Specification_Test is CommonTest {
         // SuperchainConfig
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("GUARDIAN_SLOT()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("PAUSED_SLOT()") });
+        _addSpec({ _name: "SuperchainConfig", _sel: _getSel("UPGRADER_SLOT()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("guardian()") });
-        _addSpec({ _name: "SuperchainConfig", _sel: _getSel("initialize(address,bool)") });
+        _addSpec({ _name: "SuperchainConfig", _sel: _getSel("initialize(address,address,bool)") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("pause(string)"), _auth: Role.GUARDIAN });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("paused()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("unpause()"), _auth: Role.GUARDIAN });
+        _addSpec({ _name: "SuperchainConfig", _sel: _getSel("upgrader()") });
         _addSpec({ _name: "SuperchainConfig", _sel: _getSel("version()") });
 
         // SystemConfig

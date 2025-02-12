@@ -4,15 +4,6 @@ pragma solidity 0.8.15;
 // Contracts
 import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
 
-// Libraries
-import { Types } from "src/libraries/Types.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Constants } from "src/libraries/Constants.sol";
-import { Unauthorized } from "src/libraries/PortalErrors.sol";
-
-// Interfaces
-import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
-
 /// @custom:proxied true
 /// @title OptimismPortalInterop
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
