@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import { IXERC20 } from "interfaces/L2/IXERC20.sol";
-import { ERC20 } from "@solady-v0.0.245/tokens/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 
