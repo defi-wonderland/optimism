@@ -316,16 +316,11 @@ contract SystemConfig is OwnableUpgradeable, ISemver, IGasToken {
             bytes32 name = GasPayingToken.sanitize(ERC20(_token).name());
             bytes32 symbol = GasPayingToken.sanitize(ERC20(_token).symbol());
 
-            // Set the gas paying token in storage and in the OptimismPortal.
+            // Set the gas paying token in storage and call the OptimismPortal.
             GasPayingToken.set({ _token: _token, _decimals: GAS_PAYING_TOKEN_DECIMALS, _name: name, _symbol: symbol });
             IOptimismPortal2(payable(optimismPortal())).setConfig(
                 Types.ConfigType.GAS_PAYING_TOKEN,
-                StaticConfig.encodeSetGasPayingToken({
-                    _token: _token,
-                    _decimals: GAS_PAYING_TOKEN_DECIMALS,
-                    _name: name,
-                    _symbol: symbol
-                })
+                StaticConfig.encodeSetGasPayingToken(_token, GAS_PAYING_TOKEN_DECIMALS, name, symbol)
             );
         }
     }

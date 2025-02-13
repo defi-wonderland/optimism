@@ -487,15 +487,10 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
 
     /// @dev Tests that initialization works with OptimismPortal.
     function test_initialize_customGasTokenCall_succeeds() external {
+        bytes memory data = StaticConfig.encodeSetGasPayingToken(address(token), 18, bytes32("Silly"), bytes32("SIL"));
         vm.expectCall(
             address(optimismPortal2),
-            abi.encodeCall(
-                optimismPortal2.setConfig,
-                (
-                    Types.ConfigType.GAS_PAYING_TOKEN,
-                    StaticConfig.encodeSetGasPayingToken(address(token), 18, bytes32("Silly"), bytes32("SIL"))
-                )
-            )
+            abi.encodeCall(optimismPortal2.setConfig, (Types.ConfigType.GAS_PAYING_TOKEN, data))
         );
 
         vm.expectEmit(address(optimismPortal2));
@@ -508,13 +503,7 @@ contract SystemConfig_Init_CustomGasToken is SystemConfig_Init {
                 uint256(0), // value
                 uint64(200_000), // gasLimit
                 false, // isCreation,
-                abi.encodeCall(
-                    IL1Block.setConfig,
-                    (
-                        Types.ConfigType.GAS_PAYING_TOKEN,
-                        StaticConfig.encodeSetGasPayingToken(address(token), 18, bytes32("Silly"), bytes32("SIL"))
-                    )
-                )
+                abi.encodeCall(optimismPortal2.setConfig, (Types.ConfigType.GAS_PAYING_TOKEN, data))
             )
         );
 

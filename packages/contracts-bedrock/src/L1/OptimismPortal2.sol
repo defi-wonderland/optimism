@@ -625,6 +625,29 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         );
     }
 
+    /// @notice Calls the L2 Proxy Admin as the DEPOSITOR_ACCOUNT. This function can
+    ///         be used to upgrade the L2 predeploys. Only the upgrader role on the
+    ///         SuperchainConfig contract can call this function.
+    function upgrade(uint32 _gasLimit, bytes memory _calldata) external {
+        if (msg.sender != superchainConfig.upgrader()) revert Unauthorized();
+
+        useGas(_gasLimit);
+
+        /// Emit the special deposit transaction which call to the L2 Proxy Admin
+        emit TransactionDeposited(
+            Constants.DEPOSITOR_ACCOUNT,
+            Predeploys.L2_PROXY_ADMIN,
+            DEPOSIT_VERSION,
+            abi.encodePacked(
+                uint256(0), // mint
+                uint256(0), // value
+                uint64(_gasLimit), // gasLimit
+                false, // isCreation,
+                _calldata
+            )
+        );
+    }
+
     /// @notice Blacklists a dispute game. Should only be used in the event that a dispute game resolves incorrectly.
     /// @param _disputeGame Dispute game to blacklist.
     function blacklistDisputeGame(IDisputeGame _disputeGame) external {
