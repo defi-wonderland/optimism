@@ -17,6 +17,8 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 /// @notice A standard ERC20 extension implementing IERC7802 for unified cross-chain fungibility across
 ///         the Superchain. Allows the SuperchainTokenBridge to mint and burn tokens as needed.
 abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
+    constructor(string memory _name, string memory _symbol, address _factory) XERC20(_name, _symbol, _factory) {}
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.8
     function version() external view virtual returns (string memory) {
