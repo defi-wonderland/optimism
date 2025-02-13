@@ -24,7 +24,7 @@ contract SuperchainERC20Test is Test {
     SuperchainERC20 public superchainERC20;
 
     /// @notice Sets up the test suite.
-    function setUp() public {
+    function setUp() public virtual {
         superchainERC20 = new MockSuperchainERC20Implementation();
     }
 
