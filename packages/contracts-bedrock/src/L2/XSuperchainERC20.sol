@@ -8,24 +8,17 @@ import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
 /// @title XSuperchainERC20
 /// @notice A SuperchainERC20 + xERC20 implementation
 abstract contract XSuperchainERC20 is SuperchainERC20, Ownable, IXERC20 {
-    /**
-     * @notice The duration it takes for the limits to fully replenish
-     */
+
+     /// @notice The duration it takes for the limits to fully replenish
     uint256 private constant _DURATION = 1 days;
 
-    /**
-     * @notice The address of the factory which deployed this contract
-     */
+    /// @notice The address of the factory which deployed this contract
     address public immutable FACTORY;
 
-    /**
-     * @notice The address of the lockbox contract
-     */
+    /// @notice The address of the lockbox contract
     address public lockbox;
 
-    /**
-     * @notice Maps bridge address to bridge configurations
-     */
+    /// @notice Maps bridge address to bridge configurations
     mapping(address => Bridge) public bridges;
 
     /**
