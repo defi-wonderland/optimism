@@ -13,11 +13,16 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
-/// @title SuperchainERC20
-/// @notice A standard ERC20 extension implementing IERC7802 for unified cross-chain fungibility across
+/// @title XSuperchainERC20
+/// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for unified cross-chain fungibility across
 ///         the Superchain. Allows the SuperchainTokenBridge to mint and burn tokens as needed.
 abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
-    constructor(string memory _name, string memory _symbol, address _factory) XERC20(_name, _symbol, _factory) {}
+    /// @notice Constructs the XSuperchainERC20 contract.
+    ///
+    /// @param _name    Name of the token.
+    /// @param _symbol  Symbol of the token.
+    /// @param _factory Address of the factory contract.
+    constructor(string memory _name, string memory _symbol, address _factory) XERC20(_name, _symbol, _factory) { }
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.8
