@@ -18,9 +18,9 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 ///         the Superchain. Allows the SuperchainTokenBridge to mint and burn tokens as needed.
 abstract contract SuperchainERC20 is ERC20, IERC7802, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 1.0.0-beta.8
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "1.0.0-beta.8";
     }
 
     /// @notice Allows the SuperchainTokenBridge to mint tokens.
