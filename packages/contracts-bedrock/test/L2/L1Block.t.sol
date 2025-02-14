@@ -26,6 +26,12 @@ contract L1BlockTest is CommonTest {
 
     bytes32 public constant IS_ISTHMUS_SLOT = bytes32(uint256(8));
 
+    enum WithdrawalNetworkForTest {
+        DEFAULT,
+        L1,
+        L2
+    }
+
     event GasPayingTokenSet(address indexed token, uint8 indexed decimals, bytes32 name, bytes32 symbol);
 
     /// @dev Sets up the test suite.
@@ -404,7 +410,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     function test_setIsthmus_succeeds(
         address[3] memory _recipients,
         uint88[3] memory _minWithdrawalAmounts,
-        bool[3] memory _isL1,
+        uint8[3] memory _withdrawalNetworkSeeds,
         address _l1CrossDomainMessengerAddress,
         address _l1StandardBridgeAddress,
         address _l1ERC721BridgeAddress,
@@ -412,13 +418,18 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
     )
         external
     {
+        // _withdrawalNetworkSeeds need to be between 0 and 2
+        for (uint256 i = 0; i < _withdrawalNetworkSeeds.length; i++) {
+            _withdrawalNetworkSeeds[i] = _withdrawalNetworkSeeds[i] % 3;
+        }
+
         // Fee vaults
         bytes32 l1FeeVaultConfig =
-            _mockFeeVault(Predeploys.L1_FEE_VAULT, _recipients[0], _minWithdrawalAmounts[0], _isL1[0]);
+            _mockFeeVault(Predeploys.L1_FEE_VAULT, _recipients[0], _minWithdrawalAmounts[0], WithdrawalNetworkForTest(_withdrawalNetworkSeeds[0]));
         bytes32 sequencerFeeVaultConfig =
-            _mockFeeVault(Predeploys.SEQUENCER_FEE_WALLET, _recipients[1], _minWithdrawalAmounts[1], _isL1[1]);
+            _mockFeeVault(Predeploys.SEQUENCER_FEE_WALLET, _recipients[1], _minWithdrawalAmounts[1], WithdrawalNetworkForTest(_withdrawalNetworkSeeds[1]));
         bytes32 baseFeeVaultConfig =
-            _mockFeeVault(Predeploys.BASE_FEE_VAULT, _recipients[2], _minWithdrawalAmounts[2], _isL1[2]);
+            _mockFeeVault(Predeploys.BASE_FEE_VAULT, _recipients[2], _minWithdrawalAmounts[2], WithdrawalNetworkForTest(_withdrawalNetworkSeeds[2]));
 
         // Predeploys.L2_CROSS_DOMAIN_MESSENGER
         vm.mockCall(
@@ -477,7 +488,7 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         address _feeVault,
         address _recipient,
         uint88 _minWithdrawalAmount,
-        bool _isL1
+        WithdrawalNetworkForTest _withdrawalNetwork
     )
         internal
         returns (bytes32)
@@ -490,16 +501,25 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         );
         vm.expectCall(address(_feeVault), abi.encodeCall(FeeVault.MIN_WITHDRAWAL_AMOUNT, ()));
 
-        vm.mockCall(
-            address(_feeVault),
-            abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()),
-            abi.encode(_isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2)
-        );
+        Types.WithdrawalNetwork withdrawalNetwork;
+        // if _withdrawalNetwork is DEFAULT, then the mock should return nothing
+        if (_withdrawalNetwork == WithdrawalNetworkForTest.DEFAULT) {
+            vm.mockCall(
+                address(_feeVault),
+                abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()),
+                abi.encode()
+            );
+            withdrawalNetwork = Types.WithdrawalNetwork.L2;
+        } else {
+            withdrawalNetwork = _withdrawalNetwork == WithdrawalNetworkForTest.L1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
+            vm.mockCall(
+                address(_feeVault),
+                abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()),
+                abi.encode(withdrawalNetwork)
+            );
+        }
         vm.expectCall(address(_feeVault), abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()));
-
-        return Encoding.encodeFeeVaultConfig(
-            _recipient, _minWithdrawalAmount, _isL1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2
-        );
+        return Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, withdrawalNetwork);
     }
 
     /// @dev Asserts that the config data is set correctly for a given configType.
