@@ -335,7 +335,10 @@ contract L1Block is ISemver, IGasToken {
         // Make sure to use legacy functions to avoid failure on upgrade.
         address recipient = IFeeVault(payable(_addr)).RECIPIENT();
         uint256 amount = IFeeVault(payable(_addr)).MIN_WITHDRAWAL_AMOUNT();
-        Types.WithdrawalNetwork network = IFeeVault(payable(_addr)).WITHDRAWAL_NETWORK();
+        // Use low level call to check for WITHDRAWAL_NETWORK, default to L2 if it doesn't exist
+        (bool success, bytes memory data) = _addr.staticcall(abi.encodeWithSignature("WITHDRAWAL_NETWORK()"));
+        Types.WithdrawalNetwork network =
+            success && data.length >= 32 ? abi.decode(data, (Types.WithdrawalNetwork)) : Types.WithdrawalNetwork.L2;
         return Encoding.encodeFeeVaultConfig(recipient, amount, Types.WithdrawalNetwork(uint8(network)));
     }
 }
