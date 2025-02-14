@@ -17,6 +17,12 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 /// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for unified cross-chain fungibility across
 ///         the Superchain. Allows the SuperchainTokenBridge to mint and burn tokens as needed.
 abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
+    /// @dev The canonical Permit2 address.
+    /// For signature-based allowance granting for single transaction ERC20 `transferFrom`.
+    /// [Github](https://github.com/Uniswap/permit2)
+    /// [Etherscan](https://optimistic.etherscan.io/address/0x000000000022d473030f116ddee9f6b43ac78ba3#code)
+    address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+
     /// @notice Constructs the XSuperchainERC20 contract.
     ///
     /// @param _name    Name of the token.
@@ -28,6 +34,16 @@ abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @custom:semver 1.0.0-beta.8
     function version() external view virtual returns (string memory) {
         return "1.0.0-beta.8";
+    }
+
+    /// @notice Returns the remaining number of tokens that `spender` will be
+    ///         allowed to spend on behalf of `owner` through {transferFrom}. This is
+    ///         zero by default.
+    /// @dev This value changes when {approve} or {transferFrom} are called.
+    /// @dev Allowance is overriden to allow Permit2 to spend unlimited tokens.
+    function allowance(address _owner, address _spender) public view virtual override returns (uint256) {
+        if (_spender == _PERMIT2) return type(uint256).max;
+        return super.allowance(_owner, _spender);
     }
 
     /// @notice Allows the SuperchainTokenBridge to mint tokens.
