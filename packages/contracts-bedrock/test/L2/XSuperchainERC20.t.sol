@@ -14,7 +14,8 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams, Supe
     /// @dev We need to override the `setUp` function to use the `MockXSuperchainERC20Implementation` contract
     /// @dev instead of the `xERC20` and `SuperchainERC20` contracts.
     function setUp() public override(Base, SuperchainERC20Test) {
-        MockXSuperchainERC20Implementation _xSuperchainERC20 = new MockXSuperchainERC20Implementation("Test", "TST", _owner);
+        MockXSuperchainERC20Implementation _xSuperchainERC20 =
+            new MockXSuperchainERC20Implementation("Test", "TST", _owner);
         _xerc20 = _xSuperchainERC20;
         superchainERC20 = SuperchainERC20(address(_xSuperchainERC20));
     }
