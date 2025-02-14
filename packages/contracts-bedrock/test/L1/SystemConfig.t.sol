@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 
 // Contracts
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -14,6 +15,7 @@ import { GasPayingToken } from "src/libraries/GasPayingToken.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
+import { Bytes } from "src/libraries/Bytes.sol";
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
@@ -119,6 +121,56 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         (address token, uint8 decimals) = systemConfig.gasPayingToken();
         assertEq(token, Constants.ETHER);
         assertEq(decimals, 18);
+    }
+
+    /// @dev Tests that the gas usage of `initialize` does not exceed the max resource limit.
+    function test_initialize_gasUsage() external {
+        // Wipe out the initialized slot so the proxy can be initialized again
+        vm.store(address(systemConfig), bytes32(0), bytes32(0));
+
+        vm.recordLogs();
+        systemConfig.initialize({
+            _owner: alice,
+            _basefeeScalar: basefeeScalar,
+            _blobbasefeeScalar: blobbasefeeScalar,
+            _batcherHash: bytes32(hex"abcd"),
+            _gasLimit: gasLimit,
+            _unsafeBlockSigner: address(1),
+            _feeVaultAdmin: bob,
+            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
+            _batchInbox: address(0),
+            _addresses: ISystemConfig.Addresses({
+                l1CrossDomainMessenger: address(0),
+                l1ERC721Bridge: address(0),
+                l1StandardBridge: address(0),
+                disputeGameFactory: address(0),
+                optimismPortal: address(optimismPortal2),
+                optimismMintableERC20Factory: address(0),
+                gasPayingToken: Constants.ETHER
+            })
+        });
+
+        VmSafe.Log[] memory logs = vm.getRecordedLogs();
+        uint64 totalGasUsed = 0;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == keccak256("TransactionDeposited(address,address,uint256,bytes)")) {
+                // The first 32 bytes of the Data will give us the offset of the opaqueData,
+                // The next 32 bytes indicate the length of the opaqueData content.
+                // The remaining data is the opaqueData which is tightly packed. There are two
+                // uint256 values before the gasLimit, so we'll start at 4x32 = 128.
+                uint256 start = 128;
+                uint64 gasUsed = uint64(bytes8(Bytes.slice(logs[i].data, start, 8)));
+                // Assert that the expected SYSTEM_DEPOSIT_GAS_LIMIT gas limit is used for the
+                // detected events.
+                assertEq(gasUsed, 200_000);
+                totalGasUsed += gasUsed;
+            }
+        }
+
+        IResourceMetering.ResourceConfig memory config = Constants.DEFAULT_RESOURCE_CONFIG();
+        /// Total gas used should be less than the max buffer limit, which should be around 9M.
+        uint256 maxBufferLimit = 30_000_000 - config.maxResourceLimit - config.systemTxMaxGas;
+        assertLe(totalGasUsed, maxBufferLimit);
     }
 }
 

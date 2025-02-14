@@ -43,10 +43,6 @@ contract MeterUser is ResourceMetering {
 
     function use(uint64 _amount) public metered(_amount) { }
 
-    function nonStandardUse(uint32 _amount) public {
-        useGas(_amount);
-    }
-
     function set(uint128 _prevBaseFee, uint64 _prevBoughtGas, uint64 _prevBlockNum) public {
         params = ResourceMetering.ResourceParams({
             prevBaseFee: _prevBaseFee,
@@ -225,20 +221,6 @@ contract ResourceMetering_Test is Test {
 
         (, uint64 postPrevBoughtGas,) = meter.params();
         assertEq(postPrevBoughtGas, prevBoughtGas + _amount);
-    }
-
-    function test_meter_useGas_revertsIfOutOfGas(uint32 _amount) external {
-        (uint128 prevBaseFee,, uint64 prevBlockNum) = meter.params();
-        ResourceMetering.ResourceConfig memory rcfg = meter.resourceConfig();
-
-        _amount = uint32(bound(_amount, 0, rcfg.maxResourceLimit));
-
-        // Set the prevBoughtGas in such a way that the amount of gas requested
-        // will exceed the maxResourceLimit.
-        meter.set(prevBaseFee, rcfg.maxResourceLimit - _amount + 1, prevBlockNum);
-
-        vm.expectRevert(ResourceMetering.OutOfGas.selector);
-        meter.nonStandardUse(_amount);
     }
 }
 

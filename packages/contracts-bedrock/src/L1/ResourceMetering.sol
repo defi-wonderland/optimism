@@ -155,13 +155,6 @@ abstract contract ResourceMetering is Initializable {
     /// @param _amount Amount of the L2 gas resource requested.
     function useGas(uint32 _amount) internal {
         params.prevBoughtGas += uint64(_amount);
-
-        // maxResourceLimit check to prevent DOS by excessive L2 gas consumption
-        // This ensures gas usage stays within block limits and prevents failures during upgrades or initialization.
-        ResourceConfig memory config = _resourceConfig();
-        if (params.prevBoughtGas > config.maxResourceLimit) {
-            revert OutOfGas();
-        }
     }
 
     /// @notice Virtual function that returns the resource config.
