@@ -13,12 +13,4 @@ contract MockXSuperchainERC20Implementation is XSuperchainERC20 {
     )
         XSuperchainERC20(_name, _symbol, _factory)
     { }
-
-    function name() public pure override returns (string memory) {
-        return "Test";
-    }
-
-    function symbol() public pure override returns (string memory) {
-        return "TST";
-    }
 }
