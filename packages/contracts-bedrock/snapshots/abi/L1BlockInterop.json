@@ -331,6 +331,13 @@
   },
   {
     "inputs": [],
+    "name": "setIsIsthmus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "setIsthmus",
     "outputs": [],
     "stateMutability": "nonpayable",

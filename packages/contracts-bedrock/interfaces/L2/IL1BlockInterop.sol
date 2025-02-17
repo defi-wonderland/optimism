@@ -55,6 +55,7 @@ interface IL1BlockInterop {
     function timestamp() external view returns (uint64);
     function version() external pure returns (string memory);
     function setIsthmus() external;
+    function setIsIsthmus() external;
     function isIsthmus() external view returns (bool);
 
     function __constructor__() external;

@@ -96,8 +96,6 @@ contract L1Block is ISemver, IGasToken {
     uint256 public blobBaseFee;
 
     /// @notice Whether the L1Block is an Isthmus upgraded chain.
-    /// @notice Note: This is only true for chains that were live before the Isthmus upgrade, and not for newly deployed
-    /// ones.
     bool public isIsthmus;
 
     /// @custom:semver 1.5.1-beta.6
@@ -328,6 +326,16 @@ contract L1Block is ISemver, IGasToken {
             REMOTE_CHAIN_ID_SLOT,
             IOptimismMintableERC721Factory(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY).REMOTE_CHAIN_ID()
         );
+    }
+
+    /// @notice Sets the isIsthmus flag to true.
+    /// @dev    This function is only meant to be used to set the isIsthmus flag in the L1Block for the
+    ///         chains that are being deployed from the L2 Genesis process.
+    function setIsIsthmus() external {
+        if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
+        if (isIsthmus) revert IsthmusAlreadyActive();
+
+        isIsthmus = true;
     }
 
     /// @notice Helper function for migrating deploy config.

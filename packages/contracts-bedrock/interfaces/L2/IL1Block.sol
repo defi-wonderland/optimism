@@ -43,6 +43,7 @@ interface IL1Block {
     function setConfig(Types.ConfigType _type, bytes memory _value) external;
     function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
     function setIsthmus() external;
+    function setIsIsthmus() external;
     function isIsthmus() external view returns (bool);
 
     function __constructor__() external;

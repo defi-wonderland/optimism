@@ -424,12 +424,24 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         }
 
         // Fee vaults
-        bytes32 l1FeeVaultConfig =
-            _mockFeeVault(Predeploys.L1_FEE_VAULT, _recipients[0], _minWithdrawalAmounts[0], WithdrawalNetworkForTest(_withdrawalNetworkSeeds[0]));
-        bytes32 sequencerFeeVaultConfig =
-            _mockFeeVault(Predeploys.SEQUENCER_FEE_WALLET, _recipients[1], _minWithdrawalAmounts[1], WithdrawalNetworkForTest(_withdrawalNetworkSeeds[1]));
-        bytes32 baseFeeVaultConfig =
-            _mockFeeVault(Predeploys.BASE_FEE_VAULT, _recipients[2], _minWithdrawalAmounts[2], WithdrawalNetworkForTest(_withdrawalNetworkSeeds[2]));
+        bytes32 l1FeeVaultConfig = _mockFeeVault(
+            Predeploys.L1_FEE_VAULT,
+            _recipients[0],
+            _minWithdrawalAmounts[0],
+            WithdrawalNetworkForTest(_withdrawalNetworkSeeds[0])
+        );
+        bytes32 sequencerFeeVaultConfig = _mockFeeVault(
+            Predeploys.SEQUENCER_FEE_WALLET,
+            _recipients[1],
+            _minWithdrawalAmounts[1],
+            WithdrawalNetworkForTest(_withdrawalNetworkSeeds[1])
+        );
+        bytes32 baseFeeVaultConfig = _mockFeeVault(
+            Predeploys.BASE_FEE_VAULT,
+            _recipients[2],
+            _minWithdrawalAmounts[2],
+            WithdrawalNetworkForTest(_withdrawalNetworkSeeds[2])
+        );
 
         // Predeploys.L2_CROSS_DOMAIN_MESSENGER
         vm.mockCall(
@@ -483,6 +495,27 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         assertEq(l1Block.getConfig(Types.ConfigType.REMOTE_CHAIN_ID), abi.encode(_remoteChainId));
     }
 
+    function test_setIsIsthmus_succeeds() external {
+        assertEq(l1Block.isIsthmus(), false);
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        l1Block.setIsIsthmus();
+        assertEq(l1Block.isIsthmus(), true);
+    }
+
+    function test_setIsIsthmus_alreadySet_reverts() external {
+        vm.store(address(l1Block), IS_ISTHMUS_SLOT, bytes32(uint256(1)));
+        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        vm.expectRevert(IsthmusAlreadyActive.selector);
+        l1Block.setIsIsthmus();
+    }
+
+    function test_setIsIsthmus_notDepositor_reverts(address _caller) external {
+        vm.assume(_caller != Constants.DEPOSITOR_ACCOUNT);
+        vm.prank(_caller);
+        vm.expectRevert(NotDepositor.selector);
+        l1Block.setIsIsthmus();
+    }
+
     /// @dev Mocks a fee vault members call.
     function _mockFeeVault(
         address _feeVault,
@@ -504,18 +537,14 @@ contract L1BlockCustomGasToken_Test is L1BlockTest {
         Types.WithdrawalNetwork withdrawalNetwork;
         // if _withdrawalNetwork is DEFAULT, then the mock should return nothing
         if (_withdrawalNetwork == WithdrawalNetworkForTest.DEFAULT) {
-            vm.mockCall(
-                address(_feeVault),
-                abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()),
-                abi.encode()
-            );
+            vm.mockCall(address(_feeVault), abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()), abi.encode());
             withdrawalNetwork = Types.WithdrawalNetwork.L2;
         } else {
-            withdrawalNetwork = _withdrawalNetwork == WithdrawalNetworkForTest.L1 ? Types.WithdrawalNetwork.L1 : Types.WithdrawalNetwork.L2;
+            withdrawalNetwork = _withdrawalNetwork == WithdrawalNetworkForTest.L1
+                ? Types.WithdrawalNetwork.L1
+                : Types.WithdrawalNetwork.L2;
             vm.mockCall(
-                address(_feeVault),
-                abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()),
-                abi.encode(withdrawalNetwork)
+                address(_feeVault), abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()), abi.encode(withdrawalNetwork)
             );
         }
         vm.expectCall(address(_feeVault), abi.encodeCall(FeeVault.WITHDRAWAL_NETWORK, ()));
