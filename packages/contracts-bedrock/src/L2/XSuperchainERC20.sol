@@ -42,8 +42,7 @@ abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @dev This value changes when {approve} or {transferFrom} are called.
     /// @dev Allowance is overriden to allow Permit2 to spend unlimited tokens.
     function allowance(address _owner, address _spender) public view virtual override returns (uint256) {
-        if (_spender == _PERMIT2) return type(uint256).max;
-        return super.allowance(_owner, _spender);
+        return _spender == _PERMIT2 ? type(uint256).max : super.allowance(_owner, _spender);
     }
 
     /// @notice Allows the SuperchainTokenBridge to mint tokens.
