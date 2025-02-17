@@ -65,6 +65,7 @@ contract XSuperchainERC20Factory is IXERC20Factory {
       revert IXERC20Factory_BadTokenAddress();
     }
 
+    if (XSuperchainERC20(_xerc20).owner() != msg.sender) revert IXERC20Factory_NotOwner();
     if (_lockboxRegistry[_xerc20] != address(0)) revert IXERC20Factory_LockboxAlreadyDeployed();
 
     _lockbox = _deployLockbox(_xerc20, _baseToken, _isNative);
