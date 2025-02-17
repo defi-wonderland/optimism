@@ -11,10 +11,14 @@ import { Config, OutputMode, OutputModeUtils, Fork, ForkUtils, LATEST_FORK } fro
 import { Process } from "scripts/libraries/Process.sol";
 import { SetPreinstalls } from "scripts/SetPreinstalls.s.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { DeployConfig } from "scripts/deploy/DeployConfig.s.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
+import { Types } from "src/libraries/Types.sol";
+import { Constants } from "src/libraries/Constants.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
 
 // Interfaces
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
@@ -99,7 +103,12 @@ contract L2Genesis is Deployer {
     ///         Sets the precompiles, proxies, and the implementation accounts to be `vm.dumpState`
     ///         to generate a L2 genesis alloc.
     function runWithStateDump() public {
-        runWithOptions(Config.outputMode(), cfg.fork(), artifactDependencies());
+        runWithOptions({
+            _mode: Config.outputMode(),
+            _fork: cfg.fork(),
+            _populateNetworkConfig: true,
+            _l1Dependencies: artifactDependencies()
+        });
     }
 
     /// @notice Alias for `runWithStateDump` so that no `--sig` needs to be specified.
@@ -109,32 +118,54 @@ contract L2Genesis is Deployer {
 
     /// @notice This is used by op-e2e to have a version of the L2 allocs for each upgrade.
     function runWithAllUpgrades() public {
-        runWithOptions(OutputMode.ALL, LATEST_FORK, artifactDependencies());
+        runWithOptions({
+            _mode: OutputMode.ALL,
+            _fork: LATEST_FORK,
+            _populateNetworkConfig: true,
+            _l1Dependencies: artifactDependencies()
+        });
     }
 
     /// @notice This is used by new experimental interop deploy tooling.
     function runWithEnv() public {
         //  The setUp() is skipped (since we insert a custom DeployConfig, and do not use Artifacts)
         deployer = makeAddr("deployer");
-        runWithOptions(
-            OutputMode.NONE,
-            Config.fork(),
-            L1Dependencies({
+        runWithOptions({
+            _mode: OutputMode.NONE,
+            _fork: Config.fork(),
+            _populateNetworkConfig: false,
+            _l1Dependencies: L1Dependencies({
                 l1CrossDomainMessengerProxy: payable(vm.envAddress("L2GENESIS_L1CrossDomainMessengerProxy")),
                 l1StandardBridgeProxy: payable(vm.envAddress("L2GENESIS_L1StandardBridgeProxy")),
                 l1ERC721BridgeProxy: payable(vm.envAddress("L2GENESIS_L1ERC721BridgeProxy"))
             })
-        );
+        });
     }
 
     /// @notice This is used by foundry tests to enable the latest fork with the
     ///         given L1 dependencies.
     function runWithLatestLocal(L1Dependencies memory _l1Dependencies) public {
-        runWithOptions(OutputMode.NONE, LATEST_FORK, _l1Dependencies);
+        runWithOptions({
+            _mode: OutputMode.NONE,
+            _fork: LATEST_FORK,
+            _populateNetworkConfig: true,
+            _l1Dependencies: _l1Dependencies
+        });
     }
 
     /// @notice Build the L2 genesis.
-    function runWithOptions(OutputMode _mode, Fork _fork, L1Dependencies memory _l1Dependencies) public {
+    /// @param _mode The mode to run the script in.
+    /// @param _fork The fork to run the script in.
+    /// @param _populateNetworkConfig Whether to populate the network config in L1Block predeploy.
+    /// @param _l1Dependencies The L1 dependencies.
+    function runWithOptions(
+        OutputMode _mode,
+        Fork _fork,
+        bool _populateNetworkConfig,
+        L1Dependencies memory _l1Dependencies
+    )
+        public
+    {
         console.log("L2Genesis: outputMode: %s, fork: %s", _mode.toString(), _fork.toString());
         vm.startPrank(deployer);
         vm.chainId(cfg.l2ChainID());
@@ -147,6 +178,10 @@ contract L2Genesis is Deployer {
             fundDevAccounts();
         }
         vm.stopPrank();
+
+        if (_populateNetworkConfig) {
+            _setNetworkConfig(_l1Dependencies, cfg);
+        }
 
         if (writeForkGenesisAllocs(_fork, Fork.DELTA, _mode)) {
             return;
@@ -229,8 +264,6 @@ contract L2Genesis is Deployer {
             }
         }
     }
-
-    // TODO: Script to set the config values in the L1Block predeploy
 
     /// @notice Sets all the implementations for the predeploy proxies. For contracts without proxies,
     ///      sets the deployed bytecode at their expected predeploy address.
@@ -516,6 +549,56 @@ contract L2Genesis is Deployer {
         console.log("Setting %s implementation at: %s", cname, impl);
         vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
         return impl;
+    }
+
+    /// @notice Sets network-specific configuration in the L1Block contract
+    /// @param _l1Dependencies The L1 contract dependencies needed for configuration
+    /// @param _config The deploy config
+    function _setNetworkConfig(L1Dependencies memory _l1Dependencies, DeployConfig _config) internal {
+        console.log("L2Genesis: Modify the standard L2 genesis with network specific configuration");
+        vm.startPrank(Constants.DEPOSITOR_ACCOUNT);
+
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS, abi.encode(_l1Dependencies.l1ERC721BridgeProxy)
+        );
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS, abi.encode(_l1Dependencies.l1CrossDomainMessengerProxy)
+        );
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS, abi.encode(_l1Dependencies.l1StandardBridgeProxy)
+        );
+
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.REMOTE_CHAIN_ID, abi.encode(_config.l1ChainID())
+        );
+
+        bytes32 sequencerFeeVaultConfig = Encoding.encodeFeeVaultConfig({
+            _recipient: _config.sequencerFeeVaultRecipient(),
+            _amount: _config.sequencerFeeVaultMinimumWithdrawalAmount(),
+            _network: Types.WithdrawalNetwork(_config.sequencerFeeVaultWithdrawalNetwork())
+        });
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG, abi.encode(sequencerFeeVaultConfig)
+        );
+
+        bytes32 baseFeeVaultConfig = Encoding.encodeFeeVaultConfig({
+            _recipient: _config.baseFeeVaultRecipient(),
+            _amount: _config.baseFeeVaultMinimumWithdrawalAmount(),
+            _network: Types.WithdrawalNetwork(_config.baseFeeVaultWithdrawalNetwork())
+        });
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.BASE_FEE_VAULT_CONFIG, abi.encode(baseFeeVaultConfig)
+        );
+
+        bytes32 l1FeeVaultConfig = Encoding.encodeFeeVaultConfig({
+            _recipient: _config.l1FeeVaultRecipient(),
+            _amount: _config.l1FeeVaultMinimumWithdrawalAmount(),
+            _network: Types.WithdrawalNetwork(_config.l1FeeVaultWithdrawalNetwork())
+        });
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setConfig(
+            Types.ConfigType.L1_FEE_VAULT_CONFIG, abi.encode(l1FeeVaultConfig)
+        );
+        vm.stopPrank();
     }
 
     /// @notice Writes the genesis allocs, i.e. the state dump, to disk

@@ -7,6 +7,11 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Process } from "scripts/libraries/Process.sol";
 
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
+import { Types } from "src/libraries/Types.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
+import { DeployConfig } from "scripts/deploy/DeployConfig.s.sol";
+
 /// @title L2GenesisTest
 /// @notice Test suite for L2Genesis script.
 contract L2GenesisTest is Test {
@@ -156,6 +161,63 @@ contract L2GenesisTest is Test {
     /// @notice Tests the number of accounts in the genesis setup
     function test_allocs_size_works() external {
         withTempDump(_test_allocs_size);
+    }
+
+    /// @notice Tests that the L1Block predeploy has the correct config values.
+    function test_config_values_works() external {
+        DeployConfig cfg = genesis.cfg();
+        L1Dependencies memory deps = _dummyL1Deps();
+
+        genesis.cfg().setFundDevAccounts(false);
+        genesis.runWithLatestLocal(deps);
+        uint256 chainId = cfg.l1ChainID();
+
+        bytes memory sequencerFeeVaultConfig = abi.encode(
+            Encoding.encodeFeeVaultConfig({
+                _recipient: cfg.sequencerFeeVaultRecipient(),
+                _amount: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
+                _network: Types.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
+            })
+        );
+
+        bytes memory baseFeeVaultConfig = abi.encode(
+            Encoding.encodeFeeVaultConfig({
+                _recipient: cfg.baseFeeVaultRecipient(),
+                _amount: cfg.baseFeeVaultMinimumWithdrawalAmount(),
+                _network: Types.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
+            })
+        );
+
+        bytes memory l1FeeVaultConfig = abi.encode(
+            Encoding.encodeFeeVaultConfig({
+                _recipient: cfg.l1FeeVaultRecipient(),
+                _amount: cfg.l1FeeVaultMinimumWithdrawalAmount(),
+                _network: Types.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
+            })
+        );
+
+        // Assert that the L1Block predeploy has the correct config values
+        bytes memory config =
+            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS);
+        assertEq(config, abi.encode(deps.l1ERC721BridgeProxy));
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS);
+        assertEq(config, abi.encode(deps.l1CrossDomainMessengerProxy));
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS);
+        assertEq(config, abi.encode(deps.l1StandardBridgeProxy));
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.REMOTE_CHAIN_ID);
+        assertEq(config, abi.encode(chainId));
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG);
+        assertEq(config, sequencerFeeVaultConfig);
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG);
+        assertEq(config, baseFeeVaultConfig);
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG);
+        assertEq(config, l1FeeVaultConfig);
     }
 
     /// @notice Creates mock L1Dependencies for testing purposes.

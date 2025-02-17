@@ -256,15 +256,16 @@ contract Setup {
         }
 
         console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
-        l2Genesis.runWithOptions(
-            OutputMode.NONE,
-            l2Fork,
-            L1Dependencies({
+        l2Genesis.runWithOptions({
+            _mode: OutputMode.NONE,
+            _fork: l2Fork,
+            _populateNetworkConfig: false,
+            _l1Dependencies: L1Dependencies({
                 l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
                 l1StandardBridgeProxy: payable(address(l1StandardBridge)),
                 l1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
             })
-        );
+        });
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
