@@ -20,6 +20,7 @@ contract XSuperchainERC20FactoryTest is UnitDeploy {
     /// @dev We need to override the `setUp` function to use the `XSuperchainERC20Factory` contract
     /// instead of the `xERC20` and `SuperchainERC20` contracts.
     function setUp() public override(Base) {
-        _xerc20Factory = new XSuperchainERC20FactoryForTest();
+        _xSuperchainERC20Factory = new XSuperchainERC20FactoryForTest();
+        _xerc20Factory = XERC20FactoryForTest(_xSuperchainERC20Factory);
     }
 }
