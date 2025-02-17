@@ -8,10 +8,21 @@ import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
+import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 
 /// @title XSuperchainERC20Adapter
-/// @notice TODO: Add description
+/// @notice Adapter for minting/burning xERC20 tokens using the SuperchainTokenBridge by implementing
+/// the ERC7802 interface.
 contract SuperchainXERC20Adapter is IERC7802, ISemver {
+    IXERC20 public immutable XERC20;
+
+    /// @notice Constructs the SuperchainXERC20Adapter.
+    ///
+    /// @param _xerc20 The xERC20 contract to adapt.
+    constructor(IXERC20 _xerc20) {
+        XERC20 = _xerc20;
+    }
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
     function version() external view virtual returns (string memory) {
@@ -24,7 +35,7 @@ contract SuperchainXERC20Adapter is IERC7802, ISemver {
     function crosschainMint(address _to, uint256 _amount) external {
         if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
 
-        _mint(_to, _amount);
+        XERC20.mint(_to, _amount);
 
         emit CrosschainMint(_to, _amount, msg.sender);
     }
@@ -35,14 +46,13 @@ contract SuperchainXERC20Adapter is IERC7802, ISemver {
     function crosschainBurn(address _from, uint256 _amount) external {
         if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
 
-        _burn(_from, _amount);
+        XERC20.burn(_from, _amount);
 
         emit CrosschainBurn(_from, _amount, msg.sender);
     }
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
-        return _interfaceId == type(IERC7802).interfaceId || _interfaceId == type(IERC20).interfaceId
-            || _interfaceId == type(IERC165).interfaceId;
+        return _interfaceId == type(IERC7802).interfaceId || _interfaceId == type(IERC165).interfaceId;
     }
 }
