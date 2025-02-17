@@ -11,7 +11,7 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
 /// @title XSuperchainERC20Adapter
 /// @notice TODO: Add description
-contract XSuperchainERC20Adapter is IERC7802, ISemver {
+contract SuperchainXERC20Adapter is IERC7802, ISemver {
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
     function version() external view virtual returns (string memory) {
