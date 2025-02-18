@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Contracts
-import { SuperchainXERC20Lockbox } from "src/L2/XSuperchainERC20/SuperchainXERC20Lockbox.sol";
+import { XERC20Lockbox } from "@xERC20/contracts/XERC20Lockbox.sol";
 import { XSuperchainERC20 } from "src/L2/XSuperchainERC20/XSuperchainERC20.sol";
 import { SuperchainXERC20Adapter } from "src/L2/XSuperchainERC20/SuperchainXERC20Adapter.sol";
 
@@ -10,7 +10,7 @@ import { SuperchainXERC20Adapter } from "src/L2/XSuperchainERC20/SuperchainXERC2
 import { CREATE3 } from "isolmate/utils/CREATE3.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-contract XSuperchainERC20Toolbox {
+contract XSuperchainERC20Factory {
     error InvalidLength();
 
     /// @notice Deploys a new XSuperchainERC20 contract and returns the address
@@ -30,19 +30,19 @@ contract XSuperchainERC20Toolbox {
     /// @notice Deploys a new XSuperchainERC20Lockbox and XSuperchainERC20
     /// @param _name The name of the token
     /// @param _symbol The symbol of the token
-    /// @param _xERC20 The address of the XERC20 contract
+    /// @param _ERC20 The address of the ERC20 contract
     /// @return _xSuperchainERC20 The address of the new XSuperchainERC20 contract
-    /// @return _superchainXERC20Lockbox The address of the new XSuperchainERC20Lockbox contract
-    function deploySuperchainXERC20Lockbox(
+    /// @return _xERC20Lockbox The address of the new xERC20Lockbox contract
+    function deployXERC20Lockbox(
         string memory _name,
         string memory _symbol,
-        address _xERC20
+        address _ERC20
     )
         external
-        returns (address _xSuperchainERC20, address _superchainXERC20Lockbox)
+        returns (address _xSuperchainERC20, address _xERC20Lockbox)
     {
         _xSuperchainERC20 = _deployXSuperchainERC20(_name, _symbol);
-        _superchainXERC20Lockbox = _deployLockbox(_xSuperchainERC20, _xERC20);
+        _xERC20Lockbox = _deployLockbox(_xSuperchainERC20, _ERC20);
     }
 
     /// @notice Deploys a new SuperchainXERC20Adapter
@@ -76,8 +76,8 @@ contract XSuperchainERC20Toolbox {
 
     function _deployLockbox(address _xSuperchainERC20, address _xerc20) internal returns (address payable _lockbox) {
         bytes32 _salt = keccak256(abi.encodePacked(_xSuperchainERC20, _xerc20, msg.sender));
-        bytes memory _creation = type(SuperchainXERC20Lockbox).creationCode;
-        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_xSuperchainERC20, _xerc20));
+        bytes memory _creation = type(XERC20Lockbox).creationCode;
+        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_xSuperchainERC20, _xerc20, false));
 
         _lockbox = payable(CREATE3.deploy(_salt, _bytecode, 0));
 
