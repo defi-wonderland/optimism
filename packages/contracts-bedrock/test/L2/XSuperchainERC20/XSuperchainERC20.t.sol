@@ -6,26 +6,28 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Target contracts
 import { XSuperchainERC20 } from "src/L2/XSuperchainERC20/XSuperchainERC20.sol";
-import { SuperchainERC20 } from "src/L2/SuperchainERC20.sol";
+import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
+import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Testing utilities
 import { Base, UnitNames, UnitMintBurn, UnitCreateParams } from "@xERC20/test/unit/XERC20.t.sol";
-import { SuperchainERC20Test } from "test/L2/SuperchainERC20.t.sol";
 
 /// @title XSuperchainERC20Test
 /// @notice Contract for testing the XSuperchainERC20 contract.
-contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams, SuperchainERC20Test {
+contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
     XSuperchainERC20 public _xSuperchainERC20;
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address internal constant ZERO_ADDRESS = address(0);
+    address internal constant SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
 
     /// @notice Sets up the test suite.
     ///
     /// @dev We need to override the `setUp` function to use the `XSuperchainERC20` contract
-    /// instead of the `xERC20` and `SuperchainERC20` contracts.
-    function setUp() public override(Base, SuperchainERC20Test) {
+    /// instead of the `xERC20` contract.
+    function setUp() public override(Base) {
         _xSuperchainERC20 = new XSuperchainERC20("Test", "TST", _owner);
         _xerc20 = _xSuperchainERC20;
-        superchainERC20 = SuperchainERC20(address(_xSuperchainERC20));
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
@@ -36,9 +38,35 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams, Supe
         // Assert that the allowance is the maximum when the owner is Permit2
         assertEq(_xSuperchainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
     }
+    
+    /// @notice Tests the `mint` function reverts when the caller is not the bridge.
+    function testFuzz_crosschainMint_callerNotBridge_reverts(address _caller, address _to, uint256 _amount) public {
+        // Bound `caller` to not be the zero address
+        vm.assume(_caller != ZERO_ADDRESS);
+
+        // Bound `to` to not be the zero address
+        vm.assume(_to != ZERO_ADDRESS);
+
+        // Bound `amount` to not surpass the xERC20 limits
+        _amount = bound(_amount, 1, 1e40);
+
+        // Ensure the caller is not the bridge
+        vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE);
+
+        // Set the limits for the Superchain Token Bridge
+        vm.prank(_owner);
+        _xSuperchainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
+
+        // Expect the revert with `NotHighEnoughLimits` selector
+        vm.expectRevert(IXERC20.IXERC20_NotHighEnoughLimits.selector);
+
+        // Call the `mint` function with the non-bridge caller
+        vm.prank(_caller);
+        _xSuperchainERC20.crosschainMint(_to, _amount);
+    }
 
     /// @notice Tests the `crosschainMint` succeeds.
-    function testFuzz_crosschainMint_succeeds(address _to, uint256 _amount) public override {
+    function testFuzz_crosschainMint_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
 
@@ -57,8 +85,39 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams, Supe
         assertEq(_xSuperchainERC20.balanceOf(_to), _amount);
     }
 
+    /// @notice Tests the `burn` function reverts when the caller is not the bridge.
+    function testFuzz_crosschainBurn_callerNotBridge_reverts(address _caller, address _from, uint256 _amount) public {
+        // Ensure `from` is not the zero address
+        vm.assume(_from != ZERO_ADDRESS);
+
+        // Ensure the caller is not the bridge
+        vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE);
+
+        // Bound `amount` to not surpass the xERC20 limits
+        _amount = bound(_amount, 1, 1e40);
+
+        // Set the limits for the Superchain Token Bridge
+        vm.prank(_owner);
+        _xSuperchainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
+
+        // Mint tokens to the `from` address
+        vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
+        _xSuperchainERC20.crosschainMint(_from, _amount);
+
+        // Approve the caller to spend the tokens
+        vm.prank(_from);
+        _xSuperchainERC20.approve(_caller, _amount);
+
+        // Expect the revert with `NotHighEnoughLimits` selector
+        vm.expectRevert(IXERC20.IXERC20_NotHighEnoughLimits.selector);
+
+        // Call the `burn` function with the non-bridge caller
+        vm.prank(_caller);
+        _xSuperchainERC20.crosschainBurn(_from, _amount);
+    }
+
     /// @notice Tests the `crosschainBurn` succeeds.
-    function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount) public override {
+    function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
 
@@ -83,5 +142,21 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams, Supe
 
         // Assert that the tokens were burned
         assertEq(_xSuperchainERC20.balanceOf(_from), 0);
+    }
+
+    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802` interface.
+    function test_supportInterface_succeeds() public view {
+        assertTrue(_xSuperchainERC20.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(_xSuperchainERC20.supportsInterface(type(IERC7802).interfaceId));
+        assertTrue(_xSuperchainERC20.supportsInterface(type(IERC20).interfaceId));
+    }
+
+    /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
+    /// `IERC7802` one.
+    function testFuzz_supportInterface_works(bytes4 _interfaceId) public view {
+        vm.assume(_interfaceId != type(IERC165).interfaceId);
+        vm.assume(_interfaceId != type(IERC7802).interfaceId);
+        vm.assume(_interfaceId != type(IERC20).interfaceId);
+        assertFalse(_xSuperchainERC20.supportsInterface(_interfaceId));
     }
 }

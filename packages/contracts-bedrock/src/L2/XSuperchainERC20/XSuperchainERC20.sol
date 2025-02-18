@@ -16,7 +16,7 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 /// @title XSuperchainERC20
 /// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for unified cross-chain fungibility across
 ///         the Superchain. Allows the SuperchainTokenBridge to mint and burn tokens as needed.
-abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
+contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @dev The canonical Permit2 address.
     /// For signature-based allowance granting for single transaction ERC20 `transferFrom`.
     /// [Github](https://github.com/Uniswap/permit2)
@@ -49,8 +49,6 @@ abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function crosschainMint(address _to, uint256 _amount) external {
-        if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
-
         _mintWithCaller(msg.sender, _to, _amount);
 
         emit CrosschainMint(_to, _amount, msg.sender);
@@ -60,8 +58,6 @@ abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function crosschainBurn(address _from, uint256 _amount) external {
-        if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
-
         _burnWithCaller(msg.sender, _from, _amount);
 
         emit CrosschainBurn(_from, _amount, msg.sender);

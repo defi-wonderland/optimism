@@ -24,7 +24,7 @@ contract SuperchainERC20Test is Test {
     SuperchainERC20 public superchainERC20;
 
     /// @notice Sets up the test suite.
-    function setUp() public virtual {
+    function setUp() public {
         superchainERC20 = new MockSuperchainERC20Implementation();
     }
 
@@ -48,7 +48,7 @@ contract SuperchainERC20Test is Test {
     }
 
     /// @notice Tests the `mint` succeeds and emits the `Mint` event.
-    function testFuzz_crosschainMint_succeeds(address _to, uint256 _amount) public virtual {
+    function testFuzz_crosschainMint_succeeds(address _to, uint256 _amount) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
 
@@ -87,7 +87,7 @@ contract SuperchainERC20Test is Test {
     }
 
     /// @notice Tests the `burn` burns the amount and emits the `CrosschainBurn` event.
-    function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount) public virtual {
+    function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
 
