@@ -174,7 +174,7 @@ contract L2Genesis is Deployer {
         if (writeForkGenesisAllocs(_fork, Fork.ISTHMUS, _mode)) {
             return;
         }
-        setIsIsthmus();
+        activateIsthmus();
     }
 
     function writeForkGenesisAllocs(Fork _latest, Fork _current, OutputMode _mode) internal returns (bool isLatest_) {
@@ -504,7 +504,7 @@ contract L2Genesis is Deployer {
         IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE).setFjord();
     }
 
-    function setIsIsthmus() public {
+    function activateIsthmus() public {
         console.log("Activating isthmus in L1Block contract");
         vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
         IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setIsIsthmus();

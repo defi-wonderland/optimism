@@ -301,10 +301,7 @@ contract L1Block is ISemver, IGasToken {
     ///         3. Call `L1Block.setIsthmus()` to pull the values from L2 contracts.
     ///         4. Upgrades the remainder of the L2 contracts via `L2ProxyAdmin.upgrade()`.
     function setIsthmus() external {
-        if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
-        if (isIsthmus) revert IsthmusAlreadyActive();
-
-        isIsthmus = true;
+        _setIsIsthmus();
 
         // NOTE: It's important to use legacy functions to avoid failure on upgrade.
         Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.BASE_FEE_VAULT));
@@ -332,6 +329,11 @@ contract L1Block is ISemver, IGasToken {
     /// @dev    This function is only meant to be used to set the isIsthmus flag in the L1Block for the
     ///         chains that are being deployed from the L2 Genesis process.
     function setIsIsthmus() external {
+        _setIsIsthmus();
+    }
+
+    /// @notice Internal method to set the isIsthmus flag.
+    function _setIsIsthmus() internal {
         if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
         if (isIsthmus) revert IsthmusAlreadyActive();
 
