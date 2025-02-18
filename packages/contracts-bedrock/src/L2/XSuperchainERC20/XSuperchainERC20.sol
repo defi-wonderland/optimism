@@ -51,7 +51,7 @@ abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     function crosschainMint(address _to, uint256 _amount) external {
         if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
 
-        _mint(_to, _amount);
+        _mintWithCaller(msg.sender, _to, _amount);
 
         emit CrosschainMint(_to, _amount, msg.sender);
     }
@@ -62,7 +62,7 @@ abstract contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     function crosschainBurn(address _from, uint256 _amount) external {
         if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
 
-        _burn(_from, _amount);
+        _burnWithCaller(msg.sender, _from, _amount);
 
         emit CrosschainBurn(_from, _amount, msg.sender);
     }
