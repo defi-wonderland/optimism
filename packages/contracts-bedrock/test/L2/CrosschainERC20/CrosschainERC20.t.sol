@@ -94,7 +94,7 @@ contract CrosschainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
         vm.assume(_caller != ZERO_ADDRESS);
 
         // Ensure the caller is not the bridge
-        vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE);
+        vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE && _caller != ZERO_ADDRESS);
 
         // Bound `amount` to not surpass the xERC20 limits
         _amount = bound(_amount, 1, 1e40);
