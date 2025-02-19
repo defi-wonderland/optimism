@@ -31,7 +31,7 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
-    function testAllowanceWhenSpentFromPermit2(address _owner) public {
+    function testFuzz_AllowanceWhenSpentFromPermit2(address _owner) public {
         // Ensure the owner is neither Permit2 nor the zero address
         vm.assume(_owner != _PERMIT2 && _owner != address(0));
 
