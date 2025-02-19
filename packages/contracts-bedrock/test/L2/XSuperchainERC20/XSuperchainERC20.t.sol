@@ -38,7 +38,7 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
         // Assert that the allowance is the maximum when the owner is Permit2
         assertEq(_xSuperchainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
     }
-    
+
     /// @notice Tests the `mint` function reverts when the caller is not the bridge.
     function testFuzz_crosschainMint_callerNotBridge_reverts(address _caller, address _to, uint256 _amount) public {
         // Bound `caller` to not be the zero address
