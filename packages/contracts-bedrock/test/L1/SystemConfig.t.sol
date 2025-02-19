@@ -35,6 +35,7 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
         super.setUp();
         skipIfForkTest("SystemConfig_Initialize_Test: cannot test initialization on forked network");
         batchInbox = deploy.cfg().batchInboxAddress();
+        feeVaultAdmin = deploy.cfg().systemConfigFeeVaultAdmin();
         owner = deploy.cfg().finalSystemOwner();
         basefeeScalar = deploy.cfg().basefeeScalar();
         blobbasefeeScalar = deploy.cfg().blobbasefeeScalar();
@@ -484,15 +485,6 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
         systemConfig.setEIP1559Params({ _denominator: _denominator, _elasticity: 0 });
     }
 
-    /// @dev Tests that `setFeeVaultAdmin` reverts if the caller is not the owner.
-    function test_setFeeVaultAdmin_notOwner_reverts(address _caller) external {
-        vm.assume(_caller != systemConfig.owner());
-
-        vm.expectRevert("Ownable: caller is not the owner");
-        vm.prank(_caller);
-        systemConfig.setFeeVaultAdmin(address(0x20));
-    }
-
     function test_setFeeVaultConfig_notOwner_reverts(address _caller) external {
         vm.assume(_caller != systemConfig.feeVaultAdmin());
 
@@ -584,16 +576,6 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         systemConfig.setEIP1559Params(_denominator, _elasticity);
         assertEq(systemConfig.eip1559Denominator(), _denominator);
         assertEq(systemConfig.eip1559Elasticity(), _elasticity);
-    }
-
-    /// @dev Tests that `setFeeVaultAdmin` updates the fee vault admin successfully.
-    function testFuzz_setFeeVaultAdmin_succeeds(address _newFeeVaultAdmin) external {
-        vm.expectEmit(address(systemConfig));
-        emit ConfigUpdate(0, ISystemConfig.UpdateType.FEE_VAULT_ADMIN, abi.encode(_newFeeVaultAdmin));
-
-        vm.prank(systemConfig.owner());
-        systemConfig.setFeeVaultAdmin(_newFeeVaultAdmin);
-        assertEq(systemConfig.feeVaultAdmin(), _newFeeVaultAdmin);
     }
 
     /// @dev Tests that `setFeeVaultConfig` updates the fee vault config successfully.

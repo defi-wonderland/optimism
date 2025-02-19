@@ -10,8 +10,7 @@ interface ISystemConfig {
         FEE_SCALARS,
         GAS_LIMIT,
         UNSAFE_BLOCK_SIGNER,
-        EIP_1559_PARAMS,
-        FEE_VAULT_ADMIN
+        EIP_1559_PARAMS
     }
 
     struct Addresses {
@@ -78,7 +77,6 @@ interface ISystemConfig {
     function setGasConfigEcotone(uint32 _basefeeScalar, uint32 _blobbasefeeScalar) external;
     function setGasLimit(uint64 _gasLimit) external;
     function setUnsafeBlockSigner(address _unsafeBlockSigner) external;
-    function setFeeVaultAdmin(address _feeVaultAdmin) external;
     function setFeeVaultConfig(
         Types.ConfigType _type,
         address _recipient,

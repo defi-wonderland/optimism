@@ -26,14 +26,13 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     /// @custom:value GAS_LIMIT            Represents an update to gas limit on L2.
     /// @custom:value UNSAFE_BLOCK_SIGNER  Represents an update to the signer key for unsafe
     ///                                    block distrubution.
-    /// @custom:value FEE_VAULT_ADMIN      Represents an update to the fee vault admin.
+    /// @custom:value EIP_1559_PARAMS      Represents an update to EIP-1559 parameters.
     enum UpdateType {
         BATCHER,
         FEE_SCALARS,
         GAS_LIMIT,
         UNSAFE_BLOCK_SIGNER,
-        EIP_1559_PARAMS,
-        FEE_VAULT_ADMIN
+        EIP_1559_PARAMS
     }
 
     /// @notice Struct representing the addresses of L1 system contracts. These should be the
@@ -430,21 +429,6 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
         bytes memory data = abi.encode(uint256(_denominator) << 32 | uint64(_elasticity));
         emit ConfigUpdate(VERSION, UpdateType.EIP_1559_PARAMS, data);
-    }
-
-    /// @notice Updates the fee admin address. Can only be called by the owner.
-    /// @param _feeVaultAdmin New fee admin address.
-    function setFeeVaultAdmin(address _feeVaultAdmin) external onlyOwner {
-        _setFeeVaultAdmin(_feeVaultAdmin);
-    }
-
-    /// @notice Internal function for updating the fee admin address.
-    /// @param _feeVaultAdmin New fee admin address.
-    function _setFeeVaultAdmin(address _feeVaultAdmin) internal {
-        Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _feeVaultAdmin);
-
-        bytes memory data = abi.encode(_feeVaultAdmin);
-        emit ConfigUpdate(VERSION, UpdateType.FEE_VAULT_ADMIN, data);
     }
 
     /// @notice Sets the start block in a backwards compatible way. Proxies
