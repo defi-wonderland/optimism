@@ -15,7 +15,7 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
 /// @title XSuperchainERC20
 /// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for 
-///         unified cross-chain fungibility across any bridge
+///         unified cross-chain fungibility across any bridge.
 contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @dev The canonical Permit2 address.
     /// For signature-based allowance granting for single transaction ERC20 `transferFrom`.
