@@ -15,5 +15,5 @@ interface IXSuperchainERC20 is IERC7802, IXERC20, ISemver, IOwnable {
 
     function supportsInterface(bytes4 _interfaceId) external view returns (bool);
 
-    function __constructor__() external;
+    function __constructor__(string memory _name, string memory _symbol, address _factory) external;
 }
