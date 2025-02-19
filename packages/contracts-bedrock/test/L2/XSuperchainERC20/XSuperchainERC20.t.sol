@@ -149,6 +149,7 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
         assertTrue(_xSuperchainERC20.supportsInterface(type(IERC165).interfaceId));
         assertTrue(_xSuperchainERC20.supportsInterface(type(IERC7802).interfaceId));
         assertTrue(_xSuperchainERC20.supportsInterface(type(IERC20).interfaceId));
+        assertTrue(_xSuperchainERC20.supportsInterface(type(IXERC20).interfaceId));
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
@@ -157,6 +158,7 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
         vm.assume(_interfaceId != type(IERC20).interfaceId);
+        vm.assume(_interfaceId != type(IXERC20).interfaceId);
         assertFalse(_xSuperchainERC20.supportsInterface(_interfaceId));
     }
 }
