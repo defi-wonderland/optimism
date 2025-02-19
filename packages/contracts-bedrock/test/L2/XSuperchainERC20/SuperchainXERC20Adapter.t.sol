@@ -33,13 +33,22 @@ contract ERC7802AdapterTest is Test {
 
     /// @notice Tests the `constructor` sets the `XERC20` contract.
     function test_constructor_setsXERC20() public {
+        // Ensure the `XERC20` contract is set
         assertEq(address(adapter.XERC20()), XERC20);
+    }
+
+    /// @notice Tests the `constructor` sets the `BRIDGE` address.
+    function test_constructor_setsBridge() public {
+        // Ensure the `BRIDGE` address is set
+        assertEq(address(adapter.BRIDGE()), BRIDGE);
     }
 
     /// @notice Tests the `crosschainMint` reverts when the caller is not the bridge.
     function testFuzz_crosschainMint_callerIsNotBridge_reverts(address _caller) public {
+        // Ensure the caller is not the bridge
         vm.assume(_caller != BRIDGE);
 
+        // Expect the `crosschainMint` function to revert
         vm.expectRevert(Unauthorized.selector);
         adapter.crosschainMint(address(0), 100);
     }
@@ -60,8 +69,10 @@ contract ERC7802AdapterTest is Test {
 
     /// @notice Tests the `crosschainBurn` reverts when the caller is not the bridge.
     function testFuzz_crosschainBurn_callerIsNotBridge_reverts(address _caller) public {
+        // Ensure the caller is not the bridge
         vm.assume(_caller != BRIDGE);
 
+        // Expect the `crosschainBurn` function to revert
         vm.expectRevert(Unauthorized.selector);
         adapter.crosschainBurn(address(0), 100);
     }
@@ -81,8 +92,17 @@ contract ERC7802AdapterTest is Test {
     }
 
     /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802` interface.
-    function test_supportInterface_succeeds() public view {
+    function test_supportsInterface_succeeds() public view {
         assertTrue(adapter.supportsInterface(type(IERC165).interfaceId));
         assertTrue(adapter.supportsInterface(type(IERC7802).interfaceId));
+    }
+
+    /// @notice Tests that the `supportsInterface` function returns false for any other interface.
+    function test_supportsInterface_works(bytes4 _interfaceId) public view {
+        // Ensure the interface is not the `IERC165` or `IERC7802` interface
+        vm.assume(_interfaceId != type(IERC165).interfaceId && _interfaceId != type(IERC7802).interfaceId);
+
+        // Ensure the `supportsInterface` function returns false for the given interface
+        assertFalse(adapter.supportsInterface(_interfaceId));
     }
 }
