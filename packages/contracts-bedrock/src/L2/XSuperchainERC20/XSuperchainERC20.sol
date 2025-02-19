@@ -10,6 +10,7 @@ import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
@@ -66,6 +67,6 @@ contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
         return _interfaceId == type(IERC7802).interfaceId || _interfaceId == type(IERC20).interfaceId
-            || _interfaceId == type(IERC165).interfaceId;
+            || _interfaceId == type(IERC165).interfaceId || _interfaceId == type(IXERC20).interfaceId;
     }
 }
