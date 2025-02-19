@@ -22,6 +22,11 @@ interface ISystemConfig {
         address optimismMintableERC20Factory;
     }
 
+    struct Roles {
+        address owner;
+        address feeVaultAdmin;
+    }
+
     event ConfigUpdate(uint256 indexed version, UpdateType indexed updateType, bytes data);
     event Initialized(uint8 version);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -48,13 +53,12 @@ interface ISystemConfig {
     function eip1559Elasticity() external view returns (uint32);
     function getAddresses() external view returns (Addresses memory);
     function initialize(
-        address _owner,
+        Roles memory _roles,
         uint32 _basefeeScalar,
         uint32 _blobbasefeeScalar,
         bytes32 _batcherHash,
         uint64 _gasLimit,
         address _unsafeBlockSigner,
-        address _feeVaultAdmin,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         Addresses memory _addresses

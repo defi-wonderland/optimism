@@ -61,13 +61,12 @@ interface ISystemConfigInterop {
     )
         external;
     function initialize(
-        address _owner,
+        ISystemConfig.Roles memory _roles,
         uint32 _basefeeScalar,
         uint32 _blobbasefeeScalar,
         bytes32 _batcherHash,
         uint64 _gasLimit,
         address _unsafeBlockSigner,
-        address _feeVaultAdmin,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         ISystemConfig.Addresses memory _addresses,

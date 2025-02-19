@@ -506,13 +506,12 @@ contract Deploy is Deployer {
             _data: abi.encodeCall(
                 ISystemConfig.initialize,
                 (
-                    cfg.finalSystemOwner(),
+                    ISystemConfig.Roles({ owner: cfg.finalSystemOwner(), feeVaultAdmin: cfg.systemConfigFeeVaultAdmin() }),
                     cfg.basefeeScalar(),
                     cfg.blobbasefeeScalar(),
                     bytes32(uint256(uint160(cfg.batchSenderAddress()))),
                     uint64(cfg.l2GenesisBlockGasLimit()),
                     cfg.p2pSequencerAddress(),
-                    cfg.systemConfigFeeVaultAdmin(),
                     Constants.DEFAULT_RESOURCE_CONFIG(),
                     cfg.batchInboxAddress(),
                     ISystemConfig.Addresses({

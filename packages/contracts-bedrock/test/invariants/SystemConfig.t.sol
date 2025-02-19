@@ -30,13 +30,12 @@ contract SystemConfig_GasLimitBoundaries_Invariant is Test {
             abi.encodeCall(
                 configImpl.initialize,
                 (
-                    address(0xbeef), // owner
+                    ISystemConfig.Roles({ owner: address(0xbeef), feeVaultAdmin: address(1) }), // roles
                     2100, // overhead
                     1000000, // scalar
                     bytes32(hex"abcd"), // batcher hash
                     30_000_000, // gas limit
                     address(1), // unsafe block signer
-                    address(1), // fee vault admin
                     Constants.DEFAULT_RESOURCE_CONFIG(),
                     address(0), // _batchInbox
                     ISystemConfig.Addresses({ // _addrs

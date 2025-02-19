@@ -63,13 +63,12 @@ contract OPContractsManagerInterop is OPContractsManager {
         return abi.encodeCall(
             ISystemConfigInterop.initialize,
             (
-                _input.roles.systemConfigOwner,
+                ISystemConfig.Roles({ owner: _input.roles.systemConfigOwner, feeVaultAdmin: _input.roles.feeVaultAdmin }),
                 _input.basefeeScalar,
                 _input.blobBasefeeScalar,
                 bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
                 _input.gasLimit,
                 _input.roles.unsafeBlockSigner,
-                _input.roles.feeVaultAdmin,
                 referenceResourceConfig,
                 chainIdToBatchInboxAddress(_input.l2ChainId),
                 opChainAddrs,

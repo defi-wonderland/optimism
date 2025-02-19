@@ -47,6 +47,14 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         address optimismMintableERC20Factory;
     }
 
+    /// @notice Struct representing the roles of the system.
+    /// @notice The owner (chain operator) of the system.
+    /// @notice The fee admin of the system.
+    struct Roles {
+        address owner;
+        address feeVaultAdmin;
+    }
+
     /// @notice Version identifier, used for upgrades.
     uint256 public constant VERSION = 0;
 
@@ -151,25 +159,23 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
     /// @notice Initializer.
     ///         The resource config must be set before the require check.
-    /// @param _owner             Initial owner of the contract.
+    /// @param _roles             Initial roles of the system.
     /// @param _basefeeScalar     Initial basefee scalar value.
     /// @param _blobbasefeeScalar Initial blobbasefee scalar value.
     /// @param _batcherHash       Initial batcher hash.
     /// @param _gasLimit          Initial gas limit.
     /// @param _unsafeBlockSigner Initial unsafe block signer address.
-    /// @param _feeVaultAdmin     Initial fee vault admin address.
     /// @param _config            Initial ResourceConfig.
     /// @param _batchInbox        Batch inbox address. An identifier for the op-node to find
     ///                           canonical data.
     /// @param _addresses         Set of L1 contract addresses. These should be the proxies.
     function initialize(
-        address _owner,
+        Roles memory _roles,
         uint32 _basefeeScalar,
         uint32 _blobbasefeeScalar,
         bytes32 _batcherHash,
         uint64 _gasLimit,
         address _unsafeBlockSigner,
-        address _feeVaultAdmin,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         SystemConfig.Addresses memory _addresses
@@ -178,7 +184,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         initializer
     {
         __Ownable_init();
-        transferOwnership(_owner);
+        transferOwnership(_roles.owner);
 
         // These are set in ascending order of their UpdateTypes.
         _setBatcherHash(_batcherHash);
@@ -186,7 +192,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         _setGasLimit(_gasLimit);
 
         Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
-        Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _feeVaultAdmin);
+        Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _roles.feeVaultAdmin);
         Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
         Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
         Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);

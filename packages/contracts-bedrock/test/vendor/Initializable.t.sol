@@ -158,12 +158,11 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(
                     systemConfig.initialize,
                     (
-                        address(0xdead),
+                        ISystemConfig.Roles({ owner: address(0xdead), feeVaultAdmin: address(0) }),
                         0,
                         0,
                         bytes32(0),
                         1,
-                        address(0),
                         address(0),
                         IResourceMetering.ResourceConfig({
                             maxResourceLimit: 1,
@@ -194,12 +193,11 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(
                     systemConfig.initialize,
                     (
-                        address(0xdead),
+                        ISystemConfig.Roles({ owner: address(0xdead), feeVaultAdmin: address(0) }),
                         0,
                         0,
                         bytes32(0),
                         1,
-                        address(0),
                         address(0),
                         IResourceMetering.ResourceConfig({
                             maxResourceLimit: 1,
