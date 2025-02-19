@@ -23,7 +23,7 @@ contract SuperchainXERC20AdapterTest is Test {
 
     /// @notice Sets up the test suite.
     function setUp() public {
-        adapter = new SuperchainXERC20Adapter(IXERC20(_XERC20));
+        adapter = new SuperchainXERC20Adapter(IXERC20(_XERC20), SUPERCHAIN_TOKEN_BRIDGE);
     }
 
     /// @notice Helper function to setup a mock and expect a call to it.

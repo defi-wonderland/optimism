@@ -15,12 +15,15 @@ import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 /// the ERC7802 interface.
 contract SuperchainXERC20Adapter is IERC7802, ISemver {
     IXERC20 public immutable XERC20;
+    address public immutable BRIDGE;
 
     /// @notice Constructs the SuperchainXERC20Adapter.
     ///
     /// @param _xerc20 The xERC20 contract to adapt.
-    constructor(IXERC20 _xerc20) {
+    /// @param _bridge The SuperchainTokenBridge address.
+    constructor(IXERC20 _xerc20, address _bridge) {
         XERC20 = _xerc20;
+        BRIDGE = _bridge;
     }
 
     /// @notice Semantic version.
@@ -33,7 +36,7 @@ contract SuperchainXERC20Adapter is IERC7802, ISemver {
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function crosschainMint(address _to, uint256 _amount) external {
-        if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
+        if (msg.sender != BRIDGE) revert Unauthorized();
 
         XERC20.mint(_to, _amount);
 
@@ -44,7 +47,7 @@ contract SuperchainXERC20Adapter is IERC7802, ISemver {
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function crosschainBurn(address _from, uint256 _amount) external {
-        if (msg.sender != Predeploys.SUPERCHAIN_TOKEN_BRIDGE) revert Unauthorized();
+        if (msg.sender != BRIDGE) revert Unauthorized();
 
         XERC20.burn(_from, _amount);
 
