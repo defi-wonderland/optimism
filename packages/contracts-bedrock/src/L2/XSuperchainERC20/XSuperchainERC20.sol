@@ -15,7 +15,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
 /// @title XSuperchainERC20
-/// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for 
+/// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for
 ///         unified cross-chain fungibility across any bridge.
 contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     /// @dev The canonical Permit2 address.
@@ -25,7 +25,6 @@ contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
     /// @notice Constructs the XSuperchainERC20 contract.
-    ///
     /// @param _name    Name of the token.
     /// @param _symbol  Symbol of the token.
     /// @param _factory Address of the factory contract.
@@ -46,7 +45,7 @@ contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
         return _spender == _PERMIT2 ? type(uint256).max : super.allowance(_owner, _spender);
     }
 
-    /// @notice Allows the SuperchainTokenBridge to mint tokens.
+    /// @notice Allows a bridge to mint tokens.
     /// @param _to     Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function crosschainMint(address _to, uint256 _amount) external {
@@ -55,7 +54,7 @@ contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
         emit CrosschainMint(_to, _amount, msg.sender);
     }
 
-    /// @notice Allows the SuperchainTokenBridge to burn tokens.
+    /// @notice Allows a bridge to burn tokens.
     /// @param _from   Address to burn tokens from.
     /// @param _amount Amount of tokens to burn.
     function crosschainBurn(address _from, uint256 _amount) external {
