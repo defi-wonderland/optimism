@@ -13,11 +13,13 @@ import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 /// @notice Adapter for minting/burning xERC20 tokens using a bridge by implementing
 /// the ERC7802 interface.
 contract ERC7802Adapter is IERC7802, ISemver {
+    /// @notice The xERC20 contract to adapt.
     IXERC20 public immutable XERC20;
+    
+    /// @notice The bridge address.
     address public immutable BRIDGE;
 
     /// @notice Constructs the ERC7802Adapter.
-    ///
     /// @param _xerc20 The xERC20 contract to adapt.
     /// @param _bridge The bridge address.
     constructor(IXERC20 _xerc20, address _bridge) {
