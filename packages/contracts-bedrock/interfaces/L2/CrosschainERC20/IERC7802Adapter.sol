@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.0;
 
 // Interfaces
 import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
