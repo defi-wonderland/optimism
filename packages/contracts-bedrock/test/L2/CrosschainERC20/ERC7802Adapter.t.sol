@@ -32,13 +32,13 @@ contract ERC7802AdapterTest is Test {
     }
 
     /// @notice Tests the `constructor` sets the `XERC20` contract.
-    function test_constructor_setsXERC20() public {
+    function test_constructor_setXERC20_succeeds() public {
         // Ensure the `XERC20` contract is set
         assertEq(address(adapter.XERC20()), XERC20);
     }
 
     /// @notice Tests the `constructor` sets the `BRIDGE` address.
-    function test_constructor_setsBridge() public {
+    function test_constructor_setBridge_succeeds() public {
         // Ensure the `BRIDGE` address is set
         assertEq(address(adapter.BRIDGE()), BRIDGE);
     }
