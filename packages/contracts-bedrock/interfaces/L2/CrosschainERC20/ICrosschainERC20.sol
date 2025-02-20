@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // Interfaces
 import { IERC7802 } from "interfaces/L2/IERC7802.sol";
-import { IXERC20 } from "interfaces/L2/IXERC20.sol";
+import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOwnable } from "interfaces/universal/IOwnable.sol";
 
