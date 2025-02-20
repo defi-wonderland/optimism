@@ -4,10 +4,6 @@ pragma solidity 0.8.25;
 // Contracts
 import { XERC20 } from "@xERC20/contracts/XERC20.sol";
 
-// Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
