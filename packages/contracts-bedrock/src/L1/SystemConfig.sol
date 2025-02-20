@@ -192,6 +192,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         _setGasLimit(_gasLimit);
 
         Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
+        // Note: FEE_VAULT_ADMIN_SLOT is initialized here and cannot be changed later.
         Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _roles.feeVaultAdmin);
         Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
         Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
