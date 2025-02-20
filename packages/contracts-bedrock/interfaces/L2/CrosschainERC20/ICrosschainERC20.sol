@@ -7,10 +7,9 @@ import { IXERC20 } from "interfaces/L2/IXERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOwnable } from "interfaces/universal/IOwnable.sol";
 
-/// @title IXSuperchainERC20
-/// @notice This interface is available on the XSuperchainERC20 contract.
-/// @dev This interface is needed for the abstract XSuperchainERC20 implementation but is not part of the standard
-interface IXSuperchainERC20 is IERC7802, IXERC20, ISemver, IOwnable {
+/// @title ICrosschainERC20
+/// @notice This interface is available on the CrosschainERC20 contract.
+interface ICrosschainERC20 is IERC7802, IXERC20, ISemver, IOwnable {
     error Unauthorized();
 
     function supportsInterface(bytes4 _interfaceId) external view returns (bool);

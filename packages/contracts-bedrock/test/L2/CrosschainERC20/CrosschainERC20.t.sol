@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Target contracts
-import { XSuperchainERC20 } from "src/L2/XSuperchainERC20/XSuperchainERC20.sol";
+import { CrosschainERC20 } from "src/L2/CrosschainERC20/CrosschainERC20.sol";
 import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -13,21 +13,21 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // Testing utilities
 import { Base, UnitNames, UnitMintBurn, UnitCreateParams } from "@xERC20/test/unit/XERC20.t.sol";
 
-/// @title XSuperchainERC20Test
-/// @notice Contract for testing the XSuperchainERC20 contract.
-contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
-    XSuperchainERC20 public _xSuperchainERC20;
+/// @title CrosschainERC20Test
+/// @notice Contract for testing the CrosschainERC20 contract.
+contract CrosschainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
+    CrosschainERC20 public _crosschainERC20;
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant ZERO_ADDRESS = address(0);
     address internal constant SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
 
     /// @notice Sets up the test suite.
     ///
-    /// @dev We need to override the `setUp` function to use the `XSuperchainERC20` contract
+    /// @dev We need to override the `setUp` function to use the `CrosschainERC20` contract
     /// instead of the `xERC20` contract.
     function setUp() public override(Base) {
-        _xSuperchainERC20 = new XSuperchainERC20("Test", "TST", _owner);
-        _xerc20 = _xSuperchainERC20;
+        _crosschainERC20 = new CrosschainERC20("Test", "TST", _owner);
+        _xerc20 = _crosschainERC20;
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
@@ -36,7 +36,7 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
         vm.assume(_owner != _PERMIT2 && _owner != address(0));
 
         // Assert that the allowance is the maximum when the owner is Permit2
-        assertEq(_xSuperchainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
+        assertEq(_crosschainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
     }
 
     /// @notice Tests the `mint` function reverts when the caller is not the bridge.
@@ -55,14 +55,14 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
 
         // Set the limits for the Superchain Token Bridge
         vm.prank(_owner);
-        _xSuperchainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
+        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
 
         // Expect the revert with `NotHighEnoughLimits` selector
         vm.expectRevert(IXERC20.IXERC20_NotHighEnoughLimits.selector);
 
         // Call the `mint` function with the non-bridge caller
         vm.prank(_caller);
-        _xSuperchainERC20.crosschainMint(_to, _amount);
+        _crosschainERC20.crosschainMint(_to, _amount);
     }
 
     /// @notice Tests the `crosschainMint` succeeds.
@@ -75,20 +75,23 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
 
         // Set the limits for the Superchain Token Bridge
         vm.prank(_owner);
-        _xSuperchainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
+        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
 
         // Mint the tokens using the ERC7802 interface
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
-        _xSuperchainERC20.crosschainMint(_to, _amount);
+        _crosschainERC20.crosschainMint(_to, _amount);
 
         // Assert that the tokens were minted
-        assertEq(_xSuperchainERC20.balanceOf(_to), _amount);
+        assertEq(_crosschainERC20.balanceOf(_to), _amount);
     }
 
     /// @notice Tests the `burn` function reverts when the caller is not the bridge.
     function testFuzz_crosschainBurn_callerNotBridge_reverts(address _caller, address _from, uint256 _amount) public {
         // Ensure `from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
+
+        // Ensure the caller is not the zero address
+        vm.assume(_caller != ZERO_ADDRESS);
 
         // Ensure the caller is not the bridge
         vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE);
@@ -98,22 +101,22 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
 
         // Set the limits for the Superchain Token Bridge
         vm.prank(_owner);
-        _xSuperchainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
+        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
 
         // Mint tokens to the `from` address
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
-        _xSuperchainERC20.crosschainMint(_from, _amount);
+        _crosschainERC20.crosschainMint(_from, _amount);
 
         // Approve the caller to spend the tokens
         vm.prank(_from);
-        _xSuperchainERC20.approve(_caller, _amount);
+        _crosschainERC20.approve(_caller, _amount);
 
         // Expect the revert with `NotHighEnoughLimits` selector
         vm.expectRevert(IXERC20.IXERC20_NotHighEnoughLimits.selector);
 
         // Call the `burn` function with the non-bridge caller
         vm.prank(_caller);
-        _xSuperchainERC20.crosschainBurn(_from, _amount);
+        _crosschainERC20.crosschainBurn(_from, _amount);
     }
 
     /// @notice Tests the `crosschainBurn` succeeds.
@@ -126,30 +129,30 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
 
         // Set the limits for the Superchain Token Bridge
         vm.prank(_owner);
-        _xSuperchainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
+        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
 
         // Mint the tokens using the ERC7802 interface
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
-        _xSuperchainERC20.crosschainMint(_from, _amount);
+        _crosschainERC20.crosschainMint(_from, _amount);
 
         // Approve the Superchain Token Bridge to spend the tokens
         vm.prank(_from);
-        _xSuperchainERC20.approve(SUPERCHAIN_TOKEN_BRIDGE, _amount);
+        _crosschainERC20.approve(SUPERCHAIN_TOKEN_BRIDGE, _amount);
 
         // Burn the tokens using the ERC7802 interface
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
-        _xSuperchainERC20.crosschainBurn(_from, _amount);
+        _crosschainERC20.crosschainBurn(_from, _amount);
 
         // Assert that the tokens were burned
-        assertEq(_xSuperchainERC20.balanceOf(_from), 0);
+        assertEq(_crosschainERC20.balanceOf(_from), 0);
     }
 
     /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802` interface.
     function test_supportInterface_succeeds() public view {
-        assertTrue(_xSuperchainERC20.supportsInterface(type(IERC165).interfaceId));
-        assertTrue(_xSuperchainERC20.supportsInterface(type(IERC7802).interfaceId));
-        assertTrue(_xSuperchainERC20.supportsInterface(type(IERC20).interfaceId));
-        assertTrue(_xSuperchainERC20.supportsInterface(type(IXERC20).interfaceId));
+        assertTrue(_crosschainERC20.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(_crosschainERC20.supportsInterface(type(IERC7802).interfaceId));
+        assertTrue(_crosschainERC20.supportsInterface(type(IERC20).interfaceId));
+        assertTrue(_crosschainERC20.supportsInterface(type(IXERC20).interfaceId));
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
@@ -159,6 +162,6 @@ contract XSuperchainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
         vm.assume(_interfaceId != type(IERC20).interfaceId);
         vm.assume(_interfaceId != type(IXERC20).interfaceId);
-        assertFalse(_xSuperchainERC20.supportsInterface(_interfaceId));
+        assertFalse(_crosschainERC20.supportsInterface(_interfaceId));
     }
 }

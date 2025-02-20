@@ -10,17 +10,17 @@ import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
-/// @title XSuperchainERC20
+/// @title CrosschainERC20
 /// @notice A standard ERC20 extension implementing IERC7281 and IERC7802 for
 ///         unified cross-chain fungibility across any bridge.
-contract XSuperchainERC20 is XERC20, IERC7802, ISemver {
+contract CrosschainERC20 is XERC20, IERC7802, ISemver {
     /// @dev The canonical Permit2 address.
     /// For signature-based allowance granting for single transaction ERC20 `transferFrom`.
     /// [Github](https://github.com/Uniswap/permit2)
     /// [Etherscan](https://optimistic.etherscan.io/address/0x000000000022d473030f116ddee9f6b43ac78ba3#code)
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
-    /// @notice Constructs the XSuperchainERC20 contract.
+    /// @notice Constructs the CrosschainERC20 contract.
     /// @param _name    Name of the token.
     /// @param _symbol  Symbol of the token.
     /// @param _factory Address of the factory contract.
