@@ -11,23 +11,20 @@ import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Testing utilities
-import { Base, UnitNames, UnitMintBurn, UnitCreateParams } from "@xERC20/test/unit/XERC20.t.sol";
+import { Test } from "forge-std/Test.sol";
 
 /// @title CrosschainERC20Test
 /// @notice Contract for testing the CrosschainERC20 contract.
-contract CrosschainERC20Test is UnitNames, UnitMintBurn, UnitCreateParams {
+contract CrosschainERC20Test is Test {
     CrosschainERC20 public _crosschainERC20;
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant ZERO_ADDRESS = address(0);
     address internal constant SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
+    address internal _owner = makeAddr("owner");
 
     /// @notice Sets up the test suite.
-    ///
-    /// @dev We need to override the `setUp` function to use the `CrosschainERC20` contract
-    /// instead of the `xERC20` contract.
-    function setUp() public override(Base) {
+    function setUp() public {
         _crosschainERC20 = new CrosschainERC20("Test", "TST", _owner);
-        _xerc20 = _crosschainERC20;
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
