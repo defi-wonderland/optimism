@@ -12,7 +12,7 @@ import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 
 // Target contract
-import { ERC7802Adapter } from "src/L2/XSuperchainERC20/ERC7802Adapter.sol";
+import { ERC7802Adapter } from "src/L2/CrosschainERC20/ERC7802Adapter.sol";
 
 contract ERC7802AdapterTest is Test {
     address internal BRIDGE = makeAddr("bridge");
