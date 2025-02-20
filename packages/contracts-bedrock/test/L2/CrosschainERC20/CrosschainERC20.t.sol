@@ -28,12 +28,12 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
-    function testFuzz_AllowanceWhenSpentFromPermit2(address _owner) public {
+    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _caller) public {
         // Ensure the owner is neither Permit2 nor the zero address
-        vm.assume(_owner != _PERMIT2 && _owner != address(0));
+        vm.assume(_caller != _PERMIT2 && _caller != address(0));
 
         // Assert that the allowance is the maximum when the owner is Permit2
-        assertEq(_crosschainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
+        assertEq(_crosschainERC20.allowance(_caller, _PERMIT2), type(uint256).max);
     }
 
     /// @notice Tests the `mint` function reverts when the caller is not the bridge.
