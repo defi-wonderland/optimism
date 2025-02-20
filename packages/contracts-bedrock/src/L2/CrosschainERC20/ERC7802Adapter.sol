@@ -15,7 +15,6 @@ import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 contract ERC7802Adapter is IERC7802, ISemver {
     /// @notice The xERC20 contract to adapt.
     IXERC20 public immutable XERC20;
-
     /// @notice The bridge address.
     address public immutable BRIDGE;
 
