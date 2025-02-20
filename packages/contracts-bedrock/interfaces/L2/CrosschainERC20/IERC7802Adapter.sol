@@ -2,9 +2,12 @@
 pragma solidity 0.8.25;
 
 // Interfaces
+import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { IERC7802 } from "interfaces/L2/IERC7802.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title IERC7802Adapter
 /// @notice This interface is available on the ERC7802Adapter contract.
-interface IERC7802Adapter is IERC7802, ISemver {}
+interface IERC7802Adapter is IERC7802, ISemver {
+    function __constructor__(IXERC20 _xerc20, address _bridge) external;
+}
