@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-// Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 // Target contracts
 import { CrosschainERC20 } from "src/L2/CrosschainERC20/CrosschainERC20.sol";
 import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
