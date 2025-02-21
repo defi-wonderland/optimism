@@ -87,15 +87,14 @@ contract CrosschainERC20Factory {
 
     function _deployLockbox(
         address _crosschainERC20,
-        address _crosschainERC20Lockbox
+        address _baseToken
     )
         internal
         returns (address payable _lockbox)
     {
-        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _crosschainERC20Lockbox, msg.sender));
+        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _baseToken, msg.sender));
         bytes memory _creation = type(XERC20Lockbox).creationCode;
-        bytes memory _bytecode =
-            abi.encodePacked(_creation, abi.encode(_crosschainERC20, _crosschainERC20Lockbox, false));
+        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _baseToken, false));
 
         _lockbox = payable(CREATE3.deploy(_salt, _bytecode, 0));
 
