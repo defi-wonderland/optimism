@@ -55,7 +55,13 @@ contract CrosschainERC20Factory {
     /// @param _crosschainERC20 The address of the CrosschainERC20 contract
     /// @param _bridge The address of the bridge
     /// @return _erc7802Adapter The address of the new ERC7802Adapter contract
-    function deployERC7802Adapter(address _crosschainERC20, address _bridge) external returns (address _erc7802Adapter) {
+    function deployERC7802Adapter(
+        address _crosschainERC20,
+        address _bridge
+    )
+        external
+        returns (address _erc7802Adapter)
+    {
         _erc7802Adapter = _deployERC7802Adapter(_crosschainERC20, _bridge);
     }
 
@@ -86,13 +92,7 @@ contract CrosschainERC20Factory {
         CrosschainERC20(_crosschainERC20).transferOwnership(msg.sender);
     }
 
-    function _deployLockbox(
-        address _crosschainERC20,
-        address _baseToken
-    )
-        internal
-        returns (address payable _lockbox)
-    {
+    function _deployLockbox(address _crosschainERC20, address _baseToken) internal returns (address payable _lockbox) {
         bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _baseToken, msg.sender));
         bytes memory _creation = type(XERC20Lockbox).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _baseToken, false));
@@ -102,7 +102,13 @@ contract CrosschainERC20Factory {
         CrosschainERC20(_crosschainERC20).setLockbox(address(_lockbox));
     }
 
-    function _deployERC7802Adapter(address _crosschainERC20, address _bridge) internal returns (address _erc7802Adapter) {
+    function _deployERC7802Adapter(
+        address _crosschainERC20,
+        address _bridge
+    )
+        internal
+        returns (address _erc7802Adapter)
+    {
         bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _bridge, msg.sender));
         bytes memory _creation = type(ERC7802Adapter).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _bridge));

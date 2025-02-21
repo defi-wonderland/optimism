@@ -58,7 +58,8 @@ contract CrosschainERC20Factory_Test is Test {
         _burnerLimits[1] = _burnerLimit;
     }
 
-    /// @notice Test that the deployCrosschainERC20 function reverts if the minter limits and burner limits arrays are of different lengths.
+    /// @notice Test that the deployCrosschainERC20 function reverts if the minter limits and burner limits arrays are
+    /// of different lengths.
     /// @param _minterLimit The minter limit.
     /// @param _burnerLimit The burner limit.
     function test_deployCrosschainERC20_mismatchedLengths_reverts(uint256 _minterLimit, uint256 _burnerLimit) public {
@@ -81,7 +82,7 @@ contract CrosschainERC20Factory_Test is Test {
     /// @notice Test that the deployCrosschainERC20 function succeeds.
     /// @param _minterLimit The minter limit.
     /// @param _burnerLimit The burner limit.
-    function test_deployCrosschainERC20_deployment_succeds(uint256 _minterLimit, uint256 _burnerLimit) public {
+    function test_deployCrosschainERC20_deployment_succeeds(uint256 _minterLimit, uint256 _burnerLimit) public {
         string memory _name = unicode"🐧 Test 🐧";
         string memory _symbol = "TST";
 
@@ -123,8 +124,10 @@ contract CrosschainERC20Factory_Test is Test {
 
         // Assert the limits are set correctly
         for (uint256 _i; _i < _bridges.length; ++_i) {
-            (CrosschainERC20.BridgeParameters memory _minterParams, CrosschainERC20.BridgeParameters memory _burnerParams) =
-                CrosschainERC20(_crosschainERC20).bridges(_bridges[_i]);
+            (
+                CrosschainERC20.BridgeParameters memory _minterParams,
+                CrosschainERC20.BridgeParameters memory _burnerParams
+            ) = CrosschainERC20(_crosschainERC20).bridges(_bridges[_i]);
             assertEq(_minterParams.maxLimit, _minterLimits[_i]);
             assertEq(_burnerParams.maxLimit, _burnerLimits[_i]);
         }
@@ -139,13 +142,18 @@ contract CrosschainERC20Factory_Test is Test {
         // Deploy the CrosschainERC20
         vm.prank(_owner);
         address _crosschainERC20 = factory.deployCrosschainERC20("Test", "TEST", _minterLimits, _burnerLimits, _bridges);
-        
+
         // Assert the owner is the deployer
         assertEq(Ownable(_crosschainERC20).owner(), _owner);
     }
 
     /// @notice Test that the deployCrosschainERC20WithLockbox function succeeds.
-    function test_deployCrosschainERC20WithLockbox_deployment_succeeds(uint256 _minterLimit, uint256 _burnerLimit) public {
+    function test_deployCrosschainERC20WithLockbox_deployment_succeeds(
+        uint256 _minterLimit,
+        uint256 _burnerLimit
+    )
+        public
+    {
         // Bound limits in allowed range
         _minterLimit = bound(_minterLimit, 1, type(uint256).max >> 1);
         _burnerLimit = bound(_burnerLimit, 1, type(uint256).max >> 1);
@@ -164,7 +172,8 @@ contract CrosschainERC20Factory_Test is Test {
 
         // Deploy the CrosschainERC20 with Lockbox
         vm.prank(_owner);
-        (_crosschainERC20, _crosschainERC20Lockbox) = factory.deployCrosschainERC20WithLockbox(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
+        (_crosschainERC20, _crosschainERC20Lockbox) =
+            factory.deployCrosschainERC20WithLockbox(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
 
         // Assert the CrosschainERC20 is deployed
         assertGt(_crosschainERC20.code.length, 0);
@@ -198,7 +207,8 @@ contract CrosschainERC20Factory_Test is Test {
 
         // Deploy the CrosschainERC20 with Lockbox
         vm.prank(_owner);
-        (_crosschainERC20, _crosschainERC20Lockbox) = factory.deployCrosschainERC20WithLockbox(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
+        (_crosschainERC20, _crosschainERC20Lockbox) =
+            factory.deployCrosschainERC20WithLockbox(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
 
         // Assert the CrosschainERC20Lockbox is set
         assertEq(address(XERC20Lockbox(payable(_crosschainERC20Lockbox)).XERC20()), _crosschainERC20);

@@ -61,7 +61,7 @@
   },
   "src/L2/CrosschainERC20/ERC7802Adapter.sol": {
     "initCodeHash": "0x0ecb4f3c729cc9f47cc5c426f75b70d6928b88836f69cb6ec99ca0d21060d279",
-    "sourceCodeHash": "0xa2dc56d51e14f1881d8142c0f11313cef9a74c97d0d1f6eea52cf5f5ac84a19f"
+    "sourceCodeHash": "0x5d0fa35b869f7a081cd21419f2fb6f1b7d50f49a5af8cf4fcd206bf586f7003b"
   },
   "src/L2/ETHLiquidity.sol": {
     "initCodeHash": "0x776ece4a1bb24d97287806769470327641da240b083898a90943e2844957cc46",
