@@ -20,7 +20,7 @@ contract CrosschainERC20Test is Test {
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant ZERO_ADDRESS = address(0);
     address internal constant SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
-    address internal _owner = makeAddr("owner");
+    address internal immutable _owner = makeAddr("owner");
 
     /// @notice Sets up the test suite.
     function setUp() public {
@@ -28,12 +28,12 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
-    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _owner) public {
+    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _tokenOwner) public {
         // Ensure the owner is neither Permit2 nor the zero address
-        vm.assume(_owner != _PERMIT2 && _owner != address(0));
+        vm.assume(_tokenOwner != _PERMIT2 && _tokenOwner != address(0));
 
         // Assert that the allowance is the maximum when the owner is Permit2
-        assertEq(_crosschainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
+        assertEq(_crosschainERC20.allowance(_tokenOwner, _PERMIT2), type(uint256).max);
     }
 
     /// @notice Tests the `mint` function reverts when the caller is not the bridge.
