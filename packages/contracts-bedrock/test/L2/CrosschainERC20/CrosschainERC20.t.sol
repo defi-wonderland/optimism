@@ -89,7 +89,7 @@ contract CrosschainERC20Test is Test {
         assertEq(_crosschainERC20.balanceOf(_from), 0);
     }
 
-    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802` interface.
+    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802`, `IERC165`, `IERC20`, and `IXERC20` interfaces.
     function test_supportInterface_succeeds() public view {
         assertTrue(_crosschainERC20.supportsInterface(type(IERC165).interfaceId));
         assertTrue(_crosschainERC20.supportsInterface(type(IERC7802).interfaceId));
@@ -98,7 +98,7 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
-    /// `IERC7802` one.
+    /// `IERC7802`, `IERC165`, `IERC20`, and `IXERC20` ones.
     function testFuzz_supportInterface_works(bytes4 _interfaceId) public view {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
