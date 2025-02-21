@@ -11,6 +11,7 @@ import { CREATE3 } from "isolmate/utils/CREATE3.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 contract CrosschainERC20Factory {
+    /// @notice Thrown when the length of the minter limits, burner limits, or bridges arrays are not equal
     error InvalidLength();
 
     /// @notice Deploys a new CrosschainERC20 contract and returns the address
@@ -19,12 +20,15 @@ contract CrosschainERC20Factory {
     /// @return _crosschainERC20 The address of the new CrosschainERC20 contract
     function deployCrosschainERC20(
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        uint256[] memory _minterLimits,
+        uint256[] memory _burnerLimits,
+        address[] memory _bridges
     )
         external
         returns (address _crosschainERC20)
     {
-        _crosschainERC20 = _deployCrosschainERC20(_name, _symbol);
+        _crosschainERC20 = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
     }
 
     /// @notice Deploys a new CrosschainERC20Lockbox and CrosschainERC20
@@ -33,43 +37,52 @@ contract CrosschainERC20Factory {
     /// @param _ERC20 The address of the ERC20 contract
     /// @return _crosschainERC20 The address of the new CrosschainERC20 contract
     /// @return _xERC20Lockbox The address of the new xERC20Lockbox contract
-    function deployXERC20Lockbox(
+    function deployCrosschainERC20WithLockbox(
         string memory _name,
         string memory _symbol,
+        uint256[] memory _minterLimits,
+        uint256[] memory _burnerLimits,
+        address[] memory _bridges,
         address _ERC20
     )
         external
-        returns (address _crosschainERC20, address _xERC20Lockbox)
+        returns (address _crosschainERC20, address _crosschainERC20Lockbox)
     {
-        _crosschainERC20 = _deployCrosschainERC20(_name, _symbol);
-        _xERC20Lockbox = _deployLockbox(_crosschainERC20, _ERC20);
+        _crosschainERC20 = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
+        _crosschainERC20Lockbox = _deployLockbox(_crosschainERC20, _ERC20);
     }
 
     /// @notice Deploys a new ERC7802Adapter
-    /// @param _xERC20 The address of the XERC20 contract
+    /// @param _crosschainERC20 The address of the CrosschainERC20 contract
     /// @return _erc7802Adapter The address of the new ERC7802Adapter contract
-    function deployERC7802Adapter(address _xERC20) external returns (address _erc7802Adapter) {
-        _erc7802Adapter = _deployERC7802Adapter(_xERC20);
+    function deployERC7802Adapter(address _crosschainERC20) external returns (address _erc7802Adapter) {
+        _erc7802Adapter = _deployERC7802Adapter(_crosschainERC20);
     }
 
     function _deployCrosschainERC20(
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        uint256[] memory _minterLimits,
+        uint256[] memory _burnerLimits,
+        address[] memory _bridges
     )
         internal
         returns (address _crosschainERC20)
     {
+        uint256 _bridgesLength = _bridges.length;
+        if (_minterLimits.length != _bridgesLength || _burnerLimits.length != _bridgesLength) {
+            revert InvalidLength();
+        }
         bytes32 _salt = keccak256(abi.encodePacked(_name, _symbol, msg.sender));
         bytes memory _creation = type(CrosschainERC20).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_name, _symbol, address(this)));
 
         _crosschainERC20 = CREATE3.deploy(_salt, _bytecode, 0);
 
-        // Set the limits to the max value to allow for unlimited minting and burning
-        uint256 _limit = type(uint256).max >> 1;
 
-        // Allow the SuperchainTokenBridge as default minter and burner
-        CrosschainERC20(_crosschainERC20).setLimits(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, _limit, _limit);
+        for (uint256 _i; _i < _bridgesLength; ++_i) {
+            XERC20(_xerc20).setLimits(_bridges[_i], _minterLimits[_i], _burnerLimits[_i]);
+        }
 
         CrosschainERC20(_crosschainERC20).transferOwnership(msg.sender);
     }
@@ -84,10 +97,7 @@ contract CrosschainERC20Factory {
         CrosschainERC20(_crosschainERC20).setLockbox(address(_lockbox));
     }
 
-    function _deployERC7802Adapter(address _crosschainERC20)
-        internal
-        returns (address _erc7802Adapter)
-    {
+    function _deployERC7802Adapter(address _crosschainERC20) internal returns (address _erc7802Adapter) {
         bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, msg.sender));
         bytes memory _creation = type(ERC7802Adapter).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20));
