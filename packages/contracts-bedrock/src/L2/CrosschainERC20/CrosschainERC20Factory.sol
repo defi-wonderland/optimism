@@ -8,7 +8,6 @@ import { ERC7802Adapter } from "src/L2/CrosschainERC20/ERC7802Adapter.sol";
 
 // Libraries
 import { CREATE3 } from "isolmate/utils/CREATE3.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 contract CrosschainERC20Factory {
     /// @notice Thrown when the length of the minter limits, burner limits, or bridges arrays are not equal
@@ -36,7 +35,7 @@ contract CrosschainERC20Factory {
     /// @param _symbol The symbol of the token
     /// @param _ERC20 The address of the ERC20 contract
     /// @return _crosschainERC20 The address of the new CrosschainERC20 contract
-    /// @return _xERC20Lockbox The address of the new xERC20Lockbox contract
+    /// @return _crosschainERC20Lockbox The address of the new crosschainERC20Lockbox contract
     function deployCrosschainERC20WithLockbox(
         string memory _name,
         string memory _symbol,
@@ -79,18 +78,24 @@ contract CrosschainERC20Factory {
 
         _crosschainERC20 = CREATE3.deploy(_salt, _bytecode, 0);
 
-
         for (uint256 _i; _i < _bridgesLength; ++_i) {
-            XERC20(_xerc20).setLimits(_bridges[_i], _minterLimits[_i], _burnerLimits[_i]);
+            CrosschainERC20(_crosschainERC20).setLimits(_bridges[_i], _minterLimits[_i], _burnerLimits[_i]);
         }
 
         CrosschainERC20(_crosschainERC20).transferOwnership(msg.sender);
     }
 
-    function _deployLockbox(address _crosschainERC20, address _xerc20) internal returns (address payable _lockbox) {
-        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _xerc20, msg.sender));
+    function _deployLockbox(
+        address _crosschainERC20,
+        address _crosschainERC20Lockbox
+    )
+        internal
+        returns (address payable _lockbox)
+    {
+        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _crosschainERC20Lockbox, msg.sender));
         bytes memory _creation = type(XERC20Lockbox).creationCode;
-        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _xerc20, false));
+        bytes memory _bytecode =
+            abi.encodePacked(_creation, abi.encode(_crosschainERC20, _crosschainERC20Lockbox, false));
 
         _lockbox = payable(CREATE3.deploy(_salt, _bytecode, 0));
 
