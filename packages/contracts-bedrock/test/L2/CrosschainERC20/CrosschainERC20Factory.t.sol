@@ -31,31 +31,31 @@ contract CrosschainERC20Factory_Test is Test {
     /// @notice Helper function to get the bridges with limits.
     /// @param _minterLimit The minter limit.
     /// @param _burnerLimit The burner limit.
-    /// @return _bridges The bridges.
-    /// @return _minterLimits The minter limits.
-    /// @return _burnerLimits The burner limits.
+    /// @return bridges_ The bridges.
+    /// @return minterLimits_ The minter limits.
+    /// @return burnerLimits_ The burner limits.
     function _getBridgesWithLimits(
         uint256 _minterLimit,
         uint256 _burnerLimit
     )
         internal
         view
-        returns (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits)
+        returns (address[] memory bridges_, uint256[] memory minterLimits_, uint256[] memory burnerLimits_)
     {
         // Create the arrays
-        _bridges = new address[](2);
-        _minterLimits = new uint256[](2);
-        _burnerLimits = new uint256[](2);
+        bridges_ = new address[](2);
+        minterLimits_ = new uint256[](2);
+        burnerLimits_ = new uint256[](2);
 
         // Set the values for the first bridge
-        _bridges[0] = _bridge;
-        _minterLimits[0] = _minterLimit;
-        _burnerLimits[0] = _burnerLimit;
+        bridges_[0] = _bridge;
+        minterLimits_[0] = _minterLimit;
+        burnerLimits_[0] = _burnerLimit;
 
         // Set the values for the second bridge
-        _bridges[1] = _bridge2;
-        _minterLimits[1] = _minterLimit;
-        _burnerLimits[1] = _burnerLimit;
+        bridges_[1] = _bridge2;
+        minterLimits_[1] = _minterLimit;
+        burnerLimits_[1] = _burnerLimit;
     }
 
     /// @notice Test that the deployCrosschainERC20 function reverts if the minter limits and burner limits arrays are

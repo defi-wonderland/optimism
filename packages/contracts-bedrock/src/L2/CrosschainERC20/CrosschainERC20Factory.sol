@@ -16,7 +16,7 @@ contract CrosschainERC20Factory {
     /// @notice Deploys a new CrosschainERC20 contract and returns the address
     /// @param _name The name of the token
     /// @param _symbol The symbol of the token
-    /// @return _crosschainERC20 The address of the new CrosschainERC20 contract
+    /// @return crosschainERC20_ The address of the new CrosschainERC20 contract
     function deployCrosschainERC20(
         string memory _name,
         string memory _symbol,
@@ -25,17 +25,17 @@ contract CrosschainERC20Factory {
         address[] memory _bridges
     )
         external
-        returns (address _crosschainERC20)
+        returns (address crosschainERC20_)
     {
-        _crosschainERC20 = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
+        crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
     }
 
     /// @notice Deploys a new CrosschainERC20Lockbox and CrosschainERC20
     /// @param _name The name of the token
     /// @param _symbol The symbol of the token
     /// @param _ERC20 The address of the ERC20 contract
-    /// @return _crosschainERC20 The address of the new CrosschainERC20 contract
-    /// @return _crosschainERC20Lockbox The address of the new crosschainERC20Lockbox contract
+    /// @return crosschainERC20_ The address of the new CrosschainERC20 contract
+    /// @return crosschainERC20Lockbox_ The address of the new crosschainERC20Lockbox contract
     function deployCrosschainERC20WithLockbox(
         string memory _name,
         string memory _symbol,
@@ -45,24 +45,24 @@ contract CrosschainERC20Factory {
         address _ERC20
     )
         external
-        returns (address _crosschainERC20, address _crosschainERC20Lockbox)
+        returns (address crosschainERC20_, address crosschainERC20Lockbox_)
     {
-        _crosschainERC20 = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
-        _crosschainERC20Lockbox = _deployLockbox(_crosschainERC20, _ERC20);
+        crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
+        crosschainERC20Lockbox_ = _deployLockbox(crosschainERC20_, _ERC20);
     }
 
     /// @notice Deploys a new ERC7802Adapter
     /// @param _crosschainERC20 The address of the CrosschainERC20 contract
     /// @param _bridge The address of the bridge
-    /// @return _erc7802Adapter The address of the new ERC7802Adapter contract
+    /// @return erc7802Adapter_ The address of the new ERC7802Adapter contract
     function deployERC7802Adapter(
         address _crosschainERC20,
         address _bridge
     )
         external
-        returns (address _erc7802Adapter)
+        returns (address erc7802Adapter_)
     {
-        _erc7802Adapter = _deployERC7802Adapter(_crosschainERC20, _bridge);
+        erc7802Adapter_ = _deployERC7802Adapter(_crosschainERC20, _bridge);
     }
 
     function _deployCrosschainERC20(
@@ -73,7 +73,7 @@ contract CrosschainERC20Factory {
         address[] memory _bridges
     )
         internal
-        returns (address _crosschainERC20)
+        returns (address crosschainERC20_)
     {
         uint256 _bridgesLength = _bridges.length;
         if (_minterLimits.length != _bridgesLength || _burnerLimits.length != _bridgesLength) {
@@ -83,23 +83,23 @@ contract CrosschainERC20Factory {
         bytes memory _creation = type(CrosschainERC20).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_name, _symbol, address(this)));
 
-        _crosschainERC20 = CREATE3.deploy(_salt, _bytecode, 0);
+        crosschainERC20_ = CREATE3.deploy(_salt, _bytecode, 0);
 
         for (uint256 _i; _i < _bridgesLength; ++_i) {
-            CrosschainERC20(_crosschainERC20).setLimits(_bridges[_i], _minterLimits[_i], _burnerLimits[_i]);
+            CrosschainERC20(crosschainERC20_).setLimits(_bridges[_i], _minterLimits[_i], _burnerLimits[_i]);
         }
 
-        CrosschainERC20(_crosschainERC20).transferOwnership(msg.sender);
+        CrosschainERC20(crosschainERC20_).transferOwnership(msg.sender);
     }
 
-    function _deployLockbox(address _crosschainERC20, address _baseToken) internal returns (address payable _lockbox) {
+    function _deployLockbox(address _crosschainERC20, address _baseToken) internal returns (address payable lockbox_) {
         bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _baseToken, msg.sender));
         bytes memory _creation = type(XERC20Lockbox).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _baseToken, false));
 
-        _lockbox = payable(CREATE3.deploy(_salt, _bytecode, 0));
+        lockbox_ = payable(CREATE3.deploy(_salt, _bytecode, 0));
 
-        CrosschainERC20(_crosschainERC20).setLockbox(address(_lockbox));
+        CrosschainERC20(_crosschainERC20).setLockbox(address(lockbox_));
     }
 
     function _deployERC7802Adapter(
@@ -107,12 +107,12 @@ contract CrosschainERC20Factory {
         address _bridge
     )
         internal
-        returns (address _erc7802Adapter)
+        returns (address erc7802Adapter_)
     {
         bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _bridge, msg.sender));
         bytes memory _creation = type(ERC7802Adapter).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _bridge));
 
-        _erc7802Adapter = CREATE3.deploy(_salt, _bytecode, 0);
+        erc7802Adapter_ = CREATE3.deploy(_salt, _bytecode, 0);
     }
 }
