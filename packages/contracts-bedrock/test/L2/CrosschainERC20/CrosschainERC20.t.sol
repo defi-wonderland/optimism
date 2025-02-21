@@ -27,12 +27,70 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
-    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _tokenOwner) public {
+    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _tokenOwner) public view {
         // Ensure the owner is neither Permit2 nor the zero address
-        vm.assume(_tokenOwner != _PERMIT2 && _tokenOwner != address(0));
+        vm.assume(_tokenOwner != _PERMIT2 && _tokenOwner != ZERO_ADDRESS);
 
         // Assert that the allowance is the maximum when the owner is Permit2
         assertEq(_crosschainERC20.allowance(_tokenOwner, _PERMIT2), type(uint256).max);
+    }
+
+    /// @notice Tests the `burn` function reverts when the allowance is insufficient.
+    function testFuzz_burn_WithoutApproval_reverts(uint256 _amount, address _tokenBridge, address _tokenOwner) public {
+        // Bound `amount` to not surpass the xERC20 limits
+        _amount = bound(_amount, 1, 1e40);
+
+        // Ensure `_tokenBridge` is not Permit2 or the zero address
+        vm.assume(_tokenBridge != _PERMIT2 && _tokenBridge != ZERO_ADDRESS);
+
+        // Ensure `_tokenOwner` is not the zero address
+        vm.assume(_tokenOwner != ZERO_ADDRESS);
+
+        // Set the limits for the Token Bridge
+        vm.prank(_owner);
+        _crosschainERC20.setLimits(_tokenBridge, _amount, _amount);
+
+        // Expect the `burn` function to revert when the allowance is insufficient
+        vm.expectRevert("ERC20: insufficient allowance");
+
+        // Burn the tokens without approval
+        vm.prank(_tokenBridge);
+        _crosschainERC20.burn(_tokenOwner, _amount);
+
+        // Assert that the balance of the token owner is 0
+        assertEq(_crosschainERC20.balanceOf(_tokenOwner), 0);
+    }
+
+    /// @notice Tests the `burn` function works by expecting the allowance to be reduced.
+    function testFuzz_burn_works(uint256 _amount, uint256 _approvalAmount, address _tokenBridge, address _tokenOwner) public {
+        // Bound `amount` to not surpass the xERC20 limits
+        _amount = bound(_amount, 1, 1e40);
+
+        // Bound `approvalAmount` to not surpass the xERC20 limits
+        _approvalAmount = bound(_approvalAmount, _amount, 1e45);
+
+        // Ensure `_tokenBridge` is not Permit2 or the zero address
+        vm.assume(_tokenBridge != _PERMIT2 && _tokenBridge != ZERO_ADDRESS);
+
+        // Ensure `_tokenOwner` is not the zero address
+        vm.assume(_tokenOwner != ZERO_ADDRESS);
+
+        // Set the limits for the Token Bridge
+        vm.prank(_owner);
+        _crosschainERC20.setLimits(_tokenBridge, _amount, _amount);
+
+        // Approve the Token Bridge to spend the tokens
+        vm.prank(_tokenOwner);
+        _crosschainERC20.approve(_tokenBridge, _approvalAmount);
+
+        // Mint and burn the tokens
+        vm.startPrank(_tokenBridge);
+        _crosschainERC20.mint(_tokenOwner, _amount);
+        _crosschainERC20.burn(_tokenOwner, _amount);
+        vm.stopPrank();
+
+        // Assert that the allowance is reduced
+        assertEq(_crosschainERC20.allowance(_tokenOwner, _tokenBridge), _approvalAmount - _amount);
     }
 
     /// @notice Tests the `crosschainMint` succeeds.
@@ -89,7 +147,8 @@ contract CrosschainERC20Test is Test {
         assertEq(_crosschainERC20.balanceOf(_from), 0);
     }
 
-    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802`, `IERC165`, `IERC20`, and `IXERC20` interfaces.
+    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802`, `IERC165`, `IERC20`, and
+    /// `IXERC20` interfaces.
     function test_supportInterface_succeeds() public view {
         assertTrue(_crosschainERC20.supportsInterface(type(IERC165).interfaceId));
         assertTrue(_crosschainERC20.supportsInterface(type(IERC7802).interfaceId));
