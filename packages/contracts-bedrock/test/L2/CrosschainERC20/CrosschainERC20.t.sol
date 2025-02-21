@@ -27,12 +27,27 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
-    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _tokenOwner) public view {
-        // Ensure the owner is neither Permit2 nor the zero address
-        vm.assume(_tokenOwner != _PERMIT2 && _tokenOwner != ZERO_ADDRESS);
+    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _user, address _user2, uint256 _amount) public {
+        // Ensure the users are neither Permit2 nor the zero address
+        vm.assume(_user != _PERMIT2 && _user != ZERO_ADDRESS && _user != _user2);
+        vm.assume(_user2 != _PERMIT2 && _user2 != ZERO_ADDRESS);
+
+        // Bound `amount`
+        _amount = bound(_amount, 1, 1e40);
 
         // Assert that the allowance is the maximum when the owner is Permit2
-        assertEq(_crosschainERC20.allowance(_tokenOwner, _PERMIT2), type(uint256).max);
+        assertEq(_crosschainERC20.allowance(_user, _PERMIT2), type(uint256).max);
+
+        // Mint tokens to the user
+        deal(address(_crosschainERC20), _user, _amount);
+
+        // Prank Permit2 to transfer the tokens
+        vm.prank(_PERMIT2);
+        _crosschainERC20.transferFrom(_user, _user2, _amount);
+
+        // Assert that the tokens were transferred
+        assertEq(_crosschainERC20.balanceOf(_user), 0);
+        assertEq(_crosschainERC20.balanceOf(_user2), _amount);
     }
 
     /// @notice Tests the `burn` function reverts when the allowance is insufficient.
