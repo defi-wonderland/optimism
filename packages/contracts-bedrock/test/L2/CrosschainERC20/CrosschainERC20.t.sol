@@ -19,8 +19,7 @@ contract CrosschainERC20Test is Test {
     CrosschainERC20 public _crosschainERC20;
     address internal constant _PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant ZERO_ADDRESS = address(0);
-    address internal constant SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
-    address internal _owner = makeAddr("owner");
+    address internal immutable _owner = makeAddr("owner");
 
     /// @notice Sets up the test suite.
     function setUp() public {
@@ -28,123 +27,143 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests the `allowance` function when the spender is Permit2.
-    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _owner) public {
-        // Ensure the owner is neither Permit2 nor the zero address
-        vm.assume(_owner != _PERMIT2 && _owner != address(0));
+    function testFuzz_allowance_whenSpentFromPermit2_succeeds(address _user, address _user2, uint256 _amount) public {
+        // Ensure the users are neither Permit2 nor the zero address
+        vm.assume(_user != _PERMIT2 && _user != ZERO_ADDRESS && _user != _user2);
+        vm.assume(_user2 != _PERMIT2 && _user2 != ZERO_ADDRESS);
+
+        // Bound `amount`
+        _amount = bound(_amount, 1, 1e40);
 
         // Assert that the allowance is the maximum when the owner is Permit2
-        assertEq(_crosschainERC20.allowance(_owner, _PERMIT2), type(uint256).max);
+        assertEq(_crosschainERC20.allowance(_user, _PERMIT2), type(uint256).max);
+
+        // Mint tokens to the user
+        deal(address(_crosschainERC20), _user, _amount);
+
+        // Prank Permit2 to transfer the tokens
+        vm.prank(_PERMIT2);
+        _crosschainERC20.transferFrom(_user, _user2, _amount);
+
+        // Assert that the tokens were transferred
+        assertEq(_crosschainERC20.balanceOf(_user), 0);
+        assertEq(_crosschainERC20.balanceOf(_user2), _amount);
     }
 
-    /// @notice Tests the `mint` function reverts when the caller is not the bridge.
-    function testFuzz_crosschainMint_callerNotBridge_reverts(address _caller, address _to, uint256 _amount) public {
-        // Bound `caller` to not be the zero address
-        vm.assume(_caller != ZERO_ADDRESS);
-
-        // Bound `to` to not be the zero address
-        vm.assume(_to != ZERO_ADDRESS);
-
+    /// @notice Tests the `burn` function reverts when the allowance is insufficient.
+    function testFuzz_burn_WithoutApproval_reverts(uint256 _amount, address _tokenBridge, address _tokenOwner) public {
         // Bound `amount` to not surpass the xERC20 limits
         _amount = bound(_amount, 1, 1e40);
 
-        // Ensure the caller is not the bridge
-        vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE);
+        // Ensure `_tokenBridge` is not Permit2 or the zero address
+        vm.assume(_tokenBridge != _PERMIT2 && _tokenBridge != ZERO_ADDRESS);
 
-        // Set the limits for the Superchain Token Bridge
+        // Ensure `_tokenOwner` is not the zero address
+        vm.assume(_tokenOwner != ZERO_ADDRESS);
+
+        // Set the limits for the Token Bridge
         vm.prank(_owner);
-        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
+        _crosschainERC20.setLimits(_tokenBridge, _amount, _amount);
 
-        // Expect the revert with `NotHighEnoughLimits` selector
-        vm.expectRevert(IXERC20.IXERC20_NotHighEnoughLimits.selector);
+        // Expect the `burn` function to revert when the allowance is insufficient
+        vm.expectRevert("ERC20: insufficient allowance");
 
-        // Call the `mint` function with the non-bridge caller
-        vm.prank(_caller);
-        _crosschainERC20.crosschainMint(_to, _amount);
+        // Burn the tokens without approval
+        vm.prank(_tokenBridge);
+        _crosschainERC20.burn(_tokenOwner, _amount);
+
+        // Assert that the balance of the token owner is 0
+        assertEq(_crosschainERC20.balanceOf(_tokenOwner), 0);
+    }
+
+    /// @notice Tests the `burn` function works by expecting the allowance to be reduced.
+    function testFuzz_burn_works(uint256 _amount, uint256 _approvalAmount, address _tokenBridge, address _tokenOwner) public {
+        // Bound `amount` to not surpass the xERC20 limits
+        _amount = bound(_amount, 1, 1e40);
+
+        // Bound `approvalAmount` to not surpass the xERC20 limits
+        _approvalAmount = bound(_approvalAmount, _amount, 1e45);
+
+        // Ensure `_tokenBridge` is not Permit2 or the zero address
+        vm.assume(_tokenBridge != _PERMIT2 && _tokenBridge != ZERO_ADDRESS);
+
+        // Ensure `_tokenOwner` is not the zero address
+        vm.assume(_tokenOwner != ZERO_ADDRESS);
+
+        // Set the limits for the Token Bridge
+        vm.prank(_owner);
+        _crosschainERC20.setLimits(_tokenBridge, _amount, _amount);
+
+        // Approve the Token Bridge to spend the tokens
+        vm.prank(_tokenOwner);
+        _crosschainERC20.approve(_tokenBridge, _approvalAmount);
+
+        // Mint and burn the tokens
+        vm.startPrank(_tokenBridge);
+        _crosschainERC20.mint(_tokenOwner, _amount);
+        _crosschainERC20.burn(_tokenOwner, _amount);
+        vm.stopPrank();
+
+        // Assert that the allowance is reduced
+        assertEq(_crosschainERC20.allowance(_tokenOwner, _tokenBridge), _approvalAmount - _amount);
     }
 
     /// @notice Tests the `crosschainMint` succeeds.
-    function testFuzz_crosschainMint_succeeds(address _to, uint256 _amount) public {
+    function testFuzz_crosschainMint_succeeds(address _to, uint256 _amount, address _bridge) public {
         // Ensure `_to` is not the zero address
         vm.assume(_to != ZERO_ADDRESS);
+
+        // Ensure `_bridge` is not the zero address
+        vm.assume(_bridge != ZERO_ADDRESS);
 
         // Bound `amount` to not surpass the xERC20 limits
         _amount = bound(_amount, 1, 1e40);
 
-        // Set the limits for the Superchain Token Bridge
+        // Set the limits for the Token Bridge
         vm.prank(_owner);
-        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, 0);
+        _crosschainERC20.setLimits(_bridge, _amount, 0);
 
         // Mint the tokens using the ERC7802 interface
-        vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
+        vm.prank(_bridge);
         _crosschainERC20.crosschainMint(_to, _amount);
 
         // Assert that the tokens were minted
         assertEq(_crosschainERC20.balanceOf(_to), _amount);
     }
 
-    /// @notice Tests the `burn` function reverts when the caller is not the bridge.
-    function testFuzz_crosschainBurn_callerNotBridge_reverts(address _caller, address _from, uint256 _amount) public {
-        // Ensure `from` is not the zero address
-        vm.assume(_from != ZERO_ADDRESS);
-
-        // Ensure the caller is not the zero address
-        vm.assume(_caller != ZERO_ADDRESS);
-
-        // Ensure the caller is not the bridge
-        vm.assume(_caller != SUPERCHAIN_TOKEN_BRIDGE && _caller != ZERO_ADDRESS);
-
-        // Bound `amount` to not surpass the xERC20 limits
-        _amount = bound(_amount, 1, 1e40);
-
-        // Set the limits for the Superchain Token Bridge
-        vm.prank(_owner);
-        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
-
-        // Mint tokens to the `from` address
-        vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
-        _crosschainERC20.crosschainMint(_from, _amount);
-
-        // Approve the caller to spend the tokens
-        vm.prank(_from);
-        _crosschainERC20.approve(_caller, _amount);
-
-        // Expect the revert with `NotHighEnoughLimits` selector
-        vm.expectRevert(IXERC20.IXERC20_NotHighEnoughLimits.selector);
-
-        // Call the `burn` function with the non-bridge caller
-        vm.prank(_caller);
-        _crosschainERC20.crosschainBurn(_from, _amount);
-    }
-
     /// @notice Tests the `crosschainBurn` succeeds.
-    function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount) public {
-        // Ensure `_to` is not the zero address
+    function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount, address _bridge) public {
+        // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
+
+        // Ensure `_bridge` is not the zero address
+        vm.assume(_bridge != ZERO_ADDRESS);
 
         // Bound `amount` to not surpass the xERC20 limits
         _amount = bound(_amount, 1, 1e40);
 
-        // Set the limits for the Superchain Token Bridge
+        // Set the limits for the Token Bridge
         vm.prank(_owner);
-        _crosschainERC20.setLimits(SUPERCHAIN_TOKEN_BRIDGE, _amount, _amount);
+        _crosschainERC20.setLimits(_bridge, _amount, _amount);
 
         // Mint the tokens using the ERC7802 interface
-        vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
+        vm.prank(_bridge);
         _crosschainERC20.crosschainMint(_from, _amount);
 
-        // Approve the Superchain Token Bridge to spend the tokens
+        // Approve the Token Bridge to spend the tokens
         vm.prank(_from);
-        _crosschainERC20.approve(SUPERCHAIN_TOKEN_BRIDGE, _amount);
+        _crosschainERC20.approve(_bridge, _amount);
 
         // Burn the tokens using the ERC7802 interface
-        vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
+        vm.prank(_bridge);
         _crosschainERC20.crosschainBurn(_from, _amount);
 
         // Assert that the tokens were burned
         assertEq(_crosschainERC20.balanceOf(_from), 0);
     }
 
-    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802` interface.
+    /// @notice Tests that the `supportsInterface` function returns true for the `IERC7802`, `IERC165`, `IERC20`, and
+    /// `IXERC20` interfaces.
     function test_supportInterface_succeeds() public view {
         assertTrue(_crosschainERC20.supportsInterface(type(IERC165).interfaceId));
         assertTrue(_crosschainERC20.supportsInterface(type(IERC7802).interfaceId));
@@ -153,7 +172,7 @@ contract CrosschainERC20Test is Test {
     }
 
     /// @notice Tests that the `supportsInterface` function returns false for any other interface than the
-    /// `IERC7802` one.
+    /// `IERC7802`, `IERC165`, `IERC20`, and `IXERC20` ones.
     function testFuzz_supportInterface_works(bytes4 _interfaceId) public view {
         vm.assume(_interfaceId != type(IERC165).interfaceId);
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
