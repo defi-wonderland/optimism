@@ -53,9 +53,10 @@ contract CrosschainERC20Factory {
 
     /// @notice Deploys a new ERC7802Adapter
     /// @param _crosschainERC20 The address of the CrosschainERC20 contract
+    /// @param _bridge The address of the bridge
     /// @return _erc7802Adapter The address of the new ERC7802Adapter contract
-    function deployERC7802Adapter(address _crosschainERC20) external returns (address _erc7802Adapter) {
-        _erc7802Adapter = _deployERC7802Adapter(_crosschainERC20);
+    function deployERC7802Adapter(address _crosschainERC20, address _bridge) external returns (address _erc7802Adapter) {
+        _erc7802Adapter = _deployERC7802Adapter(_crosschainERC20, _bridge);
     }
 
     function _deployCrosschainERC20(
@@ -101,10 +102,10 @@ contract CrosschainERC20Factory {
         CrosschainERC20(_crosschainERC20).setLockbox(address(_lockbox));
     }
 
-    function _deployERC7802Adapter(address _crosschainERC20) internal returns (address _erc7802Adapter) {
-        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, msg.sender));
+    function _deployERC7802Adapter(address _crosschainERC20, address _bridge) internal returns (address _erc7802Adapter) {
+        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _bridge, msg.sender));
         bytes memory _creation = type(ERC7802Adapter).creationCode;
-        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20));
+        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _bridge));
 
         _erc7802Adapter = CREATE3.deploy(_salt, _bytecode, 0);
     }
