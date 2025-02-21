@@ -8,9 +8,9 @@ import { Test } from "forge-std/Test.sol";
 import { CrosschainERC20Factory } from "src/L2/CrosschainERC20/CrosschainERC20Factory.sol";
 import { XERC20Lockbox } from "@xERC20/contracts/XERC20Lockbox.sol";
 import { CrosschainERC20 } from "src/L2/CrosschainERC20/CrosschainERC20.sol";
+import { ERC7802Adapter } from "src/L2/CrosschainERC20/ERC7802Adapter.sol";
 
 // Interfaces
-import { ICrosschainERC20 } from "interfaces/L2/CrosschainERC20/ICrosschainERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -123,7 +123,7 @@ contract CrosschainERC20Factory_Test is Test {
 
         // Assert the limits are set correctly
         for (uint256 _i; _i < _bridges.length; ++_i) {
-            (ICrosschainERC20.BridgeParameters memory _minterParams, ICrosschainERC20.BridgeParameters memory _burnerParams) =
+            (CrosschainERC20.BridgeParameters memory _minterParams, CrosschainERC20.BridgeParameters memory _burnerParams) =
                 CrosschainERC20(_crosschainERC20).bridges(_bridges[_i]);
             assertEq(_minterParams.maxLimit, _minterLimits[_i]);
             assertEq(_burnerParams.maxLimit, _burnerLimits[_i]);
@@ -202,5 +202,23 @@ contract CrosschainERC20Factory_Test is Test {
 
         // Assert the CrosschainERC20Lockbox is set
         assertEq(address(XERC20Lockbox(payable(_crosschainERC20Lockbox)).XERC20()), _crosschainERC20);
+    }
+
+    /// @notice Test that the deployERC7802Adapter function succeeds.
+    function test_deployERC7802Adapter_deployment_succeeds() public {
+        address _crosschainERC20 = address(makeAddr("CrosschainERC20"));
+
+        // Deploy the ERC7802Adapter
+        vm.prank(_owner);
+        address _erc7802Adapter = factory.deployERC7802Adapter(_crosschainERC20, _bridge);
+
+        // Assert the ERC7802Adapter is deployed
+        assertGt(_erc7802Adapter.code.length, 0);
+
+        // Assert the CrosschainERC20 is set
+        assertEq(address(ERC7802Adapter(_erc7802Adapter).XERC20()), _crosschainERC20);
+
+        // Assert the Bridge is set
+        assertEq(address(ERC7802Adapter(_erc7802Adapter).BRIDGE()), _bridge);
     }
 }
