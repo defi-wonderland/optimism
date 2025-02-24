@@ -59,6 +59,10 @@
     "initCodeHash": "0xa8766dd6759dab59f305e0824baef03acc38a6eac5b047579bac5cbd9c560239",
     "sourceCodeHash": "0x9e736fb41488ffb96f8aba2dbe8e2ca9d9de2cc01772017a834e3c424cf5eb17"
   },
+  "src/L2/CrosschainERC20/ERC7802Adapter.sol": {
+    "initCodeHash": "0x0ecb4f3c729cc9f47cc5c426f75b70d6928b88836f69cb6ec99ca0d21060d279",
+    "sourceCodeHash": "0xa2dc56d51e14f1881d8142c0f11313cef9a74c97d0d1f6eea52cf5f5ac84a19f"
+  },
   "src/L2/ETHLiquidity.sol": {
     "initCodeHash": "0x776ece4a1bb24d97287806769470327641da240b083898a90943e2844957cc46",
     "sourceCodeHash": "0xe5c08ce62327113e4bbaf29f47e5f1ddfad6fbd63c07132eedfba5af5325f331"
