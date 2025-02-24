@@ -83,7 +83,7 @@ contract CrosschainERC20Factory_Test is Test {
     /// @param _minterLimit The minter limit.
     /// @param _burnerLimit The burner limit.
     function test_deployCrosschainERC20_deployment_succeeds(uint256 _minterLimit, uint256 _burnerLimit) public {
-        string memory _name = unicode"🐧 Test 🐧";
+        string memory _name = "Test";
         string memory _symbol = "TST";
 
         // Bound limits in allowed range
@@ -162,7 +162,7 @@ contract CrosschainERC20Factory_Test is Test {
         (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
             _getBridgesWithLimits(_minterLimit, _burnerLimit);
 
-        string memory _name = unicode"🐧 Test 🐧";
+        string memory _name = "Test";
         string memory _symbol = "TST";
 
         // Declare contract addresses
@@ -197,7 +197,7 @@ contract CrosschainERC20Factory_Test is Test {
         (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
             _getBridgesWithLimits(1, 1);
 
-        string memory _name = unicode"🐧 Test 🐧";
+        string memory _name = "Test";
         string memory _symbol = "TST";
 
         // Declare contract addresses
