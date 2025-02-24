@@ -31,7 +31,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "_crosschainERC20",
+        "name": "crosschainERC20_",
         "type": "address"
       }
     ],
@@ -75,12 +75,12 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "_crosschainERC20",
+        "name": "crosschainERC20_",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "_crosschainERC20Lockbox",
+        "name": "crosschainERC20Lockbox_",
         "type": "address"
       }
     ],
@@ -104,7 +104,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "_erc7802Adapter",
+        "name": "erc7802Adapter_",
         "type": "address"
       }
     ],
