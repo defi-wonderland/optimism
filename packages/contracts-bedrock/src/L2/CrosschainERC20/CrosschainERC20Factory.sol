@@ -76,9 +76,9 @@ contract CrosschainERC20Factory {
         returns (address crosschainERC20_)
     {
         uint256 _bridgesLength = _bridges.length;
-        if (_minterLimits.length & _burnerLimits.length != _bridgesLength) {
-            revert InvalidLength();
-        }
+
+        if (_minterLimits.length & _bridgesLength != _bridgesLength) revert InvalidLength();
+
         bytes32 _salt = keccak256(abi.encodePacked(_name, _symbol, msg.sender));
         bytes memory _creation = type(CrosschainERC20).creationCode;
         bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_name, _symbol, address(this)));
