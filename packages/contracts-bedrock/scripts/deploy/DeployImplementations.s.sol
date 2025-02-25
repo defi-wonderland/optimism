@@ -20,6 +20,7 @@ import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.so
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IOPContractsManagerInterop } from "interfaces/L1/IOPContractsManagerInterop.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
@@ -31,6 +32,8 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
 import { BaseDeployIO } from "scripts/deploy/BaseDeployIO.sol";
+
+import { console } from "forge-std/console.sol";
 
 // See DeploySuperchain.s.sol for detailed comments on the script architecture used here.
 contract DeployImplementationsInput is BaseDeployIO {
@@ -150,6 +153,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
     IOPContractsManager internal _opcm;
     IDelayedWETH internal _delayedWETHImpl;
     IOptimismPortal2 internal _optimismPortalImpl;
+    IETHLockbox internal _ethLockboxImpl;
     IPreimageOracle internal _preimageOracleSingleton;
     IMIPS internal _mipsSingleton;
     ISystemConfig internal _systemConfigImpl;
@@ -170,6 +174,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
         else if (_sel == this.superchainConfigImpl.selector) _superchainConfigImpl = ISuperchainConfig(_addr);
         else if (_sel == this.protocolVersionsImpl.selector) _protocolVersionsImpl = IProtocolVersions(_addr);
         else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = IOptimismPortal2(payable(_addr));
+        else if (_sel == this.ethLockboxImpl.selector) _ethLockboxImpl = IETHLockbox(_addr);
         else if (_sel == this.delayedWETHImpl.selector) _delayedWETHImpl = IDelayedWETH(payable(_addr));
         else if (_sel == this.preimageOracleSingleton.selector) _preimageOracleSingleton = IPreimageOracle(_addr);
         else if (_sel == this.mipsSingleton.selector) _mipsSingleton = IMIPS(_addr);
@@ -204,7 +209,8 @@ contract DeployImplementationsOutput is BaseDeployIO {
             address(this.l1StandardBridgeImpl()),
             address(this.optimismMintableERC20FactoryImpl()),
             address(this.disputeGameFactoryImpl()),
-            address(this.anchorStateRegistryImpl())
+            address(this.anchorStateRegistryImpl()),
+            address(this.ethLockboxImpl())
         );
 
         DeployUtils.assertValidContractAddresses(Solarray.extend(addrs1, addrs2));
@@ -230,6 +236,11 @@ contract DeployImplementationsOutput is BaseDeployIO {
     function optimismPortalImpl() public view returns (IOptimismPortal2) {
         DeployUtils.assertValidContractAddress(address(_optimismPortalImpl));
         return _optimismPortalImpl;
+    }
+
+    function ethLockboxImpl() public view returns (IETHLockbox) {
+        DeployUtils.assertValidContractAddress(address(_ethLockboxImpl));
+        return _ethLockboxImpl;
     }
 
     function delayedWETHImpl() public view returns (IDelayedWETH) {
@@ -294,6 +305,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
         assertValidOpcm(_dii);
         assertValidOptimismMintableERC20FactoryImpl(_dii);
         assertValidOptimismPortalImpl(_dii);
+        assertValidETHLockboxImpl(_dii);
         assertValidPreimageOracleSingleton(_dii);
         assertValidSystemConfigImpl(_dii);
     }
@@ -302,6 +314,8 @@ contract DeployImplementationsOutput is BaseDeployIO {
         IOPContractsManager impl = IOPContractsManager(address(opcm()));
         require(address(impl.superchainConfig()) == address(_dii.superchainConfigProxy()), "OPCMI-10");
         require(address(impl.protocolVersions()) == address(_dii.protocolVersionsProxy()), "OPCMI-20");
+        console.log("upgradeController: %s", impl.upgradeController());
+        console.log("upgradeController: %s", _dii.upgradeController());
         require(impl.upgradeController() == _dii.upgradeController(), "OPCMI-30");
     }
 
@@ -318,6 +332,14 @@ contract DeployImplementationsOutput is BaseDeployIO {
         // This slot is the custom gas token _balance and this check ensures
         // that it stays unset for forwards compatibility with custom gas token.
         require(vm.load(address(portal), bytes32(uint256(61))) == bytes32(0), "PORTAL-50");
+    }
+
+    function assertValidETHLockboxImpl(DeployImplementationsInput) internal view {
+        IETHLockbox lockbox = ethLockboxImpl();
+
+        DeployUtils.assertInitialized({ _contractAddress: address(lockbox), _isProxy: false, _slot: 0, _offset: 0 });
+
+        require(address(lockbox.superchainConfig()) == address(0), "ELB-10");
     }
 
     function assertValidDelayedWETHImpl(DeployImplementationsInput _dii) internal view {
@@ -452,6 +474,7 @@ contract DeployImplementations is Script {
         deployL1StandardBridgeImpl(_dio);
         deployOptimismMintableERC20FactoryImpl(_dio);
         deployOptimismPortalImpl(_dii, _dio);
+        deployETHLockboxImpl(_dio);
         deployDelayedWETHImpl(_dii, _dio);
         deployPreimageOracleSingleton(_dii, _dio);
         deployMipsSingleton(_dii, _dio);
@@ -644,6 +667,18 @@ contract DeployImplementations is Script {
         );
         vm.label(address(impl), "OptimismMintableERC20FactoryImpl");
         _dio.set(_dio.optimismMintableERC20FactoryImpl.selector, address(impl));
+    }
+
+    function deployETHLockboxImpl(DeployImplementationsOutput _dio) public virtual {
+        IETHLockbox impl = IETHLockbox(
+            DeployUtils.createDeterministic({
+                _name: "ETHLockbox",
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(IETHLockbox.__constructor__, ())),
+                _salt: _salt
+            })
+        );
+        vm.label(address(impl), "ETHLockboxImpl");
+        _dio.set(_dio.ethLockboxImpl.selector, address(impl));
     }
 
     // --- Fault Proofs Contracts ---

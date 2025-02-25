@@ -52,6 +52,7 @@ contract OPPrestateUpdater is OPContractsManager {
                 address(0), //protocolVersionsImpl
                 address(0), //l1ERC721BridgeImpl
                 address(0), //optimismPortalImpl
+                address(0), //ethLockboxImpl
                 address(0), //systemConfigImpl
                 address(0), //optimismMintableERC20FactoryImpl
                 address(0), //l1CrossDomainMessengerImpl
