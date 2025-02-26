@@ -26,16 +26,22 @@ contract ETHLockboxTest is CommonTest {
     event LiquidityReceived(address indexed lockbox);
 
     ProxyAdmin public proxyAdmin = ProxyAdmin(Predeploys.PROXY_ADMIN);
+    address public adminOwner;
 
     function setUp() public virtual override {
         super.setUp();
-        // TODO: Use optimismPortal2 as kind of integration in some fuzzed tests?
-        // TODO: Authorize portal on the lockbox -- check if it needs to go directly on the scripts
+        adminOwner = proxyAdmin.owner();
+        // Authorize portal on the lockbox
+        // TODO: Check if it needs to go directly on the scripts
+        vm.prank(adminOwner);
+        ethLockbox.authorizePortal(address(optimismPortal2));
+
+        // TODO: Create another ethlockbox to test migration integration?
     }
 
     /// @notice Tests the proxy admin owner is correctly returned.
     function test_proxyAdminOwner_succeeds() public view {
-        assertEq(ethLockbox.adminOwner(), proxyAdmin.owner());
+        assertEq(ethLockbox.adminOwner(), adminOwner);
     }
 
     /// @notice Tests the paused status is correctly returned.
@@ -54,22 +60,26 @@ contract ETHLockboxTest is CommonTest {
     function testFuzz_receiveLiquidity_succeeds(address _lockbox, uint256 _value) public {
         vm.assume(!ethLockbox.authorizedLockboxes(_lockbox));
 
+        // Deal the value to the lockbox
+        deal(address(_lockbox), _value);
+
         // Authorize the lockbox
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizeLockbox(_lockbox);
 
         // Get the balance of the lockbox before the receive
-        uint256 _lockboxBalanceBefore = address(_lockbox).balance;
+        uint256 _lockboxBalanceBefore = address(ethLockbox).balance;
 
         // Expect the `LiquidityReceived` event to be emitted
         vm.expectEmit(address(ethLockbox));
         emit LiquidityReceived(_lockbox);
 
         // Call the `receiveLiquidity` function
+        vm.prank(address(_lockbox));
         ethLockbox.receiveLiquidity{ value: _value }();
 
         // Assert the lockbox's balance increased by the amount received
-        assertEq(address(_lockbox).balance, _lockboxBalanceBefore + _value);
+        assertEq(address(ethLockbox).balance, _lockboxBalanceBefore + _value);
     }
 
     /// @notice Tests it reverts when the caller is not an authorized portal.
@@ -111,7 +121,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_portal != address(ethLockbox));
 
         // Set the portal as an authorized portal
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizePortal(_portal);
 
         // Deal the ETH amount to the portal
@@ -189,7 +199,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_portal != address(ethLockbox));
 
         // Set the portal as an authorized portal
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizePortal(_portal);
 
         // Deal the ETH amount to the lockbox
@@ -231,7 +241,7 @@ contract ETHLockboxTest is CommonTest {
     function testFuzz_authorizePortal_alreadyAuthorized_reverts(address _portal) public {
         // Authorize the portal
         if (!ethLockbox.authorizedPortals(_portal)) {
-            vm.prank(proxyAdmin.owner());
+            vm.prank(adminOwner);
             ethLockbox.authorizePortal(_portal);
         }
 
@@ -239,7 +249,7 @@ contract ETHLockboxTest is CommonTest {
         vm.expectRevert(IETHLockbox.AlreadyAuthorized.selector);
 
         // Call the `authorizePortal` function with the portal
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizePortal(_portal);
     }
 
@@ -252,7 +262,7 @@ contract ETHLockboxTest is CommonTest {
         emit PortalAuthorized(_portal);
 
         // Call the `authorizePortal` function with the portal
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizePortal(_portal);
 
         // Assert the portal is authorized
@@ -275,7 +285,7 @@ contract ETHLockboxTest is CommonTest {
     function testFuzz_authorizeLockbox_alreadyAuthorized_reverts(address _lockbox) public {
         // Authorize the lockbox
         if (!ethLockbox.authorizedLockboxes(_lockbox)) {
-            vm.prank(proxyAdmin.owner());
+            vm.prank(adminOwner);
             ethLockbox.authorizeLockbox(_lockbox);
         }
 
@@ -283,7 +293,7 @@ contract ETHLockboxTest is CommonTest {
         vm.expectRevert(IETHLockbox.AlreadyAuthorized.selector);
 
         // Call the `authorizeLockbox` function with the lockbox
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizeLockbox(_lockbox);
     }
 
@@ -296,7 +306,7 @@ contract ETHLockboxTest is CommonTest {
         emit LockboxAuthorized(_lockbox);
 
         // Authorize the lockbox
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.authorizeLockbox(_lockbox);
 
         // Assert the lockbox is authorized
@@ -323,7 +333,7 @@ contract ETHLockboxTest is CommonTest {
         vm.expectRevert(Unauthorized.selector);
 
         // Call the `migrateLiquidity` function with the lockbox
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.migrateLiquidity(_lockbox);
     }
 
@@ -334,6 +344,7 @@ contract ETHLockboxTest is CommonTest {
         vm.mockCall(
             address(_lockbox), abi.encodeCall(IETHLockbox.authorizedLockboxes, (address(ethLockbox))), abi.encode(true)
         );
+        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.receiveLiquidity, ()), abi.encode(true));
 
         // Deal the balance to the lockbox
         deal(address(_lockbox), _balance);
@@ -347,7 +358,7 @@ contract ETHLockboxTest is CommonTest {
         uint256 newLockboxBalanceBefore = address(_lockbox).balance;
 
         // Call the `migrateLiquidity` function with the lockbox
-        vm.prank(proxyAdmin.owner());
+        vm.prank(adminOwner);
         ethLockbox.migrateLiquidity(_lockbox);
 
         // Assert the liquidity was migrated
