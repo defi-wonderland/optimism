@@ -137,6 +137,22 @@ contract Initializer_Test is CommonTest {
                 )
             })
         );
+        // ETHLockboxImpl
+        contracts.push(
+            InitializeableContract({
+                name: "ETHLockboxImpl",
+                target: EIP1967Helper.getImplementation(address(ethLockbox)),
+                initCalldata: abi.encodeCall(ethLockbox.initialize, (address(superchainConfig)))
+            })
+        );
+        // ETHLockboxProxy
+        contracts.push(
+            InitializeableContract({
+                name: "ETHLockboxProxy",
+                target: address(ethLockbox),
+                initCalldata: abi.encodeCall(ethLockbox.initialize, (address(superchainConfig)))
+            })
+        );
         // SystemConfigImpl
         contracts.push(
             InitializeableContract({
