@@ -27,7 +27,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
 
     // Defaults
     address public erc7281Bridge = makeAddr("erc7281Bridge");
-    
+
     // Constants
     string public constant NAME = "Test";
     string public constant SYMBOL = "TST";
@@ -39,7 +39,8 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         super.enableInterop();
         super.setUp();
 
-        crosschainERC20Factory = ICrosschainERC20Factory(vm.deployCode("src/L2/CrosschainERC20/CrosschainERC20Factory.sol"));
+        crosschainERC20Factory =
+            ICrosschainERC20Factory(vm.deployCode("src/L2/CrosschainERC20/CrosschainERC20Factory.sol"));
     }
 
     /// @notice Helper function to get the 7281 and 7802 bridges.
@@ -58,7 +59,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     /// @return burnerLimits_ The burner limits.
     function _getBridgeWithLimits(
         address[] memory bridges,
-        uint256 _minterLimit, 
+        uint256 _minterLimit,
         uint256 _burnerLimit
     )
         internal
@@ -87,7 +88,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         // Mint tokens
         vm.prank(erc7281Bridge);
         crosschainERC20.mint(alice, MINT_LIMIT);
-        
+
         // Get balance after mint
         uint256 balanceAfter = crosschainERC20.balanceOf(alice);
 
@@ -118,7 +119,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         // Mint tokens
         vm.prank(address(superchainTokenBridge));
         crosschainERC20.crosschainMint(alice, MINT_LIMIT);
-        
+
         // Get balance after mint
         uint256 balanceAfter = crosschainERC20.balanceOf(alice);
 
@@ -150,10 +151,13 @@ contract CrosschainERC20_e2e_NonDeployedTokenPath_Test is CrosschainERC20_e2e_Ba
         super.setUp();
 
         // Get the bridges and limits
-        (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) = _getBridgeWithLimits(_get7281And7802Bridges(), MINT_LIMIT, BURN_LIMIT);
+        (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
+            _getBridgeWithLimits(_get7281And7802Bridges(), MINT_LIMIT, BURN_LIMIT);
 
         // Deploy the crosschainERC20
-        crosschainERC20 = ICrosschainERC20(crosschainERC20Factory.deployCrosschainERC20(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges));
+        crosschainERC20 = ICrosschainERC20(
+            crosschainERC20Factory.deployCrosschainERC20(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges)
+        );
 
         // Deal tokens to alice
         deal(address(crosschainERC20), alice, BURN_LIMIT);
@@ -171,10 +175,13 @@ contract CrosschainERC20_e2e_DeployedTokenPath_Test is CrosschainERC20_e2e_Base 
         ERC20 erc20 = new ERC20("Token", "TKN");
 
         // Get the bridges and limits
-        (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) = _getBridgeWithLimits(_get7281And7802Bridges(), MINT_LIMIT, BURN_LIMIT);
+        (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
+            _getBridgeWithLimits(_get7281And7802Bridges(), MINT_LIMIT, BURN_LIMIT);
 
         // Deploy the crosschainERC20 with lockbox
-        (address _crosschainERC20, address _lockbox) = crosschainERC20Factory.deployCrosschainERC20WithLockbox(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges, address(erc20));
+        (address _crosschainERC20, address _lockbox) = crosschainERC20Factory.deployCrosschainERC20WithLockbox(
+            NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges, address(erc20)
+        );
         crosschainERC20 = ICrosschainERC20(_crosschainERC20);
         lockbox = IXERC20Lockbox(_lockbox);
 
@@ -198,7 +205,9 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
         XERC20 xerc20 = new XERC20("Token", "TKN", bob);
 
         // Deploy adapter
-        ERC7802Adapter = IERC7802Adapter(crosschainERC20Factory.deployERC7802Adapter(address(xerc20), address(superchainTokenBridge)));
+        ERC7802Adapter = IERC7802Adapter(
+            crosschainERC20Factory.deployERC7802Adapter(address(xerc20), address(superchainTokenBridge))
+        );
 
         // Set limits for the bridges
         vm.startPrank(bob);
@@ -221,7 +230,7 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
         // Mint tokens
         vm.prank(address(superchainTokenBridge));
         ERC7802Adapter.crosschainMint(alice, MINT_LIMIT);
-        
+
         // Get balance after mint
         uint256 balanceAfter = crosschainERC20.balanceOf(alice);
 

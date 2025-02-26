@@ -216,17 +216,17 @@ contract CrosschainERC20Factory_Test is Test {
 
     /// @notice Test that the deployERC7802Adapter function succeeds.
     function test_deployERC7802Adapter_deployment_succeeds() public {
-        address _crosschainERC20 = address(makeAddr("CrosschainERC20"));
+        address _xerc20 = address(makeAddr("xERC20"));
 
         // Deploy the ERC7802Adapter
         vm.prank(_owner);
-        address _erc7802Adapter = factory.deployERC7802Adapter(_crosschainERC20, _bridge);
+        address _erc7802Adapter = factory.deployERC7802Adapter(_xerc20, _bridge);
 
         // Assert the ERC7802Adapter is deployed
         assertGt(_erc7802Adapter.code.length, 0);
 
-        // Assert the CrosschainERC20 is set
-        assertEq(address(ERC7802Adapter(_erc7802Adapter).XERC20()), _crosschainERC20);
+        // Assert the xERC20 is set
+        assertEq(address(ERC7802Adapter(_erc7802Adapter).XERC20()), _xerc20);
 
         // Assert the Bridge is set
         assertEq(address(ERC7802Adapter(_erc7802Adapter).BRIDGE()), _bridge);
