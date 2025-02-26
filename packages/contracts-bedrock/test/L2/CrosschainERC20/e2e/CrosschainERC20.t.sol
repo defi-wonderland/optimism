@@ -34,7 +34,6 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
 
     /// @notice Test setup.
     function setUp() public virtual override {
-        super.enableInterop();
         super.setUp();
         crosschainERC20Factory = ICrosschainERC20Factory(vm.deployCode("src/L2/CrosschainERC20/CrosschainERC20Factory.sol"));
     }
