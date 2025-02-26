@@ -4,10 +4,14 @@ pragma solidity 0.8.15;
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
 
+// Contracts
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 // Interfaces
 import { ICrosschainERC20 } from "interfaces/L2/CrosschainERC20/ICrosschainERC20.sol";
 import { IERC7802Adapter } from "interfaces/L2/CrosschainERC20/IERC7802Adapter.sol";
 import { ICrosschainERC20Factory } from "interfaces/L2/CrosschainERC20/ICrosschainERC20Factory.sol";
+import { IXERC20Lockbox } from "@xERC20/interfaces/IXERC20Lockbox.sol";
 
 /// @title CrosschainERC20_e2e_Base
 /// @notice Base contract for end-to-end testing of the CrosschainERC20 paths.
@@ -17,8 +21,8 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     // Contracts
     ICrosschainERC20Factory public crosschainERC20Factory;
     ICrosschainERC20 public crosschainERC20;
+    IXERC20Lockbox public lockbox;
     IERC7802Adapter public erc7802Adapter;
-
     // Defaults
     address public erc7281Bridge = makeAddr("erc7281Bridge");
     
@@ -151,3 +155,31 @@ contract CrosschainERC20_e2e_NonDeployedTokenPath_Test is CrosschainERC20_e2e_Ba
     }
 }
 
+/// @title CrosschainERC20_e2e_DeployedTokenPath_Test
+/// @notice Contract for testing the CrosschainERC20 deployed token path.
+contract CrosschainERC20_e2e_DeployedTokenPath_Test is CrosschainERC20_e2e_Base {
+    /// @notice Test setup.
+    function setUp() public override {
+        super.setUp();
+
+        // Deploy the ERC20
+        ERC20 erc20 = new ERC20("Token", "TKN");
+
+        // Get the bridges and limits
+        (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) = _getBridgeWithLimits(_get7281And7802Bridges(), MINT_LIMIT, BURN_LIMIT);
+
+        // Deploy the crosschainERC20 with lockbox
+        (address _crosschainERC20, address _lockbox) = crosschainERC20Factory.deployCrosschainERC20WithLockbox(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges, address(erc20));
+        crosschainERC20 = ICrosschainERC20(_crosschainERC20);
+        lockbox = IXERC20Lockbox(_lockbox);
+
+        // Deal base tokens
+        deal(address(erc20), alice, BURN_LIMIT);
+
+        // Wrap the ERC20
+        vm.startPrank(alice);
+        erc20.approve(address(lockbox), BURN_LIMIT);
+        lockbox.deposit(BURN_LIMIT);
+        vm.stopPrank();
+    }
+}
