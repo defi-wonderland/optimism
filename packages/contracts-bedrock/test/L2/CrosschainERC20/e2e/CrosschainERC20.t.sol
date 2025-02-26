@@ -12,6 +12,7 @@ import { ICrosschainERC20Factory } from "interfaces/L2/CrosschainERC20/ICrosscha
 /// @title CrosschainERC20_e2e_Base
 /// @notice Base contract for end-to-end testing of the CrosschainERC20 paths.
 /// @dev This contract provides common setup and helper functions for CrosschainERC20 e2e tests.
+/// @dev Tests included in this contract should pass in every setup.
 abstract contract CrosschainERC20_e2e_Base is CommonTest {
     // Contracts
     ICrosschainERC20Factory public crosschainERC20Factory;
@@ -22,16 +23,22 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     address public erc7281Bridge = makeAddr("erc7281Bridge");
     
     // Constants
-    address public constant NAME = "Test";
+    string public constant NAME = "Test";
     string public constant SYMBOL = "TST";
-    uint256 public constant MINTER_LIMIT = 10e25;
-    uint256 public constant BURNER_LIMIT = 10e25;
+    uint256 public constant MINT_LIMIT = 10e25;
+    uint256 public constant BURN_LIMIT = 10e25;
 
     /// @notice Test setup.
     function setUp() public virtual override {
         super.enableInterop();
         super.setUp();
         crosschainERC20Factory = ICrosschainERC20Factory(vm.deployCode("src/L2/CrosschainERC20/CrosschainERC20Factory.sol"));
+    }
+
+    function _get7281And7802Bridges() internal view returns (address[] memory bridges_) {
+        bridges_ = new address[](2);
+        bridges_[0] = erc7281Bridge;
+        bridges_[1] = address(superchainTokenBridge);
     }
 
     /// @notice Helper function to get the bridge with limits.
@@ -41,21 +48,106 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     /// @return minterLimits_ The minter limits.
     /// @return burnerLimits_ The burner limits.
     function _getBridgeWithLimits(
-        uint256 _minterLimit,
+        address[] memory bridges,
+        uint256 _minterLimit, 
         uint256 _burnerLimit
     )
         internal
         view
         returns (address[] memory bridges_, uint256[] memory minterLimits_, uint256[] memory burnerLimits_)
     {
-        // Create the arrays
-        bridges_ = new address[](1);
-        minterLimits_ = new uint256[](1);
-        burnerLimits_ = new uint256[](1);
+        // Create the arrays with length matching input bridges
+        uint256 length = bridges.length;
+        bridges_ = new address[](length);
+        minterLimits_ = new uint256[](length);
+        burnerLimits_ = new uint256[](length);
 
-        // Set the values for the bridge
-        bridges_[0] = address(superchainTokenBridge);
-        minterLimits_[0] = _minterLimit;
-        burnerLimits_[0] = _burnerLimit;
+        // Set the values for each bridge
+        for (uint256 i = 0; i < length; i++) {
+            bridges_[i] = bridges[i];
+            minterLimits_[i] = _minterLimit;
+            burnerLimits_[i] = _burnerLimit;
+        }
+    }
+
+    /// @notice Mints using ERC7281 interface.
+    function testMintERC7281() public {
+        // Get balance before mint
+        uint256 balanceBefore = crosschainERC20.balanceOf(alice);
+
+        // Mint tokens
+        vm.prank(erc7281Bridge);
+        crosschainERC20.mint(alice, MINT_LIMIT);
+        
+        // Get balance after mint
+        uint256 balanceAfter = crosschainERC20.balanceOf(alice);
+
+        // Check the balance has increased by the minted amount
+        assertEq(balanceAfter - balanceBefore, MINT_LIMIT);
+    }
+
+    /// @notice Burns using ERC7281 interface.
+    function testBurnERC7281() public {
+        // Approve the bridge to burn
+        vm.prank(alice);
+        crosschainERC20.approve(erc7281Bridge, BURN_LIMIT);
+
+        // Burn tokens
+        vm.prank(erc7281Bridge);
+        crosschainERC20.burn(alice, BURN_LIMIT);
+
+        // Check the balance has decreased by the burned amount
+        uint256 balance = crosschainERC20.balanceOf(alice);
+        assertEq(balance, 0);
+    }
+
+    /// @notice Mints using ERC7802 interface.
+    function testMintERC7802() public {
+        // Get balance before mint
+        uint256 balanceBefore = crosschainERC20.balanceOf(alice);
+
+        // Mint tokens
+        vm.prank(address(superchainTokenBridge));
+        crosschainERC20.crosschainMint(alice, MINT_LIMIT);
+        
+        // Get balance after mint
+        uint256 balanceAfter = crosschainERC20.balanceOf(alice);
+
+        // Check the balance has increased by the minted amount
+        assertEq(balanceAfter - balanceBefore, MINT_LIMIT);
+    }
+
+    /// @notice Burns using ERC7802 interface.
+    function testBurnERC7802() public {
+        // Approve the bridge to burn
+        vm.prank(alice);
+        crosschainERC20.approve(address(superchainTokenBridge), BURN_LIMIT);
+
+        // Burn tokens
+        vm.prank(address(superchainTokenBridge));
+        crosschainERC20.crosschainBurn(alice, BURN_LIMIT);
+
+        // Check the balance has decreased by the burned amount
+        uint256 balance = crosschainERC20.balanceOf(alice);
+        assertEq(balance, 0);
     }
 }
+
+/// @title CrosschainERC20_e2e_NonDeployedTokenPath_Test
+/// @notice Contract for testing the CrosschainERC20 non-deployed token path.
+contract CrosschainERC20_e2e_NonDeployedTokenPath_Test is CrosschainERC20_e2e_Base {
+    /// @notice Test setup.
+    function setUp() public override {
+        super.setUp();
+
+        // Get the bridges and limits
+        (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) = _getBridgeWithLimits(_get7281And7802Bridges(), MINT_LIMIT, BURN_LIMIT);
+
+        // Deploy the crosschainERC20
+        crosschainERC20 = ICrosschainERC20(crosschainERC20Factory.deployCrosschainERC20(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges));
+
+        // Deal tokens to alice
+        deal(address(crosschainERC20), alice, BURN_LIMIT);
+    }
+}
+
