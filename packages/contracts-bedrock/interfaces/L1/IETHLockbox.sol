@@ -5,11 +5,14 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 interface IETHLockbox is ISemver {
+    error InvalidInitialization();
+    error NotInitializing();
     error Unauthorized();
     error Paused();
     error NoWithdrawalTransactions();
     error AlreadyAuthorized();
 
+    event Initialized(uint64 version);
     event ETHLocked(address indexed portal, uint256 amount);
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
@@ -18,7 +21,7 @@ interface IETHLockbox is ISemver {
     event LiquidityReceived(address indexed lockbox);
 
     function initialize(address _superchainConfig) external;
-    function superchainConfig() external view returns (ISuperchainConfig);
+    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
     function adminOwner() external view returns (address);
     function paused() external view returns (bool);
     function authorizedPortals(address) external view returns (bool);

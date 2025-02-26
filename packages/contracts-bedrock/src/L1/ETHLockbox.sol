@@ -13,7 +13,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 /// @custom:proxied true
