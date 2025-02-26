@@ -126,8 +126,7 @@ contract ETHLockbox is Initializable, ISemver {
     function unlockETH(uint256 _value) external {
         if (paused()) revert ETHLockbox_Paused();
         if (!authorizedPortals[msg.sender]) revert ETHLockbox_Unauthorized();
-        /// NOTE: Unlocking ETH through a withdrawal transaction is not allowed. This covers the case where the portal
-        /// is authorized on the lockbox, but it didn't yet upgrade to the last portal version.
+        /// NOTE: Check l2Sender is not set to avoid this function to be called as a target on a withdrawal transaction
         if (IOptimismPortal(payable(msg.sender)).l2Sender() != Constants.DEFAULT_L2_SENDER) {
             revert ETHLockbox_NoWithdrawalTransactions();
         }

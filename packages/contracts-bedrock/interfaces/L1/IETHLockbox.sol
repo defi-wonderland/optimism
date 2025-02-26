@@ -6,8 +6,8 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 
 interface IETHLockbox is IProxyAdminOwnable, ISemver {
-    error ETHLockbox_InvalidInitialization();
-    error ETHLockbox_NotInitializing();
+    error InvalidInitialization();
+    error NotInitializing();
     error ETHLockbox_Unauthorized();
     error ETHLockbox_Paused();
     error ETHLockbox_NoWithdrawalTransactions();
@@ -24,7 +24,6 @@ interface IETHLockbox is IProxyAdminOwnable, ISemver {
 
     function initialize(address _superchainConfig) external;
     function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
-    function adminOwner() external view returns (address);
     function paused() external view returns (bool);
     function authorizedPortals(address) external view returns (bool);
     function authorizedLockboxes(address) external view returns (bool);

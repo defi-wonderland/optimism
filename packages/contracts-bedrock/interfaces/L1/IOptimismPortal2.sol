@@ -10,7 +10,7 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 
-interface IOptimismPortal2 {
+interface IOptimismPortal2 is IProxyAdminOwnable {
     error ContentLengthMismatch();
     error EmptyItem();
     error InvalidDataRemainder();
@@ -64,7 +64,6 @@ interface IOptimismPortal2 {
         external;
     function finalizedWithdrawals(bytes32) external view returns (bool);
     function guardian() external view returns (address);
-    function adminOwner() external view returns (address);
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,

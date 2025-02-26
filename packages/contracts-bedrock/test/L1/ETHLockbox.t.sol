@@ -10,6 +10,7 @@ import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPort
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 
 // Test
 import { CommonTest } from "test/setup/CommonTest.sol";
@@ -71,7 +72,9 @@ contract ETHLockboxTest is CommonTest {
         deal(address(_lockbox), _value);
 
         // Mock the admin owner of the lockbox to be the same as the current lockbox proxy admin owner
-        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(
+            address(_lockbox), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner())
+        );
 
         // Authorize the lockbox
         vm.prank(adminOwner);
@@ -131,7 +134,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_portal != address(ethLockbox));
 
         // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
-        vm.mockCall(address(_portal), abi.encodeCall(IOptimismPortal.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(address(_portal), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner()));
 
         // Set the portal as an authorized portal
         vm.prank(adminOwner);
@@ -228,7 +231,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_portal != address(ethLockbox));
 
         // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
-        vm.mockCall(address(_portal), abi.encodeCall(IOptimismPortal.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(address(_portal), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner()));
 
         // Set the portal as an authorized portal
         vm.prank(adminOwner);
@@ -275,7 +278,7 @@ contract ETHLockboxTest is CommonTest {
         if (!ethLockbox.authorizedPortals(_portal)) {
             // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
             vm.mockCall(
-                address(_portal), abi.encodeCall(IOptimismPortal.adminOwner, ()), abi.encode(proxyAdmin.owner())
+                address(_portal), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner())
             );
 
             // Authorize the portal
@@ -294,7 +297,7 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests the `authorizePortal` function reverts when the admin owner of the portal is not the same as the
     ///         admin owner of the lockbox.
     function testFuzz_authorizePortal_differentAdminOwner_reverts(address _portal) public {
-        vm.mockCall(address(_portal), abi.encodeCall(IOptimismPortal.adminOwner, ()), abi.encode(address(0)));
+        vm.mockCall(address(_portal), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(address(0)));
 
         // Expect the revert with `DifferentOwner` selector
         vm.expectRevert(IETHLockbox.ETHLockbox_DifferentAdminOwner.selector);
@@ -331,7 +334,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(!ethLockbox.authorizedPortals(_portal));
 
         // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
-        vm.mockCall(address(_portal), abi.encodeCall(IOptimismPortal.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(address(_portal), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner()));
 
         // Expect the `PortalAuthorized` event to be emitted
         vm.expectEmit(address(ethLockbox));
@@ -361,7 +364,9 @@ contract ETHLockboxTest is CommonTest {
     function testFuzz_authorizeLockbox_alreadyAuthorized_reverts(address _lockbox) public {
         // Authorize the lockbox
         if (!ethLockbox.authorizedLockboxes(_lockbox)) {
-            vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+            vm.mockCall(
+                address(_lockbox), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner())
+            );
 
             vm.prank(adminOwner);
             ethLockbox.authorizeLockbox(_lockbox);
@@ -378,7 +383,7 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests the `authorizeLockbox` function reverts when the admin owner of the lockbox is not the same as the
     ///         admin owner of the proxy admin.
     function testFuzz_authorizeLockbox_differentAdminOwner_reverts(address _lockbox) public {
-        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(address(0)));
+        vm.mockCall(address(_lockbox), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(address(0)));
 
         // Expect the revert with `ETHLockbox_DifferentAdminOwner` selector
         vm.expectRevert(IETHLockbox.ETHLockbox_DifferentAdminOwner.selector);
@@ -393,7 +398,9 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(!ethLockbox.authorizedLockboxes(_lockbox));
 
         // Mock the admin owner of the lockbox to be the same as the current lockbox proxy admin owner
-        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(
+            address(_lockbox), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner())
+        );
 
         // Expect the `LockboxAuthorized` event to be emitted
         vm.expectEmit(address(ethLockbox));
@@ -422,7 +429,7 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests the `migrateLiquidity` function reverts when the admin owner of the lockbox is not the same as the
     ///         admin owner of the proxy admin.
     function testFuzz_migrateLiquidity_differentAdminOwner_reverts(address _lockbox) public {
-        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(address(0)));
+        vm.mockCall(address(_lockbox), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(address(0)));
 
         // Expect the revert with `ETHLockbox_DifferentAdminOwner` selector
         vm.expectRevert(IETHLockbox.ETHLockbox_DifferentAdminOwner.selector);
@@ -435,7 +442,9 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests the `migrateLiquidity` function succeeds
     function testFuzz_migrateLiquidity_succeeds(uint256 _balance, address _lockbox) public {
         // Mock on the lockbox that will receive the migration for it to succeed
-        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(
+            address(_lockbox), abi.encodeCall(IProxyAdminOwnable.adminOwner, ()), abi.encode(proxyAdmin.owner())
+        );
         vm.mockCall(
             address(_lockbox), abi.encodeCall(IETHLockbox.authorizedLockboxes, (address(ethLockbox))), abi.encode(true)
         );

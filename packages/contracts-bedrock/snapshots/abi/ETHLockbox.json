@@ -278,7 +278,27 @@
   },
   {
     "inputs": [],
-    "name": "AlreadyAuthorized",
+    "name": "ETHLockbox_AlreadyAuthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ETHLockbox_DifferentAdminOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ETHLockbox_NoWithdrawalTransactions",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ETHLockbox_Paused",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ETHLockbox_Unauthorized",
     "type": "error"
   },
   {
@@ -288,22 +308,7 @@
   },
   {
     "inputs": [],
-    "name": "NoWithdrawalTransactions",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "NotInitializing",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "Paused",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "Unauthorized",
     "type": "error"
   }
 ]
