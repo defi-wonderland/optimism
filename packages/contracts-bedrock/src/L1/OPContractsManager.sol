@@ -391,6 +391,8 @@ contract OPContractsManager is ISemver {
 
         data = encodeETHLockboxInitializer();
         upgradeToAndCall(output.opChainProxyAdmin, address(output.ethLockboxProxy), implementation.ethLockboxImpl, data);
+        // Besides initializing with the `SuperchainConfig`, authorize the `OptimismPortal` on the `ETHLockbox`.
+        output.ethLockboxProxy.authorizePortal(address(output.optimismPortalProxy));
 
         data = encodeSystemConfigInitializer(_input, output);
         upgradeToAndCall(

@@ -628,6 +628,7 @@ contract DeployOPChain is Script {
         IETHLockbox lockbox = _doo.ethLockboxProxy();
 
         require(address(lockbox.superchainConfig()) == address(_doi.opcm().superchainConfig()), "ETHLOCKBOX-10");
+        require(lockbox.authorizedPortals(address(_doo.optimismPortalProxy())), "ETHLOCKBOX-20");
     }
 
     function assertValidDisputeGameFactory(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {

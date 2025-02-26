@@ -33,10 +33,6 @@ contract ETHLockboxTest is CommonTest {
     function setUp() public virtual override {
         super.setUp();
         adminOwner = proxyAdmin.owner();
-        // Authorize portal on the lockbox
-        // TODO: Check if authorization needs to go directly on the scripts
-        vm.prank(adminOwner);
-        ethLockbox.authorizePortal(address(optimismPortal2));
     }
 
     /// @notice Tests the superchain config was correctly set during initialization.
