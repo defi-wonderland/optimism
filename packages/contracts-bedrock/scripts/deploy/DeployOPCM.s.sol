@@ -32,6 +32,7 @@ contract DeployOPCMInput is BaseDeployIO {
     address internal _protocolVersionsImpl;
     address internal _l1ERC721BridgeImpl;
     address internal _optimismPortalImpl;
+    address internal _ethLockboxImpl;
     address internal _systemConfigImpl;
     address internal _optimismMintableERC20FactoryImpl;
     address internal _l1CrossDomainMessengerImpl;
@@ -61,6 +62,7 @@ contract DeployOPCMInput is BaseDeployIO {
         else if (_sel == this.permissionedDisputeGame2Blueprint.selector) _permissionedDisputeGame2Blueprint = _addr;
         else if (_sel == this.l1ERC721BridgeImpl.selector) _l1ERC721BridgeImpl = _addr;
         else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = _addr;
+        else if (_sel == this.ethLockboxImpl.selector) _ethLockboxImpl = _addr;
         else if (_sel == this.systemConfigImpl.selector) _systemConfigImpl = _addr;
         else if (_sel == this.optimismMintableERC20FactoryImpl.selector) _optimismMintableERC20FactoryImpl = _addr;
         else if (_sel == this.l1CrossDomainMessengerImpl.selector) _l1CrossDomainMessengerImpl = _addr;
@@ -151,6 +153,11 @@ contract DeployOPCMInput is BaseDeployIO {
         return _optimismPortalImpl;
     }
 
+    function ethLockboxImpl() public view returns (address) {
+        require(_ethLockboxImpl != address(0), "DeployOPCMInput: not set");
+        return _ethLockboxImpl;
+    }
+
     function systemConfigImpl() public view returns (address) {
         require(_systemConfigImpl != address(0), "DeployOPCMInput: not set");
         return _systemConfigImpl;
@@ -237,6 +244,7 @@ contract DeployOPCM is Script {
             protocolVersionsImpl: address(_doi.protocolVersionsImpl()),
             l1ERC721BridgeImpl: address(_doi.l1ERC721BridgeImpl()),
             optimismPortalImpl: address(_doi.optimismPortalImpl()),
+            ethLockboxImpl: address(_doi.ethLockboxImpl()),
             systemConfigImpl: address(_doi.systemConfigImpl()),
             optimismMintableERC20FactoryImpl: address(_doi.optimismMintableERC20FactoryImpl()),
             l1CrossDomainMessengerImpl: address(_doi.l1CrossDomainMessengerImpl()),

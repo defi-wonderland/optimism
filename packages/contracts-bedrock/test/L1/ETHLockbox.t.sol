@@ -34,7 +34,7 @@ contract ETHLockboxTest is CommonTest {
     }
 
     /// @notice Tests the proxy admin owner is correctly returned.
-    function test_proxyAdminOwner_succeeds() public {
+    function test_proxyAdminOwner_succeeds() public view {
         assertEq(ethLockbox.adminOwner(), proxyAdmin.owner());
     }
 

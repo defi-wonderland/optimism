@@ -33,8 +33,6 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
 import { BaseDeployIO } from "scripts/deploy/BaseDeployIO.sol";
 
-import { console } from "forge-std/console.sol";
-
 // See DeploySuperchain.s.sol for detailed comments on the script architecture used here.
 contract DeployImplementationsInput is BaseDeployIO {
     uint256 internal _withdrawalDelaySeconds;
@@ -174,7 +172,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
         else if (_sel == this.superchainConfigImpl.selector) _superchainConfigImpl = ISuperchainConfig(_addr);
         else if (_sel == this.protocolVersionsImpl.selector) _protocolVersionsImpl = IProtocolVersions(_addr);
         else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = IOptimismPortal2(payable(_addr));
-        else if (_sel == this.ethLockboxImpl.selector) _ethLockboxImpl = IETHLockbox(_addr);
+        else if (_sel == this.ethLockboxImpl.selector) _ethLockboxImpl = IETHLockbox(payable(_addr));
         else if (_sel == this.delayedWETHImpl.selector) _delayedWETHImpl = IDelayedWETH(payable(_addr));
         else if (_sel == this.preimageOracleSingleton.selector) _preimageOracleSingleton = IPreimageOracle(_addr);
         else if (_sel == this.mipsSingleton.selector) _mipsSingleton = IMIPS(_addr);
@@ -314,8 +312,6 @@ contract DeployImplementationsOutput is BaseDeployIO {
         IOPContractsManager impl = IOPContractsManager(address(opcm()));
         require(address(impl.superchainConfig()) == address(_dii.superchainConfigProxy()), "OPCMI-10");
         require(address(impl.protocolVersions()) == address(_dii.protocolVersionsProxy()), "OPCMI-20");
-        console.log("upgradeController: %s", impl.upgradeController());
-        console.log("upgradeController: %s", _dii.upgradeController());
         require(impl.upgradeController() == _dii.upgradeController(), "OPCMI-30");
     }
 
@@ -337,7 +333,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
     function assertValidETHLockboxImpl(DeployImplementationsInput) internal view {
         IETHLockbox lockbox = ethLockboxImpl();
 
-        DeployUtils.assertInitialized({ _contractAddress: address(lockbox), _isProxy: false, _slot: 0, _offset: 0 });
+        DeployUtils.assertInitializedOZv5({ _contractAddress: address(lockbox), _isProxy: false });
 
         require(address(lockbox.superchainConfig()) == address(0), "ELB-10");
     }
@@ -511,6 +507,7 @@ contract DeployImplementations is Script {
             protocolVersionsImpl: address(_dio.protocolVersionsImpl()),
             l1ERC721BridgeImpl: address(_dio.l1ERC721BridgeImpl()),
             optimismPortalImpl: address(_dio.optimismPortalImpl()),
+            ethLockboxImpl: address(_dio.ethLockboxImpl()),
             systemConfigImpl: address(_dio.systemConfigImpl()),
             optimismMintableERC20FactoryImpl: address(_dio.optimismMintableERC20FactoryImpl()),
             l1CrossDomainMessengerImpl: address(_dio.l1CrossDomainMessengerImpl()),
@@ -907,6 +904,7 @@ contract DeployImplementationsInterop is DeployImplementations {
             protocolVersionsImpl: address(_dio.protocolVersionsImpl()),
             l1ERC721BridgeImpl: address(_dio.l1ERC721BridgeImpl()),
             optimismPortalImpl: address(_dio.optimismPortalImpl()),
+            ethLockboxImpl: address(_dio.ethLockboxImpl()),
             systemConfigImpl: address(_dio.systemConfigImpl()),
             optimismMintableERC20FactoryImpl: address(_dio.optimismMintableERC20FactoryImpl()),
             l1CrossDomainMessengerImpl: address(_dio.l1CrossDomainMessengerImpl()),
