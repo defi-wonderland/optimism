@@ -200,7 +200,6 @@ rules:
     paths:
       exclude:
         - packages/contracts-bedrock/src/L1/OPContractsManager.sol
-        - packages/contracts-bedrock/src/L1/OPContractsManagerInterop.sol
         - packages/contracts-bedrock/src/legacy/L1ChugSplashProxy.sol
 
   - id: sol-style-enforce-require-msg
@@ -243,7 +242,6 @@ rules:
           }
     paths:
       exclude:
-        - packages/contracts-bedrock/src/L1/SystemConfigInterop.sol
         - packages/contracts-bedrock/src/L1/OptimismPortalInterop.sol
 
   - id: sol-safety-proper-initializer
@@ -264,4 +262,3 @@ rules:
     paths:
       exclude:
         - packages/contracts-bedrock/src/L1/SystemConfig.sol
-        - packages/contracts-bedrock/src/L1/SystemConfigInterop.sol
