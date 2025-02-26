@@ -6,12 +6,12 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 
 interface IETHLockbox is IProxyAdminOwnable, ISemver {
-    error InvalidInitialization();
-    error NotInitializing();
-    error Unauthorized();
-    error Paused();
-    error NoWithdrawalTransactions();
-    error AlreadyAuthorized();
+    error ETHLockbox_InvalidInitialization();
+    error ETHLockbox_NotInitializing();
+    error ETHLockbox_Unauthorized();
+    error ETHLockbox_Paused();
+    error ETHLockbox_NoWithdrawalTransactions();
+    error ETHLockbox_AlreadyAuthorized();
     error ETHLockbox_DifferentAdminOwner();
 
     event Initialized(uint64 version);

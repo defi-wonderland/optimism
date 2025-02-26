@@ -5,7 +5,6 @@ pragma solidity 0.8.25;
 import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 // Libraries
-import { Unauthorized, Paused } from "src/libraries/errors/CommonErrors.sol";
 import { Storage } from "src/libraries/Storage.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
@@ -21,11 +20,17 @@ import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 /// @notice Manages ETH liquidity locking and unlocking for authorized OptimismPortals, enabling unified ETH liquidity
 ///         management across chains in the superchain cluster.
 contract ETHLockbox is Initializable, ISemver {
-    /// @notice Thrown when attempting to unlock ETH from the lockbox through a withdrawal transaction.
-    error NoWithdrawalTransactions();
+    /// @notice Thrown when the lockbox is paused.
+    error ETHLockbox_Paused();
+
+    /// @notice Thrown when the caller is not authorized.
+    error ETHLockbox_Unauthorized();
 
     /// @notice Thrown when an already authorized portal or lockbox attempts to be authorized again.
-    error AlreadyAuthorized();
+    error ETHLockbox_AlreadyAuthorized();
+
+    /// @notice Thrown when attempting to unlock ETH from the lockbox through a withdrawal transaction.
+    error ETHLockbox_NoWithdrawalTransactions();
 
     /// @notice Thrown when the admin owner of the lockbox is different from the admin owner of the proxy admin.
     error ETHLockbox_DifferentAdminOwner();
@@ -57,7 +62,7 @@ contract ETHLockbox is Initializable, ISemver {
     event LiquidityReceived(address indexed lockbox);
 
     /// @notice The address of the SuperchainConfig contract.
-    bytes32 internal constant SUPERCHAIN_CONFIG_SLOT = bytes32(uint256(keccak256("ETHLockbox.superchainConfig")) - 1);
+    bytes32 internal constant _SUPERCHAIN_CONFIG_SLOT = bytes32(uint256(keccak256("ETHLockbox.superchainConfig")) - 1);
 
     /// @notice Mapping of authorized portals.
     mapping(address => bool) public authorizedPortals;
@@ -79,12 +84,12 @@ contract ETHLockbox is Initializable, ISemver {
     /// @notice Initializer.
     /// @param _superchainConfig The address of the SuperchainConfig contract.
     function initialize(address _superchainConfig) external initializer {
-        Storage.setAddress(SUPERCHAIN_CONFIG_SLOT, _superchainConfig);
+        Storage.setAddress(_SUPERCHAIN_CONFIG_SLOT, _superchainConfig);
     }
 
     /// @notice Getter for the SuperchainConfig contract.
     function superchainConfig() public view returns (ISuperchainConfig superchainConfig_) {
-        superchainConfig_ = ISuperchainConfig(Storage.getAddress(SUPERCHAIN_CONFIG_SLOT));
+        superchainConfig_ = ISuperchainConfig(Storage.getAddress(_SUPERCHAIN_CONFIG_SLOT));
     }
 
     /// @notice Getter for the owner of the proxy admin.
@@ -103,14 +108,14 @@ contract ETHLockbox is Initializable, ISemver {
 
     /// @notice Receives the ETH liquidity migrated from an authorized lockbox.
     function receiveLiquidity() external payable {
-        if (!authorizedLockboxes[msg.sender]) revert Unauthorized();
+        if (!authorizedLockboxes[msg.sender]) revert ETHLockbox_Unauthorized();
         emit LiquidityReceived(msg.sender);
     }
 
     /// @notice Locks ETH in the lockbox.
     ///         Called by an authorized portal on a deposit to lock the ETH value.
     function lockETH() external payable {
-        if (!authorizedPortals[msg.sender]) revert Unauthorized();
+        if (!authorizedPortals[msg.sender]) revert ETHLockbox_Unauthorized();
         emit ETHLocked(msg.sender, msg.value);
     }
 
@@ -119,10 +124,10 @@ contract ETHLockbox is Initializable, ISemver {
     ///         Cannot be called if the lockbox is paused.
     /// @param _value The amount of ETH to unlock.
     function unlockETH(uint256 _value) external {
-        if (paused()) revert Paused();
-        if (!authorizedPortals[msg.sender]) revert Unauthorized();
+        if (paused()) revert ETHLockbox_Paused();
+        if (!authorizedPortals[msg.sender]) revert ETHLockbox_Unauthorized();
         if (IOptimismPortal(payable(msg.sender)).l2Sender() != Constants.DEFAULT_L2_SENDER) {
-            revert NoWithdrawalTransactions();
+            revert ETHLockbox_NoWithdrawalTransactions();
         }
 
         // Using `donateETH` to avoid triggering a deposit
@@ -133,9 +138,9 @@ contract ETHLockbox is Initializable, ISemver {
     /// @notice Authorizes a portal to lock and unlock ETH.
     /// @param _portal The address of the portal to authorize.
     function authorizePortal(address _portal) external {
-        if (msg.sender != adminOwner()) revert Unauthorized();
+        if (msg.sender != adminOwner()) revert ETHLockbox_Unauthorized();
         if (!_sameAdminOwner(_portal)) revert ETHLockbox_DifferentAdminOwner();
-        if (authorizedPortals[_portal]) revert AlreadyAuthorized();
+        if (authorizedPortals[_portal]) revert ETHLockbox_AlreadyAuthorized();
 
         authorizedPortals[_portal] = true;
         emit PortalAuthorized(_portal);
@@ -144,9 +149,9 @@ contract ETHLockbox is Initializable, ISemver {
     /// @notice Authorizes an ETH lockbox to migrate its liquidity to the current ETH lockbox.
     /// @param _lockbox The address of the ETH lockbox to authorize.
     function authorizeLockbox(address _lockbox) external {
-        if (msg.sender != adminOwner()) revert Unauthorized();
+        if (msg.sender != adminOwner()) revert ETHLockbox_Unauthorized();
         if (!_sameAdminOwner(_lockbox)) revert ETHLockbox_DifferentAdminOwner();
-        if (authorizedLockboxes[_lockbox]) revert AlreadyAuthorized();
+        if (authorizedLockboxes[_lockbox]) revert ETHLockbox_AlreadyAuthorized();
 
         authorizedLockboxes[_lockbox] = true;
         emit LockboxAuthorized(_lockbox);
@@ -155,7 +160,7 @@ contract ETHLockbox is Initializable, ISemver {
     /// @notice Migrates liquidity from the current ETH lockbox to another.
     /// @param _lockbox The address of the ETH lockbox to migrate liquidity to.
     function migrateLiquidity(address _lockbox) external {
-        if (msg.sender != adminOwner()) revert Unauthorized();
+        if (msg.sender != adminOwner()) revert ETHLockbox_Unauthorized();
         if (!_sameAdminOwner(_lockbox)) revert ETHLockbox_DifferentAdminOwner();
 
         ETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();

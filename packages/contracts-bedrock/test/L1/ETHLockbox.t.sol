@@ -2,7 +2,6 @@
 pragma solidity 0.8.15;
 
 // Testing utilities
-import { Unauthorized, Paused as PausedError } from "src/libraries/errors/CommonErrors.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
@@ -102,7 +101,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(!ethLockbox.authorizedPortals(_caller));
 
         // Expect the revert with `Unauthorized` selector
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
 
         // Call the `lockETH` function with an unauthorized caller
         vm.prank(_caller);
@@ -168,7 +167,7 @@ contract ETHLockboxTest is CommonTest {
         vm.mockCall(address(superchainConfig), abi.encodeCall(ISuperchainConfig.paused, ()), abi.encode(true));
 
         // Expect the revert with `Paused` selector
-        vm.expectRevert(PausedError.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_Paused.selector);
 
         // Call the `unlockETH` function with the caller
         vm.prank(_caller);
@@ -180,7 +179,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(!ethLockbox.authorizedPortals(_caller));
 
         // Expect the revert with `Unauthorized` selector
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
 
         // Call the `unlockETH` function with an unauthorized caller
         vm.prank(_caller);
@@ -196,7 +195,7 @@ contract ETHLockboxTest is CommonTest {
         vm.mockCall(address(optimismPortal2), abi.encodeCall(IOptimismPortal.l2Sender, ()), abi.encode(_l2Sender));
 
         // Expect the revert with `NoWithdrawalTransactions` selector
-        vm.expectRevert(IETHLockbox.NoWithdrawalTransactions.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_NoWithdrawalTransactions.selector);
 
         // Call the `unlockETH` function with the portal
         vm.prank(address(optimismPortal2));
@@ -267,7 +266,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_caller != proxyAdmin.owner());
 
         // Expect the revert with `Unauthorized` selector
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
 
         // Call the `authorizePortal` function with an unauthorized caller
         vm.prank(_caller);
@@ -289,7 +288,7 @@ contract ETHLockboxTest is CommonTest {
         }
 
         // Expect the revert with `AlreadyAuthorized` selector
-        vm.expectRevert(IETHLockbox.AlreadyAuthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_AlreadyAuthorized.selector);
 
         // Call the `authorizePortal` function with the portal
         vm.prank(adminOwner);
@@ -355,7 +354,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_caller != proxyAdmin.owner());
 
         // Expect the revert with `Unauthorized` selector
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
 
         // Call the `authorizeLockbox` function with an unauthorized caller
         vm.prank(_caller);
@@ -373,7 +372,7 @@ contract ETHLockboxTest is CommonTest {
         }
 
         // Expect the revert with `AlreadyAuthorized` selector
-        vm.expectRevert(IETHLockbox.AlreadyAuthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_AlreadyAuthorized.selector);
 
         // Call the `authorizeLockbox` function with the lockbox
         vm.prank(adminOwner);
@@ -417,7 +416,7 @@ contract ETHLockboxTest is CommonTest {
         vm.assume(_caller != proxyAdmin.owner());
 
         // Expect the revert with `Unauthorized` selector
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
 
         // Call the `migrateLiquidity` function with an unauthorized caller
         vm.prank(_caller);

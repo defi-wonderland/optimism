@@ -9,6 +9,3 @@ error TransferFailed();
 
 /// @notice Thrown when attempting to perform an operation and the account is the zero address.
 error ZeroAddress();
-
-/// @notice Thrown when the SuperchainConfig is paused.
-error Paused();
