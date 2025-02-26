@@ -6,6 +6,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Contracts
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { XERC20 } from "@xERC20/contracts/XERC20.sol";
 
 // Interfaces
 import { ICrosschainERC20 } from "interfaces/L2/CrosschainERC20/ICrosschainERC20.sol";
@@ -22,7 +23,8 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     ICrosschainERC20Factory public crosschainERC20Factory;
     ICrosschainERC20 public crosschainERC20;
     IXERC20Lockbox public lockbox;
-    IERC7802Adapter public erc7802Adapter;
+    IERC7802Adapter public ERC7802Adapter;
+
     // Defaults
     address public erc7281Bridge = makeAddr("erc7281Bridge");
     
@@ -34,10 +36,14 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
 
     /// @notice Test setup.
     function setUp() public virtual override {
+        super.enableInterop();
         super.setUp();
+
         crosschainERC20Factory = ICrosschainERC20Factory(vm.deployCode("src/L2/CrosschainERC20/CrosschainERC20Factory.sol"));
     }
 
+    /// @notice Helper function to get the 7281 and 7802 bridges.
+    /// @return bridges_ The bridges.
     function _get7281And7802Bridges() internal view returns (address[] memory bridges_) {
         bridges_ = new address[](2);
         bridges_[0] = erc7281Bridge;
@@ -105,7 +111,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Mints using ERC7802 interface.
-    function testMintERC7802() public {
+    function testMintERC7802() public virtual {
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
@@ -121,7 +127,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Burns using ERC7802 interface.
-    function testBurnERC7802() public {
+    function testBurnERC7802() public virtual {
         // Approve the bridge to burn
         vm.prank(alice);
         crosschainERC20.approve(address(superchainTokenBridge), BURN_LIMIT);
@@ -180,5 +186,61 @@ contract CrosschainERC20_e2e_DeployedTokenPath_Test is CrosschainERC20_e2e_Base 
         erc20.approve(address(lockbox), BURN_LIMIT);
         lockbox.deposit(BURN_LIMIT);
         vm.stopPrank();
+    }
+}
+
+contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base {
+    /// @notice Test setup.
+    function setUp() public override {
+        super.setUp();
+
+        // Deploy the XERC20
+        XERC20 xerc20 = new XERC20("Token", "TKN", bob);
+
+        // Deploy adapter
+        ERC7802Adapter = IERC7802Adapter(crosschainERC20Factory.deployERC7802Adapter(address(xerc20), address(superchainTokenBridge)));
+
+        // Set limits for the bridges
+        vm.startPrank(bob);
+        xerc20.setLimits(erc7281Bridge, MINT_LIMIT, BURN_LIMIT);
+        xerc20.setLimits(address(ERC7802Adapter), MINT_LIMIT, BURN_LIMIT);
+        vm.stopPrank();
+
+        // Set the crosschainERC20
+        crosschainERC20 = ICrosschainERC20(address(xerc20));
+
+        // Deal tokens
+        deal(address(xerc20), alice, BURN_LIMIT);
+    }
+
+    /// @notice Mints using ERC7802 interface.
+    function testMintERC7802() public override {
+        // Get balance before mint
+        uint256 balanceBefore = crosschainERC20.balanceOf(alice);
+
+        // Mint tokens
+        vm.prank(address(superchainTokenBridge));
+        ERC7802Adapter.crosschainMint(alice, MINT_LIMIT);
+        
+        // Get balance after mint
+        uint256 balanceAfter = crosschainERC20.balanceOf(alice);
+
+        // Check the balance has increased by the minted amount
+        assertEq(balanceAfter - balanceBefore, MINT_LIMIT);
+    }
+
+    /// @notice Burns using ERC7802 interface.
+    function testBurnERC7802() public override {
+        // Approve the bridge to burn
+        vm.prank(alice);
+        crosschainERC20.approve(address(ERC7802Adapter), BURN_LIMIT);
+
+        // Burn tokens
+        vm.prank(address(superchainTokenBridge));
+        ERC7802Adapter.crosschainBurn(alice, BURN_LIMIT);
+
+        // Check the balance has decreased by the burned amount
+        uint256 balance = crosschainERC20.balanceOf(alice);
+        assertEq(balance, 0);
     }
 }
