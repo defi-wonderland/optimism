@@ -7,13 +7,14 @@ import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializa
 // Libraries
 import { Unauthorized, Paused } from "src/libraries/errors/CommonErrors.sol";
 import { Storage } from "src/libraries/Storage.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-import { Constants } from "src/libraries/Constants.sol";
+import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 
 /// @custom:proxied true
 /// @title ETHLockbox
@@ -25,6 +26,9 @@ contract ETHLockbox is Initializable, ISemver {
 
     /// @notice Thrown when an already authorized portal or lockbox attempts to be authorized again.
     error AlreadyAuthorized();
+
+    /// @notice Thrown when the admin owner of the lockbox is different from the admin owner of the proxy admin.
+    error ETHLockbox_DifferentAdminOwner();
 
     /// @notice Emitted when ETH is locked in the lockbox by an authorized portal.
     /// @param portal The address of the portal that locked the ETH.
@@ -130,6 +134,7 @@ contract ETHLockbox is Initializable, ISemver {
     /// @param _portal The address of the portal to authorize.
     function authorizePortal(address _portal) external {
         if (msg.sender != adminOwner()) revert Unauthorized();
+        if (!_sameAdminOwner(_portal)) revert ETHLockbox_DifferentAdminOwner();
         if (authorizedPortals[_portal]) revert AlreadyAuthorized();
 
         authorizedPortals[_portal] = true;
@@ -140,6 +145,7 @@ contract ETHLockbox is Initializable, ISemver {
     /// @param _lockbox The address of the ETH lockbox to authorize.
     function authorizeLockbox(address _lockbox) external {
         if (msg.sender != adminOwner()) revert Unauthorized();
+        if (!_sameAdminOwner(_lockbox)) revert ETHLockbox_DifferentAdminOwner();
         if (authorizedLockboxes[_lockbox]) revert AlreadyAuthorized();
 
         authorizedLockboxes[_lockbox] = true;
@@ -150,9 +156,16 @@ contract ETHLockbox is Initializable, ISemver {
     /// @param _lockbox The address of the ETH lockbox to migrate liquidity to.
     function migrateLiquidity(address _lockbox) external {
         if (msg.sender != adminOwner()) revert Unauthorized();
-        if (adminOwner() != ETHLockbox(_lockbox).adminOwner()) revert Unauthorized();
+        if (!_sameAdminOwner(_lockbox)) revert ETHLockbox_DifferentAdminOwner();
 
         ETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
         emit LiquidityMigrated(_lockbox);
+    }
+
+    /// @notice Checks if the ProxyAdmin owner of the current contract is the same as the ProxyAdmin owner of the given
+    ///         proxy.
+    /// @param _proxy The address of the proxy to check.
+    function _sameAdminOwner(address _proxy) internal view returns (bool) {
+        return adminOwner() == IProxyAdminOwnable(_proxy).adminOwner();
     }
 }
