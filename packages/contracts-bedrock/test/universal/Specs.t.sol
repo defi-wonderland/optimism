@@ -226,6 +226,7 @@ contract Specification_Test is CommonTest {
         });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("finalizedWithdrawals(bytes32)") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("guardian()") });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("adminOwner()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("initialize(address,address,address,address)") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("l2Sender()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("minimumGasLimit(uint64)") });
@@ -271,6 +272,7 @@ contract Specification_Test is CommonTest {
         });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("finalizedWithdrawals(bytes32)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("guardian()") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("adminOwner()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("initialize(address,address,address,address)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("l2Sender()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("minimumGasLimit(uint64)") });
