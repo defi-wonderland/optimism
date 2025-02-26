@@ -299,6 +299,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         expectEmitUpgraded(impls.l1ERC721BridgeImpl, address(l1ERC721Bridge));
         expectEmitUpgraded(impls.disputeGameFactoryImpl, address(disputeGameFactory));
         expectEmitUpgraded(impls.optimismPortalImpl, address(optimismPortal2));
+        expectEmitUpgraded(impls.ethLockboxImpl, address(ethLockbox));
         expectEmitUpgraded(impls.optimismMintableERC20FactoryImpl, address(l1OptimismMintableERC20Factory));
         vm.expectEmit(address(newAnchorStateRegistryProxy));
         emit AdminChanged(address(0), address(proxyAdmin));
