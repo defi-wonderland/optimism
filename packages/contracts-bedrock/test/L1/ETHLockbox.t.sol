@@ -19,6 +19,8 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 contract ETHLockboxTest is CommonTest {
+    error InvalidInitialization();
+
     event ETHLocked(address indexed portal, uint256 amount);
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
@@ -33,11 +35,20 @@ contract ETHLockboxTest is CommonTest {
         super.setUp();
         adminOwner = proxyAdmin.owner();
         // Authorize portal on the lockbox
-        // TODO: Check if it needs to go directly on the scripts
+        // TODO: Check if authorization needs to go directly on the scripts
         vm.prank(adminOwner);
         ethLockbox.authorizePortal(address(optimismPortal2));
+    }
 
-        // TODO: Create another ethlockbox to test migration integration?
+    /// @notice Tests the superchain config was correctly set during initialization.
+    function test_initialization_succeeds() public view {
+        assertEq(address(ethLockbox.superchainConfig()), address(superchainConfig));
+    }
+
+    /// @notice Tests it reverts when the contract is already initialized.
+    function test_initialize_alreadyInitialized_reverts() public {
+        vm.expectRevert(InvalidInitialization.selector);
+        ethLockbox.initialize(address(superchainConfig));
     }
 
     /// @notice Tests the proxy admin owner is correctly returned.
