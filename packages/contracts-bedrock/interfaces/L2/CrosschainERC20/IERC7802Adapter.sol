@@ -9,5 +9,13 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @title IERC7802Adapter
 /// @notice This interface is available on the ERC7802Adapter contract.
 interface IERC7802Adapter is IERC7802, ISemver {
+    error Unauthorized();
+
+    function XERC20() external view returns (IXERC20);
+
+    function BRIDGE() external view returns (address);
+
+    function supportsInterface(bytes4 _interfaceId) external view returns (bool);
+
     function __constructor__(IXERC20 _xerc20, address _bridge) external;
 }
