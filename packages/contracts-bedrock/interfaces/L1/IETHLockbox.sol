@@ -7,6 +7,7 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 interface IETHLockbox is ISemver {
     error Unauthorized();
     error Paused();
+    error NoWithdrawalTransactions();
     error AlreadyAuthorized();
 
     event ETHLocked(address indexed portal, uint256 amount);

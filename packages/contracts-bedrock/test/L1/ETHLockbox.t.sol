@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Testing utilities
 import { Unauthorized, Paused as PausedError } from "src/libraries/errors/CommonErrors.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
@@ -166,6 +167,22 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `unlockETH` function with an unauthorized caller
         vm.prank(_caller);
+        ethLockbox.unlockETH(_value);
+    }
+
+    /// @notice Tests `unlockETH` reverts when the portal is not the L2 sender to prevent unlocking ETH from the lockbox
+    ///         through a withdrawal transaction.
+    function testFuzz_unlockETH_withdrawalTransaction_reverts(uint256 _value, address _l2Sender) public {
+        vm.assume(_l2Sender != Constants.DEFAULT_L2_SENDER);
+
+        // Mock the L2 sender
+        vm.mockCall(address(optimismPortal2), abi.encodeCall(IOptimismPortal.l2Sender, ()), abi.encode(_l2Sender));
+
+        // Expect the revert with `NoWithdrawalTransactions` selector
+        vm.expectRevert(IETHLockbox.NoWithdrawalTransactions.selector);
+
+        // Call the `unlockETH` function with the portal
+        vm.prank(address(optimismPortal2));
         ethLockbox.unlockETH(_value);
     }
 

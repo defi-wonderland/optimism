@@ -21,6 +21,9 @@ import { Constants } from "src/libraries/Constants.sol";
 /// @notice Manages ETH liquidity locking and unlocking for authorized OptimismPortals, enabling unified ETH liquidity
 ///         management across chains in the superchain cluster.
 contract ETHLockbox is Initializable, ISemver {
+    /// @notice Thrown when attempting to unlock ETH from the lockbox through a withdrawal transaction.
+    error NoWithdrawalTransactions();
+
     /// @notice Thrown when an already authorized portal or lockbox attempts to be authorized again.
     error AlreadyAuthorized();
 
@@ -115,6 +118,9 @@ contract ETHLockbox is Initializable, ISemver {
     function unlockETH(uint256 _value) external {
         if (paused()) revert Paused();
         if (!authorizedPortals[msg.sender]) revert Unauthorized();
+        if (IOptimismPortal(payable(msg.sender)).l2Sender() != Constants.DEFAULT_L2_SENDER) {
+            revert NoWithdrawalTransactions();
+        }
 
         // Using `donateETH` to avoid triggering a deposit
         IOptimismPortal(payable(msg.sender)).donateETH{ value: _value }();
