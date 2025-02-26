@@ -19,19 +19,58 @@ import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 contract ETHLockboxTest is CommonTest {
     event ETHLocked(address indexed portal, uint256 amount);
-
     event ETHUnlocked(address indexed portal, uint256 amount);
-
     event PortalAuthorized(address indexed portal);
+    event LockboxAuthorized(address indexed lockbox);
+    event LiquidityMigrated(address indexed lockbox);
+    event LiquidityReceived(address indexed lockbox);
 
     ProxyAdmin public proxyAdmin = ProxyAdmin(Predeploys.PROXY_ADMIN);
 
     function setUp() public virtual override {
         super.setUp();
-        // TODO: Athorize portal on the lockbox -- check if it needs to go directly on the scripts
+        // TODO: Use optimismPortal2 as kind of integration in some fuzzed tests?
+        // TODO: Authorize portal on the lockbox -- check if it needs to go directly on the scripts
     }
 
-    // TODO: Proxy admin owner tests
+    /// @notice Tests the proxy admin owner is correctly returned.
+    function test_proxyAdminOwner_succeeds() public {
+        assertEq(ethLockbox.adminOwner(), proxyAdmin.owner());
+    }
+
+    /// @notice Tests the paused status is correctly returned.
+    function test_paused_succeeds() public {
+        // Assert the paused status is false
+        assertEq(ethLockbox.paused(), false);
+
+        // Mock the superchain config to return true for the paused status
+        vm.mockCall(address(superchainConfig), abi.encodeCall(ISuperchainConfig.paused, ()), abi.encode(true));
+
+        // Assert the paused status is true
+        assertEq(ethLockbox.paused(), true);
+    }
+
+    /// @notice Tests the liquidity is correctly received.
+    function testFuzz_receiveLiquidity_succeeds(address _lockbox, uint256 _value) public {
+        vm.assume(!ethLockbox.authorizedLockboxes(_lockbox));
+
+        // Authorize the lockbox
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.authorizeLockbox(_lockbox);
+
+        // Get the balance of the lockbox before the receive
+        uint256 _lockboxBalanceBefore = address(_lockbox).balance;
+
+        // Expect the `LiquidityReceived` event to be emitted
+        vm.expectEmit(address(ethLockbox));
+        emit LiquidityReceived(_lockbox);
+
+        // Call the `receiveLiquidity` function
+        ethLockbox.receiveLiquidity{ value: _value }();
+
+        // Assert the lockbox's balance increased by the amount received
+        assertEq(address(_lockbox).balance, _lockboxBalanceBefore + _value);
+    }
 
     /// @notice Tests it reverts when the caller is not an authorized portal.
     function testFuzz_lockETH_unauthorizedPortal_reverts(address _caller) public {
@@ -176,15 +215,143 @@ contract ETHLockboxTest is CommonTest {
         assertEq(address(ethLockbox).balance, lockboxBalanceBefore - _value);
     }
 
-    /// @notice Tests the paused status is correctly returned.
-    function test_paused_succeeds() public {
-        // Assert the paused status is false
-        assertEq(ethLockbox.paused(), false);
+    /// @notice Tests the `authorizePortal` function reverts when the caller is not the proxy admin.
+    function testFuzz_authorizePortal_unauthorized_reverts(address _caller) public {
+        vm.assume(_caller != proxyAdmin.owner());
 
-        // Mock the superchain config to return true for the paused status
-        vm.mockCall(address(superchainConfig), abi.encodeCall(ISuperchainConfig.paused, ()), abi.encode(true));
+        // Expect the revert with `Unauthorized` selector
+        vm.expectRevert(Unauthorized.selector);
 
-        // Assert the paused status is true
-        assertEq(ethLockbox.paused(), true);
+        // Call the `authorizePortal` function with an unauthorized caller
+        vm.prank(_caller);
+        ethLockbox.authorizePortal(address(optimismPortal2));
+    }
+
+    /// @notice Tests the `authorizePortal` function reverts when the portal is already authorized.
+    function testFuzz_authorizePortal_alreadyAuthorized_reverts(address _portal) public {
+        // Authorize the portal
+        if (!ethLockbox.authorizedPortals(_portal)) {
+            vm.prank(proxyAdmin.owner());
+            ethLockbox.authorizePortal(_portal);
+        }
+
+        // Expect the revert with `AlreadyAuthorized` selector
+        vm.expectRevert(IETHLockbox.AlreadyAuthorized.selector);
+
+        // Call the `authorizePortal` function with the portal
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.authorizePortal(_portal);
+    }
+
+    /// @notice Tests the `authorizeLockbox` function succeeds
+    function testFuzz_authorizePortal_succeeds(address _portal) public {
+        vm.assume(!ethLockbox.authorizedPortals(_portal));
+
+        // Expect the `PortalAuthorized` event to be emitted
+        vm.expectEmit(address(ethLockbox));
+        emit PortalAuthorized(_portal);
+
+        // Call the `authorizePortal` function with the portal
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.authorizePortal(_portal);
+
+        // Assert the portal is authorized
+        assertTrue(ethLockbox.authorizedPortals(_portal));
+    }
+
+    /// @notice Tests the `authorizeLockbox` function reverts when the caller is not the proxy admin.
+    function testFuzz_authorizeLockbox_unauthorized_reverts(address _caller) public {
+        vm.assume(_caller != proxyAdmin.owner());
+
+        // Expect the revert with `Unauthorized` selector
+        vm.expectRevert(Unauthorized.selector);
+
+        // Call the `authorizeLockbox` function with an unauthorized caller
+        vm.prank(_caller);
+        ethLockbox.authorizeLockbox(address(optimismPortal2));
+    }
+
+    /// @notice Tests the `authorizeLockbox` function reverts when the lockbox is already authorized.
+    function testFuzz_authorizeLockbox_alreadyAuthorized_reverts(address _lockbox) public {
+        // Authorize the lockbox
+        if (!ethLockbox.authorizedLockboxes(_lockbox)) {
+            vm.prank(proxyAdmin.owner());
+            ethLockbox.authorizeLockbox(_lockbox);
+        }
+
+        // Expect the revert with `AlreadyAuthorized` selector
+        vm.expectRevert(IETHLockbox.AlreadyAuthorized.selector);
+
+        // Call the `authorizeLockbox` function with the lockbox
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.authorizeLockbox(_lockbox);
+    }
+
+    /// @notice Tests the `authorizeLockbox` function succeeds
+    function testFuzz_authorizeLockbox_succeeds(address _lockbox) public {
+        vm.assume(!ethLockbox.authorizedLockboxes(_lockbox));
+
+        // Expect the `LockboxAuthorized` event to be emitted
+        vm.expectEmit(address(ethLockbox));
+        emit LockboxAuthorized(_lockbox);
+
+        // Authorize the lockbox
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.authorizeLockbox(_lockbox);
+
+        // Assert the lockbox is authorized
+        assertTrue(ethLockbox.authorizedLockboxes(_lockbox));
+    }
+
+    /// @notice Tests the `migrateLiquidity` function reverts when the caller is not the proxy admin.
+    function testFuzz_migrateLiquidity_unauthorized_reverts(address _caller) public {
+        vm.assume(_caller != proxyAdmin.owner());
+
+        // Expect the revert with `Unauthorized` selector
+        vm.expectRevert(Unauthorized.selector);
+
+        // Call the `migrateLiquidity` function with an unauthorized caller
+        vm.prank(_caller);
+        ethLockbox.migrateLiquidity(address(optimismPortal2));
+    }
+
+    /// @notice Tests the `migrateLiquidity` function reverts if the admin owners of the lockbox are not the same.
+    function testFuzz_migrateLiquidity_adminOwnerNotSame_reverts(address _lockbox) public {
+        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(address(0)));
+
+        // Expect the revert with `Unauthorized` selector
+        vm.expectRevert(Unauthorized.selector);
+
+        // Call the `migrateLiquidity` function with the lockbox
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.migrateLiquidity(_lockbox);
+    }
+
+    /// @notice Tests the `migrateLiquidity` function succeeds
+    function testFuzz_migrateLiquidity_succeeds(uint256 _balance, address _lockbox) public {
+        // Mock on the lockbox that will receive the migration for it to succeed
+        vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.adminOwner, ()), abi.encode(proxyAdmin.owner()));
+        vm.mockCall(
+            address(_lockbox), abi.encodeCall(IETHLockbox.authorizedLockboxes, (address(ethLockbox))), abi.encode(true)
+        );
+
+        // Deal the balance to the lockbox
+        deal(address(_lockbox), _balance);
+
+        // Expect the `LiquidityMigrated` event to be emitted
+        vm.expectEmit(address(ethLockbox));
+        emit LiquidityMigrated(_lockbox);
+
+        // Get balances before the migration
+        uint256 ethLockboxBalanceBefore = address(ethLockbox).balance;
+        uint256 newLockboxBalanceBefore = address(_lockbox).balance;
+
+        // Call the `migrateLiquidity` function with the lockbox
+        vm.prank(proxyAdmin.owner());
+        ethLockbox.migrateLiquidity(_lockbox);
+
+        // Assert the liquidity was migrated
+        assertEq(address(_lockbox).balance, newLockboxBalanceBefore + ethLockboxBalanceBefore);
+        assertEq(address(ethLockbox).balance, 0);
     }
 }
