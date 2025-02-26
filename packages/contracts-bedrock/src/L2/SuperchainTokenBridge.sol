@@ -6,7 +6,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ZeroAddress, Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
 // Interfaces
-import { ISuperchainERC20 } from "interfaces/L2/ISuperchainERC20.sol";
 import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
@@ -46,8 +45,8 @@ contract SuperchainTokenBridge {
     address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.4
-    string public constant version = "1.0.0-beta.4";
+    /// @custom:semver 1.0.0-beta.5
+    string public constant version = "1.0.0-beta.5";
 
     /// @notice Sends tokens to a target address on another chain.
     /// @dev Tokens are burned on the source chain.
@@ -69,7 +68,7 @@ contract SuperchainTokenBridge {
 
         if (!IERC165(_token).supportsInterface(type(IERC7802).interfaceId)) revert InvalidERC7802();
 
-        ISuperchainERC20(_token).crosschainBurn(msg.sender, _amount);
+        IERC7802(_token).crosschainBurn(msg.sender, _amount);
 
         bytes memory message = abi.encodeCall(this.relayERC20, (_token, msg.sender, _to, _amount));
         msgHash_ = IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_chainId, address(this), message);
@@ -91,7 +90,7 @@ contract SuperchainTokenBridge {
 
         if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
 
-        ISuperchainERC20(_token).crosschainMint(_to, _amount);
+        IERC7802(_token).crosschainMint(_to, _amount);
 
         emit RelayERC20(_token, _from, _to, _amount, source);
     }
