@@ -155,6 +155,7 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
         if (!_samePAO(_lockbox)) revert ETHLockbox_DifferentPAO();
 
         ETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
+
         emit LiquidityMigrated(_lockbox);
     }
 

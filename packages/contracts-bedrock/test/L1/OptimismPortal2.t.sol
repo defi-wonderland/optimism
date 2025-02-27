@@ -389,6 +389,29 @@ contract OptimismPortal2_Test is CommonTest {
         // storage accesses of delegate call of proxy to impl is empty (No storage read or write!)
         assertEq(accountAccesses[2].storageAccesses.length, 0);
     }
+
+    /// @dev Tests that `updateLockbox` reverts if the caller is not the PAO.
+    function testFuzz_updateLockbox_notPAO_reverts(address _caller) external {
+        vm.assume(_caller != optimismPortal2.PAO());
+        vm.expectRevert(IOptimismPortal2.OptimismPortal_Unauthorized.selector);
+
+        vm.prank(_caller);
+        optimismPortal2.updateLockbox(address(1));
+    }
+
+    /// @dev Tests that `updateLockbox` updates the ETHLockbox contract.
+    function testFuzz_updateLockbox_succeeds(address _newLockbox) external {
+        address oldLockbox = address(optimismPortal2.ethLockbox());
+        vm.assume(_newLockbox != oldLockbox);
+
+        vm.expectEmit(address(optimismPortal2));
+        emit LockboxUpdated(oldLockbox, _newLockbox);
+
+        vm.prank(optimismPortal2.PAO());
+        optimismPortal2.updateLockbox(_newLockbox);
+
+        assertEq(address(optimismPortal2.ethLockbox()), _newLockbox);
+    }
 }
 
 contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {

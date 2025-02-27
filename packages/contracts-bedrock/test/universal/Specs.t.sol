@@ -214,6 +214,7 @@ contract Specification_Test is CommonTest {
             _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)")
         });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("donateETH()") });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("updateLockbox(address)") });
         _addSpec({
             _name: "OptimismPortalInterop",
             _sel: IOptimismPortalInterop.finalizeWithdrawalTransaction.selector,
@@ -258,6 +259,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("checkWithdrawal(bytes32,address)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("donateETH()") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("updateLockbox(address)") });
         _addSpec({
             _name: "OptimismPortal2",
             _sel: IOptimismPortal2.finalizeWithdrawalTransaction.selector,
@@ -295,6 +297,9 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("upgrade(address,address)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("ethLockbox()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("migrateLiquidity()") });
+
+        // PAOBase
+        _addSpec({ _name: "PAOBase", _sel: _getSel("PAO()") });
 
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });

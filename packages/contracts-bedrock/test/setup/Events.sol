@@ -108,4 +108,6 @@ contract Events {
     event BalanceChanged(address account, uint256 balance);
 
     event ETHMigrated(uint256 ethBalance);
+
+    event LockboxUpdated(address oldLockbox, address newLockbox);
 }

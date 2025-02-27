@@ -149,6 +149,11 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     /// @param ethBalance Amount of ETH migrated.
     event ETHMigrated(uint256 ethBalance);
 
+    /// @notice Emitted when the ETHLockbox contract is updated.
+    /// @param oldLockbox The address of the old ETHLockbox contract.
+    /// @param newLockbox The address of the new ETHLockbox contract.
+    event LockboxUpdated(address oldLockbox, address newLockbox);
+
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();
 
@@ -314,6 +319,17 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     /// @notice Accepts ETH value without triggering a deposit to L2.
     function donateETH() external payable {
         // Intentionally empty.
+    }
+
+    /// @notice Updates the ETHLockbox contract.
+    /// @param _lockbox The address of the new ETHLockbox contract.
+    function updateLockbox(address _lockbox) external {
+        if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
+
+        address oldLockbox = address(ethLockbox);
+        ethLockbox = IETHLockbox(_lockbox);
+
+        emit LockboxUpdated(oldLockbox, _lockbox);
     }
 
     /// @notice Proves a withdrawal transaction.
