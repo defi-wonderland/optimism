@@ -604,7 +604,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         ethLockbox.unlockETH(_amount);
     }
 
-    /// @notice Migrates the ETH liquidity to the ETHLockbox.
+    /// @notice Migrates the total ETH balance to the ETHLockbox.
     /// @dev Only the admin owner can call this function.
     function migrateLiquidity() external {
         if (msg.sender != adminOwner()) revert OptimismPortal_Unauthorized();
