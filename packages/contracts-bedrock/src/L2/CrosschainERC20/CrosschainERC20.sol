@@ -27,9 +27,9 @@ contract CrosschainERC20 is XERC20, IERC7802, ISemver {
     constructor(string memory _name, string memory _symbol, address _factory) XERC20(_name, _symbol, _factory) { }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 1.0.0-beta.2
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "1.0.0-beta.2";
     }
 
     /// @notice Returns the remaining number of tokens that `spender` will be
@@ -37,6 +37,8 @@ contract CrosschainERC20 is XERC20, IERC7802, ISemver {
     ///         zero by default.
     /// @dev This value changes when {approve} or {transferFrom} are called.
     /// @dev Allowance is overriden to allow Permit2 to spend unlimited tokens.
+    /// @dev nosemgrep added because function overrides a function from the ERC20 contract.
+    // nosemgrep
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return spender == _PERMIT2 ? type(uint256).max : super.allowance(owner, spender);
     }
