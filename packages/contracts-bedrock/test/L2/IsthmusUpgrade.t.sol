@@ -151,6 +151,24 @@ contract IsthmusUpgradeTest is Test {
         );
     }
 
+    /// @dev This test is used to test a deposit transaction upgrade
+    ///      This test assumes that a proper deposit transaction has already been sent, emitting the appropriate
+    ///      TransactionDeposited event.
+    function test_depositTransaction_upgrade() external {
+        vm.skip(!isForkTest());
+
+        // 1. Deploy the new implementation contract in L2
+        IL2CrossDomainMessenger newCrossDomainMessenger = IL2CrossDomainMessenger(
+            DeployUtils.createDeterministic({ _name: "L2CrossDomainMessenger", _args: bytes(""), _salt: _salt })
+        );
+
+        // 2. Upgrade the L2CrossDomainMessenger contract
+        vm.prank(IL2ProxyAdmin(Predeploys.L2_PROXY_ADMIN).owner());
+        IL2ProxyAdmin(Predeploys.L2_PROXY_ADMIN).upgrade(
+            payable(Predeploys.L2_CROSS_DOMAIN_MESSENGER), payable(address(newCrossDomainMessenger))
+        );
+    }
+
     /// @dev This function is used to upgrade the L1Block contract.
     function _upgradeL1Block() internal {
         IL1Block l1Block =
