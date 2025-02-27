@@ -108,15 +108,10 @@ contract CrosschainERC20Factory is ISemver {
         CrosschainERC20(crosschainERC20_).transferOwnership(msg.sender);
     }
 
-    /// @notice Deploys a new CrosschainERC20Lockbox and CrosschainERC20
-    /// @param _name The name of the token
-    /// @param _symbol The symbol of the token
-    /// @param _minterLimits The minter limits for the token
-    /// @param _burnerLimits The burner limits for the token
-    /// @param _bridges The bridges for the token
+    /// @notice Deploys a new CrosschainERC20Lockbox contract
+    /// @param _crosschainERC20 The address of the CrosschainERC20 contract
     /// @param _baseToken The address of the base token
-    /// @return crosschainERC20_ The address of the new CrosschainERC20 contract
-    /// @return crosschainERC20Lockbox_ The address of the new crosschainERC20Lockbox contract
+    /// @return lockbox_ The address of the new CrosschainERC20Lockbox contract
     function _deployLockbox(address _crosschainERC20, address _baseToken) internal returns (address payable lockbox_) {
         bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _baseToken, msg.sender));
         bytes memory _creation = type(XERC20Lockbox).creationCode;
