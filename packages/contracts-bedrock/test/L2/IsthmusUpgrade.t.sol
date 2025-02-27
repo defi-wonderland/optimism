@@ -17,21 +17,19 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
+import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 
 contract IsthmusUpgradeTest is Test {
     bytes32 internal _salt = DeployUtils.DEFAULT_SALT;
-
-    uint256 internal _l1Fork;
-    uint256 internal _l2Fork;
 
     function setUp() public {
         if (!isForkTest()) {
             return;
         }
 
-        _l2Fork = vm.createFork(vm.envString("FORK_L2_RPC_URL"), vm.envUint("FORK_L2_BLOCK_NUMBER"));
-
-        _l1Fork = vm.createFork(vm.envString("FORK_L1_RPC_URL"), vm.envUint("FORK_L1_BLOCK_NUMBER"));
+        vm.createSelectFork(vm.envString("FORK_RPC_URL"), vm.envUint("FORK_BLOCK_NUMBER"));
     }
 
     /// @notice Indicates whether a test is running against a forked production network.
@@ -44,8 +42,6 @@ contract IsthmusUpgradeTest is Test {
     ///      complete.
     function test_setIsthmusUpgrade_feeVaults() external {
         vm.skip(!isForkTest());
-
-        vm.selectFork(_l2Fork);
 
         /// 1. Deploy the new L1Block implementation contract
         /// 2. Upgrade the L1Block contract
@@ -99,8 +95,6 @@ contract IsthmusUpgradeTest is Test {
     ///      is complete.
     function test_setIsthmusUpgrade_otherContracts() external {
         vm.skip(!isForkTest());
-
-        vm.selectFork(_l2Fork);
 
         /// 1. Deploy the new L1Block implementation contract
         /// 2. Upgrade the L1Block contract
