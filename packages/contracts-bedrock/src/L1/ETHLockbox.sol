@@ -70,9 +70,9 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     mapping(address => bool) public authorizedLockboxes;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 0.0.1
     function version() public view virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "0.0.1";
     }
 
     /// @notice Constructs the ETHLockbox contract.

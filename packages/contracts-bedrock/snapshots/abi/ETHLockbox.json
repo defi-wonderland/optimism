@@ -6,7 +6,7 @@
   },
   {
     "inputs": [],
-    "name": "adminOwner",
+    "name": "PAO",
     "outputs": [
       {
         "internalType": "address",
@@ -87,6 +87,11 @@
         "internalType": "address",
         "name": "_superchainConfig",
         "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "_portals",
+        "type": "address[]"
       }
     ],
     "name": "initialize",
@@ -283,7 +288,7 @@
   },
   {
     "inputs": [],
-    "name": "ETHLockbox_DifferentAdminOwner",
+    "name": "ETHLockbox_DifferentPAO",
     "type": "error"
   },
   {

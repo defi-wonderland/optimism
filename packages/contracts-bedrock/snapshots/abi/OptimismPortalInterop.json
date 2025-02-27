@@ -16,7 +16,7 @@
   },
   {
     "inputs": [],
-    "name": "adminOwner",
+    "name": "PAO",
     "outputs": [
       {
         "internalType": "address",
@@ -612,6 +612,19 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_lockbox",
+        "type": "address"
+      }
+    ],
+    "name": "updateLockbox",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "contract IAnchorStateRegistry",
         "name": "_anchorStateRegistry",
         "type": "address"
@@ -664,6 +677,25 @@
       }
     ],
     "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "oldLockbox",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newLockbox",
+        "type": "address"
+      }
+    ],
+    "name": "LockboxUpdated",
     "type": "event"
   },
   {

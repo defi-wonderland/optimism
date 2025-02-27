@@ -9,7 +9,6 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Contracts
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
-import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
@@ -18,7 +17,6 @@ import { Constants } from "src/libraries/Constants.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import "src/dispute/lib/Types.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";

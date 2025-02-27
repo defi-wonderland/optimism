@@ -10,8 +10,9 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IPAOBase } from "interfaces/l1/IPAOBase.sol";
 
-interface IOptimismPortalInterop {
+interface IOptimismPortalInterop is IPAOBase {
     error ContentLengthMismatch();
     error EmptyItem();
     error InvalidDataRemainder();
@@ -42,6 +43,7 @@ interface IOptimismPortalInterop {
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
     event ETHMigrated(uint256 ethBalance);
+    event LockboxUpdated(address oldLockbox, address newLockbox);
 
     receive() external payable;
 
@@ -70,7 +72,6 @@ interface IOptimismPortalInterop {
     function migrateLiquidity() external;
     function finalizedWithdrawals(bytes32) external view returns (bool);
     function guardian() external view returns (address);
-    function adminOwner() external view returns (address);
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,

@@ -42,6 +42,7 @@ interface IOptimismPortal2 is IPAOBase {
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
     event ETHMigrated(uint256 ethBalance);
+    event LockboxUpdated(address oldLockbox, address newLockbox);
 
     receive() external payable;
 
