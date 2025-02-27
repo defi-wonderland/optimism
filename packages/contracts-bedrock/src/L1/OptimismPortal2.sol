@@ -594,6 +594,16 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         }
     }
 
+    /// @notice Migrates the total ETH balance to the ETHLockbox.
+    function migrateLiquidity() external {
+        if (msg.sender != adminOwner()) revert OptimismPortal_Unauthorized();
+
+        uint256 ethBalance = address(this).balance;
+        ethLockbox.lockETH{ value: ethBalance }();
+
+        emit ETHMigrated(ethBalance);
+    }
+
     /// @notice Locks the ETH in the ETHLockbox.
     function _lockETH() internal {
         ethLockbox.lockETH{ value: msg.value }();
@@ -603,15 +613,5 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _amount Amount of ETH to unlock.
     function _unlockETH(uint256 _amount) internal {
         ethLockbox.unlockETH(_amount);
-    }
-
-    /// @notice Migrates the total ETH balance to the ETHLockbox.
-    function migrateLiquidity() external {
-        if (msg.sender != adminOwner()) revert OptimismPortal_Unauthorized();
-
-        uint256 ethBalance = address(this).balance;
-        ethLockbox.lockETH{ value: ethBalance }();
-
-        emit ETHMigrated(ethBalance);
     }
 }
