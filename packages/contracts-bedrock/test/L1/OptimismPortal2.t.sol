@@ -167,8 +167,9 @@ contract OptimismPortal2_Test is CommonTest {
             _data: hex""
         });
 
-        // Expect call to the ETHLockbox to lock the funds
-        if (_value > 0) vm.expectCall(address(ethLockbox), _value, abi.encodeCall(ethLockbox.lockETH, ()));
+        // Expect call to the ETHLockbox to lock the funds only if the value is greater than 0.
+        if (_value == 0) vm.expectCall(address(ethLockbox), abi.encodeCall(ethLockbox.lockETH, ()), 0);
+        else vm.expectCall(address(ethLockbox), _value, abi.encodeCall(ethLockbox.lockETH, ()));
 
         // give alice money and send as an eoa
         vm.deal(alice, _value);
@@ -280,8 +281,9 @@ contract OptimismPortal2_Test is CommonTest {
             _data: _data
         });
 
-        // Expect call to the ETHLockbox to lock the funds
-        if (_mint > 0) vm.expectCall(address(ethLockbox), _mint, abi.encodeCall(ethLockbox.lockETH, ()));
+        // Expect call to the ETHLockbox to lock the funds only if the value is greater than 0.
+        if (_mint == 0) vm.expectCall(address(ethLockbox), abi.encodeCall(ethLockbox.lockETH, ()), 0);
+        else vm.expectCall(address(ethLockbox), _mint, abi.encodeCall(ethLockbox.lockETH, ()));
 
         vm.deal(depositor, _mint);
         vm.prank(depositor, depositor);
@@ -332,8 +334,9 @@ contract OptimismPortal2_Test is CommonTest {
             _data: _data
         });
 
-        // Expect call to the ETHLockbox to lock the funds
-        if (_mint > 0) vm.expectCall(address(ethLockbox), _mint, abi.encodeCall(ethLockbox.lockETH, ()));
+        // Expect call to the ETHLockbox to lock the funds only if the value is greater than 0.
+        if (_mint == 0) vm.expectCall(address(ethLockbox), abi.encodeCall(ethLockbox.lockETH, ()), 0);
+        else vm.expectCall(address(ethLockbox), _mint, abi.encodeCall(ethLockbox.lockETH, ()));
 
         vm.deal(address(this), _mint);
         vm.prank(address(this));
