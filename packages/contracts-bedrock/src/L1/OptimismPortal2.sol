@@ -535,6 +535,8 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
     ///         using the CrossDomainMessenger contracts for a simpler developer experience.
+    /// @dev    The `msg.value` is locked on the ETHLockbox and minted as ETH when the deposit arrives on L2,
+    ///         while `_value` specifies how much ETH to send to the target.
     /// @param _to         Target address on L2.
     /// @param _value      ETH value to send to the recipient.
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
