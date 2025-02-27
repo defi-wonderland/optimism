@@ -12,6 +12,7 @@ import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 interface IOptimismPortal2 is IProxyAdminOwnable {
+    error OptimismPortal_Unauthorized();
     error ContentLengthMismatch();
     error EmptyItem();
     error InvalidDataRemainder();
@@ -40,6 +41,7 @@ interface IOptimismPortal2 is IProxyAdminOwnable {
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
+    event ETHMigrated(uint256 ethBalance);
 
     receive() external payable;
 
@@ -101,6 +103,7 @@ interface IOptimismPortal2 is IProxyAdminOwnable {
     function systemConfig() external view returns (ISystemConfig);
     function upgrade(IAnchorStateRegistry _anchorStateRegistry, IETHLockbox _ethLockbox) external;
     function version() external pure returns (string memory);
+    function migrateLiquidity() external;
 
     function __constructor__(uint256 _proofMaturityDelaySeconds) external;
 }

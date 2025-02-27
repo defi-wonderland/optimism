@@ -472,7 +472,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         vm.warp(block.timestamp + game.maxClockDuration().raw() + 1 seconds);
 
         // Fund the portal so that we can withdraw ETH.
-        vm.deal(address(optimismPortal2), 0xFFFFFFFF);
+        vm.deal(address(ethLockbox), 0xFFFFFFFF);
     }
 
     /// @dev Asserts that the reentrant call will revert.
@@ -819,7 +819,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         vm.warp(block.timestamp + game_noData.maxClockDuration().raw() + 1 seconds);
         // Fund the portal so that we can withdraw ETH.
         vm.store(address(optimismPortal2), bytes32(uint256(61)), bytes32(uint256(0xFFFFFFFF)));
-        vm.deal(address(optimismPortal2), 0xFFFFFFFF);
+        vm.deal(address(ethLockbox), 0xFFFFFFFF);
 
         uint256 bobBalanceBefore = bob.balance;
 
@@ -1203,7 +1203,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Total ETH supply is currently about 120M ETH.
         uint256 value = bound(_value, 0, 200_000_000 ether);
-        vm.deal(address(optimismPortal2), value);
+        vm.deal(address(ethLockbox), value);
 
         uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
         uint256 nonce = l2ToL1MessagePasser.messageNonce();
@@ -1283,7 +1283,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
         // Total ETH supply is currently about 120M ETH.
         uint256 value = bound(_value, 0, 200_000_000 ether);
-        vm.deal(address(optimismPortal2), value);
+        vm.deal(address(ethLockbox), value);
 
         uint256 gasLimit = bound(_gasLimit, 0, 50_000_000);
         uint256 nonce = l2ToL1MessagePasser.messageNonce();
@@ -1808,5 +1808,37 @@ contract OptimismPortal2_ResourceFuzz_Test is CommonTest {
             _isCreation: false,
             _data: hex""
         });
+    }
+}
+
+contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
+    function setUp() public override {
+        super.setUp();
+    }
+
+    /// @notice Tests the liquidity migration from the portal to the lockbox reverts if not called by the admin owner.
+    function testFuzz_migrateLiquidity_notAdminOwner_reverts(address _caller) external {
+        vm.assume(_caller != optimismPortal2.adminOwner());
+        vm.expectRevert(IOptimismPortal2.OptimismPortal_Unauthorized.selector);
+        vm.prank(_caller);
+        optimismPortal2.migrateLiquidity();
+    }
+
+    /// @notice Tests that the liquidity migration from the portal to the lockbox succeeds.
+    function test_migrateLiquidity_succeeds() external {
+        uint256 portalBalanceBefore = address(optimismPortal2).balance;
+        uint256 lockboxBalanceBefore = address(ethLockbox).balance;
+        address adminOwner = optimismPortal2.adminOwner();
+
+        vm.expectCall(address(ethLockbox), portalBalanceBefore, abi.encodeCall(ethLockbox.lockETH, ()));
+
+        vm.expectEmit(address(optimismPortal2));
+        emit ETHMigrated(portalBalanceBefore);
+
+        vm.prank(adminOwner);
+        optimismPortal2.migrateLiquidity();
+
+        assertEq(address(optimismPortal2).balance, 0);
+        assertEq(address(ethLockbox).balance, lockboxBalanceBefore + portalBalanceBefore);
     }
 }
