@@ -3,16 +3,16 @@ pragma solidity ^0.8.0;
 
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IProxyAdminOwnable } from "interfaces/L1/IProxyAdminOwnable.sol";
+import { IPAOBase } from "interfaces/L1/IPAOBase.sol";
 
-interface IETHLockbox is IProxyAdminOwnable, ISemver {
+interface IETHLockbox is IPAOBase, ISemver {
     error InvalidInitialization();
     error NotInitializing();
     error ETHLockbox_Unauthorized();
     error ETHLockbox_Paused();
     error ETHLockbox_NoWithdrawalTransactions();
     error ETHLockbox_AlreadyAuthorized();
-    error ETHLockbox_DifferentAdminOwner();
+    error ETHLockbox_DifferentPAO();
 
     event Initialized(uint64 version);
     event ETHLocked(address indexed portal, uint256 amount);

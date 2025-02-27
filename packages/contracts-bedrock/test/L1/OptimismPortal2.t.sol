@@ -145,10 +145,7 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(optimismPortal2.paused(), true);
     }
 
-    /// @notice Tests the proxy admin owner is correctly returned.
-    function test_proxyAdminOwner_succeeds() public view {
-        assertEq(optimismPortal2.adminOwner(), ProxyAdmin(Predeploys.PROXY_ADMIN).owner());
-    }
+    /// @dev Tests that `receive` successdully deposits ETH.
 
     /// @dev Tests that `receive` successdully deposits ETH.
     function testFuzz_receive_succeeds(uint256 _value) external {
@@ -1817,8 +1814,8 @@ contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
     }
 
     /// @notice Tests the liquidity migration from the portal to the lockbox reverts if not called by the admin owner.
-    function testFuzz_migrateLiquidity_notAdminOwner_reverts(address _caller) external {
-        vm.assume(_caller != optimismPortal2.adminOwner());
+    function testFuzz_migrateLiquidity_notPAO_reverts(address _caller) external {
+        vm.assume(_caller != optimismPortal2.PAO());
         vm.expectRevert(IOptimismPortal2.OptimismPortal_Unauthorized.selector);
         vm.prank(_caller);
         optimismPortal2.migrateLiquidity();
@@ -1828,14 +1825,14 @@ contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
     function test_migrateLiquidity_succeeds() external {
         uint256 portalBalanceBefore = address(optimismPortal2).balance;
         uint256 lockboxBalanceBefore = address(ethLockbox).balance;
-        address adminOwner = optimismPortal2.adminOwner();
+        address PAO = optimismPortal2.PAO();
 
         vm.expectCall(address(ethLockbox), portalBalanceBefore, abi.encodeCall(ethLockbox.lockETH, ()));
 
         vm.expectEmit(address(optimismPortal2));
         emit ETHMigrated(portalBalanceBefore);
 
-        vm.prank(adminOwner);
+        vm.prank(PAO);
         optimismPortal2.migrateLiquidity();
 
         assertEq(address(optimismPortal2).balance, 0);

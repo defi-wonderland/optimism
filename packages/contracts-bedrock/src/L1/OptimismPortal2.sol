@@ -2,6 +2,7 @@
 pragma solidity 0.8.15;
 
 // Contracts
+import { PAOBase } from "src/L1/PAOBase.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 
@@ -13,7 +14,6 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
-import { Storage } from "src/libraries/Storage.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -23,7 +23,6 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 /// @custom:proxied true
@@ -31,7 +30,7 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
+contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     /// @notice Represents a proven withdrawal.
     /// @custom:field disputeGameProxy Game that the withdrawal was proven against.
     /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
@@ -270,15 +269,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @return Address of the guardian.
     function guardian() public view returns (address) {
         return superchainConfig.guardian();
-    }
-
-    /// @notice Getter for the owner of the proxy admin.
-    ///         The ProxyAdmin is the owner of the Proxy contract, which is the proxy used for the ETHLockbox.
-    function adminOwner() public view returns (address) {
-        // Get the proxy admin address reading for the reserved slot it has on the Proxy contract.
-        IProxyAdmin proxyAdmin = IProxyAdmin(Storage.getAddress(Constants.PROXY_OWNER_ADDRESS));
-        // Return the owner of the proxy admin.
-        return proxyAdmin.owner();
     }
 
     /// @custom:legacy
@@ -596,7 +586,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Migrates the total ETH balance to the ETHLockbox.
     function migrateLiquidity() external {
-        if (msg.sender != adminOwner()) revert OptimismPortal_Unauthorized();
+        if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
 
         uint256 ethBalance = address(this).balance;
         ethLockbox.lockETH{ value: ethBalance }();
