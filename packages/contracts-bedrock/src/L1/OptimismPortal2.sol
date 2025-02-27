@@ -252,6 +252,9 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     function upgrade(IAnchorStateRegistry _anchorStateRegistry, IETHLockbox _ethLockbox) external reinitializer(2) {
         anchorStateRegistry = _anchorStateRegistry;
         ethLockbox = _ethLockbox;
+
+        // Migrate the whole ETH balance to the ETHLockbox.
+        migrateLiquidity();
     }
 
     /// @notice Getter for the current paused status.
@@ -502,6 +505,16 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
         }
     }
 
+    /// @notice Migrates the total ETH balance to the ETHLockbox.
+    function migrateLiquidity() public {
+        if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
+
+        uint256 ethBalance = address(this).balance;
+        ethLockbox.lockETH{ value: ethBalance }();
+
+        emit ETHMigrated(ethBalance);
+    }
+
     /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider
@@ -582,15 +595,5 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
         assembly ("memory-safe") {
             config_ := config
         }
-    }
-
-    /// @notice Migrates the total ETH balance to the ETHLockbox.
-    function migrateLiquidity() external {
-        if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
-
-        uint256 ethBalance = address(this).balance;
-        ethLockbox.lockETH{ value: ethBalance }();
-
-        emit ETHMigrated(ethBalance);
     }
 }

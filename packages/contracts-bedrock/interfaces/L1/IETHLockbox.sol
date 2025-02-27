@@ -22,7 +22,7 @@ interface IETHLockbox is IPAOBase, ISemver {
     event LiquidityMigrated(address indexed lockbox);
     event LiquidityReceived(address indexed lockbox);
 
-    function initialize(address _superchainConfig) external;
+    function initialize(address _superchainConfig, address[] calldata _portals) external;
     function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
     function paused() external view returns (bool);
     function authorizedPortals(address) external view returns (bool);

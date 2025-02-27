@@ -1706,6 +1706,39 @@ contract OptimismPortal2_Upgradeable_Test is CommonTest {
     }
 }
 
+contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
+    function setUp() public override {
+        super.setUp();
+    }
+
+    /// @notice Tests the liquidity migration from the portal to the lockbox reverts if not called by the admin owner.
+    function testFuzz_migrateLiquidity_notPAO_reverts(address _caller) external {
+        vm.assume(_caller != optimismPortal2.PAO());
+        vm.expectRevert(IOptimismPortal2.OptimismPortal_Unauthorized.selector);
+        vm.prank(_caller);
+        optimismPortal2.migrateLiquidity();
+    }
+
+    /// @notice Tests that the liquidity migration from the portal to the lockbox succeeds.
+    function test_migrateLiquidity_succeeds(uint256 _portalBalance) external {
+        vm.deal(address(optimismPortal2), _portalBalance);
+
+        uint256 lockboxBalanceBefore = address(ethLockbox).balance;
+        address PAO = optimismPortal2.PAO();
+
+        vm.expectCall(address(ethLockbox), _portalBalance, abi.encodeCall(ethLockbox.lockETH, ()));
+
+        vm.expectEmit(address(optimismPortal2));
+        emit ETHMigrated(_portalBalance);
+
+        vm.prank(PAO);
+        optimismPortal2.migrateLiquidity();
+
+        assertEq(address(optimismPortal2).balance, 0);
+        assertEq(address(ethLockbox).balance, lockboxBalanceBefore + _portalBalance);
+    }
+}
+
 /// @title OptimismPortal2_ResourceFuzz_Test
 /// @dev Test various values of the resource metering config to ensure that deposits cannot be
 ///      broken by changing the config.
@@ -1805,37 +1838,5 @@ contract OptimismPortal2_ResourceFuzz_Test is CommonTest {
             _isCreation: false,
             _data: hex""
         });
-    }
-}
-
-contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
-    function setUp() public override {
-        super.setUp();
-    }
-
-    /// @notice Tests the liquidity migration from the portal to the lockbox reverts if not called by the admin owner.
-    function testFuzz_migrateLiquidity_notPAO_reverts(address _caller) external {
-        vm.assume(_caller != optimismPortal2.PAO());
-        vm.expectRevert(IOptimismPortal2.OptimismPortal_Unauthorized.selector);
-        vm.prank(_caller);
-        optimismPortal2.migrateLiquidity();
-    }
-
-    /// @notice Tests that the liquidity migration from the portal to the lockbox succeeds.
-    function test_migrateLiquidity_succeeds() external {
-        uint256 portalBalanceBefore = address(optimismPortal2).balance;
-        uint256 lockboxBalanceBefore = address(ethLockbox).balance;
-        address PAO = optimismPortal2.PAO();
-
-        vm.expectCall(address(ethLockbox), portalBalanceBefore, abi.encodeCall(ethLockbox.lockETH, ()));
-
-        vm.expectEmit(address(optimismPortal2));
-        emit ETHMigrated(portalBalanceBefore);
-
-        vm.prank(PAO);
-        optimismPortal2.migrateLiquidity();
-
-        assertEq(address(optimismPortal2).balance, 0);
-        assertEq(address(ethLockbox).balance, lockboxBalanceBefore + portalBalanceBefore);
     }
 }

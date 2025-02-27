@@ -45,7 +45,8 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests it reverts when the contract is already initialized.
     function test_initialize_alreadyInitialized_reverts() public {
         vm.expectRevert(InvalidInitialization.selector);
-        ethLockbox.initialize(address(superchainConfig));
+        address[] memory _portals = new address[](1);
+        ethLockbox.initialize(address(superchainConfig), _portals);
     }
 
     /// @notice Tests the proxy admin owner is correctly returned.

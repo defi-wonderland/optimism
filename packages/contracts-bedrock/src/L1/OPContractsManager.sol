@@ -389,10 +389,10 @@ contract OPContractsManager is ISemver {
             output.opChainProxyAdmin, address(output.optimismPortalProxy), implementation.optimismPortalImpl, data
         );
 
-        data = encodeETHLockboxInitializer();
+        address[] memory portals = new address[](1);
+        portals[0] = address(output.optimismPortalProxy);
+        data = encodeETHLockboxInitializer(portals);
         upgradeToAndCall(output.opChainProxyAdmin, address(output.ethLockboxProxy), implementation.ethLockboxImpl, data);
-        // Besides initializing with the `SuperchainConfig`, authorize the `OptimismPortal` on the `ETHLockbox`.
-        output.ethLockboxProxy.authorizePortal(address(output.optimismPortalProxy));
 
         data = encodeSystemConfigInitializer(_input, output);
         upgradeToAndCall(
@@ -614,17 +614,17 @@ contract OPContractsManager is ISemver {
                     );
 
                     // Initialize the ETHLockbox.
+                    address[] memory portals = new address[](1);
+                    portals[0] = opChainAddrs.optimismPortal;
                     upgradeToAndCall(
                         _opChainConfigs[i].proxyAdmin,
                         address(ethLockbox),
                         impls.ethLockboxImpl,
-                        encodeETHLockboxInitializer()
+                        encodeETHLockboxInitializer(portals)
                     );
 
-                    // Authorize the OptimismPortal as an authorized portal.
-                    ethLockbox.authorizePortal(opChainAddrs.optimismPortal);
-
-                    // Upgrade the OptimismPortal to have a reference to the new AnchorStateRegistry and ETHLockbox.
+                    // Upgrade the OptimismPortal to have a reference to the new AnchorStateRegistry and ETHLockbox,
+                    // and migrate the ETH balance to the ETHLockbox.
                     IOptimismPortal2(payable(opChainAddrs.optimismPortal)).upgrade(
                         newAnchorStateRegistryProxy, ethLockbox
                     );
@@ -901,8 +901,8 @@ contract OPContractsManager is ISemver {
     }
 
     /// @notice Helper method for encoding the ETHLockbox initializer data.
-    function encodeETHLockboxInitializer() internal view virtual returns (bytes memory) {
-        return abi.encodeCall(IETHLockbox.initialize, (address(superchainConfig)));
+    function encodeETHLockboxInitializer(address[] memory _portals) internal view virtual returns (bytes memory) {
+        return abi.encodeCall(IETHLockbox.initialize, (address(superchainConfig), _portals));
     }
 
     /// @notice Helper method for encoding the SystemConfig initializer data.

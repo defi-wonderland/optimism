@@ -51,24 +51,6 @@ contract InitializerOZv5_Test is CommonTest {
                 initCalldata: abi.encodeCall(IOptimismSuperchainERC20.initialize, (address(0), "", "", 18))
             })
         );
-
-        // ETHLockboxImpl
-        contracts.push(
-            InitializeableContract({
-                name: "ETHLockboxImpl",
-                target: EIP1967Helper.getImplementation(address(ethLockbox)),
-                initCalldata: abi.encodeCall(IETHLockbox.initialize, (address(0)))
-            })
-        );
-
-        // ETHLockboxProxy
-        contracts.push(
-            InitializeableContract({
-                name: "ETHLockboxProxy",
-                target: address(ethLockbox),
-                initCalldata: abi.encodeCall(IETHLockbox.initialize, (address(0)))
-            })
-        );
     }
 
     /// @notice Tests that:

@@ -82,8 +82,19 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
 
     /// @notice Initializer.
     /// @param _superchainConfig The address of the SuperchainConfig contract.
-    function initialize(address _superchainConfig) external initializer {
+    /// @param _portals The addresses of the portals to authorize.
+    function initialize(address _superchainConfig, address[] calldata _portals) external initializer {
         Storage.setAddress(_SUPERCHAIN_CONFIG_SLOT, _superchainConfig);
+        for (uint256 i; i < _portals.length; i++) {
+            _authorizePortal(_portals[i]);
+        }
+    }
+
+    /// @notice Authorizes a portal to lock and unlock ETH.
+    /// @param _portal The address of the portal to authorize.
+    function authorizePortal(address _portal) external {
+        if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
+        _authorizePortal(_portal);
     }
 
     /// @notice Getter for the SuperchainConfig contract.
@@ -126,17 +137,6 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
         emit ETHUnlocked(msg.sender, _value);
     }
 
-    /// @notice Authorizes a portal to lock and unlock ETH.
-    /// @param _portal The address of the portal to authorize.
-    function authorizePortal(address _portal) external {
-        if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
-        if (!_samePAO(_portal)) revert ETHLockbox_DifferentPAO();
-        if (authorizedPortals[_portal]) revert ETHLockbox_AlreadyAuthorized();
-
-        authorizedPortals[_portal] = true;
-        emit PortalAuthorized(_portal);
-    }
-
     /// @notice Authorizes an ETH lockbox to migrate its liquidity to the current ETH lockbox.
     /// @param _lockbox The address of the ETH lockbox to authorize.
     function authorizeLockbox(address _lockbox) external {
@@ -156,5 +156,15 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
 
         ETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
         emit LiquidityMigrated(_lockbox);
+    }
+
+    /// @notice Authorizes a portal to lock and unlock ETH.
+    /// @param _portal The address of the portal to authorize.
+    function _authorizePortal(address _portal) internal {
+        if (!_samePAO(_portal)) revert ETHLockbox_DifferentPAO();
+        if (authorizedPortals[_portal]) revert ETHLockbox_AlreadyAuthorized();
+
+        authorizedPortals[_portal] = true;
+        emit PortalAuthorized(_portal);
     }
 }
