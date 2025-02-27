@@ -220,6 +220,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param _disputeGameFactory Contract of the DisputeGameFactory.
     /// @param _systemConfig Contract of the SystemConfig.
     /// @param _superchainConfig Contract of the SuperchainConfig.
+    /// @param _anchorStateRegistry Contract of the AnchorStateRegistry.
+    /// @param _ethLockbox Contract of the ETHLockbox.
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
@@ -578,8 +580,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Checks if a target address is unsafe.
     function _isUnsafeTarget(address _target) internal view virtual returns (bool) {
-        // Prevent users from creating a deposit transaction where this address is the message
-        // sender on L2.
+        // Prevent users from targetting an unsafe target address on a withdrawal transaction.
         return _target == address(this) || _target == address(ethLockbox);
     }
 
