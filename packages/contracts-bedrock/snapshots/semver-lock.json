@@ -60,8 +60,8 @@
     "sourceCodeHash": "0x9e736fb41488ffb96f8aba2dbe8e2ca9d9de2cc01772017a834e3c424cf5eb17"
   },
   "src/L2/CrosschainERC20/CrosschainERC20Factory.sol": {
-    "initCodeHash": "0x2bd91cec125c566983f792da46d908686fc35c9829c73a8790f43e0d97ca7f04",
-    "sourceCodeHash": "0xa296996cfa3477809e4796e14ccf74613af3edd53c710fbe01be2023853eee19"
+    "initCodeHash": "0x3be17ddfb5a238e24a5a759dc1f7d95a52476f4609de0d396a98476d8014f88c",
+    "sourceCodeHash": "0x35ad67e341326c1f90282bb0733110afff818dbf8156bddb82358c4573431c19"
   },
   "src/L2/CrosschainERC20/ERC7802Adapter.sol": {
     "initCodeHash": "0x0ecb4f3c729cc9f47cc5c426f75b70d6928b88836f69cb6ec99ca0d21060d279",

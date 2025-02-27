@@ -17,9 +17,9 @@ contract CrosschainERC20Factory is ISemver {
     error InvalidLength();
 
     /// @notice The semantic version of the factory.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 1.0.0-beta.2
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "1.0.0-beta.2";
     }
 
     /// @notice Deploys a new CrosschainERC20 contract and returns the address
