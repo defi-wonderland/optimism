@@ -54,6 +54,8 @@ contract DeployOPCMInput_Test is Test {
         dii.optimismPortalImpl();
 
         vm.expectRevert("DeployOPCMInput: not set");
+        dii.ethLockboxImpl();
+        vm.expectRevert("DeployOPCMInput: not set");
         dii.systemConfigImpl();
 
         vm.expectRevert("DeployOPCMInput: not set");
@@ -124,6 +126,7 @@ contract DeployOPCMInput_Test is Test {
     function test_set_part2_succeeds() public {
         address l1ERC721BridgeImpl = makeAddr("l1ERC721BridgeImpl");
         address optimismPortalImpl = makeAddr("optimismPortalImpl");
+        address ethLockboxImpl = makeAddr("ethLockboxImpl");
         address systemConfigImpl = makeAddr("systemConfigImpl");
         address optimismMintableERC20FactoryImpl = makeAddr("optimismMintableERC20FactoryImpl");
         address l1CrossDomainMessengerImpl = makeAddr("l1CrossDomainMessengerImpl");
@@ -135,6 +138,7 @@ contract DeployOPCMInput_Test is Test {
 
         dii.set(dii.l1ERC721BridgeImpl.selector, l1ERC721BridgeImpl);
         dii.set(dii.optimismPortalImpl.selector, optimismPortalImpl);
+        dii.set(dii.ethLockboxImpl.selector, ethLockboxImpl);
         dii.set(dii.systemConfigImpl.selector, systemConfigImpl);
         dii.set(dii.optimismMintableERC20FactoryImpl.selector, optimismMintableERC20FactoryImpl);
         dii.set(dii.l1CrossDomainMessengerImpl.selector, l1CrossDomainMessengerImpl);
@@ -153,6 +157,7 @@ contract DeployOPCMInput_Test is Test {
         assertEq(dii.disputeGameFactoryImpl(), disputeGameFactoryImpl, "900");
         assertEq(dii.delayedWETHImpl(), delayedWETHImpl, "950");
         assertEq(dii.mipsImpl(), mipsImpl, "1000");
+        assertEq(dii.ethLockboxImpl(), ethLockboxImpl, "1050");
     }
 
     function test_set_withZeroAddress_reverts() public {
@@ -246,6 +251,7 @@ contract DeployOPCMTest is Test {
         // Set and etch implementations
         doi.set(doi.l1ERC721BridgeImpl.selector, makeAddr("l1ERC721BridgeImpl"));
         doi.set(doi.optimismPortalImpl.selector, makeAddr("optimismPortalImpl"));
+        doi.set(doi.ethLockboxImpl.selector, makeAddr("ethLockboxImpl"));
         doi.set(doi.systemConfigImpl.selector, makeAddr("systemConfigImpl"));
         doi.set(doi.optimismMintableERC20FactoryImpl.selector, makeAddr("optimismMintableERC20FactoryImpl"));
         doi.set(doi.l1CrossDomainMessengerImpl.selector, makeAddr("l1CrossDomainMessengerImpl"));
@@ -270,6 +276,7 @@ contract DeployOPCMTest is Test {
 
         vm.etch(doi.l1ERC721BridgeImpl(), hex"01");
         vm.etch(doi.optimismPortalImpl(), hex"01");
+        vm.etch(doi.ethLockboxImpl(), hex"01");
         vm.etch(doi.systemConfigImpl(), hex"01");
         vm.etch(doi.optimismMintableERC20FactoryImpl(), hex"01");
         vm.etch(doi.l1CrossDomainMessengerImpl(), hex"01");

@@ -14,6 +14,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
+import { Storage } from "src/libraries/Storage.sol";
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -24,6 +25,7 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortal2
@@ -197,9 +199,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 4.0.0
+    /// @custom:semver 4.0.1
     function version() public pure virtual returns (string memory) {
-        return "4.0.0";
+        return "4.0.1";
     }
 
     /// @param _proofMaturityDelaySeconds The proof maturity delay in seconds.
@@ -256,6 +258,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @return Address of the guardian.
     function guardian() public view returns (address) {
         return superchainConfig.guardian();
+    }
+
+    /// @notice Getter for the owner of the proxy admin.
+    ///         The ProxyAdmin is the owner of the Proxy contract, which is the proxy used for the ETHLockbox.
+    function adminOwner() public view returns (address) {
+        // Get the proxy admin address reading for the reserved slot it has on the Proxy contract.
+        IProxyAdmin proxyAdmin = IProxyAdmin(Storage.getAddress(Constants.PROXY_OWNER_ADDRESS));
+        // Return the owner of the proxy admin.
+        return proxyAdmin.owner();
     }
 
     /// @custom:legacy
