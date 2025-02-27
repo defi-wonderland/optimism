@@ -15,6 +15,7 @@ import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 contract ERC7802Adapter is IERC7802, ISemver {
     /// @notice The xERC20 contract to adapt.
     IXERC20 public immutable XERC20;
+
     /// @notice The bridge address.
     address public immutable BRIDGE;
 
@@ -27,9 +28,9 @@ contract ERC7802Adapter is IERC7802, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 1.0.0-beta.2
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "1.0.0-beta.2";
     }
 
     /// @notice Allows the bridge to mint tokens.
