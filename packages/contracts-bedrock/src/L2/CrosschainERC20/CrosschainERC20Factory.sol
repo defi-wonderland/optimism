@@ -6,21 +6,12 @@ import { XERC20Lockbox } from "@xERC20/contracts/XERC20Lockbox.sol";
 import { CrosschainERC20 } from "src/L2/CrosschainERC20/CrosschainERC20.sol";
 import { ERC7802Adapter } from "src/L2/CrosschainERC20/ERC7802Adapter.sol";
 
-// Interfaces
-import { ISemver } from "interfaces/universal/ISemver.sol";
-
 // Libraries
 import { CREATE3 } from "isolmate/utils/CREATE3.sol";
 
-contract CrosschainERC20Factory is ISemver {
+contract CrosschainERC20Factory {
     /// @notice Thrown when the length of the minter limits, burner limits, or bridges arrays are not equal
     error InvalidLength();
-
-    /// @notice The semantic version of the factory.
-    /// @custom:semver 1.0.0-beta.2
-    function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.2";
-    }
 
     /// @notice Deploys a new CrosschainERC20 contract and returns the address
     /// @param _name The name of the token
