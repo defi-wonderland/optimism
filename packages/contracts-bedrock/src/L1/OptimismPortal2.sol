@@ -6,7 +6,6 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 
 // Libraries
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Types } from "src/libraries/Types.sol";
@@ -17,7 +16,6 @@ import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
 import { Storage } from "src/libraries/Storage.sol";
 
 // Interfaces
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
@@ -26,6 +24,7 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortal2
@@ -33,9 +32,6 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
 contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
-    /// @notice Allows for interactions with non standard ERC20 tokens.
-    using SafeERC20 for IERC20;
-
     /// @notice Represents a proven withdrawal.
     /// @custom:field disputeGameProxy Game that the withdrawal was proven against.
     /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
@@ -121,6 +117,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @notice Address of the AnchorStateRegistry contract.
     IAnchorStateRegistry public anchorStateRegistry;
 
+    /// @notice Address of the ETHLockbox contract.
+    IETHLockbox public ethLockbox;
+
     /// @notice Emitted when a transaction is deposited from L1 to L2. The parameters of this event
     ///         are read by the rollup node and used to derive deposit transactions on L2.
     /// @param from       Address that triggered the deposit transaction.
@@ -146,6 +145,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param withdrawalHash Hash of the withdrawal transaction.
     /// @param success        Whether the withdrawal transaction was successful.
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
+
+    /// @notice Emitted when the ETH liquidity is migrated to the ETHLockbox.
+    /// @param ethBalance Amount of ETH migrated.
+    event ETHMigrated(uint256 ethBalance);
 
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();
@@ -192,6 +195,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @notice Thrown when a withdrawal has not been proven.
     error OptimismPortal_Unproven();
 
+    /// @notice Thrown when the caller is not authorized to call the function.
+    error OptimismPortal_Unauthorized();
+
     /// @notice Reverts when paused.
     modifier whenNotPaused() {
         if (paused()) revert OptimismPortal_CallPaused();
@@ -218,7 +224,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         IDisputeGameFactory _disputeGameFactory,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
-        IAnchorStateRegistry _anchorStateRegistry
+        IAnchorStateRegistry _anchorStateRegistry,
+        IETHLockbox _ethLockbox
     )
         external
         reinitializer(2)
@@ -227,6 +234,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
         anchorStateRegistry = _anchorStateRegistry;
+        ethLockbox = _ethLockbox;
 
         // Set the l2Sender slot, only if it is currently empty. This signals the first
         // initialization of the contract.
@@ -239,8 +247,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Upgrades the OptimismPortal contract to have a reference to the AnchorStateRegistry.
     /// @param _anchorStateRegistry AnchorStateRegistry contract.
-    function upgrade(IAnchorStateRegistry _anchorStateRegistry) external reinitializer(2) {
+    /// @param _ethLockbox ETHLockbox contract.
+    function upgrade(IAnchorStateRegistry _anchorStateRegistry, IETHLockbox _ethLockbox) external reinitializer(2) {
         anchorStateRegistry = _anchorStateRegistry;
+        ethLockbox = _ethLockbox;
     }
 
     /// @notice Getter for the current paused status.
@@ -307,8 +317,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Accepts ETH value without triggering a deposit to L2.
-    ///         This function mainly exists for the sake of the migration between the legacy
-    ///         Optimism system and Bedrock.
     function donateETH() external payable {
         // Intentionally empty.
     }
@@ -434,6 +442,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
 
+        // Unlock the ETH from the ETHLockbox.
+        if (_tx.value > 0) _unlockETH(_tx.value);
+
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
 
@@ -519,6 +530,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         payable
         metered(_gasLimit)
     {
+        // Lock the ETH in the ETHLockbox.
+        if (msg.value > 0) _lockETH();
+
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation && _to != address(0)) {
@@ -566,7 +580,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     function _isUnsafeTarget(address _target) internal view virtual returns (bool) {
         // Prevent users from creating a deposit transaction where this address is the message
         // sender on L2.
-        return _target == address(this);
+        return _target == address(this) || _target == address(ethLockbox);
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.
@@ -577,5 +591,27 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         assembly ("memory-safe") {
             config_ := config
         }
+    }
+
+    /// @notice Locks the ETH in the ETHLockbox.
+    function _lockETH() internal {
+        ethLockbox.lockETH{ value: msg.value }();
+    }
+
+    /// @notice Unlock and receive the ETH from the ETHLockbox.
+    /// @param _amount Amount of ETH to unlock.
+    function _unlockETH(uint256 _amount) internal {
+        ethLockbox.unlockETH(_amount);
+    }
+
+    /// @notice Migrates the ETH liquidity to the ETHLockbox.
+    /// @dev Only the admin owner can call this function.
+    function migrateLiquidity() external {
+        if (msg.sender != adminOwner()) revert OptimismPortal_Unauthorized();
+
+        uint256 ethBalance = address(this).balance;
+        ethLockbox.lockETH{ value: ethBalance }();
+
+        emit ETHMigrated(ethBalance);
     }
 }
