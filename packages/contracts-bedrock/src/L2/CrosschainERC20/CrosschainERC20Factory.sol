@@ -17,9 +17,9 @@ contract CrosschainERC20Factory is ISemver {
     error InvalidLength();
 
     /// @notice The semantic version of the factory.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 1.0.0-beta.2
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "1.0.0-beta.2";
     }
 
     /// @notice Deploys a new CrosschainERC20 contract and returns the address
@@ -42,7 +42,7 @@ contract CrosschainERC20Factory is ISemver {
     /// @notice Deploys a new CrosschainERC20Lockbox and CrosschainERC20
     /// @param _name The name of the token
     /// @param _symbol The symbol of the token
-    /// @param _ERC20 The address of the ERC20 contract
+    /// @param _baseToken The address of the base token
     /// @return crosschainERC20_ The address of the new CrosschainERC20 contract
     /// @return crosschainERC20Lockbox_ The address of the new crosschainERC20Lockbox contract
     function deployCrosschainERC20WithLockbox(
@@ -51,27 +51,21 @@ contract CrosschainERC20Factory is ISemver {
         uint256[] memory _minterLimits,
         uint256[] memory _burnerLimits,
         address[] memory _bridges,
-        address _ERC20
+        address _baseToken
     )
         external
         returns (address crosschainERC20_, address crosschainERC20Lockbox_)
     {
         crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
-        crosschainERC20Lockbox_ = _deployLockbox(crosschainERC20_, _ERC20);
+        crosschainERC20Lockbox_ = _deployLockbox(crosschainERC20_, _baseToken);
     }
 
     /// @notice Deploys a new ERC7802Adapter
-    /// @param _crosschainERC20 The address of the CrosschainERC20 contract
+    /// @param _xerc20 The address of the xERC20 contract
     /// @param _bridge The address of the bridge
     /// @return erc7802Adapter_ The address of the new ERC7802Adapter contract
-    function deployERC7802Adapter(
-        address _crosschainERC20,
-        address _bridge
-    )
-        external
-        returns (address erc7802Adapter_)
-    {
-        erc7802Adapter_ = _deployERC7802Adapter(_crosschainERC20, _bridge);
+    function deployERC7802Adapter(address _xerc20, address _bridge) external returns (address erc7802Adapter_) {
+        erc7802Adapter_ = _deployERC7802Adapter(_xerc20, _bridge);
     }
 
     function _deployCrosschainERC20(
@@ -111,16 +105,10 @@ contract CrosschainERC20Factory is ISemver {
         CrosschainERC20(_crosschainERC20).setLockbox(address(lockbox_));
     }
 
-    function _deployERC7802Adapter(
-        address _crosschainERC20,
-        address _bridge
-    )
-        internal
-        returns (address erc7802Adapter_)
-    {
-        bytes32 _salt = keccak256(abi.encodePacked(_crosschainERC20, _bridge, msg.sender));
+    function _deployERC7802Adapter(address _xerc20, address _bridge) internal returns (address erc7802Adapter_) {
+        bytes32 _salt = keccak256(abi.encodePacked(_xerc20, _bridge, msg.sender));
         bytes memory _creation = type(ERC7802Adapter).creationCode;
-        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_crosschainERC20, _bridge));
+        bytes memory _bytecode = abi.encodePacked(_creation, abi.encode(_xerc20, _bridge));
 
         erc7802Adapter_ = CREATE3.deploy(_salt, _bytecode, 0);
     }

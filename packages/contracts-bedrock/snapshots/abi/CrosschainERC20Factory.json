@@ -67,7 +67,7 @@
       },
       {
         "internalType": "address",
-        "name": "_ERC20",
+        "name": "_baseToken",
         "type": "address"
       }
     ],
@@ -91,7 +91,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_crosschainERC20",
+        "name": "_xerc20",
         "type": "address"
       },
       {

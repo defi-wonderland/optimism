@@ -37,8 +37,8 @@ contract CrosschainERC20 is XERC20, IERC7802, ISemver {
     ///         zero by default.
     /// @dev This value changes when {approve} or {transferFrom} are called.
     /// @dev Allowance is overriden to allow Permit2 to spend unlimited tokens.
-    function allowance(address _owner, address _spender) public view virtual override returns (uint256) {
-        return _spender == _PERMIT2 ? type(uint256).max : super.allowance(_owner, _spender);
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+        return spender == _PERMIT2 ? type(uint256).max : super.allowance(owner, spender);
     }
 
     /// @notice Allows a bridge to mint tokens.
