@@ -67,7 +67,7 @@
       },
       {
         "internalType": "address",
-        "name": "_ERC20",
+        "name": "_baseToken",
         "type": "address"
       }
     ],
