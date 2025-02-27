@@ -11,8 +11,6 @@ import { IOwnable } from "interfaces/universal/IOwnable.sol";
 /// @title ICrosschainERC20
 /// @notice This interface is available on the CrosschainERC20 contract.
 interface ICrosschainERC20 is IERC20, IERC7802, IXERC20, IOwnable, ISemver {
-    error Unauthorized();
-
     function supportsInterface(bytes4 _interfaceId) external view returns (bool);
 
     function __constructor__(string memory _name, string memory _symbol, address _factory) external;
