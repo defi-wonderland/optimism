@@ -292,8 +292,8 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.authorizePortal(_portal);
     }
 
-    /// @notice Tests the `authorizePortal` function reverts when the admin owner of the portal is not the same as the
-    ///         admin owner of the lockbox.
+    /// @notice Tests the `authorizePortal` function reverts when the PAO of the portal is not the same as the PAO of
+    ///         the lockbox.
     function testFuzz_authorizePortal_differentPAO_reverts(address _portal) public {
         vm.mockCall(address(_portal), abi.encodeCall(IPAOBase.PAO, ()), abi.encode(address(0)));
 
@@ -376,8 +376,8 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.authorizeLockbox(_lockbox);
     }
 
-    /// @notice Tests the `authorizeLockbox` function reverts when the admin owner of the lockbox is not the same as the
-    ///         admin owner of the proxy admin.
+    /// @notice Tests the `authorizeLockbox` function reverts when the PAO of the lockbox is not the same as the PAO of
+    ///         the proxy admin.
     function testFuzz_authorizeLockbox_differentPAO_reverts(address _lockbox) public {
         vm.mockCall(address(_lockbox), abi.encodeCall(IPAOBase.PAO, ()), abi.encode(address(0)));
 
@@ -420,8 +420,8 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.migrateLiquidity(address(optimismPortal2));
     }
 
-    /// @notice Tests the `migrateLiquidity` function reverts when the admin owner of the lockbox is not the same as the
-    ///         admin owner of the proxy admin.
+    /// @notice Tests the `migrateLiquidity` function reverts when the PAO of the lockbox is not the same as the PAO of
+    ///         the proxy admin.
     function testFuzz_migrateLiquidity_differentPAO_reverts(address _lockbox) public {
         vm.mockCall(address(_lockbox), abi.encodeCall(IPAOBase.PAO, ()), abi.encode(address(0)));
 
