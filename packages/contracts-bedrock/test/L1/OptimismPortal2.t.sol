@@ -55,10 +55,10 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(opImpl.l2Sender(), address(0));
 
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
-        returnIfForkTest("OptimismPortal2_Test: anchorStateRegistry is nonzero on OP mainnet");
+        returnIfForkTest("OptimismPortal2_Test: anchorStateRegistry getter doesn't yet exist on OP mainnet");
         assertEq(address(opImpl.anchorStateRegistry()), address(0));
 
-        returnIfForkTest("OptimismPortal2_Test: ethLockbox is nonzero on OP mainnet");
+        returnIfForkTest("OptimismPortal2_Test: ethLockbox getter doesn't yet exist on OP mainnet");
         assertEq(address(opImpl.ethLockbox()), address(0));
     }
 
