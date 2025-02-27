@@ -597,9 +597,37 @@ contract OPContractsManager is ISemver {
                             )
                         )
                     );
+                }
 
-                    // Upgrade the OptimismPortal to have a reference to the new AnchorStateRegistry.
-                    IOptimismPortal2(payable(opChainAddrs.optimismPortal)).upgrade(newAnchorStateRegistryProxy);
+                // Deploy the ETHLockbox contract implementation and proxy.
+                // Initialize the ETHLockbox, and then set the OptimismPortal as an authorized portal.
+                IETHLockbox ethLockbox;
+                {
+                    // Deploy the ETHLockbox contract proxy.
+                    ethLockbox = IETHLockbox(
+                        deployProxy({
+                            _l2ChainId: l2ChainId,
+                            _proxyAdmin: _opChainConfigs[i].proxyAdmin,
+                            _saltMixer: reusableSaltMixer(_opChainConfigs[i]),
+                            _contractName: "ETHLockbox"
+                        })
+                    );
+
+                    // Initialize the ETHLockbox.
+                    upgradeToAndCall(
+                        _opChainConfigs[i].proxyAdmin,
+                        address(ethLockbox),
+                        impls.ethLockboxImpl,
+                        encodeETHLockboxInitializer()
+                    );
+
+                    // Authorize the OptimismPortal as an authorized portal.
+                    ethLockbox.authorizePortal(opChainAddrs.optimismPortal);
+
+                    // Upgrade the OptimismPortal to have a reference to the new AnchorStateRegistry and ETHLockbox.
+                    IOptimismPortal2(payable(opChainAddrs.optimismPortal)).upgrade(
+                        newAnchorStateRegistryProxy, ethLockbox
+                    );
                 }
 
                 // Deploy and set a new permissioned game to update its prestate
@@ -866,7 +894,8 @@ contract OPContractsManager is ISemver {
                 _output.disputeGameFactoryProxy,
                 _output.systemConfigProxy,
                 superchainConfig,
-                _output.anchorStateRegistryProxy
+                _output.anchorStateRegistryProxy,
+                _output.ethLockboxProxy
             )
         );
     }

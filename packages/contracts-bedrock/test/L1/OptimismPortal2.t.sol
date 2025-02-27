@@ -57,6 +57,9 @@ contract OptimismPortal2_Test is CommonTest {
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
         returnIfForkTest("OptimismPortal2_Test: anchorStateRegistry is nonzero on OP mainnet");
         assertEq(address(opImpl.anchorStateRegistry()), address(0));
+
+        returnIfForkTest("OptimismPortal2_Test: ethLockbox is nonzero on OP mainnet");
+        assertEq(address(opImpl.ethLockbox()), address(0));
     }
 
     /// @dev Tests that the initializer sets the correct values.
@@ -68,6 +71,7 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(optimismPortal2.l2Sender(), Constants.DEFAULT_L2_SENDER);
         assertEq(optimismPortal2.paused(), false);
         assertEq(address(optimismPortal2.systemConfig()), address(systemConfig));
+        assertEq(address(optimismPortal2.ethLockbox()), address(ethLockbox));
 
         returnIfForkTest(
             "OptimismPortal2_Initialize_Test: Do not check guardian and respectedGameType on forked networks"

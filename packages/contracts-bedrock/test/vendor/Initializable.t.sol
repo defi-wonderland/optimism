@@ -123,7 +123,8 @@ contract Initializer_Test is CommonTest {
                 name: "OptimismPortal2Impl",
                 target: EIP1967Helper.getImplementation(address(optimismPortal2)),
                 initCalldata: abi.encodeCall(
-                    optimismPortal2.initialize, (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry)
+                    optimismPortal2.initialize,
+                    (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry, ethLockbox)
                 )
             })
         );
@@ -133,7 +134,8 @@ contract Initializer_Test is CommonTest {
                 name: "OptimismPortal2Proxy",
                 target: address(optimismPortal2),
                 initCalldata: abi.encodeCall(
-                    optimismPortal2.initialize, (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry)
+                    optimismPortal2.initialize,
+                    (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry, ethLockbox)
                 )
             })
         );
