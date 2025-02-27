@@ -205,9 +205,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Semantic version.
-    /// @custom:semver 4.0.1
+    /// @custom:semver 4.1.0
     function version() public pure virtual returns (string memory) {
-        return "4.0.1";
+        return "4.1.0";
     }
 
     /// @param _proofMaturityDelaySeconds The proof maturity delay in seconds.

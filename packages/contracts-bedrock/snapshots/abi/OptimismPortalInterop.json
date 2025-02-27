@@ -125,6 +125,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "ethLockbox",
+    "outputs": [
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "components": [
@@ -272,6 +285,11 @@
         "internalType": "contract IAnchorStateRegistry",
         "name": "_anchorStateRegistry",
         "type": "address"
+      },
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "_ethLockbox",
+        "type": "address"
       }
     ],
     "name": "initialize",
@@ -290,6 +308,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "migrateLiquidity",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -590,6 +615,11 @@
         "internalType": "contract IAnchorStateRegistry",
         "name": "_anchorStateRegistry",
         "type": "address"
+      },
+      {
+        "internalType": "contract IETHLockbox",
+        "name": "_ethLockbox",
+        "type": "address"
       }
     ],
     "name": "upgrade",
@@ -609,6 +639,19 @@
     ],
     "stateMutability": "pure",
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethBalance",
+        "type": "uint256"
+      }
+    ],
+    "name": "ETHMigrated",
+    "type": "event"
   },
   {
     "anonymous": false,
