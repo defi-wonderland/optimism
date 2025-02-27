@@ -445,7 +445,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         finalizedWithdrawals[withdrawalHash] = true;
 
         // Unlock the ETH from the ETHLockbox.
-        if (_tx.value > 0) _unlockETH(_tx.value);
+        if (_tx.value > 0) ethLockbox.unlockETH(_tx.value);
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
@@ -533,7 +533,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         metered(_gasLimit)
     {
         // Lock the ETH in the ETHLockbox.
-        if (msg.value > 0) _lockETH();
+        if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
 
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
@@ -602,16 +602,5 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         ethLockbox.lockETH{ value: ethBalance }();
 
         emit ETHMigrated(ethBalance);
-    }
-
-    /// @notice Locks the ETH in the ETHLockbox.
-    function _lockETH() internal {
-        ethLockbox.lockETH{ value: msg.value }();
-    }
-
-    /// @notice Unlock and receive the ETH from the ETHLockbox.
-    /// @param _amount Amount of ETH to unlock.
-    function _unlockETH(uint256 _amount) internal {
-        ethLockbox.unlockETH(_amount);
     }
 }
