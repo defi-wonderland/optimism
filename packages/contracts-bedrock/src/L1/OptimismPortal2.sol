@@ -146,7 +146,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @param success        Whether the withdrawal transaction was successful.
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
 
-    /// @notice Emitted when the ETH liquidity is migrated to the ETHLockbox.
+    /// @notice Emitted when the total ETH balance is migrated to the ETHLockbox.
     /// @param ethBalance Amount of ETH migrated.
     event ETHMigrated(uint256 ethBalance);
 
