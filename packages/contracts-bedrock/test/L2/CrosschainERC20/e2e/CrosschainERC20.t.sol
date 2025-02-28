@@ -81,7 +81,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Mints using ERC7281 interface.
-    function testMintERC7281() public {
+    function test_mintERC7281_succeeds() public {
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
@@ -97,7 +97,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Burns using ERC7281 interface.
-    function testBurnERC7281() public {
+    function test_burnERC7281_succeeds() public {
         // Approve the bridge to burn
         vm.prank(alice);
         crosschainERC20.approve(erc7281Bridge, BURN_LIMIT);
@@ -112,7 +112,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Mints using ERC7802 interface.
-    function testMintERC7802() public virtual {
+    function test_mintERC7802_succeeds() public virtual {
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
@@ -128,7 +128,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Burns using ERC7802 interface.
-    function testBurnERC7802() public virtual {
+    function test_burnERC7802_succeeds() public virtual {
         // Approve the bridge to burn
         vm.prank(alice);
         crosschainERC20.approve(address(superchainTokenBridge), BURN_LIMIT);
