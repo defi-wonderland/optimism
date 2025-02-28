@@ -419,7 +419,7 @@ library ChainAssertions {
         require(address(ethLockbox) != address(0), "CHECK-ELB-10");
 
         // Check that the contract is initialized
-        DeployUtils.assertInitializedOZv5({ _contractAddress: address(ethLockbox), _isProxy: _isProxy });
+        DeployUtils.assertInitialized({ _contractAddress: address(ethLockbox), _isProxy: _isProxy, _slot: 0, _offset: 0 });
 
         if (_isProxy) {
             require(ethLockbox.superchainConfig() == superchainConfig, "CHECK-ELB-20");

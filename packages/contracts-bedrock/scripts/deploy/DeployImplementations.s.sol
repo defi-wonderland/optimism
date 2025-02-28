@@ -335,7 +335,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
     function assertValidETHLockboxImpl(DeployImplementationsInput) internal view {
         IETHLockbox lockbox = ethLockboxImpl();
 
-        DeployUtils.assertInitializedOZv5({ _contractAddress: address(lockbox), _isProxy: false });
+        DeployUtils.assertInitialized({ _contractAddress: address(lockbox), _isProxy: false, _slot: 0, _offset: 0 });
 
         require(address(lockbox.superchainConfig()) == address(0), "ELB-10");
         require(lockbox.authorizedPortals(address(optimismPortalImpl())) == false, "ELB-20");

@@ -4,8 +4,8 @@
     "sourceCodeHash": "0xe772f7db8033e4a738850cb28ac4849d3a454c93732135a8a10d4f7cb498088e"
   },
   "src/L1/ETHLockbox.sol": {
-    "initCodeHash": "0x075856dd4b1d7f6e0b8f99541358306b201b49a8f87bbb2d32c06cca3190c61c",
-    "sourceCodeHash": "0xcc5989486f2cc41c20f0b12a1f94f8228e2584889b245560ddc235e520e627e6"
+    "initCodeHash": "0xb5da33c92a6f0bc00eaaaec5d0b99c9c15a9dd9d7a25c416cd6740a96e7fc4d5",
+    "sourceCodeHash": "0xc9ac52290abc2f3c7071e12116593f4bad504961ffa11825161072a5aa94c23c"
   },
   "src/L1/L1CrossDomainMessenger.sol": {
     "initCodeHash": "0x03a3c0eb2418aba9f93bb89723ba2ee7cb9e1988ca00f380503c960149c85b7a",

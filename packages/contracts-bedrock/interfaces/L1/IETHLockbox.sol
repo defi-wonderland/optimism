@@ -6,15 +6,13 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IPAOBase } from "interfaces/L1/IPAOBase.sol";
 
 interface IETHLockbox is IPAOBase, ISemver {
-    error InvalidInitialization();
-    error NotInitializing();
     error ETHLockbox_Unauthorized();
     error ETHLockbox_Paused();
     error ETHLockbox_NoWithdrawalTransactions();
     error ETHLockbox_AlreadyAuthorized();
     error ETHLockbox_DifferentPAO();
 
-    event Initialized(uint64 version);
+    event Initialized(uint8 version);
     event ETHLocked(address indexed portal, uint256 amount);
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
@@ -23,7 +21,7 @@ interface IETHLockbox is IPAOBase, ISemver {
     event LiquidityReceived(address indexed lockbox);
 
     function initialize(address _superchainConfig, address[] calldata _portals) external;
-    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
+    function superchainConfig() external view returns (ISuperchainConfig);
     function paused() external view returns (bool);
     function authorizedPortals(address) external view returns (bool);
     function authorizedLockboxes(address) external view returns (bool);

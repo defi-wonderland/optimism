@@ -3,10 +3,9 @@ pragma solidity 0.8.25;
 
 // Contracts
 import { PAOBase } from "src/L1/PAOBase.sol";
-import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // Libraries
-import { Storage } from "src/libraries/Storage.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
@@ -61,7 +60,7 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     event LiquidityReceived(address indexed lockbox);
 
     /// @notice The address of the SuperchainConfig contract.
-    bytes32 internal constant _SUPERCHAIN_CONFIG_SLOT = bytes32(uint256(keccak256("ETHLockbox.superchainConfig")) - 1);
+    ISuperchainConfig public superchainConfig;
 
     /// @notice Mapping of authorized portals.
     mapping(address => bool) public authorizedPortals;
@@ -84,7 +83,7 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @param _superchainConfig The address of the SuperchainConfig contract.
     /// @param _portals The addresses of the portals to authorize.
     function initialize(address _superchainConfig, address[] calldata _portals) external initializer {
-        Storage.setAddress(_SUPERCHAIN_CONFIG_SLOT, _superchainConfig);
+        superchainConfig = ISuperchainConfig(_superchainConfig);
         for (uint256 i; i < _portals.length; i++) {
             _authorizePortal(_portals[i]);
         }
@@ -97,14 +96,9 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
         _authorizePortal(_portal);
     }
 
-    /// @notice Getter for the SuperchainConfig contract.
-    function superchainConfig() public view returns (ISuperchainConfig superchainConfig_) {
-        superchainConfig_ = ISuperchainConfig(Storage.getAddress(_SUPERCHAIN_CONFIG_SLOT));
-    }
-
     /// @notice Getter for the current paused status.
     function paused() public view returns (bool) {
-        return superchainConfig().paused();
+        return superchainConfig.paused();
     }
 
     /// @notice Receives the ETH liquidity migrated from an authorized lockbox.
