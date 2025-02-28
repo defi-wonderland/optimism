@@ -613,7 +613,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_lockbox",
+        "name": "_newLockbox",
         "type": "address"
       }
     ],

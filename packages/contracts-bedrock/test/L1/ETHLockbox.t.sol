@@ -308,7 +308,7 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests the `authorizeLockbox` function succeeds using the `optimismPortal2` address as the portal.
     function test_authorizePortal_succeeds() public {
         // Calculate the correct storage slot for the mapping value
-        bytes32 mappingSlot = bytes32(uint256(0)); // position on the layout
+        bytes32 mappingSlot = bytes32(uint256(1)); // position on the layout
         address key = address(optimismPortal2);
         bytes32 slot = keccak256(abi.encode(key, mappingSlot));
 

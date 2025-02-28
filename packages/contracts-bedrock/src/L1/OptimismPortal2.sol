@@ -259,7 +259,7 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
         ethLockbox = _ethLockbox;
 
         // Migrate the whole ETH balance to the ETHLockbox.
-        migrateLiquidity();
+        _migrateLiquidity();
     }
 
     /// @notice Getter for the current paused status.
@@ -322,14 +322,14 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     }
 
     /// @notice Updates the ETHLockbox contract.
-    /// @param _lockbox The address of the new ETHLockbox contract.
-    function updateLockbox(address _lockbox) external {
+    /// @param _newLockbox The address of the new ETHLockbox contract.
+    function updateLockbox(address _newLockbox) external {
         if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
 
         address oldLockbox = address(ethLockbox);
-        ethLockbox = IETHLockbox(_lockbox);
+        ethLockbox = IETHLockbox(_newLockbox);
 
-        emit LockboxUpdated(oldLockbox, _lockbox);
+        emit LockboxUpdated(oldLockbox, _newLockbox);
     }
 
     /// @notice Proves a withdrawal transaction.
@@ -524,11 +524,7 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     /// @notice Migrates the total ETH balance to the ETHLockbox.
     function migrateLiquidity() public {
         if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
-
-        uint256 ethBalance = address(this).balance;
-        ethLockbox.lockETH{ value: ethBalance }();
-
-        emit ETHMigrated(ethBalance);
+        _migrateLiquidity();
     }
 
     /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
@@ -603,6 +599,14 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     function _isUnsafeTarget(address _target) internal view virtual returns (bool) {
         // Prevent users from targetting an unsafe target address on a withdrawal transaction.
         return _target == address(this) || _target == address(ethLockbox);
+    }
+
+    /// @notice Migrates the total ETH balance to the ETHLockbox.
+    function _migrateLiquidity() internal {
+        uint256 ethBalance = address(this).balance;
+        ethLockbox.lockETH{ value: ethBalance }();
+
+        emit ETHMigrated(ethBalance);
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.
