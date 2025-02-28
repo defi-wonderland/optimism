@@ -27,9 +27,9 @@ contract CrosschainERC20 is XERC20, IERC7802, ISemver {
     constructor(string memory _name, string memory _symbol, address _factory) XERC20(_name, _symbol, _factory) { }
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.2
+    /// @custom:semver 1.0.0-beta.1
     function version() external view virtual returns (string memory) {
-        return "1.0.0-beta.2";
+        return "1.0.0-beta.1";
     }
 
     /// @notice Returns the remaining number of tokens that `spender` will be
