@@ -12,6 +12,7 @@ import { Constants } from "src/libraries/Constants.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 /// @custom:proxied true
 /// @title ETHLockbox
@@ -139,24 +140,24 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
 
     /// @notice Authorizes an ETH lockbox to migrate its liquidity to the current ETH lockbox.
     /// @param _lockbox The address of the ETH lockbox to authorize.
-    function authorizeLockbox(address _lockbox) external {
+    function authorizeLockbox(IETHLockbox _lockbox) external {
         if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
-        if (!_samePAO(_lockbox)) revert ETHLockbox_DifferentPAO();
-        if (authorizedLockboxes[_lockbox]) revert ETHLockbox_AlreadyAuthorized();
+        if (!_samePAO(address(_lockbox))) revert ETHLockbox_DifferentPAO();
+        if (authorizedLockboxes[address(_lockbox)]) revert ETHLockbox_AlreadyAuthorized();
 
-        authorizedLockboxes[_lockbox] = true;
-        emit LockboxAuthorized(_lockbox);
+        authorizedLockboxes[address(_lockbox)] = true;
+        emit LockboxAuthorized(address(_lockbox));
     }
 
     /// @notice Migrates liquidity from the current ETH lockbox to another.
     /// @param _lockbox The address of the ETH lockbox to migrate liquidity to.
-    function migrateLiquidity(address _lockbox) external {
+    function migrateLiquidity(IETHLockbox _lockbox) external {
         if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
-        if (!_samePAO(_lockbox)) revert ETHLockbox_DifferentPAO();
+        if (!_samePAO(address(_lockbox))) revert ETHLockbox_DifferentPAO();
 
-        ETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
+        IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
 
-        emit LiquidityMigrated(_lockbox);
+        emit LiquidityMigrated(address(_lockbox));
     }
 
     /// @notice Authorizes a portal to lock and unlock ETH.

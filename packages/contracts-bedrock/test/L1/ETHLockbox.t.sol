@@ -79,7 +79,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Authorize the lockbox
         vm.prank(PAO);
-        ethLockbox.authorizeLockbox(_lockbox);
+        ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
 
         // Get the balance of the lockbox before the receive
         uint256 _lockboxBalanceBefore = address(ethLockbox).balance;
@@ -356,7 +356,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `authorizeLockbox` function with an unauthorized caller
         vm.prank(_caller);
-        ethLockbox.authorizeLockbox(address(optimismPortal2));
+        ethLockbox.authorizeLockbox(ethLockbox);
     }
 
     /// @notice Tests the `authorizeLockbox` function reverts when the lockbox is already authorized.
@@ -366,7 +366,7 @@ contract ETHLockboxTest is CommonTest {
             vm.mockCall(address(_lockbox), abi.encodeCall(IPAOBase.PAO, ()), abi.encode(proxyAdmin.owner()));
 
             vm.prank(PAO);
-            ethLockbox.authorizeLockbox(_lockbox);
+            ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
         }
 
         // Expect the revert with `AlreadyAuthorized` selector
@@ -374,7 +374,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `authorizeLockbox` function with the lockbox
         vm.prank(PAO);
-        ethLockbox.authorizeLockbox(_lockbox);
+        ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
     }
 
     /// @notice Tests the `authorizeLockbox` function reverts when the PAO of the lockbox is not the same as the PAO of
@@ -387,7 +387,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `authorizeLockbox` function with the lockbox
         vm.prank(PAO);
-        ethLockbox.authorizeLockbox(_lockbox);
+        ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
     }
 
     /// @notice Tests the `authorizeLockbox` function succeeds
@@ -403,7 +403,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Authorize the lockbox
         vm.prank(PAO);
-        ethLockbox.authorizeLockbox(_lockbox);
+        ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
 
         // Assert the lockbox is authorized
         assertTrue(ethLockbox.authorizedLockboxes(_lockbox));
@@ -418,7 +418,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `migrateLiquidity` function with an unauthorized caller
         vm.prank(_caller);
-        ethLockbox.migrateLiquidity(address(optimismPortal2));
+        ethLockbox.migrateLiquidity(ethLockbox);
     }
 
     /// @notice Tests the `migrateLiquidity` function reverts when the PAO of the lockbox is not the same as the PAO of
@@ -431,7 +431,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `migrateLiquidity` function with the lockbox
         vm.prank(PAO);
-        ethLockbox.migrateLiquidity(_lockbox);
+        ethLockbox.migrateLiquidity(IETHLockbox(_lockbox));
     }
 
     /// @notice Tests the `migrateLiquidity` function succeeds
@@ -456,7 +456,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `migrateLiquidity` function with the lockbox
         vm.prank(PAO);
-        ethLockbox.migrateLiquidity(_lockbox);
+        ethLockbox.migrateLiquidity(IETHLockbox(_lockbox));
 
         // Assert the liquidity was migrated
         assertEq(address(_lockbox).balance, newLockboxBalanceBefore + ethLockboxBalanceBefore);

@@ -30,8 +30,8 @@ interface IETHLockbox is IPAOBase, ISemver {
     function lockETH() external payable;
     function unlockETH(uint256 _value) external;
     function authorizePortal(IOptimismPortal2 _portal) external;
-    function authorizeLockbox(address _lockbox) external;
-    function migrateLiquidity(address _lockbox) external;
+    function authorizeLockbox(IETHLockbox _lockbox) external;
+    function migrateLiquidity(IETHLockbox _lockbox) external;
 
     function __constructor__() external;
 }
