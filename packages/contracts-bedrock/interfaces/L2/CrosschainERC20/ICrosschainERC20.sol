@@ -65,3 +65,4 @@ interface ICrosschainERC20 is IERC20Metadata, IXERC20, IERC7802, ISemver {
     function supportsInterface(bytes4 _interfaceId) external view returns (bool);
 
     function __constructor__(string memory _name, string memory _symbol, address _factory) external;
+}
