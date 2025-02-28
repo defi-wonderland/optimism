@@ -19,9 +19,12 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
 contract CrosschainERC20Factory_Test is Test {
     CrosschainERC20Factory factory;
 
-    address _owner = makeAddr("owner");
-    address _bridge = makeAddr("bridge");
-    address _bridge2 = makeAddr("bridge2");
+    address owner = makeAddr("owner");
+    address bridge = makeAddr("bridge");
+    address bridge2 = makeAddr("bridge2");
+
+    string name = "Test";
+    string symbol = "TST";
 
     /// @notice Test setup.
     function setUp() public {
@@ -48,12 +51,12 @@ contract CrosschainERC20Factory_Test is Test {
         burnerLimits_ = new uint256[](2);
 
         // Set the values for the first bridge
-        bridges_[0] = _bridge;
+        bridges_[0] = bridge;
         minterLimits_[0] = _minterLimit;
         burnerLimits_[0] = _burnerLimit;
 
         // Set the values for the second bridge
-        bridges_[1] = _bridge2;
+        bridges_[1] = bridge2;
         minterLimits_[1] = _minterLimit;
         burnerLimits_[1] = _burnerLimit;
     }
@@ -76,16 +79,13 @@ contract CrosschainERC20Factory_Test is Test {
 
         // Deploy the CrosschainERC20
         vm.expectRevert(CrosschainERC20Factory.InvalidLength.selector);
-        factory.deployCrosschainERC20("Test", "TEST", _minterLimits, _burnerLimits, _bridges);
+        factory.deployCrosschainERC20(name, symbol, _minterLimits, _burnerLimits, _bridges);
     }
 
     /// @notice Test that the deployCrosschainERC20 function succeeds.
     /// @param _minterLimit The minter limit.
     /// @param _burnerLimit The burner limit.
     function test_deployCrosschainERC20_deployment_succeeds(uint256 _minterLimit, uint256 _burnerLimit) public {
-        string memory _name = "Test";
-        string memory _symbol = "TST";
-
         // Bound limits in allowed range
         _minterLimit = bound(_minterLimit, 1, type(uint256).max >> 1);
         _burnerLimit = bound(_burnerLimit, 1, type(uint256).max >> 1);
@@ -95,15 +95,15 @@ contract CrosschainERC20Factory_Test is Test {
             _getBridgesWithLimits(_minterLimit, _burnerLimit);
 
         // Deploy the CrosschainERC20
-        vm.prank(_owner);
-        address _crosschainERC20 = factory.deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
+        vm.prank(owner);
+        address _crosschainERC20 = factory.deployCrosschainERC20(name, symbol, _minterLimits, _burnerLimits, _bridges);
 
         // Assert the CrosschainERC20 is deployed
         assertGt(_crosschainERC20.code.length, 0);
 
         // Assert the token name and symbol are correct
-        assertEq(IERC20Metadata(_crosschainERC20).name(), _name);
-        assertEq(IERC20Metadata(_crosschainERC20).symbol(), _symbol);
+        assertEq(IERC20Metadata(_crosschainERC20).name(), name);
+        assertEq(IERC20Metadata(_crosschainERC20).symbol(), symbol);
     }
 
     /// @notice Test that the deployCrosschainERC20 function sets the limits correctly.
@@ -119,8 +119,8 @@ contract CrosschainERC20Factory_Test is Test {
             _getBridgesWithLimits(_minterLimit, _burnerLimit);
 
         // Deploy the CrosschainERC20
-        vm.prank(_owner);
-        address _crosschainERC20 = factory.deployCrosschainERC20("Test", "TEST", _minterLimits, _burnerLimits, _bridges);
+        vm.prank(owner);
+        address _crosschainERC20 = factory.deployCrosschainERC20(name, symbol, _minterLimits, _burnerLimits, _bridges);
 
         // Assert the limits are set correctly
         for (uint256 _i; _i < _bridges.length; ++_i) {
@@ -140,11 +140,11 @@ contract CrosschainERC20Factory_Test is Test {
             _getBridgesWithLimits(1, 1);
 
         // Deploy the CrosschainERC20
-        vm.prank(_owner);
-        address _crosschainERC20 = factory.deployCrosschainERC20("Test", "TEST", _minterLimits, _burnerLimits, _bridges);
+        vm.prank(owner);
+        address _crosschainERC20 = factory.deployCrosschainERC20(name, symbol, _minterLimits, _burnerLimits, _bridges);
 
         // Assert the owner is the deployer
-        assertEq(Ownable(_crosschainERC20).owner(), _owner);
+        assertEq(Ownable(_crosschainERC20).owner(), owner);
     }
 
     /// @notice Test that the deployCrosschainERC20WithLockbox function succeeds.
@@ -162,18 +162,15 @@ contract CrosschainERC20Factory_Test is Test {
         (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
             _getBridgesWithLimits(_minterLimit, _burnerLimit);
 
-        string memory _name = "Test";
-        string memory _symbol = "TST";
-
         // Declare contract addresses
         address _crosschainERC20;
         address _crosschainERC20Lockbox;
         address _baseToken = address(makeAddr("ERC20"));
 
         // Deploy the CrosschainERC20 with Lockbox
-        vm.prank(_owner);
+        vm.prank(owner);
         (_crosschainERC20, _crosschainERC20Lockbox) =
-            factory.deployCrosschainERC20WithLockbox(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
+            factory.deployCrosschainERC20WithLockbox(name, symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
 
         // Assert the CrosschainERC20 is deployed
         assertGt(_crosschainERC20.code.length, 0);
@@ -197,18 +194,15 @@ contract CrosschainERC20Factory_Test is Test {
         (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
             _getBridgesWithLimits(1, 1);
 
-        string memory _name = "Test";
-        string memory _symbol = "TST";
-
         // Declare contract addresses
         address _crosschainERC20;
         address _crosschainERC20Lockbox;
         address _baseToken = address(makeAddr("ERC20"));
 
         // Deploy the CrosschainERC20 with Lockbox
-        vm.prank(_owner);
+        vm.prank(owner);
         (_crosschainERC20, _crosschainERC20Lockbox) =
-            factory.deployCrosschainERC20WithLockbox(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
+            factory.deployCrosschainERC20WithLockbox(name, symbol, _minterLimits, _burnerLimits, _bridges, _baseToken);
 
         // Assert the CrosschainERC20Lockbox is set
         assertEq(address(XERC20Lockbox(payable(_crosschainERC20Lockbox)).XERC20()), _crosschainERC20);
@@ -219,8 +213,8 @@ contract CrosschainERC20Factory_Test is Test {
         address _crosschainERC20 = address(makeAddr("CrosschainERC20"));
 
         // Deploy the ERC7802Adapter
-        vm.prank(_owner);
-        address _erc7802Adapter = factory.deployERC7802Adapter(_crosschainERC20, _bridge);
+        vm.prank(owner);
+        address _erc7802Adapter = factory.deployERC7802Adapter(_crosschainERC20, bridge);
 
         // Assert the ERC7802Adapter is deployed
         assertGt(_erc7802Adapter.code.length, 0);
@@ -229,6 +223,6 @@ contract CrosschainERC20Factory_Test is Test {
         assertEq(address(ERC7802Adapter(_erc7802Adapter).XERC20()), _crosschainERC20);
 
         // Assert the Bridge is set
-        assertEq(address(ERC7802Adapter(_erc7802Adapter).BRIDGE()), _bridge);
+        assertEq(address(ERC7802Adapter(_erc7802Adapter).BRIDGE()), bridge);
     }
 }
