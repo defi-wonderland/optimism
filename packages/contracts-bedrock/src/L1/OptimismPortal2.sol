@@ -327,13 +327,13 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
 
     /// @notice Updates the ETHLockbox contract.
     /// @param _newLockbox The address of the new ETHLockbox contract.
-    function updateLockbox(address _newLockbox) external {
+    function updateLockbox(IETHLockbox _newLockbox) external {
         if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
 
         address oldLockbox = address(ethLockbox);
         ethLockbox = IETHLockbox(_newLockbox);
 
-        emit LockboxUpdated(oldLockbox, _newLockbox);
+        emit LockboxUpdated(oldLockbox, address(_newLockbox));
     }
 
     /// @notice Proves a withdrawal transaction.

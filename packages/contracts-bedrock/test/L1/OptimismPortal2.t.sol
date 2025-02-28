@@ -471,7 +471,7 @@ contract OptimismPortal2_Test is CommonTest {
         vm.expectRevert(IOptimismPortal2.OptimismPortal_Unauthorized.selector);
 
         vm.prank(_caller);
-        optimismPortal2.updateLockbox(address(1));
+        optimismPortal2.updateLockbox(IETHLockbox(address(1)));
     }
 
     /// @dev Tests that `updateLockbox` updates the ETHLockbox contract.
@@ -483,7 +483,7 @@ contract OptimismPortal2_Test is CommonTest {
         emit LockboxUpdated(oldLockbox, _newLockbox);
 
         vm.prank(optimismPortal2.PAO());
-        optimismPortal2.updateLockbox(_newLockbox);
+        optimismPortal2.updateLockbox(IETHLockbox(_newLockbox));
 
         assertEq(address(optimismPortal2.ethLockbox()), _newLockbox);
     }

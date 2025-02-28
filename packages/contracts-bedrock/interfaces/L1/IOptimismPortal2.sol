@@ -61,7 +61,7 @@ interface IOptimismPortal2 is IPAOBase {
     function disputeGameFactory() external view returns (IDisputeGameFactory);
     function disputeGameFinalityDelaySeconds() external view returns (uint256);
     function donateETH() external payable;
-    function updateLockbox(address _newLockbox) external;
+    function updateLockbox(IETHLockbox _newLockbox) external;
     function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external;
     function finalizeWithdrawalTransactionExternalProof(
         Types.WithdrawalTransaction memory _tx,
