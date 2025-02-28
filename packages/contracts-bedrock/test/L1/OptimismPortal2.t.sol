@@ -9,6 +9,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Contracts
 import { SuperchainConfig } from "src/L1/SuperchainConfig.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
@@ -24,6 +25,8 @@ import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 contract OptimismPortal2_Test is CommonTest {
     address depositor;
@@ -80,6 +83,28 @@ contract OptimismPortal2_Test is CommonTest {
 
         // This check is not valid on forked tests as the respectedGameType varies between OP Chains.
         assertEq(optimismPortal2.respectedGameType().raw(), deploy.cfg().respectedGameType());
+    }
+
+    function testFuzz_upgrade_succeeds(address _newAnchorStateRegistry, uint256 _balance) external {
+        // Set the initialize state of the portal to false.
+        vm.store(address(optimismPortal2), bytes32(uint256(0)), bytes32(uint256(0)));
+
+        // Set the balance of the portal and get the lockbox balance before the upgrade.
+        deal(address(optimismPortal2), _balance);
+        uint256 lockboxBalanceBefore = address(ethLockbox).balance;
+
+        // Expect the ETH to be migrated to the lockbox.
+        vm.expectCall(address(ethLockbox), _balance, abi.encodeCall(ethLockbox.lockETH, ()));
+
+        // Call the upgrade function.
+        vm.prank(Predeploys.PROXY_ADMIN);
+        optimismPortal2.upgrade(IAnchorStateRegistry(_newAnchorStateRegistry), IETHLockbox(ethLockbox));
+
+        // Assert the portal is properly upgraded.
+        assertEq(address(optimismPortal2.ethLockbox()), address(ethLockbox));
+        assertEq(address(optimismPortal2.anchorStateRegistry()), _newAnchorStateRegistry);
+        assertEq(address(optimismPortal2).balance, 0);
+        assertEq(address(ethLockbox).balance, lockboxBalanceBefore + _balance);
     }
 
     /// @dev Tests that `pause` successfully pauses
@@ -142,8 +167,6 @@ contract OptimismPortal2_Test is CommonTest {
 
         assertEq(optimismPortal2.paused(), true);
     }
-
-    /// @dev Tests that `receive` successdully deposits ETH.
 
     /// @dev Tests that `receive` successdully deposits ETH.
     function testFuzz_receive_succeeds(uint256 _value) external {
