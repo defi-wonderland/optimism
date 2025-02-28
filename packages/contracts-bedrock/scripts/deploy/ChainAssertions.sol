@@ -22,7 +22,7 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { ProtocolVersion, IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
@@ -368,7 +368,7 @@ library ChainAssertions {
         internal
         view
     {
-        IOptimismPortal2 portal = IOptimismPortal2(payable(_contracts.OptimismPortal));
+        IOptimismPortal portal = IOptimismPortal(payable(_contracts.OptimismPortal));
         console.log(
             "Running chain assertions on the OptimismPortal2 %s at %s",
             _isProxy ? "proxy" : "implementation",

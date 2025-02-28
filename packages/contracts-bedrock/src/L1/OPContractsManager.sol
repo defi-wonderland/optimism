@@ -23,7 +23,7 @@ import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
@@ -76,7 +76,7 @@ contract OPContractsManager is ISemver {
         IL1CrossDomainMessenger l1CrossDomainMessengerProxy;
         IETHLockbox ethLockboxProxy;
         // Fault proof contracts below.
-        IOptimismPortal2 optimismPortalProxy;
+        IOptimismPortal optimismPortalProxy;
         IDisputeGameFactory disputeGameFactoryProxy;
         IAnchorStateRegistry anchorStateRegistryProxy;
         IFaultDisputeGame faultDisputeGame;
@@ -309,7 +309,7 @@ contract OPContractsManager is ISemver {
         output.l1ERC721BridgeProxy =
             IL1ERC721Bridge(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "L1ERC721Bridge"));
         output.optimismPortalProxy =
-            IOptimismPortal2(payable(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "OptimismPortal")));
+            IOptimismPortal(payable(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "OptimismPortal")));
         output.ethLockboxProxy = IETHLockbox(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "ETHLockbox"));
         output.systemConfigProxy =
             ISystemConfig(deployProxy(l2ChainId, output.opChainProxyAdmin, saltMixer, "SystemConfig"));
@@ -397,7 +397,7 @@ contract OPContractsManager is ISemver {
             output.opChainProxyAdmin, address(output.optimismPortalProxy), implementation.optimismPortalImpl, data
         );
 
-        IOptimismPortal2[] memory portals = new IOptimismPortal2[](1);
+        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
         portals[0] = output.optimismPortalProxy;
         data = encodeETHLockboxInitializer(portals);
         upgradeToAndCall(output.opChainProxyAdmin, address(output.ethLockboxProxy), implementation.ethLockboxImpl, data);
@@ -520,7 +520,7 @@ contract OPContractsManager is ISemver {
             // Grab the respected game type BEFORE upgrading the OptimismPortal or the function
             // won't work because the new implementation tries to get it from the
             // AnchorStateRegistry which doesn't have it yet.
-            GameType respectedGameType = IOptimismPortal2(payable(opChainAddrs.optimismPortal)).respectedGameType();
+            GameType respectedGameType = IOptimismPortal(payable(opChainAddrs.optimismPortal)).respectedGameType();
 
             // -------- Upgrade Contracts Stored in SystemConfig --------
             upgradeTo(
@@ -614,8 +614,8 @@ contract OPContractsManager is ISemver {
                     );
 
                     // Initialize the ETHLockbox.
-                    IOptimismPortal2[] memory portals = new IOptimismPortal2[](1);
-                    portals[0] = IOptimismPortal2(payable(opChainAddrs.optimismPortal));
+                    IOptimismPortal[] memory portals = new IOptimismPortal[](1);
+                    portals[0] = IOptimismPortal(payable(opChainAddrs.optimismPortal));
                     upgradeToAndCall(
                         _opChainConfigs[i].proxyAdmin,
                         address(ethLockbox),
@@ -625,7 +625,7 @@ contract OPContractsManager is ISemver {
 
                     // Upgrade the OptimismPortal to have a reference to the new AnchorStateRegistry and ETHLockbox,
                     // and migrate the ETH balance to the ETHLockbox.
-                    IOptimismPortal2(payable(opChainAddrs.optimismPortal)).upgrade(
+                    IOptimismPortal(payable(opChainAddrs.optimismPortal)).upgrade(
                         newAnchorStateRegistryProxy, ethLockbox
                     );
                 }
@@ -889,13 +889,13 @@ contract OPContractsManager is ISemver {
         returns (bytes memory)
     {
         return abi.encodeCall(
-            IOptimismPortal2.initialize,
+            IOptimismPortal.initialize,
             (_output.systemConfigProxy, superchainConfig, _output.anchorStateRegistryProxy, _output.ethLockboxProxy)
         );
     }
 
     /// @notice Helper method for encoding the ETHLockbox initializer data.
-    function encodeETHLockboxInitializer(IOptimismPortal2[] memory _portals)
+    function encodeETHLockboxInitializer(IOptimismPortal[] memory _portals)
         internal
         view
         virtual

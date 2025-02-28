@@ -19,7 +19,7 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IOPContractsManagerInterop } from "interfaces/L1/IOPContractsManagerInterop.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
@@ -150,7 +150,7 @@ contract DeployImplementationsInput is BaseDeployIO {
 contract DeployImplementationsOutput is BaseDeployIO {
     IOPContractsManager internal _opcm;
     IDelayedWETH internal _delayedWETHImpl;
-    IOptimismPortal2 internal _optimismPortalImpl;
+    IOptimismPortal internal _optimismPortalImpl;
     IETHLockbox internal _ethLockboxImpl;
     IPreimageOracle internal _preimageOracleSingleton;
     IMIPS internal _mipsSingleton;
@@ -171,7 +171,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
         if (_sel == this.opcm.selector) _opcm = IOPContractsManager(_addr);
         else if (_sel == this.superchainConfigImpl.selector) _superchainConfigImpl = ISuperchainConfig(_addr);
         else if (_sel == this.protocolVersionsImpl.selector) _protocolVersionsImpl = IProtocolVersions(_addr);
-        else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = IOptimismPortal2(payable(_addr));
+        else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = IOptimismPortal(payable(_addr));
         else if (_sel == this.ethLockboxImpl.selector) _ethLockboxImpl = IETHLockbox(payable(_addr));
         else if (_sel == this.delayedWETHImpl.selector) _delayedWETHImpl = IDelayedWETH(payable(_addr));
         else if (_sel == this.preimageOracleSingleton.selector) _preimageOracleSingleton = IPreimageOracle(_addr);
@@ -231,7 +231,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
         return _protocolVersionsImpl;
     }
 
-    function optimismPortalImpl() public view returns (IOptimismPortal2) {
+    function optimismPortalImpl() public view returns (IOptimismPortal) {
         DeployUtils.assertValidContractAddress(address(_optimismPortalImpl));
         return _optimismPortalImpl;
     }
@@ -316,7 +316,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
     }
 
     function assertValidOptimismPortalImpl(DeployImplementationsInput) internal view {
-        IOptimismPortal2 portal = optimismPortalImpl();
+        IOptimismPortal portal = optimismPortalImpl();
 
         DeployUtils.assertInitialized({ _contractAddress: address(portal), _isProxy: false, _slot: 0, _offset: 0 });
 
@@ -726,11 +726,11 @@ contract DeployImplementations is Script {
         virtual
     {
         uint256 proofMaturityDelaySeconds = _dii.proofMaturityDelaySeconds();
-        IOptimismPortal2 impl = IOptimismPortal2(
+        IOptimismPortal impl = IOptimismPortal(
             DeployUtils.createDeterministic({
                 _name: "OptimismPortal2",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IOptimismPortal2.__constructor__, (proofMaturityDelaySeconds))
+                    abi.encodeCall(IOptimismPortal.__constructor__, (proofMaturityDelaySeconds))
                 ),
                 _salt: _salt
             })
