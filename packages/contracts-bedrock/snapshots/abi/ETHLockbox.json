@@ -20,7 +20,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IETHLockbox",
         "name": "_lockbox",
         "type": "address"
       }
@@ -33,7 +33,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IOptimismPortal2",
         "name": "_portal",
         "type": "address"
       }
@@ -84,12 +84,12 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract ISuperchainConfig",
         "name": "_superchainConfig",
         "type": "address"
       },
       {
-        "internalType": "address[]",
+        "internalType": "contract IOptimismPortal2[]",
         "name": "_portals",
         "type": "address[]"
       }
@@ -109,7 +109,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IETHLockbox",
         "name": "_lockbox",
         "type": "address"
       }

@@ -607,7 +607,7 @@
   {
     "inputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IETHLockbox",
         "name": "_newLockbox",
         "type": "address"
       }
