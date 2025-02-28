@@ -123,7 +123,8 @@ contract Initializer_Test is CommonTest {
                 name: "OptimismPortal2Impl",
                 target: EIP1967Helper.getImplementation(address(optimismPortal2)),
                 initCalldata: abi.encodeCall(
-                    optimismPortal2.initialize, (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry)
+                    optimismPortal2.initialize,
+                    (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry, ethLockbox)
                 )
             })
         );
@@ -133,7 +134,8 @@ contract Initializer_Test is CommonTest {
                 name: "OptimismPortal2Proxy",
                 target: address(optimismPortal2),
                 initCalldata: abi.encodeCall(
-                    optimismPortal2.initialize, (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry)
+                    optimismPortal2.initialize,
+                    (disputeGameFactory, systemConfig, superchainConfig, anchorStateRegistry, ethLockbox)
                 )
             })
         );
@@ -322,6 +324,24 @@ contract Initializer_Test is CommonTest {
                         GameType.wrap(uint32(deploy.cfg().respectedGameType()))
                     )
                 )
+            })
+        );
+
+        // ETHLockboxImpl
+        contracts.push(
+            InitializeableContract({
+                name: "ETHLockboxImpl",
+                target: EIP1967Helper.getImplementation(address(ethLockbox)),
+                initCalldata: abi.encodeCall(ethLockbox.initialize, (address(0), new address[](0)))
+            })
+        );
+
+        // ETHLockboxProxy
+        contracts.push(
+            InitializeableContract({
+                name: "ETHLockboxProxy",
+                target: address(ethLockbox),
+                initCalldata: abi.encodeCall(ethLockbox.initialize, (address(0), new address[](0)))
             })
         );
     }
