@@ -41,7 +41,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     uint256 public constant MINT_LIMIT = 10e25;
     uint256 public constant BURN_LIMIT = 10e25;
     uint256 public constant DESTINATION_CHAIN_ID = 130;
-    bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
+    bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
         0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
 
     // Structs
@@ -110,7 +110,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
             superchainTokenBridge.relayERC20, (_tokenAddress, _message.from, alice, _message.amount)
         );
         return abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
+            abi.encode(SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
             abi.encode(address(superchainTokenBridge), message) // data
         );
     }
