@@ -328,6 +328,8 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
+        assumeNotForgeAddress(_7702Target);
+
         _gasLimit = uint64(
             bound(
                 _gasLimit,
