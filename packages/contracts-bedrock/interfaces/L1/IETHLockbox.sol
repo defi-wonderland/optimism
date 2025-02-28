@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IPAOBase } from "interfaces/L1/IPAOBase.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 interface IETHLockbox is IPAOBase, ISemver {
     error ETHLockbox_Unauthorized();
@@ -20,7 +21,7 @@ interface IETHLockbox is IPAOBase, ISemver {
     event LiquidityMigrated(address indexed lockbox);
     event LiquidityReceived(address indexed lockbox);
 
-    function initialize(address _superchainConfig, address[] calldata _portals) external;
+    function initialize(ISuperchainConfig _superchainConfig, IOptimismPortal2[] calldata _portals) external;
     function superchainConfig() external view returns (ISuperchainConfig);
     function paused() external view returns (bool);
     function authorizedPortals(address) external view returns (bool);
@@ -28,7 +29,7 @@ interface IETHLockbox is IPAOBase, ISemver {
     function receiveLiquidity() external payable;
     function lockETH() external payable;
     function unlockETH(uint256 _value) external;
-    function authorizePortal(address _portal) external;
+    function authorizePortal(IOptimismPortal2 _portal) external;
     function authorizeLockbox(address _lockbox) external;
     function migrateLiquidity(address _lockbox) external;
 

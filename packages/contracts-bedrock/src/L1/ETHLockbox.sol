@@ -10,7 +10,7 @@ import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 /// @custom:proxied true
@@ -82,18 +82,24 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @notice Initializer.
     /// @param _superchainConfig The address of the SuperchainConfig contract.
     /// @param _portals The addresses of the portals to authorize.
-    function initialize(address _superchainConfig, address[] calldata _portals) external initializer {
+    function initialize(
+        ISuperchainConfig _superchainConfig,
+        IOptimismPortal2[] calldata _portals
+    )
+        external
+        initializer
+    {
         superchainConfig = ISuperchainConfig(_superchainConfig);
         for (uint256 i; i < _portals.length; i++) {
-            _authorizePortal(_portals[i]);
+            _authorizePortal(address(_portals[i]));
         }
     }
 
     /// @notice Authorizes a portal to lock and unlock ETH.
     /// @param _portal The address of the portal to authorize.
-    function authorizePortal(address _portal) external {
+    function authorizePortal(IOptimismPortal2 _portal) external {
         if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
-        _authorizePortal(_portal);
+        _authorizePortal(address(_portal));
     }
 
     /// @notice Getter for the current paused status.
@@ -122,12 +128,12 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
         if (paused()) revert ETHLockbox_Paused();
         if (!authorizedPortals[msg.sender]) revert ETHLockbox_Unauthorized();
         /// NOTE: Check l2Sender is not set to avoid this function to be called as a target on a withdrawal transaction
-        if (IOptimismPortal(payable(msg.sender)).l2Sender() != Constants.DEFAULT_L2_SENDER) {
+        if (IOptimismPortal2(payable(msg.sender)).l2Sender() != Constants.DEFAULT_L2_SENDER) {
             revert ETHLockbox_NoWithdrawalTransactions();
         }
 
         // Using `donateETH` to avoid triggering a deposit
-        IOptimismPortal(payable(msg.sender)).donateETH{ value: _value }();
+        IOptimismPortal2(payable(msg.sender)).donateETH{ value: _value }();
         emit ETHUnlocked(msg.sender, _value);
     }
 

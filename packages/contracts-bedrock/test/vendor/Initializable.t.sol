@@ -19,6 +19,7 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ProtocolVersion } from "interfaces/L1/IProtocolVersions.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @title Initializer_Test
 /// @dev Ensures that the `initialize()` function on contracts cannot be called more than
@@ -330,7 +331,9 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "ETHLockboxImpl",
                 target: EIP1967Helper.getImplementation(address(ethLockbox)),
-                initCalldata: abi.encodeCall(ethLockbox.initialize, (address(0), new address[](0)))
+                initCalldata: abi.encodeCall(
+                    ethLockbox.initialize, (ISuperchainConfig(address(0)), new IOptimismPortal2[](0))
+                )
             })
         );
 
@@ -339,7 +342,9 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "ETHLockboxProxy",
                 target: address(ethLockbox),
-                initCalldata: abi.encodeCall(ethLockbox.initialize, (address(0), new address[](0)))
+                initCalldata: abi.encodeCall(
+                    ethLockbox.initialize, (ISuperchainConfig(address(0)), new IOptimismPortal2[](0))
+                )
             })
         );
     }

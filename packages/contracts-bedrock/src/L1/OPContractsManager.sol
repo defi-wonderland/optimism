@@ -397,8 +397,8 @@ contract OPContractsManager is ISemver {
             output.opChainProxyAdmin, address(output.optimismPortalProxy), implementation.optimismPortalImpl, data
         );
 
-        address[] memory portals = new address[](1);
-        portals[0] = address(output.optimismPortalProxy);
+        IOptimismPortal2[] memory portals = new IOptimismPortal2[](1);
+        portals[0] = output.optimismPortalProxy;
         data = encodeETHLockboxInitializer(portals);
         upgradeToAndCall(output.opChainProxyAdmin, address(output.ethLockboxProxy), implementation.ethLockboxImpl, data);
 
@@ -614,8 +614,8 @@ contract OPContractsManager is ISemver {
                     );
 
                     // Initialize the ETHLockbox.
-                    address[] memory portals = new address[](1);
-                    portals[0] = opChainAddrs.optimismPortal;
+                    IOptimismPortal2[] memory portals = new IOptimismPortal2[](1);
+                    portals[0] = IOptimismPortal2(payable(opChainAddrs.optimismPortal));
                     upgradeToAndCall(
                         _opChainConfigs[i].proxyAdmin,
                         address(ethLockbox),
@@ -895,8 +895,13 @@ contract OPContractsManager is ISemver {
     }
 
     /// @notice Helper method for encoding the ETHLockbox initializer data.
-    function encodeETHLockboxInitializer(address[] memory _portals) internal view virtual returns (bytes memory) {
-        return abi.encodeCall(IETHLockbox.initialize, (address(superchainConfig), _portals));
+    function encodeETHLockboxInitializer(IOptimismPortal2[] memory _portals)
+        internal
+        view
+        virtual
+        returns (bytes memory)
+    {
+        return abi.encodeCall(IETHLockbox.initialize, (superchainConfig, _portals));
     }
 
     /// @notice Helper method for encoding the SystemConfig initializer data.
