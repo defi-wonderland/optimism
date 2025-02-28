@@ -4,6 +4,9 @@ pragma solidity 0.8.15;
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
 
+// Libraries
+import { StaticConfig } from "src/libraries/StaticConfig.sol";
+
 // Contracts
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { XERC20 } from "@xERC20/contracts/XERC20.sol";
@@ -13,6 +16,7 @@ import { ICrosschainERC20 } from "interfaces/L2/CrosschainERC20/ICrosschainERC20
 import { IERC7802Adapter } from "interfaces/L2/CrosschainERC20/IERC7802Adapter.sol";
 import { ICrosschainERC20Factory } from "interfaces/L2/CrosschainERC20/ICrosschainERC20Factory.sol";
 import { IXERC20Lockbox } from "@xERC20/interfaces/IXERC20Lockbox.sol";
+import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @title CrosschainERC20_e2e_Base
 /// @notice Base contract for end-to-end testing of the CrosschainERC20 paths.
@@ -34,11 +38,15 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     string public constant SYMBOL = "TST";
     uint256 public constant MINT_LIMIT = 10e25;
     uint256 public constant BURN_LIMIT = 10e25;
+    uint256 public constant DESTINATION_CHAIN_ID = 130;
 
     /// @notice Test setup.
     function setUp() public virtual override {
         super.enableInterop();
         super.setUp();
+
+        vm.prank(IL1BlockInterop(address(l1Block)).DEPOSITOR_ACCOUNT());
+        IL1BlockInterop(address(l1Block)).setConfig(ConfigType.ADD_DEPENDENCY, StaticConfig.encodeAddDependency(DESTINATION_CHAIN_ID));
 
         crosschainERC20Factory =
             ICrosschainERC20Factory(vm.deployCode("src/L2/CrosschainERC20/CrosschainERC20Factory.sol"));
@@ -131,12 +139,12 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     /// @notice Burns using ERC7802 interface.
     function test_burnERC7802_succeeds() public virtual {
         // Approve the bridge to burn
-        vm.prank(alice);
+        vm.startPrank(alice);
         crosschainERC20.approve(address(superchainTokenBridge), BURN_LIMIT);
 
         // Burn tokens
-        vm.prank(address(superchainTokenBridge));
-        crosschainERC20.crosschainBurn(alice, BURN_LIMIT);
+        superchainTokenBridge.sendERC20(address(crosschainERC20), alice, BURN_LIMIT, DESTINATION_CHAIN_ID);
+        vm.stopPrank();
 
         // Check the balance has decreased by the burned amount
         uint256 balance = crosschainERC20.balanceOf(alice);
@@ -242,12 +250,12 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
     /// @notice Burns using ERC7802 interface.
     function test_burnERC7802_succeeds() public override {
         // Approve the bridge to burn
-        vm.prank(alice);
+        vm.startPrank(alice);
         crosschainERC20.approve(address(ERC7802Adapter), BURN_LIMIT);
 
         // Burn tokens
-        vm.prank(address(superchainTokenBridge));
-        ERC7802Adapter.crosschainBurn(alice, BURN_LIMIT);
+        superchainTokenBridge.sendERC20(address(ERC7802Adapter), alice, BURN_LIMIT, DESTINATION_CHAIN_ID);
+        vm.stopPrank();
 
         // Check the balance has decreased by the burned amount
         uint256 balance = crosschainERC20.balanceOf(alice);
