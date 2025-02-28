@@ -146,6 +146,13 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         assertEq(balance, 0);
     }
 
+    /// @notice Helper function to get the target address for ERC7802 operations
+    function _getERC7802Target() internal view returns (address) {
+        return address(ERC7802Adapter) != address(0) 
+            ? address(ERC7802Adapter) 
+            : address(crosschainERC20);
+    }
+
     /// @notice Mints using ERC7802 interface.
     function test_mintERC7802_succeeds(Identifier memory _id, Message memory _message) public virtual {
         _message.amount = MINT_LIMIT;
@@ -157,7 +164,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
         // Mint tokens using the message
-        bytes memory sentMessage = _constructMessage(_message, address(crosschainERC20));
+        bytes memory sentMessage = _constructMessage(_message, _getERC7802Target());
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, sentMessage);
 
         // Get balance after mint
@@ -169,12 +176,14 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
 
     /// @notice Burns using ERC7802 interface.
     function test_burnERC7802_succeeds() public virtual {
+        address target = _getERC7802Target();
+        
         // Approve the bridge to burn
         vm.startPrank(alice);
-        crosschainERC20.approve(address(superchainTokenBridge), BURN_LIMIT);
+        crosschainERC20.approve(target, BURN_LIMIT);
 
         // Burn tokens
-        superchainTokenBridge.sendERC20(address(crosschainERC20), alice, BURN_LIMIT, DESTINATION_CHAIN_ID);
+        superchainTokenBridge.sendERC20(target, alice, BURN_LIMIT, DESTINATION_CHAIN_ID);
         vm.stopPrank();
 
         // Check the balance has decreased by the burned amount
@@ -260,41 +269,5 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
 
         // Deal tokens
         deal(address(xerc20), alice, BURN_LIMIT);
-    }
-
-    /// @notice Mints using ERC7802 interface.
-    function test_mintERC7802_succeeds(Identifier memory _id, Message memory _message) public override {
-        _message.amount = MINT_LIMIT;
-
-        // Ensure the id is valid
-        _id.origin = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-
-        // Get balance before mint
-        uint256 balanceBefore = crosschainERC20.balanceOf(alice);
-
-        // Mint tokens using the message
-        bytes memory sentMessage = _constructMessage(_message, address(ERC7802Adapter));
-        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, sentMessage);
-
-        // Get balance after mint
-        uint256 balanceAfter = crosschainERC20.balanceOf(alice);
-
-        // Check the balance has increased by the minted amount
-        assertEq(balanceAfter - balanceBefore, MINT_LIMIT);
-    }
-
-    /// @notice Burns using ERC7802 interface.
-    function test_burnERC7802_succeeds() public override {
-        // Approve the bridge to burn
-        vm.startPrank(alice);
-        crosschainERC20.approve(address(ERC7802Adapter), BURN_LIMIT);
-
-        // Burn tokens
-        superchainTokenBridge.sendERC20(address(ERC7802Adapter), alice, BURN_LIMIT, DESTINATION_CHAIN_ID);
-        vm.stopPrank();
-
-        // Check the balance has decreased by the burned amount
-        uint256 balance = crosschainERC20.balanceOf(alice);
-        assertEq(balance, 0);
     }
 }
