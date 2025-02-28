@@ -5,6 +5,7 @@ pragma solidity 0.8.15;
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
 import { StaticConfig } from "src/libraries/StaticConfig.sol";
 
 // Contracts
@@ -17,6 +18,7 @@ import { IERC7802Adapter } from "interfaces/L2/CrosschainERC20/IERC7802Adapter.s
 import { ICrosschainERC20Factory } from "interfaces/L2/CrosschainERC20/ICrosschainERC20Factory.sol";
 import { IXERC20Lockbox } from "@xERC20/interfaces/IXERC20Lockbox.sol";
 import { IL1BlockInterop, ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { IL2ToL2CrossDomainMessenger, Identifier } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
 /// @title CrosschainERC20_e2e_Base
 /// @notice Base contract for end-to-end testing of the CrosschainERC20 paths.
@@ -39,6 +41,15 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     uint256 public constant MINT_LIMIT = 10e25;
     uint256 public constant BURN_LIMIT = 10e25;
     uint256 public constant DESTINATION_CHAIN_ID = 130;
+    bytes32 internal constant _SENT_MESSAGE_EVENT_SELECTOR =
+        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
+
+    // Structs
+    struct Message {
+        address from;
+        uint256 amount;
+        uint256 nonce;
+    }
 
     /// @notice Test setup.
     function setUp() public virtual override {
@@ -121,13 +132,27 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
     }
 
     /// @notice Mints using ERC7802 interface.
-    function test_mintERC7802_succeeds() public virtual {
+    function test_mintERC7802_succeeds(Identifier memory _id, Message memory _message) public virtual {
+        _message.amount = MINT_LIMIT;
+
+        // Ensure the id is valid
+        _id.origin = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
-        // Mint tokens
-        vm.prank(address(superchainTokenBridge));
-        crosschainERC20.crosschainMint(alice, MINT_LIMIT);
+        // Create the message
+        address messageTarget = address(superchainTokenBridge);
+        bytes memory message = abi.encodeCall(
+            superchainTokenBridge.relayERC20, (address(crosschainERC20), _message.from, alice, _message.amount)
+        );
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
+            abi.encode(address(superchainTokenBridge), message) // data
+        );
+
+        // Mint tokens using the message
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, sentMessage);
 
         // Get balance after mint
         uint256 balanceAfter = crosschainERC20.balanceOf(alice);
@@ -232,13 +257,27 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
     }
 
     /// @notice Mints using ERC7802 interface.
-    function test_mintERC7802_succeeds() public override {
+    function test_mintERC7802_succeeds(Identifier memory _id, Message memory _message) public override {
+        _message.amount = MINT_LIMIT;
+
+        // Ensure the id is valid
+        _id.origin = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
-        // Mint tokens
-        vm.prank(address(superchainTokenBridge));
-        ERC7802Adapter.crosschainMint(alice, MINT_LIMIT);
+        // Create the message
+        address messageTarget = address(superchainTokenBridge);
+        bytes memory message = abi.encodeCall(
+            superchainTokenBridge.relayERC20, (address(ERC7802Adapter), _message.from, alice, _message.amount)
+        );
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
+            abi.encode(address(superchainTokenBridge), message) // data
+        );
+
+        // Mint tokens using the message
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, sentMessage);
 
         // Get balance after mint
         uint256 balanceAfter = crosschainERC20.balanceOf(alice);
