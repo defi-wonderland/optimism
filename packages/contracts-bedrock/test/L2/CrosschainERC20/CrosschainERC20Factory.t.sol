@@ -143,7 +143,7 @@ contract CrosschainERC20Factory_Test is Test {
         address _crosschainERC20 =
             factory.deployCrosschainERC20(name, symbol, _minterLimits, _burnerLimits, _bridges, owner);
 
-        // Assert the owner is the deployer
+        // Assert the owner was correctly set
         assertEq(Ownable(_crosschainERC20).owner(), owner);
     }
 
