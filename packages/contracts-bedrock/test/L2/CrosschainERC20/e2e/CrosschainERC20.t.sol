@@ -27,6 +27,7 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
 
     // Defaults
     address public erc7281Bridge = makeAddr("erc7281Bridge");
+    address public owner = makeAddr("owner");
 
     // Constants
     string public constant NAME = "Test";
@@ -156,7 +157,7 @@ contract CrosschainERC20_e2e_NonDeployedTokenPath_Test is CrosschainERC20_e2e_Ba
 
         // Deploy the crosschainERC20
         crosschainERC20 = ICrosschainERC20(
-            crosschainERC20Factory.deployCrosschainERC20(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges)
+            crosschainERC20Factory.deployCrosschainERC20(NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges, owner)
         );
 
         // Deal tokens to alice
@@ -180,7 +181,7 @@ contract CrosschainERC20_e2e_DeployedTokenPath_Test is CrosschainERC20_e2e_Base 
 
         // Deploy the crosschainERC20 with lockbox
         (address _crosschainERC20, address _lockbox) = crosschainERC20Factory.deployCrosschainERC20WithLockbox(
-            NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges, address(erc20)
+            NAME, SYMBOL, _minterLimits, _burnerLimits, _bridges, address(erc20), owner
         );
         crosschainERC20 = ICrosschainERC20(_crosschainERC20);
         lockbox = IXERC20Lockbox(_lockbox);
@@ -223,7 +224,7 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
     }
 
     /// @notice Mints using ERC7802 interface.
-    function testMintERC7802() public override {
+    function test_mintERC7802_succeeds() public override {
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
@@ -239,7 +240,7 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
     }
 
     /// @notice Burns using ERC7802 interface.
-    function testBurnERC7802() public override {
+    function test_burnERC7802_succeeds() public override {
         // Approve the bridge to burn
         vm.prank(alice);
         crosschainERC20.approve(address(ERC7802Adapter), BURN_LIMIT);

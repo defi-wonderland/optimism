@@ -213,8 +213,8 @@ contract CrosschainERC20Factory_Test is Test {
         address _xerc20 = address(makeAddr("xERC20"));
 
         // Deploy the ERC7802Adapter
-        vm.prank(_owner);
-        address _erc7802Adapter = factory.deployERC7802Adapter(_xerc20, _bridge);
+        vm.prank(owner);
+        address _erc7802Adapter = factory.deployERC7802Adapter(_xerc20, bridge);
 
         // Assert the ERC7802Adapter is deployed
         assertGt(_erc7802Adapter.code.length, 0);
