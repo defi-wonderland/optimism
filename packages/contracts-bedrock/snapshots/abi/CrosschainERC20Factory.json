@@ -25,6 +25,11 @@
         "internalType": "address[]",
         "name": "_bridges",
         "type": "address[]"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
       }
     ],
     "name": "deployCrosschainERC20",
@@ -68,6 +73,11 @@
       {
         "internalType": "address",
         "name": "_baseToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
         "type": "address"
       }
     ],

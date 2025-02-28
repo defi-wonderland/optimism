@@ -50,7 +50,7 @@ contract CrosschainERC20Test is Test {
     /// @notice Tests the `burn` function reverts when the allowance is insufficient.
     function testFuzz_burn_withoutApproval_reverts(uint256 _amount, address _tokenBridge, address _tokenOwner) public {
         // Bound `amount` to not surpass the xERC20 limits
-        _amount = bound(_amount, 0, 1e40);
+        _amount = bound(_amount, 1, 1e40); // If `amount` is 0, the `burn` function will not revert as expected
 
         // Ensure `_tokenBridge` is not Permit2 or the zero address
         vm.assume(_tokenBridge != PERMIT2 && _tokenBridge != ZERO_ADDRESS);

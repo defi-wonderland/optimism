@@ -25,12 +25,13 @@ contract CrosschainERC20Factory {
         string memory _symbol,
         uint256[] memory _minterLimits,
         uint256[] memory _burnerLimits,
-        address[] memory _bridges
+        address[] memory _bridges,
+        address _owner
     )
         external
         returns (address crosschainERC20_)
     {
-        crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
+        crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _owner);
     }
 
     /// @notice Deploys a new CrosschainERC20Lockbox and CrosschainERC20
@@ -48,12 +49,13 @@ contract CrosschainERC20Factory {
         uint256[] memory _minterLimits,
         uint256[] memory _burnerLimits,
         address[] memory _bridges,
-        address _baseToken
+        address _baseToken,
+        address _owner
     )
         external
         returns (address crosschainERC20_, address crosschainERC20Lockbox_)
     {
-        crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges);
+        crosschainERC20_ = _deployCrosschainERC20(_name, _symbol, _minterLimits, _burnerLimits, _bridges, _owner);
         crosschainERC20Lockbox_ = _deployLockbox(crosschainERC20_, _baseToken);
     }
 
@@ -77,7 +79,8 @@ contract CrosschainERC20Factory {
         string memory _symbol,
         uint256[] memory _minterLimits,
         uint256[] memory _burnerLimits,
-        address[] memory _bridges
+        address[] memory _bridges,
+        address _owner
     )
         internal
         returns (address crosschainERC20_)
@@ -96,7 +99,7 @@ contract CrosschainERC20Factory {
             CrosschainERC20(crosschainERC20_).setLimits(_bridges[_i], _minterLimits[_i], _burnerLimits[_i]);
         }
 
-        CrosschainERC20(crosschainERC20_).transferOwnership(msg.sender);
+        CrosschainERC20(crosschainERC20_).transferOwnership(_owner);
     }
 
     /// @notice Deploys a new CrosschainERC20Lockbox contract
