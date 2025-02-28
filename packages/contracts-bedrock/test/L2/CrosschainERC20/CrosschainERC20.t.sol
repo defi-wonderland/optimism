@@ -73,6 +73,32 @@ contract CrosschainERC20Test is Test {
         assertEq(crosschainERC20.balanceOf(_tokenOwner), 0);
     }
 
+    /// @notice Tests the `crosschainBurn` function reverts when the allowance is insufficient.
+    function testFuzz_crosschainBurn_withoutApproval_reverts(uint256 _amount, address _tokenBridge, address _tokenOwner) public {
+        // Bound `amount` to not surpass the xERC20 limits
+        _amount = bound(_amount, 1, 1e40); // If `amount` is 0, the `crosschainBurn` function will not revert as expected
+
+        // Ensure `_tokenBridge` is not Permit2 or the zero address
+        vm.assume(_tokenBridge != PERMIT2 && _tokenBridge != ZERO_ADDRESS);
+
+        // Ensure `_tokenOwner` is not the zero address
+        vm.assume(_tokenOwner != ZERO_ADDRESS);
+
+        // Set the limits for the Token Bridge
+        vm.prank(owner);
+        crosschainERC20.setLimits(_tokenBridge, _amount, _amount);
+
+        // Expect the `burn` function to revert when the allowance is insufficient
+        vm.expectRevert("ERC20: insufficient allowance");
+
+        // Burn the tokens without approval
+        vm.prank(_tokenBridge);
+        crosschainERC20.crosschainBurn(_tokenOwner, _amount);
+
+        // Assert that the balance of the token owner is 0
+        assertEq(crosschainERC20.balanceOf(_tokenOwner), 0);
+    }
+
     /// @notice Tests the `burn` function works by expecting the allowance to be reduced.
     function testFuzz_burn_works(
         uint256 _amount,
