@@ -30,7 +30,7 @@ contract CrosschainERC20Test is Test {
         vm.assume(_user2 != PERMIT2 && _user2 != ZERO_ADDRESS);
 
         // Bound `amount`
-        _amount = bound(_amount, 1, 1e40);
+        _amount = bound(_amount, 0, 1e40);
 
         // Assert that the allowance is the maximum when the owner is Permit2
         assertEq(crosschainERC20.allowance(_user, PERMIT2), type(uint256).max);
@@ -50,7 +50,7 @@ contract CrosschainERC20Test is Test {
     /// @notice Tests the `burn` function reverts when the allowance is insufficient.
     function testFuzz_burn_withoutApproval_reverts(uint256 _amount, address _tokenBridge, address _tokenOwner) public {
         // Bound `amount` to not surpass the xERC20 limits
-        _amount = bound(_amount, 1, 1e40);
+        _amount = bound(_amount, 0, 1e40);
 
         // Ensure `_tokenBridge` is not Permit2 or the zero address
         vm.assume(_tokenBridge != PERMIT2 && _tokenBridge != ZERO_ADDRESS);
@@ -83,7 +83,7 @@ contract CrosschainERC20Test is Test {
         public
     {
         // Bound `amount` to not surpass the xERC20 limits
-        _amount = bound(_amount, 1, 1e40);
+        _amount = bound(_amount, 0, 1e40);
 
         // Bound `approvalAmount` to not surpass the xERC20 limits
         _approvalAmount = bound(_approvalAmount, _amount, 1e45);
@@ -121,7 +121,7 @@ contract CrosschainERC20Test is Test {
         vm.assume(_bridge != ZERO_ADDRESS);
 
         // Bound `amount` to not surpass the xERC20 limits
-        _amount = bound(_amount, 1, 1e40);
+        _amount = bound(_amount, 0, 1e40);
 
         // Set the limits for the Token Bridge
         vm.prank(owner);
@@ -144,7 +144,7 @@ contract CrosschainERC20Test is Test {
         vm.assume(_bridge != ZERO_ADDRESS);
 
         // Bound `amount` to not surpass the xERC20 limits
-        _amount = bound(_amount, 1, 1e40);
+        _amount = bound(_amount, 0, 1e40);
 
         // Set the limits for the Token Bridge
         vm.prank(owner);
