@@ -5,15 +5,14 @@ pragma solidity ^0.8.0;
 import { IERC7802 } from "interfaces/L2/IERC7802.sol";
 import { IXERC20 } from "@xERC20/interfaces/IXERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { IERC20Permit } from "@openzeppelin/contracts-v5/token/ERC20/extensions/IERC20Permit.sol";
-import { IERC5267 } from "@openzeppelin/contracts-v5/interfaces/IERC5267.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title ICrosschainERC20
 /// @notice This interface is available on the CrosschainERC20 contract.
-interface ICrosschainERC20 is IERC20Metadata, IERC20Permit, IERC5267, IXERC20, IERC7802, ISemver {
+interface ICrosschainERC20 is IERC20Metadata, IXERC20, IERC7802, ISemver {
     // External dependencies events
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event EIP712DomainChanged();
 
     // External dependencies errors
     error InvalidShortString();
@@ -22,6 +21,33 @@ interface ICrosschainERC20 is IERC20Metadata, IERC20Permit, IERC5267, IXERC20, I
     // ERC20 functions
     function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
     function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
+
+    // ERC20Permit functions
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+    function nonces(address owner) external view returns (uint256);
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+
+    // ERC5267 functions
+        function eip712Domain()
+        external
+        view
+        returns (
+            bytes1 fields,
+            string memory name,
+            string memory version,
+            uint256 chainId,
+            address verifyingContract,
+            bytes32 salt,
+            uint256[] memory extensions
+        );
 
     // XERC20 functions
     function FACTORY() external view returns (address);
