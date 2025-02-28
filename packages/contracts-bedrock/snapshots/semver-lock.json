@@ -57,15 +57,11 @@
   },
   "src/L2/CrosschainERC20/CrosschainERC20.sol": {
     "initCodeHash": "0xa8766dd6759dab59f305e0824baef03acc38a6eac5b047579bac5cbd9c560239",
-    "sourceCodeHash": "0x9e736fb41488ffb96f8aba2dbe8e2ca9d9de2cc01772017a834e3c424cf5eb17"
-  },
-  "src/L2/CrosschainERC20/CrosschainERC20Factory.sol": {
-    "initCodeHash": "0x3be17ddfb5a238e24a5a759dc1f7d95a52476f4609de0d396a98476d8014f88c",
-    "sourceCodeHash": "0x35ad67e341326c1f90282bb0733110afff818dbf8156bddb82358c4573431c19"
+    "sourceCodeHash": "0x7abf5375ac13cc373e9bb8933c2aedd5cd2ff18e10844c11abf1828cebbd7051"
   },
   "src/L2/CrosschainERC20/ERC7802Adapter.sol": {
     "initCodeHash": "0x0ecb4f3c729cc9f47cc5c426f75b70d6928b88836f69cb6ec99ca0d21060d279",
-    "sourceCodeHash": "0x5d0fa35b869f7a081cd21419f2fb6f1b7d50f49a5af8cf4fcd206bf586f7003b"
+    "sourceCodeHash": "0xa2dc56d51e14f1881d8142c0f11313cef9a74c97d0d1f6eea52cf5f5ac84a19f"
   },
   "src/L2/ETHLiquidity.sol": {
     "initCodeHash": "0x776ece4a1bb24d97287806769470327641da240b083898a90943e2844957cc46",
