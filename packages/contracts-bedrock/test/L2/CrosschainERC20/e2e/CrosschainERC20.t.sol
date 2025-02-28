@@ -100,6 +100,21 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         }
     }
 
+    /// @notice Helper function to construct a message for ERC7802 minting
+    /// @param _message The message struct containing from, amount and nonce
+    /// @param _tokenAddress The address of the token to mint
+    /// @return sentMessage The encoded message
+    function _constructMessage(Message memory _message, address _tokenAddress) internal view returns (bytes memory) {
+        address messageTarget = address(superchainTokenBridge);
+        bytes memory message = abi.encodeCall(
+            superchainTokenBridge.relayERC20, (_tokenAddress, _message.from, alice, _message.amount)
+        );
+        return abi.encodePacked(
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
+            abi.encode(address(superchainTokenBridge), message) // data
+        );
+    }
+
     /// @notice Mints using ERC7281 interface.
     function test_mintERC7281_succeeds() public {
         // Get balance before mint
@@ -141,17 +156,8 @@ abstract contract CrosschainERC20_e2e_Base is CommonTest {
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
-        // Create the message
-        address messageTarget = address(superchainTokenBridge);
-        bytes memory message = abi.encodeCall(
-            superchainTokenBridge.relayERC20, (address(crosschainERC20), _message.from, alice, _message.amount)
-        );
-        bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
-            abi.encode(address(superchainTokenBridge), message) // data
-        );
-
         // Mint tokens using the message
+        bytes memory sentMessage = _constructMessage(_message, address(crosschainERC20));
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, sentMessage);
 
         // Get balance after mint
@@ -266,17 +272,8 @@ contract CrosschainERC20_e2e_DeployedXERC20Path_Test is CrosschainERC20_e2e_Base
         // Get balance before mint
         uint256 balanceBefore = crosschainERC20.balanceOf(alice);
 
-        // Create the message
-        address messageTarget = address(superchainTokenBridge);
-        bytes memory message = abi.encodeCall(
-            superchainTokenBridge.relayERC20, (address(ERC7802Adapter), _message.from, alice, _message.amount)
-        );
-        bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
-            abi.encode(address(superchainTokenBridge), message) // data
-        );
-
         // Mint tokens using the message
+        bytes memory sentMessage = _constructMessage(_message, address(ERC7802Adapter));
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, sentMessage);
 
         // Get balance after mint
