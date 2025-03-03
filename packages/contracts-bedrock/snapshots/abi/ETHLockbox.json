@@ -5,19 +5,6 @@
     "type": "constructor"
   },
   {
-    "inputs": [],
-    "name": "PAO",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "contract IETHLockbox",
@@ -127,6 +114,19 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proxyAdminOwner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -283,12 +283,7 @@
   },
   {
     "inputs": [],
-    "name": "ETHLockbox_AlreadyAuthorized",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ETHLockbox_DifferentPAO",
+    "name": "ETHLockbox_DifferentProxyAdminOwner",
     "type": "error"
   },
   {
