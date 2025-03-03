@@ -119,9 +119,9 @@ contract ForkLive is Deployer {
         artifacts.save("OptimismPortal2Impl", EIP1967Helper.getImplementation(optimismPortal));
 
         // Get the lockbox address from the portal, and save it
-        try IOptimismPortal2(payable(optimismPortal)).ethLockbox() returns (IETHLockbox ethLockbox) {
-            console.log("ForkLive: ETHLockboxProxy found: %s", address(ethLockbox));
-            artifacts.save("ETHLockboxProxy", address(ethLockbox));
+        try IOptimismPortal2(payable(optimismPortal)).ethLockbox() returns (IETHLockbox ethLockbox_) {
+            console.log("ForkLive: ETHLockboxProxy found: %s", address(ethLockbox_));
+            artifacts.save("ETHLockboxProxy", address(ethLockbox_));
         } catch {
             console.log("ForkLive: ETHLockboxProxy not found");
         }
