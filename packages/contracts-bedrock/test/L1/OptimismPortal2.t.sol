@@ -467,9 +467,9 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(accountAccesses[2].storageAccesses.length, 0);
     }
 
-    /// @dev Tests that `updateLockbox` reverts if the caller is not the PAO.
-    function testFuzz_updateLockbox_notPAO_reverts(address _caller) external {
-        vm.assume(_caller != optimismPortal2.PAO());
+    /// @dev Tests that `updateLockbox` reverts if the caller is not the proxy admin owner.
+    function testFuzz_updateLockbox_notProxyAdminOwner_reverts(address _caller) external {
+        vm.assume(_caller != optimismPortal2.proxyAdminOwner());
         vm.expectRevert(IOptimismPortal.OptimismPortal_Unauthorized.selector);
 
         vm.prank(_caller);
@@ -484,7 +484,7 @@ contract OptimismPortal2_Test is CommonTest {
         vm.expectEmit(address(optimismPortal2));
         emit LockboxUpdated(oldLockbox, _newLockbox);
 
-        vm.prank(optimismPortal2.PAO());
+        vm.prank(optimismPortal2.proxyAdminOwner());
         optimismPortal2.updateLockbox(IETHLockbox(_newLockbox));
 
         assertEq(address(optimismPortal2.ethLockbox()), _newLockbox);
@@ -1859,8 +1859,8 @@ contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
     }
 
     /// @notice Tests the liquidity migration from the portal to the lockbox reverts if not called by the admin owner.
-    function testFuzz_migrateLiquidity_notPAO_reverts(address _caller) external {
-        vm.assume(_caller != optimismPortal2.PAO());
+    function testFuzz_migrateLiquidity_notProxyAdminOwner_reverts(address _caller) external {
+        vm.assume(_caller != optimismPortal2.proxyAdminOwner());
         vm.expectRevert(IOptimismPortal.OptimismPortal_Unauthorized.selector);
         vm.prank(_caller);
         optimismPortal2.migrateLiquidity();
@@ -1871,14 +1871,14 @@ contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
         vm.deal(address(optimismPortal2), _portalBalance);
 
         uint256 lockboxBalanceBefore = address(ethLockbox).balance;
-        address PAO = optimismPortal2.PAO();
+        address proxyAdminOwner = optimismPortal2.proxyAdminOwner();
 
         vm.expectCall(address(ethLockbox), _portalBalance, abi.encodeCall(ethLockbox.lockETH, ()));
 
         vm.expectEmit(address(optimismPortal2));
         emit ETHMigrated(_portalBalance);
 
-        vm.prank(PAO);
+        vm.prank(proxyAdminOwner);
         optimismPortal2.migrateLiquidity();
 
         assertEq(address(optimismPortal2).balance, 0);

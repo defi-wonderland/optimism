@@ -8,10 +8,10 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IPAOBase } from "interfaces/L1/IPAOBase.sol";
+import { IProxyAdminOwnerBase } from "interfaces/L1/IProxyAdminOwnerBase.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
-interface IOptimismPortal2 is IPAOBase {
+interface IOptimismPortal2 is IProxyAdminOwnerBase {
     error OptimismPortal_Unauthorized();
     error ContentLengthMismatch();
     error EmptyItem();

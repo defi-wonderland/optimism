@@ -10,9 +10,9 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
-import { IPAOBase } from "interfaces/L1/IPAOBase.sol";
+import { IProxyAdminOwnerBase } from "interfaces/L1/IProxyAdminOwnerBase.sol";
 
-interface IOptimismPortalInterop is IPAOBase {
+interface IOptimismPortalInterop is IProxyAdminOwnerBase {
     error ContentLengthMismatch();
     error EmptyItem();
     error InvalidDataRemainder();

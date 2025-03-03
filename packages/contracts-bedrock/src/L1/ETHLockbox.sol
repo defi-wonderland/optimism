@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Contracts
-import { PAOBase } from "src/L1/PAOBase.sol";
+import { ProxyAdminOwnerBase } from "src/L1/ProxyAdminOwnerBase.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // Libraries
@@ -18,7 +18,7 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 /// @title ETHLockbox
 /// @notice Manages ETH liquidity locking and unlocking for authorized OptimismPortals, enabling unified ETH liquidity
 ///         management across chains in the superchain cluster.
-contract ETHLockbox is PAOBase, Initializable, ISemver {
+contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     /// @notice Thrown when the lockbox is paused.
     error ETHLockbox_Paused();
 
@@ -29,7 +29,7 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     error ETHLockbox_NoWithdrawalTransactions();
 
     /// @notice Thrown when the admin owner of the lockbox is different from the admin owner of the proxy admin.
-    error ETHLockbox_DifferentPAO();
+    error ETHLockbox_DifferentProxyAdminOwner();
 
     /// @notice Emitted when ETH is locked in the lockbox by an authorized portal.
     /// @param portal The address of the portal that locked the ETH.
@@ -96,7 +96,7 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @notice Authorizes a portal to lock and unlock ETH.
     /// @param _portal The address of the portal to authorize.
     function authorizePortal(IOptimismPortal _portal) external {
-        if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
+        if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
         _authorizePortal(address(_portal));
     }
 
@@ -138,8 +138,8 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @notice Authorizes an ETH lockbox to migrate its liquidity to the current ETH lockbox.
     /// @param _lockbox The address of the ETH lockbox to authorize.
     function authorizeLockbox(IETHLockbox _lockbox) external {
-        if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
-        if (!_samePAO(address(_lockbox))) revert ETHLockbox_DifferentPAO();
+        if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
+        if (!_sameproxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
         authorizedLockboxes[address(_lockbox)] = true;
         emit LockboxAuthorized(address(_lockbox));
@@ -148,8 +148,8 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @notice Migrates liquidity from the current ETH lockbox to another.
     /// @param _lockbox The address of the ETH lockbox to migrate liquidity to.
     function migrateLiquidity(IETHLockbox _lockbox) external {
-        if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
-        if (!_samePAO(address(_lockbox))) revert ETHLockbox_DifferentPAO();
+        if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
+        if (!_sameproxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
         IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
         emit LiquidityMigrated(address(_lockbox));
@@ -158,7 +158,7 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @notice Authorizes a portal to lock and unlock ETH.
     /// @param _portal The address of the portal to authorize.
     function _authorizePortal(address _portal) internal {
-        if (!_samePAO(_portal)) revert ETHLockbox_DifferentPAO();
+        if (!_sameproxyAdminOwner(_portal)) revert ETHLockbox_DifferentProxyAdminOwner();
         authorizedPortals[_portal] = true;
         emit PortalAuthorized(_portal);
     }

@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IPAOBase } from "interfaces/L1/IPAOBase.sol";
+import { IProxyAdminOwnerBase } from "interfaces/L1/IProxyAdminOwnerBase.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
-interface IETHLockbox is IPAOBase, ISemver {
+interface IETHLockbox is IProxyAdminOwnerBase, ISemver {
     error ETHLockbox_Unauthorized();
     error ETHLockbox_Paused();
     error ETHLockbox_NoWithdrawalTransactions();
-    error ETHLockbox_DifferentPAO();
+    error ETHLockbox_DifferentProxyAdminOwner();
 
     event Initialized(uint8 version);
     event ETHLocked(address indexed portal, uint256 amount);

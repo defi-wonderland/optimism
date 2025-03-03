@@ -624,7 +624,7 @@ contract DeployOPChain is Script {
 
         // Check once the portal is updated to use the new lockbox.
         require(address(portal.ethLockbox()) == address(_doo.ethLockboxProxy()), "PORTAL-90");
-        require(portal.PAO() == _doi.opChainProxyAdminOwner(), "PORTAL-100");
+        require(portal.proxyAdminOwner() == _doi.opChainProxyAdminOwner(), "PORTAL-100");
     }
 
     function assertValidETHLockbox(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {
@@ -632,7 +632,7 @@ contract DeployOPChain is Script {
 
         require(address(lockbox.superchainConfig()) == address(_doi.opcm().superchainConfig()), "ETHLOCKBOX-10");
         require(lockbox.authorizedPortals(address(_doo.optimismPortalProxy())), "ETHLOCKBOX-20");
-        require(lockbox.PAO() == _doi.opChainProxyAdminOwner(), "ETHLOCKBOX-30");
+        require(lockbox.proxyAdminOwner() == _doi.opChainProxyAdminOwner(), "ETHLOCKBOX-30");
     }
 
     function assertValidDisputeGameFactory(DeployOPChainInput _doi, DeployOPChainOutput _doo) internal {

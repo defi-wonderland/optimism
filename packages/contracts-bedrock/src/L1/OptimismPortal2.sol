@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { PAOBase } from "src/L1/PAOBase.sol";
+import { ProxyAdminOwnerBase } from "src/L1/ProxyAdminOwnerBase.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { ResourceMetering } from "src/L1/ResourceMetering.sol";
 
@@ -31,7 +31,7 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
+contract OptimismPortal2 is ProxyAdminOwnerBase, Initializable, ResourceMetering, ISemver {
     /// @notice Represents a proven withdrawal.
     /// @custom:field disputeGameProxy Game that the withdrawal was proven against.
     /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
@@ -328,7 +328,7 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
     /// @notice Updates the ETHLockbox contract.
     /// @param _newLockbox The address of the new ETHLockbox contract.
     function updateLockbox(IETHLockbox _newLockbox) external {
-        if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
+        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
 
         address oldLockbox = address(ethLockbox);
         ethLockbox = IETHLockbox(_newLockbox);
@@ -536,7 +536,7 @@ contract OptimismPortal2 is PAOBase, Initializable, ResourceMetering, ISemver {
 
     /// @notice Migrates the total ETH balance to the ETHLockbox.
     function migrateLiquidity() public {
-        if (msg.sender != PAO()) revert OptimismPortal_Unauthorized();
+        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
         _migrateLiquidity();
     }
 

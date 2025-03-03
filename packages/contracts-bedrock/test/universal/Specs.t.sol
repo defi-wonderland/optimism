@@ -251,7 +251,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("upgrade(address,address)") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("ethLockbox()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("migrateLiquidity()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("PAO()") });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("proxyAdminOwner()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("setConfig(uint8,bytes)") });
 
         // OptimismPortal2
@@ -296,10 +296,10 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("upgrade(address,address)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("ethLockbox()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("migrateLiquidity()") });
-        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("PAO()") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("proxyAdminOwner()") });
 
-        // PAOBase
-        _addSpec({ _name: "PAOBase", _sel: _getSel("PAO()") });
+        // ProxyAdminOwnerBase
+        _addSpec({ _name: "ProxyAdminOwnerBase", _sel: _getSel("proxyAdminOwner()") });
 
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });
@@ -336,7 +336,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "ETHLockbox", _sel: _getSel("authorizePortal(address)") });
         _addSpec({ _name: "ETHLockbox", _sel: _getSel("authorizeLockbox(address)") });
         _addSpec({ _name: "ETHLockbox", _sel: _getSel("migrateLiquidity(address)") });
-        _addSpec({ _name: "ETHLockbox", _sel: _getSel("PAO()") });
+        _addSpec({ _name: "ETHLockbox", _sel: _getSel("proxyAdminOwner()") });
 
         // ResourceMetering
         _addSpec({ _name: "ResourceMetering", _sel: _getSel("params()") });
