@@ -5,7 +5,7 @@
   },
   "src/L1/ETHLockbox.sol": {
     "initCodeHash": "0xb5da33c92a6f0bc00eaaaec5d0b99c9c15a9dd9d7a25c416cd6740a96e7fc4d5",
-    "sourceCodeHash": "0x27817f59ef48aad41a20c9d8881546141b23ffd69e0879a9a98a4e83b70c9e45"
+    "sourceCodeHash": "0x12af194d8fe23ff1c15c378151c7cb9e5a3854531b69c1153475432ef9f73d5e"
   },
   "src/L1/L1CrossDomainMessenger.sol": {
     "initCodeHash": "0x03a3c0eb2418aba9f93bb89723ba2ee7cb9e1988ca00f380503c960149c85b7a",
@@ -21,7 +21,7 @@
   },
   "src/L1/OPContractsManager.sol": {
     "initCodeHash": "0x6eaf1dcd6b87f4372445e8a8936efa4e9879cfd05c1de8a306acb69266ee03d9",
-    "sourceCodeHash": "0x4a697d6318965a81b35634c07eb76e7042d074adf5a5b5e6447f9d752cfb8c58"
+    "sourceCodeHash": "0x9205651bfa81ac60fc331892c792ae6f668601556270ac6a5cda9c5e2258f524"
   },
   "src/L1/OPContractsManagerInterop.sol": {
     "initCodeHash": "0x7865201a60d422cda5b33a2ff22b4ab707a15ba54016182d2a6cca367d618d74",

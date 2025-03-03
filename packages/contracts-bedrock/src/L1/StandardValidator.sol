@@ -21,7 +21,7 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
 
 contract StandardValidatorBase {
@@ -204,7 +204,7 @@ contract StandardValidatorBase {
             _admin.getProxyImplementation(address(_messenger)) == l1CrossDomainMessengerImpl, "L1xDM-20", _errors
         );
 
-        IOptimismPortal _portal = IOptimismPortal(payable(_sysCfg.optimismPortal()));
+        IOptimismPortal2 _portal = IOptimismPortal2(payable(_sysCfg.optimismPortal()));
 
         _errors = internalRequire(
             address(_messenger.OTHER_MESSENGER()) == Predeploys.L2_CROSS_DOMAIN_MESSENGER, "L1xDM-30", _errors
@@ -297,7 +297,7 @@ contract StandardValidatorBase {
         view
         returns (string memory)
     {
-        IOptimismPortal _portal = IOptimismPortal(payable(_sysCfg.optimismPortal()));
+        IOptimismPortal2 _portal = IOptimismPortal2(payable(_sysCfg.optimismPortal()));
         _errors = internalRequire(stringEq(_portal.version(), optimismPortalVersion()), "PORTAL-10", _errors);
         _errors =
             internalRequire(_admin.getProxyImplementation(address(_portal)) == optimismPortalImpl, "PORTAL-20", _errors);
