@@ -35,9 +35,12 @@ contract ETHLockboxTest is CommonTest {
     function setUp() public virtual override {
         super.setUp();
         if (isForkTest()) {
+            // If not on the last upgrade network, we skip the test since the `ETHLockbox` won't be yet deployed
             if (!deploy.cfg().useUpgradedFork()) vm.skip(true);
+            // If it is a fork test, we need to use the correct proxy admin address
             proxyAdmin = ProxyAdmin(0x543bA4AADBAb8f9025686Bd03993043599c6fB04);
         } else {
+            // If not on a fork test, we can use the predeployed proxy admin for the sake of simplicity
             proxyAdmin = ProxyAdmin(Predeploys.PROXY_ADMIN);
         }
 
@@ -124,6 +127,7 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the ETH is correctly locked when the caller is an authorized portal.
     function testFuzz_lockETH_succeeds(uint256 _amount) public {
+        // Prevent overflow on an upgrade context
         _amount = bound(_amount, 0, type(uint256).max - address(ethLockbox).balance);
 
         // Deal the ETH amount to the portal
