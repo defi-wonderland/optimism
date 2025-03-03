@@ -29,12 +29,18 @@ contract ETHLockboxTest is CommonTest {
     event LiquidityMigrated(address indexed lockbox);
     event LiquidityReceived(address indexed lockbox);
 
-    ProxyAdmin public proxyAdmin = ProxyAdmin(Predeploys.PROXY_ADMIN);
+    ProxyAdmin public proxyAdmin;
     address public proxyAdminOwner;
 
     function setUp() public virtual override {
         super.setUp();
-        if (isForkTest()) vm.skip(true);
+        if (isForkTest()) {
+            if (!deploy.cfg().useUpgradedFork()) vm.skip(true);
+            proxyAdmin = ProxyAdmin(0x543bA4AADBAb8f9025686Bd03993043599c6fB04);
+        } else {
+            proxyAdmin = ProxyAdmin(Predeploys.PROXY_ADMIN);
+        }
+
         proxyAdminOwner = proxyAdmin.owner();
     }
 
@@ -70,6 +76,8 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the liquidity is correctly received.
     function testFuzz_receiveLiquidity_succeeds(address _lockbox, uint256 _value) public {
+        // Since on the fork the `_lockbox` fuzzed address doesn't exist, we skip the test
+        if (isForkTest()) vm.skip(true);
         assumeNotForgeAddress(_lockbox);
         vm.assume(address(_lockbox) != address(ethLockbox));
 
@@ -78,7 +86,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Mock the admin owner of the lockbox to be the same as the current lockbox proxy admin owner
         vm.mockCall(
-            address(_lockbox), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdmin.owner())
+            address(_lockbox), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdminOwner)
         );
 
         // Authorize the lockbox if needed
@@ -116,6 +124,8 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the ETH is correctly locked when the caller is an authorized portal.
     function testFuzz_lockETH_succeeds(uint256 _amount) public {
+        _amount = bound(_amount, 0, type(uint256).max - address(ethLockbox).balance);
+
         // Deal the ETH amount to the portal
         vm.deal(address(optimismPortal2), _amount);
 
@@ -138,12 +148,14 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the ETH is correctly locked when the caller is an authorized portal with different portals.
     function testFuzz_lockETH_multiplePortals_succeeds(IOptimismPortal2 _portal, uint256 _amount) public {
+        // Since on the fork the `_portal` fuzzed address doesn't exist, we skip the test
+        if (isForkTest()) vm.skip(true);
         assumeNotForgeAddress(address(_portal));
         vm.assume(address(_portal) != address(ethLockbox));
 
         // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
         vm.mockCall(
-            address(_portal), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdmin.owner())
+            address(_portal), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdminOwner)
         );
 
         // Set the portal as an authorized portal if needed
@@ -242,7 +254,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
         vm.mockCall(
-            address(_portal), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdmin.owner())
+            address(_portal), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdminOwner)
         );
 
         // Set the portal as an authorized portal if needed
@@ -276,7 +288,7 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the `authorizePortal` function reverts when the caller is not the proxy admin.
     function testFuzz_authorizePortal_unauthorized_reverts(address _caller) public {
-        vm.assume(_caller != proxyAdmin.owner());
+        vm.assume(_caller != proxyAdminOwner);
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
@@ -328,7 +340,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Mock the admin owner of the portal to be the same as the current lockbox proxy admin owner
         vm.mockCall(
-            address(_portal), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdmin.owner())
+            address(_portal), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdminOwner)
         );
 
         // Expect the `PortalAuthorized` event to be emitted
@@ -345,7 +357,7 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the `authorizeLockbox` function reverts when the caller is not the proxy admin.
     function testFuzz_authorizeLockbox_unauthorized_reverts(address _caller) public {
-        vm.assume(_caller != proxyAdmin.owner());
+        vm.assume(_caller != proxyAdminOwner);
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
@@ -377,7 +389,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Mock the admin owner of the lockbox to be the same as the current lockbox proxy admin owner
         vm.mockCall(
-            address(_lockbox), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdmin.owner())
+            address(_lockbox), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdminOwner)
         );
 
         // Expect the `LockboxAuthorized` event to be emitted
@@ -394,7 +406,7 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the `migrateLiquidity` function reverts when the caller is not the proxy admin.
     function testFuzz_migrateLiquidity_unauthorized_reverts(address _caller) public {
-        vm.assume(_caller != proxyAdmin.owner());
+        vm.assume(_caller != proxyAdminOwner);
 
         // Expect the revert with `Unauthorized` selector
         vm.expectRevert(IETHLockbox.ETHLockbox_Unauthorized.selector);
@@ -422,12 +434,14 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the `migrateLiquidity` function succeeds
     function testFuzz_migrateLiquidity_succeeds(uint256 _balance, address _lockbox) public {
+        // Since on the fork the `_lockbox` fuzzed address doesn't exist, we skip the test
+        if (isForkTest()) vm.skip(true);
         assumeNotForgeAddress(_lockbox);
         vm.assume(address(_lockbox) != address(ethLockbox));
 
         // Mock on the lockbox that will receive the migration for it to succeed
         vm.mockCall(
-            address(_lockbox), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdmin.owner())
+            address(_lockbox), abi.encodeCall(IProxyAdminOwnerBase.proxyAdminOwner, ()), abi.encode(proxyAdminOwner)
         );
         vm.mockCall(
             address(_lockbox), abi.encodeCall(IETHLockbox.authorizedLockboxes, (address(ethLockbox))), abi.encode(true)
@@ -450,7 +464,7 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.migrateLiquidity(IETHLockbox(_lockbox));
 
         // Assert the liquidity was migrated
-        assertEq(address(ethLockbox).balance, 0);
-        assertEq(address(_lockbox).balance, newLockboxBalanceBefore + ethLockboxBalanceBefore);
+        assertEq(address(ethLockbox).balance, 0, "1");
+        assertEq(address(_lockbox).balance, newLockboxBalanceBefore + ethLockboxBalanceBefore, "2");
     }
 }
