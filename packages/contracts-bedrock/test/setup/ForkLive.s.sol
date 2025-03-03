@@ -24,6 +24,8 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @title ForkLive
 /// @notice This script is called by Setup.sol as a preparation step for the foundry test suite, and is run as an
@@ -116,6 +118,14 @@ contract ForkLive is Deployer {
         artifacts.save("OptimismPortalProxy", optimismPortal);
         artifacts.save("OptimismPortal2Impl", EIP1967Helper.getImplementation(optimismPortal));
 
+        // Get the lockbox address from the portal, and save it
+        try IOptimismPortal2(payable(optimismPortal)).ethLockbox() returns (IETHLockbox ethLockbox) {
+            console.log("ForkLive: ETHLockboxProxy found: %s", address(ethLockbox));
+            artifacts.save("ETHLockboxProxy", address(ethLockbox));
+        } catch {
+            console.log("ForkLive: ETHLockboxProxy not found");
+        }
+
         address addressManager = vm.parseTomlAddress(opToml, ".addresses.AddressManager");
         artifacts.save("AddressManager", addressManager);
         artifacts.save(
@@ -199,6 +209,11 @@ contract ForkLive is Deployer {
         IAnchorStateRegistry newAnchorStateRegistry =
             IPermissionedDisputeGame(permissionedDisputeGame).anchorStateRegistry();
         artifacts.save("AnchorStateRegistryProxy", address(newAnchorStateRegistry));
+
+        // Get the lockbox address from the portal, and save it
+        IOptimismPortal2 portal = IOptimismPortal2(artifacts.mustGetAddress("OptimismPortalProxy"));
+        address lockboxAddress = address(portal.ethLockbox());
+        artifacts.save("ETHLockboxProxy", lockboxAddress);
     }
 
     /// @notice Saves the proxy and implementation addresses for a contract name

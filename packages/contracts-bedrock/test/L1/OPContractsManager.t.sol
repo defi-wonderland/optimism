@@ -299,7 +299,9 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         expectEmitUpgraded(impls.l1ERC721BridgeImpl, address(l1ERC721Bridge));
         expectEmitUpgraded(impls.disputeGameFactoryImpl, address(disputeGameFactory));
         expectEmitUpgraded(impls.optimismPortalImpl, address(optimismPortal2));
-        expectEmitUpgraded(impls.ethLockboxImpl, address(ethLockbox));
+        if (deploy.cfg().useUpgradedFork()) {
+            expectEmitUpgraded(impls.ethLockboxImpl, address(ethLockbox));
+        }
         expectEmitUpgraded(impls.optimismMintableERC20FactoryImpl, address(l1OptimismMintableERC20Factory));
         vm.expectEmit(address(newAnchorStateRegistryProxy));
         emit AdminChanged(address(0), address(proxyAdmin));
@@ -341,7 +343,9 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         assertEq(impls.l1ERC721BridgeImpl, EIP1967Helper.getImplementation(address(l1ERC721Bridge)));
         assertEq(impls.disputeGameFactoryImpl, EIP1967Helper.getImplementation(address(disputeGameFactory)));
         assertEq(impls.optimismPortalImpl, EIP1967Helper.getImplementation(address(optimismPortal2)));
-        assertEq(impls.ethLockboxImpl, EIP1967Helper.getImplementation(address(ethLockbox)));
+        if (deploy.cfg().useUpgradedFork()) {
+            assertEq(impls.ethLockboxImpl, EIP1967Helper.getImplementation(address(ethLockbox)));
+        }
         assertEq(
             impls.optimismMintableERC20FactoryImpl,
             EIP1967Helper.getImplementation(address(l1OptimismMintableERC20Factory))

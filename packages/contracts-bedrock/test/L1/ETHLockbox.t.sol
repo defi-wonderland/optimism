@@ -34,6 +34,7 @@ contract ETHLockboxTest is CommonTest {
 
     function setUp() public virtual override {
         super.setUp();
+        if (isForkTest()) vm.skip(true);
         proxyAdminOwner = proxyAdmin.owner();
     }
 
