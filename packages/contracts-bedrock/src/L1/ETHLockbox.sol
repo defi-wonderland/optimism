@@ -25,9 +25,6 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @notice Thrown when the caller is not authorized.
     error ETHLockbox_Unauthorized();
 
-    /// @notice Thrown when an already authorized portal or lockbox attempts to be authorized again.
-    error ETHLockbox_AlreadyAuthorized();
-
     /// @notice Thrown when attempting to unlock ETH from the lockbox through a withdrawal transaction.
     error ETHLockbox_NoWithdrawalTransactions();
 
@@ -143,7 +140,6 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     function authorizeLockbox(IETHLockbox _lockbox) external {
         if (msg.sender != PAO()) revert ETHLockbox_Unauthorized();
         if (!_samePAO(address(_lockbox))) revert ETHLockbox_DifferentPAO();
-        if (authorizedLockboxes[address(_lockbox)]) revert ETHLockbox_AlreadyAuthorized();
 
         authorizedLockboxes[address(_lockbox)] = true;
         emit LockboxAuthorized(address(_lockbox));
@@ -156,7 +152,6 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
         if (!_samePAO(address(_lockbox))) revert ETHLockbox_DifferentPAO();
 
         IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
-
         emit LiquidityMigrated(address(_lockbox));
     }
 
@@ -164,7 +159,6 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @param _portal The address of the portal to authorize.
     function _authorizePortal(address _portal) internal {
         if (!_samePAO(_portal)) revert ETHLockbox_DifferentPAO();
-
         authorizedPortals[_portal] = true;
         emit PortalAuthorized(_portal);
     }

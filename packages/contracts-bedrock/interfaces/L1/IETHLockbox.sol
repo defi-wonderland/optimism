@@ -10,7 +10,6 @@ interface IETHLockbox is IPAOBase, ISemver {
     error ETHLockbox_Unauthorized();
     error ETHLockbox_Paused();
     error ETHLockbox_NoWithdrawalTransactions();
-    error ETHLockbox_AlreadyAuthorized();
     error ETHLockbox_DifferentPAO();
 
     event Initialized(uint8 version);

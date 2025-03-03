@@ -346,27 +346,6 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.authorizeLockbox(ethLockbox);
     }
 
-    /// @notice Tests the `authorizeLockbox` function reverts when the lockbox is already authorized.
-    function testFuzz_authorizeLockbox_alreadyAuthorized_reverts(address _lockbox) public {
-        assumeNotForgeAddress(_lockbox);
-
-        // Authorize the lockbox
-        if (!ethLockbox.authorizedLockboxes(_lockbox)) {
-            vm.mockCall(address(_lockbox), abi.encodeCall(IPAOBase.PAO, ()), abi.encode(proxyAdmin.owner()));
-
-            vm.prank(PAO);
-            ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
-        }
-
-        // Call the `authorizeLockbox` function with the lockbox
-        vm.startPrank(ethLockbox.PAO());
-
-        // Expect the revert with `AlreadyAuthorized` selector
-        vm.expectRevert(IETHLockbox.ETHLockbox_AlreadyAuthorized.selector);
-
-        ethLockbox.authorizeLockbox(IETHLockbox(_lockbox));
-    }
-
     /// @notice Tests the `authorizeLockbox` function reverts when the PAO of the lockbox is not the same as the PAO of
     ///         the proxy admin.
     function testFuzz_authorizeLockbox_differentPAO_reverts(address _lockbox) public {
@@ -385,7 +364,6 @@ contract ETHLockboxTest is CommonTest {
     /// @notice Tests the `authorizeLockbox` function succeeds
     function testFuzz_authorizeLockbox_succeeds(address _lockbox) public {
         assumeNotForgeAddress(_lockbox);
-        vm.assume(!ethLockbox.authorizedLockboxes(_lockbox));
 
         // Mock the admin owner of the lockbox to be the same as the current lockbox proxy admin owner
         vm.mockCall(address(_lockbox), abi.encodeCall(IPAOBase.PAO, ()), abi.encode(proxyAdmin.owner()));
