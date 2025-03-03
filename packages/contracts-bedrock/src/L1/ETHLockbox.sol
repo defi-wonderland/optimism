@@ -164,7 +164,6 @@ contract ETHLockbox is PAOBase, Initializable, ISemver {
     /// @param _portal The address of the portal to authorize.
     function _authorizePortal(address _portal) internal {
         if (!_samePAO(_portal)) revert ETHLockbox_DifferentPAO();
-        if (authorizedPortals[_portal]) revert ETHLockbox_AlreadyAuthorized();
 
         authorizedPortals[_portal] = true;
         emit PortalAuthorized(_portal);
