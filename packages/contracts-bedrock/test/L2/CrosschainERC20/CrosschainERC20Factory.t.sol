@@ -14,10 +14,21 @@ import { ERC7802Adapter } from "src/L2/CrosschainERC20/ERC7802Adapter.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+// Libraries
+import { CREATE3 } from "isolmate/utils/CREATE3.sol";
+
+/// @title CrosschainERC20FactoryForTest
+/// @notice Contract for testing the CrosschainERC20Factory contract.
+contract CrosschainERC20FactoryForTest is CrosschainERC20Factory {
+    function getDeployed(bytes32 _salt) public view returns (address) {
+        return CREATE3.getDeployed(_salt);
+    }
+}
+
 /// @title CrosschainERC20FactoryTest
 /// @notice Contract for testing the CrosschainERC20Factory contract.
 contract CrosschainERC20Factory_Test is Test {
-    CrosschainERC20Factory factory;
+    CrosschainERC20FactoryForTest factory;
 
     address owner = makeAddr("owner");
     address bridge = makeAddr("bridge");
@@ -28,7 +39,7 @@ contract CrosschainERC20Factory_Test is Test {
 
     /// @notice Test setup.
     function setUp() public {
-        factory = new CrosschainERC20Factory();
+        factory = new CrosschainERC20FactoryForTest();
     }
 
     /// @notice Helper function to get the bridges with limits.
@@ -94,12 +105,21 @@ contract CrosschainERC20Factory_Test is Test {
         (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
             _getBridgesWithLimits(_minterLimit, _burnerLimit);
 
+        // Calculate the salt and expected address
+        bytes32 salt = keccak256(abi.encodePacked(name, symbol, address(this)));
+        address expectedAddress = factory.getDeployed(salt);
+
+        // Expect the CrosschainERC20Deployed event
+        vm.expectEmit(address(factory));
+        emit CrosschainERC20Factory.CrosschainERC20Deployed(expectedAddress, name, symbol, owner);
+
         // Deploy the CrosschainERC20
         address _crosschainERC20 =
             factory.deployCrosschainERC20(name, symbol, _minterLimits, _burnerLimits, _bridges, owner);
 
         // Assert the CrosschainERC20 is deployed
         assertGt(_crosschainERC20.code.length, 0);
+        assertEq(_crosschainERC20, expectedAddress);
 
         // Assert the token name and symbol are correct
         assertEq(IERC20Metadata(_crosschainERC20).name(), name);
@@ -162,17 +182,32 @@ contract CrosschainERC20Factory_Test is Test {
         (address[] memory _bridges, uint256[] memory _minterLimits, uint256[] memory _burnerLimits) =
             _getBridgesWithLimits(_minterLimit, _burnerLimit);
 
-        // Declare contract addresses
-        address _crosschainERC20;
-        address _crosschainERC20Lockbox;
         address _baseToken = address(makeAddr("ERC20"));
 
+        // Calculate expected addresses
+        bytes32 tokenSalt = keccak256(abi.encodePacked(name, symbol, address(this)));
+        address expectedTokenAddress = factory.getDeployed(tokenSalt);
+
+        bytes32 lockboxSalt = keccak256(abi.encodePacked(expectedTokenAddress, _baseToken, address(this)));
+        address expectedLockboxAddress = factory.getDeployed(lockboxSalt);
+
+        // Expect deployment events
+        vm.expectEmit(address(factory));
+        emit CrosschainERC20Factory.CrosschainERC20Deployed(expectedTokenAddress, name, symbol, owner);
+
+        vm.expectEmit(address(factory));
+        emit CrosschainERC20Factory.LockboxDeployed(expectedLockboxAddress, expectedTokenAddress, _baseToken);
+
         // Deploy the CrosschainERC20 with Lockbox
-        (_crosschainERC20, _crosschainERC20Lockbox) = factory.deployCrosschainERC20WithLockbox(
+        (address _crosschainERC20, address _crosschainERC20Lockbox) = factory.deployCrosschainERC20WithLockbox(
             name, symbol, _minterLimits, _burnerLimits, _bridges, _baseToken, owner
         );
 
-        // Assert the CrosschainERC20 is deployed
+        // Assert addresses match precomputed ones
+        assertEq(_crosschainERC20, expectedTokenAddress);
+        assertEq(_crosschainERC20Lockbox, expectedLockboxAddress);
+
+        // Rest of the assertions...
         assertGt(_crosschainERC20.code.length, 0);
 
         // Assert the CrosschainERC20Lockbox is deployed
@@ -212,16 +247,23 @@ contract CrosschainERC20Factory_Test is Test {
     function test_deployERC7802Adapter_deployment_succeeds() public {
         address _crosschainERC20 = address(makeAddr("CrosschainERC20"));
 
+        // Calculate expected adapter address
+        bytes32 salt = keccak256(abi.encodePacked(_crosschainERC20, bridge, address(this)));
+        address adapterAddress = factory.getDeployed(salt);
+
+        // Expect the deployment event
+        vm.expectEmit(address(factory));
+        emit CrosschainERC20Factory.ERC7802AdapterDeployed(adapterAddress, _crosschainERC20, bridge);
+
         // Deploy the ERC7802Adapter
         address _erc7802Adapter = factory.deployERC7802Adapter(_crosschainERC20, bridge);
 
-        // Assert the ERC7802Adapter is deployed
+        // Assert address matches precomputed one
+        assertEq(_erc7802Adapter, adapterAddress);
+
+        // Rest of the assertions...
         assertGt(_erc7802Adapter.code.length, 0);
-
-        // Assert the CrosschainERC20 is set
         assertEq(address(ERC7802Adapter(_erc7802Adapter).XERC20()), _crosschainERC20);
-
-        // Assert the Bridge is set
         assertEq(address(ERC7802Adapter(_erc7802Adapter).BRIDGE()), bridge);
     }
 }
