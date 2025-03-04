@@ -619,11 +619,9 @@ contract OPContractsManager is ISemver {
                     );
                 }
 
-                // Deploy the ETHLockbox contract implementation and proxy.
-                // Initialize the ETHLockbox, and then set the OptimismPortal as an authorized portal.
+                // Deploy the ETHLockbox proxy.
                 IETHLockbox ethLockbox;
                 {
-                    // Deploy the ETHLockbox contract proxy.
                     ethLockbox = IETHLockbox(
                         deployProxy({
                             _l2ChainId: l2ChainId,
@@ -633,7 +631,7 @@ contract OPContractsManager is ISemver {
                         })
                     );
 
-                    // Initialize the ETHLockbox.
+                    // Initialize the ETHLockbox setting the OptimismPortal as an authorized portal.
                     IOptimismPortal[] memory portals = new IOptimismPortal[](1);
                     portals[0] = IOptimismPortal(payable(opChainAddrs.optimismPortal));
                     upgradeToAndCall(
