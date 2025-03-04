@@ -139,7 +139,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     /// @param _lockbox The address of the ETH lockbox to authorize.
     function authorizeLockbox(IETHLockbox _lockbox) external {
         if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
-        if (!_sameproxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
+        if (!_sameProxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
         authorizedLockboxes[address(_lockbox)] = true;
         emit LockboxAuthorized(address(_lockbox));
@@ -149,7 +149,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     /// @param _lockbox The address of the ETH lockbox to migrate liquidity to.
     function migrateLiquidity(IETHLockbox _lockbox) external {
         if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
-        if (!_sameproxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
+        if (!_sameProxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
         IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
         emit LiquidityMigrated(address(_lockbox));
@@ -158,7 +158,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     /// @notice Authorizes a portal to lock and unlock ETH.
     /// @param _portal The address of the portal to authorize.
     function _authorizePortal(address _portal) internal {
-        if (!_sameproxyAdminOwner(_portal)) revert ETHLockbox_DifferentProxyAdminOwner();
+        if (!_sameProxyAdminOwner(_portal)) revert ETHLockbox_DifferentProxyAdminOwner();
         authorizedPortals[_portal] = true;
         emit PortalAuthorized(_portal);
     }

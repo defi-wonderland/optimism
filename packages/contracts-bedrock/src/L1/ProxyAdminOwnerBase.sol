@@ -20,7 +20,7 @@ abstract contract ProxyAdminOwnerBase {
     /// @notice Checks if the ProxyAdmin owner of the current contract is the same as the ProxyAdmin owner of the given
     ///         proxy.
     /// @param _proxy The address of the proxy to check.
-    function _sameproxyAdminOwner(address _proxy) internal view returns (bool) {
+    function _sameProxyAdminOwner(address _proxy) internal view returns (bool) {
         return proxyAdminOwner() == ProxyAdminOwnerBase(_proxy).proxyAdminOwner();
     }
 }
