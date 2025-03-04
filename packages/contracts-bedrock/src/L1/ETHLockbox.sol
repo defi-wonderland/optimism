@@ -150,6 +150,9 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     }
 
     /// @notice Migrates liquidity from the current ETH lockbox to another.
+    /// @dev    Must be called atomically with `OptimismPortal.updateLockbox()` in the same
+    ///         transaction batch, or otherwise the OptimismPortal may not be able to unlock ETH
+    ///         from the ETHLockbox on finalized withdrawals.
     /// @param _lockbox The address of the ETH lockbox to migrate liquidity to.
     function migrateLiquidity(IETHLockbox _lockbox) external {
         if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
