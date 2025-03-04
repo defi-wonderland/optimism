@@ -34,16 +34,11 @@ contract ETHLockboxTest is CommonTest {
 
     function setUp() public virtual override {
         super.setUp();
-        if (isForkTest()) {
-            // If not on the last upgrade network, we skip the test since the `ETHLockbox` won't be yet deployed
-            if (!deploy.cfg().useUpgradedFork()) vm.skip(true);
-            // If it is a fork test, we need to use the correct proxy admin address
-            proxyAdmin = ProxyAdmin(0x543bA4AADBAb8f9025686Bd03993043599c6fB04);
-        } else {
-            // If not on a fork test, we can use the predeployed proxy admin for the sake of simplicity
-            proxyAdmin = ProxyAdmin(Predeploys.PROXY_ADMIN);
-        }
 
+        // If not on the last upgrade network, we skip the test since the `ETHLockbox` won't be yet deployed
+        if (isForkTest() && !deploy.cfg().useUpgradedFork()) vm.skip(true);
+
+        proxyAdmin = ProxyAdmin(artifacts.mustGetAddress("ProxyAdmin"));
         proxyAdminOwner = proxyAdmin.owner();
     }
 
@@ -468,7 +463,7 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.migrateLiquidity(IETHLockbox(_lockbox));
 
         // Assert the liquidity was migrated
-        assertEq(address(ethLockbox).balance, 0, "1");
-        assertEq(address(_lockbox).balance, newLockboxBalanceBefore + ethLockboxBalanceBefore, "2");
+        assertEq(address(ethLockbox).balance, 0);
+        assertEq(address(_lockbox).balance, newLockboxBalanceBefore + ethLockboxBalanceBefore);
     }
 }
