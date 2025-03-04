@@ -140,6 +140,11 @@ contract Setup {
         return vm.envOr("FORK_TEST", false);
     }
 
+    function isL2ForkTest() public view returns (bool) {
+        // Just in case we have both FORK_TEST and L2_FORK_TEST set
+        return !isForkTest() && vm.envOr("L2_FORK_TEST", false);
+    }
+
     /// @dev Deploys either the Deploy.s.sol or Fork.s.sol contract, by fetching the bytecode dynamically using
     ///      `vm.getDeployedCode()` and etching it into the state.
     ///      This enables us to avoid including the bytecode of those contracts in the bytecode of this contract.
@@ -156,6 +161,8 @@ contract Setup {
                 block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
                 "Setup: ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL"
             );
+        } else if (isL2ForkTest()) {
+            vm.createSelectFork(vm.envString("L2_FORK_RPC_URL"), vm.envUint("L2_FORK_BLOCK_NUMBER"));
         }
 
         // Etch the contracts used to setup the test environment
@@ -263,23 +270,26 @@ contract Setup {
             return;
         }
 
-        console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
-        l2Genesis.runWithOptions({
-            _mode: OutputMode.NONE,
-            _fork: l2Fork,
-            _populateNetworkConfig: false,
-            _l1Dependencies: L1Dependencies({
-                l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
-                l1StandardBridgeProxy: payable(address(l1StandardBridge)),
-                l1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
-            })
-        });
+        if (!isL2ForkTest()) {
+            // We can use the hypothetic bytecode lib here to push the predeploys into the state if it's not a fork test
+            console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
+            l2Genesis.runWithOptions({
+                _mode: OutputMode.NONE,
+                _fork: l2Fork,
+                _populateNetworkConfig: false,
+                _l1Dependencies: L1Dependencies({
+                    l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
+                    l1StandardBridgeProxy: payable(address(l1StandardBridge)),
+                    l1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
+                })
+            });
 
-        // Set the governance token's owner to be the final system owner
-        address finalSystemOwner = deploy.cfg().finalSystemOwner();
-        vm.startPrank(governanceToken.owner());
-        governanceToken.transferOwnership(finalSystemOwner);
-        vm.stopPrank();
+            // Set the governance token's owner to be the final system owner
+            address finalSystemOwner = deploy.cfg().finalSystemOwner();
+            vm.startPrank(governanceToken.owner());
+            governanceToken.transferOwnership(finalSystemOwner);
+            vm.stopPrank();
+        }
 
         // L2 predeploys
         labelPredeploy(Predeploys.L2_STANDARD_BRIDGE);
@@ -320,6 +330,16 @@ contract Setup {
         labelPreinstall(Preinstalls.BeaconBlockRoots);
         labelPreinstall(Preinstalls.HistoryStorage);
         labelPreinstall(Preinstalls.CreateX);
+
+        (bool success, bytes memory isIsthmusUpgradeActive) =
+            address(l1Block).staticcall(abi.encodeWithSelector(IL1Block.isIsthmus.selector));
+
+        // We need to be able to check whether the isthmus upgrade is active
+        // This being false means either the upgrade hasn't been activated or the chain was deployed after the upgrade
+        if (!success || isIsthmusUpgradeActive.length <= 0) {
+            console.log("Setup: isthmus upgrade is not active, skipping L2 setup");
+            return;
+        }
 
         configureFeeVaults();
         configureRemoteChainId();

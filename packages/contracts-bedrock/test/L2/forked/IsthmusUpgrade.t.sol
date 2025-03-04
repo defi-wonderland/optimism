@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity 0.8.15;
 
 // Libraries
 import { Test } from "forge-std/Test.sol";
@@ -20,28 +20,18 @@ import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
 
-contract IsthmusUpgradeTest is Test {
+contract IsthmusUpgradeTest is CommonTest {
     bytes32 internal _salt = DeployUtils.DEFAULT_SALT;
 
-    function setUp() public {
-        if (!isForkTest()) {
-            return;
-        }
-
-        vm.createSelectFork(vm.envString("FORK_RPC_URL"), vm.envUint("FORK_BLOCK_NUMBER"));
-    }
-
-    /// @notice Indicates whether a test is running against a forked production network.
-    function isForkTest() internal view returns (bool) {
-        return vm.envOr("FORK_TEST", false);
-    }
+    // TODO: Make sure isthmus upgrade is not active on the forked network
 
     /// @dev This test is used to test the isthmus upgrade flow.
     ///      It is a forked test to be able to test the correct values for the fee vaults once the isthmus upgrade is
     ///      complete.
     function test_setIsthmusUpgrade_feeVaults() external {
-        vm.skip(!isForkTest());
+        vm.skip(!isL2ForkTest());
 
         /// 1. Deploy the new L1Block implementation contract
         /// 2. Upgrade the L1Block contract
@@ -94,7 +84,7 @@ contract IsthmusUpgradeTest is Test {
     ///      It is a forked test to be able to test the correct values for the other contracts once the isthmus upgrade
     ///      is complete.
     function test_setIsthmusUpgrade_otherContracts() external {
-        vm.skip(!isForkTest());
+        vm.skip(!isL2ForkTest());
 
         /// 1. Deploy the new L1Block implementation contract
         /// 2. Upgrade the L1Block contract
@@ -155,7 +145,7 @@ contract IsthmusUpgradeTest is Test {
     ///      This test assumes that a proper deposit transaction has already been sent, emitting the appropriate
     ///      TransactionDeposited event.
     function test_depositTransaction_upgrade() external {
-        vm.skip(!isForkTest());
+        vm.skip(!isL2ForkTest());
 
         // 1. Deploy the new implementation contract in L2
         IL2CrossDomainMessenger newCrossDomainMessenger = IL2CrossDomainMessenger(

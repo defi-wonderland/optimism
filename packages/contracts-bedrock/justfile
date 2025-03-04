@@ -84,6 +84,16 @@ prepare-upgrade-env *ARGS : build-go-ffi
   {{ARGS}} \
   --match-path "test/{L1,dispute,cannon}/**"
 
+
+test-l2-fork *ARGS: build-go-ffi
+  #!/bin/bash
+  export L2_FORK_TEST=true
+  export L2_FORK_RPC_URL=$L2_RPC_URL
+  export L2_FORK_BLOCK_NUMBER=$L2_BLOCK_NUMBER
+  echo "Running L2 fork tests"
+  forge test {{ARGS}} \
+  --match-path "test/L2/forked/**"
+
 # Runs upgrade path variant of contract tests.
 test-upgrade *ARGS:
   just prepare-upgrade-env "forge test {{ARGS}}"
