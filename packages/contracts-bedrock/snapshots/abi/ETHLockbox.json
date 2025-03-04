@@ -288,6 +288,11 @@
   },
   {
     "inputs": [],
+    "name": "ETHLockbox_InsufficientBalance",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ETHLockbox_NoWithdrawalTransactions",
     "type": "error"
   },

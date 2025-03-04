@@ -354,9 +354,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     }
 
     /// @notice Updates the ETHLockbox contract.
-    /// @dev This function MUST be called atomically with `ETHLockbox.migrateLiquidity()`
-    ///      in the same transaction batch, or otherwise the OptimismPortal may not be able to
-    ///      unlock ETH from the ETHLockbox on finalized withdrawals.
+    /// @dev    This function MUST be called atomically with `ETHLockbox.migrateLiquidity()`
+    ///         in the same transaction batch, or otherwise the OptimismPortal may not be able to
+    ///         unlock ETH from the ETHLockbox on finalized withdrawals.
     /// @param _newLockbox The address of the new ETHLockbox contract.
     function updateLockbox(IETHLockbox _newLockbox) external {
         if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
