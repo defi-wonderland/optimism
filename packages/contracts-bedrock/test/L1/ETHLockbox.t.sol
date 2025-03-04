@@ -16,7 +16,6 @@ import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 // Test
 import { CommonTest } from "test/setup/CommonTest.sol";
 
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 contract ETHLockboxTest is CommonTest {
