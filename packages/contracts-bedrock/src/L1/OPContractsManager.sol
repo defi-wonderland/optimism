@@ -17,7 +17,6 @@ import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.so
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
@@ -57,6 +56,7 @@ contract OPContractsManager is ISemver {
         string saltMixer;
         uint64 gasLimit;
         // Configurable dispute game parameters.
+        bool disputeGameUsesSuperRoots;
         GameType disputeGameType;
         Claim disputeAbsolutePrestate;
         uint256 disputeMaxGameDepth;
@@ -124,6 +124,7 @@ contract OPContractsManager is ISemver {
         ISystemConfig systemConfigProxy;
         IProxyAdmin proxyAdmin;
         Claim absolutePrestate;
+        bool disputeGameUsesSuperRoots;
     }
 
     struct AddGameInput {
@@ -229,8 +230,23 @@ contract OPContractsManager is ISemver {
     /// @notice Thrown when an invalid `l2ChainId` is provided to `deploy`.
     error InvalidChainId();
 
-    /// @notice Thrown when a role's address is not valid.
-    error InvalidRoleAddress(string role);
+    /// @notice Thrown when a role's address is not valid (opChainProxyAdminOwner).
+    error InvalidRoleAddressPAO();
+
+    /// @notice Thrown when a role's address is not valid (systemConfigOwner).
+    error InvalidRoleAddressSCO();
+
+    /// @notice Thrown when a role's address is not valid (batcher).
+    error InvalidRoleAddressBatcher();
+
+    /// @notice Thrown when a role's address is not valid (unsafeBlockSigner).
+    error InvalidRoleAddressUBS();
+
+    /// @notice Thrown when a role's address is not valid (proposer).
+    error InvalidRoleAddressProposer();
+
+    /// @notice Thrown when a role's address is not valid (challenger).
+    error InvalidRoleAddressChallenger();
 
     /// @notice Thrown when the latest release is not set upon initialization.
     error LatestReleaseNotSet();
@@ -392,7 +408,7 @@ contract OPContractsManager is ISemver {
             output.opChainProxyAdmin, address(output.l1ERC721BridgeProxy), implementation.l1ERC721BridgeImpl, data
         );
 
-        data = encodeOptimismPortalInitializer(output);
+        data = encodeOptimismPortalInitializer(_input, output);
         upgradeToAndCall(
             output.opChainProxyAdmin, address(output.optimismPortalProxy), implementation.optimismPortalImpl, data
         );
@@ -551,8 +567,12 @@ contract OPContractsManager is ISemver {
                     )
                 )
             );
+
             // We're also going to need the l2ChainId below, so we cache it in the outer scope.
             uint256 l2ChainId = getL2ChainId(IFaultDisputeGame(address(permissionedDisputeGame)));
+
+            // Upgrade the SystemConfig to add the l2ChainId.
+            _opChainConfigs[i].systemConfigProxy.upgrade(l2ChainId);
 
             // Replace the Anchor State Registry Proxy with a new Proxy and Implementation
             // For this upgrade, we are replacing the previous Anchor State Registry, thus we:
@@ -626,7 +646,7 @@ contract OPContractsManager is ISemver {
                     // Upgrade the OptimismPortal to have a reference to the new AnchorStateRegistry and ETHLockbox,
                     // and migrate the ETH balance to the ETHLockbox.
                     IOptimismPortal(payable(opChainAddrs.optimismPortal)).upgrade(
-                        newAnchorStateRegistryProxy, ethLockbox
+                        newAnchorStateRegistryProxy, ethLockbox, _opChainConfigs[i].disputeGameUsesSuperRoots
                     );
                 }
 
@@ -686,6 +706,7 @@ contract OPContractsManager is ISemver {
 
             // This conversion is safe because the GameType is a uint32, which will always fit in an int256.
             int256 gameTypeInt = int256(uint256(gameConfig.disputeGameType.raw()));
+
             // Ensure that the game configs are added in ascending order, and not duplicated.
             if (lastGameConfig >= gameTypeInt) revert InvalidGameConfigs();
             lastGameConfig = gameTypeInt;
@@ -697,20 +718,27 @@ contract OPContractsManager is ISemver {
                     getGameImplementation(getDisputeGameFactory(gameConfig.systemConfig), GameTypes.PERMISSIONED_CANNON)
                 )
             );
+
             // Pull out the chain ID.
             uint256 l2ChainId = getL2ChainId(pdg);
 
             // Deploy a new DelayedWETH proxy for this game if one hasn't already been specified. Leaving
             /// gameConfig.delayedWETH as the zero address will cause a new DelayedWETH to be deployed for this game.
             if (address(gameConfig.delayedWETH) == address(0)) {
-                string memory contractName = string.concat(
-                    "DelayedWETH-",
-                    // This is a safe cast because GameType is a uint256 under the hood and no operation has been done
-                    // on it at this point
-                    Strings.toString(uint256(gameTypeInt))
-                );
                 outputs[i].delayedWETH = IDelayedWETH(
-                    payable(deployProxy(l2ChainId, gameConfig.proxyAdmin, gameConfig.saltMixer, contractName))
+                    payable(
+                        deployProxy(
+                            l2ChainId,
+                            gameConfig.proxyAdmin,
+                            gameConfig.saltMixer,
+                            string.concat(
+                                "DelayedWETH-",
+                                // This is a safe cast because GameType is a uint256 under the hood
+                                // and no operation has been done on it at this point
+                                Strings.toString(uint256(gameTypeInt))
+                            )
+                        )
+                    )
                 );
 
                 // Initialize the proxy.
@@ -807,12 +835,12 @@ contract OPContractsManager is ISemver {
     function assertValidInputs(DeployInput calldata _input) internal view {
         if (_input.l2ChainId == 0 || _input.l2ChainId == block.chainid) revert InvalidChainId();
 
-        if (_input.roles.opChainProxyAdminOwner == address(0)) revert InvalidRoleAddress("opChainProxyAdminOwner");
-        if (_input.roles.systemConfigOwner == address(0)) revert InvalidRoleAddress("systemConfigOwner");
-        if (_input.roles.batcher == address(0)) revert InvalidRoleAddress("batcher");
-        if (_input.roles.unsafeBlockSigner == address(0)) revert InvalidRoleAddress("unsafeBlockSigner");
-        if (_input.roles.proposer == address(0)) revert InvalidRoleAddress("proposer");
-        if (_input.roles.challenger == address(0)) revert InvalidRoleAddress("challenger");
+        if (_input.roles.opChainProxyAdminOwner == address(0)) revert InvalidRoleAddressPAO();
+        if (_input.roles.systemConfigOwner == address(0)) revert InvalidRoleAddressSCO();
+        if (_input.roles.batcher == address(0)) revert InvalidRoleAddressBatcher();
+        if (_input.roles.unsafeBlockSigner == address(0)) revert InvalidRoleAddressUBS();
+        if (_input.roles.proposer == address(0)) revert InvalidRoleAddressProposer();
+        if (_input.roles.challenger == address(0)) revert InvalidRoleAddressChallenger();
 
         if (_input.startingAnchorRoot.length == 0) revert InvalidStartingAnchorRoot();
         if (bytes32(_input.startingAnchorRoot) == bytes32(0)) revert InvalidStartingAnchorRoot();
@@ -882,7 +910,10 @@ contract OPContractsManager is ISemver {
     }
 
     /// @notice Helper method for encoding the OptimismPortal initializer data.
-    function encodeOptimismPortalInitializer(DeployOutput memory _output)
+    function encodeOptimismPortalInitializer(
+        DeployInput memory _input,
+        DeployOutput memory _output
+    )
         internal
         view
         virtual
@@ -890,7 +921,13 @@ contract OPContractsManager is ISemver {
     {
         return abi.encodeCall(
             IOptimismPortal.initialize,
-            (_output.systemConfigProxy, superchainConfig, _output.anchorStateRegistryProxy, _output.ethLockboxProxy)
+            (
+                _output.systemConfigProxy,
+                superchainConfig,
+                _output.anchorStateRegistryProxy,
+                _output.ethLockboxProxy,
+                _input.disputeGameUsesSuperRoots
+            )
         );
     }
 
@@ -928,7 +965,8 @@ contract OPContractsManager is ISemver {
                 _input.roles.unsafeBlockSigner,
                 referenceResourceConfig,
                 chainIdToBatchInboxAddress(_input.l2ChainId),
-                opChainAddrs
+                opChainAddrs,
+                _input.l2ChainId
             )
         );
     }

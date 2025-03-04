@@ -131,6 +131,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
             startingAnchorRoot: _doi.startingAnchorRoot(),
             saltMixer: _doi.saltMixer(),
             gasLimit: _doi.gasLimit(),
+            disputeGameUsesSuperRoots: _doi.disputeGameUsesSuperRoots(),
             disputeGameType: _doi.disputeGameType(),
             disputeAbsolutePrestate: _doi.disputeAbsolutePrestate(),
             disputeMaxGameDepth: _doi.disputeMaxGameDepth(),
@@ -251,7 +252,8 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
             IOPContractsManager.OpChainConfig({
                 systemConfigProxy: systemConfig,
                 proxyAdmin: proxyAdmin,
-                absolutePrestate: absolutePrestate
+                absolutePrestate: absolutePrestate,
+                disputeGameUsesSuperRoots: false
             })
         );
 
@@ -679,6 +681,7 @@ contract OPContractsManager_AddGameType_Test is Test {
                 l2ChainId: 100,
                 saltMixer: "hello",
                 gasLimit: 30_000_000,
+                disputeGameUsesSuperRoots: false,
                 disputeGameType: GameType.wrap(1),
                 disputeAbsolutePrestate: Claim.wrap(
                     bytes32(hex"038512e02c4c3f7bdaec27d00edf55b7155e0905301e1a88083e4e0a6764d54c")

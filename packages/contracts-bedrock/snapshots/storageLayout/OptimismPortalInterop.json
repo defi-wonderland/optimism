@@ -138,5 +138,12 @@
     "offset": 0,
     "slot": "63",
     "type": "contract IETHLockbox"
+  },
+  {
+    "bytes": "1",
+    "label": "superRootsActive",
+    "offset": 20,
+    "slot": "63",
+    "type": "bool"
   }
 ]

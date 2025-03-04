@@ -527,7 +527,8 @@ contract Deploy is Deployer {
                         disputeGameFactory: artifacts.mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: artifacts.mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: artifacts.mustGetAddress("OptimismMintableERC20FactoryProxy")
-                    })
+                    }),
+                    cfg.l2ChainID()
                 )
             )
         });
@@ -968,6 +969,7 @@ contract Deploy is Deployer {
             ),
             saltMixer: saltMixer,
             gasLimit: uint64(cfg.l2GenesisBlockGasLimit()),
+            disputeGameUsesSuperRoots: false,
             disputeGameType: GameType.wrap(4),
             disputeAbsolutePrestate: Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate())),
             disputeMaxGameDepth: cfg.faultGameMaxDepth(),
