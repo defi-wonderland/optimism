@@ -205,9 +205,22 @@ contract ETHLockboxTest is CommonTest {
         ethLockbox.unlockETH(_value);
     }
 
+    /// @notice Tests `unlockETH` reverts when the `_value` input is greater than the balance of the lockbox.
+    function testFuzz_unlockETH_insufficientBalance_reverts(uint256 _value) public {
+        _value = bound(_value, address(ethLockbox).balance + 1, type(uint256).max);
+
+        // Expect the revert with `InsufficientBalance` selector
+        vm.expectRevert(IETHLockbox.ETHLockbox_InsufficientBalance.selector);
+
+        // Call the `unlockETH` function with the portal
+        vm.prank(address(optimismPortal2));
+        ethLockbox.unlockETH(_value);
+    }
+
     /// @notice Tests `unlockETH` reverts when the portal is not the L2 sender to prevent unlocking ETH from the lockbox
     ///         through a withdrawal transaction.
     function testFuzz_unlockETH_withdrawalTransaction_reverts(uint256 _value, address _l2Sender) public {
+        _value = bound(_value, 0, address(ethLockbox).balance);
         vm.assume(_l2Sender != Constants.DEFAULT_L2_SENDER);
 
         // Mock the L2 sender

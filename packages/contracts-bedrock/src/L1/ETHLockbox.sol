@@ -25,6 +25,9 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     /// @notice Thrown when the caller is not authorized.
     error ETHLockbox_Unauthorized();
 
+    /// @notice Thrown when the value to unlock is greater than the balance of the lockbox.
+    error ETHLockbox_InsufficientBalance();
+
     /// @notice Thrown when attempting to unlock ETH from the lockbox through a withdrawal transaction.
     error ETHLockbox_NoWithdrawalTransactions();
 
@@ -125,6 +128,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     function unlockETH(uint256 _value) external {
         if (paused()) revert ETHLockbox_Paused();
         if (!authorizedPortals[msg.sender]) revert ETHLockbox_Unauthorized();
+        if (_value > address(this).balance) revert ETHLockbox_InsufficientBalance();
         /// NOTE: Check l2Sender is not set to avoid this function to be called as a target on a withdrawal transaction
         if (IOptimismPortal(payable(msg.sender)).l2Sender() != Constants.DEFAULT_L2_SENDER) {
             revert ETHLockbox_NoWithdrawalTransactions();

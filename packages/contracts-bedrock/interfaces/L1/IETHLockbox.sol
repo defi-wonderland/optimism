@@ -9,6 +9,7 @@ import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 interface IETHLockbox is IProxyAdminOwnerBase, ISemver {
     error ETHLockbox_Unauthorized();
     error ETHLockbox_Paused();
+    error ETHLockbox_InsufficientBalance();
     error ETHLockbox_NoWithdrawalTransactions();
     error ETHLockbox_DifferentProxyAdminOwner();
 
