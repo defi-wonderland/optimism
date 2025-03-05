@@ -84,13 +84,12 @@ prepare-upgrade-env *ARGS : build-go-ffi
   {{ARGS}} \
   --match-path "test/{L1,dispute,cannon}/**"
 
-
 test-l2-fork *ARGS: build-go-ffi
   #!/bin/bash
-  export L2_FORK_TEST=true
-  export L2_FORK_RPC_URL=$L2_RPC_URL
-  export L2_FORK_BLOCK_NUMBER=$L2_BLOCK_NUMBER
-  echo "Running L2 fork tests"
+  echo "Running L2 fork upgrade tests at block $pinnedBlockNumber"
+  export FORK_TEST=true
+  export FORK_RPC_URL=$ETH_RPC_URL
+  export FORK_BLOCK_NUMBER=$pinnedBlockNumber
   forge test {{ARGS}} \
   --match-path "test/L2/forked/**"
 

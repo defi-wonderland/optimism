@@ -137,12 +137,13 @@ contract Setup {
 
     /// @notice Indicates whether a test is running against a forked production network.
     function isForkTest() public view returns (bool) {
-        return vm.envOr("FORK_TEST", false);
+        return vm.envOr("FORK_TEST", false) && (block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet);
     }
 
-    function isL2ForkTest() public view returns (bool) {
+    function isL2UpgradeForkTest() public view returns (bool) {
         // Just in case we have both FORK_TEST and L2_FORK_TEST set
-        return !isForkTest() && vm.envOr("L2_FORK_TEST", false);
+        return vm.envOr("FORK_TEST", false) && block.chainid != Chains.Sepolia && block.chainid != Chains.Mainnet
+            && block.chainid != Chains.Goerli;
     }
 
     /// @dev Deploys either the Deploy.s.sol or Fork.s.sol contract, by fetching the bytecode dynamically using
@@ -161,7 +162,7 @@ contract Setup {
                 block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
                 "Setup: ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL"
             );
-        } else if (isL2ForkTest()) {
+        } else if (isL2UpgradeForkTest()) {
             vm.createSelectFork(vm.envString("L2_FORK_RPC_URL"), vm.envUint("L2_FORK_BLOCK_NUMBER"));
         }
 
@@ -270,7 +271,7 @@ contract Setup {
             return;
         }
 
-        if (!isL2ForkTest()) {
+        if (!isL2UpgradeForkTest()) {
             // We can use the hypothetic bytecode lib here to push the predeploys into the state if it's not a fork test
             console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
             l2Genesis.runWithOptions({
