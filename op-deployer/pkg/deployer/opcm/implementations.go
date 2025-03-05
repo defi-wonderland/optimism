@@ -44,6 +44,7 @@ type DeployImplementationsOutput struct {
 	AnchorStateRegistryImpl          common.Address
 	SuperchainConfigImpl             common.Address
 	ProtocolVersionsImpl             common.Address
+	EthLockboxImpl                   common.Address
 }
 
 func (output *DeployImplementationsOutput) CheckOutput(input common.Address) error {
