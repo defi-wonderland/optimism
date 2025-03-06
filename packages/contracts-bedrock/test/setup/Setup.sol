@@ -233,7 +233,11 @@ contract Setup {
 
         optimismPortal2 = IOptimismPortal(artifacts.mustGetAddress("OptimismPortalProxy"));
 
-        ethLockbox = IETHLockbox(artifacts.mustGetAddress("ETHLockboxProxy"));
+        // Only skip ETHLockbox assignment if we're in a fork test with non-upgraded fork
+        if (!isForkTest() || deploy.cfg().useUpgradedFork()) {
+            ethLockbox = IETHLockbox(artifacts.mustGetAddress("ETHLockboxProxy"));
+        }
+
         systemConfig = ISystemConfig(artifacts.mustGetAddress("SystemConfigProxy"));
         l1StandardBridge = IL1StandardBridge(artifacts.mustGetAddress("L1StandardBridgeProxy"));
         l1CrossDomainMessenger = IL1CrossDomainMessenger(artifacts.mustGetAddress("L1CrossDomainMessengerProxy"));
