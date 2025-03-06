@@ -38,6 +38,9 @@ error ReentrantCall();
 /// @notice Thrown when a call to the target contract during message relay fails.
 error TargetCallFailed();
 
+/// @notice Thrown when the payload of a SentMessage event is too long.
+error EventPayloadTooLong();
+
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
 /// @title L2ToL2CrossDomainMessenger
@@ -239,7 +242,30 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         // Topics
         (destination_, target_, nonce_) = abi.decode(_payload[32:128], (uint256, address, uint256));
 
+        // Decode topics
+        try this.decodeTopics(_payload) returns (uint256 destination_, address target_, uint256 nonce_) {
+            return (destination_, target_, nonce_);
+        } catch {
+            revert InvalidPayloadTopics();
+        }
+
         // Data
+        try this.decodeData(_payload) returns (address sender_, bytes memory message_) {
+            return (sender_, message_);
+        } catch {
+            revert InvalidPayloadData();
+        }
+    }
+
+    function decodeTopics(bytes calldata _payload)
+        public
+        pure
+        returns (uint256 destination_, address target_, uint256 nonce_)
+    {
+        (destination_, target_, nonce_) = abi.decode(_payload[32:128], (uint256, address, uint256));
+    }
+
+    function decodeData(bytes calldata _payload) public pure returns (address sender_, bytes memory message_) {
         (sender_, message_) = abi.decode(_payload[128:], (address, bytes));
     }
 }
