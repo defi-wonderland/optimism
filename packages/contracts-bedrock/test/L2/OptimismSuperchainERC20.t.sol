@@ -20,6 +20,7 @@ import { Preinstalls } from "src/libraries/Preinstalls.sol";
 // Target contract
 import { IOptimismSuperchainERC20 } from "interfaces/L2/IOptimismSuperchainERC20.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { SuperTokenWithoutPermit2 } from "test/mocks/SuperTokenWithoutPermit2.sol";
 
 /// @title OptimismSuperchainERC20Test
 /// @notice Contract for testing the OptimismSuperchainERC20 contract.
@@ -322,5 +323,11 @@ contract OptimismSuperchainERC20Test is Test {
         // Handle the case where the source and destination are the same to check the source balance.
         if (_owner != _recipient) assertEq(optimismSuperchainERC20.balanceOf(_owner), 0);
         else assertEq(optimismSuperchainERC20.balanceOf(_owner), _amount);
+    }
+
+    /// @notice Tests that the allowance function returns 0 when the spender is Permit2.
+    function testFuzz_noPermit2InfiniteAllowance_succeeds() public {
+        SuperTokenWithoutPermit2 _superToken = new SuperTokenWithoutPermit2();
+        assertEq(_superToken.allowance(address(0), Preinstalls.Permit2), 0);
     }
 }

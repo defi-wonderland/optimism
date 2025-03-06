@@ -14,6 +14,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISuperchainERC20 } from "interfaces/L2/ISuperchainERC20.sol";
 import { MockSuperchainERC20Implementation } from "test/mocks/SuperchainERC20Implementation.sol";
 
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
+
 /// @title SuperchainERC20Test
 /// @notice Contract for testing the SuperchainERC20 contract.
 contract SuperchainERC20Test is Test {
@@ -130,5 +132,16 @@ contract SuperchainERC20Test is Test {
         vm.assume(_interfaceId != type(IERC7802).interfaceId);
         vm.assume(_interfaceId != type(IERC20).interfaceId);
         assertFalse(superchainERC20.supportsInterface(_interfaceId));
+    }
+
+    /// @notice Tests that the allowance function returns the max uint256 value when the spender is Permit.
+    /// @param _randomCaller The address that will call the function - used to fuzz better since the behaviour should be
+    ///                       the same regardless of the caller.
+    /// @param _owner The funds owner.
+    function testFuzz_allowance_fromPermit2_succeeds(address _randomCaller, address _owner) public {
+        vm.prank(_randomCaller);
+        uint256 _allowance = superchainERC20.allowance(_owner, Preinstalls.Permit2);
+
+        assertEq(_allowance, type(uint256).max);
     }
 }

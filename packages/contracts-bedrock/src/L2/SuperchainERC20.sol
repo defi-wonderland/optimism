@@ -50,4 +50,10 @@ abstract contract SuperchainERC20 is ERC20, IERC7802, ISemver {
         return _interfaceId == type(IERC7802).interfaceId || _interfaceId == type(IERC20).interfaceId
             || _interfaceId == type(IERC165).interfaceId;
     }
+
+    /// @notice Gives infinite allowance to the Permit2 contract.
+    /// @dev    Override and set to false if the token does not support Permit2 integration.
+    function _givePermit2InfiniteAllowance() internal view virtual override returns (bool) {
+        return true;
+    }
 }

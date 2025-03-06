@@ -12,15 +12,9 @@ import { ZeroAddress, Unauthorized } from "src/libraries/errors/CommonErrors.sol
 // Interfaces
 import { IOptimismSuperchainERC20 } from "interfaces/L2/IOptimismSuperchainERC20.sol";
 
-/// @custom:proxied true
-/// @title OptimismSuperchainERC20
-/// @notice OptimismSuperchainERC20 is a standard extension of the base ERC20 token contract that unifies ERC20 token
-///         bridging to make it fungible across the Superchain. This construction allows the L2StandardBridge to burn
-///         and mint tokens. This makes it possible to convert a valid OptimismMintableERC20 token to a
-///         OptimismSuperchainERC20 token, turning it fungible and interoperable across the superchain. Likewise, it
-///         also enables the inverse conversion path.
-///         Moreover, it builds on top of the L2ToL2CrossDomainMessenger for both replay protection and domain binding.
-contract OptimismSuperchainERC20 is SuperchainERC20, Initializable {
+/// @notice Mock that copies the same logic as OptimismSuperchainERC20 but does not support Permit2 integration.
+/// @dev    Used for testing purposes.
+contract SuperTokenWithoutPermit2 is SuperchainERC20, Initializable {
     /// @notice Emitted whenever tokens are minted for an account.
     /// @param to Address of the account tokens are being minted for.
     /// @param amount  Amount of tokens minted.
@@ -144,5 +138,10 @@ contract OptimismSuperchainERC20 is SuperchainERC20, Initializable {
     /// @return Whether or not the interface is supported by this contract.
     function supportsInterface(bytes4 _interfaceId) public view virtual override returns (bool) {
         return _interfaceId == type(IOptimismSuperchainERC20).interfaceId || super.supportsInterface(_interfaceId);
+    }
+
+    /// @notice Sets Permit2 contract's allowance at infinity.
+    function _givePermit2InfiniteAllowance() internal view virtual override returns (bool) {
+        return false;
     }
 }
