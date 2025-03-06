@@ -317,20 +317,14 @@ contract OPContractsManagerGameTypeAdder is OPContractsManagerBase {
             // Deploy a new DelayedWETH proxy for this game if one hasn't already been specified. Leaving
             /// gameConfig.delayedWETH as the zero address will cause a new DelayedWETH to be deployed for this game.
             if (address(gameConfig.delayedWETH) == address(0)) {
+                string memory contractName = string.concat(
+                    "DelayedWETH-",
+                    // This is a safe cast because GameType is a uint256 under the hood and no operation has been done
+                    // on it at this point
+                    Strings.toString(uint256(gameTypeInt))
+                );
                 outputs[i].delayedWETH = IDelayedWETH(
-                    payable(
-                        deployProxy(
-                            l2ChainId,
-                            gameConfig.proxyAdmin,
-                            gameConfig.saltMixer,
-                            string.concat(
-                                "DelayedWETH-",
-                                // This is a safe cast because GameType is a uint256 under the hood
-                                // and no operation has been done on it at this point
-                                Strings.toString(uint256(gameTypeInt))
-                            )
-                        )
-                    )
+                    payable(deployProxy(l2ChainId, gameConfig.proxyAdmin, gameConfig.saltMixer, contractName))
                 );
 
                 // Initialize the proxy.
@@ -409,12 +403,17 @@ contract OPContractsManagerGameTypeAdder is OPContractsManagerBase {
             setDGFImplementation(dgf, gameConfig.disputeGameType, IDisputeGame(address(outputs[i].faultDisputeGame)));
             dgf.setInitBond(gameConfig.disputeGameType, gameConfig.initialBond);
 
-            emit GameTypeAdded(
-                l2ChainId,
-                gameConfig.disputeGameType,
-                outputs[i].faultDisputeGame,
-                IDisputeGame(gameConfig.permissioned ? address(pdg) : address(fdg))
-            );
+            if (gameConfig.permissioned) {
+                // Emit event for the newly added game type with the old permissioned dispute game
+                emit GameTypeAdded(
+                    l2ChainId, gameConfig.disputeGameType, outputs[i].faultDisputeGame, IDisputeGame(address(pdg))
+                );
+            } else {
+                // Emit event for the newly added game type with the old fault dispute game
+                emit GameTypeAdded(
+                    l2ChainId, gameConfig.disputeGameType, outputs[i].faultDisputeGame, IDisputeGame(address(fdg))
+                );
+            }
         }
 
         return outputs;
