@@ -92,6 +92,7 @@ contract OptimismPortal2_Test is CommonTest {
         assertEq(optimismPortal2.respectedGameType().raw(), deploy.cfg().respectedGameType());
     }
 
+    /// @dev Tests that the upgrade function succeeds.
     function testFuzz_upgrade_succeeds(address _newAnchorStateRegistry, uint256 _balance) external {
         // Prevent overflow on an upgrade context
         _balance = bound(_balance, 0, type(uint256).max - address(ethLockbox).balance);

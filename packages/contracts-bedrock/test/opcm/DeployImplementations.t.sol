@@ -154,6 +154,7 @@ contract DeployImplementationsOutput_Test is Test {
 
         vm.expectRevert(expectedErr);
         dio.ethLockboxImpl();
+
         vm.expectRevert(expectedErr);
         dio.delayedWETHImpl();
 
