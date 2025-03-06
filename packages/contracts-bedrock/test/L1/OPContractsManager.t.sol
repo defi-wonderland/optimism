@@ -608,7 +608,9 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
     }
 
     function runUpgradeTestAndChecks(address _delegateCaller) public {
+        // TODO(#14691): Remove this function once Upgrade 15 is deployed on Mainnet.
         runV200UpgradeAndChecks(_delegateCaller);
+        // TODO(#14691): Remove this function once Upgrade 15 is deployed on Mainnet.
         runUpgrade14UpgradeAndChecks(_delegateCaller);
         runUpgrade15UpgradeAndChecks(_delegateCaller);
     }

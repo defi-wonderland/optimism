@@ -35,6 +35,7 @@ contract ETHLockboxTest is CommonTest {
         super.setUp();
 
         // If not on the last upgrade network, we skip the test since the `ETHLockbox` won't be yet deployed
+        // TODO(#14691): Remove this check once Upgrade 15 is deployed on Mainnet.
         if (isForkTest() && !deploy.cfg().useUpgradedFork()) vm.skip(true);
 
         proxyAdmin = ProxyAdmin(artifacts.mustGetAddress("ProxyAdmin"));
