@@ -24,6 +24,7 @@ interface ICrossL2Inbox {
     ///         for applications that understand the schema of the _message payload and want to
     ///         process it in a custom way.
     /// @param _id      Identifier of the message.
-    /// @param _msgHash Hash of the message payload to call target with.
+    /// @param _msgHash Hash of the message payload which corresponds to an encoded event in the format:
+    ///                 event.selector || ...topics || ...data
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external;
 }

@@ -4,9 +4,9 @@ pragma solidity 0.8.15;
 // Contracts
 import {
     OptimismPortal2,
+    ISuperchainConfig,
     IDisputeGameFactory,
     ISystemConfig,
-    ISuperchainConfig,
     GameType
 } from "src/L1/OptimismPortal2.sol";
 

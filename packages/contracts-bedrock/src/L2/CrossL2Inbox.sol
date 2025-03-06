@@ -45,7 +45,8 @@ contract CrossL2Inbox is ISemver {
     ///         for applications that understand the schema of the _message payload and want to
     ///         process it in a custom way.
     /// @param _id      Identifier of the message.
-    /// @param _msgHash Hash of the message payload to call target with.
+    /// @param _msgHash Hash of the message payload which corresponds to an encoded event in the format:
+    ///                 event.selector || ...topics || ...data
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
         // We need to know if this is being called on a depositTx
         if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
