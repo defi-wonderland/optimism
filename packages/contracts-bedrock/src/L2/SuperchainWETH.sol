@@ -20,7 +20,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000024
 /// @title SuperchainWETH
-/// @notice SuperchainWETH is a version of WETH that can be freely transfrered between chains
+/// @notice SuperchainWETH is a version of WETH that can be freely transferred between chains
 ///         within the superchain. SuperchainWETH can be converted into native ETH on chains that
 ///         do not use a custom gas token.
 contract SuperchainWETH is WETH98, IERC7802, ISemver {
