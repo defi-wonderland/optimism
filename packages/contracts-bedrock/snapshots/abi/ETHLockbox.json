@@ -237,6 +237,12 @@
         "internalType": "address",
         "name": "lockbox",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
     "name": "LiquidityMigrated",
@@ -250,6 +256,12 @@
         "internalType": "address",
         "name": "lockbox",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
     "name": "LiquidityReceived",
