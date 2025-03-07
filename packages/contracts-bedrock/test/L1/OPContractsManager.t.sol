@@ -1018,7 +1018,7 @@ contract OPContractsManager_UpdatePrestate_Test is Test {
             }),
             optimismMintableERC20FactoryImpl: DeployUtils.create1({
                 _name: "OptimismMintableERC20Factory",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IOptimismMintableERC20Factory.__constructor__, ()))
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL1OptimismMintableERC20Factory.__constructor__, ()))
             }),
             l1CrossDomainMessengerImpl: DeployUtils.create1({
                 _name: "L1CrossDomainMessenger",
@@ -1113,7 +1113,8 @@ contract OPContractsManager_UpdatePrestate_Test is Test {
                     batcher: address(this),
                     unsafeBlockSigner: address(this),
                     proposer: address(this),
-                    challenger: address(this)
+                    challenger: address(this),
+                    feeVaultAdmin: address(this)
                 }),
                 basefeeScalar: 1,
                 blobBasefeeScalar: 1,

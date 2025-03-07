@@ -32,7 +32,6 @@ import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { IL1OptimismMintableERC20Factory as IOptimismMintableERC20Factory } from
     "interfaces/L1/IL1OptimismMintableERC20Factory.sol";
 
-import { OPContractsManagerInterop } from "src/L1/OPContractsManagerInterop.sol";
 import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { ISystemConfigInterop } from "interfaces/L1/ISystemConfigInterop.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";

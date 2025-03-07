@@ -731,10 +731,9 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         output.optimismPortalProxy = IOptimismPortal2(
             payable(deployProxy(_input.l2ChainId, output.opChainProxyAdmin, _input.saltMixer, "OptimismPortal"))
         );
-        /// TODO: FIX THIS AFTER SYNC, WRONG INTERFACE
         output.systemConfigProxy =
             ISystemConfig(deployProxy(_input.l2ChainId, output.opChainProxyAdmin, _input.saltMixer, "SystemConfig"));
-        output.optimismMintableERC20FactoryProxy = IOptimismMintableERC20Factory(
+        output.optimismMintableERC20FactoryProxy = IL1OptimismMintableERC20Factory(
             deployProxy(_input.l2ChainId, output.opChainProxyAdmin, _input.saltMixer, "OptimismMintableERC20Factory")
         );
         output.disputeGameFactoryProxy = IDisputeGameFactory(
@@ -1105,7 +1104,7 @@ contract OPContractsManagerDeployerInterop is OPContractsManagerDeployer {
         return abi.encodeCall(
             ISystemConfigInterop.initialize,
             (
-                _input.roles.systemConfigOwner,
+                ISystemConfig.Roles({ owner: _input.roles.systemConfigOwner, feeVaultAdmin: _input.roles.feeVaultAdmin }),
                 _input.basefeeScalar,
                 _input.blobBasefeeScalar,
                 bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
@@ -1131,6 +1130,7 @@ contract OPContractsManager is ISemver {
         address unsafeBlockSigner;
         address proposer;
         address challenger;
+        address feeVaultAdmin;
     }
 
     /// @notice The full set of inputs to deploy a new OP Stack chain.
@@ -1159,7 +1159,7 @@ contract OPContractsManager is ISemver {
         IAddressManager addressManager;
         IL1ERC721Bridge l1ERC721BridgeProxy;
         ISystemConfig systemConfigProxy;
-        IOptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
+        IL1OptimismMintableERC20Factory optimismMintableERC20FactoryProxy;
         IL1StandardBridge l1StandardBridgeProxy;
         IL1CrossDomainMessenger l1CrossDomainMessengerProxy;
         // Fault proof contracts below.

@@ -21,11 +21,7 @@ import { Constants } from "src/libraries/Constants.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 
 // Interfaces
-import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
-import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
-import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
 import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
-import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
@@ -213,11 +209,11 @@ contract L2Genesis is Deployer {
         }
 
         activateIsthmus();
+        activateL1BlockXFork();
 
         if (writeForkGenesisAllocs(_fork, Fork.ISTHMUS, _mode)) {
             return;
         }
-        activateIsthmus();
     }
 
     function writeForkGenesisAllocs(Fork _latest, Fork _current, OutputMode _mode) internal returns (bool isLatest_) {
@@ -567,14 +563,18 @@ contract L2Genesis is Deployer {
     }
 
     function activateIsthmus() public {
-        console.log("Activating isthmus in L1Block contract");
-        vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
-        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setIsIsthmus();
-
-        /// TODO: FIX THIS AFTER SYNC
         console.log("Activating isthmus in GasPriceOracle contract");
         vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
         IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE).setIsthmus();
+    }
+
+    // TODO: This function name should be changes when we decide which fork the l2genesis changes
+    //       will land on.
+    function activateL1BlockXFork() public {
+        console.log("Activating xfork in L1Block contract");
+        vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
+        /// TODO: IL1Block.setIsXFork() name will change based on the fork name
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setIsXFork();
     }
 
     /// @notice Sets the bytecode in state

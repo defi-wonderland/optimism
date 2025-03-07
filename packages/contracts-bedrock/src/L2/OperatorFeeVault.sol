@@ -20,7 +20,13 @@ contract OperatorFeeVault is FeeVault, ISemver {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
-    /// @notice Constructs the OperatorFeeVault contract.
-    /// Funds are withdrawn to the base fee vault on the L2 network.
-    constructor() FeeVault(Predeploys.BASE_FEE_VAULT, 0, Types.WithdrawalNetwork.L2) { }
+    /// @inheritdoc FeeVault
+    function config()
+        public
+        pure
+        override
+        returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_)
+    {
+        return (Predeploys.BASE_FEE_VAULT, 0, Types.WithdrawalNetwork.L2);
+    }
 }

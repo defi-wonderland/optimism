@@ -3,7 +3,7 @@ pragma solidity 0.8.15;
 
 // Libraries
 import { Constants } from "src/libraries/Constants.sol";
-import { NotDepositor, IsthmusAlreadyActive } from "src/libraries/L1BlockErrors.sol";
+import { NotDepositor, XForkAlreadyActive } from "src/libraries/L1BlockErrors.sol";
 import { Storage } from "src/libraries/Storage.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
@@ -90,15 +90,15 @@ contract L1Block is ISemver {
     /// @notice The latest L1 blob base fee.
     uint256 public blobBaseFee;
 
-    /// TODO: FIX THIS AFTER SYNC
-    /// @notice Whether the L1Block is an Isthmus upgraded chain.
-    bool public isIsthmus;
-
     /// @notice The constant value applied to the operator fee.
     uint64 public operatorFeeConstant;
 
     /// @notice The scalar value applied to the operator fee.
     uint32 public operatorFeeScalar;
+
+    // TODO: This name will change based on the fork name the l2genesis changes will land on.
+    /// @notice Whether the L1Block is an X-Fork upgraded chain.
+    bool public isXFork;
 
     /// @custom:semver 1.6.0
     function version() public pure virtual returns (string memory) {
@@ -257,20 +257,20 @@ contract L1Block is ISemver {
         }
     }
 
-    /// TODO: FIX THIS AFTER SYNC, NAMINGS
-    /// @notice Sets the L1 block values for an Isthmus upgraded chain.
+    // TODO: XFork name will change based on the fork name the l2genesis changes will land on.
+    /// @notice Sets the L1 block values for an XFork upgraded chain.
     ///         This function is intended to be called only once, and only on existing chains which are undergoing
-    ///         the Isthmus upgrade. Chains deployed with the Isthmus upgrade activated will have the values set here
+    ///         the XFork upgrade. Chains deployed with the XFork upgrade activated will have the values set here
     ///         already populated by the L2 Genesis generation process.
-    ///         In the case of an existing chain undergoing the Isthmus upgrade, the expectation is that
+    ///         In the case of an existing chain undergoing the XFork upgrade, the expectation is that
     ///         the upgrade flow will use the following series of Network upgrade automation transactions:
     ///         1. Deploy a new `L1BlockImpl` contract.
     ///         2. Upgrade only the `L1Block` contract to the new implementation by
     ///            calling `L2ProxyAdmin.upgrade(address(L1BlockProxy), address(L1BlockImpl))`.
-    ///         3. Call `L1Block.setIsthmus()` to pull the values from L2 contracts.
+    ///         3. Call `L1Block.setXFork()` to pull the values from L2 contracts.
     ///         4. Upgrades the remainder of the L2 contracts via `L2ProxyAdmin.upgrade()`.
-    function setIsthmus() external {
-        _setIsIsthmus();
+    function setXFork() external {
+        _setIsXFork();
 
         // NOTE: It's important to use legacy functions to avoid failure on upgrade.
         Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.BASE_FEE_VAULT));
@@ -294,19 +294,21 @@ contract L1Block is ISemver {
         );
     }
 
-    /// @notice Sets the isIsthmus flag to true.
-    /// @dev    This function is only meant to be used to set the isIsthmus flag in the L1Block for the
+    // TODO: XFork name will change based on the fork name the l2genesis changes will land on.
+    /// @notice Sets the isXFork flag to true.
+    /// @dev    This function is only meant to be used to set the isXFork flag in the L1Block for the
     ///         chains that are being deployed from the L2 Genesis process.
-    function setIsIsthmus() external {
-        _setIsIsthmus();
+    function setIsXFork() external {
+        _setIsXFork();
     }
 
-    /// @notice Internal method to set the isIsthmus flag.
-    function _setIsIsthmus() internal {
+    // TODO: XFork name will change based on the fork name the l2genesis changes will land on.
+    /// @notice Internal method to set the isXFork flag.
+    function _setIsXFork() internal {
         if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
-        if (isIsthmus) revert IsthmusAlreadyActive();
+        if (isXFork) revert XForkAlreadyActive();
 
-        isIsthmus = true;
+        isXFork = true;
     }
 
     /// @notice Helper function for migrating deploy config.
@@ -334,6 +336,7 @@ contract L1Block is ISemver {
     ///   9. _batcherHash          Versioned hash to authenticate batcher by.
     ///   10. _operatorFeeScalar   Operator fee scalar.
     ///   11. _operatorFeeConstant Operator fee constant.
+
     function setL1BlockValuesIsthmus() public {
         _setL1BlockValuesIsthmus();
     }

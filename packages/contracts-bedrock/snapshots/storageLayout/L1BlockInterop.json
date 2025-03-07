@@ -91,6 +91,13 @@
     "type": "uint32"
   },
   {
+    "bytes": "1",
+    "label": "isXFork",
+    "offset": 12,
+    "slot": "8",
+    "type": "bool"
+  },
+  {
     "bytes": "64",
     "label": "dependencySet",
     "offset": 0,

@@ -5,7 +5,7 @@ import { Types } from "src/libraries/Types.sol";
 
 interface IL1Block {
     error NotDepositor();
-    error IsthmusAlreadyActive();
+    error XForkAlreadyActive();
     error UnsafeCast();
 
     function DEPOSITOR_ACCOUNT() external pure returns (address addr_);
@@ -42,9 +42,9 @@ interface IL1Block {
     function version() external pure returns (string memory);
     function setConfig(Types.ConfigType _type, bytes memory _value) external;
     function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
-    function setIsthmus() external;
-    function setIsIsthmus() external;
-    function isIsthmus() external view returns (bool);
+    function setXFork() external;
+    function setIsXFork() external;
+    function isXFork() external view returns (bool);
 
     function __constructor__() external;
 }
