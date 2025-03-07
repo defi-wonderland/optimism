@@ -2,23 +2,23 @@
 pragma solidity 0.8.25;
 
 // Contracts
-import { ProxyAdminOwnerBase } from "src/L1/ProxyAdminOwnerBase.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {ProxyAdminOwnedBase} from "src/L1/ProxyAdminOwnedBase.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // Libraries
-import { Constants } from "src/libraries/Constants.sol";
+import {Constants} from "src/libraries/Constants.sol";
 
 // Interfaces
-import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import {ISemver} from "interfaces/universal/ISemver.sol";
+import {IOptimismPortal2 as IOptimismPortal} from "interfaces/L1/IOptimismPortal2.sol";
+import {ISuperchainConfig} from "interfaces/L1/ISuperchainConfig.sol";
+import {IETHLockbox} from "interfaces/L1/IETHLockbox.sol";
 
 /// @custom:proxied true
 /// @title ETHLockbox
 /// @notice Manages ETH liquidity locking and unlocking for authorized OptimismPortals, enabling unified ETH liquidity
 ///         management across chains in the superchain cluster.
-contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
+contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
     /// @notice Thrown when the lockbox is paused.
     error ETHLockbox_Paused();
 
@@ -83,10 +83,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
     /// @notice Initializer.
     /// @param _superchainConfig The address of the SuperchainConfig contract.
     /// @param _portals The addresses of the portals to authorize.
-    function initialize(
-        ISuperchainConfig _superchainConfig,
-        IOptimismPortal[] calldata _portals
-    )
+    function initialize(ISuperchainConfig _superchainConfig, IOptimismPortal[] calldata _portals)
         external
         initializer
     {
@@ -135,7 +132,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
         }
 
         // Using `donateETH` to avoid triggering a deposit
-        IOptimismPortal(payable(msg.sender)).donateETH{ value: _value }();
+        IOptimismPortal(payable(msg.sender)).donateETH{value: _value}();
         emit ETHUnlocked(msg.sender, _value);
     }
 
@@ -158,7 +155,7 @@ contract ETHLockbox is ProxyAdminOwnerBase, Initializable, ISemver {
         if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
         if (!_sameProxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
-        IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
+        IETHLockbox(_lockbox).receiveLiquidity{value: address(this).balance}();
         emit LiquidityMigrated(address(_lockbox));
     }
 

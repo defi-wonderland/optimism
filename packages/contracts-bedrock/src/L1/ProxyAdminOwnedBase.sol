@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-import { Storage } from "src/libraries/Storage.sol";
-import { Constants } from "src/libraries/Constants.sol";
+import {IProxyAdmin} from "interfaces/universal/IProxyAdmin.sol";
+import {Storage} from "src/libraries/Storage.sol";
+import {Constants} from "src/libraries/Constants.sol";
 
 /// @notice Base contract for ProxyAdmin-owned contracts. It's main goal is to expose the ProxyAdmin owner address on
 ///         a function and also to check if the current contract and a given proxy have the same ProxyAdmin owner.
-abstract contract ProxyAdminOwnerBase {
+abstract contract ProxyAdminOwnedBase {
     /// @notice Getter for the owner of the ProxyAdmin.
     ///         The ProxyAdmin is the owner of the current proxy contract.
     function proxyAdminOwner() public view returns (address) {
@@ -21,6 +21,6 @@ abstract contract ProxyAdminOwnerBase {
     ///         proxy.
     /// @param _proxy The address of the proxy to check.
     function _sameProxyAdminOwner(address _proxy) internal view returns (bool) {
-        return proxyAdminOwner() == ProxyAdminOwnerBase(_proxy).proxyAdminOwner();
+        return proxyAdminOwner() == ProxyAdminOwnedBase(_proxy).proxyAdminOwner();
     }
 }

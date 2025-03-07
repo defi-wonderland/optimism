@@ -2,37 +2,37 @@
 pragma solidity 0.8.15;
 
 // Contracts
-import { ProxyAdminOwnerBase } from "src/L1/ProxyAdminOwnerBase.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { ResourceMetering } from "src/L1/ResourceMetering.sol";
-import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
+import {ProxyAdminOwnedBase} from "src/L1/ProxyAdminOwnedBase.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {ResourceMetering} from "src/L1/ResourceMetering.sol";
+import {ReinitializableBase} from "src/universal/ReinitializableBase.sol";
 
 // Libraries
-import { EOA } from "src/libraries/EOA.sol";
-import { SafeCall } from "src/libraries/SafeCall.sol";
-import { Constants } from "src/libraries/Constants.sol";
-import { Types } from "src/libraries/Types.sol";
-import { Hashing } from "src/libraries/Hashing.sol";
-import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
-import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
+import {EOA} from "src/libraries/EOA.sol";
+import {SafeCall} from "src/libraries/SafeCall.sol";
+import {Constants} from "src/libraries/Constants.sol";
+import {Types} from "src/libraries/Types.sol";
+import {Hashing} from "src/libraries/Hashing.sol";
+import {SecureMerkleTrie} from "src/libraries/trie/SecureMerkleTrie.sol";
+import {AddressAliasHelper} from "src/vendor/AddressAliasHelper.sol";
+import {GameStatus, GameType} from "src/dispute/lib/Types.sol";
 
 // Interfaces
-import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
-import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
-import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
-import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import {ISemver} from "interfaces/universal/ISemver.sol";
+import {ISystemConfig} from "interfaces/L1/ISystemConfig.sol";
+import {IResourceMetering} from "interfaces/L1/IResourceMetering.sol";
+import {ISuperchainConfig} from "interfaces/L1/ISuperchainConfig.sol";
+import {IDisputeGameFactory} from "interfaces/dispute/IDisputeGameFactory.sol";
+import {IDisputeGame} from "interfaces/dispute/IDisputeGame.sol";
+import {IAnchorStateRegistry} from "interfaces/dispute/IAnchorStateRegistry.sol";
+import {IETHLockbox} from "interfaces/L1/IETHLockbox.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortal2
 /// @notice The OptimismPortal is a low-level contract responsible for passing messages between L1
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
-contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase, ProxyAdminOwnerBase, ISemver {
+contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase, ProxyAdminOwnedBase, ISemver {
     /// @notice Represents a proven withdrawal.
     /// @custom:field disputeGameProxy Game that the withdrawal was proven against.
     /// @custom:field timestamp        Timestamp at which the withdrawal was proven.
@@ -252,10 +252,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         IAnchorStateRegistry _anchorStateRegistry,
         IETHLockbox _ethLockbox,
         bool _superRootsActive
-    )
-        external
-        reinitializer(initVersion())
-    {
+    ) external reinitializer(initVersion()) {
         systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
         anchorStateRegistry = _anchorStateRegistry;
@@ -275,11 +272,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param _anchorStateRegistry AnchorStateRegistry contract.
     /// @param _ethLockbox ETHLockbox contract.
     /// @param _superRootsActive Whether the OptimismPortal is using Super Roots or Output Roots.
-    function upgrade(
-        IAnchorStateRegistry _anchorStateRegistry,
-        IETHLockbox _ethLockbox,
-        bool _superRootsActive
-    )
+    function upgrade(IAnchorStateRegistry _anchorStateRegistry, IETHLockbox _ethLockbox, bool _superRootsActive)
         external
         reinitializer(initVersion())
     {
@@ -383,10 +376,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         Types.SuperRootProof calldata _superRootProof,
         Types.OutputRootProof calldata _outputRootProof,
         bytes[] calldata _withdrawalProof
-    )
-        external
-        whenNotPaused
-    {
+    ) external whenNotPaused {
         // Make sure that the OptimismPortal is using Super Roots.
         if (!superRootsActive) {
             revert OptimismPortal_WrongProofMethod();
@@ -409,10 +399,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         uint256 _disputeGameIndex,
         Types.OutputRootProof calldata _outputRootProof,
         bytes[] calldata _withdrawalProof
-    )
-        external
-        whenNotPaused
-    {
+    ) external whenNotPaused {
         // Make sure that the OptimismPortal is using Output Roots.
         if (superRootsActive) {
             revert OptimismPortal_WrongProofMethod();
@@ -446,9 +433,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         Types.SuperRootProof memory _superRootProof,
         Types.OutputRootProof memory _outputRootProof,
         bytes[] memory _withdrawalProof
-    )
-        internal
-    {
+    ) internal {
         // Make sure that the target address is safe.
         if (_isUnsafeTarget(_tx.target)) {
             revert OptimismPortal_BadTarget();
@@ -538,7 +523,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // the provenWithdrawals mapping. A given user may re-prove a withdrawalHash multiple
         // times, but each proof will reset the proof timer.
         provenWithdrawals[withdrawalHash][msg.sender] =
-            ProvenWithdrawal({ disputeGameProxy: _disputeGameProxy, timestamp: uint64(block.timestamp) });
+            ProvenWithdrawal({disputeGameProxy: _disputeGameProxy, timestamp: uint64(block.timestamp)});
 
         // Add the proof submitter to the list of proof submitters for this withdrawal hash.
         proofSubmitters[withdrawalHash].push(msg.sender);
@@ -557,10 +542,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Finalizes a withdrawal transaction, using an external proof submitter.
     /// @param _tx Withdrawal transaction to finalize.
     /// @param _proofSubmitter Address of the proof submitter.
-    function finalizeWithdrawalTransactionExternalProof(
-        Types.WithdrawalTransaction memory _tx,
-        address _proofSubmitter
-    )
+    function finalizeWithdrawalTransactionExternalProof(Types.WithdrawalTransaction memory _tx, address _proofSubmitter)
         public
         whenNotPaused
     {
@@ -671,19 +653,13 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param _gasLimit   Amount of L2 gas to purchase by burning gas on L1.
     /// @param _isCreation Whether or not the transaction is a contract creation.
     /// @param _data       Data to trigger the recipient with.
-    function depositTransaction(
-        address _to,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes memory _data
-    )
+    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bool _isCreation, bytes memory _data)
         public
         payable
         metered(_gasLimit)
     {
         // Lock the ETH in the ETHLockbox.
-        if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
+        if (msg.value > 0) ethLockbox.lockETH{value: msg.value}();
 
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
@@ -737,7 +713,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Migrates the total ETH balance to the ETHLockbox.
     function _migrateLiquidity() internal {
         uint256 ethBalance = address(this).balance;
-        ethLockbox.lockETH{ value: ethBalance }();
+        ethLockbox.lockETH{value: ethBalance}();
 
         emit ETHMigrated(address(ethLockbox), ethBalance);
     }
