@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {IProxyAdmin} from "interfaces/universal/IProxyAdmin.sol";
-import {Storage} from "src/libraries/Storage.sol";
-import {Constants} from "src/libraries/Constants.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { Storage } from "src/libraries/Storage.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 /// @notice Base contract for ProxyAdmin-owned contracts. It's main goal is to expose the ProxyAdmin owner address on
 ///         a function and also to check if the current contract and a given proxy have the same ProxyAdmin owner.

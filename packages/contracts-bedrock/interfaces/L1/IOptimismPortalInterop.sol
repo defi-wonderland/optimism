@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Types} from "src/libraries/Types.sol";
-import {GameType} from "src/dispute/lib/LibUDT.sol";
-import {IDisputeGame} from "interfaces/dispute/IDisputeGame.sol";
-import {IDisputeGameFactory} from "interfaces/dispute/IDisputeGameFactory.sol";
-import {ISystemConfig} from "interfaces/L1/ISystemConfig.sol";
-import {ISuperchainConfig} from "interfaces/L1/ISuperchainConfig.sol";
-import {ConfigType} from "interfaces/L2/IL1BlockInterop.sol";
-import {IAnchorStateRegistry} from "interfaces/dispute/IAnchorStateRegistry.sol";
-import {IETHLockbox} from "interfaces/L1/IETHLockbox.sol";
-import {IProxyAdminOwnedBase} from "interfaces/L1/IProxyAdminOwnedBase.sol";
+import { Types } from "src/libraries/Types.sol";
+import { GameType } from "src/dispute/lib/LibUDT.sol";
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ConfigType } from "interfaces/L2/IL1BlockInterop.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
 interface IOptimismPortalInterop is IProxyAdminOwnedBase {
     error ContentLengthMismatch();
@@ -57,7 +57,13 @@ interface IOptimismPortalInterop is IProxyAdminOwnedBase {
     function anchorStateRegistry() external view returns (IAnchorStateRegistry);
     function ethLockbox() external view returns (IETHLockbox);
     function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) external view;
-    function depositTransaction(address _to, uint256 _value, uint64 _gasLimit, bool _isCreation, bytes memory _data)
+    function depositTransaction(
+        address _to,
+        uint256 _value,
+        uint64 _gasLimit,
+        bool _isCreation,
+        bytes memory _data
+    )
         external
         payable;
     function disputeGameFactory() external view returns (IDisputeGameFactory);
@@ -65,7 +71,10 @@ interface IOptimismPortalInterop is IProxyAdminOwnedBase {
     function donateETH() external payable;
     function updateLockbox(IETHLockbox _newLockbox) external;
     function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external;
-    function finalizeWithdrawalTransactionExternalProof(Types.WithdrawalTransaction memory _tx, address _proofSubmitter)
+    function finalizeWithdrawalTransactionExternalProof(
+        Types.WithdrawalTransaction memory _tx,
+        address _proofSubmitter
+    )
         external;
     function migrateLiquidity() external;
     function finalizedWithdrawals(bytes32) external view returns (bool);
@@ -76,7 +85,8 @@ interface IOptimismPortalInterop is IProxyAdminOwnedBase {
         IAnchorStateRegistry _anchorStateRegistry,
         IETHLockbox _ethLockbox,
         bool _superRootsActive
-    ) external;
+    )
+        external;
     function initVersion() external view returns (uint8);
     function l2Sender() external view returns (address);
     function minimumGasLimit(uint64 _byteCount) external pure returns (uint64);
@@ -90,7 +100,8 @@ interface IOptimismPortalInterop is IProxyAdminOwnedBase {
         uint256 _disputeGameIndex,
         Types.OutputRootProof memory _outputRootProof,
         bytes[] memory _withdrawalProof
-    ) external;
+    )
+        external;
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         IDisputeGame _disputeGameProxy,
@@ -98,8 +109,12 @@ interface IOptimismPortalInterop is IProxyAdminOwnedBase {
         Types.SuperRootProof memory _superRootProof,
         Types.OutputRootProof memory _outputRootProof,
         bytes[] memory _withdrawalProof
-    ) external;
-    function provenWithdrawals(bytes32, address)
+    )
+        external;
+    function provenWithdrawals(
+        bytes32,
+        address
+    )
         external
         view
         returns (IDisputeGame disputeGameProxy, uint64 timestamp); // nosemgrep
@@ -109,7 +124,11 @@ interface IOptimismPortalInterop is IProxyAdminOwnedBase {
     function superchainConfig() external view returns (ISuperchainConfig);
     function superRootsActive() external view returns (bool);
     function systemConfig() external view returns (ISystemConfig);
-    function upgrade(IAnchorStateRegistry _anchorStateRegistry, IETHLockbox _ethLockbox, bool _superRootsActive)
+    function upgrade(
+        IAnchorStateRegistry _anchorStateRegistry,
+        IETHLockbox _ethLockbox,
+        bool _superRootsActive
+    )
         external;
     function version() external pure returns (string memory);
 
