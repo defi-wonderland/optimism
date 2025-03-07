@@ -153,8 +153,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
 
     /// @notice Emitted when the total ETH balance is migrated to the ETHLockbox.
+    /// @param lockbox The address of the ETHLockbox contract.
     /// @param ethBalance Amount of ETH migrated.
-    event ETHMigrated(uint256 ethBalance);
+    event ETHMigrated(address indexed lockbox, uint256 ethBalance);
 
     /// @notice Emitted when the ETHLockbox contract is updated.
     /// @param oldLockbox The address of the old ETHLockbox contract.
@@ -738,7 +739,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         uint256 ethBalance = address(this).balance;
         ethLockbox.lockETH{ value: ethBalance }();
 
-        emit ETHMigrated(ethBalance);
+        emit ETHMigrated(address(ethLockbox), ethBalance);
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.

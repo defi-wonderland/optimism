@@ -48,7 +48,7 @@ interface IOptimismPortal2 is IProxyAdminOwnerBase {
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
-    event ETHMigrated(uint256 ethBalance);
+    event ETHMigrated(address indexed lockbox, uint256 ethBalance);
     event LockboxUpdated(address oldLockbox, address newLockbox);
 
     receive() external payable;

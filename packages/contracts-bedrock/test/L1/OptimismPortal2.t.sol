@@ -2123,7 +2123,7 @@ contract OptimismPortal2_LiquidityMigration_Test is CommonTest {
         vm.expectCall(address(ethLockbox), _portalBalance, abi.encodeCall(ethLockbox.lockETH, ()));
 
         vm.expectEmit(address(optimismPortal2));
-        emit ETHMigrated(_portalBalance);
+        emit ETHMigrated(address(ethLockbox), _portalBalance);
 
         vm.prank(proxyAdminOwner);
         optimismPortal2.migrateLiquidity();
