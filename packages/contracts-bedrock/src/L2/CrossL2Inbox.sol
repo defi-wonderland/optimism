@@ -66,7 +66,7 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
 
-    uint256 internal constant WARM_READ_COST = 100;
+    uint256 internal constant WARM_READ_COST = 150;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.12
@@ -140,22 +140,37 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         // // We need to know if this is being called on a depositTx
         // if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
 
-        if (!_isWarm(_hashSlot(_id, _msgHash))) revert NotWarm();
+        (bool _isSlotWarm,) = _isWarm(_hashSlot(_id, _msgHash));
+
+        if (!_isSlotWarm) revert NotWarm();
 
         emit ExecutingMessage(_msgHash, _id);
     }
 
-    function _hashSlot(Identifier calldata _id, bytes32 _msgHash) internal returns (bytes32 _slot) {
-        _slot = keccak256(abi.encode(_id, msgHash));
+    function _hashSlot(Identifier calldata _id, bytes32 _msgHash) internal pure returns (bytes32 _slot) {
+        _slot = keccak256(abi.encode(_id, _msgHash));
     }
 
-    function _isWarm(bytes32 _slot) internal returns (bool res) {
+    // function _isWarm(bytes32 _slot) internal view returns (bool result, uint256 res) {
+    //     uint256 startGas = gasleft();
+
+    //     assembly {
+    //         res := sload(_slot)
+    //     }
+
+    //     uint256 endGas = gasleft();
+
+    //     uint256 gasDiff = startGas - endGas;
+
+    //     result = gasDiff <= WARM_READ_COST;
+    // }
+
+    function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
         assembly {
             let startGas := gas()
-            sload(_slot)
+            result := sload(_slot)
             let endGas := gas()
-
-            res = iszero(gt(sub(startGas, endGas), WARM_READ_COST))
+            isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_COST))
         }
     }
 

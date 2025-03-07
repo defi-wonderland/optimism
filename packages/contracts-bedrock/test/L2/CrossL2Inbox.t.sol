@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 // Testing utilities
 import { Test } from "forge-std/Test.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -19,6 +20,8 @@ import {
     NotWarm
 } from "src/L2/CrossL2Inbox.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
+
+import "forge-std/console.sol";
 
 /// @title CrossL2InboxWithModifiableTransientStorage
 /// @dev CrossL2Inbox contract with methods to modify the transient storage.
@@ -59,17 +62,20 @@ contract CrossL2InboxWithModifiableTransientStorage is CrossL2Inbox {
         TransientContext.set(CHAINID_SLOT, _chainId);
     }
 
-    function warmSlot(bytes32 _slot) external {
+    function warmSlot(bytes32 _slot) external view returns (uint256 res) {
         assembly {
-            sload(_slot)
+            res := sload(_slot)
         }
     }
 }
 
-
 /// @title CrossL2InboxTest
 /// @dev Contract for testing the CrossL2Inbox contract.
 contract CrossL2InboxTest is Test {
+    string public constant MNEMONIC = "test test test test test test test test test test test junk"; // L2 dev accounts
+    uint256 public immutable PRIVATE_KEY = vm.deriveKey(MNEMONIC, 0);
+    address public immutable DEPLOYER = vm.rememberKey(PRIVATE_KEY);
+
     /// @dev Selector for the `isInDependencySet` method of the L1Block contract.
     bytes4 constant L1BlockIsInDependencySetSelector = bytes4(keccak256("isInDependencySet(uint256)"));
 
@@ -78,7 +84,7 @@ contract CrossL2InboxTest is Test {
     bytes32 internal constant INTEROP_START_SLOT = bytes32(uint256(keccak256("crossl2inbox.interopstart")) - 1);
 
     /// @dev CrossL2Inbox contract instance.
-    CrossL2Inbox crossL2Inbox;
+    CrossL2InboxWithModifiableTransientStorage crossL2Inbox;
 
     // interop start timestamp
     uint256 interopStartTime = 420;
@@ -91,7 +97,7 @@ contract CrossL2InboxTest is Test {
     function setUp() public {
         // Deploy the L2ToL2CrossDomainMessenger contract
         vm.etch(Predeploys.CROSS_L2_INBOX, address(new CrossL2InboxWithModifiableTransientStorage()).code);
-        crossL2Inbox = CrossL2Inbox(Predeploys.CROSS_L2_INBOX);
+        crossL2Inbox = CrossL2InboxWithModifiableTransientStorage(Predeploys.CROSS_L2_INBOX);
     }
 
     modifier setInteropStart() {
@@ -276,51 +282,124 @@ contract CrossL2InboxTest is Test {
         crossL2Inbox.chainId();
     }
 
-
-
     /// AccessList Tests
-    function test_validateMessage_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+    function test_validateMessage_access_list_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
         bytes32 slot = keccak256(abi.encode(_id, _messageHash));
 
         crossL2Inbox.warmSlot(slot);
 
         crossL2Inbox.validateMessage(_id, _messageHash);
-
     }
 
-    function test_validateMessage_reverts(Identifier calldata _id, bytes32 _messageHash) external {
+    function test_validateMessage_access_list_reverts(Identifier calldata _id, bytes32 _messageHash) external {
         bytes32 slot = keccak256(abi.encode(_id, _messageHash));
 
-        crossL2Inbox.warmSlot(keccak256(slot));
+        crossL2Inbox.warmSlot(keccak256(abi.encode(slot)));
 
         vm.expectRevert(NotWarm.selector);
         crossL2Inbox.validateMessage(_id, _messageHash);
-
     }
 
     /// @dev Tests that the validateMessage function succeeds with an access list
-    function test_validateMessage_withAccessList_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
-        // Calculate the slot that needs to be accessed
-        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
-        // Create the FFI command to get the access list
-        string[] memory inputs = new string[](8);
-        inputs[0] = "cast";
-        inputs[1] = "access-list";
-        inputs[2] = "--rpc-url";
-        inputs[3] = "http://localhost:8545";
-        inputs[4] = address(crossL2Inbox).toString();
-        inputs[5] = "validateMessage(((address,uint256,uint256,uint256,uint256),bytes32))";
-        inputs[6] = "--access-list";
-        inputs[7] = string.concat("[", address(crossL2Inbox).toString(), ": [", vm.toString(slot), "]]");
+    function test_validateMessage_accessList_E2E_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+        vm.createSelectFork("http://127.0.0.1:8545");
 
-        // Execute the FFI call to get the access list
-        bytes memory result = vm.ffi(inputs);
+        vm.prank(DEPLOYER);
+        crossL2Inbox = new CrossL2InboxWithModifiableTransientStorage();
 
-        // Set the access list for the next transaction
-        vm.setTxAccessList(result);
+        console.log("crossL2Inbox address", address(crossL2Inbox));
 
-        // The transaction should succeed since the slot is in the access list
-        crossL2Inbox.validateMessage(_id, _messageHash);
+        _executeCastSend(address(0), "", "http://127.0.0.1:8545", 0, false, true, new string[](0));
+
+        string[] memory storageKeys = new string[](1);
+        storageKeys[0] = vm.toString(keccak256(abi.encode(_id, _messageHash)));
+
+        _executeCastSend(
+            address(crossL2Inbox),
+            vm.toString(abi.encodeCall(CrossL2Inbox.validateMessage, (_id, _messageHash))),
+            "http://127.0.0.1:8545",
+            0,
+            false,
+            false,
+            storageKeys
+        );
     }
 
+    /// @notice Executes a cast send command via FFI to interact with the blockchain
+    /// @dev This is a temporary implementation copied from cast.sol that should be moved to a shared library
+    /// @param _target The address of the contract to interact with
+    /// @param _calldata The calldata string to be passed to the contract (empty string for direct value transfers)
+    /// @param _rpcUrl The RPC endpoint URL to send the transaction to
+    /// @param _value The amount of ETH to send with the transaction (in wei)
+    /// @param _async Whether to wait for the transaction to be mined (false) or return immediately (true)
+    /// @return The raw bytes response from the cast command
+    function _executeCastSend(
+        address _target,
+        string memory _calldata,
+        string memory _rpcUrl,
+        uint256 _value,
+        bool _async,
+        bool _create,
+        string[] memory _storageKeys
+    )
+        internal
+        returns (bytes memory)
+    {
+        // Calculate array size based on whether we have value and async parameters
+        uint256 cmdLength = 9; // base length
+        if (bytes(_calldata).length > 0) cmdLength += 1; // _calldata
+        if (_value > 0) cmdLength += 2; // --value <amount>
+        if (_async) cmdLength += 1; // --async
+        if (_create) cmdLength += 1; // --create
+        if (_storageKeys.length > 0) cmdLength += (_storageKeys.length + 1); // --access-list
+
+        string[] memory cmds = new string[](cmdLength);
+        uint256 i = 0;
+        cmds[i++] = "cast";
+        cmds[i++] = "send";
+        if (!_create) {
+            cmds[i++] = vm.toString(_target);
+        }
+        if (bytes(_calldata).length > 0) cmds[i++] = _calldata;
+        if (_value > 0) {
+            cmds[i++] = "--value";
+            cmds[i++] = vm.toString(_value);
+        }
+        cmds[i++] = "--rpc-url";
+        cmds[i++] = _rpcUrl;
+        cmds[i++] = "--mnemonic";
+        cmds[i++] = MNEMONIC;
+        if (_async) {
+            cmds[i++] = "--async";
+        }
+        cmds[i++] = "--confirmations";
+        cmds[i++] = "5";
+        if (_create) {
+            cmds[i++] = "--create";
+            cmds[i++] = vm.toString(type(CrossL2Inbox).creationCode);
+        }
+        if (_storageKeys.length > 0) {
+            cmds[i++] = "--access-list";
+            string memory accessListStr = "[{\"address\": ";
+            accessListStr = string.concat(accessListStr, vm.toString(_target));
+            accessListStr = string.concat(accessListStr, ", \"storageKeys\": [");
+            for (uint256 j = 0; j < _storageKeys.length; j++) {
+                if (j > 0) {
+                    accessListStr = string.concat(accessListStr, ",");
+                }
+                accessListStr = string.concat(accessListStr, _storageKeys[j]);
+            }
+            accessListStr = string.concat(accessListStr, "]}]");
+            cmds[i++] = accessListStr;
+        }
+
+        // --access-list '[{"address": "0x5FbDB2315678afecb367f032d93F642f64180aa3", "storageKeys":
+        // ["0xfd0c2f7bc1d9fdc1e6011b3d60960dcf68b1efb3e5ae393fdec95a6ae7161dc5"]}]'
+
+        VmSafe.FfiResult memory result = vm.tryFfi(cmds);
+        if (result.exitCode != 0) {
+            revert(string(result.stderr));
+        }
+        return result.stdout;
+    }
 }
