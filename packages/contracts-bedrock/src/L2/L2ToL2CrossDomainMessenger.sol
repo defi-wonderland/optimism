@@ -35,9 +35,6 @@ error MessageAlreadyRelayed();
 /// @notice Thrown when a reentrant call is detected.
 error ReentrantCall();
 
-/// @notice Thrown when a call to the target contract during message relay fails.
-error TargetCallFailed();
-
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
 /// @title L2ToL2CrossDomainMessenger
@@ -195,7 +192,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         (success, returnData_) = target.call{ value: msg.value }(message);
 
         if (!success) {
-            revert TargetCallFailed();
+            assembly {
+                revert(add(32, returnData_), mload(returnData_))
+            }
         }
 
         emit RelayedMessage(source, nonce, messageHash);
@@ -221,6 +220,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     }
 
     /// @notice Decodes the payload of a SentMessage event.
+    /// @dev    The payload format is as follows:
+    ///         encodePacked(
+    ///               encode(event selector, destination, target, nonce),
+    ///               encode(sender, message)
+    ///         )
     /// @param _payload         Payload of the SentMessage event.
     /// @return destination_    Destination chain ID.
     /// @return target_         Target contract of the message.
