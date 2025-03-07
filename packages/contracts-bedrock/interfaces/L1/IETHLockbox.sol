@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ISemver} from "interfaces/universal/ISemver.sol";
-import {ISuperchainConfig} from "interfaces/L1/ISuperchainConfig.sol";
-import {IProxyAdminOwnedBase} from "interfaces/L1/IProxyAdminOwnedBase.sol";
-import {IOptimismPortal2} from "interfaces/L1/IOptimismPortal2.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 interface IETHLockbox is IProxyAdminOwnedBase, ISemver {
     error ETHLockbox_Unauthorized();
@@ -19,7 +19,7 @@ interface IETHLockbox is IProxyAdminOwnedBase, ISemver {
     event PortalAuthorized(address indexed portal);
     event LockboxAuthorized(address indexed lockbox);
     event LiquidityMigrated(address indexed lockbox);
-    event LiquidityReceived(address indexed lockbox);
+    event LiquidityReceived(address indexed lockbox, uint256 amount);
 
     function initialize(ISuperchainConfig _superchainConfig, IOptimismPortal2[] calldata _portals) external;
     function superchainConfig() external view returns (ISuperchainConfig);

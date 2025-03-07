@@ -2,21 +2,21 @@
 pragma solidity 0.8.15;
 
 // Testing utilities
-import {Constants} from "src/libraries/Constants.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
-import {IOptimismPortal2 as IOptimismPortal} from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 
-import {IETHLockbox} from "interfaces/L1/IETHLockbox.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
-import {ISuperchainConfig} from "interfaces/L1/ISuperchainConfig.sol";
-import {IProxyAdminOwnedBase} from "interfaces/L1/IProxyAdminOwnedBase.sol";
-import {IOptimismPortal2} from "interfaces/L1/IOptimismPortal2.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 // Test
-import {CommonTest} from "test/setup/CommonTest.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
 
-import {ProxyAdmin} from "src/universal/ProxyAdmin.sol";
+import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 contract ETHLockboxTest is CommonTest {
     error InvalidInitialization();
@@ -26,7 +26,7 @@ contract ETHLockboxTest is CommonTest {
     event PortalAuthorized(address indexed portal);
     event LockboxAuthorized(address indexed lockbox);
     event LiquidityMigrated(address indexed lockbox);
-    event LiquidityReceived(address indexed lockbox);
+    event LiquidityReceived(address indexed lockbox, uint256 amount);
 
     ProxyAdmin public proxyAdmin;
     address public proxyAdminOwner;
@@ -98,11 +98,11 @@ contract ETHLockboxTest is CommonTest {
 
         // Expect the `LiquidityReceived` event to be emitted
         vm.expectEmit(address(ethLockbox));
-        emit LiquidityReceived(_lockbox);
+        emit LiquidityReceived(_lockbox, _value);
 
         // Call the `receiveLiquidity` function
         vm.prank(address(_lockbox));
-        ethLockbox.receiveLiquidity{value: _value}();
+        ethLockbox.receiveLiquidity{ value: _value }();
 
         // Assert the lockbox's balance increased by the amount received
         assertEq(address(ethLockbox).balance, ethLockboxBalanceBefore + _value);
@@ -138,7 +138,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `lockETH` function with the portal
         vm.prank(address(optimismPortal2));
-        ethLockbox.lockETH{value: _amount}();
+        ethLockbox.lockETH{ value: _amount }();
 
         // Assert the portal's balance decreased and the lockbox's balance increased by the amount locked
         assertEq(address(optimismPortal2).balance, portalBalanceBefore - _amount);
@@ -175,7 +175,7 @@ contract ETHLockboxTest is CommonTest {
 
         // Call the `lockETH` function with the portal
         vm.prank(address(_portal));
-        ethLockbox.lockETH{value: _amount}();
+        ethLockbox.lockETH{ value: _amount }();
 
         // Assert the portal's balance decreased and the lockbox's balance increased by the amount locked
         assertEq(address(ethLockbox).balance, lockboxBalanceBefore + _amount);
