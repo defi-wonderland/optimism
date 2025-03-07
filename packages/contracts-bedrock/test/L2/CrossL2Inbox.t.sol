@@ -298,4 +298,29 @@ contract CrossL2InboxTest is Test {
 
     }
 
+    /// @dev Tests that the validateMessage function succeeds with an access list
+    function test_validateMessage_withAccessList_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+        // Calculate the slot that needs to be accessed
+        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
+        // Create the FFI command to get the access list
+        string[] memory inputs = new string[](8);
+        inputs[0] = "cast";
+        inputs[1] = "access-list";
+        inputs[2] = "--rpc-url";
+        inputs[3] = "http://localhost:8545";
+        inputs[4] = address(crossL2Inbox).toString();
+        inputs[5] = "validateMessage(((address,uint256,uint256,uint256,uint256),bytes32))";
+        inputs[6] = "--access-list";
+        inputs[7] = string.concat("[", address(crossL2Inbox).toString(), ": [", vm.toString(slot), "]]");
+
+        // Execute the FFI call to get the access list
+        bytes memory result = vm.ffi(inputs);
+
+        // Set the access list for the next transaction
+        vm.setTxAccessList(result);
+
+        // The transaction should succeed since the slot is in the access list
+        crossL2Inbox.validateMessage(_id, _messageHash);
+    }
+
 }
