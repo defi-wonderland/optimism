@@ -463,6 +463,7 @@ contract ETHLockboxTest is CommonTest {
         vm.mockCall(address(_lockbox), abi.encodeCall(IETHLockbox.receiveLiquidity, ()), abi.encode(true));
 
         // Deal the balance to the lockbox
+        deal(address(ethLockbox), _balance);
         deal(address(_lockbox), _balance);
 
         // Get balances before the migration

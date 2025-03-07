@@ -51,6 +51,7 @@ contract ProxyAdminOwnedBaseTest is Test {
     // Test that the `_sameProxyAdminOwner` function returns true if the proxy admin owner owner
     // of both proxies is the same
     function test_sameProxyAdminOwner_sameOwner_succeeds(address _proxy) public {
+        assumeNotForgeAddress(_proxy);
         _mockAndExpect(_proxy, abi.encodeCall(ProxyAdminOwnedBase.proxyAdminOwner, ()), abi.encode(owner));
         assertEq(proxyAdminOwned.forTest_sameProxyAdminOwner(_proxy), true);
     }
@@ -58,6 +59,8 @@ contract ProxyAdminOwnedBaseTest is Test {
     // Test that the `_sameProxyAdminOwner` function returns false if the proxy admin owner of both
     // proxies is different
     function test_sameProxyAdminOwner_differentOwner_fails(address _proxy, address _otherProxyOwner) public {
+        assumeNotForgeAddress(_proxy);
+        assumeNotForgeAddress(_otherProxyOwner);
         vm.assume(_otherProxyOwner != owner);
         _mockAndExpect(_proxy, abi.encodeCall(ProxyAdminOwnedBase.proxyAdminOwner, ()), abi.encode(_otherProxyOwner));
         assertEq(proxyAdminOwned.forTest_sameProxyAdminOwner(_proxy), false);
