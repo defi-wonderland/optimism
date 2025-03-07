@@ -21,6 +21,8 @@ error NotEntered();
 /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
 error NoExecutingDeposits();
 
+error NotWarm();
+
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
 struct Identifier {
     address origin;
@@ -63,6 +65,8 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     /// @notice The address that represents the system caller responsible for L1 attributes
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
+
+    uint256 internal constant WARM_READ_COST = 100;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.12
@@ -133,10 +137,26 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     /// @param _id      Identifier of the message.
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
-        // We need to know if this is being called on a depositTx
-        if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
+        // // We need to know if this is being called on a depositTx
+        // if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
+
+        if (!_isWarm(_hashSlot(_id, _msgHash))) revert NotWarm();
 
         emit ExecutingMessage(_msgHash, _id);
+    }
+
+    function _hashSlot(Identifier calldata _id, bytes32 _msgHash) internal returns (bytes32 _slot) {
+        _slot = keccak256(abi.encode(_id, msgHash));
+    }
+
+    function _isWarm(bytes32 _slot) internal returns (bool res) {
+        assembly {
+            let startGas := gas()
+            sload(_slot)
+            let endGas := gas()
+
+            res = iszero(gt(sub(startGas, endGas), WARM_READ_COST))
+        }
     }
 
     /// @notice Stores the Identifier in transient storage.

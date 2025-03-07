@@ -15,7 +15,8 @@ import {
     NotEntered,
     NoExecutingDeposits,
     NotDepositor,
-    InteropStartAlreadySet
+    InteropStartAlreadySet,
+    NotWarm
 } from "src/L2/CrossL2Inbox.sol";
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
@@ -57,7 +58,14 @@ contract CrossL2InboxWithModifiableTransientStorage is CrossL2Inbox {
     function setChainId(uint256 _chainId) external {
         TransientContext.set(CHAINID_SLOT, _chainId);
     }
+
+    function warmSlot(bytes32 _slot) external {
+        assembly {
+            sload(_slot)
+        }
+    }
 }
+
 
 /// @title CrossL2InboxTest
 /// @dev Contract for testing the CrossL2Inbox contract.
@@ -267,4 +275,27 @@ contract CrossL2InboxTest is Test {
         // Call the `chainId` function
         crossL2Inbox.chainId();
     }
+
+
+
+    /// AccessList Tests
+    function test_validateMessage_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
+
+        crossL2Inbox.warmSlot(slot);
+
+        crossL2Inbox.validateMessage(_id, _messageHash);
+
+    }
+
+    function test_validateMessage_reverts(Identifier calldata _id, bytes32 _messageHash) external {
+        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
+
+        crossL2Inbox.warmSlot(keccak256(slot));
+
+        vm.expectRevert(NotWarm.selector);
+        crossL2Inbox.validateMessage(_id, _messageHash);
+
+    }
+
 }
