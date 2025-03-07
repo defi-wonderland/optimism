@@ -21,7 +21,7 @@ import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableE
 contract L1BlockTest is CommonTest {
     address depositor;
 
-    bytes32 public constant IS_XFORK_SLOT = bytes32(uint256(9));
+    bytes32 public constant IS_XFORK_SLOT = bytes32(uint256(8));
 
     enum WithdrawalNetworkForTest {
         DEFAULT,
@@ -419,7 +419,7 @@ contract L1BlockSetConfig_Test is L1BlockTest {
     function test_setIsXFork_succeeds() external {
         assertEq(l1Block.isXFork(), false);
         vm.prank(Constants.DEPOSITOR_ACCOUNT);
-        l1Block.setXFork();
+        l1Block.setIsXFork();
         assertEq(l1Block.isXFork(), true);
     }
 
