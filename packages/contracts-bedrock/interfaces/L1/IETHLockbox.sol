@@ -18,7 +18,7 @@ interface IETHLockbox is IProxyAdminOwnedBase, ISemver {
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
     event LockboxAuthorized(address indexed lockbox);
-    event LiquidityMigrated(address indexed lockbox);
+    event LiquidityMigrated(address indexed lockbox, uint256 amount);
     event LiquidityReceived(address indexed lockbox, uint256 amount);
 
     function initialize(ISuperchainConfig _superchainConfig, IOptimismPortal2[] calldata _portals) external;

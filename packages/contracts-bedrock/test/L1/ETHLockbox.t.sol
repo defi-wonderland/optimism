@@ -25,7 +25,7 @@ contract ETHLockboxTest is CommonTest {
     event ETHUnlocked(address indexed portal, uint256 amount);
     event PortalAuthorized(address indexed portal);
     event LockboxAuthorized(address indexed lockbox);
-    event LiquidityMigrated(address indexed lockbox);
+    event LiquidityMigrated(address indexed lockbox, uint256 amount);
     event LiquidityReceived(address indexed lockbox, uint256 amount);
 
     ProxyAdmin public proxyAdmin;
@@ -446,6 +446,8 @@ contract ETHLockboxTest is CommonTest {
 
     /// @notice Tests the `migrateLiquidity` function succeeds
     function testFuzz_migrateLiquidity_succeeds(uint256 _balance, address _lockbox) public {
+        _balance = bound(_balance, 0, type(uint256).max - address(ethLockbox).balance);
+
         // Since on the fork the `_lockbox` fuzzed address doesn't exist, we skip the test
         if (isForkTest()) vm.skip(true);
         assumeNotForgeAddress(_lockbox);
@@ -463,13 +465,13 @@ contract ETHLockboxTest is CommonTest {
         // Deal the balance to the lockbox
         deal(address(_lockbox), _balance);
 
-        // Expect the `LiquidityMigrated` event to be emitted
-        vm.expectEmit(address(ethLockbox));
-        emit LiquidityMigrated(_lockbox);
-
         // Get balances before the migration
         uint256 ethLockboxBalanceBefore = address(ethLockbox).balance;
         uint256 newLockboxBalanceBefore = address(_lockbox).balance;
+
+        // Expect the `LiquidityMigrated` event to be emitted
+        vm.expectEmit(address(ethLockbox));
+        emit LiquidityMigrated(_lockbox, ethLockboxBalanceBefore);
 
         // Call the `migrateLiquidity` function with the lockbox
         vm.prank(proxyAdminOwner);

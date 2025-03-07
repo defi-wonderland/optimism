@@ -54,7 +54,7 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
 
     /// @notice Emitted when ETH liquidity is migrated from the current ETH lockbox to another.
     /// @param lockbox The address of the ETH lockbox that was migrated.
-    event LiquidityMigrated(address indexed lockbox);
+    event LiquidityMigrated(address indexed lockbox, uint256 amount);
 
     /// @notice Emitted when ETH liquidity is received during an authorized lockbox migration.
     /// @param lockbox The address of the ETH lockbox that received the liquidity.
@@ -160,7 +160,7 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
         if (!_sameProxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
         IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
-        emit LiquidityMigrated(address(_lockbox));
+        emit LiquidityMigrated(address(_lockbox), address(this).balance);
     }
 
     /// @notice Authorizes a portal to lock and unlock ETH.
