@@ -463,7 +463,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         });
 
         // Expect the target call to revert
-        vm.expectRevert();
+        vm.expectRevert(1);
         hoax(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _value);
         l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
 
