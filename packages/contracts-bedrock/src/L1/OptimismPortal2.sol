@@ -362,7 +362,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
 
         address oldLockbox = address(ethLockbox);
-        ethLockbox = IETHLockbox(_newLockbox);
+        ethLockbox = _newLockbox;
 
         emit LockboxUpdated(oldLockbox, address(_newLockbox));
     }
