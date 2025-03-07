@@ -23,12 +23,13 @@ import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
 import "forge-std/console.sol";
 
-/// @title CrossL2InboxTest
-/// @dev Contract for testing the CrossL2Inbox contract.
-contract CrossL2InboxTest is Test {
+/// @title CrossL2InboxAccessListTest
+/// @dev Contract for testing the CrossL2Inbox contract with access lists.
+contract CrossL2InboxAccessListTest is Test {
     string public constant MNEMONIC = "test test test test test test test test test test test junk"; // L2 dev accounts
     uint256 public immutable PRIVATE_KEY = vm.deriveKey(MNEMONIC, 0);
     address public immutable DEPLOYER = vm.rememberKey(PRIVATE_KEY);
+    string public constant RPC_URL = "http://127.0.0.1:8545";
 
     event SendResult(bytes);
 
@@ -37,26 +38,25 @@ contract CrossL2InboxTest is Test {
 
     /// @dev Sets up the test suite.
     function setUp() public {
-    }
-
-    /// @dev Tests that the validateMessage function succeeds with an access list
-    function test_validateMessage_accessList_E2E_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
-        vm.createSelectFork("http://127.0.0.1:8545");
+        vm.createSelectFork(RPC_URL);
 
         vm.prank(DEPLOYER);
         crossL2Inbox = new CrossL2Inbox();
 
         console.log("CrossL2Inbox address", address(crossL2Inbox));
 
-        bytes memory _res = _executeCastSend(address(0), "", "http://127.0.0.1:8545", 0, false, true, new string[](0));
+        _executeCastSend(address(0), "", RPC_URL, 0, false, true, new string[](0));
+    }
 
+    /// @dev Tests that the validateMessage function succeeds with an access list
+    function test_validateMessage_accessList_E2E_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
         string[] memory storageKeys = new string[](1);
         storageKeys[0] = vm.toString(keccak256(abi.encode(_id, _messageHash)));
 
         _executeCastSend(
             address(crossL2Inbox),
             vm.toString(abi.encodeCall(CrossL2Inbox.validateMessage, (_id, _messageHash))),
-            "http://127.0.0.1:8545",
+            RPC_URL,
             0,
             false,
             false,
@@ -64,6 +64,26 @@ contract CrossL2InboxTest is Test {
         );
     }
 
+    /// @dev Tests that the validateMessage function reverts without an access list
+    function test_validateMessage_withoutAccessList_E2E_reverts(
+        Identifier calldata _id,
+        bytes32 _messageHash
+    )
+        external
+    {
+        (bytes memory _result, bytes memory _error) = _executeCastSend(
+            address(crossL2Inbox),
+            vm.toString(abi.encodeCall(CrossL2Inbox.validateMessage, (_id, _messageHash))),
+            RPC_URL,
+            0,
+            false,
+            false,
+            new string[](0)
+        );
+
+        assertEq(_result, "");
+        assertNotEq(_error, "");
+    }
 
     /// @notice Executes a cast send command via FFI to interact with the blockchain
     /// @dev This is a temporary implementation copied from cast.sol that should be moved to a shared library
@@ -72,7 +92,8 @@ contract CrossL2InboxTest is Test {
     /// @param _rpcUrl The RPC endpoint URL to send the transaction to
     /// @param _value The amount of ETH to send with the transaction (in wei)
     /// @param _async Whether to wait for the transaction to be mined (false) or return immediately (true)
-    /// @return The raw bytes response from the cast command
+    /// @return _result The raw bytes response from the cast command
+    /// @return _error The raw bytes error from the cast command
     function _executeCastSend(
         address _target,
         string memory _calldata,
@@ -83,7 +104,7 @@ contract CrossL2InboxTest is Test {
         string[] memory _storageKeys
     )
         internal
-        returns (bytes memory)
+        returns (bytes memory _result, bytes memory _error)
     {
         // Calculate array size based on whether we have value and async parameters
         uint256 cmdLength = 9; // base length
@@ -137,8 +158,8 @@ contract CrossL2InboxTest is Test {
 
         VmSafe.FfiResult memory result = vm.tryFfi(cmds);
         if (result.exitCode != 0) {
-            revert(string(result.stderr));
+            _error = result.stderr;
         }
-        return result.stdout;
+        _result = result.stdout;
     }
 }

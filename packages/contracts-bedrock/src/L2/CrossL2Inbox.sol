@@ -151,20 +151,6 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         _slot = keccak256(abi.encode(_id, _msgHash));
     }
 
-    // function _isWarm(bytes32 _slot) internal view returns (bool result, uint256 res) {
-    //     uint256 startGas = gasleft();
-
-    //     assembly {
-    //         res := sload(_slot)
-    //     }
-
-    //     uint256 endGas = gasleft();
-
-    //     uint256 gasDiff = startGas - endGas;
-
-    //     result = gasDiff <= WARM_READ_COST;
-    // }
-
     function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
         assembly {
             let startGas := gas()
