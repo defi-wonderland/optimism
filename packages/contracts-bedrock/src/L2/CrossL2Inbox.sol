@@ -66,6 +66,8 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
 
+    /// @notice The cost of a warm read in gas.
+    /// TODO: discuss a safe value for this
     uint256 internal constant WARM_READ_COST = 150;
 
     /// @notice Semantic version.
