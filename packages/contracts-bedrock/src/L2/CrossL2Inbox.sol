@@ -66,7 +66,7 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
 
-    /// @notice The cost of a warm read in gas.
+    /// @notice The threshold to use to know whether the slot is warm or not.
     /// TODO: discuss a safe value for this
     uint256 internal constant WARM_READ_COST = 150;
 
@@ -150,12 +150,14 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     }
 
     function _hashSlot(Identifier calldata _id, bytes32 _msgHash) internal pure returns (bytes32 _slot) {
+        // TODO: ensure the way of keccaking is correct
         _slot = keccak256(abi.encode(_id, _msgHash));
     }
 
     function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
         assembly {
             let startGas := gas()
+            // storing and returning the result so that the compiler doesn't optimize out the sload, this adds cost to the read
             result := sload(_slot)
             let endGas := gas()
             isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_COST))
