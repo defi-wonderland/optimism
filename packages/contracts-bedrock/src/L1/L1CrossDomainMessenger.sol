@@ -53,9 +53,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver, Initializable 
 
     /// @notice Getter function for the OptimismPortal contract on this chain.
     ///         Public getter is legacy and will be removed in the future. Use `portal()` instead.
-    /// @return Contract of the OptimismPortal on this chain.
+    /// @return portal_ Contract of the OptimismPortal on this chain.
     /// @custom:legacy
-    function PORTAL() external view returns (IOptimismPortal) {
+    function PORTAL() external view returns (IOptimismPortal portal_) {
         return portal;
     }
 

@@ -9,12 +9,12 @@ interface IBaseFeeVault {
 
     receive() external payable;
 
-    function MIN_WITHDRAWAL_AMOUNT() external view returns (uint256);
-    function RECIPIENT() external view returns (address);
-    function WITHDRAWAL_NETWORK() external view returns (Types.WithdrawalNetwork);
+    function MIN_WITHDRAWAL_AMOUNT() external view returns (uint256 minWithdrawalAmount_);
+    function RECIPIENT() external view returns (address recipient_);
+    function WITHDRAWAL_NETWORK() external view returns (Types.WithdrawalNetwork withdrawalNetwork_);
     function minWithdrawalAmount() external view returns (uint256 amount_);
     function recipient() external view returns (address recipient_);
-    function totalProcessed() external view returns (uint256);
+    function totalProcessed() external view returns (uint256 totalWeiProcessed_);
     function withdraw() external;
     function withdrawalNetwork() external view returns (Types.WithdrawalNetwork network_);
     function config()
@@ -22,7 +22,7 @@ interface IBaseFeeVault {
         view
         returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_);
 
-    function version() external view returns (string memory);
+    function version() external view returns (string memory version_);
 
     function __constructor__() external;
 }

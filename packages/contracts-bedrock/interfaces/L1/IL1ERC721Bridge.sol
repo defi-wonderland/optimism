@@ -25,7 +25,7 @@ interface IL1ERC721Bridge is IERC721Bridge {
         bytes memory _extraData
     )
         external;
-    function deposits(address, address, uint256) external view returns (bool);
+    function deposits(address _localToken, address _remoteToken, uint256 _tokenId) external view returns (bool);
     function finalizeBridgeERC721(
         address _localToken,
         address _remoteToken,
@@ -37,10 +37,10 @@ interface IL1ERC721Bridge is IERC721Bridge {
         external;
 
     function initialize(ICrossDomainMessenger _messenger, ISuperchainConfig _superchainConfig) external;
-    function paused() external view returns (bool);
-    function superchainConfig() external view returns (ISuperchainConfig);
-    function otherBridge() external pure returns (IERC721Bridge);
-    function version() external view returns (string memory);
+    function paused() external view returns (bool paused_);
+    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
+    function otherBridge() external pure returns (IERC721Bridge otherBridge_);
+    function version() external view returns (string memory version_);
 
     function __constructor__() external;
 }

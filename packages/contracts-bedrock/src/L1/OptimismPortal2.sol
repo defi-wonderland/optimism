@@ -227,24 +227,24 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Getter function for the address of the guardian.
     ///         Public getter is legacy and will be removed in the future. Use `SuperchainConfig.guardian()` instead.
-    /// @return Address of the guardian.
+    /// @return guardian_ Address of the guardian.
     /// @custom:legacy
-    function guardian() public view returns (address) {
+    function guardian() public view returns (address guardian_) {
         return superchainConfig.guardian();
     }
 
     /// @notice Getter for the current paused status.
-    function paused() public view returns (bool) {
+    function paused() public view returns (bool paused_) {
         return superchainConfig.paused();
     }
 
     /// @notice Getter for the proof maturity delay.
-    function proofMaturityDelaySeconds() public view returns (uint256) {
+    function proofMaturityDelaySeconds() public view returns (uint256 proofMaturityDelaySeconds_) {
         return PROOF_MATURITY_DELAY_SECONDS;
     }
 
     /// @notice Getter for the dispute game finality delay.
-    function disputeGameFinalityDelaySeconds() public view returns (uint256) {
+    function disputeGameFinalityDelaySeconds() public view returns (uint256 disputeGameFinalityDelaySeconds_) {
         return DISPUTE_GAME_FINALITY_DELAY_SECONDS;
     }
 
@@ -254,8 +254,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     ///         This function can be used when interacting with the portal to ensure forwards
     ///         compatibility.
     /// @param _byteCount Number of bytes in the calldata.
-    /// @return The minimum gas limit for a deposit.
-    function minimumGasLimit(uint64 _byteCount) public pure returns (uint64) {
+    /// @return minimumGasLimit_ The minimum gas limit for a deposit.
+    function minimumGasLimit(uint64 _byteCount) public pure returns (uint64 minimumGasLimit_) {
         return _byteCount * 16 + 21000;
     }
 

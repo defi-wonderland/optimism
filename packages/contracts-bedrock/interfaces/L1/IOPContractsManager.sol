@@ -139,20 +139,20 @@ interface IOPContractsManager {
 
     // -------- Constants and Variables --------
 
-    function version() external pure returns (string memory);
+    function version() external pure returns (string memory version_);
 
     /// @notice Address of the SuperchainConfig contract shared by all chains.
-    function superchainConfig() external view returns (ISuperchainConfig);
+    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
 
     /// @notice Address of the ProtocolVersions contract shared by all chains.
-    function protocolVersions() external view returns (IProtocolVersions);
+    function protocolVersions() external view returns (IProtocolVersions protocolVersions_);
 
     /// @notice Address of the ProxyAdmin contract shared by all chains.
-    function superchainProxyAdmin() external view returns (IProxyAdmin);
+    function superchainProxyAdmin() external view returns (IProxyAdmin superchainProxyAdmin_);
 
     /// @notice L1 smart contracts release deployed by this version of OPCM. This is used in opcm to signal which
     /// version of the L1 smart contracts is deployed. It takes the format of `op-contracts/vX.Y.Z`.
-    function l1ContractsRelease() external view returns (string memory);
+    function l1ContractsRelease() external view returns (string memory l1ContractsRelease_);
 
     // -------- Events --------
 
@@ -172,7 +172,9 @@ interface IOPContractsManager {
     /// @param gameType Type of the game being added
     /// @param newDisputeGame Address of the deployed dispute game
     /// @param oldDisputeGame Address of the old dispute game
-    event GameTypeAdded(uint256 indexed l2ChainId, GameType indexed gameType, IDisputeGame newDisputeGame, IDisputeGame oldDisputeGame);
+    event GameTypeAdded(
+        uint256 indexed l2ChainId, GameType indexed gameType, IDisputeGame newDisputeGame, IDisputeGame oldDisputeGame
+    );
 
     // -------- Errors --------
 
@@ -233,7 +235,7 @@ interface IOPContractsManager {
     )
         external;
 
-    function deploy(DeployInput calldata _input) external returns (DeployOutput memory);
+    function deploy(DeployInput calldata _input) external returns (DeployOutput memory deployOutput_);
 
     /// @notice Upgrades the implementation of all proxies in the specified chains
     /// @param _opChainConfigs The chains to upgrade
@@ -241,23 +243,25 @@ interface IOPContractsManager {
 
     /// @notice addGameType deploys a new dispute game and links it to the DisputeGameFactory. The inputted _gameConfigs
     /// must be added in ascending GameType order.
-    function addGameType(AddGameInput[] memory _gameConfigs) external returns (AddGameOutput[] memory);
+    function addGameType(AddGameInput[] memory _gameConfigs)
+        external
+        returns (AddGameOutput[] memory addGameOutputs_);
 
     /// @notice Maps an L2 chain ID to an L1 batch inbox address as defined by the standard
     /// configuration's convention. This convention is `versionByte || keccak256(bytes32(chainId))[:19]`,
     /// where || denotes concatenation`, versionByte is 0x00, and chainId is a uint256.
     /// https://specs.optimism.io/protocol/configurability.html#consensus-parameters
-    function chainIdToBatchInboxAddress(uint256 _l2ChainId) external pure returns (address);
+    function chainIdToBatchInboxAddress(uint256 _l2ChainId) external pure returns (address batchInboxAddress_);
 
     /// @notice Returns the blueprint contract addresses.
     function blueprints() external view returns (Blueprints memory);
 
     /// @notice Returns the implementation contract addresses.
-    function implementations() external view returns (Implementations memory);
+    function implementations() external view returns (Implementations memory implementations_);
 
-    function upgradeController() external view returns (address);
+    function upgradeController() external view returns (address upgradeController_);
 
-    function isRC() external view returns (bool);
+    function isRC() external view returns (bool isRC_);
 
     function setRC(bool _isRC) external;
 }

@@ -31,8 +31,8 @@ interface IL2StandardBridgeInterop is IStandardBridge {
         bytes extraData
     );
 
-    function MESSENGER() external view returns (ICrossDomainMessenger);
-    function OTHER_BRIDGE() external view returns (IStandardBridge);
+    function MESSENGER() external view returns (ICrossDomainMessenger messenger_);
+    function OTHER_BRIDGE() external view returns (IStandardBridge otherBridge_);
     function bridgeERC20(
         address _localToken,
         address _remoteToken,
@@ -52,7 +52,7 @@ interface IL2StandardBridgeInterop is IStandardBridge {
         external;
     function bridgeETH(uint32 _minGasLimit, bytes memory _extraData) external payable;
     function bridgeETHTo(address _to, uint32 _minGasLimit, bytes memory _extraData) external payable;
-    function deposits(address, address) external view returns (uint256);
+    function deposits(address _l1Token, address _l2Token) external view returns (uint256 deposits_);
     function finalizeBridgeERC20(
         address _localToken,
         address _remoteToken,
@@ -63,11 +63,11 @@ interface IL2StandardBridgeInterop is IStandardBridge {
     )
         external;
     function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes memory _extraData) external payable;
-    function messenger() external view returns (ICrossDomainMessenger);
-    function otherBridge() external view returns (IStandardBridge);
-    function paused() external view returns (bool);
+    function messenger() external view returns (ICrossDomainMessenger messenger_);
+    function otherBridge() external view returns (IStandardBridge otherBridge_);
+    function paused() external view returns (bool paused_);
 
-    function l1TokenBridge() external view returns (address);
+    function l1TokenBridge() external view returns (address l1TokenBridge_);
     function withdraw(
         address _l2Token,
         uint256 _amount,
@@ -87,7 +87,7 @@ interface IL2StandardBridgeInterop is IStandardBridge {
         payable;
 
     function convert(address _from, address _to, uint256 _amount) external;
-    function version() external pure returns (string memory);
+    function version() external pure returns (string memory version_);
 
     function __constructor__() external;
 }

@@ -7,20 +7,20 @@ interface ICrossDomainMessenger {
     event SentMessage(address indexed target, address sender, bytes message, uint256 messageNonce, uint256 gasLimit);
     event SentMessageExtension1(address indexed sender, uint256 value);
 
-    function MESSAGE_VERSION() external view returns (uint16);
-    function MIN_GAS_CALLDATA_OVERHEAD() external view returns (uint64);
-    function MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR() external view returns (uint64);
-    function MIN_GAS_DYNAMIC_OVERHEAD_NUMERATOR() external view returns (uint64);
-    function OTHER_MESSENGER() external view returns (ICrossDomainMessenger);
-    function RELAY_CALL_OVERHEAD() external view returns (uint64);
-    function RELAY_CONSTANT_OVERHEAD() external view returns (uint64);
-    function RELAY_GAS_CHECK_BUFFER() external view returns (uint64);
-    function RELAY_RESERVED_GAS() external view returns (uint64);
-    function baseGas(bytes memory _message, uint32 _minGasLimit) external pure returns (uint64);
-    function failedMessages(bytes32) external view returns (bool);
-    function messageNonce() external view returns (uint256);
-    function otherMessenger() external view returns (ICrossDomainMessenger);
-    function paused() external view returns (bool);
+    function MESSAGE_VERSION() external view returns (uint16 messageVersion_);
+    function MIN_GAS_CALLDATA_OVERHEAD() external view returns (uint64 minGasCallDataOverhead_);
+    function MIN_GAS_DYNAMIC_OVERHEAD_DENOMINATOR() external view returns (uint64 minGasDynamicOverheadDenominator_);
+    function MIN_GAS_DYNAMIC_OVERHEAD_NUMERATOR() external view returns (uint64 minGasDynamicOverheadNumerator_);
+    function OTHER_MESSENGER() external view returns (ICrossDomainMessenger otherMessenger_);
+    function RELAY_CALL_OVERHEAD() external view returns (uint64 relayCallOverhead_);
+    function RELAY_CONSTANT_OVERHEAD() external view returns (uint64 relayConstantOverhead_);
+    function RELAY_GAS_CHECK_BUFFER() external view returns (uint64 relayGasCheckBuffer_);
+    function RELAY_RESERVED_GAS() external view returns (uint64 relayReservedGas_);
+    function baseGas(bytes memory _message, uint32 _minGasLimit) external pure returns (uint64 baseGas_);
+    function failedMessages(bytes32 _msgHash) external view returns (bool isFailed_);
+    function messageNonce() external view returns (uint256 messageNonce_);
+    function otherMessenger() external view returns (ICrossDomainMessenger otherMessenger_);
+    function paused() external view returns (bool paused_);
     function relayMessage(
         uint256 _nonce,
         address _sender,
@@ -32,8 +32,8 @@ interface ICrossDomainMessenger {
         external
         payable;
     function sendMessage(address _target, bytes memory _message, uint32 _minGasLimit) external payable;
-    function successfulMessages(bytes32) external view returns (bool);
-    function xDomainMessageSender() external view returns (address);
+    function successfulMessages(bytes32 _msgHash) external view returns (bool isSuccessful_);
+    function xDomainMessageSender() external view returns (address xDomainMessageSender_);
 
     function __constructor__() external;
 }

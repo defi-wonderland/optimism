@@ -6,15 +6,15 @@ interface IL1OptimismMintableERC20Factory {
     event OptimismMintableERC20Created(address indexed localToken, address indexed remoteToken, address deployer);
     event StandardL2TokenCreated(address indexed remoteToken, address indexed localToken);
 
-    function BRIDGE() external view returns (address);
-    function bridge() external view returns (address);
+    function BRIDGE() external view returns (address bridge_);
+    function bridge() external view returns (address bridge_);
     function createOptimismMintableERC20(
         address _remoteToken,
         string memory _name,
         string memory _symbol
     )
         external
-        returns (address);
+        returns (address newTokenAddress_);
     function createOptimismMintableERC20WithDecimals(
         address _remoteToken,
         string memory _name,
@@ -22,17 +22,17 @@ interface IL1OptimismMintableERC20Factory {
         uint8 _decimals
     )
         external
-        returns (address);
+        returns (address newTokenAddress_);
     function createStandardL2Token(
         address _remoteToken,
         string memory _name,
         string memory _symbol
     )
         external
-        returns (address);
-    function deployments(address) external view returns (address);
+        returns (address newTokenAddress_);
+    function deployments(address _localToken) external view returns (address remoteToken_);
     function initialize(address _bridge) external;
-    function version() external view returns (string memory);
+    function version() external view returns (string memory version_);
 
     function __constructor__() external;
 }

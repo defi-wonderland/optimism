@@ -8,15 +8,11 @@ import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPort
 interface IL1CrossDomainMessenger is ICrossDomainMessenger {
     event Initialized(uint8 version);
 
-    function PORTAL() external view returns (IOptimismPortal);
-    function initialize(
-        ISuperchainConfig _superchainConfig,
-        IOptimismPortal _portal
-    )
-        external;
-    function portal() external view returns (IOptimismPortal);
-    function superchainConfig() external view returns (ISuperchainConfig);
-    function version() external view returns (string memory);
+    function PORTAL() external view returns (IOptimismPortal portal_);
+    function initialize(ISuperchainConfig _superchainConfig, IOptimismPortal _portal) external;
+    function portal() external view returns (IOptimismPortal portal_);
+    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
+    function version() external view returns (string memory version_);
 
     function __constructor__() external;
 }
