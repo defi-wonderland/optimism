@@ -264,7 +264,11 @@ contract Specification_Test is CommonTest {
             _sel: IOptimismPortalInterop.setConfig.selector,
             _auth: Role.SYSTEMCONFIGOWNER
         });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: IOptimismPortalInterop.upgrade.selector, _auth: Role.UPGRADER });
+        _addSpec({
+            _name: "OptimismPortalInterop",
+            _sel: IOptimismPortalInterop.callL2ProxyAdmin.selector,
+            _auth: Role.UPGRADER
+        });
 
         // OptimismPortal2
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)") });
