@@ -12,16 +12,16 @@ import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 error NoExecutingDeposits();
 
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
+/// @custom:field The origin address of the message.
+/// @custom:field The block number of the message.
+/// @custom:field The log index of the message.
+/// @custom:field The timestamp of the message.
+/// @custom:field The origin chain ID of the message.
 struct Identifier {
-    /// @dev The origin address of the message.
     address origin;
-    /// @dev The block number of the message.
     uint256 blockNumber;
-    /// @dev The log index of the message.
     uint256 logIndex;
-    /// @dev The timestamp of the message.
     uint256 timestamp;
-    /// @dev The origin chain ID of the message.
     uint256 chainId;
 }
 
