@@ -18,15 +18,10 @@ error NoExecutingDeposits();
 /// @custom:field timestamp The timestamp of the message.
 /// @custom:field chainId The origin chain ID of the message.
 struct Identifier {
-    /// @dev The origin address of the message.
     address origin;
-    /// @dev The block number of the message.
     uint256 blockNumber;
-    /// @dev The log index of the message.
     uint256 logIndex;
-    /// @dev The timestamp of the message.
     uint256 timestamp;
-    /// @dev The origin chain ID of the message.
     uint256 chainId;
 }
 
