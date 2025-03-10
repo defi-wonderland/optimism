@@ -209,11 +209,12 @@ contract L2Genesis is Deployer {
         }
 
         activateIsthmus();
-        activateL1BlockXFork();
 
         if (writeForkGenesisAllocs(_fork, Fork.ISTHMUS, _mode)) {
             return;
         }
+
+        activateL1BlockXFork();
     }
 
     function writeForkGenesisAllocs(Fork _latest, Fork _current, OutputMode _mode) internal returns (bool isLatest_) {
