@@ -13,6 +13,15 @@ contract CrosschainERC20Factory {
     /// @notice Thrown when the length of the minter limits, burner limits, or bridges arrays are not equal
     error InvalidLength();
 
+    /// @notice Emitted when a new CrosschainERC20 is deployed
+    event CrosschainERC20Deployed(address indexed crosschainERC20, string name, string symbol, address owner);
+
+    /// @notice Emitted when a new XERC20Lockbox is deployed
+    event LockboxDeployed(address indexed lockbox, address indexed crosschainERC20, address indexed baseToken);
+
+    /// @notice Emitted when a new ERC7802Adapter is deployed
+    event ERC7802AdapterDeployed(address indexed adapter, address indexed xerc20, address indexed bridge);
+
     /// @notice Deploys a new CrosschainERC20 contract and returns the address
     /// @param _name The name of the token
     /// @param _symbol The symbol of the token
@@ -100,6 +109,8 @@ contract CrosschainERC20Factory {
         }
 
         CrosschainERC20(crosschainERC20_).transferOwnership(_owner);
+
+        emit CrosschainERC20Deployed(crosschainERC20_, _name, _symbol, _owner);
     }
 
     /// @notice Deploys a new CrosschainERC20Lockbox contract
@@ -114,6 +125,8 @@ contract CrosschainERC20Factory {
         lockbox_ = payable(CREATE3.deploy(salt, bytecode, 0));
 
         CrosschainERC20(_crosschainERC20).setLockbox(address(lockbox_));
+
+        emit LockboxDeployed(address(lockbox_), _crosschainERC20, _baseToken);
     }
 
     /// @notice Deploys a new ERC7802Adapter
@@ -126,5 +139,7 @@ contract CrosschainERC20Factory {
         bytes memory bytecode = abi.encodePacked(creation, abi.encode(_xerc20, _bridge));
 
         erc7802Adapter_ = CREATE3.deploy(salt, bytecode, 0);
+
+        emit ERC7802AdapterDeployed(erc7802Adapter_, _xerc20, _bridge);
     }
 }
