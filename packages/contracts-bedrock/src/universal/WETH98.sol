@@ -114,7 +114,7 @@ contract WETH98 {
     /// @param guy The address that is approved to transfer the WETH.
     /// @param wad The amount that is approved to transfer.
     /// @return True if the approval was successful.
-    function approve(address guy, uint256 wad) external returns (bool) {
+    function approve(address guy, uint256 wad) public virtual returns (bool) {
         _allowance[msg.sender][guy] = wad;
         emit Approval(msg.sender, guy, wad);
         return true;

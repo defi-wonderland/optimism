@@ -27,6 +27,9 @@ contract SuperchainWETH is WETH98, IERC7802, ISemver {
     /// @notice Thrown when attempting to relay a message and the cross domain message sender is not SuperchainWETH.
     error InvalidCrossDomainSender();
 
+    /// @notice Thrown when trying to approve Permit2 with a non-infinite allowance.
+    error Permit2AllowanceIsFixedAtInfinity();
+
     /// @notice Emitted when ETH is sent from one chain to another.
     /// @param from          Address of the sender.
     /// @param to            Address of the recipient.
@@ -65,6 +68,12 @@ contract SuperchainWETH is WETH98, IERC7802, ISemver {
     function _burn(address _from, uint256 _amount) internal {
         _balanceOf[_from] -= _amount;
         emit Transfer(_from, address(0), _amount);
+    }
+
+    /// @inheritdoc WETH98
+    function approve(address guy, uint256 wad) public virtual override returns (bool) {
+        if (guy == Preinstalls.Permit2 && wad != type(uint256).max) revert Permit2AllowanceIsFixedAtInfinity();
+        return super.approve(guy, wad);
     }
 
     /// @notice Allows the SuperchainTokenBridge to mint tokens.
