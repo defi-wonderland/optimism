@@ -432,7 +432,7 @@ contract OptimismPortal2_Test is CommonTest {
         );
 
         vm.prank(superchainConfig.upgrader());
-        optimismPortal2.upgrade(_gasLimit, _calldata);
+        optimismPortal2.callL2ProxyAdmin(_gasLimit, _calldata);
     }
 
     /// @notice Ensures that the deposit event is correct for the `upgrade`
@@ -446,7 +446,7 @@ contract OptimismPortal2_Test is CommonTest {
 
         vm.recordLogs();
         vm.prank(superchainConfig.upgrader());
-        optimismPortal2.upgrade(_gasLimit, _calldata);
+        optimismPortal2.callL2ProxyAdmin(_gasLimit, _calldata);
 
         /// Roll the block number to ensure that the deposit transaction is processed in the next block
         /// This is necessary otherwise the call fails with OutOfGas
@@ -487,7 +487,7 @@ contract OptimismPortal2_Test is CommonTest {
 
         vm.expectRevert(Unauthorized.selector);
         vm.prank(_caller);
-        optimismPortal2.upgrade(_gasLimit, _calldata);
+        optimismPortal2.callL2ProxyAdmin(_gasLimit, _calldata);
     }
 
     /// @dev Tests that the donateETH function donates ETH and does no state read/write

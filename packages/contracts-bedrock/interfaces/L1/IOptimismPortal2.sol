@@ -100,7 +100,7 @@ interface IOptimismPortal2 {
     function setRespectedGameType(GameType _gameType) external;
     function superchainConfig() external view returns (ISuperchainConfig);
     function systemConfig() external view returns (ISystemConfig);
-    function upgrade(uint32 _gasLimit, bytes memory _calldata) external;
+    function callL2ProxyAdmin(uint32 _gasLimit, bytes memory _calldata) external;
     function version() external pure returns (string memory);
 
     function __constructor__(uint256 _proofMaturityDelaySeconds, uint256 _disputeGameFinalityDelaySeconds) external;

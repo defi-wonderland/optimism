@@ -307,7 +307,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("proofSubmitters(bytes32,uint256)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("numProofSubmitters(bytes32)") });
         _addSpec({ _name: "OptimismPortal2", _sel: IOptimismPortal2.setConfig.selector, _auth: Role.SYSTEMCONFIGOWNER });
-        _addSpec({ _name: "OptimismPortal2", _sel: IOptimismPortal2.upgrade.selector, _auth: Role.UPGRADER });
+        _addSpec({ _name: "OptimismPortal2", _sel: IOptimismPortal2.callL2ProxyAdmin.selector, _auth: Role.UPGRADER });
 
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });

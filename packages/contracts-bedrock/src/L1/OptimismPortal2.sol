@@ -513,7 +513,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     /// @notice Calls the L2 Proxy Admin as the DEPOSITOR_ACCOUNT. This function can
     ///         be used to upgrade the L2 predeploys. Only the upgrader role on the
     ///         SuperchainConfig contract can call this function.
-    function upgrade(uint32 _gasLimit, bytes memory _calldata) external {
+    function callL2ProxyAdmin(uint32 _gasLimit, bytes memory _calldata) external {
         if (msg.sender != superchainConfig.upgrader()) revert Unauthorized();
 
         useGas(_gasLimit);
