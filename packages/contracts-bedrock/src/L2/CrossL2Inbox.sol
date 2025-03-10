@@ -142,7 +142,9 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         // // We need to know if this is being called on a depositTx
         // if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
 
-        (bool _isSlotWarm,) = _isWarm(_hashSlot(_id, _msgHash));
+        bytes32 checksum = calculateChecksum(_id, _msgHash);
+
+        (bool _isSlotWarm,) = _isWarm(checksum);
 
         if (!_isSlotWarm) revert NotWarm();
 
@@ -157,11 +159,26 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
         assembly {
             let startGas := gas()
-            // storing and returning the result so that the compiler doesn't optimize out the sload, this adds cost to the read
+            // storing and returning the result so that the compiler doesn't optimize out the sload, this adds cost to
+            // the read
             result := sload(_slot)
             let endGas := gas()
             isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_COST))
         }
+    }
+
+    bytes32 constant TYPE_3_MASK = 0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
+    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32) {
+        bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
+
+        bytes memory idPacked = abi.encodePacked(_id.logIndex, _id.timestamp, _id.blockNumber);
+
+        bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
+
+        bytes32 bareChecksum = keccak256(abi.encodePacked(idLogHash, _id.chainId));
+
+        return bareChecksum & TYPE_3_MASK;
     }
 
     /// @notice Stores the Identifier in transient storage.
