@@ -7,7 +7,6 @@ import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { Types } from "src/libraries/Types.sol";
 
 interface IOptimismPortal2 {
     error AlreadyFinalized();
