@@ -36,9 +36,6 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when a reentrant call is detected.
     error ReentrantCall();
 
-    /// @notice Thrown when a call to the target contract during message relay fails.
-    error TargetCallFailed();
-
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.

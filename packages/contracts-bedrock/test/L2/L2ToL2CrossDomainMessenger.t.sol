@@ -19,8 +19,7 @@ import {
     MessageDestinationNotRelayChain,
     MessageTargetL2ToL2CrossDomainMessenger,
     MessageAlreadyRelayed,
-    ReentrantCall,
-    TargetCallFailed
+    ReentrantCall
 } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 
 // Interfaces
@@ -463,8 +462,8 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             returnData: ""
         });
 
-        // Expect a revert with the TargetCallFailed selector
-        vm.expectRevert(TargetCallFailed.selector);
+        // Expect the target call to revert
+        vm.expectRevert(1);
         hoax(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _value);
         l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
 
@@ -622,7 +621,8 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         uint256 _value,
         uint256 _blockNum,
         uint256 _logIndex,
-        uint256 _time
+        uint256 _time,
+        bytes calldata _revertData
     )
         external
     {
@@ -633,7 +633,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         if (_value > 0) assumePayable(_target);
 
         // Ensure that the target contract reverts
-        vm.mockCallRevert({ callee: _target, msgValue: _value, data: _message, revertData: abi.encode(false) });
+        vm.mockCallRevert({ callee: _target, msgValue: _value, data: _message, revertData: _revertData });
 
         Identifier memory id =
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
@@ -649,8 +649,8 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             returnData: ""
         });
 
-        // Expect a revert with the TargetCallFailed selector
-        vm.expectRevert(TargetCallFailed.selector);
+        // Expect the target call to revert with the proper return data.
+        vm.expectRevert(_revertData);
         hoax(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _value);
         l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
     }

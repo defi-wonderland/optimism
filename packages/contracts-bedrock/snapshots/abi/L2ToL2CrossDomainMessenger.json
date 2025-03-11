@@ -282,10 +282,5 @@
     "inputs": [],
     "name": "ReentrantCall",
     "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "TargetCallFailed",
-    "type": "error"
   }
 ]

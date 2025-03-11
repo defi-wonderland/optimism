@@ -11,7 +11,14 @@ import { NotDepositor, NotCrossL2Inbox } from "src/libraries/L1BlockErrors.sol";
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000015
 /// @title L1BlockInterop
-/// @notice Interop extensions of L1Block.
+/// @notice Manages deposit contexts within L2 blocks. A deposit context represents a series of
+///         deposited transactions within a single block, starting with an L1 attributes transaction
+///         and ending after the final deposit.
+///         The expected sequence of operations in a deposit context is:
+///             1. L1 attributes transaction opens the deposit context (isDeposit = true)
+///             2. User deposits are executed (if any exist)
+///             3. L1 attributes transaction closes the deposit context (isDeposit = false)
+///         Note: During upgrades, additional deposits may follow after this sequence.
 contract L1BlockInterop is L1Block {
     /// @notice Storage slot that the isDeposit is stored at.
     ///         This is a custom slot that is not part of the standard storage layout.
@@ -32,9 +39,9 @@ contract L1BlockInterop is L1Block {
         }
     }
 
-    /// @notice Updates the `isDeposit` flag and sets the L1 block values for an Interop upgraded chain.
-    ///         It updates the L1 block values through the `setL1BlockValuesEcotone` function.
-    ///         It forwards the calldata to the internally-used `setL1BlockValuesEcotone` function.
+    /// @notice Updates the isDeposit flag and sets the L1 block values for an Interop upgraded chain.
+    ///         It updates the L1 block values through the setL1BlockValuesEcotone function.
+    ///         It forwards the calldata to the internally-used setL1BlockValuesEcotone function.
     function setL1BlockValuesInterop() external {
         // Set the isDeposit flag to true.
         assembly {
@@ -44,8 +51,8 @@ contract L1BlockInterop is L1Block {
         _setL1BlockValuesEcotone();
     }
 
-    /// @notice Resets the isDeposit flag.
-    ///         Should only be called by the depositor account after the deposits are complete.
+    /// @notice Resets the isDeposit flag, marking the end of a deposit context.
+    /// @dev    Should only be called by the depositor account after the deposits are complete.
     function depositsComplete() external {
         if (msg.sender != DEPOSITOR_ACCOUNT()) revert NotDepositor();
 
