@@ -268,9 +268,6 @@ rules:
           function initialize(...) public reinitializer(...) {
             ...
           }
-    paths:
-      exclude:
-        - packages/contracts-bedrock/src/L1/SystemConfigInterop.sol
 
   - id: sol-safety-proper-upgrade-function
     languages: [solidity]
