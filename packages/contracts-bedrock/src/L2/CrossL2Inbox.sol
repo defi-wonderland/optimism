@@ -161,12 +161,12 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
 
     bytes32 constant MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    bytes32 constant TYPE_3_MASK = 0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 constant TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
 
     function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32 checksum_) {
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
 
-        bytes memory idPacked = abi.encode(_id.logIndex, _id.timestamp, _id.blockNumber);
+        bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), _id.blockNumber, _id.timestamp, _id.logIndex));
 
         bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
 

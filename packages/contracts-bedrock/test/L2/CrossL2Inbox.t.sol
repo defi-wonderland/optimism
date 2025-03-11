@@ -272,4 +272,19 @@ contract CrossL2InboxTest is Test {
         vm.expectRevert(NotWarm.selector);
         crossL2Inbox.validateMessage(_id, _messageHash);
     }
+
+    function test_validateMessage_checksum_proto_succeeds() external view {
+        Identifier memory _id = Identifier(
+            address(0),
+            uint64(0xa1a2a3a4a5a6a7a8),
+            uint32(0xb1b2b3b4),
+            uint64(0xc1c2c3c4c5c6c7c8),
+            uint256(0xd1d2d3d4d5d6d7d8)
+        );
+
+        bytes32 _messageHash = 0x8017559a85b12c04b14a1a425d53486d1015f833714a09bd62f04152a7e2ae9b;
+        bytes32 _checksum = crossL2Inbox.calculateChecksum(_id, _messageHash);
+        bytes32 _expectedChecksum = 0x03139ddd21106abad4bb82800fedfa3a103f53f242c2d5b7615b0baad8379531;
+        assertEq(_checksum, _expectedChecksum);
+    }
 }
