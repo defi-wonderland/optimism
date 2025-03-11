@@ -76,9 +76,6 @@ func DeployImplementations(
 	defer cleanupOutput()
 
 	implContract := "DeployImplementations"
-	if input.UseInterop {
-		implContract = "DeployImplementationsInterop"
-	}
 	deployScript, cleanupDeploy, err := script.WithScript[DeployImplementationsScript](host, "DeployImplementations.s.sol", implContract)
 	if err != nil {
 		return output, fmt.Errorf("failed to load %s script: %w", implContract, err)
@@ -86,18 +83,12 @@ func DeployImplementations(
 	defer cleanupDeploy()
 
 	opcmContract := "OPContractsManager"
-	if input.UseInterop {
-		opcmContract = "OPContractsManagerInterop"
-	}
 	if err := host.RememberOnLabel("OPContractsManager", opcmContract+".sol", opcmContract); err != nil {
 		return output, fmt.Errorf("failed to link OPContractsManager label: %w", err)
 	}
 
 	// So we can see in detail where the SystemConfig interop initializer fails
 	sysConfig := "SystemConfig"
-	if input.UseInterop {
-		sysConfig = "SystemConfigInterop"
-	}
 	if err := host.RememberOnLabel("SystemConfigImpl", sysConfig+".sol", sysConfig); err != nil {
 		return output, fmt.Errorf("failed to link SystemConfig label: %w", err)
 	}
