@@ -139,9 +139,6 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
     /// @param _id      Identifier of the message.
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
-        // // We need to know if this is being called on a depositTx
-        // if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
-
         bytes32 checksum = calculateChecksum(_id, _msgHash);
 
         (bool _isSlotWarm,) = _isWarm(checksum);
@@ -149,11 +146,6 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         if (!_isSlotWarm) revert NotWarm();
 
         emit ExecutingMessage(_msgHash, _id);
-    }
-
-    function _hashSlot(Identifier calldata _id, bytes32 _msgHash) internal pure returns (bytes32 _slot) {
-        // TODO: ensure the way of keccaking is correct
-        _slot = keccak256(abi.encode(_id, _msgHash));
     }
 
     function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {

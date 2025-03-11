@@ -284,7 +284,7 @@ contract CrossL2InboxTest is Test {
 
     /// AccessList Tests
     function test_validateMessage_access_list_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
-        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
+        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
 
         crossL2Inbox.warmSlot(slot);
 
@@ -292,7 +292,7 @@ contract CrossL2InboxTest is Test {
     }
 
     function test_validateMessage_access_list_reverts(Identifier calldata _id, bytes32 _messageHash) external {
-        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
+        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
 
         crossL2Inbox.warmSlot(keccak256(abi.encode(slot)));
 

@@ -50,8 +50,10 @@ contract CrossL2InboxAccessListTest is Test {
 
     /// @dev Tests that the validateMessage function succeeds with an access list
     function test_validateMessage_accessList_E2E_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+        bytes32 checksum = crossL2Inbox.calculateChecksum(_id, _messageHash);
+
         string[] memory storageKeys = new string[](1);
-        storageKeys[0] = vm.toString(keccak256(abi.encode(_id, _messageHash)));
+        storageKeys[0] = vm.toString(checksum);
 
         _executeCastSend(
             address(crossL2Inbox),
