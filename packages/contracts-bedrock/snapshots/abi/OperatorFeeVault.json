@@ -130,7 +130,7 @@
     "outputs": [
       {
         "internalType": "enum Types.WithdrawalNetwork",
-        "name": "network_",
+        "name": "withdrawalNetwork_",
         "type": "uint8"
       }
     ],
