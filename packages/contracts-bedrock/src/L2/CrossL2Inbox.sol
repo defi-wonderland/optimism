@@ -26,9 +26,9 @@ error NotWarm();
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
 struct Identifier {
     address origin;
-    uint256 blockNumber;
-    uint256 logIndex;
-    uint256 timestamp;
+    uint64 blockNumber;
+    uint32 logIndex;
+    uint64 timestamp;
     uint256 chainId;
 }
 

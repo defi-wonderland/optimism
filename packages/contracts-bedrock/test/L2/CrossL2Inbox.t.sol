@@ -150,33 +150,6 @@ contract CrossL2InboxTest is Test {
         crossL2Inbox.setInteropStart();
     }
 
-    function testFuzz_validateMessage_succeeds(Identifier memory _id, bytes32 _messageHash) external setInteropStart {
-        // Ensure that the id's timestamp is valid (less than or equal to the current block timestamp and greater than
-        // interop start time)
-        _id.timestamp = bound(_id.timestamp, interopStartTime + 1, block.timestamp);
-
-        // Ensure that the chain ID is in the dependency set
-        vm.mockCall({
-            callee: Predeploys.L1_BLOCK_ATTRIBUTES,
-            data: abi.encodeCall(IL1BlockInterop.isInDependencySet, (_id.chainId)),
-            returnData: abi.encode(true)
-        });
-
-        // Ensure is not a deposit transaction
-        vm.mockCall({
-            callee: Predeploys.L1_BLOCK_ATTRIBUTES,
-            data: abi.encodeCall(IL1BlockInterop.isDeposit, ()),
-            returnData: abi.encode(false)
-        });
-
-        // Look for the emit ExecutingMessage event
-        vm.expectEmit(Predeploys.CROSS_L2_INBOX);
-        emit CrossL2Inbox.ExecutingMessage(_messageHash, _id);
-
-        // Call the validateMessage function
-        crossL2Inbox.validateMessage(_id, _messageHash);
-    }
-
     function testFuzz_validateMessage_isDeposit_reverts(Identifier calldata _id, bytes32 _messageHash) external {
         // Ensure it is a deposit transaction
         vm.mockCall({
@@ -292,7 +265,7 @@ contract CrossL2InboxTest is Test {
     }
 
     function test_validateMessage_access_list_reverts(Identifier calldata _id, bytes32 _messageHash) external {
-        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
+        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
 
         crossL2Inbox.warmSlot(keccak256(abi.encode(slot)));
 

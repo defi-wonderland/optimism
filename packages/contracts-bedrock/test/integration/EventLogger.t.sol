@@ -118,9 +118,9 @@ contract EventLoggerTest is EventLogger_Initializer {
         });
         ImplIdentifier memory idImpl = ImplIdentifier({
             origin: _origin,
-            blockNumber: _blockNumber,
-            logIndex: _logIndex,
-            timestamp: _timestamp,
+            blockNumber: uint64(_blockNumber),
+            logIndex: uint32(_logIndex),
+            timestamp: uint64(_timestamp),
             chainId: _chainId
         });
         address emitter = Predeploys.CROSS_L2_INBOX;
