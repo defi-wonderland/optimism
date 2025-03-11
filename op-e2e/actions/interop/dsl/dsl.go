@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/event"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,17 +65,11 @@ type InteropDSL struct {
 func NewInteropDSL(t helpers.Testing) *InteropDSL {
 	setup := SetupInterop(t)
 	actors := setup.CreateActors()
+	actors.PrepareChainState(t)
 
 	t.Logf("ChainA: %v, ChainB: %v", actors.ChainA.ChainID, actors.ChainB.ChainID)
 
 	allChains := []*Chain{actors.ChainA, actors.ChainB}
-
-	// Get all the initial events processed
-	for _, chain := range allChains {
-		chain.Sequencer.ActL2PipelineFull(t)
-		chain.Sequencer.SyncSupervisor(t)
-	}
-	actors.Supervisor.ProcessFull(t)
 
 	superRootSource, err := NewSuperRootSource(
 		t.Ctx(),
@@ -95,6 +90,10 @@ func NewInteropDSL(t helpers.Testing) *InteropDSL {
 
 		allChains: allChains,
 	}
+}
+
+func (d *InteropDSL) DepSet() *depset.StaticConfigDependencySet {
+	return d.setup.DepSet
 }
 
 func (d *InteropDSL) defaultChainOpts() ChainOpts {

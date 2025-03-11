@@ -21,8 +21,8 @@ import { IL1Block } from "interfaces/L2/IL1Block.sol";
 ///         L2 on the L2 side. Users are generally encouraged to use this contract instead of lower
 ///         level message passing contracts.
 contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
-    /// @custom:semver 2.1.1-beta.9
-    string public constant version = "2.1.1-beta.9";
+    /// @custom:semver 2.2.0
+    string public constant version = "2.2.0";
 
     /// @notice Getter for the remote messenger.
     ///         Public getter is legacy and will be removed in the future. Use `otherMessenger()` instead.

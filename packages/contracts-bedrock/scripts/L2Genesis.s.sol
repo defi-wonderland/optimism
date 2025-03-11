@@ -21,6 +21,7 @@ import { Constants } from "src/libraries/Constants.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 
 // Interfaces
+import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
@@ -206,10 +207,14 @@ contract L2Genesis is Deployer {
         if (writeForkGenesisAllocs(_fork, Fork.HOLOCENE, _mode)) {
             return;
         }
+
+        activateIsthmus();
+
         if (writeForkGenesisAllocs(_fork, Fork.ISTHMUS, _mode)) {
             return;
         }
-        activateIsthmus();
+
+        activateL1BlockXFork();
     }
 
     function writeForkGenesisAllocs(Fork _latest, Fork _current, OutputMode _mode) internal returns (bool isLatest_) {
@@ -290,7 +295,8 @@ contract L2Genesis is Deployer {
         setProxyAdmin(); // 18
         setBaseFeeVault(); // 19
         setL1FeeVault(); // 1A
-        // 1B,1C,1D,1E,1F: not used.
+        setOperatorFeeVault(); // 1B
+        // 1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
         setGovernanceToken(); // 42: OP (not behind a proxy)
@@ -412,6 +418,24 @@ contract L2Genesis is Deployer {
     /// @notice This predeploy is following the safety invariant #2.
     function setL1FeeVault() public {
         _setImplementationCode(Predeploys.L1_FEE_VAULT);
+    }
+
+    /// @notice This predeploy is following the safety invariant #2.
+    function setOperatorFeeVault() public {
+        IOperatorFeeVault vault = IOperatorFeeVault(
+            DeployUtils.create1({
+                _name: "OperatorFeeVault",
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(IOperatorFeeVault.__constructor__, ()))
+            })
+        );
+
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.OPERATOR_FEE_VAULT);
+        console.log("Setting %s implementation at: %s", "OperatorFeeVault", impl);
+        vm.etch(impl, address(vault).code);
+
+        /// Reset so its not included state dump
+        vm.etch(address(vault), "");
+        vm.resetNonce(address(vault));
     }
 
     /// @notice This predeploy is following the safety invariant #2.
@@ -540,9 +564,18 @@ contract L2Genesis is Deployer {
     }
 
     function activateIsthmus() public {
-        console.log("Activating isthmus in L1Block contract");
+        console.log("Activating isthmus in GasPriceOracle contract");
         vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
-        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setIsIsthmus();
+        IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE).setIsthmus();
+    }
+
+    // TODO: This function name should be changes when we decide which fork the l2genesis changes
+    //       will land on.
+    function activateL1BlockXFork() public {
+        console.log("Activating xfork in L1Block contract");
+        vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
+        /// TODO: IL1Block.setIsXFork() name will change based on the fork name
+        IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setIsXFork();
     }
 
     /// @notice Sets the bytecode in state

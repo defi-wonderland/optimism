@@ -37,8 +37,8 @@ type ApplyConfig struct {
 	PrivateKey       string
 	DeploymentTarget DeploymentTarget
 	Logger           log.Logger
-
-	privateKeyECDSA *ecdsa.PrivateKey
+	CacheDir         string
+	privateKeyECDSA  *ecdsa.PrivateKey
 }
 
 func (a *ApplyConfig) Check() error {
@@ -56,6 +56,12 @@ func (a *ApplyConfig) Check() error {
 
 	if a.Logger == nil {
 		return fmt.Errorf("logger must be specified")
+	}
+
+	if a.DeploymentTarget == DeploymentTargetGenesis {
+		if a.L1RPCUrl != "" {
+			return fmt.Errorf("l1-rpc-url should not be specified when deployment-target is genesis")
+		}
 	}
 
 	if a.DeploymentTarget == DeploymentTargetLive {
@@ -80,6 +86,7 @@ func ApplyCLI() func(cliCtx *cli.Context) error {
 		l1RPCUrl := cliCtx.String(L1RPCURLFlagName)
 		workdir := cliCtx.String(WorkdirFlagName)
 		privateKey := cliCtx.String(PrivateKeyFlagName)
+		cacheDir := cliCtx.String(CacheDirFlagName)
 		depTarget, err := NewDeploymentTarget(cliCtx.String(DeploymentTargetFlag.Name))
 		if err != nil {
 			return fmt.Errorf("failed to parse deployment target: %w", err)
@@ -93,6 +100,7 @@ func ApplyCLI() func(cliCtx *cli.Context) error {
 			PrivateKey:       privateKey,
 			DeploymentTarget: depTarget,
 			Logger:           l,
+			CacheDir:         cacheDir,
 		})
 	}
 }
@@ -120,6 +128,7 @@ func Apply(ctx context.Context, cfg ApplyConfig) error {
 		State:              st,
 		Logger:             cfg.Logger,
 		StateWriter:        pipeline.WorkdirStateWriter(cfg.Workdir),
+		CacheDir:           cfg.CacheDir,
 	}); err != nil {
 		return err
 	}
@@ -140,6 +149,7 @@ type ApplyPipelineOpts struct {
 	State              *state.State
 	Logger             log.Logger
 	StateWriter        pipeline.StateWriter
+	CacheDir           string
 }
 
 func ApplyPipeline(
@@ -152,7 +162,7 @@ func ApplyPipeline(
 	}
 	st := opts.State
 
-	l1ArtifactsFS, err := artifacts.Download(ctx, intent.L1ContractsLocator, artifacts.BarProgressor())
+	l1ArtifactsFS, err := artifacts.Download(ctx, intent.L1ContractsLocator, artifacts.BarProgressor(), opts.CacheDir)
 	if err != nil {
 		return fmt.Errorf("failed to download L1 artifacts: %w", err)
 	}
@@ -161,7 +171,7 @@ func ApplyPipeline(
 	if intent.L1ContractsLocator.Equal(intent.L2ContractsLocator) {
 		l2ArtifactsFS = l1ArtifactsFS
 	} else {
-		l2Afs, err := artifacts.Download(ctx, intent.L2ContractsLocator, artifacts.BarProgressor())
+		l2Afs, err := artifacts.Download(ctx, intent.L2ContractsLocator, artifacts.BarProgressor(), opts.CacheDir)
 		if err != nil {
 			return fmt.Errorf("failed to download L2 artifacts: %w", err)
 		}
