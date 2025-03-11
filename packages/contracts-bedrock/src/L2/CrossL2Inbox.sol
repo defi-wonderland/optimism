@@ -159,18 +159,20 @@ contract CrossL2Inbox is ISemver, TransientReentrancyAware {
         }
     }
 
+    bytes32 constant MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
     bytes32 constant TYPE_3_MASK = 0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32) {
+    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32 checksum_) {
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
 
-        bytes memory idPacked = abi.encodePacked(_id.logIndex, _id.timestamp, _id.blockNumber);
+        bytes memory idPacked = abi.encode(_id.logIndex, _id.timestamp, _id.blockNumber);
 
         bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
 
         bytes32 bareChecksum = keccak256(abi.encodePacked(idLogHash, _id.chainId));
 
-        return bareChecksum & TYPE_3_MASK;
+        checksum_ = (bareChecksum & MSB_MASK) | TYPE_3_MASK;
     }
 
     /// @notice Stores the Identifier in transient storage.
