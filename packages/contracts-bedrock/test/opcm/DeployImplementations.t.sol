@@ -29,7 +29,6 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 import {
     DeployImplementationsInput,
     DeployImplementations,
-    DeployImplementationsInterop,
     DeployImplementationsOutput
 } from "scripts/deploy/DeployImplementations.s.sol";
 
@@ -247,7 +246,6 @@ contract DeployImplementations_Test is Test {
 
     // By deploying the `DeployImplementations` contract with this virtual function, we provide a
     // hook that child contracts can override to return a different implementation of the contract.
-    // This lets us test e.g. the `DeployImplementationsInterop` contract without duplicating test code.
     function createDeployImplementationsContract() internal virtual returns (DeployImplementations) {
         return new DeployImplementations();
     }
@@ -441,11 +439,5 @@ contract DeployImplementations_Test is Test {
         vm.chainId(Chains.Sepolia);
         vm.expectRevert("DeployImplementations: Only Mips32 should be deployed on Mainnet or Sepolia");
         deployImplementations.run(dii, dio);
-    }
-}
-
-contract DeployImplementationsInterop_Test is DeployImplementations_Test {
-    function createDeployImplementationsContract() internal override returns (DeployImplementations) {
-        return new DeployImplementationsInterop();
     }
 }

@@ -28,6 +28,7 @@ compilation_restrictions = [
   { paths = "src/dispute/SuperPermissionedDisputeGame.sol", optimizer_runs = 5000 },
   { paths = "src/L1/OPContractsManager.sol", optimizer_runs = 5000 },
   { paths = "src/L1/StandardValidator.sol", optimizer_runs = 5000 },
+  { paths = "src/L1/OptimismPortal2.sol", optimizer_runs = 5000 }
 ]
 
 extra_output = ['devdoc', 'userdoc', 'metadata', 'storageLayout']

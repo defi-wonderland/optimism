@@ -346,10 +346,6 @@ contract Initializer_Test is CommonTest {
         // Collect exclusions.
         uint256 j;
         string[] memory excludes = new string[](9);
-        // TODO: Neither of these contracts are labeled properly in the deployment script. Both are
-        //       currently being labeled as their non-interop versions. Remove these exclusions once
-        //       the deployment script is fixed.
-        excludes[j++] = "src/L1/OptimismPortalInterop.sol";
         // Contract is currently not being deployed as part of the standard deployment script.
         excludes[j++] = "src/L2/OptimismSuperchainERC20.sol";
         // Periphery contracts don't get deployed as part of the standard deployment script.
