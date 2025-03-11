@@ -619,9 +619,6 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         address _target,
         bytes calldata _message,
         uint256 _value,
-        uint256 _blockNum,
-        uint256 _logIndex,
-        uint256 _time,
         bytes calldata _revertData
     )
         external
@@ -635,8 +632,10 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Ensure that the target contract reverts
         vm.mockCallRevert({ callee: _target, msgValue: _value, data: _message, revertData: _revertData });
 
-        Identifier memory id =
-            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
+        // Construct the identifier -- using some hardcoded values for the block number, log index, and time to avoid
+        // stack too deep errors.
+        Identifier memory id = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, 1, 1, 1, _source);
+
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
             abi.encode(_sender, _message) // data
