@@ -35,6 +35,24 @@
   {
     "inputs": [
       {
+        "internalType": "uint32",
+        "name": "_gasLimit",
+        "type": "uint32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_calldata",
+        "type": "bytes"
+      }
+    ],
+    "name": "callL2ProxyAdmin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "_withdrawalHash",
         "type": "bytes32"
@@ -121,7 +139,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "disputeGameFinalityDelaySeconds_",
         "type": "uint256"
       }
     ],
@@ -255,7 +273,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "guardian_",
         "type": "address"
       }
     ],
@@ -315,7 +333,7 @@
     "outputs": [
       {
         "internalType": "uint64",
-        "name": "",
+        "name": "minimumGasLimit_",
         "type": "uint64"
       }
     ],
@@ -334,7 +352,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "numProofSubmitters_",
         "type": "uint256"
       }
     ],
@@ -370,7 +388,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "paused_",
         "type": "bool"
       }
     ],
@@ -383,7 +401,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "proofMaturityDelaySeconds_",
         "type": "uint256"
       }
     ],
@@ -609,30 +627,12 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint32",
-        "name": "_gasLimit",
-        "type": "uint32"
-      },
-      {
-        "internalType": "bytes",
-        "name": "_calldata",
-        "type": "bytes"
-      }
-    ],
-    "name": "upgrade",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "version",
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "version_",
         "type": "string"
       }
     ],

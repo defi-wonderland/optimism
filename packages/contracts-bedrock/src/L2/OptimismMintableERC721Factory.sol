@@ -36,13 +36,14 @@ contract OptimismMintableERC721Factory is ISemver {
     /// @param _remoteToken Address of the corresponding token on the other domain.
     /// @param _name        ERC721 name.
     /// @param _symbol      ERC721 symbol.
+    /// @return newTokenAddress_ Address of the newly created OptimismMintableERC721 contract.
     function createOptimismMintableERC721(
         address _remoteToken,
         string memory _name,
         string memory _symbol
     )
         external
-        returns (address)
+        returns (address newTokenAddress_)
     {
         require(_remoteToken != address(0), "OptimismMintableERC721Factory: L1 token address cannot be address(0)");
 
@@ -65,7 +66,7 @@ contract OptimismMintableERC721Factory is ISemver {
     }
 
     /// @notice Returns the ERC721 bridge contract.
-    function bridge() public pure returns (address) {
+    function bridge() public pure returns (address bridge_) {
         return Predeploys.L2_ERC721_BRIDGE;
     }
 
@@ -77,7 +78,7 @@ contract OptimismMintableERC721Factory is ISemver {
     }
 
     /// @notice Getter function for the remote chain id.
-    function remoteChainID() public view returns (uint256) {
+    function remoteChainID() public view returns (uint256 remoteChainId_) {
         bytes memory data = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.REMOTE_CHAIN_ID);
         return abi.decode(data, (uint256));
     }

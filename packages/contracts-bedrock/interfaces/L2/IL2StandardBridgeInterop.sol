@@ -31,8 +31,8 @@ interface IL2StandardBridgeInterop is IStandardBridge {
         bytes extraData
     );
 
-    function MESSENGER() external view returns (ICrossDomainMessenger messenger_);
-    function OTHER_BRIDGE() external view returns (IStandardBridge otherBridge_);
+    function MESSENGER() external view returns (ICrossDomainMessenger);
+    function OTHER_BRIDGE() external view returns (IStandardBridge);
     function bridgeERC20(
         address _localToken,
         address _remoteToken,
@@ -52,7 +52,7 @@ interface IL2StandardBridgeInterop is IStandardBridge {
         external;
     function bridgeETH(uint32 _minGasLimit, bytes memory _extraData) external payable;
     function bridgeETHTo(address _to, uint32 _minGasLimit, bytes memory _extraData) external payable;
-    function deposits(address _l1Token, address _l2Token) external view returns (uint256 deposits_);
+    function deposits(address, address) external view returns (uint256);
     function finalizeBridgeERC20(
         address _localToken,
         address _remoteToken,

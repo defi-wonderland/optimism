@@ -71,8 +71,8 @@ abstract contract ERC721Bridge {
     }
 
     /// @notice Getter function for the CrossDomainMessenger contract on this chain.
-    /// @return Contract of the CrossDomainMessenger on this chain.
-    function messenger() public view virtual returns (ICrossDomainMessenger);
+    /// @return messenger_ Contract of the CrossDomainMessenger on this chain.
+    function messenger() public view virtual returns (ICrossDomainMessenger messenger_);
 
     /// @notice Legacy getter for messenger contract.
     ///         Public getter is legacy and will be removed in the future. Use `messenger` instead.
@@ -83,22 +83,22 @@ abstract contract ERC721Bridge {
     }
 
     /// @notice Getter function for the other bridge.
-    /// @return Contract of the bridge on the other network.
-    function otherBridge() public view virtual returns (ERC721Bridge);
+    /// @return otherBridge_ Contract of the bridge on the other network.
+    function otherBridge() public view virtual returns (ERC721Bridge otherBridge_);
 
     /// @notice Legacy getter for other bridge address.
     ///         Public getter is legacy and will be removed in the future. Use `otherBridge` instead.
-    /// @return Contract of the bridge on the other network.
+    /// @return otherBridge_ Contract of the bridge on the other network.
     /// @custom:legacy
-    function OTHER_BRIDGE() external view returns (ERC721Bridge) {
+    function OTHER_BRIDGE() external view returns (ERC721Bridge otherBridge_) {
         return otherBridge();
     }
 
     /// @notice This function should return true if the contract is paused.
     ///         On L1 this function will check the SuperchainConfig for its paused status.
     ///         On L2 this function should be a no-op.
-    /// @return Whether or not the contract is paused.
-    function paused() public view virtual returns (bool) {
+    /// @return isPaused_ Whether or not the contract is paused.
+    function paused() public view virtual returns (bool isPaused_) {
         return false;
     }
 

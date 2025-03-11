@@ -83,7 +83,7 @@
     "outputs": [
       {
         "internalType": "uint8",
-        "name": "",
+        "name": "dependencySetSize_",
         "type": "uint8"
       }
     ],
@@ -179,7 +179,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "is_",
+        "name": "isCustomGasToken_",
         "type": "bool"
       }
     ],
@@ -211,7 +211,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "isInDependencySet_",
         "type": "bool"
       }
     ],
@@ -396,7 +396,7 @@
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "version_",
         "type": "string"
       }
     ],

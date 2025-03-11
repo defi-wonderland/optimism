@@ -66,9 +66,9 @@ interface IOptimismMintableERC721 {
 
     function BRIDGE() external view returns (address);
 
-    function remoteChainId() external view returns (uint256);
+    function remoteChainId() external view returns (uint256 remoteChainId_);
 
-    function remoteToken() external view returns (address);
+    function remoteToken() external view returns (address remoteToken_);
 
-    function bridge() external view returns (address);
+    function bridge() external view returns (address bridge_);
 }

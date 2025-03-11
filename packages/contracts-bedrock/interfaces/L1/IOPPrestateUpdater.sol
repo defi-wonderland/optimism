@@ -48,7 +48,9 @@ interface IOPPrestateUpdater {
     /// @param gameType Type of the game being added
     /// @param newDisputeGame Address of the deployed dispute game
     /// @param oldDisputeGame Address of the old dispute game
-    event GameTypeAdded(uint256 indexed l2ChainId, GameType indexed gameType, IDisputeGame newDisputeGame, IDisputeGame oldDisputeGame);
+    event GameTypeAdded(
+        uint256 indexed l2ChainId, GameType indexed gameType, IDisputeGame newDisputeGame, IDisputeGame oldDisputeGame
+    );
 
     // -------- Errors --------
 
@@ -95,7 +97,7 @@ interface IOPPrestateUpdater {
 
     error SuperchainProxyAdminMismatch();
 
-        /// @notice Thrown when a function from the parent (OPCM) is not implemented.
+    /// @notice Thrown when a function from the parent (OPCM) is not implemented.
     error NotImplemented();
 
     /// @notice Thrown when the prestate of a permissioned disputed game is 0.
@@ -108,9 +110,11 @@ interface IOPPrestateUpdater {
         IProtocolVersions _protocolVersions,
         IOPContractsManager.Blueprints memory _blueprints
     )
-    external;
+        external;
 
-    function deploy(IOPContractsManager.DeployInput calldata _input) external returns (IOPContractsManager.DeployOutput memory);
+    function deploy(IOPContractsManager.DeployInput calldata _input)
+        external
+        returns (IOPContractsManager.DeployOutput memory);
 
     /// @notice Upgrades the implementation of all proxies in the specified chains
     /// @param _opChainConfigs The chains to upgrade
@@ -118,13 +122,15 @@ interface IOPPrestateUpdater {
 
     /// @notice addGameType deploys a new dispute game and links it to the DisputeGameFactory. The inputted _gameConfigs
     /// must be added in ascending GameType order.
-    function addGameType(IOPContractsManager.AddGameInput[] memory _gameConfigs) external returns (IOPContractsManager.AddGameOutput[] memory);
+    function addGameType(IOPContractsManager.AddGameInput[] memory _gameConfigs)
+        external
+        returns (IOPContractsManager.AddGameOutput[] memory);
 
     /// @notice Maps an L2 chain ID to an L1 batch inbox address as defined by the standard
     /// configuration's convention. This convention is `versionByte || keccak256(bytes32(chainId))[:19]`,
     /// where || denotes concatenation`, versionByte is 0x00, and chainId is a uint256.
     /// https://specs.optimism.io/protocol/configurability.html#consensus-parameters
-    function chainIdToBatchInboxAddress(uint256 _l2ChainId) external pure returns (address);
+    function chainIdToBatchInboxAddress(uint256 _l2ChainId) external pure returns (address batchInboxAddress_);
 
     /// @notice Returns the blueprint contract addresses.
     function blueprints() external view returns (IOPContractsManager.Blueprints memory);

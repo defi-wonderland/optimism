@@ -40,7 +40,7 @@ contract L2StandardBridgeInterop is L2StandardBridge {
 
     /// @notice Semantic version.
     /// @custom:semver +interop-beta.9
-    function version() public pure override returns (string memory) {
+    function version() public pure override returns (string memory version_) {
         return string.concat(super.version(), "+interop-beta.9");
     }
 

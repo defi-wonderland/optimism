@@ -47,7 +47,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "proxyAdmin_",
         "type": "address"
       }
     ],
@@ -66,7 +66,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "proxyImplementation_",
         "type": "address"
       }
     ],
@@ -98,7 +98,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "isUpgrading_",
         "type": "bool"
       }
     ],

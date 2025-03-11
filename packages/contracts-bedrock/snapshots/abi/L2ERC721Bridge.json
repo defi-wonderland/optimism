@@ -18,7 +18,7 @@
     "outputs": [
       {
         "internalType": "contract ERC721Bridge",
-        "name": "",
+        "name": "otherBridge_",
         "type": "address"
       }
     ],
@@ -140,7 +140,7 @@
     "outputs": [
       {
         "internalType": "contract ICrossDomainMessenger",
-        "name": "",
+        "name": "messenger_",
         "type": "address"
       }
     ],
@@ -153,7 +153,7 @@
     "outputs": [
       {
         "internalType": "contract ERC721Bridge",
-        "name": "",
+        "name": "otherBridge_",
         "type": "address"
       }
     ],
@@ -166,7 +166,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "isPaused_",
         "type": "bool"
       }
     ],

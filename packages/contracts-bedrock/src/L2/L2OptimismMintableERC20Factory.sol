@@ -22,7 +22,7 @@ contract L2OptimismMintableERC20Factory is OptimismMintableERC20Factory {
     ///         is responsible for deploying OptimismMintableERC20 contracts.
     string public constant version = "1.3.1-beta.5";
 
-    function bridge() public view virtual override returns (address) {
+    function bridge() public view virtual override returns (address bridge_) {
         return Predeploys.L2_STANDARD_BRIDGE;
     }
 }

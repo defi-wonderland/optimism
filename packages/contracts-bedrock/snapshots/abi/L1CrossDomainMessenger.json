@@ -75,7 +75,7 @@
     "outputs": [
       {
         "internalType": "contract IOptimismPortal2",
-        "name": "",
+        "name": "portal_",
         "type": "address"
       }
     ],
@@ -151,7 +151,7 @@
     "outputs": [
       {
         "internalType": "uint64",
-        "name": "",
+        "name": "baseGas_",
         "type": "uint64"
       }
     ],
@@ -201,7 +201,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "messageNonce_",
         "type": "uint256"
       }
     ],
@@ -214,7 +214,7 @@
     "outputs": [
       {
         "internalType": "contract CrossDomainMessenger",
-        "name": "",
+        "name": "otherMessenger_",
         "type": "address"
       }
     ],
@@ -227,7 +227,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "paused_",
         "type": "bool"
       }
     ],
@@ -359,7 +359,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "xDomainMessageSender_",
         "type": "address"
       }
     ],

@@ -34,8 +34,8 @@ contract L1OptimismMintableERC20Factory is OptimismMintableERC20Factory, Initial
     }
 
     /// @notice Getter function for the bridge contract.
-    /// @return Contract of the bridge on this domain.
-    function bridge() public view virtual override returns (address) {
+    /// @return bridge_ Contract of the bridge on this domain.
+    function bridge() public view virtual override returns (address bridge_) {
         return standardBridge;
     }
 }

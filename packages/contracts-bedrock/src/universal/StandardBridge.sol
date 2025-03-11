@@ -144,8 +144,8 @@ abstract contract StandardBridge {
     /// @notice This function should return true if the contract is paused.
     ///         On L1 this function will check the SuperchainConfig for its paused status.
     ///         On L2 this function should be a no-op.
-    /// @return Whether or not the contract is paused.
-    function paused() public view virtual returns (bool) {
+    /// @return paused_ Whether or not the contract is paused.
+    function paused() public view virtual returns (bool paused_) {
         return false;
     }
 
@@ -290,10 +290,10 @@ abstract contract StandardBridge {
     }
 
     /// @notice Getter for the other bridge contract.
-    function otherBridge() public view virtual returns (IStandardBridge);
+    function otherBridge() public view virtual returns (IStandardBridge otherBridge_);
 
     /// @notice Getter for the messenger contract.
-    function messenger() public view virtual returns (ICrossDomainMessenger);
+    function messenger() public view virtual returns (ICrossDomainMessenger messenger_);
 
     /// @notice Initiates a bridge of ETH through the CrossDomainMessenger.
     /// @param _from        Address of the sender.

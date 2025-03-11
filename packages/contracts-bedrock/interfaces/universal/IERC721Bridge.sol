@@ -21,7 +21,7 @@ interface IERC721Bridge {
         bytes extraData
     );
 
-    function MESSENGER() external view returns (ICrossDomainMessenger messenger_);
+    function MESSENGER() external view returns (ICrossDomainMessenger);
     function OTHER_BRIDGE() external view returns (IERC721Bridge otherBridge_);
     function bridgeERC721(
         address _localToken,

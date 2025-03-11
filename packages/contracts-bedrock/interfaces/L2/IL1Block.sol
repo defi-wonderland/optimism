@@ -9,20 +9,20 @@ interface IL1Block {
     error UnsafeCast();
 
     function DEPOSITOR_ACCOUNT() external pure returns (address addr_);
-    function baseFeeScalar() external view returns (uint32 baseFeeScalar_);
-    function basefee() external view returns (uint256 basefee_);
-    function batcherHash() external view returns (bytes32 batcherHash_);
-    function blobBaseFee() external view returns (uint256 blobBaseFee_);
-    function blobBaseFeeScalar() external view returns (uint32 blobBaseFeeScalar_);
+    function baseFeeScalar() external view returns (uint32);
+    function basefee() external view returns (uint256);
+    function batcherHash() external view returns (bytes32);
+    function blobBaseFee() external view returns (uint256);
+    function blobBaseFeeScalar() external view returns (uint32);
     function gasPayingToken() external pure returns (address addr_, uint8 decimals_);
     function gasPayingTokenName() external pure returns (string memory name_);
     function gasPayingTokenSymbol() external pure returns (string memory symbol_);
-    function hash() external view returns (bytes32 hash_);
-    function isCustomGasToken() external pure returns (bool is_);
-    function l1FeeOverhead() external view returns (uint256 l1FeeOverhead_);
-    function l1FeeScalar() external view returns (uint256 l1FeeScalar_);
-    function number() external view returns (uint64 number_);
-    function sequenceNumber() external view returns (uint64 sequenceNumber_);
+    function hash() external view returns (bytes32);
+    function isCustomGasToken() external pure returns (bool isCustomGasToken_);
+    function l1FeeOverhead() external view returns (uint256);
+    function l1FeeScalar() external view returns (uint256);
+    function number() external view returns (uint64);
+    function sequenceNumber() external view returns (uint64);
     function setL1BlockValues(
         uint64 _number,
         uint64 _timestamp,
@@ -35,13 +35,13 @@ interface IL1Block {
     )
         external;
     function setL1BlockValuesEcotone() external;
-    function timestamp() external view returns (uint64 timestamp_);
+    function timestamp() external view returns (uint64);
     function version() external pure returns (string memory version_);
     function setConfig(Types.ConfigType _type, bytes memory _value) external;
     function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
     function setIsthmus() external;
     function setIsIsthmus() external;
-    function isIsthmus() external view returns (bool isIsthmus_);
+    function isIsthmus() external view returns (bool);
 
     function __constructor__() external;
 }

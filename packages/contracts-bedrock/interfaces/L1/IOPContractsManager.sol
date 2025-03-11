@@ -142,13 +142,13 @@ interface IOPContractsManager {
     function version() external pure returns (string memory version_);
 
     /// @notice Address of the SuperchainConfig contract shared by all chains.
-    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
+    function superchainConfig() external view returns (ISuperchainConfig);
 
     /// @notice Address of the ProtocolVersions contract shared by all chains.
-    function protocolVersions() external view returns (IProtocolVersions protocolVersions_);
+    function protocolVersions() external view returns (IProtocolVersions);
 
     /// @notice Address of the ProxyAdmin contract shared by all chains.
-    function superchainProxyAdmin() external view returns (IProxyAdmin superchainProxyAdmin_);
+    function superchainProxyAdmin() external view returns (IProxyAdmin);
 
     /// @notice L1 smart contracts release deployed by this version of OPCM. This is used in opcm to signal which
     /// version of the L1 smart contracts is deployed. It takes the format of `op-contracts/vX.Y.Z`.
@@ -257,11 +257,11 @@ interface IOPContractsManager {
     function blueprints() external view returns (Blueprints memory);
 
     /// @notice Returns the implementation contract addresses.
-    function implementations() external view returns (Implementations memory implementations_);
+    function implementations() external view returns (Implementations memory);
 
-    function upgradeController() external view returns (address upgradeController_);
+    function upgradeController() external view returns (address);
 
-    function isRC() external view returns (bool isRC_);
+    function isRC() external view returns (bool);
 
     function setRC(bool _isRC) external;
 }

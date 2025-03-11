@@ -116,12 +116,12 @@ contract L2ERC721Bridge is ERC721Bridge, ISemver {
     }
 
     /// @inheritdoc ERC721Bridge
-    function messenger() public pure override returns (ICrossDomainMessenger) {
+    function messenger() public pure override returns (ICrossDomainMessenger messenger_) {
         return ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 
     /// @inheritdoc ERC721Bridge
-    function otherBridge() public view override returns (ERC721Bridge) {
+    function otherBridge() public view override returns (ERC721Bridge otherBridge_) {
         bytes memory data =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS);
         return ERC721Bridge(abi.decode(data, (address)));

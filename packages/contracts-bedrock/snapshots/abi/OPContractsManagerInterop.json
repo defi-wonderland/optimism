@@ -240,7 +240,7 @@
           }
         ],
         "internalType": "struct OPContractsManager.AddGameOutput[]",
-        "name": "",
+        "name": "addGameOutputs_",
         "type": "tuple[]"
       }
     ],
@@ -319,7 +319,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "batchInboxAddress_",
         "type": "address"
       }
     ],
@@ -514,7 +514,7 @@
           }
         ],
         "internalType": "struct OPContractsManager.DeployOutput",
-        "name": "",
+        "name": "deployOutput_",
         "type": "tuple"
       }
     ],
@@ -615,7 +615,7 @@
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "l1ContractsRelease_",
         "type": "string"
       }
     ],
@@ -723,7 +723,7 @@
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "version_",
         "type": "string"
       }
     ],

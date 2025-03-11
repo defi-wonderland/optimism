@@ -54,8 +54,8 @@ interface IOptimismPortal2 {
     )
         external
         payable;
-    function disputeGameBlacklist(IDisputeGame _disputeGame) external view returns (bool isBlacklisted_);
-    function disputeGameFactory() external view returns (IDisputeGameFactory disputeGameFactory_);
+    function disputeGameBlacklist(IDisputeGame) external view returns (bool);
+    function disputeGameFactory() external view returns (IDisputeGameFactory);
     function disputeGameFinalityDelaySeconds() external view returns (uint256 disputeGameFinalityDelaySeconds_);
     function donateETH() external payable;
     function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external;
@@ -64,7 +64,7 @@ interface IOptimismPortal2 {
         address _proofSubmitter
     )
         external;
-    function finalizedWithdrawals(bytes32 _withdrawalHash) external view returns (bool isFinalized_);
+    function finalizedWithdrawals(bytes32) external view returns (bool);
     function guardian() external view returns (address guardian_);
     function initialize(
         IDisputeGameFactory _disputeGameFactory,
@@ -73,13 +73,13 @@ interface IOptimismPortal2 {
         GameType _initialRespectedGameType
     )
         external;
-    function l2Sender() external view returns (address l2Sender_);
+    function l2Sender() external view returns (address);
     function minimumGasLimit(uint64 _byteCount) external pure returns (uint64 minimumGasLimit_);
     function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256 numProofSubmitters_);
-    function params() external view returns (uint128 prevBaseFee_, uint64 prevBoughtGas_, uint64 prevBlockNum_); // nosemgrep
+    function params() external view returns (uint128 prevBaseFee, uint64 prevBoughtGas, uint64 prevBlockNum); // nosemgrep
     function paused() external view returns (bool paused_);
     function proofMaturityDelaySeconds() external view returns (uint256 proofMaturityDelaySeconds_);
-    function proofSubmitters(bytes32 _withdrawalHash, uint256 _index) external view returns (address proofSubmitter_);
+    function proofSubmitters(bytes32, uint256) external view returns (address);
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         uint256 _disputeGameIndex,
@@ -93,13 +93,13 @@ interface IOptimismPortal2 {
     )
         external
         view
-        returns (IDisputeGame disputeGameProxy_, uint64 timestamp_); // nosemgrep
-    function respectedGameType() external view returns (GameType respectedGameType_);
-    function respectedGameTypeUpdatedAt() external view returns (uint64 respectedGameTypeUpdatedAt_);
+        returns (IDisputeGame disputeGameProxy, uint64 timestamp); // nosemgrep
+    function respectedGameType() external view returns (GameType);
+    function respectedGameTypeUpdatedAt() external view returns (uint64);
     function setConfig(Types.ConfigType _type, bytes memory _value) external;
     function setRespectedGameType(GameType _gameType) external;
-    function superchainConfig() external view returns (ISuperchainConfig superchainConfig_);
-    function systemConfig() external view returns (ISystemConfig systemConfig_);
+    function superchainConfig() external view returns (ISuperchainConfig);
+    function systemConfig() external view returns (ISystemConfig);
     function callL2ProxyAdmin(uint32 _gasLimit, bytes memory _calldata) external;
     function version() external pure returns (string memory version_);
 

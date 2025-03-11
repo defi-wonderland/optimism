@@ -63,8 +63,8 @@ abstract contract FeeVault {
     }
 
     /// @notice Network which the recipient will receive fees on.
-    function withdrawalNetwork() public view returns (Types.WithdrawalNetwork network_) {
-        (,, network_) = config();
+    function withdrawalNetwork() public view returns (Types.WithdrawalNetwork withdrawalNetwork_) {
+        (,, withdrawalNetwork_) = config();
     }
 
     /// @notice Minimum balance before a withdrawal can be triggered.

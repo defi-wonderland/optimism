@@ -67,14 +67,14 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     /// @param _remoteToken Address of the token on the remote chain.
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
-    /// @return Address of the newly created token.
+    /// @return newTokenAddress_ Address of the newly created token.
     function createStandardL2Token(
         address _remoteToken,
         string memory _name,
         string memory _symbol
     )
         external
-        returns (address)
+        returns (address newTokenAddress_)
     {
         return createOptimismMintableERC20(_remoteToken, _name, _symbol);
     }
@@ -83,14 +83,14 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     /// @param _remoteToken Address of the token on the remote chain.
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
-    /// @return Address of the newly created token.
+    /// @return newTokenAddress_ Address of the newly created token.
     function createOptimismMintableERC20(
         address _remoteToken,
         string memory _name,
         string memory _symbol
     )
         public
-        returns (address)
+        returns (address newTokenAddress_)
     {
         return createOptimismMintableERC20WithDecimals(_remoteToken, _name, _symbol, 18);
     }
@@ -100,7 +100,7 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     /// @param _name        ERC20 name.
     /// @param _symbol      ERC20 symbol.
     /// @param _decimals    ERC20 decimals
-    /// @return Address of the newly created token.
+    /// @return newTokenAddress_ Address of the newly created token.
     function createOptimismMintableERC20WithDecimals(
         address _remoteToken,
         string memory _name,
@@ -108,7 +108,7 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
         uint8 _decimals
     )
         public
-        returns (address)
+        returns (address newTokenAddress_)
     {
         require(_remoteToken != address(0), "OptimismMintableERC20Factory: must provide remote token address");
 
@@ -130,6 +130,6 @@ abstract contract OptimismMintableERC20Factory is ISemver, IOptimismERC20Factory
     }
 
     /// @notice Returns the address of the standard bridge on this chain.
-    /// @return Address of the standard bridge on this chain.
-    function bridge() public view virtual returns (address);
+    /// @return bridge_ Address of the standard bridge on this chain.
+    function bridge() public view virtual returns (address bridge_);
 }

@@ -125,8 +125,8 @@ contract L2StandardBridge is StandardBridge, ISemver {
 
     /// @custom:legacy
     /// @notice Retrieves the access of the corresponding L1 bridge contract.
-    /// @return Address of the corresponding L1 bridge contract.
-    function l1TokenBridge() external view returns (address) {
+    /// @return l1TokenBridge_ Address of the corresponding L1 bridge contract.
+    function l1TokenBridge() external view returns (address l1TokenBridge_) {
         return address(otherBridge());
     }
 
@@ -226,7 +226,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
 
     /// @notice Returns the corresponding L1 standard bridge contract.
     /// @inheritdoc StandardBridge
-    function otherBridge() public view override returns (IStandardBridge) {
+    function otherBridge() public view override returns (IStandardBridge otherBridge_) {
         bytes memory data =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS);
         return IStandardBridge(abi.decode(data, (address)));
@@ -234,7 +234,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
 
     /// @notice Returns the cross-domain messenger contract for the L2 domain.
     /// @inheritdoc StandardBridge
-    function messenger() public view override returns (ICrossDomainMessenger) {
+    function messenger() public view override returns (ICrossDomainMessenger messenger_) {
         return ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 }

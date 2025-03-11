@@ -81,17 +81,17 @@ contract ProxyAdmin is Ownable {
 
     /// @custom:legacy
     /// @notice Legacy function used to tell ChugSplashProxy contracts if an upgrade is happening.
-    /// @return Whether or not there is an upgrade going on. May not actually tell you whether an
+    /// @return isUpgrading_ Whether or not there is an upgrade going on. May not actually tell you whether an
     ///         upgrade is going on, since we don't currently plan to use this variable for anything
     ///         other than a legacy indicator to fix a UX bug in the ChugSplash proxy.
-    function isUpgrading() external view returns (bool) {
+    function isUpgrading() external view returns (bool isUpgrading_) {
         return upgrading;
     }
 
     /// @notice Returns the implementation of the given proxy address.
     /// @param _proxy Address of the proxy to get the implementation of.
-    /// @return Address of the implementation of the proxy.
-    function getProxyImplementation(address _proxy) external view returns (address) {
+    /// @return proxyImplementation_ Address of the implementation of the proxy.
+    function getProxyImplementation(address _proxy) external view returns (address proxyImplementation_) {
         Types.ProxyType ptype = proxyType[_proxy];
         if (ptype == Types.ProxyType.ERC1967) {
             return IStaticERC1967Proxy(_proxy).implementation();
@@ -106,8 +106,8 @@ contract ProxyAdmin is Ownable {
 
     /// @notice Returns the admin of the given proxy address.
     /// @param _proxy Address of the proxy to get the admin of.
-    /// @return Address of the admin of the proxy.
-    function getProxyAdmin(address payable _proxy) external view returns (address) {
+    /// @return proxyAdmin_ Address of the admin of the proxy.
+    function getProxyAdmin(address payable _proxy) external view returns (address proxyAdmin_) {
         Types.ProxyType ptype = proxyType[_proxy];
         if (ptype == Types.ProxyType.ERC1967) {
             return IStaticERC1967Proxy(_proxy).admin();

@@ -212,16 +212,16 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     ///         gas that is allocated for deposits per block plus the amount of gas that
     ///         is allocated for the system transaction.
     ///         This function is used to determine if changes to parameters are safe.
-    /// @return uint64 Minimum gas limit.
-    function minimumGasLimit() public view returns (uint64) {
+    /// @return minimumGasLimit_ uint64 Minimum gas limit.
+    function minimumGasLimit() public view returns (uint64 minimumGasLimit_) {
         return uint64(_resourceConfig.maxResourceLimit) + uint64(_resourceConfig.systemTxMaxGas);
     }
 
     /// @notice Returns the maximum L2 gas limit that can be safely set for the system to
     ///         operate. This bound is used to prevent the gas limit from being set too high
     ///         and causing the system to be unable to process and/or prove L2 blocks.
-    /// @return uint64 Maximum gas limit.
-    function maximumGasLimit() public pure returns (uint64) {
+    /// @return gasLimit_ uint64 Maximum gas limit.
+    function maximumGasLimit() public pure returns (uint64 gasLimit_) {
         return MAX_GAS_LIMIT;
     }
 
@@ -264,7 +264,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     }
 
     /// @notice Consolidated getter for the Addresses struct.
-    function getAddresses() external view returns (Addresses memory) {
+    function getAddresses() external view returns (Addresses memory addresses_) {
         return Addresses({
             l1CrossDomainMessenger: l1CrossDomainMessenger(),
             l1ERC721Bridge: l1ERC721Bridge(),
@@ -455,8 +455,8 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
     /// @notice A getter for the resource config.
     ///         Ensures that the struct is returned instead of a tuple.
-    /// @return ResourceConfig
-    function resourceConfig() external view returns (IResourceMetering.ResourceConfig memory) {
+    /// @return resourceConfig_ ResourceConfig
+    function resourceConfig() external view returns (IResourceMetering.ResourceConfig memory resourceConfig_) {
         return _resourceConfig;
     }
 

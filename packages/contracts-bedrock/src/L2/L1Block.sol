@@ -94,7 +94,7 @@ contract L1Block is ISemver {
     bool public isIsthmus;
 
     /// @custom:semver 1.5.1-beta.7
-    function version() public pure virtual returns (string memory) {
+    function version() public pure virtual returns (string memory version_) {
         return "1.5.1-beta.7";
     }
 
@@ -120,8 +120,8 @@ contract L1Block is ISemver {
 
     /// @notice Getter for custom gas token paying networks. Returns true if the
     ///         network uses a custom gas token.
-    function isCustomGasToken() public pure returns (bool is_) {
-        is_ = false;
+    function isCustomGasToken() public pure returns (bool isCustomGasToken_) {
+        isCustomGasToken_ = false;
     }
 
     /// @custom:legacy

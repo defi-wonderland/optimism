@@ -260,7 +260,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "l1TokenBridge_",
         "type": "address"
       }
     ],
@@ -273,7 +273,7 @@
     "outputs": [
       {
         "internalType": "contract ICrossDomainMessenger",
-        "name": "",
+        "name": "messenger_",
         "type": "address"
       }
     ],
@@ -286,7 +286,7 @@
     "outputs": [
       {
         "internalType": "contract IStandardBridge",
-        "name": "",
+        "name": "otherBridge_",
         "type": "address"
       }
     ],
@@ -299,7 +299,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "paused_",
         "type": "bool"
       }
     ],
@@ -312,7 +312,7 @@
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "version_",
         "type": "string"
       }
     ],

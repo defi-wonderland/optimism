@@ -26,9 +26,9 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
 
     /// @notice Getter for the remote messenger.
     ///         Public getter is legacy and will be removed in the future. Use `otherMessenger()` instead.
-    /// @return L1CrossDomainMessenger contract.
+    /// @return l1CrossDomainMessenger_ L1CrossDomainMessenger contract.
     /// @custom:legacy
-    function l1CrossDomainMessenger() public view returns (CrossDomainMessenger) {
+    function l1CrossDomainMessenger() public view returns (CrossDomainMessenger l1CrossDomainMessenger_) {
         return otherMessenger();
     }
 
@@ -50,7 +50,7 @@ contract L2CrossDomainMessenger is CrossDomainMessenger, ISemver {
     }
 
     /// @inheritdoc CrossDomainMessenger
-    function otherMessenger() public view virtual override returns (CrossDomainMessenger) {
+    function otherMessenger() public view virtual override returns (CrossDomainMessenger otherMessenger_) {
         bytes memory data =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS);
         return CrossDomainMessenger(abi.decode(data, (address)));

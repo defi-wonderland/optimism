@@ -310,7 +310,7 @@
           }
         ],
         "internalType": "struct SystemConfig.Addresses",
-        "name": "",
+        "name": "addresses_",
         "type": "tuple"
       }
     ],
@@ -625,7 +625,7 @@
     "outputs": [
       {
         "internalType": "uint64",
-        "name": "",
+        "name": "gasLimit_",
         "type": "uint64"
       }
     ],
@@ -638,7 +638,7 @@
     "outputs": [
       {
         "internalType": "uint64",
-        "name": "",
+        "name": "minimumGasLimit_",
         "type": "uint64"
       }
     ],
@@ -755,7 +755,7 @@
           }
         ],
         "internalType": "struct IResourceMetering.ResourceConfig",
-        "name": "",
+        "name": "resourceConfig_",
         "type": "tuple"
       }
     ],

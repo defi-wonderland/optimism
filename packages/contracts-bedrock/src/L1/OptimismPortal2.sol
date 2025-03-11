@@ -180,7 +180,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice Semantic version.
     /// @custom:semver 3.12.1
-    function version() public pure virtual returns (string memory) {
+    function version() public pure virtual returns (string memory version_) {
         return "3.12.1";
     }
 
@@ -633,8 +633,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
 
     /// @notice External getter for the number of proof submitters for a withdrawal hash.
     /// @param _withdrawalHash Hash of the withdrawal.
-    /// @return The number of proof submitters for the withdrawal hash.
-    function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256) {
+    /// @return numProofSubmitters_ The number of proof submitters for the withdrawal hash.
+    function numProofSubmitters(bytes32 _withdrawalHash) external view returns (uint256 numProofSubmitters_) {
         return proofSubmitters[_withdrawalHash].length;
     }
 }

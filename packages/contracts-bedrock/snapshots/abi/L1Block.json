@@ -159,7 +159,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "is_",
+        "name": "isCustomGasToken_",
         "type": "bool"
       }
     ],
@@ -337,7 +337,7 @@
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "version_",
         "type": "string"
       }
     ],

@@ -438,7 +438,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "l2TokenBridge_",
         "type": "address"
       }
     ],
@@ -451,7 +451,7 @@
     "outputs": [
       {
         "internalType": "contract ICrossDomainMessenger",
-        "name": "",
+        "name": "messenger_",
         "type": "address"
       }
     ],
@@ -464,7 +464,7 @@
     "outputs": [
       {
         "internalType": "contract IStandardBridge",
-        "name": "",
+        "name": "otherBridge_",
         "type": "address"
       }
     ],
@@ -477,7 +477,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "paused_",
         "type": "bool"
       }
     ],

@@ -57,9 +57,9 @@ interface IStandardBridge {
     )
         external;
     function finalizeBridgeETH(address _from, address _to, uint256 _amount, bytes memory _extraData) external payable;
-    function messenger() external view returns (ICrossDomainMessenger);
-    function otherBridge() external view returns (IStandardBridge);
-    function paused() external view returns (bool);
+    function messenger() external view returns (ICrossDomainMessenger messenger_);
+    function otherBridge() external view returns (IStandardBridge otherBridge_);
+    function paused() external view returns (bool paused_);
 
     function __constructor__() external;
 }

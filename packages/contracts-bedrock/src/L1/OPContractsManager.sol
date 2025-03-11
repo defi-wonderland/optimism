@@ -149,7 +149,7 @@ contract OPContractsManager is ISemver {
     // -------- Constants and Variables --------
 
     /// @custom:semver 1.6.0
-    function version() public pure virtual returns (string memory) {
+    function version() public pure virtual returns (string memory version_) {
         return "1.6.0";
     }
 
@@ -185,7 +185,7 @@ contract OPContractsManager is ISemver {
     bool public isRC = true;
 
     /// @notice Returns the release string. Appends "-rc" if this is a release candidate.
-    function l1ContractsRelease() external view virtual returns (string memory) {
+    function l1ContractsRelease() external view virtual returns (string memory l1ContractsRelease_) {
         return isRC ? string.concat(L1_CONTRACTS_RELEASE, "-rc") : L1_CONTRACTS_RELEASE;
     }
 
@@ -275,7 +275,7 @@ contract OPContractsManager is ISemver {
         upgradeController = _upgradeController;
     }
 
-    function deploy(DeployInput calldata _input) external virtual returns (DeployOutput memory) {
+    function deploy(DeployInput calldata _input) external virtual returns (DeployOutput memory deployOutput_) {
         assertValidInputs(_input);
         uint256 l2ChainId = _input.l2ChainId;
         string memory saltMixer = _input.saltMixer;
@@ -625,7 +625,11 @@ contract OPContractsManager is ISemver {
 
     /// @notice addGameType deploys a new dispute game and links it to the DisputeGameFactory. The inputted _gameConfigs
     /// must be added in ascending GameType order.
-    function addGameType(AddGameInput[] memory _gameConfigs) public virtual returns (AddGameOutput[] memory) {
+    function addGameType(AddGameInput[] memory _gameConfigs)
+        public
+        virtual
+        returns (AddGameOutput[] memory addGameOutputs_)
+    {
         if (address(this) == address(thisOPCM)) revert OnlyDelegatecall();
         if (_gameConfigs.length == 0) revert InvalidGameConfigs();
 
@@ -782,7 +786,7 @@ contract OPContractsManager is ISemver {
     /// configuration's convention. This convention is `versionByte || keccak256(bytes32(chainId))[:19]`,
     /// where || denotes concatenation`, versionByte is 0x00, and chainId is a uint256.
     /// https://specs.optimism.io/protocol/configurability.html#consensus-parameters
-    function chainIdToBatchInboxAddress(uint256 _l2ChainId) public pure returns (address) {
+    function chainIdToBatchInboxAddress(uint256 _l2ChainId) public pure returns (address batchInboxAddress_) {
         bytes1 versionByte = 0x00;
         bytes32 hashedChainId = keccak256(bytes.concat(bytes32(_l2ChainId)));
         bytes19 first19Bytes = bytes19(hashedChainId);

@@ -23,7 +23,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "bridge_",
         "type": "address"
       }
     ],
@@ -52,7 +52,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "newTokenAddress_",
         "type": "address"
       }
     ],
@@ -86,7 +86,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "newTokenAddress_",
         "type": "address"
       }
     ],
@@ -115,7 +115,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "newTokenAddress_",
         "type": "address"
       }
     ],

@@ -14,7 +14,7 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 contract OPContractsManagerInterop is OPContractsManager {
     /// @custom:semver +interop.10
-    function version() public pure override returns (string memory) {
+    function version() public pure override returns (string memory version_) {
         return string.concat(super.version(), "+interop.10");
     }
 

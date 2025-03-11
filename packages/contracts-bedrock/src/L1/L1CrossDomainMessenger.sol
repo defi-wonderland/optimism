@@ -35,7 +35,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver, Initializable 
     address private spacer_253_0_20;
 
     /// @notice Semantic version.
-    /// @custom:semver 2.5.0
+    /// @custom:semver 2.5.0-beta.1
     string public constant version = "2.5.0-beta.1";
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
@@ -81,12 +81,12 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver, Initializable 
     }
 
     /// @inheritdoc CrossDomainMessenger
-    function paused() public view override returns (bool) {
+    function paused() public view override returns (bool paused_) {
         return superchainConfig.paused();
     }
 
     /// @inheritdoc CrossDomainMessenger
-    function otherMessenger() public view virtual override returns (CrossDomainMessenger) {
+    function otherMessenger() public view virtual override returns (CrossDomainMessenger otherMessenger_) {
         return CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 }

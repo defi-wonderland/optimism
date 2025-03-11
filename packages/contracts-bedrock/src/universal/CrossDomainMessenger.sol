@@ -315,8 +315,8 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     /// @notice Retrieves the address of the contract or wallet that initiated the currently
     ///         executing message on the other chain. Will throw an error if there is no message
     ///         currently being executed. Allows the recipient of a call to see who triggered it.
-    /// @return Address of the sender of the currently executing message on the other chain.
-    function xDomainMessageSender() external view returns (address) {
+    /// @return xDomainMessageSender_ Address of the sender of the currently executing message on the other chain.
+    function xDomainMessageSender() external view returns (address xDomainMessageSender_) {
         address sender = getCrossDomainMessageSender();
         require(sender != Constants.DEFAULT_L2_SENDER, "CrossDomainMessenger: xDomainMessageSender is not set");
         return sender;
@@ -333,8 +333,8 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two
     ///         bytes of the message nonce. Message version allows us to treat messages as having
     ///         different structures.
-    /// @return Nonce of the next message to be sent, with added message version.
-    function messageNonce() public view returns (uint256) {
+    /// @return messageNonce_ Nonce of the next message to be sent, with added message version.
+    function messageNonce() public view returns (uint256 messageNonce_) {
         return Encoding.encodeVersionedNonce(msgNonce, MESSAGE_VERSION);
     }
 
@@ -344,8 +344,8 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     ///         be replayed on the other chain if it fails to execute completely.
     /// @param _message     Message to compute the amount of required gas for.
     /// @param _minGasLimit Minimum desired gas limit when message goes to target.
-    /// @return Amount of gas required to guarantee message receipt.
-    function baseGas(bytes calldata _message, uint32 _minGasLimit) public pure returns (uint64) {
+    /// @return baseGas_ Amount of gas required to guarantee message receipt.
+    function baseGas(bytes calldata _message, uint32 _minGasLimit) public pure returns (uint64 baseGas_) {
         return
         // Constant overhead
         RELAY_CONSTANT_OVERHEAD
@@ -365,8 +365,8 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     }
 
     /// @notice Returns the CrossDomainMessenger contract on the other chain.
-    /// @return CrossDomainMessenger contract on the other chain.
-    function otherMessenger() public view virtual returns (CrossDomainMessenger);
+    /// @return otherMessenger_ CrossDomainMessenger contract on the other chain.
+    function otherMessenger() public view virtual returns (CrossDomainMessenger otherMessenger_);
 
     /// @notice Retrieves the address of the contract or wallet that initiated the currently
     ///         executing message on the other chain.
@@ -409,8 +409,8 @@ abstract contract CrossDomainMessenger is CrossDomainMessengerLegacySpacer {
     /// @notice This function should return true if the contract is paused.
     ///         On L1 this function will check the SuperchainConfig for its paused status.
     ///         On L2 this function should be a no-op.
-    /// @return Whether or not the contract is paused.
-    function paused() public view virtual returns (bool) {
+    /// @return paused_ Whether or not the contract is paused.
+    function paused() public view virtual returns (bool paused_) {
         return false;
     }
 }

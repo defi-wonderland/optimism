@@ -85,17 +85,17 @@ contract OptimismMintableERC721 is ERC721Enumerable, ISemver {
     }
 
     /// @notice Chain ID of the chain where the remote token is deployed.
-    function remoteChainId() external view returns (uint256) {
+    function remoteChainId() external view returns (uint256 remoteChainId_) {
         return REMOTE_CHAIN_ID;
     }
 
     /// @notice Address of the token on the remote domain.
-    function remoteToken() external view returns (address) {
+    function remoteToken() external view returns (address remoteToken_) {
         return REMOTE_TOKEN;
     }
 
     /// @notice Address of the ERC721 bridge on this network.
-    function bridge() external view returns (address) {
+    function bridge() external view returns (address bridge_) {
         return BRIDGE;
     }
 

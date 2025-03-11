@@ -108,7 +108,7 @@ contract L1StandardBridge is StandardBridge, ISemver, Initializable {
     }
 
     /// @inheritdoc StandardBridge
-    function paused() public view override returns (bool) {
+    function paused() public view override returns (bool paused_) {
         return superchainConfig.paused();
     }
 
@@ -230,8 +230,8 @@ contract L1StandardBridge is StandardBridge, ISemver, Initializable {
 
     /// @custom:legacy
     /// @notice Retrieves the access of the corresponding L2 bridge contract.
-    /// @return Address of the corresponding L2 bridge contract.
-    function l2TokenBridge() external view returns (address) {
+    /// @return l2TokenBridge_ Address of the corresponding L2 bridge contract.
+    function l2TokenBridge() external view returns (address l2TokenBridge_) {
         return address(otherBridge());
     }
 
@@ -334,11 +334,11 @@ contract L1StandardBridge is StandardBridge, ISemver, Initializable {
         super._emitERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 
-    function otherBridge() public view override returns (IStandardBridge) {
+    function otherBridge() public view override returns (IStandardBridge otherBridge_) {
         return IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE));
     }
 
-    function messenger() public view override returns (ICrossDomainMessenger) {
+    function messenger() public view override returns (ICrossDomainMessenger messenger_) {
         return ICrossDomainMessenger(crossDomainMessenger);
     }
 }

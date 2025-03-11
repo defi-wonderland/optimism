@@ -32,7 +32,7 @@ contract L1ERC721Bridge is ERC721Bridge, Initializable, ISemver {
     ICrossDomainMessenger internal crossDomainMessenger;
 
     /// @notice Semantic version.
-    /// @custom:semver 2.3.0
+    /// @custom:semver 2.3.0-beta.1
     string public constant version = "2.3.0-beta.1";
 
     /// @notice Constructs the L1ERC721Bridge contract.
@@ -49,7 +49,7 @@ contract L1ERC721Bridge is ERC721Bridge, Initializable, ISemver {
     }
 
     /// @inheritdoc ERC721Bridge
-    function paused() public view override returns (bool) {
+    function paused() public view override returns (bool isPaused_) {
         return superchainConfig.paused();
     }
 
@@ -125,12 +125,12 @@ contract L1ERC721Bridge is ERC721Bridge, Initializable, ISemver {
     }
 
     /// @inheritdoc ERC721Bridge
-    function messenger() public view override returns (ICrossDomainMessenger) {
+    function messenger() public view override returns (ICrossDomainMessenger messenger_) {
         return ICrossDomainMessenger(crossDomainMessenger);
     }
 
     /// @inheritdoc ERC721Bridge
-    function otherBridge() public pure override returns (ERC721Bridge) {
+    function otherBridge() public pure override returns (ERC721Bridge otherBridge_) {
         return ERC721Bridge(payable(Predeploys.L2_ERC721_BRIDGE));
     }
 }

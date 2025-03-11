@@ -40,7 +40,7 @@ contract L1BlockInterop is L1Block {
     uint256 internal constant IS_DEPOSIT_SLOT = 0x921bd3a089295c6e5540e8fba8195448d253efd6f2e3e495b499b627dc36a300;
 
     /// @custom:semver +interop-beta.5
-    function version() public pure override returns (string memory) {
+    function version() public pure override returns (string memory version_) {
         return string.concat(super.version(), "+interop-beta.5");
     }
 
@@ -56,14 +56,14 @@ contract L1BlockInterop is L1Block {
     /// @notice Returns true if a chain ID is in the interop dependency set and false otherwise.
     ///         The chain's chain ID is always considered to be in the dependency set.
     /// @param _chainId The chain ID to check.
-    /// @return True if the chain ID to check is in the interop dependency set. False otherwise.
-    function isInDependencySet(uint256 _chainId) public view returns (bool) {
+    /// @return isInDependencySet_ True if the chain ID to check is in the interop dependency set. False otherwise.
+    function isInDependencySet(uint256 _chainId) public view returns (bool isInDependencySet_) {
         return _chainId == block.chainid || dependencySet.contains(_chainId);
     }
 
     /// @notice Returns the size of the interop dependency set.
-    /// @return The size of the interop dependency set.
-    function dependencySetSize() external view returns (uint8) {
+    /// @return dependencySetSize_ The size of the interop dependency set.
+    function dependencySetSize() external view returns (uint8 dependencySetSize_) {
         return uint8(dependencySet.length());
     }
 

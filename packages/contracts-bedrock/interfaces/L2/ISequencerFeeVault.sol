@@ -9,12 +9,12 @@ interface ISequencerFeeVault {
 
     receive() external payable;
 
-    function MIN_WITHDRAWAL_AMOUNT() external view returns (uint256 minWithdrawalAmount_);
-    function RECIPIENT() external view returns (address recipient_);
-    function WITHDRAWAL_NETWORK() external view returns (Types.WithdrawalNetwork withdrawalNetwork_);
+    function MIN_WITHDRAWAL_AMOUNT() external view returns (uint256);
+    function RECIPIENT() external view returns (address);
+    function WITHDRAWAL_NETWORK() external view returns (Types.WithdrawalNetwork);
     function minWithdrawalAmount() external view returns (uint256 amount_);
     function recipient() external view returns (address recipient_);
-    function totalProcessed() external view returns (uint256 totalWeiProcessed_);
+    function totalProcessed() external view returns (uint256);
     function withdraw() external;
     function withdrawalNetwork() external view returns (Types.WithdrawalNetwork withdrawalNetwork_);
     function config()
@@ -22,7 +22,7 @@ interface ISequencerFeeVault {
         view
         returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_);
 
-    function version() external view returns (string memory version_);
+    function version() external view returns (string memory);
     function l1FeeWallet() external view returns (address recipient_);
 
     function __constructor__() external;
