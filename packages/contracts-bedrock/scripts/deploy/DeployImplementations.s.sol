@@ -31,7 +31,6 @@ import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.s
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
-import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
@@ -945,49 +944,5 @@ contract DeployImplementations is Script {
     function getIOContracts() public view returns (DeployImplementationsInput dii_, DeployImplementationsOutput dio_) {
         dii_ = DeployImplementationsInput(DeployUtils.toIOAddress(msg.sender, "optimism.DeployImplementationsInput"));
         dio_ = DeployImplementationsOutput(DeployUtils.toIOAddress(msg.sender, "optimism.DeployImplementationsOutput"));
-    }
-}
-
-// Similar to how DeploySuperchain.s.sol contains a lot of comments to thoroughly document the script
-// architecture, this comment block documents how to update the deploy scripts to support new features.
-//
-// Using the base scripts and contracts (DeploySuperchain, DeployImplementations, DeployOPChain, and
-// the corresponding OPContractsManager) deploys a standard chain. For nonstandard and in-development
-// features we need to modify some or all of those contracts, and we do that via inheritance. Using
-// interop as an example, they've made the following changes to L1 contracts:
-//   - `OptimismPortalInterop is OptimismPortal`: A different portal implementation is used, and
-//     it's ABI is the same.
-//
-// Similar to how inheritance was used to develop the new portal and system config contracts, we use
-// inheritance to modify up to all of the deployer contracts. For this interop example, what this
-// means is we need:
-//   - A `DeployImplementationsInterop is DeployImplementations` that:
-//     - Deploys OptimismPortalInterop instead of OptimismPortal.
-//
-// Most of the complexity in the above flow comes from the the new input for the updated SystemConfig
-// initializer. If all function signatures were the same, all we'd have to change is the contract
-// implementations that are deployed then set in the OPCM. For now, to simplify things until we
-// resolve https://github.com/ethereum-optimism/optimism/issues/11783, we just assume this new role
-// is the same as the proxy admin owner.
-contract DeployImplementationsInterop is DeployImplementations {
-    function deployOptimismPortalImpl(
-        DeployImplementationsInput _dii,
-        DeployImplementationsOutput _dio
-    )
-        public
-        override
-    {
-        uint256 proofMaturityDelaySeconds = _dii.proofMaturityDelaySeconds();
-        IOptimismPortalInterop impl = IOptimismPortalInterop(
-            DeployUtils.createDeterministic({
-                _name: "OptimismPortalInterop",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IOptimismPortalInterop.__constructor__, (proofMaturityDelaySeconds))
-                ),
-                _salt: _salt
-            })
-        );
-        vm.label(address(impl), "OptimismPortalImpl");
-        _dio.set(_dio.optimismPortalImpl.selector, address(impl));
     }
 }

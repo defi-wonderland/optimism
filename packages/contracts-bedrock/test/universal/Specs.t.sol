@@ -10,7 +10,7 @@ import { ForgeArtifacts, Abi, AbiEntry } from "scripts/libraries/ForgeArtifacts.
 
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IDataAvailabilityChallenge } from "interfaces/L1/IDataAvailabilityChallenge.sol";
 import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
@@ -205,69 +205,6 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("superchainConfig()") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("version()") });
 
-        // OptimismPortalInterop
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("anchorStateRegistry()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("checkWithdrawal(bytes32,address)") });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: _getSel("depositTransaction(address,uint256,uint64,bool,bytes)")
-        });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("donateETH()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("updateLockbox(address)") });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: IOptimismPortalInterop.finalizeWithdrawalTransaction.selector,
-            _pausable: true
-        });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: IOptimismPortalInterop.finalizeWithdrawalTransactionExternalProof.selector,
-            _pausable: true
-        });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("finalizedWithdrawals(bytes32)") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("guardian()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("initialize(address,address,address,address,bool)") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("l2Sender()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("minimumGasLimit(uint64)") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("params()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("paused()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("initVersion()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("superRootsActive()") });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: _getSel(
-                "proveWithdrawalTransaction((uint256,address,address,uint256,uint256,bytes),uint256,(bytes32,bytes32,bytes32,bytes32),bytes[])"
-            ),
-            _pausable: true
-        });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: _getSel(
-                "proveWithdrawalTransaction((uint256,address,address,uint256,uint256,bytes),address,uint256,(bytes1,uint64,(uint256,bytes32)[]),(bytes32,bytes32,bytes32,bytes32),bytes[])"
-            ),
-            _pausable: true
-        });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("provenWithdrawals(bytes32,address)") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("superchainConfig()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("systemConfig()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("version()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("disputeGameFactory()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("respectedGameType()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("proofMaturityDelaySeconds()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("disputeGameFinalityDelaySeconds()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("respectedGameTypeUpdatedAt()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("proofSubmitters(bytes32,uint256)") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("numProofSubmitters(bytes32)") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("ethLockbox()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("migrateLiquidity()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("proxyAdminOwner()") });
-        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("upgrade(address,address,bool)") });
-        _addSpec({
-            _name: "OptimismPortalInterop",
-            _sel: IOptimismPortalInterop.setConfig.selector,
-            _auth: Role.SYSTEMCONFIGOWNER
-        });
-
         // OptimismPortal2
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("anchorStateRegistry()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("checkWithdrawal(bytes32,address)") });
@@ -276,12 +213,12 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("updateLockbox(address)") });
         _addSpec({
             _name: "OptimismPortal2",
-            _sel: IOptimismPortal2.finalizeWithdrawalTransaction.selector,
+            _sel: IOptimismPortal.finalizeWithdrawalTransaction.selector,
             _pausable: true
         });
         _addSpec({
             _name: "OptimismPortal2",
-            _sel: IOptimismPortal2.finalizeWithdrawalTransactionExternalProof.selector,
+            _sel: IOptimismPortal.finalizeWithdrawalTransactionExternalProof.selector,
             _pausable: true
         });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("finalizedWithdrawals(bytes32)") });
