@@ -135,15 +135,19 @@ contract Setup {
     IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
 
-    /// @notice Indicates whether a test is running against a forked production network.
-    function isForkTest() public view returns (bool) {
-        return vm.envOr("FORK_TEST", false) && (block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet);
+    /// @dev Returns true if the test is running against a L1 forked production network.
+    function isL1ForkTest() public view returns (bool) {
+        return (block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet);
     }
 
-    function isL2UpgradeForkTest() public view returns (bool) {
-        // Just in case we have both FORK_TEST and L2_FORK_TEST set
-        return vm.envOr("FORK_TEST", false) && block.chainid != Chains.Sepolia && block.chainid != Chains.Mainnet
-            && block.chainid != Chains.Goerli;
+    /// @dev Returns true if the test is running against a L2 forked production network.
+    function isL2ForkTest() public view returns (bool) {
+        return (block.chainid == Chains.OPSepolia || block.chainid == Chains.OPMainnet);
+    }
+
+    /// @dev Returns true if the test is running against a forked production network (L1 or L2).
+    function isForkTest() public view returns (bool) {
+        return vm.envOr("FORK_TEST", false);
     }
 
     /// @dev Deploys either the Deploy.s.sol or Fork.s.sol contract, by fetching the bytecode dynamically using
@@ -157,13 +161,8 @@ contract Setup {
         console.log("Setup: L1 setup start!");
 
         if (isForkTest()) {
+            console.log("Setup: creating forked network");
             vm.createSelectFork(vm.envString("FORK_RPC_URL"), vm.envUint("FORK_BLOCK_NUMBER"));
-            require(
-                block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
-                "Setup: ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL"
-            );
-        } else if (isL2UpgradeForkTest()) {
-            vm.createSelectFork(vm.envString("L2_FORK_RPC_URL"), vm.envUint("L2_FORK_BLOCK_NUMBER"));
         }
 
         // Etch the contracts used to setup the test environment
@@ -174,7 +173,7 @@ contract Setup {
         forkLive.setUp();
         console.log("Setup: L1 setup done!");
 
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             // Return early if this is a fork test as we don't need to setup L2
             console.log("Setup: fork test detected, skipping L2 genesis generation");
             return;
@@ -196,7 +195,7 @@ contract Setup {
 
     /// @dev Skips tests when running against a forked production network.
     function skipIfForkTest(string memory message) public {
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             vm.skip(true);
             console.log(string.concat("Skipping fork test: ", message));
         }
@@ -213,7 +212,7 @@ contract Setup {
     /// @dev Returns early when running against a forked production network. Useful for allowing a portion of a test
     ///      to run.
     function returnIfForkTest(string memory message) public view {
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             console.log(string.concat("Returning early from fork test: ", message));
             assembly {
                 return(0, 0)
@@ -230,7 +229,7 @@ contract Setup {
             hex"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3"
         );
 
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             forkLive.run();
         } else {
             deploy.run();
@@ -266,12 +265,12 @@ contract Setup {
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
         // Fork tests focus on L1 contracts so there is no need to do all the work of setting up L2.
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             console.log("Setup: fork test detected, skipping L2 setup");
             return;
         }
 
-        if (!isL2UpgradeForkTest()) {
+        if (!isL2ForkTest()) {
             // We can use the hypothetic bytecode lib here to push the predeploys into the state if it's not a fork test
             console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
             l2Genesis.runWithOptions({

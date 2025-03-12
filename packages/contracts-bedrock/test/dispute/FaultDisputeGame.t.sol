@@ -48,7 +48,7 @@ contract FaultDisputeGame_Init is DisputeGameFactory_Init {
 
     function init(Claim rootClaim, Claim absolutePrestate, uint256 l2BlockNumber) public {
         // Set the time to a realistic date.
-        if (!isForkTest()) {
+        if (!isL1ForkTest()) {
             vm.warp(1690906994);
         }
 
@@ -146,7 +146,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
 
         ROOT_CLAIM = Claim.wrap(Hash.unwrap(root));
 
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             // Set the init bond of anchor game type 0 to be 0.
             vm.store(
                 address(disputeGameFactory), keccak256(abi.encode(GameType.wrap(0), uint256(102))), bytes32(uint256(0))
@@ -2996,7 +2996,7 @@ contract FaultDispute_1v1_Actors_Test is FaultDisputeGame_Init {
     )
         internal
     {
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             // Mock the call anchorStateRegistry.getAnchorRoot() to return 0 as the block number
             (Hash root,) = anchorStateRegistry.getAnchorRoot();
             vm.mockCall(

@@ -179,7 +179,7 @@ contract DisputeGameFactory_SetInitBond_Test is DisputeGameFactory_Init {
     /// @dev Tests that the `setInitBond` function properly sets the init bond for a given `GameType`.
     function test_setInitBond_succeeds() public {
         // There should be no init bond for the `GameTypes.CANNON` enum value, it has not been set.
-        if (!isForkTest()) {
+        if (!isL1ForkTest()) {
             assertEq(disputeGameFactory.initBonds(GameTypes.CANNON), 0);
         }
 
@@ -254,7 +254,7 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
     ///      to the game count.
     function testFuzz_findLatestGames_greaterThanLength_succeeds(uint256 _start) public {
         // Creation count should be 32 for normal tests, 5 for upgrade tests.
-        uint256 creationCount = isForkTest() ? 5 : 32;
+        uint256 creationCount = isL1ForkTest() ? 5 : 32;
 
         // Create some dispute games of varying game types.
         for (uint256 i; i < creationCount; i++) {
@@ -274,7 +274,7 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
     /// @dev Tests that `findLatestGames` returns the correct games.
     function test_findLatestGames_static_succeeds() public {
         // Creation count should be 32 for normal tests, 5 for upgrade tests.
-        uint256 creationCount = isForkTest() ? 5 : 32;
+        uint256 creationCount = isL1ForkTest() ? 5 : 32;
 
         // Create some dispute games of varying game types, repeatedly iterating over the game types 0, 1, 2.
         for (uint256 i; i < creationCount; i++) {
@@ -322,7 +322,7 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
     ///      available.
     function test_findLatestGames_lessThanNAvailable_succeeds() public {
         // Need to clear out the length of the game list on forked list to avoid massive iteration.
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             vm.store(
                 address(disputeGameFactory),
                 bytes32(ForgeArtifacts.getSlot("DisputeGameFactory", "_disputeGameList").slot),
@@ -360,7 +360,7 @@ contract DisputeGameFactory_FindLatestGames_Test is DisputeGameFactory_Init {
     )
         public
     {
-        _numGames = bound(_numGames, 0, isForkTest() ? 5 : 256);
+        _numGames = bound(_numGames, 0, isL1ForkTest() ? 5 : 256);
         _numSearchedGames = bound(_numSearchedGames, 0, _numGames);
         _n = bound(_n, 0, _numSearchedGames);
 

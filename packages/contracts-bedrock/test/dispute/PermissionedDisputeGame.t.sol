@@ -37,7 +37,7 @@ contract PermissionedDisputeGame_Init is DisputeGameFactory_Init {
     event Move(uint256 indexed parentIndex, Claim indexed pivot, address indexed claimant);
 
     function init(Claim rootClaim, Claim absolutePrestate, uint256 l2BlockNumber) public {
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             // Fund the proposer on this fork.
             vm.deal(PROPOSER, 100 ether);
         } else {

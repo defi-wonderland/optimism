@@ -574,7 +574,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
     /// @dev Setup the system for a ready-to-use state.
     function setUp() public virtual override {
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             // Set the proposed block number to be the next block number on the forked network
             (, _proposedBlockNumber) = anchorStateRegistry.getAnchorRoot();
             _proposedBlockNumber += 1;

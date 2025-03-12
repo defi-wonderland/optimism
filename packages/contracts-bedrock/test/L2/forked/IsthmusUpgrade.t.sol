@@ -31,7 +31,7 @@ contract IsthmusUpgradeTest is CommonTest {
     ///      It is a forked test to be able to test the correct values for the fee vaults once the isthmus upgrade is
     ///      complete.
     function test_setIsthmusUpgrade_feeVaults() external {
-        vm.skip(!isL2UpgradeForkTest());
+        vm.skip(!isL2ForkTest());
 
         /// 1. Deploy the new L1Block implementation contract
         /// 2. Upgrade the L1Block contract
@@ -84,7 +84,7 @@ contract IsthmusUpgradeTest is CommonTest {
     ///      It is a forked test to be able to test the correct values for the other contracts once the isthmus upgrade
     ///      is complete.
     function test_setIsthmusUpgrade_otherContracts() external {
-        vm.skip(!isL2UpgradeForkTest());
+        vm.skip(!isL2ForkTest());
 
         /// 1. Deploy the new L1Block implementation contract
         /// 2. Upgrade the L1Block contract
@@ -145,7 +145,7 @@ contract IsthmusUpgradeTest is CommonTest {
     ///      This test assumes that a proper deposit transaction has already been sent, emitting the appropriate
     ///      TransactionDeposited event.
     function test_depositTransaction_upgrade() external {
-        vm.skip(!isL2UpgradeForkTest());
+        vm.skip(!isL2ForkTest());
 
         // 1. Deploy the new implementation contract in L2
         IL2CrossDomainMessenger newCrossDomainMessenger = IL2CrossDomainMessenger(

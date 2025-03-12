@@ -195,7 +195,7 @@ contract PreBridgeETH is CommonTest {
     /// @dev Asserts the expected calls and events for bridging ETH depending
     ///      on whether the bridge call is legacy or not.
     function _preBridgeETH(bool isLegacy, uint256 value) internal {
-        if (!isForkTest()) {
+        if (!isL1ForkTest()) {
             assertEq(address(optimismPortal2).balance, 0);
         }
         uint256 nonce = l1CrossDomainMessenger.messageNonce();
