@@ -51,13 +51,18 @@ contract IsthmusUpgradeTest is CommonTest {
         // Fee Vaults
         address baseFeeVaultRecipient = IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).RECIPIENT();
         uint256 baseFeeVaultMinWithdrawalAmount = IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
+        Types.WithdrawalNetwork baseFeeVaultWithdrawalNetwork =
+            _getWithdrawalNetwork(payable(Predeploys.BASE_FEE_VAULT));
 
         address l1FeeVaultRecipient = IFeeVault(payable(Predeploys.L1_FEE_VAULT)).RECIPIENT();
         uint256 l1FeeVaultMinWithdrawalAmount = IFeeVault(payable(Predeploys.L1_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
+        Types.WithdrawalNetwork l1FeeVaultWithdrawalNetwork = _getWithdrawalNetwork(payable(Predeploys.L1_FEE_VAULT));
 
         address sequencerFeeVaultRecipient = IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).RECIPIENT();
         uint256 sequencerFeeVaultMinWithdrawalAmount =
             IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).MIN_WITHDRAWAL_AMOUNT();
+        Types.WithdrawalNetwork sequencerFeeVaultWithdrawalNetwork =
+            _getWithdrawalNetwork(payable(Predeploys.SEQUENCER_FEE_WALLET));
 
         // 4. Upgrade the remaining proxies
         _upgradeProxies();
@@ -65,17 +70,31 @@ contract IsthmusUpgradeTest is CommonTest {
         // Assert the fee vault configs match the pre-isthmus values
         bytes memory baseFeeVaultConfig =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG);
-        assert(_checkFeeVaultConfig(baseFeeVaultConfig, baseFeeVaultRecipient, baseFeeVaultMinWithdrawalAmount));
+        assert(
+            _checkFeeVaultConfig(
+                baseFeeVaultConfig,
+                baseFeeVaultRecipient,
+                baseFeeVaultMinWithdrawalAmount,
+                baseFeeVaultWithdrawalNetwork
+            )
+        );
 
         bytes memory l1FeeVaultConfig =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG);
-        assert(_checkFeeVaultConfig(l1FeeVaultConfig, l1FeeVaultRecipient, l1FeeVaultMinWithdrawalAmount));
+        assert(
+            _checkFeeVaultConfig(
+                l1FeeVaultConfig, l1FeeVaultRecipient, l1FeeVaultMinWithdrawalAmount, l1FeeVaultWithdrawalNetwork
+            )
+        );
 
         bytes memory sequencerFeeVaultConfig =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG);
         assert(
             _checkFeeVaultConfig(
-                sequencerFeeVaultConfig, sequencerFeeVaultRecipient, sequencerFeeVaultMinWithdrawalAmount
+                sequencerFeeVaultConfig,
+                sequencerFeeVaultRecipient,
+                sequencerFeeVaultMinWithdrawalAmount,
+                sequencerFeeVaultWithdrawalNetwork
             )
         );
     }
@@ -204,13 +223,19 @@ contract IsthmusUpgradeTest is CommonTest {
     function _checkFeeVaultConfig(
         bytes memory _config,
         address _recipient,
-        uint256 _minWithdrawalAmount
+        uint256 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
     )
         internal
         pure
         returns (bool)
     {
         return abi.decode(_config, (bytes32))
-            == Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, Types.WithdrawalNetwork.L2);
+            == Encoding.encodeFeeVaultConfig(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
+    }
+
+    function _getWithdrawalNetwork(address _addr) internal view returns (Types.WithdrawalNetwork) {
+        (bool success, bytes memory data) = _addr.staticcall(abi.encodeCall(IFeeVault.WITHDRAWAL_NETWORK, ()));
+        return success && data.length >= 32 ? abi.decode(data, (Types.WithdrawalNetwork)) : Types.WithdrawalNetwork.L2;
     }
 }
