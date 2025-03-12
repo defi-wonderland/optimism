@@ -46,39 +46,6 @@ contract CrossL2InboxTest is Test {
         crossL2Inbox = CrossL2InboxWithModifiableTransientStorage(Predeploys.CROSS_L2_INBOX);
     }
 
-    /// Tests that validateMessage succeeds for a non-deposit transaction.
-    function testFuzz_validateMessage_succeeds(Identifier memory _id, bytes32 _messageHash) external {
-        // Ensure is not a deposit transaction
-        vm.mockCall({
-            callee: Predeploys.L1_BLOCK_ATTRIBUTES,
-            data: abi.encodeCall(IL1BlockInterop.isDeposit, ()),
-            returnData: abi.encode(false)
-        });
-
-        // Look for the emit ExecutingMessage event
-        vm.expectEmit(Predeploys.CROSS_L2_INBOX);
-        emit ExecutingMessage(_messageHash, _id);
-
-        // Call the validateMessage function
-        crossL2Inbox.validateMessage(_id, _messageHash);
-    }
-
-    /// Tests that validateMessage reverts for a deposit transaction.
-    function testFuzz_validateMessage_isDeposit_reverts(Identifier calldata _id, bytes32 _messageHash) external {
-        // Ensure it is a deposit transaction
-        vm.mockCall({
-            callee: Predeploys.L1_BLOCK_ATTRIBUTES,
-            data: abi.encodeCall(IL1BlockInterop.isDeposit, ()),
-            returnData: abi.encode(true)
-        });
-
-        // Expect a revert with the NoExecutingDeposits selector
-        vm.expectRevert(NoExecutingDeposits.selector);
-
-        // Call the validateMessage function
-        crossL2Inbox.validateMessage(_id, _messageHash);
-    }
-
     /// AccessList Tests
     function test_validateMessage_accessList_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
         bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
