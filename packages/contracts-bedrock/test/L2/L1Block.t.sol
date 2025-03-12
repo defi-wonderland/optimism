@@ -310,6 +310,18 @@ contract L1BlockSetConfig_Test is L1BlockTest {
         _assertFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
     }
 
+    /// @dev Tests that `setConfig` with `OPERATOR_FEE_VAULT_CONFIG` config type updates the values correctly.
+    function test_setConfig_operatorFeeVault_succeeds(
+        address _recipient,
+        uint88 _minWithdrawalAmount,
+        bool _isL1
+    )
+        external
+    {
+        Types.ConfigType configType = Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG;
+        _assertFeeVaultConfigData(configType, _recipient, _minWithdrawalAmount, _isL1);
+    }
+
     /// @dev Tests that `setXFork` reverts if sender address is not the depositor account.
     function test_setXFork_notDepositor_reverts(address _caller) external {
         vm.assume(_caller != Constants.DEPOSITOR_ACCOUNT);
@@ -330,9 +342,9 @@ contract L1BlockSetConfig_Test is L1BlockTest {
 
     /// @dev Tests that `setXFork` succeeds. Assumes that the fee vaults are already set up.
     function test_setXFork_succeeds(
-        address[3] memory _recipients,
-        uint88[3] memory _minWithdrawalAmounts,
-        uint8[3] memory _withdrawalNetworkSeeds,
+        address[4] memory _recipients,
+        uint88[4] memory _minWithdrawalAmounts,
+        uint8[4] memory _withdrawalNetworkSeeds,
         address _l1CrossDomainMessengerAddress,
         address _l1StandardBridgeAddress,
         address _l1ERC721BridgeAddress,
@@ -340,9 +352,9 @@ contract L1BlockSetConfig_Test is L1BlockTest {
     )
         external
     {
-        // _withdrawalNetworkSeeds need to be between 0 and 2
+        // _withdrawalNetworkSeeds need to be between 0 and 3
         for (uint256 i = 0; i < _withdrawalNetworkSeeds.length; i++) {
-            _withdrawalNetworkSeeds[i] = _withdrawalNetworkSeeds[i] % 3;
+            _withdrawalNetworkSeeds[i] = _withdrawalNetworkSeeds[i] % 4;
         }
 
         // Fee vaults
@@ -363,6 +375,12 @@ contract L1BlockSetConfig_Test is L1BlockTest {
             _recipients[2],
             _minWithdrawalAmounts[2],
             WithdrawalNetworkForTest(_withdrawalNetworkSeeds[2])
+        );
+        bytes32 operatorFeeVaultConfig = _mockFeeVault(
+            Predeploys.OPERATOR_FEE_VAULT,
+            _recipients[3],
+            _minWithdrawalAmounts[3],
+            WithdrawalNetworkForTest(_withdrawalNetworkSeeds[3])
         );
 
         // Predeploys.L2_CROSS_DOMAIN_MESSENGER
@@ -408,6 +426,7 @@ contract L1BlockSetConfig_Test is L1BlockTest {
         assertEq(l1Block.getConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG), abi.encode(l1FeeVaultConfig));
         assertEq(l1Block.getConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG), abi.encode(sequencerFeeVaultConfig));
         assertEq(l1Block.getConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG), abi.encode(baseFeeVaultConfig));
+        assertEq(l1Block.getConfig(Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG), abi.encode(operatorFeeVaultConfig));
         assertEq(
             l1Block.getConfig(Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS),
             abi.encode(_l1CrossDomainMessengerAddress)

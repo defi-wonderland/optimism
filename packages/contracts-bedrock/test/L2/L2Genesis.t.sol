@@ -196,6 +196,14 @@ contract L2GenesisTest is Test {
             })
         );
 
+        bytes memory operatorFeeVaultConfig = abi.encode(
+            Encoding.encodeFeeVaultConfig({
+                _recipient: cfg.operatorFeeVaultRecipient(),
+                _amount: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
+                _network: Types.WithdrawalNetwork(cfg.operatorFeeVaultWithdrawalNetwork())
+            })
+        );
+
         // Assert that the L1Block predeploy has the correct config values
         bytes memory config =
             IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS);
@@ -218,6 +226,9 @@ contract L2GenesisTest is Test {
 
         config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG);
         assertEq(config, l1FeeVaultConfig);
+
+        config = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).getConfig(Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG);
+        assertEq(config, operatorFeeVaultConfig);
     }
 
     /// @notice Creates mock L1Dependencies for testing purposes.

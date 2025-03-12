@@ -329,7 +329,8 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     {
         require(
             _type == Types.ConfigType.BASE_FEE_VAULT_CONFIG || _type == Types.ConfigType.L1_FEE_VAULT_CONFIG
-                || _type == Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG,
+                || _type == Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG
+                || _type == Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG,
             "SystemConfig: ConfigType is is not a Fee Vault Config type"
         );
         IOptimismPortal2(payable(optimismPortal())).setConfig({
