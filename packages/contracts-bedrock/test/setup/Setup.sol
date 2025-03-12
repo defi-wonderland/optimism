@@ -331,12 +331,9 @@ contract Setup {
         labelPreinstall(Preinstalls.HistoryStorage);
         labelPreinstall(Preinstalls.CreateX);
 
-        (bool success, bytes memory isIsthmusUpgradeActive) =
-            address(l1Block).staticcall(abi.encodeWithSelector(IL1Block.isIsthmus.selector));
-
-        // We need to be able to check whether the isthmus upgrade is active
-        // This being false means either the upgrade hasn't been activated or the chain was deployed after the upgrade
-        if (!success || isIsthmusUpgradeActive.length <= 0) {
+        if (!isIsthmusUpgradeActive()) {
+            // Early return: On OPMainnet/Sepolia, isIsthmusUpgradeActive() == false indicates
+            // we're testing pre-upgrade blocks. Otherwise, it means the chain launched post-upgrade.
             console.log("Setup: isthmus upgrade is not active, skipping L2 setup");
             return;
         }
@@ -418,5 +415,17 @@ contract Setup {
 
     function labelPreinstall(address _addr) internal {
         vm.label(_addr, Preinstalls.getName(_addr));
+    }
+
+    function isIsthmusUpgradeActive() internal view returns (bool) {
+        (bool success, bytes memory responseData) =
+            address(l1Block).staticcall(abi.encodeWithSelector(IL1Block.isIsthmus.selector));
+
+        // We need to be able to check whether the isthmus upgrade is active
+        // This being false means either the upgrade hasn't been activated or the chain was deployed after the upgrade
+        if (success && responseData.length > 0) {
+            return abi.decode(responseData, (bool));
+        }
+        return false;
     }
 }
