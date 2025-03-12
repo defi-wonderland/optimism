@@ -11,6 +11,8 @@ import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
 error NoExecutingDeposits();
 
+error NotWarm();
+
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
 /// @custom:field origin The origin address of the message.
 /// @custom:field blockNumber The block number of the message.
@@ -19,9 +21,9 @@ error NoExecutingDeposits();
 /// @custom:field chainId The origin chain ID of the message.
 struct Identifier {
     address origin;
-    uint256 blockNumber;
-    uint256 logIndex;
-    uint256 timestamp;
+    uint64 blockNumber;
+    uint32 logIndex;
+    uint64 timestamp;
     uint256 chainId;
 }
 
@@ -35,6 +37,10 @@ contract CrossL2Inbox is ISemver {
     /// @custom:semver 1.0.0-beta.13
     string public constant version = "1.0.0-beta.13";
 
+    /// @notice The threshold to use to know whether the slot is warm or not.
+    /// TODO: discuss a safe value for this
+    uint256 internal constant WARM_READ_COST = 150;
+
     /// @notice Emitted when a cross chain message is being executed.
     /// @param msgHash Hash of message payload being executed.
     /// @param id Encoded Identifier of the message.
@@ -47,9 +53,39 @@ contract CrossL2Inbox is ISemver {
     /// @param _id      Identifier of the message.
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
-        // We need to know if this is being called on a depositTx
-        if (IL1BlockInterop(Predeploys.L1_BLOCK_ATTRIBUTES).isDeposit()) revert NoExecutingDeposits();
+        bytes32 checksum = calculateChecksum(_id, _msgHash);
+
+        (bool _isSlotWarm,) = _isWarm(checksum);
+
+        if (!_isSlotWarm) revert NotWarm();
 
         emit ExecutingMessage(_msgHash, _id);
+    }
+
+    function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
+        assembly {
+            let startGas := gas()
+            // storing and returning the result so that the compiler doesn't optimize out the sload, this adds cost to
+            // the read
+            result := sload(_slot)
+            let endGas := gas()
+            isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_COST))
+        }
+    }
+
+    bytes32 constant MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
+    bytes32 constant TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
+
+    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32 checksum_) {
+        bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
+
+        bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), _id.blockNumber, _id.timestamp, _id.logIndex));
+
+        bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
+
+        bytes32 bareChecksum = keccak256(abi.encodePacked(idLogHash, _id.chainId));
+
+        checksum_ = (bareChecksum & MSB_MASK) | TYPE_3_MASK;
     }
 }

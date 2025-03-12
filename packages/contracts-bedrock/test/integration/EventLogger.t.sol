@@ -101,9 +101,9 @@ contract EventLoggerTest is EventLogger_Initializer {
     /// @notice It should succeed with any Identifier
     function test_validateMessage_succeeds(
         address _origin,
-        uint256 _blockNumber,
-        uint256 _logIndex,
-        uint256 _timestamp,
+        uint64 _blockNumber,
+        uint32 _logIndex,
+        uint64 _timestamp,
         uint256 _chainId,
         bytes32 _msgHash
     )
