@@ -10,7 +10,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Target contracts
 import { CrossL2Inbox, Identifier, NoExecutingDeposits, NotWarm } from "src/L2/CrossL2Inbox.sol";
-import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 
 /// @title CrossL2InboxWithSlotWarming
 /// @dev CrossL2Inbox contract with a method to warm a slot.
