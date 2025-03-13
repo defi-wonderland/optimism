@@ -11,16 +11,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 import { CrossL2Inbox, Identifier as ImplIdentifier } from "src/L2/CrossL2Inbox.sol";
 
-// @title MockL1BlockInfo
-// @notice mock L1 block info to fake a deposit-context.
-contract MockL1BlockInfo {
-    // @notice mock deposit-context that is never active
-    // @return always false
-    function isDeposit() external pure returns (bool isDeposit_) {
-        return false;
-    }
-}
-
 contract EventLogger_Initializer is Test {
     EventLogger eventLogger;
 
@@ -31,10 +21,6 @@ contract EventLogger_Initializer is Test {
 
         vm.etch(Predeploys.CROSS_L2_INBOX, address(new CrossL2Inbox()).code);
         vm.label(Predeploys.CROSS_L2_INBOX, "CrossL2Inbox");
-
-        // CrossL2Inbox needs this to do the deposit-context check
-        vm.etch(Predeploys.L1_BLOCK_ATTRIBUTES, address(new MockL1BlockInfo()).code);
-        vm.label(Predeploys.L1_BLOCK_ATTRIBUTES, "L1Block");
     }
 }
 
