@@ -7,27 +7,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
-/// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
-error NoExecutingDeposits();
-
-/// @notice Thrown when trying to validate a cross chain message with an identifier checksum that is
-///         invalid or was not provided in the transaction's access list to set the slot as warm.
-error NotWarm();
-
-/// @notice The struct for a pointer to a message payload in a remote (or local) chain.
-/// @custom:field origin The origin address of the message.
-/// @custom:field blockNumber The block number of the message.
-/// @custom:field logIndex The log index of the message.
-/// @custom:field timestamp The timestamp of the message.
-/// @custom:field chainId The origin chain ID of the message.
-struct Identifier {
-    address origin;
-    uint64 blockNumber;
-    uint32 logIndex;
-    uint64 timestamp;
-    uint256 chainId;
-}
-
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000022
 /// @title CrossL2Inbox
@@ -39,20 +18,41 @@ struct Identifier {
 ///      in the tx's access list. Nodes pre-check message validity before execution. The checksum
 ///      combines the message's `Identifier` and `msgHash` with type-3 bit masking.
 contract CrossL2Inbox is ISemver {
+    /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
+    /// @custom:field origin The origin address of the message.
+    /// @custom:field blockNumber The block number of the message.
+    /// @custom:field logIndex The log index of the message.
+    /// @custom:field timestamp The timestamp of the message.
+    /// @custom:field chainId The origin chain ID of the message.
+    struct Identifier {
+        address origin;
+        uint64 blockNumber;
+        uint32 logIndex;
+        uint64 timestamp;
+        uint256 chainId;
+    }
+
+    /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
+    error NoExecutingDeposits();
+
+    /// @notice Thrown when trying to validate a cross chain message with an identifier checksum
+    ///         that is invalid or was not provided in the transaction's access list to set the slot
+    ///         as warm.
+    error NotWarm();
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.13
     string public constant version = "1.0.0-beta.13";
 
-    // TODO: Check natspec
     /// @notice The mask for the most significant bits of the checksum.
+    /// @dev    Used to get everything except the first byte.
     bytes32 internal constant _MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    /// @notice The mask for the type 3 bits of the checksum.
+    /// @notice The mask for the type 3 bits of the checksum for type-3 entry in the access list tx.
     bytes32 internal constant _TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
 
-    /// TODO: discuss a safe value for this
     /// @notice The threshold to use to know whether the slot is warm or not.
-    uint256 internal constant _WARM_READ_THRESHOLD = 150;
+    uint256 internal constant _WARM_READ_THRESHOLD = 1000;
 
     /// @notice Emitted when a cross chain message is being executed.
     /// @param msgHash Hash of message payload being executed.
@@ -73,7 +73,7 @@ contract CrossL2Inbox is ISemver {
         emit ExecutingMessage(_msgHash, _id);
     }
 
-    /// @notice Calculates the checksum for a cross chain message `Identifier` and `msgHash`.
+    /// @notice Calculates a custom checksum for a cross chain message `Identifier` and `msgHash`.
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.
     /// @return checksum_ The checksum of the message.
@@ -81,7 +81,7 @@ contract CrossL2Inbox is ISemver {
         // Hash the origin address and message hash together
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
 
-        // Pack identifier fields with a zero padding (uint96(0))
+        // Pack identifier fields with a left zero padding (uint96(0))
         bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), _id.blockNumber, _id.timestamp, _id.logIndex));
 
         // Hash the logHash with the packed identifier data

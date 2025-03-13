@@ -9,7 +9,7 @@ import { EventLogger } from "../../src/integration/EventLogger.sol";
 
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-import { CrossL2Inbox, Identifier as ImplIdentifier } from "src/L2/CrossL2Inbox.sol";
+import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
 
 contract EventLogger_Initializer is Test {
     EventLogger eventLogger;
@@ -102,7 +102,7 @@ contract EventLoggerTest is EventLogger_Initializer {
             timestamp: _timestamp,
             chainId: _chainId
         });
-        ImplIdentifier memory idImpl = ImplIdentifier({
+        CrossL2Inbox.Identifier memory idImpl = CrossL2Inbox.Identifier({
             origin: _origin,
             blockNumber: _blockNumber,
             logIndex: _logIndex,

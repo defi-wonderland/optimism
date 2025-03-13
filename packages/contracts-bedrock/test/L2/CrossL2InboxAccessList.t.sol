@@ -6,8 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 
 // Target contracts
-import { CrossL2Inbox, Identifier, NotWarm } from "src/L2/CrossL2Inbox.sol";
-
+import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
 import "forge-std/console.sol";
 
 /// @title CrossL2InboxAccessListTest
@@ -36,7 +35,12 @@ contract CrossL2InboxAccessListTest is Test {
     }
 
     /// @dev Tests that the validateMessage function succeeds with an access list
-    function test_validateMessage_accessList_E2E_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+    function test_validateMessage_accessList_E2E_succeeds(
+        CrossL2Inbox.Identifier calldata _id,
+        bytes32 _messageHash
+    )
+        external
+    {
         bytes32 checksum = crossL2Inbox.calculateChecksum(_id, _messageHash);
 
         string[] memory storageKeys = new string[](1);
@@ -55,7 +59,7 @@ contract CrossL2InboxAccessListTest is Test {
 
     /// @dev Tests that the validateMessage function reverts without an access list
     function test_validateMessage_withoutAccessList_E2E_reverts(
-        Identifier calldata _id,
+        CrossL2Inbox.Identifier calldata _id,
         bytes32 _messageHash
     )
         external
