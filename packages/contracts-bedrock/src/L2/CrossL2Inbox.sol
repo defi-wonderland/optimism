@@ -11,6 +11,8 @@ import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
 /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
 error NoExecutingDeposits();
 
+/// @notice Thrown when trying to validate a cross chain message without using an access list
+///         to set the slot as warm.
 error NotWarm();
 
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
@@ -37,9 +39,16 @@ contract CrossL2Inbox is ISemver {
     /// @custom:semver 1.0.0-beta.13
     string public constant version = "1.0.0-beta.13";
 
+    // TODO: Check natspec
+    /// @notice The mask for the most significant bits of the checksum.
+    bytes32 internal constant _MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
+    /// @notice The mask for the type 3 bits of the checksum.
+    bytes32 internal constant _TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
+
     /// @notice The threshold to use to know whether the slot is warm or not.
     /// TODO: discuss a safe value for this
-    uint256 internal constant WARM_READ_COST = 150;
+    uint256 internal constant _WARM_READ_COST = 150;
 
     /// @notice Emitted when a cross chain message is being executed.
     /// @param msgHash Hash of message payload being executed.
@@ -54,38 +63,41 @@ contract CrossL2Inbox is ISemver {
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
         bytes32 checksum = calculateChecksum(_id, _msgHash);
-
-        (bool _isSlotWarm,) = _isWarm(checksum);
-
-        if (!_isSlotWarm) revert NotWarm();
+        (bool isWarm,) = _isWarm(checksum);
+        if (!isWarm) revert NotWarm();
 
         emit ExecutingMessage(_msgHash, _id);
     }
 
-    function _isWarm(bytes32 _slot) internal view returns (bool isWarm, uint256 result) {
-        assembly {
-            let startGas := gas()
-            // storing and returning the result so that the compiler doesn't optimize out the sload, this adds cost to
-            // the read
-            result := sload(_slot)
-            let endGas := gas()
-            isWarm := iszero(gt(sub(startGas, endGas), WARM_READ_COST))
-        }
-    }
-
-    bytes32 constant MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-
-    bytes32 constant TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
-
+    // TODO: Needs to be public?
+    /// @notice Calculates the checksum for a cross chain message.
+    /// @param _id The identifier of the message.
+    /// @param _msgHash The hash of the message.
+    /// @return checksum_ The checksum of the message.
     function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32 checksum_) {
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
-
         bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), _id.blockNumber, _id.timestamp, _id.logIndex));
-
         bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
 
+        // TODO: Add some comment
         bytes32 bareChecksum = keccak256(abi.encodePacked(idLogHash, _id.chainId));
+        checksum_ = (bareChecksum & _MSB_MASK) | _TYPE_3_MASK;
+    }
 
-        checksum_ = (bareChecksum & MSB_MASK) | TYPE_3_MASK;
+    /// @notice Checks if a slot is warm by measuring the gas cost of loading the slot.
+    /// @dev    Stores and returns the slot value so that the compiler doesn't optimize out the
+    ///         `sload`, this adds cost to the read
+    /// @param _slot The slot to check.
+    /// @return isWarm_ Whether the slot is warm.
+    /// @return value_ The slot value.
+    function _isWarm(bytes32 _slot) internal view returns (bool isWarm_, uint256 value_) {
+        assembly {
+            // Get the gas cost of the reading the slot with `sload`.
+            let startGas := gas()
+            value_ := sload(_slot)
+            let endGas := gas()
+            // If the gas cost of the `sload` is greater than the threshold, the slot is warm.
+            isWarm_ := iszero(gt(sub(startGas, endGas), _WARM_READ_COST))
+        }
     }
 }
