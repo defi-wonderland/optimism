@@ -25,7 +25,8 @@ import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
@@ -46,6 +47,7 @@ import { IOptimismSuperchainERC20Factory } from "interfaces/L2/IOptimismSupercha
 import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
+import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
@@ -99,7 +101,8 @@ contract Setup {
     IDelayedWETH delayedWETHPermissionedGameProxy;
 
     // L1 contracts - core
-    IOptimismPortal2 optimismPortal2;
+    IOptimismPortal optimismPortal2;
+    IETHLockbox ethLockbox;
     ISystemConfig systemConfig;
     IL1StandardBridge l1StandardBridge;
     IL1CrossDomainMessenger l1CrossDomainMessenger;
@@ -124,6 +127,7 @@ contract Setup {
     IBaseFeeVault baseFeeVault = IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT));
     ISequencerFeeVault sequencerFeeVault = ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
     IL1FeeVault l1FeeVault = IL1FeeVault(payable(Predeploys.L1_FEE_VAULT));
+    IOperatorFeeVault operatorFeeVault = IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT));
     IGasPriceOracle gasPriceOracle = IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE);
     IL1Block l1Block = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES);
     IGovernanceToken governanceToken = IGovernanceToken(Predeploys.GOVERNANCE_TOKEN);
@@ -136,11 +140,13 @@ contract Setup {
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
 
     /// @dev Returns true if the test is running against a L1 forked production network.
+    /// Note: This check only works once we have called `vm.createSelectFork()`
     function isL1ForkTest() public view returns (bool) {
         return (block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet);
     }
 
     /// @dev Returns true if the test is running against a L2 forked production network.
+    /// Note: This check only works once we have called `vm.createSelectFork()`
     function isL2ForkTest() public view returns (bool) {
         return (block.chainid == Chains.OPSepolia || block.chainid == Chains.OPMainnet);
     }
@@ -237,7 +243,14 @@ contract Setup {
 
         console.log("Setup: completed L1 deployment, registering addresses now");
 
-        optimismPortal2 = IOptimismPortal2(artifacts.mustGetAddress("OptimismPortalProxy"));
+        optimismPortal2 = IOptimismPortal(artifacts.mustGetAddress("OptimismPortalProxy"));
+
+        // Only skip ETHLockbox assignment if we're in a fork test with non-upgraded fork
+        // TODO(#14691): Remove this check once Upgrade 15 is deployed on Mainnet.
+        if (!isForkTest() || deploy.cfg().useUpgradedFork()) {
+            ethLockbox = IETHLockbox(artifacts.mustGetAddress("ETHLockboxProxy"));
+        }
+
         systemConfig = ISystemConfig(artifacts.mustGetAddress("SystemConfigProxy"));
         l1StandardBridge = IL1StandardBridge(artifacts.mustGetAddress("L1StandardBridgeProxy"));
         l1CrossDomainMessenger = IL1CrossDomainMessenger(artifacts.mustGetAddress("L1CrossDomainMessengerProxy"));
@@ -276,7 +289,7 @@ contract Setup {
             l2Genesis.runWithOptions({
                 _mode: OutputMode.NONE,
                 _fork: l2Fork,
-                _populateNetworkConfig: false,
+                _populateNetworkConfig: true,
                 _l1Dependencies: L1Dependencies({
                     l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
                     l1StandardBridgeProxy: payable(address(l1StandardBridge)),
@@ -300,6 +313,7 @@ contract Setup {
         labelPredeploy(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
         labelPredeploy(Predeploys.BASE_FEE_VAULT);
         labelPredeploy(Predeploys.L1_FEE_VAULT);
+        labelPredeploy(Predeploys.OPERATOR_FEE_VAULT);
         labelPredeploy(Predeploys.L1_BLOCK_ATTRIBUTES);
         labelPredeploy(Predeploys.GAS_PRICE_ORACLE);
         labelPredeploy(Predeploys.LEGACY_MESSAGE_PASSER);
@@ -331,10 +345,10 @@ contract Setup {
         labelPreinstall(Preinstalls.HistoryStorage);
         labelPreinstall(Preinstalls.CreateX);
 
-        if (!isIsthmusUpgradeActive()) {
-            // Early return: On OPMainnet/Sepolia, isIsthmusUpgradeActive() == false indicates
+        if (!isXForkUpgradeActive()) {
+            // Early return: On OPMainnet/Sepolia, isXForkUpgradeActive() == false indicates
             // we're testing pre-upgrade blocks. Otherwise, it means the chain launched post-upgrade.
-            console.log("Setup: isthmus upgrade is not active, skipping L2 setup");
+            console.log("Setup: xFork upgrade is not active, skipping L2 setup");
             return;
         }
 
@@ -417,11 +431,11 @@ contract Setup {
         vm.label(_addr, Preinstalls.getName(_addr));
     }
 
-    function isIsthmusUpgradeActive() internal view returns (bool) {
+    function isXForkUpgradeActive() internal view returns (bool) {
         (bool success, bytes memory responseData) =
-            address(l1Block).staticcall(abi.encodeWithSelector(IL1Block.isIsthmus.selector));
+            address(l1Block).staticcall(abi.encodeWithSelector(IL1Block.isXFork.selector));
 
-        // We need to be able to check whether the isthmus upgrade is active
+        // We need to be able to check whether the xFork upgrade is active
         // This being false means either the upgrade hasn't been activated or the chain was deployed after the upgrade
         if (success && responseData.length > 0) {
             return abi.decode(responseData, (bool));

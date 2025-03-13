@@ -15,7 +15,7 @@ import { IL1Block } from "interfaces/L2/IL1Block.sol";
 ///        Allows for nice rendering of token names for chains using custom gas token.
 ///        This contract is not proxied and contains calls to the custom gas token methods.
 contract WETH is WETH98, ISemver {
-    /// @custom:semver 1.1.0-beta.5
+    /// @custom:semver 1.1.0-beta.6
     string public constant version = "1.1.0-beta.6";
 
     /// @notice Returns the name of the wrapped native asset. Will be "Wrapped Ether"

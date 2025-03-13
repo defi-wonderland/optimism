@@ -17,6 +17,7 @@ const (
 )
 
 type ChainProofParams struct {
+	DisputeGameUsesSuperRoots               bool        `json:"disputeGameUsesSuperRoots" toml:"disputeGameUsesSuperRoots"`
 	DisputeGameType                         uint32      `json:"respectedGameType" toml:"respectedGameType"`
 	DisputeAbsolutePrestate                 common.Hash `json:"faultGameAbsolutePrestate" toml:"faultGameAbsolutePrestate"`
 	DisputeMaxGameDepth                     uint64      `json:"faultGameMaxDepth" toml:"faultGameMaxDepth"`
@@ -47,6 +48,8 @@ type ChainIntent struct {
 	DeployOverrides            map[string]any            `json:"deployOverrides" toml:"deployOverrides"`
 	DangerousAltDAConfig       genesis.AltDADeployConfig `json:"dangerousAltDAConfig,omitempty" toml:"dangerousAltDAConfig,omitempty"`
 	AdditionalDisputeGames     []AdditionalDisputeGame   `json:"dangerousAdditionalDisputeGames" toml:"dangerousAdditionalDisputeGames,omitempty"`
+	OperatorFeeScalar          uint32                    `json:"operatorFeeScalar,omitempty" toml:"operatorFeeScalar,omitempty"`
+	OperatorFeeConstant        uint64                    `json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
 }
 
 type ChainRoles struct {

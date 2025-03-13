@@ -10,15 +10,11 @@ import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
 ///         and L2. Messages sent directly to the OptimismPortal have no form of replayability.
 ///         Users are encouraged to use the L1CrossDomainMessenger for a higher-level interface.
 contract OptimismPortalInterop is OptimismPortal2 {
-    constructor(
-        uint256 _proofMaturityDelaySeconds,
-        uint256 _disputeGameFinalityDelaySeconds
-    )
-        OptimismPortal2(_proofMaturityDelaySeconds, _disputeGameFinalityDelaySeconds)
-    { }
+    /// @param _proofMaturityDelaySeconds The proof maturity delay in seconds.
+    constructor(uint256 _proofMaturityDelaySeconds) OptimismPortal2(_proofMaturityDelaySeconds) { }
 
-    /// @custom:semver +interop-beta.7
+    /// @custom:semver +interop.5
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop-beta.7");
+        return string.concat(super.version(), "+interop.5");
     }
 }

@@ -168,7 +168,7 @@
   },
   {
     "inputs": [],
-    "name": "isIsthmus",
+    "name": "isXFork",
     "outputs": [
       {
         "internalType": "bool",
@@ -220,6 +220,32 @@
   },
   {
     "inputs": [],
+    "name": "operatorFeeConstant",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "operatorFeeScalar",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "sequenceNumber",
     "outputs": [
       {
@@ -251,14 +277,7 @@
   },
   {
     "inputs": [],
-    "name": "setIsIsthmus",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "setIsthmus",
+    "name": "setIsXFork",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -320,6 +339,20 @@
   },
   {
     "inputs": [],
+    "name": "setL1BlockValuesIsthmus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "setXFork",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "timestamp",
     "outputs": [
       {
@@ -346,17 +379,17 @@
   },
   {
     "inputs": [],
-    "name": "IsthmusAlreadyActive",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "NotDepositor",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "UnsafeCast",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "XForkAlreadyActive",
     "type": "error"
   }
 ]

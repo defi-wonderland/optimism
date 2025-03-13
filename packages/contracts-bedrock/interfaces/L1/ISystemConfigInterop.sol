@@ -6,6 +6,8 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { Types } from "src/libraries/Types.sol";
 
 interface ISystemConfigInterop {
+    error ReinitializableBase_ZeroInitVersion();
+
     event ConfigUpdate(uint256 indexed version, ISystemConfig.UpdateType indexed updateType, bytes data);
     event Initialized(uint8 version);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -31,8 +33,11 @@ interface ISystemConfigInterop {
     function l1CrossDomainMessenger() external view returns (address addr_);
     function l1ERC721Bridge() external view returns (address addr_);
     function l1StandardBridge() external view returns (address addr_);
+    function l2ChainId() external view returns (uint256);
     function maximumGasLimit() external pure returns (uint64);
     function minimumGasLimit() external view returns (uint64);
+    function operatorFeeConstant() external view returns (uint64);
+    function operatorFeeScalar() external view returns (uint32);
     function optimismMintableERC20Factory() external view returns (address addr_);
     function optimismPortal() external view returns (address addr_);
     function overhead() external view returns (uint256);
@@ -46,6 +51,7 @@ interface ISystemConfigInterop {
     function setGasLimit(uint64 _gasLimit) external;
     function setUnsafeBlockSigner(address _unsafeBlockSigner) external;
     function setEIP1559Params(uint32 _denominator, uint32 _elasticity) external;
+    function setOperatorFeeScalars(uint32 _operatorFeeScalar, uint64 _operatorFeeConstant) external;
     function startBlock() external view returns (uint256 startBlock_);
     function transferOwnership(address newOwner) external; // nosemgrep
     function unsafeBlockSigner() external view returns (address addr_);
@@ -70,9 +76,11 @@ interface ISystemConfigInterop {
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         ISystemConfig.Addresses memory _addresses,
-        address _dependencyManager
+        address _dependencyManager,
+        uint256 _l2ChainId
     )
         external;
+    function initVersion() external view returns (uint8);
     function version() external pure returns (string memory);
 
     function __constructor__() external;

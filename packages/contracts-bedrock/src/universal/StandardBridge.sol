@@ -2,10 +2,10 @@
 pragma solidity 0.8.15;
 
 // Libraries
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
+import { EOA } from "src/libraries/EOA.sol";
 
 // Interfaces
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
@@ -108,7 +108,7 @@ abstract contract StandardBridge {
     ///         calling code within their constructors, but also doesn't really matter since we're
     ///         just trying to prevent users accidentally depositing with smart contract wallets.
     modifier onlyEOA() {
-        require(!Address.isContract(msg.sender), "StandardBridge: function can only be called from an EOA");
+        require(EOA.isSenderEOA(), "StandardBridge: function can only be called from an EOA");
         _;
     }
 

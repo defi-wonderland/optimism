@@ -8,7 +8,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import "src/libraries/PortalErrors.sol";
 
 // Interfaces
 import { IL1BlockInterop } from "interfaces/L2/IL1BlockInterop.sol";
@@ -47,7 +46,7 @@ contract OptimismPortalInterop_Test is CommonTest {
 
     /// @dev Tests that setting the add dependency config as not the system config reverts.
     function testFuzz_setConfig_addDependencyButNotSystemConfig_reverts(bytes calldata _value) public {
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IOptimismPortalInterop.OptimismPortal_Unauthorized.selector);
         _optimismPortalInterop().setConfig(Types.ConfigType.ADD_DEPENDENCY, _value);
     }
 
@@ -70,7 +69,7 @@ contract OptimismPortalInterop_Test is CommonTest {
 
     /// @dev Tests that setting the remove dependency config as not the system config reverts.
     function testFuzz_setConfig_removeDependencyButNotSystemConfig_reverts(bytes calldata _value) public {
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(IOptimismPortalInterop.OptimismPortal_Unauthorized.selector);
         _optimismPortalInterop().setConfig(Types.ConfigType.REMOVE_DEPENDENCY, _value);
     }
 

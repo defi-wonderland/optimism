@@ -35,7 +35,6 @@ import { GameType, Claim, GameTypes, OutputRoot, Hash } from "src/dispute/lib/Ty
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IDataAvailabilityChallenge } from "interfaces/L1/IDataAvailabilityChallenge.sol";
@@ -47,6 +46,7 @@ import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IMIPS } from "interfaces/cannon/IMIPS.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
 
 /// @title Deploy
@@ -118,6 +118,7 @@ contract Deploy is Deployer {
             AnchorStateRegistry: artifacts.getAddress("AnchorStateRegistryProxy"),
             OptimismMintableERC20Factory: artifacts.getAddress("L1OptimismMintableERC20FactoryProxy"),
             OptimismPortal: artifacts.getAddress("OptimismPortalProxy"),
+            ETHLockbox: artifacts.getAddress("ETHLockboxProxy"),
             SystemConfig: artifacts.getAddress("SystemConfigProxy"),
             L1ERC721Bridge: artifacts.getAddress("L1ERC721BridgeProxy"),
             ProtocolVersions: artifacts.getAddress("ProtocolVersionsProxy"),
@@ -137,6 +138,7 @@ contract Deploy is Deployer {
             AnchorStateRegistry: artifacts.getAddress("AnchorStateRegistryImpl"),
             OptimismMintableERC20Factory: artifacts.getAddress("L1OptimismMintableERC20FactoryImpl"),
             OptimismPortal: artifacts.getAddress("OptimismPortal2Impl"),
+            ETHLockbox: artifacts.getAddress("ETHLockboxImpl"),
             SystemConfig: artifacts.getAddress("SystemConfigImpl"),
             L1ERC721Bridge: artifacts.getAddress("L1ERC721BridgeImpl"),
             ProtocolVersions: artifacts.getAddress("ProtocolVersionsImpl"),
@@ -205,7 +207,7 @@ contract Deploy is Deployer {
 
         // Set the respected game type according to the deploy config
         vm.startPrank(ISuperchainConfig(artifacts.mustGetAddress("SuperchainConfigProxy")).guardian());
-        IOptimismPortal2(artifacts.mustGetAddress("OptimismPortalProxy")).setRespectedGameType(
+        IAnchorStateRegistry(artifacts.mustGetAddress("AnchorStateRegistryProxy")).setRespectedGameType(
             GameType.wrap(uint32(cfg.respectedGameType()))
         );
         vm.stopPrank();
@@ -317,6 +319,7 @@ contract Deploy is Deployer {
             AnchorStateRegistry: address(0),
             OptimismMintableERC20Factory: address(dio.optimismMintableERC20FactoryImpl()),
             OptimismPortal: address(dio.optimismPortalImpl()),
+            ETHLockbox: address(dio.ethLockboxImpl()),
             SystemConfig: address(dio.systemConfigImpl()),
             L1ERC721Bridge: address(dio.l1ERC721BridgeImpl()),
             ProtocolVersions: address(dio.protocolVersionsImpl()),
@@ -327,6 +330,7 @@ contract Deploy is Deployer {
         ChainAssertions.checkL1StandardBridge({ _contracts: impls, _isProxy: false });
         ChainAssertions.checkL1ERC721Bridge({ _contracts: impls, _isProxy: false });
         ChainAssertions.checkOptimismPortal2({ _contracts: impls, _cfg: cfg, _isProxy: false });
+        ChainAssertions.checkETHLockbox({ _contracts: impls, _cfg: cfg, _isProxy: false });
         ChainAssertions.checkL1OptimismMintableERC20Factory({ _contracts: impls, _isProxy: false });
         ChainAssertions.checkDisputeGameFactory({ _contracts: impls, _expectedOwner: address(0), _isProxy: false });
         ChainAssertions.checkDelayedWETH({ _contracts: impls, _cfg: cfg, _isProxy: false, _expectedOwner: address(0) });
@@ -373,6 +377,7 @@ contract Deploy is Deployer {
         artifacts.save("L1OptimismMintableERC20FactoryProxy", address(deployOutput.optimismMintableERC20FactoryProxy));
         artifacts.save("L1StandardBridgeProxy", address(deployOutput.l1StandardBridgeProxy));
         artifacts.save("L1CrossDomainMessengerProxy", address(deployOutput.l1CrossDomainMessengerProxy));
+        artifacts.save("ETHLockboxProxy", address(deployOutput.ethLockboxProxy));
 
         // Fault Proof contracts
         artifacts.save("DisputeGameFactoryProxy", address(deployOutput.disputeGameFactoryProxy));
@@ -381,7 +386,6 @@ contract Deploy is Deployer {
         artifacts.save("PermissionedDisputeGame", address(deployOutput.permissionedDisputeGame));
         artifacts.save("OptimismPortalProxy", address(deployOutput.optimismPortalProxy));
         artifacts.save("OptimismPortal2Proxy", address(deployOutput.optimismPortalProxy));
-
         // Check if the permissionless game implementation is already set
         IDisputeGameFactory factory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
         address permissionlessGameImpl = address(factory.gameImpls(GameTypes.CANNON));
@@ -401,6 +405,8 @@ contract Deploy is Deployer {
         });
 
         setAlphabetFaultGameImplementation();
+        setSuperFaultGameImplementation();
+        setSuperPermissionedGameImplementation();
         setFastFaultGameImplementation();
         setCannonFaultGameImplementation();
 
@@ -521,7 +527,8 @@ contract Deploy is Deployer {
                         disputeGameFactory: artifacts.mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: artifacts.mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: artifacts.mustGetAddress("L1OptimismMintableERC20FactoryProxy")
-                    })
+                    }),
+                    cfg.l2ChainID()
                 )
             )
         });
@@ -670,6 +677,21 @@ contract Deploy is Deployer {
         }
     }
 
+    function loadInteropDevnetAbsolutePrestate() internal returns (Claim interopDevnetAbsolutePrestate_) {
+        string memory filePath = string.concat(vm.projectRoot(), "/../../op-program/bin/prestate-proof-interop.json");
+        if (bytes(Process.bash(string.concat("[[ -f ", filePath, " ]] && echo \"present\""))).length == 0) {
+            revert(
+                "Deploy: cannon prestate dump not found, generate it with `make cannon-prestate` in the monorepo root"
+            );
+        }
+        interopDevnetAbsolutePrestate_ =
+            Claim.wrap(abi.decode(bytes(Process.bash(string.concat("cat ", filePath, " | jq -r .pre"))), (bytes32)));
+        console.log(
+            "[Cannon Dispute Game] Using devnet Interop Devnet Absolute Prestate: %s",
+            vm.toString(Claim.unwrap(interopDevnetAbsolutePrestate_))
+        );
+    }
+
     /// @notice Loads the singlethreaded mips absolute prestate from the prestate-proof for devnets otherwise
     ///         from the config.
     function _loadDevnetStMipsAbsolutePrestate() internal returns (Claim mipsAbsolutePrestate_) {
@@ -747,13 +769,57 @@ contract Deploy is Deployer {
                 splitDepth: cfg.faultGameSplitDepth(),
                 clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
                 maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
-                vm: IBigStepper(
-                    new AlphabetVM(outputAbsolutePrestate, IPreimageOracle(artifacts.mustGetAddress("PreimageOracle")))
-                ),
+                vm: IBigStepper(artifacts.mustGetAddress("MipsSingleton")),
                 weth: weth,
                 anchorStateRegistry: IAnchorStateRegistry(artifacts.mustGetAddress("AnchorStateRegistryProxy")),
                 l2ChainId: cfg.l2ChainID()
             })
+        });
+    }
+
+    /// @notice Sets the implementation for the `PERMISSIONED_SUPER_CANNON` game type in the `DisputeGameFactory`
+    function setSuperPermissionedGameImplementation() public onlyDevnet broadcast {
+        console.log("Setting SuperPermissionedDisputeGame implementation");
+        IDisputeGameFactory factory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
+        IDelayedWETH weth = IDelayedWETH(artifacts.mustGetAddress("DelayedWETHProxy"));
+
+        _setFaultGameImplementation({
+            _factory: factory,
+            _params: IFaultDisputeGame.GameConstructorParams({
+                gameType: GameType.wrap(4),
+                absolutePrestate: loadInteropDevnetAbsolutePrestate(),
+                maxGameDepth: cfg.faultGameMaxDepth(),
+                splitDepth: cfg.faultGameSplitDepth(),
+                clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
+                maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
+                vm: IBigStepper(artifacts.mustGetAddress("MipsSingleton")),
+                weth: weth,
+                anchorStateRegistry: IAnchorStateRegistry(artifacts.mustGetAddress("AnchorStateRegistryProxy")),
+                l2ChainId: 0 // Unused Param on SuperDisputeGame
+             })
+        });
+    }
+
+    /// @notice Sets the implementation for the `SUPER_CANNON` game type in the `DisputeGameFactory`
+    function setSuperFaultGameImplementation() public onlyDevnet broadcast {
+        console.log("Setting SuperFaultDisputeGame implementation");
+        IDisputeGameFactory factory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
+        IDelayedWETH weth = IDelayedWETH(artifacts.mustGetAddress("DelayedWETHProxy"));
+
+        _setFaultGameImplementation({
+            _factory: factory,
+            _params: IFaultDisputeGame.GameConstructorParams({
+                gameType: GameType.wrap(4),
+                absolutePrestate: loadInteropDevnetAbsolutePrestate(),
+                maxGameDepth: cfg.faultGameMaxDepth(),
+                splitDepth: cfg.faultGameSplitDepth(),
+                clockExtension: Duration.wrap(uint64(cfg.faultGameClockExtension())),
+                maxClockDuration: Duration.wrap(uint64(cfg.faultGameMaxClockDuration())),
+                vm: IBigStepper(artifacts.mustGetAddress("MipsSingleton")),
+                weth: weth,
+                anchorStateRegistry: IAnchorStateRegistry(artifacts.mustGetAddress("AnchorStateRegistryProxy")),
+                l2ChainId: 0 // Unused Param on SuperDisputeGame
+             })
         });
     }
 
@@ -813,18 +879,51 @@ contract Deploy is Deployer {
             rawGameType != GameTypes.PERMISSIONED_CANNON.raw(), "Deploy: Permissioned Game should be deployed by OPCM"
         );
 
-        _factory.setImplementation(
-            _params.gameType,
-            IDisputeGame(
-                DeployUtils.create2AndSave({
-                    _save: artifacts,
-                    _salt: _implSalt(),
-                    _name: "FaultDisputeGame",
-                    _nick: string.concat("FaultDisputeGame_", vm.toString(rawGameType)),
-                    _args: DeployUtils.encodeConstructor(abi.encodeCall(IFaultDisputeGame.__constructor__, (_params)))
-                })
-            )
-        );
+        if (rawGameType == 4) {
+            _factory.setImplementation(
+                _params.gameType,
+                IDisputeGame(
+                    DeployUtils.create2AndSave({
+                        _save: artifacts,
+                        _salt: _implSalt(),
+                        _name: "SuperFaultDisputeGame",
+                        _nick: string.concat("SuperFaultDisputeGame_", vm.toString(rawGameType)),
+                        _args: DeployUtils.encodeConstructor(abi.encodeCall(IFaultDisputeGame.__constructor__, (_params)))
+                    })
+                )
+            );
+        } else if (rawGameType == 5) {
+            _factory.setImplementation(
+                _params.gameType,
+                IDisputeGame(
+                    DeployUtils.create2AndSave({
+                        _save: artifacts,
+                        _salt: _implSalt(),
+                        _name: "SuperPermissionedDisputeGame",
+                        _nick: string.concat("SuperFaultDisputeGame_", vm.toString(rawGameType)),
+                        _args: DeployUtils.encodeConstructor(
+                            abi.encodeCall(
+                                IPermissionedDisputeGame.__constructor__,
+                                (_params, cfg.l2OutputOracleProposer(), cfg.l2OutputOracleChallenger())
+                            )
+                        )
+                    })
+                )
+            );
+        } else {
+            _factory.setImplementation(
+                _params.gameType,
+                IDisputeGame(
+                    DeployUtils.create2AndSave({
+                        _save: artifacts,
+                        _salt: _implSalt(),
+                        _name: "FaultDisputeGame",
+                        _nick: string.concat("FaultDisputeGame_", vm.toString(rawGameType)),
+                        _args: DeployUtils.encodeConstructor(abi.encodeCall(IFaultDisputeGame.__constructor__, (_params)))
+                    })
+                )
+            );
+        }
 
         string memory gameTypeString;
         if (rawGameType == GameTypes.CANNON.raw()) {
@@ -835,6 +934,10 @@ contract Deploy is Deployer {
             gameTypeString = "OP Succinct";
         } else if (rawGameType == GameTypes.KAILUA.raw()) {
             gameTypeString = "Kailua";
+        } else if (rawGameType == 4) {
+            gameTypeString = "Super Cannon";
+        } else if (rawGameType == 5) {
+            gameTypeString = "Permissioned Super Cannon";
         } else {
             gameTypeString = "Unknown";
         }
@@ -867,6 +970,7 @@ contract Deploy is Deployer {
             ),
             saltMixer: saltMixer,
             gasLimit: uint64(cfg.l2GenesisBlockGasLimit()),
+            disputeGameUsesSuperRoots: false,
             disputeGameType: GameTypes.PERMISSIONED_CANNON,
             disputeAbsolutePrestate: Claim.wrap(bytes32(cfg.faultGameAbsolutePrestate())),
             disputeMaxGameDepth: cfg.faultGameMaxDepth(),

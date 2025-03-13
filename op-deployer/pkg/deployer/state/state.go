@@ -71,8 +71,12 @@ type SuperchainDeployment struct {
 
 type ImplementationsDeployment struct {
 	OpcmAddress                             common.Address `json:"opcmAddress"`
+	OpcmGameTypeAdderAddress                common.Address `json:"opcmGameTypeAdderAddress"`
+	OpcmDeployerAddress                     common.Address `json:"opcmDeployerAddress"`
+	OpcmUpgraderAddress                     common.Address `json:"opcmUpgraderAddress"`
 	DelayedWETHImplAddress                  common.Address `json:"delayedWETHImplAddress"`
 	OptimismPortalImplAddress               common.Address `json:"optimismPortalImplAddress"`
+	ETHLockboxImplAddress                   common.Address `json:"ethLockboxImplAddress"`
 	PreimageOracleSingletonAddress          common.Address `json:"preimageOracleSingletonAddress"`
 	MipsSingletonAddress                    common.Address `json:"mipsSingletonAddress"`
 	SystemConfigImplAddress                 common.Address `json:"systemConfigImplAddress"`
@@ -103,6 +107,7 @@ type ChainState struct {
 	L1StandardBridgeProxyAddress              common.Address               `json:"l1StandardBridgeProxyAddress"`
 	L1CrossDomainMessengerProxyAddress        common.Address               `json:"l1CrossDomainMessengerProxyAddress"`
 	OptimismPortalProxyAddress                common.Address               `json:"optimismPortalProxyAddress"`
+	ETHLockboxProxyAddress                    common.Address               `json:"ethLockboxProxyAddress"`
 	DisputeGameFactoryProxyAddress            common.Address               `json:"disputeGameFactoryProxyAddress"`
 	AnchorStateRegistryProxyAddress           common.Address               `json:"anchorStateRegistryProxyAddress"`
 	FaultDisputeGameAddress                   common.Address               `json:"faultDisputeGameAddress"`

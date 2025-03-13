@@ -44,7 +44,7 @@ func NewFastCanonicalBlockHeaderOracle(
 	fallback *CanonicalBlockHeaderOracle,
 ) *FastCanonicalBlockHeaderOracle {
 	chainID := eth.ChainIDFromBig(chainCfg.ChainID)
-	ctx := &chainContext{engine: beacon.New(nil)}
+	ctx := &chainContext{engine: beacon.New(nil), config: chainCfg}
 	db := NewOracleBackedDB(kvdb, stateOracle, chainID)
 	cache, _ := simplelru.NewLRU[uint64, *types.Header](historicalCacheSize, nil)
 	return &FastCanonicalBlockHeaderOracle{
@@ -118,7 +118,7 @@ func (o *FastCanonicalBlockHeaderOracle) getHistoricalBlockHash(head *types.Head
 
 	context := core.NewEVMBlockContext(head, o.ctx, nil, o.config, statedb)
 	vmenv := vm.NewEVM(context, statedb, o.config, vm.Config{})
-	var caller vm.AccountRef // can be anything as long as it's not the system contract
+	var caller common.Address // can be anything as long as it's not the system contract
 	gas := uint64(1000000)
 	var input [32]byte
 	binary.BigEndian.PutUint64(input[24:], n)
@@ -150,10 +150,15 @@ func (o *FastCanonicalBlockHeaderOracle) SetCanonical(head *types.Header) common
 
 type chainContext struct {
 	engine consensus.Engine
+	config *params.ChainConfig
 }
 
 func (c *chainContext) Engine() consensus.Engine {
 	return c.engine
+}
+
+func (c *chainContext) Config() *params.ChainConfig {
+	return c.config
 }
 
 func (c *chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {

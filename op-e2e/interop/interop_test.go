@@ -3,6 +3,7 @@ package interop
 import (
 	"context"
 	"math/big"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -34,12 +35,12 @@ import (
 func setupAndRun(t *testing.T, config SuperSystemConfig, fn func(*testing.T, SuperSystem)) {
 	recipe := interopgen.InteropDevRecipe{
 		L1ChainID:        900100,
-		L2ChainIDs:       []uint64{900200, 900201},
+		L2s:              []interopgen.InteropDevL2Recipe{{ChainID: 900200}, {ChainID: 900201}},
 		GenesisTimestamp: uint64(time.Now().Unix() + 3), // start chain 3 seconds from now
 	}
-	worldResources := worldResourcePaths{
-		foundryArtifacts: "../../packages/contracts-bedrock/forge-artifacts",
-		sourceMap:        "../../packages/contracts-bedrock",
+	worldResources := WorldResourcePaths{
+		FoundryArtifacts: "../../packages/contracts-bedrock/forge-artifacts",
+		SourceMap:        "../../packages/contracts-bedrock",
 	}
 
 	// create a super system from the recipe
@@ -120,6 +121,9 @@ func TestInterop_SupervisorFinality(t *testing.T) {
 		supervisor := s2.SupervisorClient()
 		require.Eventually(t, func() bool {
 			final, err := supervisor.FinalizedL1(context.Background())
+			if err != nil && strings.Contains(err.Error(), "not initialized") {
+				return false
+			}
 			require.NoError(t, err)
 			return final.Number > 0
 			// this test takes about 30 seconds, with a longer Eventually timeout for CI
@@ -215,7 +219,7 @@ func TestInterop_EmitLogs(t *testing.T) {
 		// all logs should be cross-safe
 		for _, log := range logsA {
 			identifier, expectedHash := logToIdentifier(chainA, log)
-			safety, err := supervisor.CheckMessage(context.Background(), identifier, expectedHash)
+			safety, err := supervisor.CheckMessage(context.Background(), identifier, expectedHash, types.ExecutingDescriptor{Timestamp: identifier.Timestamp})
 			require.NoError(t, err)
 			// the supervisor could progress the safety level more quickly than we expect,
 			// which is why we check for a minimum safety level
@@ -223,7 +227,7 @@ func TestInterop_EmitLogs(t *testing.T) {
 		}
 		for _, log := range logsB {
 			identifier, expectedHash := logToIdentifier(chainB, log)
-			safety, err := supervisor.CheckMessage(context.Background(), identifier, expectedHash)
+			safety, err := supervisor.CheckMessage(context.Background(), identifier, expectedHash, types.ExecutingDescriptor{Timestamp: identifier.Timestamp})
 			require.NoError(t, err)
 			// the supervisor could progress the safety level more quickly than we expect,
 			// which is why we check for a minimum safety level
@@ -234,7 +238,7 @@ func TestInterop_EmitLogs(t *testing.T) {
 		identifier, expectedHash := logToIdentifier(chainA, logsA[0])
 		// make the timestamp incorrect
 		identifier.Timestamp = 333
-		safety, err := supervisor.CheckMessage(context.Background(), identifier, expectedHash)
+		safety, err := supervisor.CheckMessage(context.Background(), identifier, expectedHash, types.ExecutingDescriptor{Timestamp: 333})
 		require.NoError(t, err)
 		require.Equal(t, types.Invalid, safety)
 
@@ -370,6 +374,9 @@ func TestMultiNode(t *testing.T) {
 		supervisor := s2.SupervisorClient()
 		require.Eventually(t, func() bool {
 			final, err := supervisor.FinalizedL1(context.Background())
+			if err != nil && strings.Contains(err.Error(), "not initialized") {
+				return false
+			}
 			require.NoError(t, err)
 			return final.Number > 0
 			// this test takes about 30 seconds, with a longer Eventually timeout for CI

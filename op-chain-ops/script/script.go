@@ -214,6 +214,8 @@ func NewHost(
 		CancunTime:              new(uint64),
 		PragueTime:              nil,
 		VerkleTime:              nil,
+		// Select default Ethereum prod blob schedules
+		BlobScheduleConfig: params.DefaultBlobSchedule,
 		// OP-Stack forks are disabled, since we use this for L1.
 		BedrockBlock: nil,
 		RegolithTime: nil,
@@ -344,7 +346,7 @@ func (h *Host) prelude(from common.Address, to *common.Address) {
 // Call calls a contract in the EVM. The state changes persist.
 func (h *Host) Call(from common.Address, to common.Address, input []byte, gas uint64, value *uint256.Int) (returnData []byte, leftOverGas uint64, err error) {
 	h.prelude(from, &to)
-	return h.env.Call(vm.AccountRef(from), to, input, gas, value)
+	return h.env.Call(from, to, input, gas, value)
 }
 
 // LoadContract loads the bytecode of a contract, and deploys it with regular CREATE.
@@ -384,7 +386,7 @@ func (h *Host) RememberArtifact(addr common.Address, artifact *foundry.Artifact,
 // This create function helps deploy contracts quickly for scripting etc.
 func (h *Host) Create(from common.Address, initCode []byte) (common.Address, error) {
 	h.prelude(from, nil)
-	ret, addr, _, err := h.env.Create(vm.AccountRef(from),
+	ret, addr, _, err := h.env.Create(from,
 		initCode, DefaultFoundryGasLimit, uint256.NewInt(0))
 	if err != nil {
 		retStr := fmt.Sprintf("%x", ret)
@@ -402,13 +404,13 @@ func (h *Host) Wipe(addr common.Address) {
 	if h.state.GetCodeSize(addr) > 0 {
 		h.state.SetCode(addr, nil)
 	}
-	h.state.SetNonce(addr, 0)
+	h.state.SetNonce(addr, 0, tracing.NonceChangeUnspecified)
 	h.state.SetBalance(addr, uint256.NewInt(0), tracing.BalanceChangeUnspecified)
 }
 
 // SetNonce sets an account's nonce in state.
 func (h *Host) SetNonce(addr common.Address, nonce uint64) {
-	h.state.SetNonce(addr, nonce)
+	h.state.SetNonce(addr, nonce, tracing.NonceChangeUnspecified)
 }
 
 // GetNonce returs an account's nonce from state.
@@ -433,7 +435,7 @@ func (h *Host) ImportAccount(addr common.Address, account types.Account) {
 		balance = uint256.MustFromBig(account.Balance)
 	}
 	h.state.SetBalance(addr, balance, tracing.BalanceChangeUnspecified)
-	h.state.SetNonce(addr, account.Nonce)
+	h.state.SetNonce(addr, account.Nonce, tracing.NonceChangeUnspecified)
 	h.state.SetCode(addr, account.Code)
 	for key, value := range account.Storage {
 		h.state.SetState(addr, key, value)
@@ -505,7 +507,7 @@ func (h *Host) onEnter(depth int, typ byte, from common.Address, to common.Addre
 		if parentCallFrame.Prank.Sender != nil {
 			sender = *parentCallFrame.Prank.Sender
 		}
-		h.state.SetNonce(sender, h.state.GetNonce(sender)+1)
+		h.state.SetNonce(sender, h.state.GetNonce(sender)+1, tracing.NonceChangeUnspecified)
 	}
 
 	if h.isolateBroadcasts {
@@ -788,9 +790,6 @@ func (h *Host) LogCallStack() {
 	for _, cf := range h.callStack {
 		callsite := ""
 		srcMap, ok := h.srcMaps[cf.Ctx.Address()]
-		if !ok && cf.Ctx.Contract.CodeAddr != nil { // if delegate-call, we might know the implementation code.
-			srcMap, ok = h.srcMaps[*cf.Ctx.Contract.CodeAddr]
-		}
 		if ok {
 			callsite = srcMap.FormattedInfo(cf.LastPC)
 			if callsite == "unknown:0:0" && len(cf.LastJumps) > 0 {
@@ -829,7 +828,7 @@ func (h *Host) NewScriptAddress() common.Address {
 	deployNonce := h.state.GetNonce(deployer)
 	// compute address of script contract to be deployed
 	addr := crypto.CreateAddress(deployer, deployNonce)
-	h.state.SetNonce(deployer, deployNonce+1)
+	h.state.SetNonce(deployer, deployNonce+1, tracing.NonceChangeUnspecified)
 	return addr
 }
 

@@ -198,24 +198,25 @@ func DeployL2ToL1(l1Host *script.Host, superCfg *SuperchainConfig, superDeployme
 	l1Host.SetTxOrigin(cfg.Deployer)
 
 	output, err := opcm.DeployOPChain(l1Host, opcm.DeployOPChainInput{
-		OpChainProxyAdminOwner:  cfg.ProxyAdminOwner,
-		SystemConfigOwner:       cfg.SystemConfigOwner,
-		Batcher:                 cfg.BatchSenderAddress,
-		UnsafeBlockSigner:       cfg.P2PSequencerAddress,
-		Proposer:                cfg.Proposer,
-		Challenger:              cfg.Challenger,
-		BasefeeScalar:           cfg.GasPriceOracleBaseFeeScalar,
-		BlobBaseFeeScalar:       cfg.GasPriceOracleBlobBaseFeeScalar,
-		L2ChainId:               new(big.Int).SetUint64(cfg.L2ChainID),
-		Opcm:                    superDeployment.Opcm,
-		SaltMixer:               cfg.SaltMixer,
-		GasLimit:                cfg.GasLimit,
-		DisputeGameType:         cfg.DisputeGameType,
-		DisputeAbsolutePrestate: cfg.DisputeAbsolutePrestate,
-		DisputeMaxGameDepth:     cfg.DisputeMaxGameDepth,
-		DisputeSplitDepth:       cfg.DisputeSplitDepth,
-		DisputeClockExtension:   cfg.DisputeClockExtension,
-		DisputeMaxClockDuration: cfg.DisputeMaxClockDuration,
+		OpChainProxyAdminOwner:    cfg.ProxyAdminOwner,
+		SystemConfigOwner:         cfg.SystemConfigOwner,
+		Batcher:                   cfg.BatchSenderAddress,
+		UnsafeBlockSigner:         cfg.P2PSequencerAddress,
+		Proposer:                  cfg.Proposer,
+		Challenger:                cfg.Challenger,
+		BasefeeScalar:             cfg.GasPriceOracleBaseFeeScalar,
+		BlobBaseFeeScalar:         cfg.GasPriceOracleBlobBaseFeeScalar,
+		L2ChainId:                 new(big.Int).SetUint64(cfg.L2ChainID),
+		Opcm:                      superDeployment.Opcm,
+		SaltMixer:                 cfg.SaltMixer,
+		GasLimit:                  cfg.GasLimit,
+		DisputeGameUsesSuperRoots: cfg.DisputeGameUsesSuperRoots,
+		DisputeGameType:           cfg.DisputeGameType,
+		DisputeAbsolutePrestate:   cfg.DisputeAbsolutePrestate,
+		DisputeMaxGameDepth:       cfg.DisputeMaxGameDepth,
+		DisputeSplitDepth:         cfg.DisputeSplitDepth,
+		DisputeClockExtension:     cfg.DisputeClockExtension,
+		DisputeMaxClockDuration:   cfg.DisputeMaxClockDuration,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to deploy L2 OP chain: %w", err)
@@ -328,9 +329,6 @@ func CompleteL2(l2Host *script.Host, cfg *L2Config, l1Block *types.Block, deploy
 	rollupCfg, err := deployCfg.RollupConfig(l1Block.Header(), l2GenesisBlock.Hash(), l2GenesisBlock.NumberU64())
 	if err != nil {
 		return nil, fmt.Errorf("failed to build L2 rollup config: %w", err)
-	}
-	if cfg.OverrideMessageExpiryTime != 0 {
-		rollupCfg.OverrideMessageExpiryTimeInterop = cfg.OverrideMessageExpiryTime
 	}
 	return &L2Output{
 		Genesis:   l2Genesis,
