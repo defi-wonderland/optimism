@@ -37,25 +37,26 @@ contract CrossL2InboxTest is Test {
         crossL2Inbox = CrossL2InboxWithSlotWarming(Predeploys.CROSS_L2_INBOX);
     }
 
-    /// Test that `validateMessage` succeeds when the slot is warm.
-    function testFuzz_validateMessage_accessList_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
-        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
-        crossL2Inbox.warmSlot(slot);
-
-        crossL2Inbox.validateMessage(_id, _messageHash);
-    }
-
     /// Test that `validateMessage` reverts when the slot is not warm.
     function testFuzz_validateMessage_accessList_reverts(Identifier calldata _id, bytes32 _messageHash) external {
-        bytes32 slot = keccak256(abi.encode(_id, _messageHash));
-
-        crossL2Inbox.warmSlot(keccak256(abi.encode(slot)));
-
         vm.expectRevert(NotWarm.selector);
         crossL2Inbox.validateMessage(_id, _messageHash);
     }
 
-    // TODO: Add some fuzzed test for this.
+    /// Test that `validateMessage` succeeds when the slot for the message checksum is warm.
+    function testFuzz_validateMessage_succeeds(Identifier calldata _id, bytes32 _messageHash) external {
+        // Warm the slot
+        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
+        crossL2Inbox.warmSlot(slot);
+
+        // Expect `ExecutingMessage` event to be emitted
+        vm.expectEmit(address(crossL2Inbox));
+        emit ExecutingMessage(_messageHash, _id);
+
+        // Validate the message
+        crossL2Inbox.validateMessage(_id, _messageHash);
+    }
+
     /// Test that `calculateChecksum` succeeds matching the expected calculated checksum.
     function test_calculateChecksum_succeeds() external view {
         Identifier memory id = Identifier(

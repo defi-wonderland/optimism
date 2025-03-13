@@ -33,6 +33,11 @@ struct Identifier {
 /// @title CrossL2Inbox
 /// @notice The CrossL2Inbox is responsible for executing a cross chain message on the destination
 ///         chain. It is permissionless to execute a cross chain message on behalf of any user.
+/// @dev Processes cross-chain messages that are pre-declared in EIP-2930 access lists. Each message
+///      requires three specific access-list entries to be valid. It will verify that the storage
+///      slot containing the message checksum is "warm" (pre-accessed), which fails if not included
+///      in the tx's access list. Nodes pre-check message validity before execution. The checksum
+///      combines the message's `Identifier` and `msgHash` with type-3 bit masking.
 contract CrossL2Inbox is ISemver {
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.13
@@ -54,10 +59,10 @@ contract CrossL2Inbox is ISemver {
     /// @param id Encoded Identifier of the message.
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
 
-    /// @notice Validates a cross chain message on the destination chain
-    ///         and emits an ExecutingMessage event. This function is useful
-    ///         for applications that understand the schema of the _message payload and want to
-    ///         process it in a custom way.
+    /// @notice Validates a cross chain message on the destination chain and emits an ExecutingMessage
+    ///         event. This function is useful for applications that understand the schema of the
+    ///         message payload and want to process it in a custom way.
+    /// @dev    Makes sure the checksum's slot is warm to ensure the tx included it in the access list.
     /// @param _id      Identifier of the message.
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
@@ -69,17 +74,24 @@ contract CrossL2Inbox is ISemver {
     }
 
     // TODO: Needs to be public?
-    /// @notice Calculates the checksum for a cross chain message.
+    /// @notice Calculates the checksum for a cross chain message `Identifier` and `msgHash`.
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.
     /// @return checksum_ The checksum of the message.
     function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32 checksum_) {
+        // Hash the origin address and message hash together
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
+
+        // Pack identifier fields with a zero padding (uint96(0))
         bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), _id.blockNumber, _id.timestamp, _id.logIndex));
+
+        // Hash the logHash with the packed identifier data
         bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
 
-        // TODO: Add some comment
+        // Create the final hash by combining idLogHash with chainId
         bytes32 bareChecksum = keccak256(abi.encodePacked(idLogHash, _id.chainId));
+
+        // Apply bit masking to create the final checksum
         checksum_ = (bareChecksum & _MSB_MASK) | _TYPE_3_MASK;
     }
 
