@@ -73,7 +73,6 @@ contract CrossL2Inbox is ISemver {
         emit ExecutingMessage(_msgHash, _id);
     }
 
-    // TODO: Needs to be public?
     /// @notice Calculates the checksum for a cross chain message `Identifier` and `msgHash`.
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.

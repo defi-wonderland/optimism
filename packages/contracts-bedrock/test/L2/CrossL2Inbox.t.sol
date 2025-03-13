@@ -14,10 +14,16 @@ import { CrossL2Inbox, Identifier, NoExecutingDeposits, NotWarm } from "src/L2/C
 /// @title CrossL2InboxWithSlotWarming
 /// @dev CrossL2Inbox contract with a method to warm a slot.
 contract CrossL2InboxWithSlotWarming is CrossL2Inbox {
+    // Getter for warming a slot on tests.
     function warmSlot(bytes32 _slot) external view returns (uint256 res) {
         assembly {
             res := sload(_slot)
         }
+    }
+
+    // Getter to expose `_isWarm` function for the tests.
+    function isWarm(bytes32 _slot) external view returns (bool isWarm_, uint256 value_) {
+        (isWarm_, value_) = _isWarm(_slot);
     }
 }
 
@@ -74,5 +80,23 @@ contract CrossL2InboxTest is Test {
 
         // Expect it to match
         assertEq(checksum, expectedChecksum);
+    }
+
+    /// Test that `_isWarm` returns the correct value when the slot is not warm.
+    function test_isWarm_succeeds_whenSlotIsNotWarm() external view {
+        bytes32 slot = keccak256(abi.encode(0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef));
+        (bool isWarm, uint256 value) = crossL2Inbox.isWarm(slot);
+        assertEq(isWarm, false);
+        assertEq(value, 0);
+    }
+
+    /// Test that `_isWarm` returns the correct value when the slot is warm.
+    function testFuzz_isWarm_succeeds_whenSlotIsWarm(Identifier calldata _id, bytes32 _messageHash) external view {
+        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
+        crossL2Inbox.warmSlot(slot);
+
+        (bool isWarm, uint256 value) = crossL2Inbox.isWarm(slot);
+        assertEq(isWarm, true);
+        assertEq(value, 0);
     }
 }
