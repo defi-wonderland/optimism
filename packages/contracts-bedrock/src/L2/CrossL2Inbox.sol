@@ -10,8 +10,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
 error NoExecutingDeposits();
 
-/// @notice Thrown when trying to validate a cross chain message without using an access list
-///         to set the slot as warm.
+/// @notice Thrown when trying to validate a cross chain message with an identifier checksum that is
+///         invalid or was not provided in the transaction's access list to set the slot as warm.
 error NotWarm();
 
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
@@ -45,9 +45,9 @@ contract CrossL2Inbox is ISemver {
     /// @notice The mask for the type 3 bits of the checksum.
     bytes32 internal constant _TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
 
-    /// @notice The threshold to use to know whether the slot is warm or not.
     /// TODO: discuss a safe value for this
-    uint256 internal constant _WARM_READ_COST = 150;
+    /// @notice The threshold to use to know whether the slot is warm or not.
+    uint256 internal constant _WARM_READ_THRESHOLD = 150;
 
     /// @notice Emitted when a cross chain message is being executed.
     /// @param msgHash Hash of message payload being executed.
@@ -95,8 +95,8 @@ contract CrossL2Inbox is ISemver {
             let startGas := gas()
             value_ := sload(_slot)
             let endGas := gas()
-            // If the gas cost of the `sload` is greater than the threshold, the slot is warm.
-            isWarm_ := iszero(gt(sub(startGas, endGas), _WARM_READ_COST))
+            // If the gas cost of the `sload` is below than the threshold, the slot is warm.
+            isWarm_ := iszero(gt(sub(startGas, endGas), _WARM_READ_THRESHOLD))
         }
     }
 }
