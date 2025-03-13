@@ -3,12 +3,15 @@ pragma solidity 0.8.15;
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+
+import { console } from "forge-std/console.sol";
 
 interface ICrossL2InboxWithSlotWarming is ICrossL2Inbox {
     function warmSlot(bytes32 _slot) external view returns (uint256 res);
@@ -27,11 +30,16 @@ contract CrossL2InboxTest is CommonTest {
     function setUp() public virtual override {
         super.setUp();
 
-        // Getting the mock from artifacts due to incompatibilities between the compiler versions.
-        vm.etch(
-            Predeploys.CROSS_L2_INBOX,
-            vm.getCode("../mocks/CrossL2InboxWithSlotWarming.sol:CrossL2InboxWithSlotWarming")
-        );
+        /// NOTE: Getting mock from artifacts due to incompatibilities between compiler versions.
+        ///       Reading and parsing JSON because `vm.getCode` doesn't find it in the artifacts.
+        // Load the bytecode from the JSON artifact
+        string memory path = "forge-artifacts/CrossL2InboxWithSlotWarming.sol/CrossL2InboxWithSlotWarming.json";
+        string memory json = vm.readFile(path);
+
+        // Apply the bytecode to the contract address
+        bytes memory bytecode = vm.parseJsonBytes(json, ".deployedBytecode.object");
+        vm.etch(Predeploys.CROSS_L2_INBOX, bytecode);
+
         crossL2Inbox = ICrossL2InboxWithSlotWarming(Predeploys.CROSS_L2_INBOX);
     }
 
@@ -77,7 +85,11 @@ contract CrossL2InboxTest is CommonTest {
 
     /// Test that `_isWarm` returns the correct value when the slot is not warm.
     function testFuzz_isWarm_succeeds_whenSlotIsNotWarm(bytes32 _slot) external view {
-        // TODO: Bound slot to not match the proxy layout
+        // Avoid collisions with the proxy layout.
+        vm.assume(_slot != Constants.PROXY_IMPLEMENTATION_ADDRESS);
+        vm.assume(_slot != Constants.PROXY_OWNER_ADDRESS);
+
+        // Assert that the slot is not warm
         (bool isWarm, uint256 value) = crossL2Inbox.isWarm(_slot);
         assertEq(isWarm, false);
         assertEq(value, 0);
@@ -86,8 +98,15 @@ contract CrossL2InboxTest is CommonTest {
     /// Test that `_isWarm` returns the correct value when the slot is warm.
     function testFuzz_isWarm_succeeds_whenSlotIsWarm(Identifier calldata _id, bytes32 _messageHash) external view {
         bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
+
+        // Avoid collisions with the proxy layout.
+        vm.assume(slot != Constants.PROXY_IMPLEMENTATION_ADDRESS);
+        vm.assume(slot != Constants.PROXY_OWNER_ADDRESS);
+
+        // Warm the slot
         crossL2Inbox.warmSlot(slot);
 
+        // Assert that the slot is warm
         (bool isWarm, uint256 value) = crossL2Inbox.isWarm(slot);
         assertEq(isWarm, true);
         assertEq(value, 0);
