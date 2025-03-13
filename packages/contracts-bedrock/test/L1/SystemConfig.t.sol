@@ -591,7 +591,7 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         types[2] = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
         types[3] = Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG;
 
-        Types.ConfigType configType = types[_configTypeSeed % 3];
+        Types.ConfigType configType = types[_configTypeSeed % 4];
         bytes memory data = abi.encodeCall(
             optimismPortal2.setConfig,
             (configType, abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, network)))
