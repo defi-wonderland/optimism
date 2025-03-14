@@ -1,11 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-// Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
+
+/// @notice The struct for a pointer to a message payload in a remote (or local) chain.
+/// @custom:field origin The origin address of the message.
+/// @custom:field blockNumber The block number of the message.
+/// @custom:field logIndex The log index of the message.
+/// @custom:field timestamp The timestamp of the message.
+/// @custom:field chainId The origin chain ID of the message.
+struct Identifier {
+    address origin;
+    uint64 blockNumber;
+    uint32 logIndex;
+    uint64 timestamp;
+    uint256 chainId;
+}
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000022
@@ -18,20 +29,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 ///      in the tx's access list. Nodes pre-check message validity before execution. The checksum
 ///      combines the message's `Identifier` and `msgHash` with type-3 bit masking.
 contract CrossL2Inbox is ISemver {
-    /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
-    /// @custom:field origin The origin address of the message.
-    /// @custom:field blockNumber The block number of the message.
-    /// @custom:field logIndex The log index of the message.
-    /// @custom:field timestamp The timestamp of the message.
-    /// @custom:field chainId The origin chain ID of the message.
-    struct Identifier {
-        address origin;
-        uint64 blockNumber;
-        uint32 logIndex;
-        uint64 timestamp;
-        uint256 chainId;
-    }
-
     /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
     error NoExecutingDeposits();
 
@@ -41,8 +38,8 @@ contract CrossL2Inbox is ISemver {
     error NotWarm();
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.13
-    string public constant version = "1.0.0-beta.13";
+    /// @custom:semver 1.0.0-beta.14
+    string public constant version = "1.0.0-beta.14";
 
     /// @notice The mask for the most significant bits of the checksum.
     /// @dev    Used to get everything except the first byte.
@@ -66,7 +63,7 @@ contract CrossL2Inbox is ISemver {
     /// @param _id      Identifier of the message.
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
-        bytes32 checksum = calculateChecksum(_id, _msgHash);
+        bytes32 checksum = _calculateChecksum(_id, _msgHash);
         (bool isWarm,) = _isWarm(checksum);
         if (!isWarm) revert NotWarm();
 
@@ -77,7 +74,7 @@ contract CrossL2Inbox is ISemver {
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.
     /// @return checksum_ The checksum of the message.
-    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) public pure returns (bytes32 checksum_) {
+    function _calculateChecksum(Identifier memory _id, bytes32 _msgHash) internal pure returns (bytes32 checksum_) {
         // Hash the origin address and message hash together
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
 

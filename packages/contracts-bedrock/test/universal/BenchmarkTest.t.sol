@@ -10,7 +10,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 // Libraries
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
-import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
 // Interfaces
 

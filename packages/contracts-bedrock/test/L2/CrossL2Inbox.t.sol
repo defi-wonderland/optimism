@@ -1,46 +1,48 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.25;
 
 // Testing utilities
-import { CommonTest } from "test/setup/CommonTest.sol";
+import { Test } from "forge-std/Test.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
-// Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 // Interfaces
-import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 
-import { console } from "forge-std/console.sol";
+// Target contracts
+import { CrossL2Inbox, Identifier } from "src/L2/CrossL2Inbox.sol";
 
-interface ICrossL2InboxWithSlotWarming is ICrossL2Inbox {
-    function warmSlot(bytes32 _slot) external view returns (uint256 res);
-    function isWarm(bytes32 _slot) external view returns (bool isWarm_, uint256 value_);
+/// @title CrossL2InboxWithSlotWarming
+/// @dev CrossL2Inbox contract with a method to warm a slot.
+contract CrossL2InboxWithSlotWarming is CrossL2Inbox {
+    // Getter for warming a slot on tests.
+    function warmSlot(bytes32 _slot) external view returns (uint256 res_) {
+        assembly {
+            res_ := sload(_slot)
+        }
+    }
+
+    // Getter to expose `_isWarm` function for the tests.
+    function isWarm(bytes32 _slot) external view returns (bool isWarm_, uint256 value_) {
+        (isWarm_, value_) = _isWarm(_slot);
+    }
+
+    // Getter to expose `_calculateChecksum` function for the tests.
+    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) external pure returns (bytes32 checksum_) {
+        checksum_ = _calculateChecksum(_id, _msgHash);
+    }
 }
 
 /// @title CrossL2InboxTest
 /// @dev Contract for testing the CrossL2Inbox contract.
-contract CrossL2InboxTest is CommonTest {
+contract CrossL2InboxTest is Test {
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
 
     /// @dev CrossL2Inbox contract instance.
-    ICrossL2InboxWithSlotWarming crossL2Inbox;
+    CrossL2InboxWithSlotWarming crossL2Inbox;
 
     /// @dev Sets up the test suite.
-    function setUp() public virtual override {
-        super.setUp();
-
-        /// NOTE: Getting mock from artifacts due to incompatibilities between compiler versions.
-        ///       Reading and parsing JSON because `vm.getCode` doesn't find it in the artifacts.
-        // Load the bytecode from the JSON artifact
-        string memory path = "forge-artifacts/CrossL2InboxWithSlotWarming.sol/CrossL2InboxWithSlotWarming.json";
-        string memory json = vm.readFile(path);
-
-        // Apply the bytecode to the contract address
-        bytes memory bytecode = vm.parseJsonBytes(json, ".deployedBytecode.object");
-        vm.etch(Predeploys.CROSS_L2_INBOX, bytecode);
-
-        crossL2Inbox = ICrossL2InboxWithSlotWarming(Predeploys.CROSS_L2_INBOX);
+    function setUp() public virtual {
+        crossL2Inbox = new CrossL2InboxWithSlotWarming();
     }
 
     /// Test that `validateMessage` reverts when the slot is not warm.
@@ -84,7 +86,7 @@ contract CrossL2InboxTest is CommonTest {
     }
 
     /// Test that `_isWarm` returns the correct value when the slot is not warm.
-    function testFuzz_isWarm_succeeds_whenSlotIsNotWarm(bytes32 _slot) external view {
+    function testFuzz_isWarm_whenSlotIsNotWarm_succeeds(bytes32 _slot) external view {
         // Avoid collisions with the proxy layout.
         vm.assume(_slot != Constants.PROXY_IMPLEMENTATION_ADDRESS);
         vm.assume(_slot != Constants.PROXY_OWNER_ADDRESS);
@@ -96,7 +98,7 @@ contract CrossL2InboxTest is CommonTest {
     }
 
     /// Test that `_isWarm` returns the correct value when the slot is warm.
-    function testFuzz_isWarm_succeeds_whenSlotIsWarm(Identifier calldata _id, bytes32 _messageHash) external view {
+    function testFuzz_isWarm_whenSlotIsWarm_succeeds(Identifier calldata _id, bytes32 _messageHash) external view {
         bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
 
         // Avoid collisions with the proxy layout.
