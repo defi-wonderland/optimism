@@ -435,7 +435,7 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
-        Types.WithdrawalNetwork network = Types.WithdrawalNetwork(_networkSeed % 3);
+        Types.WithdrawalNetwork network = Types.WithdrawalNetwork(_networkSeed % 2);
 
         Types.ConfigType[] memory types = new Types.ConfigType[](4);
         types[0] = Types.ConfigType.BASE_FEE_VAULT_CONFIG;

@@ -352,9 +352,9 @@ contract L1BlockSetConfig_Test is L1BlockTest {
     )
         external
     {
-        // _withdrawalNetworkSeeds need to be between 0 and 3
+        // _withdrawalNetworkSeeds need to be between 0 and 1
         for (uint256 i = 0; i < _withdrawalNetworkSeeds.length; i++) {
-            _withdrawalNetworkSeeds[i] = _withdrawalNetworkSeeds[i] % 4;
+            _withdrawalNetworkSeeds[i] = _withdrawalNetworkSeeds[i] % 2;
         }
 
         // Fee vaults
