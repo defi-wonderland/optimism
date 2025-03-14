@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 
 // Libraries
 import { Storage } from "src/libraries/Storage.sol";
@@ -19,7 +20,7 @@ import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 /// @notice The SystemConfig contract is used to manage configuration of an Optimism network.
 ///         All configuration is stored on L1 and picked up by L2 as part of the derviation of
 ///         the L2 chain.
-contract SystemConfig is OwnableUpgradeable, ISemver {
+contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Enum representing different types of updates.
     /// @custom:value BATCHER              Represents an update to the batcher hash.
     /// @custom:value FEE_SCALARS          Represents an update to l1 data fee scalars.
@@ -43,7 +44,6 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         address l1CrossDomainMessenger;
         address l1ERC721Bridge;
         address l1StandardBridge;
-        address disputeGameFactory;
         address optimismPortal;
         address optimismMintableERC20Factory;
     }
@@ -91,10 +91,6 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
     /// @notice Storage slot for block at which the op-node can start searching for logs from.
     bytes32 public constant START_BLOCK_SLOT = bytes32(uint256(keccak256("systemconfig.startBlock")) - 1);
-
-    /// @notice Storage slot for the DisputeGameFactory address.
-    bytes32 public constant DISPUTE_GAME_FACTORY_SLOT =
-        bytes32(uint256(keccak256("systemconfig.disputegamefactory")) - 1);
 
     /// @notice Storage slot that the feeAdmin address is stored at.
     bytes32 internal constant FEE_VAULT_ADMIN_SLOT = bytes32(uint256(keccak256("systemconfig.feeVaultAdmin")) - 1);
@@ -144,6 +140,9 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     /// @notice The operator fee constant.
     uint64 public operatorFeeConstant;
 
+    /// @notice The L2 chain ID that this SystemConfig configures.
+    uint256 public l2ChainId;
+
     /// @notice Emitted when configuration is updated.
     /// @param version    SystemConfig version.
     /// @param updateType Type of update.
@@ -151,15 +150,15 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     event ConfigUpdate(uint256 indexed version, UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 2.5.0
+    /// @custom:semver 3.0.0-beta.1
     function version() public pure virtual returns (string memory) {
-        return "2.5.0";
+        return "3.0.0-beta.1";
     }
 
     /// @notice Constructs the SystemConfig contract.
     /// @dev    START_BLOCK_SLOT is set to type(uint256).max here so that it will be a dead value
     ///         in the singleton.
-    constructor() {
+    constructor() ReinitializableBase(2) {
         Storage.setUint(START_BLOCK_SLOT, type(uint256).max);
         _disableInitializers();
     }
@@ -176,6 +175,7 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
     /// @param _batchInbox        Batch inbox address. An identifier for the op-node to find
     ///                           canonical data.
     /// @param _addresses         Set of L1 contract addresses. These should be the proxies.
+    /// @param _l2ChainId         The L2 chain ID that this SystemConfig configures.
     function initialize(
         Roles memory _roles,
         uint32 _basefeeScalar,
@@ -185,10 +185,11 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         address _unsafeBlockSigner,
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
-        SystemConfig.Addresses memory _addresses
+        SystemConfig.Addresses memory _addresses,
+        uint256 _l2ChainId
     )
         public
-        initializer
+        reinitializer(initVersion())
     {
         __Ownable_init();
         transferOwnership(_roles.owner);
@@ -205,13 +206,25 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
         Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
         Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
         Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
-        Storage.setAddress(DISPUTE_GAME_FACTORY_SLOT, _addresses.disputeGameFactory);
         Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
         Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
 
         _setStartBlock();
 
         _setResourceConfig(_config);
+
+        l2ChainId = _l2ChainId;
+    }
+
+    /// @notice Upgrades the SystemConfig by setting the L2 chain ID variable.
+    /// @param _l2ChainId The L2 chain ID that this SystemConfig configures.
+    function upgrade(uint256 _l2ChainId) external reinitializer(initVersion()) {
+        // Set the L2 chain ID.
+        l2ChainId = _l2ChainId;
+
+        // Clear out the old dispute game factory address, it's derived now.
+        bytes32 disputeGameFactorySlot = bytes32(uint256(keccak256("systemconfig.disputegamefactory")) - 1);
+        Storage.setAddress(disputeGameFactorySlot, address(0));
     }
 
     /// @notice Returns the minimum L2 gas limit that can be safely set for the system to
@@ -257,7 +270,8 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
 
     /// @notice Getter for the DisputeGameFactory address.
     function disputeGameFactory() public view returns (address addr_) {
-        addr_ = Storage.getAddress(DISPUTE_GAME_FACTORY_SLOT);
+        IOptimismPortal2 portal = IOptimismPortal2(payable(Storage.getAddress(OPTIMISM_PORTAL_SLOT)));
+        addr_ = address(portal.disputeGameFactory());
     }
 
     /// @notice Getter for the OptimismPortal address.
@@ -276,7 +290,6 @@ contract SystemConfig is OwnableUpgradeable, ISemver {
             l1CrossDomainMessenger: l1CrossDomainMessenger(),
             l1ERC721Bridge: l1ERC721Bridge(),
             l1StandardBridge: l1StandardBridge(),
-            disputeGameFactory: disputeGameFactory(),
             optimismPortal: optimismPortal(),
             optimismMintableERC20Factory: optimismMintableERC20Factory()
         });

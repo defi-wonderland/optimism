@@ -76,8 +76,8 @@ contract L1StandardBridge is StandardBridge, ISemver, Initializable {
     );
 
     /// @notice Semantic version.
-    /// @custom:semver 2.3.0
-    string public constant version = "2.3.0";
+    /// @custom:semver 2.3.0-beta.1
+    string public constant version = "2.3.0-beta.1";
 
     /// @custom:spacer
     /// @notice spacer to avoid superchainConfig being packed in Initializable's _initialized & _initializing slot

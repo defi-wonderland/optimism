@@ -7,12 +7,15 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/devnet-sdk/descriptors"
 	"github.com/ethereum-optimism/optimism/devnet-sdk/interfaces"
 	"github.com/ethereum-optimism/optimism/devnet-sdk/shell/env"
 	"github.com/ethereum-optimism/optimism/devnet-sdk/system"
 	"github.com/ethereum-optimism/optimism/devnet-sdk/types"
+	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,8 +81,10 @@ func (m *mockTBRecorder) Skipped() bool { return m.skipped }
 // mockChain implements a minimal system.Chain for testing
 type mockChain struct{}
 
+func (m *mockChain) Node() system.Node                               { return nil }
 func (m *mockChain) RPCURL() string                                  { return "http://localhost:8545" }
-func (m *mockChain) Client() (*ethclient.Client, error)              { return ethclient.Dial(m.RPCURL()) }
+func (m *mockChain) Client() (*sources.EthClient, error)             { return nil, nil }
+func (m *mockChain) GethClient() (*ethclient.Client, error)          { return nil, nil }
 func (m *mockChain) ID() types.ChainID                               { return types.ChainID(big.NewInt(1)) }
 func (m *mockChain) ContractsRegistry() interfaces.ContractsRegistry { return nil }
 func (m *mockChain) Wallets(ctx context.Context) ([]system.Wallet, error) {
@@ -96,6 +101,12 @@ func (m *mockChain) PendingNonceAt(ctx context.Context, address common.Address) 
 }
 func (m *mockChain) SupportsEIP(ctx context.Context, eip uint64) bool {
 	return true
+}
+func (m *mockChain) Config() (*params.ChainConfig, error) {
+	return nil, fmt.Errorf("not implemented on mockChain")
+}
+func (m *mockChain) Addresses() descriptors.AddressMap {
+	return descriptors.AddressMap{}
 }
 
 // mockSystem implements a minimal system.System for testing

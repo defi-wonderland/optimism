@@ -26,8 +26,8 @@ import { IL1Block } from "interfaces/L2/IL1Block.sol";
 ///         **WARNING**: Do not bridge an ERC721 that was originally deployed on Optimism. This
 ///         bridge ONLY supports ERC721s originally deployed on Ethereum.
 contract L2ERC721Bridge is ERC721Bridge, ISemver {
-    /// @custom:semver 1.10.0
-    string public constant version = "1.10.0";
+    /// @custom:semver 1.10.0-beta.1
+    string public constant version = "1.10.0-beta.1";
 
     /// @notice Completes an ERC721 bridge from the other domain and sends the ERC721 token to the
     ///         recipient on this domain.

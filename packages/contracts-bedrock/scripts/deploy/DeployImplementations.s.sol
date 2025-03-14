@@ -24,16 +24,14 @@ import {
     IOPContractsManagerUpgrader,
     IOPContractsManagerContractsContainer
 } from "interfaces/L1/IOPContractsManager.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { IL1OptimismMintableERC20Factory as IOptimismMintableERC20Factory } from
     "interfaces/L1/IL1OptimismMintableERC20Factory.sol";
-
-import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
-import { ISystemConfigInterop } from "interfaces/L1/ISystemConfigInterop.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
@@ -162,7 +160,8 @@ contract DeployImplementationsOutput is BaseDeployIO {
     IOPContractsManagerDeployer internal _opcmDeployer;
     IOPContractsManagerUpgrader internal _opcmUpgrader;
     IDelayedWETH internal _delayedWETHImpl;
-    IOptimismPortal2 internal _optimismPortalImpl;
+    IOptimismPortal internal _optimismPortalImpl;
+    IETHLockbox internal _ethLockboxImpl;
     IPreimageOracle internal _preimageOracleSingleton;
     IMIPS internal _mipsSingleton;
     ISystemConfig internal _systemConfigImpl;
@@ -186,7 +185,8 @@ contract DeployImplementationsOutput is BaseDeployIO {
         else if (_sel == this.opcmUpgrader.selector) _opcmUpgrader = IOPContractsManagerUpgrader(_addr);
         else if (_sel == this.superchainConfigImpl.selector) _superchainConfigImpl = ISuperchainConfig(_addr);
         else if (_sel == this.protocolVersionsImpl.selector) _protocolVersionsImpl = IProtocolVersions(_addr);
-        else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = IOptimismPortal2(payable(_addr));
+        else if (_sel == this.optimismPortalImpl.selector) _optimismPortalImpl = IOptimismPortal(payable(_addr));
+        else if (_sel == this.ethLockboxImpl.selector) _ethLockboxImpl = IETHLockbox(payable(_addr));
         else if (_sel == this.delayedWETHImpl.selector) _delayedWETHImpl = IDelayedWETH(payable(_addr));
         else if (_sel == this.preimageOracleSingleton.selector) _preimageOracleSingleton = IPreimageOracle(_addr);
         else if (_sel == this.mipsSingleton.selector) _mipsSingleton = IMIPS(_addr);
@@ -221,7 +221,8 @@ contract DeployImplementationsOutput is BaseDeployIO {
             address(this.l1StandardBridgeImpl()),
             address(this.optimismMintableERC20FactoryImpl()),
             address(this.disputeGameFactoryImpl()),
-            address(this.anchorStateRegistryImpl())
+            address(this.anchorStateRegistryImpl()),
+            address(this.ethLockboxImpl())
         );
 
         DeployUtils.assertValidContractAddresses(Solarray.extend(addrs1, addrs2));
@@ -264,9 +265,14 @@ contract DeployImplementationsOutput is BaseDeployIO {
         return _protocolVersionsImpl;
     }
 
-    function optimismPortalImpl() public view returns (IOptimismPortal2) {
+    function optimismPortalImpl() public view returns (IOptimismPortal) {
         DeployUtils.assertValidContractAddress(address(_optimismPortalImpl));
         return _optimismPortalImpl;
+    }
+
+    function ethLockboxImpl() public view returns (IETHLockbox) {
+        DeployUtils.assertValidContractAddress(address(_ethLockboxImpl));
+        return _ethLockboxImpl;
     }
 
     function delayedWETHImpl() public view returns (IDelayedWETH) {
@@ -331,6 +337,7 @@ contract DeployImplementationsOutput is BaseDeployIO {
         assertValidOpcm(_dii);
         assertValidOptimismMintableERC20FactoryImpl(_dii);
         assertValidOptimismPortalImpl(_dii);
+        assertValidETHLockboxImpl(_dii);
         assertValidPreimageOracleSingleton(_dii);
         assertValidSystemConfigImpl(_dii);
     }
@@ -343,11 +350,11 @@ contract DeployImplementationsOutput is BaseDeployIO {
     }
 
     function assertValidOptimismPortalImpl(DeployImplementationsInput) internal view {
-        IOptimismPortal2 portal = optimismPortalImpl();
+        IOptimismPortal portal = optimismPortalImpl();
 
         DeployUtils.assertInitialized({ _contractAddress: address(portal), _isProxy: false, _slot: 0, _offset: 0 });
 
-        require(address(portal.disputeGameFactory()) == address(0), "PORTAL-10");
+        require(address(portal.anchorStateRegistry()) == address(0), "PORTAL-10");
         require(address(portal.systemConfig()) == address(0), "PORTAL-20");
         require(address(portal.superchainConfig()) == address(0), "PORTAL-30");
         require(portal.l2Sender() == address(0), "PORTAL-40");
@@ -355,6 +362,17 @@ contract DeployImplementationsOutput is BaseDeployIO {
         // This slot is the custom gas token _balance and this check ensures
         // that it stays unset for forwards compatibility with custom gas token.
         require(vm.load(address(portal), bytes32(uint256(61))) == bytes32(0), "PORTAL-50");
+
+        require(address(portal.ethLockbox()) == address(0), "PORTAL-60");
+    }
+
+    function assertValidETHLockboxImpl(DeployImplementationsInput) internal view {
+        IETHLockbox lockbox = ethLockboxImpl();
+
+        DeployUtils.assertInitialized({ _contractAddress: address(lockbox), _isProxy: false, _slot: 0, _offset: 0 });
+
+        require(address(lockbox.superchainConfig()) == address(0), "ELB-10");
+        require(lockbox.authorizedPortals(optimismPortalImpl()) == false, "ELB-20");
     }
 
     function assertValidDelayedWETHImpl(DeployImplementationsInput _dii) internal view {
@@ -406,9 +424,8 @@ contract DeployImplementationsOutput is BaseDeployIO {
         require(systemConfig.l1CrossDomainMessenger() == address(0), "SYSCON-170");
         require(systemConfig.l1ERC721Bridge() == address(0), "SYSCON-180");
         require(systemConfig.l1StandardBridge() == address(0), "SYSCON-190");
-        require(systemConfig.disputeGameFactory() == address(0), "SYSCON-200");
-        require(systemConfig.optimismPortal() == address(0), "SYSCON-210");
-        require(systemConfig.optimismMintableERC20Factory() == address(0), "SYSCON-220");
+        require(systemConfig.optimismPortal() == address(0), "SYSCON-200");
+        require(systemConfig.optimismMintableERC20Factory() == address(0), "SYSCON-210");
     }
 
     function assertValidL1CrossDomainMessengerImpl(DeployImplementationsInput) internal view {
@@ -489,11 +506,12 @@ contract DeployImplementations is Script {
         deployL1StandardBridgeImpl(_dio);
         deployOptimismMintableERC20FactoryImpl(_dio);
         deployOptimismPortalImpl(_dii, _dio);
+        deployETHLockboxImpl(_dio);
         deployDelayedWETHImpl(_dii, _dio);
         deployPreimageOracleSingleton(_dii, _dio);
         deployMipsSingleton(_dii, _dio);
         deployDisputeGameFactoryImpl(_dio);
-        deployAnchorStateRegistryImpl(_dio);
+        deployAnchorStateRegistryImpl(_dii, _dio);
 
         // Deploy the OP Contracts Manager with the new implementations set.
         deployOPContractsManager(_dii, _dio);
@@ -520,6 +538,7 @@ contract DeployImplementations is Script {
             protocolVersionsImpl: address(_dio.protocolVersionsImpl()),
             l1ERC721BridgeImpl: address(_dio.l1ERC721BridgeImpl()),
             optimismPortalImpl: address(_dio.optimismPortalImpl()),
+            ethLockboxImpl: address(_dio.ethLockboxImpl()),
             systemConfigImpl: address(_dio.systemConfigImpl()),
             optimismMintableERC20FactoryImpl: address(_dio.optimismMintableERC20FactoryImpl()),
             l1CrossDomainMessengerImpl: address(_dio.l1CrossDomainMessengerImpl()),
@@ -684,6 +703,18 @@ contract DeployImplementations is Script {
         _dio.set(_dio.optimismMintableERC20FactoryImpl.selector, address(impl));
     }
 
+    function deployETHLockboxImpl(DeployImplementationsOutput _dio) public virtual {
+        IETHLockbox impl = IETHLockbox(
+            DeployUtils.createDeterministic({
+                _name: "ETHLockbox",
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(IETHLockbox.__constructor__, ())),
+                _salt: _salt
+            })
+        );
+        vm.label(address(impl), "ETHLockboxImpl");
+        _dio.set(_dio.ethLockboxImpl.selector, address(impl));
+    }
+
     // --- Fault Proofs Contracts ---
 
     // The fault proofs contracts are configured as follows:
@@ -729,14 +760,11 @@ contract DeployImplementations is Script {
         virtual
     {
         uint256 proofMaturityDelaySeconds = _dii.proofMaturityDelaySeconds();
-        uint256 disputeGameFinalityDelaySeconds = _dii.disputeGameFinalityDelaySeconds();
-        IOptimismPortal2 impl = IOptimismPortal2(
+        IOptimismPortal impl = IOptimismPortal(
             DeployUtils.createDeterministic({
                 _name: "OptimismPortal2",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IOptimismPortal2.__constructor__, (proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds)
-                    )
+                    abi.encodeCall(IOptimismPortal.__constructor__, (proofMaturityDelaySeconds))
                 ),
                 _salt: _salt
             })
@@ -814,11 +842,20 @@ contract DeployImplementations is Script {
         _dio.set(_dio.disputeGameFactoryImpl.selector, address(impl));
     }
 
-    function deployAnchorStateRegistryImpl(DeployImplementationsOutput _dio) public virtual {
+    function deployAnchorStateRegistryImpl(
+        DeployImplementationsInput _dii,
+        DeployImplementationsOutput _dio
+    )
+        public
+        virtual
+    {
+        uint256 disputeGameFinalityDelaySeconds = _dii.disputeGameFinalityDelaySeconds();
         IAnchorStateRegistry impl = IAnchorStateRegistry(
             DeployUtils.createDeterministic({
                 _name: "AnchorStateRegistry",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IAnchorStateRegistry.__constructor__, ())),
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(IAnchorStateRegistry.__constructor__, (disputeGameFinalityDelaySeconds))
+                ),
                 _salt: _salt
             })
         );
@@ -909,90 +946,5 @@ contract DeployImplementations is Script {
     function getIOContracts() public view returns (DeployImplementationsInput dii_, DeployImplementationsOutput dio_) {
         dii_ = DeployImplementationsInput(DeployUtils.toIOAddress(msg.sender, "optimism.DeployImplementationsInput"));
         dio_ = DeployImplementationsOutput(DeployUtils.toIOAddress(msg.sender, "optimism.DeployImplementationsOutput"));
-    }
-}
-
-// Similar to how DeploySuperchain.s.sol contains a lot of comments to thoroughly document the script
-// architecture, this comment block documents how to update the deploy scripts to support new features.
-//
-// Using the base scripts and contracts (DeploySuperchain, DeployImplementations, DeployOPChain, and
-// the corresponding OPContractsManager) deploys a standard chain. For nonstandard and in-development
-// features we need to modify some or all of those contracts, and we do that via inheritance. Using
-// interop as an example, they've made the following changes to L1 contracts:
-//   - `OptimismPortalInterop is OptimismPortal`: A different portal implementation is used, and
-//     it's ABI is the same.
-//   - `SystemConfigInterop is SystemConfig`: A different system config implementation is used, and
-//     it's initializer has a different signature. This signature is different because there is a
-//     new input parameter, the `dependencyManager`.
-//   - Because of the different system config initializer, there is a new input parameter (dependencyManager).
-//
-// Similar to how inheritance was used to develop the new portal and system config contracts, we use
-// inheritance to modify up to all of the deployer contracts. For this interop example, what this
-// means is we need:
-//   - An `OPContractsManagerInterop is OPContractsManager` that knows how to encode the calldata for the
-//     new system config initializer.
-//   - A `DeployImplementationsInterop is DeployImplementations` that:
-//     - Deploys OptimismPortalInterop instead of OptimismPortal.
-//     - Deploys SystemConfigInterop instead of SystemConfig.
-//     - Deploys OPContractsManagerInterop instead of OPContractsManager, which contains the updated logic
-//       for encoding the SystemConfig initializer.
-//     - Updates the OPCM release setter logic to use the updated initializer.
-//  - A `DeployOPChainInterop is DeployOPChain` that allows the updated input parameter to be passed.
-//
-// Most of the complexity in the above flow comes from the the new input for the updated SystemConfig
-// initializer. If all function signatures were the same, all we'd have to change is the contract
-// implementations that are deployed then set in the OPCM. For now, to simplify things until we
-// resolve https://github.com/ethereum-optimism/optimism/issues/11783, we just assume this new role
-// is the same as the proxy admin owner.
-contract DeployImplementationsInterop is DeployImplementations {
-    function deployOPCMDeployer(DeployImplementationsOutput _dio) public override {
-        IOPContractsManagerDeployer impl = IOPContractsManagerDeployer(
-            DeployUtils.createDeterministic({
-                _name: "OPContractsManager.sol:OPContractsManagerDeployerInterop",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IOPContractsManagerDeployer.__constructor__, (_dio.opcmContractsContainer()))
-                ),
-                _salt: _salt
-            })
-        );
-        vm.label(address(impl), "OPContractsManagerDeployerImpl");
-        _dio.set(_dio.opcmDeployer.selector, address(impl));
-    }
-
-    function deployOptimismPortalImpl(
-        DeployImplementationsInput _dii,
-        DeployImplementationsOutput _dio
-    )
-        public
-        override
-    {
-        uint256 proofMaturityDelaySeconds = _dii.proofMaturityDelaySeconds();
-        uint256 disputeGameFinalityDelaySeconds = _dii.disputeGameFinalityDelaySeconds();
-        IOptimismPortalInterop impl = IOptimismPortalInterop(
-            DeployUtils.createDeterministic({
-                _name: "OptimismPortalInterop",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IOptimismPortalInterop.__constructor__, (proofMaturityDelaySeconds, disputeGameFinalityDelaySeconds)
-                    )
-                ),
-                _salt: _salt
-            })
-        );
-
-        vm.label(address(impl), "OptimismPortalImpl");
-        _dio.set(_dio.optimismPortalImpl.selector, address(impl));
-    }
-
-    function deploySystemConfigImpl(DeployImplementationsOutput _dio) public override {
-        ISystemConfigInterop impl = ISystemConfigInterop(
-            DeployUtils.createDeterministic({
-                _name: "SystemConfigInterop",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(ISystemConfigInterop.__constructor__, ())),
-                _salt: _salt
-            })
-        );
-        vm.label(address(impl), "SystemConfigImpl");
-        _dio.set(_dio.systemConfigImpl.selector, address(impl));
     }
 }

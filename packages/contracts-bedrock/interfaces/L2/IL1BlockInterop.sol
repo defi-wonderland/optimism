@@ -4,17 +4,10 @@ pragma solidity ^0.8.0;
 import { Types } from "src/libraries/Types.sol";
 
 interface IL1BlockInterop {
-    error AlreadyDependency();
-    error CantRemovedDependency();
-    error DependencySetSizeTooLarge();
     error NotCrossL2Inbox();
-    error NotDependency();
     error NotDepositor();
     error XForkAlreadyActive();
     error UnsafeCast();
-
-    event DependencyAdded(uint256 indexed chainId);
-    event DependencyRemoved(uint256 indexed chainId);
 
     function DEPOSITOR_ACCOUNT() external pure returns (address addr_);
     function baseFeeScalar() external view returns (uint32);
@@ -22,7 +15,6 @@ interface IL1BlockInterop {
     function batcherHash() external view returns (bytes32);
     function blobBaseFee() external view returns (uint256);
     function blobBaseFeeScalar() external view returns (uint32);
-    function dependencySetSize() external view returns (uint8);
     function depositsComplete() external;
     function gasPayingToken() external pure returns (address addr_, uint8 decimals_);
     function gasPayingTokenName() external pure returns (string memory name_);
@@ -30,15 +22,12 @@ interface IL1BlockInterop {
     function hash() external view returns (bytes32);
     function isCustomGasToken() external pure returns (bool is_);
     function isDeposit() external view returns (bool isDeposit_);
-    function isInDependencySet(uint256 _chainId) external view returns (bool);
     function l1FeeOverhead() external view returns (uint256);
     function l1FeeScalar() external view returns (uint256);
     function number() external view returns (uint64);
     function operatorFeeScalar() external view returns (uint32);
     function operatorFeeConstant() external view returns (uint64);
     function sequenceNumber() external view returns (uint64);
-    function setConfig(Types.ConfigType _type, bytes memory _value) external;
-    function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
     function setL1BlockValues(
         uint64 _number,
         uint64 _timestamp,
@@ -55,6 +44,8 @@ interface IL1BlockInterop {
     function setL1BlockValuesIsthmus() external;
     function timestamp() external view returns (uint64);
     function version() external pure returns (string memory);
+    function setConfig(Types.ConfigType _type, bytes memory _value) external;
+    function getConfig(Types.ConfigType _type) external view returns (bytes memory config_);
     function setXFork() external;
     function setIsXFork() external;
     function isXFork() external view returns (bool);

@@ -956,7 +956,7 @@ jobs:
           command: sudo apt-get install -y ripgrep
       - run:
           name: Check TODO issues
-          command: ./ops/scripts/todo-checker.sh --verbose <<#parameters.check_closed>> --check-closed <</parameters.check_closed>>
+          command: ./ops/scripts/todo-checker.sh --verbose --strict <<#parameters.check_closed>> --check-closed <</parameters.check_closed>>
       - notify-failures-on-develop
 
   fuzz-golang:
@@ -1219,7 +1219,12 @@ jobs:
     steps:
       - utils/checkout-with-mise
       - setup_remote_docker
-      - run: make -C op-program verify-reproducibility
+      - run:
+          name: Verify reproducibility
+          command: make -C op-program verify-reproducibility
+      - store_artifacts:
+          path: ./op-program/temp/logs
+          when: always
       - notify-failures-on-develop:
           mentions: "@proofs-team"
 
@@ -1482,6 +1487,21 @@ workflows:
       - contracts-bedrock-tests-upgrade:
           name: contracts-bedrock-tests-upgrade
           fork_op_chain: op
+          fork_base_chain: mainnet
+          fork_base_rpc: https://ci-mainnet-l1-archive.optimism.io
+      - contracts-bedrock-tests-upgrade:
+          name: contracts-bedrock-tests-upgrade base-mainnet
+          fork_op_chain: base
+          fork_base_chain: mainnet
+          fork_base_rpc: https://ci-mainnet-l1-archive.optimism.io
+      - contracts-bedrock-tests-upgrade:
+          name: contracts-bedrock-tests-upgrade ink-mainnet
+          fork_op_chain: ink
+          fork_base_chain: mainnet
+          fork_base_rpc: https://ci-mainnet-l1-archive.optimism.io
+      - contracts-bedrock-tests-upgrade:
+          name: contracts-bedrock-tests-upgrade unichain-mainnet
+          fork_op_chain: unichain
           fork_base_chain: mainnet
           fork_base_rpc: https://ci-mainnet-l1-archive.optimism.io
       - contracts-bedrock-checks:
