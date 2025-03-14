@@ -112,7 +112,9 @@ contract EventLoggerTest is EventLogger_Initializer {
             timestamp: _timestamp,
             chainId: _chainId
         });
+
         address emitter = Predeploys.CROSS_L2_INBOX;
+
         // Warm the slot for the function to succeed
         bytes32 checksum = CrossL2Inbox(emitter).calculateChecksum(idImpl, _msgHash);
         CrossL2Inbox(emitter).warmSlot(checksum);
