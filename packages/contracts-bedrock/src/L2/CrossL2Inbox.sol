@@ -85,7 +85,6 @@ contract CrossL2Inbox is ISemver {
     }
 
     /// @notice Calculates a custom checksum for a cross chain message `Identifier` and `msgHash`.
-    /// @dev    Validates the identifier fields to ensure they are not too large.
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.
     /// @return checksum_ The checksum of the message.
