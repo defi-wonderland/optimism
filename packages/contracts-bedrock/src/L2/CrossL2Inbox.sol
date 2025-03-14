@@ -55,10 +55,10 @@ contract CrossL2Inbox is ISemver {
 
     /// @notice The mask for the most significant bits of the checksum.
     /// @dev    Used to set the most significant byte to zero.
-    bytes32 internal constant _MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 internal constant _MSB_MASK = bytes32(~uint256(0xff << 248));
 
     /// @notice Mask used to set the first byte of the bare checksum to 3 (0x03).
-    bytes32 internal constant _TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
+    bytes32 internal constant _TYPE_3_MASK = bytes32(uint256(0x03 << 248));
 
     /// @notice The threshold to use to know whether the slot is warm or not.
     uint256 internal constant _WARM_READ_THRESHOLD = 1000;
