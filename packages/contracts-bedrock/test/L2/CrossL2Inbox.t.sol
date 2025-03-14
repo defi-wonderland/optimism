@@ -3,7 +3,6 @@ pragma solidity 0.8.25;
 
 // Testing utilities
 import { Test } from "forge-std/Test.sol";
-import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
@@ -47,7 +46,7 @@ contract CrossL2InboxTest is Test {
 
     /// Test that `validateMessage` reverts when the slot is not warm.
     function testFuzz_validateMessage_accessList_reverts(Identifier calldata _id, bytes32 _messageHash) external {
-        vm.expectRevert(ICrossL2Inbox.NotWarm.selector);
+        vm.expectRevert(ICrossL2Inbox.NotInAccessList.selector);
         crossL2Inbox.validateMessage(_id, _messageHash);
     }
 
@@ -86,7 +85,7 @@ contract CrossL2InboxTest is Test {
     }
 
     /// Test that `_isWarm` returns the correct value when the slot is not warm.
-    function testFuzz_isWarm_whenSlotIsNotWarm_succeeds(bytes32 _slot) external view {
+    function testFuzz_isWarm_whenSlotIsNotInAccessList_succeeds(bytes32 _slot) external view {
         // Assert that the slot is not warm
         (bool isWarm, uint256 value) = crossL2Inbox.isWarm(_slot);
         assertEq(isWarm, false);

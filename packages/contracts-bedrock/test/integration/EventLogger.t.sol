@@ -11,7 +11,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 import { Identifier as ImplIdentifier } from "src/L2/CrossL2Inbox.sol";
 import { CrossL2InboxWithSlotWarming as CrossL2Inbox } from "test/L2/CrossL2Inbox.t.sol";
-import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 
 contract EventLogger_Initializer is Test {
     event ExecutingMessage(bytes32 indexed msgHash, ImplIdentifier id);

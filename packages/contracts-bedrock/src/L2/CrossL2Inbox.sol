@@ -32,20 +32,20 @@ contract CrossL2Inbox is ISemver {
     /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
     error NoExecutingDeposits();
 
-    /// @notice Thrown when trying to validate a cross chain message with an identifier checksum
+    /// @notice Thrown when trying to validate a cross chain message with a checksum
     ///         that is invalid or was not provided in the transaction's access list to set the slot
     ///         as warm.
-    error NotWarm();
+    error NotInAccessList();
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.14
     string public constant version = "1.0.0-beta.14";
 
     /// @notice The mask for the most significant bits of the checksum.
-    /// @dev    Used to get everything except the first byte.
+    /// @dev    Used to set the most significant byte to zero.
     bytes32 internal constant _MSB_MASK = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    /// @notice The mask for the type 3 bits of the checksum for type-3 entry in the access list tx.
+    /// @notice Mask used to set the first byte of the bare checksum to 3 (0x03).
     bytes32 internal constant _TYPE_3_MASK = 0x0300000000000000000000000000000000000000000000000000000000000000;
 
     /// @notice The threshold to use to know whether the slot is warm or not.
@@ -65,7 +65,7 @@ contract CrossL2Inbox is ISemver {
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
         bytes32 checksum = _calculateChecksum(_id, _msgHash);
         (bool isWarm,) = _isWarm(checksum);
-        if (!isWarm) revert NotWarm();
+        if (!isWarm) revert NotInAccessList();
 
         emit ExecutingMessage(_msgHash, _id);
     }

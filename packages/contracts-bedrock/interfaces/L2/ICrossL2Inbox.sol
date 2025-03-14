@@ -13,7 +13,7 @@ struct Identifier {
 
 interface ICrossL2Inbox {
     error NoExecutingDeposits();
-    error NotWarm();
+    error NotInAccessList();
 
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
 
