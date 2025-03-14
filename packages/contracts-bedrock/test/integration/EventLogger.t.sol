@@ -9,9 +9,13 @@ import { EventLogger } from "../../src/integration/EventLogger.sol";
 
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-import { CrossL2Inbox, Identifier as ImplIdentifier } from "src/L2/CrossL2Inbox.sol";
+import { Identifier as ImplIdentifier } from "src/L2/CrossL2Inbox.sol";
+import { CrossL2InboxWithSlotWarming as CrossL2Inbox } from "test/L2/CrossL2Inbox.t.sol";
+import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 
 contract EventLogger_Initializer is Test {
+    event ExecutingMessage(bytes32 indexed msgHash, ImplIdentifier id);
+
     EventLogger eventLogger;
 
     function setUp() public {
@@ -110,8 +114,13 @@ contract EventLoggerTest is EventLogger_Initializer {
             chainId: _chainId
         });
         address emitter = Predeploys.CROSS_L2_INBOX;
+        // Warm the slot for the function to succeed
+        bytes32 checksum = CrossL2Inbox(emitter).calculateChecksum(idImpl, _msgHash);
+        CrossL2Inbox(emitter).warmSlot(checksum);
+
         vm.expectEmit(false, false, false, true, emitter);
-        emit CrossL2Inbox.ExecutingMessage(_msgHash, idImpl);
+        emit ExecutingMessage(_msgHash, idImpl);
+
         eventLogger.validateMessage(idIface, _msgHash);
     }
 }

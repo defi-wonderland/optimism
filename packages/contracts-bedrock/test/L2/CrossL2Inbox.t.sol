@@ -87,10 +87,6 @@ contract CrossL2InboxTest is Test {
 
     /// Test that `_isWarm` returns the correct value when the slot is not warm.
     function testFuzz_isWarm_whenSlotIsNotWarm_succeeds(bytes32 _slot) external view {
-        // Avoid collisions with the proxy layout.
-        vm.assume(_slot != Constants.PROXY_IMPLEMENTATION_ADDRESS);
-        vm.assume(_slot != Constants.PROXY_OWNER_ADDRESS);
-
         // Assert that the slot is not warm
         (bool isWarm, uint256 value) = crossL2Inbox.isWarm(_slot);
         assertEq(isWarm, false);
@@ -100,10 +96,6 @@ contract CrossL2InboxTest is Test {
     /// Test that `_isWarm` returns the correct value when the slot is warm.
     function testFuzz_isWarm_whenSlotIsWarm_succeeds(Identifier calldata _id, bytes32 _messageHash) external view {
         bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
-
-        // Avoid collisions with the proxy layout.
-        vm.assume(slot != Constants.PROXY_IMPLEMENTATION_ADDRESS);
-        vm.assume(slot != Constants.PROXY_OWNER_ADDRESS);
 
         // Warm the slot
         crossL2Inbox.warmSlot(slot);
