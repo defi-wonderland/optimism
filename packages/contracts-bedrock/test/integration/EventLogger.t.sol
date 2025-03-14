@@ -10,7 +10,7 @@ import { EventLogger } from "../../src/integration/EventLogger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 import { Identifier as ImplIdentifier } from "src/L2/CrossL2Inbox.sol";
-import { CrossL2InboxWithSlotWarming as CrossL2Inbox } from "test/L2/CrossL2Inbox.t.sol";
+import { CrossL2InboxWithSlotWarming as CrossL2Inbox } from "test/mocks/CrossL2InboxWithSlotWarming.sol";
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 
 contract EventLogger_Initializer is Test {
@@ -113,7 +113,9 @@ contract EventLoggerTest is EventLogger_Initializer {
             timestamp: _timestamp,
             chainId: _chainId
         });
+
         address emitter = Predeploys.CROSS_L2_INBOX;
+
         // Warm the slot for the function to succeed
         bytes32 checksum = CrossL2Inbox(emitter).calculateChecksum(idImpl, _msgHash);
         CrossL2Inbox(emitter).warmSlot(checksum);
