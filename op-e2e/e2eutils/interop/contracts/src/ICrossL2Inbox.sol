@@ -21,7 +21,7 @@ interface ICrossL2Inbox {
 
     /// @notice Thrown when trying to validate a cross chain message with an identifier checksum that is
     ///         invalid or was not provided in the transaction's access list to set the slot as warm.
-    error NotWarm();
+    error NotInAccessList();
 
     /// @notice Emitted when a message is being executed.
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
@@ -30,7 +30,9 @@ interface ICrossL2Inbox {
     /// @return version_ The semantic version.
     function version() external view returns (string memory version_);
 
-    /// @notice Validates a message by checking that the identifier checksum is warm.
+    /// @notice Validates a message by checking that the identifier checksum slot is warm.
+    /// @dev    To process the message, the tx must include the checksum composed by the message's
+    ///         identifier and msgHash in the access list.
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external;
