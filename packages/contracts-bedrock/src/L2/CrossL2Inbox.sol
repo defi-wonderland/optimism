@@ -12,9 +12,9 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @custom:field chainId The origin chain ID of the message.
 struct Identifier {
     address origin;
-    uint64 blockNumber;
-    uint32 logIndex;
-    uint64 timestamp;
+    uint256 blockNumber;
+    uint256 logIndex;
+    uint256 timestamp;
     uint256 chainId;
 }
 
@@ -36,6 +36,18 @@ contract CrossL2Inbox is ISemver {
     ///         that is invalid or was not provided in the transaction's access list to set the slot
     ///         as warm.
     error NotInAccessList();
+
+    /// @notice Thrown when trying to validate a cross chain message with a block number
+    ///         that is greater than 2^64.
+    error BlockNumberTooHigh();
+
+    /// @notice Thrown when trying to validate a cross chain message with a timestamp
+    ///         that is greater than 2^64.
+    error TimestampTooHigh();
+
+    /// @notice Thrown when trying to validate a cross chain message with a log index
+    ///         that is greater than 2^32.
+    error LogIndexTooHigh();
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.14
@@ -60,6 +72,8 @@ contract CrossL2Inbox is ISemver {
     ///         event. This function is useful for applications that understand the schema of the
     ///         message payload and want to process it in a custom way.
     /// @dev    Makes sure the checksum's slot is warm to ensure the tx included it in the access list.
+    /// @dev    `Identifier.blockNumber` and `Identifier.timestamp` must be less than 2^64, whereas
+    ///         `Identifier.logIndex` must be less than 2^32 to properly fit into the checksum.
     /// @param _id      Identifier of the message.
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
@@ -71,15 +85,25 @@ contract CrossL2Inbox is ISemver {
     }
 
     /// @notice Calculates a custom checksum for a cross chain message `Identifier` and `msgHash`.
+    /// @dev    Validates the identifier fields to ensure they are not too large.
     /// @param _id The identifier of the message.
     /// @param _msgHash The hash of the message.
     /// @return checksum_ The checksum of the message.
     function _calculateChecksum(Identifier memory _id, bytes32 _msgHash) internal pure returns (bytes32 checksum_) {
+        if (_id.blockNumber > type(uint64).max) revert BlockNumberTooHigh();
+        if (_id.logIndex > type(uint32).max) revert LogIndexTooHigh();
+        if (_id.timestamp > type(uint64).max) revert TimestampTooHigh();
+
         // Hash the origin address and message hash together
         bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
 
+        // Downsize the identifier fields to match the needed type for the custom checksum calculation.
+        uint64 blockNumber = uint64(_id.blockNumber);
+        uint64 timestamp = uint64(_id.timestamp);
+        uint32 logIndex = uint32(_id.logIndex);
+
         // Pack identifier fields with a left zero padding (uint96(0))
-        bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), _id.blockNumber, _id.timestamp, _id.logIndex));
+        bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), blockNumber, timestamp, logIndex));
 
         // Hash the logHash with the packed identifier data
         bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
