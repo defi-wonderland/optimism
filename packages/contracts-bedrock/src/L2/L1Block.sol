@@ -345,7 +345,6 @@ contract L1Block is ISemver {
     ///   9. _batcherHash          Versioned hash to authenticate batcher by.
     ///   10. _operatorFeeScalar   Operator fee scalar.
     ///   11. _operatorFeeConstant Operator fee constant.
-
     function setL1BlockValuesIsthmus() public {
         _setL1BlockValuesIsthmus();
     }
