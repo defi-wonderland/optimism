@@ -18,7 +18,7 @@ contract L2ProxyAdmin is ProxyAdmin {
     constructor() ProxyAdmin(Constants.DEPOSITOR_ACCOUNT) { }
 
     /// @notice The owner of the L2ProxyAdmin is the `DEPOSITOR_ACCOUNT`.
-    function owner() public view override returns (address) {
+    function owner() public pure override returns (address) {
         return Constants.DEPOSITOR_ACCOUNT;
     }
 

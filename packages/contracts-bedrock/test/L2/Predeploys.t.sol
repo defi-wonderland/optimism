@@ -108,7 +108,7 @@ contract PredeploysBaseTest is CommonTest {
 contract PredeploysTest is PredeploysBaseTest {
     /// @dev Tests that the predeploy addresses are set correctly. They have code
     ///      and the proxied accounts have the correct admin.
-    function test_predeploys_succeeds() external {
+    function test_predeploys_succeeds() external view {
         _test_predeploys(false);
     }
 }

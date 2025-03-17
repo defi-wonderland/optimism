@@ -234,7 +234,7 @@ contract L2StandardBridge is StandardBridge, ISemver {
 
     /// @notice Returns the cross-domain messenger contract for the L2 domain.
     /// @inheritdoc StandardBridge
-    function messenger() public view override returns (ICrossDomainMessenger) {
+    function messenger() public pure override returns (ICrossDomainMessenger) {
         return ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
     }
 }

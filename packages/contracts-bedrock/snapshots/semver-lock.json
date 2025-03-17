@@ -21,7 +21,7 @@
   },
   "src/L1/L1StandardBridge.sol:L1StandardBridge": {
     "initCodeHash": "0x213f3ef033ee5adc7172a35fe1c5422cb10f7b0991622cb91ba4ea2a9b756544",
-    "sourceCodeHash": "0x3a80dd15e3cfcedb38e03fa23e6e1ac5cabc8430f70dbd11d94b517e0976dd18"
+    "sourceCodeHash": "0xe52e857ef20c4475761ec707de57b9f3a9f3fec648f58039c92c92a20819d986"
   },
   "src/L1/OPContractsManager.sol:OPContractsManager": {
     "initCodeHash": "0x0b4e1a5538776a77533542dd22d297e62e719033ede485314f56df10aed3af4c",
@@ -81,7 +81,7 @@
   },
   "src/L2/L2StandardBridge.sol:L2StandardBridge": {
     "initCodeHash": "0x6db02a7484d5e02414a20ecbd1f2ed0c25ec6ac2dd2f86a18978bd2f462abb53",
-    "sourceCodeHash": "0x6dfcfacb8af32c38213a7a33a96ce0bb89244be3b0191728c6aafab441d855cd"
+    "sourceCodeHash": "0x3af2441640dad300b4c751a79833d9637122a77c00b72f0850b23414b9620683"
   },
   "src/L2/L2StandardBridgeInterop.sol:L2StandardBridgeInterop": {
     "initCodeHash": "0x5606242245beac4c686327eaa32acaac295b541b6261491edb4cecc806133c4b",

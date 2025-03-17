@@ -31,11 +31,11 @@ contract OperatorFeeVault_Test is CommonTest {
         l1Block.setConfig(Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG, abi.encode(operatorFeeVaultConfig));
         vm.stopPrank();
 
-        assertEq(operatorFeeVault.RECIPIENT(), _recipient);
-        assertEq(operatorFeeVault.recipient(), _recipient);
-        assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), _amount);
-        assertEq(operatorFeeVault.minWithdrawalAmount(), _amount);
-        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(_network));
-        assertEq(uint8(operatorFeeVault.withdrawalNetwork()), uint8(_network));
+        assertEq(operatorFeeVault.RECIPIENT(), Predeploys.BASE_FEE_VAULT);
+        assertEq(operatorFeeVault.recipient(), Predeploys.BASE_FEE_VAULT);
+        assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), 0);
+        assertEq(operatorFeeVault.minWithdrawalAmount(), 0);
+        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+        assertEq(uint8(operatorFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
     }
 }
