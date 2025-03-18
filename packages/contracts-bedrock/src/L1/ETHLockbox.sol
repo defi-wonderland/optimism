@@ -74,9 +74,9 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
     mapping(IETHLockbox => bool) public authorizedLockboxes;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0
+    /// @custom:semver 1.0.1
     function version() public view virtual returns (string memory) {
-        return "1.0.0";
+        return "1.0.1";
     }
 
     /// @notice Constructs the ETHLockbox contract.
