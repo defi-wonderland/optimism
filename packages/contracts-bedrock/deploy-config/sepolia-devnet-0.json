@@ -49,6 +49,7 @@
   "baseFeeVaultWithdrawalNetwork": 1,
   "l1FeeVaultWithdrawalNetwork": 1,
   "sequencerFeeVaultWithdrawalNetwork": 1,
+  "operatorFeeVaultWithdrawalNetwork": 1,
   "l1StandardBridgeProxy": "0x0000000000000000000000000000000000000000",
   "l1CrossDomainMessengerProxy": "0x0000000000000000000000000000000000000000",
   "l1ERC721BridgeProxy": "0x0000000000000000000000000000000000000000",
