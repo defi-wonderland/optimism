@@ -331,6 +331,7 @@ contract L1Block is ISemver {
             success && data.length >= 32 ? abi.decode(data, (Types.WithdrawalNetwork)) : Types.WithdrawalNetwork.L2;
         return Encoding.encodeFeeVaultConfig(recipient, amount, Types.WithdrawalNetwork(uint8(network)));
     }
+
     /// @notice Updates the L1 block values for an Isthmus upgraded chain.
     /// Params are packed and passed in as raw msg.data instead of ABI to reduce calldata size.
     /// Params are expected to be in the following order:
@@ -345,7 +346,6 @@ contract L1Block is ISemver {
     ///   9. _batcherHash          Versioned hash to authenticate batcher by.
     ///   10. _operatorFeeScalar   Operator fee scalar.
     ///   11. _operatorFeeConstant Operator fee constant.
-
     function setL1BlockValuesIsthmus() public {
         _setL1BlockValuesIsthmus();
     }

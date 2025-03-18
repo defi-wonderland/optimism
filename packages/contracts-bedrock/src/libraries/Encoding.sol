@@ -11,8 +11,10 @@ import { RLPWriter } from "src/libraries/rlp/RLPWriter.sol";
 library Encoding {
     /// @notice Error to be used when an unsafe cast is attempted.
     error UnsafeCast();
+
     /// @notice Thrown when a provided Super Root proof has an invalid version.
     error Encoding_InvalidSuperRootVersion();
+
     /// @notice Thrown when a provided Super Root proof has no Output Roots.
     error Encoding_EmptySuperRoot();
 
