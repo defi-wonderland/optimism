@@ -35,10 +35,6 @@ contract L1Block is ISemver {
     bytes32 internal constant SEQUENCER_FEE_VAULT_CONFIG_SLOT =
         bytes32(uint256(keccak256("opstack.sequencerfeevaultconfig")) - 1);
 
-    /// @notice Storage slot for the operator fee vault configuration
-    bytes32 internal constant OPERATOR_FEE_VAULT_CONFIG_SLOT =
-        bytes32(uint256(keccak256("opstack.operatorfeevaultconfig")) - 1);
-
     /// @notice Storage slot for the standard bridge address
     bytes32 internal constant L1_STANDARD_BRIDGE_ADDRESS_SLOT =
         bytes32(uint256(keccak256("opstack.l1standardbridgeaddress")) - 1);
@@ -229,8 +225,6 @@ contract L1Block is ISemver {
             Storage.setBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
         } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
-        } else if (_type == Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG) {
-            Storage.setBytes32(OPERATOR_FEE_VAULT_CONFIG_SLOT, abi.decode(_value, (bytes32)));
         } else if (_type == Types.ConfigType.REMOTE_CHAIN_ID) {
             Storage.setUint(REMOTE_CHAIN_ID_SLOT, abi.decode(_value, (uint256)));
         } else if (_type == Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS) {
@@ -252,8 +246,6 @@ contract L1Block is ISemver {
             config_ = abi.encode(Storage.getBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT));
         } else if (_type == Types.ConfigType.L1_FEE_VAULT_CONFIG) {
             config_ = abi.encode(Storage.getBytes32(L1_FEE_VAULT_CONFIG_SLOT));
-        } else if (_type == Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG) {
-            config_ = abi.encode(Storage.getBytes32(OPERATOR_FEE_VAULT_CONFIG_SLOT));
         } else if (_type == Types.ConfigType.REMOTE_CHAIN_ID) {
             config_ = abi.encode(Storage.getUint(REMOTE_CHAIN_ID_SLOT));
         } else if (_type == Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS) {
@@ -284,7 +276,6 @@ contract L1Block is ISemver {
         Storage.setBytes32(BASE_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.BASE_FEE_VAULT));
         Storage.setBytes32(L1_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.L1_FEE_VAULT));
         Storage.setBytes32(SEQUENCER_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.SEQUENCER_FEE_WALLET));
-        Storage.setBytes32(OPERATOR_FEE_VAULT_CONFIG_SLOT, _migrateFeeVaultConfig(Predeploys.OPERATOR_FEE_VAULT));
 
         Storage.setAddress(
             L1_CROSS_DOMAIN_MESSENGER_ADDRESS_SLOT,

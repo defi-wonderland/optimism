@@ -437,11 +437,10 @@ contract OptimismPortal2_Test is CommonTest {
     {
         Types.WithdrawalNetwork network = Types.WithdrawalNetwork(_networkSeed % 2);
 
-        Types.ConfigType[] memory types = new Types.ConfigType[](4);
+        Types.ConfigType[] memory types = new Types.ConfigType[](3);
         types[0] = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
         types[1] = Types.ConfigType.L1_FEE_VAULT_CONFIG;
         types[2] = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
-        types[3] = Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG;
 
         Types.ConfigType configType = types[_configTypeSeed % types.length];
 

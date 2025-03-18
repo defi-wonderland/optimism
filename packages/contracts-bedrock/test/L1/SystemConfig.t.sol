@@ -586,13 +586,12 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
     {
         Types.WithdrawalNetwork network = _isL2 ? Types.WithdrawalNetwork.L2 : Types.WithdrawalNetwork.L1;
 
-        Types.ConfigType[] memory types = new Types.ConfigType[](4);
+        Types.ConfigType[] memory types = new Types.ConfigType[](3);
         types[0] = Types.ConfigType.BASE_FEE_VAULT_CONFIG;
         types[1] = Types.ConfigType.L1_FEE_VAULT_CONFIG;
         types[2] = Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG;
-        types[3] = Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG;
 
-        Types.ConfigType configType = types[_configTypeSeed % 4];
+        Types.ConfigType configType = types[_configTypeSeed % 3];
         bytes memory data = abi.encodeCall(
             optimismPortal2.setConfig,
             (configType, abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, network)))
