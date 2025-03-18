@@ -194,10 +194,11 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
         if (!_sameProxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
 
         // Receive the liquidity.
-        IETHLockbox(_lockbox).receiveLiquidity{ value: address(this).balance }();
+        uint256 balance = address(this).balance;
+        IETHLockbox(_lockbox).receiveLiquidity{ value: balance }();
 
         // Emit the event.
-        emit LiquidityMigrated(_lockbox, address(this).balance);
+        emit LiquidityMigrated(_lockbox, balance);
     }
 
     /// @notice Authorizes a portal to lock and unlock ETH.
