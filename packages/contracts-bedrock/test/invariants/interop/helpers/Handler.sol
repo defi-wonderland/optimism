@@ -291,6 +291,10 @@ contract Handler is Setup {
         _id.origin = address(L2_TO_L2_MESSENGER);
         _message.amount = clampLte(_message.amount, address(ETH_LIQUIDITY).balance - address(SUPER_WETH).balance);
 
+        _id.blockNumber = clampLte(_id.blockNumber, type(uint64).max);
+        _id.logIndex = clampLte(_id.logIndex, type(uint32).max);
+        _id.timestamp = clampLte(_id.timestamp, type(uint64).max);
+
         // Get state before the call
         address targetActor = address(randomActor(_toActorIndex));
         uint256 _tagretActorBalanceBefore = targetActor.balance;
