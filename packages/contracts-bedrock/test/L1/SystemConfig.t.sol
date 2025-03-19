@@ -151,22 +151,22 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
             _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
                 baseFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 sequencerFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 l1FeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 operatorFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 })
             }),
@@ -228,22 +228,22 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
             _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
                 baseFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 sequencerFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 l1FeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 operatorFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 })
             }),
@@ -262,8 +262,11 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
         vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
         vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
 
-        Types.FeeVaultConfig memory feeVaultConfig =
-            Types.FeeVaultConfig({ recipient: address(0), min: 0, withdrawalNetwork: Types.WithdrawalNetwork.L1 });
+        Types.FeeVaultConfig memory feeVaultConfig = Types.FeeVaultConfig({
+            recipient: address(0),
+            minWithdrawalAmount: 0,
+            withdrawalNetwork: Types.WithdrawalNetwork.L1
+        });
 
         // Initialize and check that StartBlock updates to current block number
         vm.prank(systemConfig.owner());
@@ -326,22 +329,22 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
             _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
                 baseFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 sequencerFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 l1FeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 operatorFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 })
             }),
@@ -471,22 +474,22 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
                 baseFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 sequencerFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 l1FeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 }),
                 operatorFeeVaultConfig: Types.FeeVaultConfig({
                     recipient: address(0),
-                    min: 0,
+                    minWithdrawalAmount: 0,
                     withdrawalNetwork: Types.WithdrawalNetwork.L1
                 })
             }),
@@ -615,7 +618,11 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
         vm.prank(_caller);
         systemConfig.setFeeVaultConfig(
             Types.ConfigType.BASE_FEE_VAULT_CONFIG,
-            Types.FeeVaultConfig({ recipient: address(0x20), min: 0, withdrawalNetwork: Types.WithdrawalNetwork.L1 })
+            Types.FeeVaultConfig({
+                recipient: address(0x20),
+                minWithdrawalAmount: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            })
         );
     }
 }
@@ -729,7 +736,8 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
 
         vm.prank(systemConfig.feeVaultAdmin());
         systemConfig.setFeeVaultConfig(
-            configType, Types.FeeVaultConfig({ recipient: _recipient, min: _min, withdrawalNetwork: network })
+            configType,
+            Types.FeeVaultConfig({ recipient: _recipient, minWithdrawalAmount: _min, withdrawalNetwork: network })
         );
     }
 }

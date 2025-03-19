@@ -41,7 +41,7 @@
   },
   "src/L1/SystemConfig.sol:SystemConfig": {
     "initCodeHash": "0x577d832b7e2f7f75bed5d6640bca2f03492bbc26816c06bcf71bc9e05d7ad0aa",
-    "sourceCodeHash": "0x41f37d648b447b0e3f9497cbd6e623f6d5e22fcbfc6f496d8ebb1a0ccc681335"
+    "sourceCodeHash": "0xe8d1565b675efdc21e0d326a973997e51591fee4a6d4da53592ed023f403526f"
   },
   "src/L2/BaseFeeVault.sol:BaseFeeVault": {
     "initCodeHash": "0x5cd051d29314c81baa81e684b419ea90cb9dda59418c8695940f3fc505161655",

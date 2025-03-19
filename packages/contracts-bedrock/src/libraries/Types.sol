@@ -132,13 +132,14 @@ library Types {
         RESOLVED
     }
 
-    /// @notice Struct representing the configuration of a fee vault.
-    /// @custom:field recipient Address that should receive the funds.
-    /// @custom:field min Minimum withdrawal amount allowed to be processed.
-    /// @custom:field withdrawalNetwork The network in which the fees should be withdrawn to.
+    /// @notice Configuration parameters for fee vault withdrawals.
+    /// @custom:field recipient The address that will receive withdrawn fees.
+    /// @custom:field minWithdrawalAmount The minimum amount of fees (in wei) that must accumulate before a withdrawal
+    ///               can be initiated.
+    /// @custom:field withdrawalNetwork Specifies which network (L1 or L2) the fees should be withdrawn to.
     struct FeeVaultConfig {
         address recipient;
-        uint256 min;
+        uint256 minWithdrawalAmount;
         Types.WithdrawalNetwork withdrawalNetwork;
     }
 }

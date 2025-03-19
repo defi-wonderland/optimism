@@ -353,7 +353,9 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         );
         IOptimismPortal2(payable(optimismPortal())).setConfig({
             _type: _type,
-            _value: abi.encode(Encoding.encodeFeeVaultConfig(_config.recipient, _config.min, _config.withdrawalNetwork))
+            _value: abi.encode(
+                Encoding.encodeFeeVaultConfig(_config.recipient, _config.minWithdrawalAmount, _config.withdrawalNetwork)
+            )
         });
     }
 

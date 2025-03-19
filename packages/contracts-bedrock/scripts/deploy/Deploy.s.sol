@@ -523,22 +523,22 @@ contract Deploy is Deployer {
                     ISystemConfig.FeeVaultConfigs({
                         baseFeeVaultConfig: LibTypes.FeeVaultConfig({
                             recipient: cfg.baseFeeVaultRecipient(),
-                            min: cfg.baseFeeVaultMinimumWithdrawalAmount(),
+                            minWithdrawalAmount: cfg.baseFeeVaultMinimumWithdrawalAmount(),
                             withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
                         }),
                         sequencerFeeVaultConfig: LibTypes.FeeVaultConfig({
                             recipient: cfg.sequencerFeeVaultRecipient(),
-                            min: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
+                            minWithdrawalAmount: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
                             withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
                         }),
                         l1FeeVaultConfig: LibTypes.FeeVaultConfig({
                             recipient: cfg.l1FeeVaultRecipient(),
-                            min: cfg.l1FeeVaultMinimumWithdrawalAmount(),
+                            minWithdrawalAmount: cfg.l1FeeVaultMinimumWithdrawalAmount(),
                             withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
                         }),
                         operatorFeeVaultConfig: LibTypes.FeeVaultConfig({
                             recipient: cfg.operatorFeeVaultRecipient(),
-                            min: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
+                            minWithdrawalAmount: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
                             withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.operatorFeeVaultWithdrawalNetwork())
                         })
                     }),
@@ -980,22 +980,22 @@ contract Deploy is Deployer {
                 ISystemConfig.FeeVaultConfigs({
                     baseFeeVaultConfig: LibTypes.FeeVaultConfig({
                         recipient: cfg.baseFeeVaultRecipient(),
-                        min: cfg.baseFeeVaultMinimumWithdrawalAmount(),
+                        minWithdrawalAmount: cfg.baseFeeVaultMinimumWithdrawalAmount(),
                         withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
                     }),
                     sequencerFeeVaultConfig: LibTypes.FeeVaultConfig({
                         recipient: cfg.sequencerFeeVaultRecipient(),
-                        min: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
+                        minWithdrawalAmount: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
                         withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
                     }),
                     l1FeeVaultConfig: LibTypes.FeeVaultConfig({
                         recipient: cfg.l1FeeVaultRecipient(),
-                        min: cfg.l1FeeVaultMinimumWithdrawalAmount(),
+                        minWithdrawalAmount: cfg.l1FeeVaultMinimumWithdrawalAmount(),
                         withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
                     }),
                     operatorFeeVaultConfig: LibTypes.FeeVaultConfig({
                         recipient: cfg.operatorFeeVaultRecipient(),
-                        min: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
+                        minWithdrawalAmount: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
                         withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.operatorFeeVaultWithdrawalNetwork())
                     })
                 })

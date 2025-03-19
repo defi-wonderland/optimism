@@ -420,7 +420,7 @@
               },
               {
                 "internalType": "uint256",
-                "name": "min",
+                "name": "minWithdrawalAmount",
                 "type": "uint256"
               },
               {
@@ -442,7 +442,7 @@
               },
               {
                 "internalType": "uint256",
-                "name": "min",
+                "name": "minWithdrawalAmount",
                 "type": "uint256"
               },
               {
@@ -464,7 +464,7 @@
               },
               {
                 "internalType": "uint256",
-                "name": "min",
+                "name": "minWithdrawalAmount",
                 "type": "uint256"
               },
               {
@@ -486,7 +486,7 @@
               },
               {
                 "internalType": "uint256",
-                "name": "min",
+                "name": "minWithdrawalAmount",
                 "type": "uint256"
               },
               {
@@ -783,7 +783,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "min",
+            "name": "minWithdrawalAmount",
             "type": "uint256"
           },
           {

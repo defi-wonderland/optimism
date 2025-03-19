@@ -56,22 +56,22 @@ contract SystemConfig_GasLimitBoundaries_Invariant is Test {
                     ISystemConfig.FeeVaultConfigs({
                         baseFeeVaultConfig: Types.FeeVaultConfig({
                             recipient: address(0),
-                            min: 0,
+                            minWithdrawalAmount: 0,
                             withdrawalNetwork: Types.WithdrawalNetwork.L1
                         }),
                         sequencerFeeVaultConfig: Types.FeeVaultConfig({
                             recipient: address(0),
-                            min: 0,
+                            minWithdrawalAmount: 0,
                             withdrawalNetwork: Types.WithdrawalNetwork.L1
                         }),
                         l1FeeVaultConfig: Types.FeeVaultConfig({
                             recipient: address(0),
-                            min: 0,
+                            minWithdrawalAmount: 0,
                             withdrawalNetwork: Types.WithdrawalNetwork.L1
                         }),
                         operatorFeeVaultConfig: Types.FeeVaultConfig({
                             recipient: address(0),
-                            min: 0,
+                            minWithdrawalAmount: 0,
                             withdrawalNetwork: Types.WithdrawalNetwork.L1
                         })
                     }),
