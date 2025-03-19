@@ -176,20 +176,10 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
-        // hash the message
-        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: block.chainid,
-            _source: _id.chainId,
-            _nonce: _message.nonce,
-            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _message: message
-        });
-
         // Relay the message by calling the messenger from the actor
-        (bool success) = currentActor().callL2ToL2MessengerRelayMessage(
-            _id, sentMessage, CROSS_L2_INBOX.calculateChecksum(_id, messageHash)
-        );
+        Actors.CallRelayParams memory callRelayParams =
+            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce });
+        (bool success, bytes32 messageHash) = currentActor().callL2ToL2MessengerRelayMessage2(callRelayParams);
 
         if (success) {
             _ghost_superWethBalancesSum += _message.amount;

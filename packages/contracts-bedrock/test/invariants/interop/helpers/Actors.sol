@@ -8,6 +8,7 @@ import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { vm } from "../utils/VM.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 
 interface ICrossL2InboxWithSlotWarming {
     function warmSlot(bytes32 _slot) external view returns (uint256 res_);
@@ -68,6 +69,41 @@ contract Actors {
         // though it's the same as the one used in the interface.
         (_success,) = L2_TO_L2_CROSS_DOMAIN_MESSENGER.call(
             abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _id, _message)
+        );
+    }
+
+    struct CallRelayParams {
+        Identifier id;
+        bytes messageSent;
+        bytes message;
+        uint256 nonce;
+    }
+
+    function callL2ToL2MessengerRelayMessage2(CallRelayParams memory _params)
+        public
+        returns (bool _success, bytes32 messageHash)
+    {
+        // hash the message
+        messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _params.id.chainId,
+            _nonce: _params.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: _params.message
+        });
+
+        // calculate the checksum
+        bytes32 slot =
+            ICrossL2InboxWithSlotWarming(L2_TO_L2_CROSS_DOMAIN_MESSENGER).calculateChecksum(_params.id, messageHash);
+
+        // warm the slot
+        ICrossL2InboxWithSlotWarming(L2_TO_L2_CROSS_DOMAIN_MESSENGER).warmSlot(slot);
+
+        // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
+        // though it's the same as the one used in the interface.
+        (_success,) = L2_TO_L2_CROSS_DOMAIN_MESSENGER.call(
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _params.id, _params.messageSent)
         );
     }
 
