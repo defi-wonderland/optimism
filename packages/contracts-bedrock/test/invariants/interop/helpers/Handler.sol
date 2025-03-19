@@ -8,7 +8,7 @@ import {
     Predeploys,
     IDisputeGameFactory,
     ISystemConfig,
-    ISuperchainConfigInterop,
+    ISuperchainConfig,
     GameType
 } from "../Setup.sol";
 import { Actors } from "./Actors.sol";
@@ -20,7 +20,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
-import { OptimismPortalInterop } from "src/L1/OptimismPortalInterop.sol";
+import { OptimismPortal2 as OptimismPortal } from "src/L1/OptimismPortal2.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
@@ -383,11 +383,11 @@ contract Handler is Setup {
 
     //     // Deploy the new implementation
     //     address newImplementation =
-    //         DEPLOYER_8_15.deployOptimismPortalInterop(PROOF_MATURITY_DELAY_SECONDS,
+    //         DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS,
     // DISPUTE_GAME_FINALITY_DELAY_SECONDS);
     //     // Upgrade the portal to the new implementation through the proxy admin
     //     bytes memory initializeCall = abi.encodeCall(
-    //         OptimismPortalInterop.initialize,
+    //         OptimismPortal.initialize,
     //         (
     //             IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
     //             ISystemConfig(address(SYSTEM_CONFIG)),

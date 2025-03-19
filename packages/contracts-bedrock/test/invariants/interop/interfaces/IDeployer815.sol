@@ -8,23 +8,9 @@ interface IDeployer815 {
 
     function deployLiquidityMigrator(address _ethLockbox) external returns (address liquidityMigrator);
 
-    function deployOptimismPortalInterop(
-        uint256 _proofMaturityDelaySeconds,
-        uint256 _disputeGameFinalityDelaySeconds
-    )
-        external
-        returns (address optimismPortal);
-
-    function deployOptimismPortal(
-        uint256 _proofMaturityDelaySeconds,
-        uint256 _disputeGameFinalityDelaySeconds
-    )
-        external
-        returns (address optimismPortal);
+    function deployOptimismPortal(uint256 _proofMaturityDelaySeconds) external returns (address optimismPortal);
 
     function deployProxy(address _admin) external returns (address proxy);
-
-    function deploySuperchainConfig() external returns (address superchainConfig);
 
     function deploySuperchainConfig() external returns (address superchainConfigInterop);
 
@@ -33,4 +19,8 @@ interface IDeployer815 {
     function deploySystemConfig() external returns (address systemConfig);
 
     function deployL2ToL1MessagePasser() external returns (address l2ToL1MessagePasser);
+
+    function deployAnchorStateRegistry(uint256 _disputeGameFinalityDelaySeconds)
+        external
+        returns (address anchorStateRegistry);
 }

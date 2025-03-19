@@ -376,7 +376,13 @@ contract FuzzTest is Handler {
         (success,) = actor.directCall(
             address(PORTAL),
             _ZERO_VALUE,
-            abi.encodeCall(PORTAL.proveWithdrawalTransaction, (_tx, disputeGameIndex, outputRootProof, withdrawalProof))
+            abi.encodeWithSignature(
+                "proveWithdrawalTransaction(Types.WithdrawalTransaction,uint256,Types.OutputRootProof,bytes[])",
+                _tx,
+                disputeGameIndex,
+                outputRootProof,
+                withdrawalProof
+            )
         );
         assert(success);
 

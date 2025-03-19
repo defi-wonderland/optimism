@@ -499,7 +499,7 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         // // Game must not have resolved in favor of the Challenger (invalid root claim).
         // if (_disputeGameProxy.status() == GameStatus.CHALLENGER_WINS) {
         //     revert OptimismPortal_InvalidDisputeGame();
-        }
+        // }
 
         // As a sanity check, we make sure that the current timestamp is not less than or equal to
         // the dispute game's creation timestamp. Not strictly necessary but extra layer of

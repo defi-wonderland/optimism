@@ -9,8 +9,9 @@ import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
 import { Utils } from "./utils/Utils.sol";
 
 // Interfaces 0.8.15
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
-import { IOptimismPortal } from "interfaces/L1/IOptimismPortal.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
@@ -23,7 +24,7 @@ import { ISuperToken } from "./interfaces/ISuperToken.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
 
 // Libraries and Constants
-import { GameType, Proposal } from "src/dispute/lib/Types.sol";
+import { GameType, Proposal, Hash } from "src/dispute/lib/Types.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
@@ -47,6 +48,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
     bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     // Solidity 0.8.15 Contracts
+    IL1Block public immutable L1_BLOCK = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES);
     IETHLiquidity public immutable ETH_LIQUIDITY = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
     ISuperchainWETH public immutable SUPER_WETH = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
     IETHLockbox public immutable ETH_LOCKBOX;
@@ -216,7 +218,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
             l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
             l1ERC721Bridge: address(0),
             l1StandardBridge: address(0),
-            disputeGameFactory: _DISPUTE_GAME_FACTORY,
             optimismPortal: address(PORTAL),
             optimismMintableERC20Factory: address(0)
         });
@@ -230,14 +231,15 @@ contract Setup is PropertiesAsserts, HandlerActors {
             0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
             config,
             0xFF00000000000000000000000000000000000010,
-            addresses
+            addresses,
+            DESTINATION_CHAIN_ID
         );
 
         // Initialize AnchorStateRegistry
         ANCHOR_STATE_REGISTRY.initialize(
             ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
             IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
-            Proposal(0),
+            Proposal(Hash.wrap(bytes32(0)), 0),
             GameType.wrap(0)
         );
 
@@ -252,7 +254,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Initialize ETHLockbox
         IOptimismPortal[] memory portals = new IOptimismPortal[](1);
         portals[0] = PORTAL;
-        ETH_LOCKBOX.initialize(address(SUPERCHAIN_CONFIG), portals);
+        ETH_LOCKBOX.initialize(SUPERCHAIN_CONFIG, portals);
     }
 
     function _addActors() internal {
@@ -270,7 +272,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
     }
 
     /// Check setup proper deployment and initialization of the contracts
-    function _setupSanityCheck() internal {
+    function _setupSanityCheck() internal view {
         /* Contracts with some storage intialization on setup */
         // Portal
         assert(PORTAL.proofMaturityDelaySeconds() == PROOF_MATURITY_DELAY_SECONDS);
@@ -284,7 +286,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
         // ethLockbox
         assert(address(ETH_LOCKBOX.superchainConfig()) == address(SUPERCHAIN_CONFIG));
-        assert(ETH_LOCKBOX.authorizedPortals(address(PORTAL)) == true);
+        assert(ETH_LOCKBOX.authorizedPortals(PORTAL) == true);
 
         // Superchain Config
         assert(SUPERCHAIN_CONFIG.guardian() == GUARDIAN);
@@ -307,10 +309,8 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
         // AnchorStateRegistry
         assert(ANCHOR_STATE_REGISTRY.disputeGameFinalityDelaySeconds() == DISPUTE_GAME_FINALITY_DELAY_SECONDS);
-        assert(ANCHOR_STATE_REGISTRY.superchainConfig() == address(SUPERCHAIN_CONFIG));
-        assert(ANCHOR_STATE_REGISTRY.disputeGameFactory() == _DISPUTE_GAME_FACTORY);
-        assert(ANCHOR_STATE_REGISTRY.startingAnchorRoot() == Proposal(0));
-        assert(ANCHOR_STATE_REGISTRY.startingRespectedGameType() == GameType.wrap(0));
+        assert(ANCHOR_STATE_REGISTRY.superchainConfig() == SUPERCHAIN_CONFIG);
+        assert(address(ANCHOR_STATE_REGISTRY.disputeGameFactory()) == _DISPUTE_GAME_FACTORY);
 
         // SuperchainERC20
         string memory tokenName = "Super Token";
