@@ -163,6 +163,20 @@ coverage-lcov-all *ARGS:
 #                        DEPLOY                        #
 ########################################################
 
+# runs medusa on a foundry profile that allows faster compilation by omitting
+# to build other tests and scripts
+test-medusa *ARGS:
+  FOUNDRY_PROFILE=medusa medusa fuzz {{ARGS}}
+
+# runs medusa on a foundry profile that allows faster compilation by omitting
+# to build other tests and scripts and deletes corpus before running
+test-medusa-debug *ARGS:
+  FOUNDRY_PROFILE=medusa medusa fuzz --config medusa-debug.json {{ARGS}}
+
+########################################################
+#                        DEPLOY                        #
+########################################################
+
 # Generates the L2 genesis state.
 genesis:
   forge script scripts/L2Genesis.s.sol:L2Genesis --sig 'runWithStateDump()'

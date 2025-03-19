@@ -40,3 +40,7 @@ deployments/1-deploy.json
 
 # Getting Started guide deploy config
 deploy-config/getting-started.json
+
+# Medusa
+test/invariants/interop/corpus
+slither_results.json
