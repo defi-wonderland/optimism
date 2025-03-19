@@ -9,7 +9,7 @@ contract GhostStorage {
 
     // Whether the L1 and L2 proxies have been initialized`
     bool internal _ghost_isInitialized;
-    // Whether the contract the OptimismPortal has been migrated on L1 and setup to interact with the SharedLockbox
+    // Whether the contract the OptimismPortal has been migrated on L1 and setup to interact with the ETHLockbox
     // feature
     bool internal _ghost_isMigrated;
 

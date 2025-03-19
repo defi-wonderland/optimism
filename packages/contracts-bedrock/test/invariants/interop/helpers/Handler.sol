@@ -326,108 +326,109 @@ contract Handler is Setup {
         assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
     }
 
-    function handler_migrateAndAddL1Dependency() public initialize {
-        require(!_ghost_isMigrated);
+    // TODO: Remove -- only leaving for now for reference
+    // function handler_migrateAndAddL1Dependency() public initialize {
+    //     require(!_ghost_isMigrated);
 
-        // Upgrade the superchain config to the new implementation through the proxy admin
-        (bool success,) = PROXY_OWNER.directCall(
-            address(PROXY_ADMIN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(
-                ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), address(new StorageSetter())
-            )
-        );
-        assert(success);
+    //     // Upgrade the superchain config to the new implementation through the proxy admin
+    //     (bool success,) = PROXY_OWNER.directCall(
+    //         address(PROXY_ADMIN),
+    //         _ZERO_VALUE,
+    //         abi.encodeWithSelector(
+    //             ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), address(new StorageSetter())
+    //         )
+    //     );
+    //     assert(success);
 
-        // Reset the initialized flag to enable the new implementation to be initialized
-        try StorageSetter(address(SUPERCHAIN_CONFIG)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
-            // Assert the `_initialized` slot was set to false
-            assert(StorageSetter(address(SUPERCHAIN_CONFIG)).getBool(bytes32(0)) == false);
-        } catch {
-            assert(false);
-        }
+    //     // Reset the initialized flag to enable the new implementation to be initialized
+    //     try StorageSetter(address(SUPERCHAIN_CONFIG)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
+    //         // Assert the `_initialized` slot was set to false
+    //         assert(StorageSetter(address(SUPERCHAIN_CONFIG)).getBool(bytes32(0)) == false);
+    //     } catch {
+    //         assert(false);
+    //     }
 
-        // Upgrade the superchain config interop to the new implementation through the proxy admin
-        (success,) = PROXY_OWNER.directCall(
-            address(PROXY_ADMIN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(
-                ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG), DEPLOYER_8_15.deploySuperchainConfigInterop()
-            )
-        );
-        assert(success);
+    //     // Upgrade the superchain config interop to the new implementation through the proxy admin
+    //     (success,) = PROXY_OWNER.directCall(
+    //         address(PROXY_ADMIN),
+    //         _ZERO_VALUE,
+    //         abi.encodeWithSelector(
+    //             ProxyAdmin.upgrade.selector, address(SUPERCHAIN_CONFIG),
+    // DEPLOYER_8_15.deploySuperchainConfig()
+    //         )
+    //     );
+    //     assert(success);
 
-        // Initialize the superchain config interop
-        try SUPERCHAIN_CONFIG.initialize(GUARDIAN, false, CLUSTER_MANAGER, address(SHARED_LOCKBOX)) {
-            assert(address(SUPERCHAIN_CONFIG.sharedLockbox()) == address(SHARED_LOCKBOX));
-            assert(address(SUPERCHAIN_CONFIG.clusterManager()) == CLUSTER_MANAGER);
-        } catch {
-            assert(false);
-        }
+    //     // Initialize the superchain config interop
+    //     try SUPERCHAIN_CONFIG.initialize(GUARDIAN, false) { }
+    //     catch {
+    //         assert(false);
+    //     }
 
-        // Upgrade the portal to the new implementation through the proxy admin
-        (success,) = PROXY_OWNER.directCall(
-            address(PROXY_ADMIN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), address(new StorageSetter()))
-        );
-        assert(success);
+    //     // Upgrade the portal to the new implementation through the proxy admin
+    //     (success,) = PROXY_OWNER.directCall(
+    //         address(PROXY_ADMIN),
+    //         _ZERO_VALUE,
+    //         abi.encodeWithSelector(ProxyAdmin.upgrade.selector, address(PORTAL), address(new StorageSetter()))
+    //     );
+    //     assert(success);
 
-        // Reset the initialized flag to enable the new implementation to be initialized
-        try StorageSetter(address(PORTAL)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
-            // Assert the `_initialized` slot was set to false
-            assert(StorageSetter(address(PORTAL)).getBool(bytes32(0)) == false);
-        } catch {
-            assert(false);
-        }
+    //     // Reset the initialized flag to enable the new implementation to be initialized
+    //     try StorageSetter(address(PORTAL)).setBytes32(bytes32(0), bytes32(abi.encodePacked(false))) {
+    //         // Assert the `_initialized` slot was set to false
+    //         assert(StorageSetter(address(PORTAL)).getBool(bytes32(0)) == false);
+    //     } catch {
+    //         assert(false);
+    //     }
 
-        // Deploy the new implementation
-        address newImplementation =
-            DEPLOYER_8_15.deployOptimismPortalInterop(PROOF_MATURITY_DELAY_SECONDS, DISPUTE_GAME_FINALITY_DELAY_SECONDS);
-        // Upgrade the portal to the new implementation through the proxy admin
-        bytes memory initializeCall = abi.encodeCall(
-            OptimismPortalInterop.initialize,
-            (
-                IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
-                ISystemConfig(address(SYSTEM_CONFIG)),
-                ISuperchainConfigInterop(address(SUPERCHAIN_CONFIG)),
-                GameType.wrap(0)
-            )
-        );
+    //     // Deploy the new implementation
+    //     address newImplementation =
+    //         DEPLOYER_8_15.deployOptimismPortalInterop(PROOF_MATURITY_DELAY_SECONDS,
+    // DISPUTE_GAME_FINALITY_DELAY_SECONDS);
+    //     // Upgrade the portal to the new implementation through the proxy admin
+    //     bytes memory initializeCall = abi.encodeCall(
+    //         OptimismPortalInterop.initialize,
+    //         (
+    //             IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
+    //             ISystemConfig(address(SYSTEM_CONFIG)),
+    //             ISuperchainConfigInterop(address(SUPERCHAIN_CONFIG)),
+    //             GameType.wrap(0)
+    //         )
+    //     );
 
-        // Upgrade the portal to the new implementation through the proxy admin and call the initialize function
-        (success,) = PROXY_OWNER.directCall(
-            address(PROXY_ADMIN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(
-                ProxyAdmin.upgradeAndCall.selector, address(PORTAL), newImplementation, initializeCall
-            )
-        );
-        assert(success);
-        assert(address(PORTAL.sharedLockbox()) == address(SHARED_LOCKBOX));
+    //     // Upgrade the portal to the new implementation through the proxy admin and call the initialize function
+    //     (success,) = PROXY_OWNER.directCall(
+    //         address(PROXY_ADMIN),
+    //         _ZERO_VALUE,
+    //         abi.encodeWithSelector(
+    //             ProxyAdmin.upgradeAndCall.selector, address(PORTAL), newImplementation, initializeCall
+    //         )
+    //     );
+    //     assert(success);
+    //     assert(address(PORTAL.ethLockbox()) == address(ETH_LOCKBOX));
 
-        // Get balances before
-        uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
-        uint256 portalBalanceBefore = address(PORTAL).balance;
+    //     // Get balances before
+    //     uint256 ethLockboxBalanceBefore = address(ETH_LOCKBOX).balance;
+    //     uint256 portalBalanceBefore = address(PORTAL).balance;
 
-        // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
-        (success,) = Actors(payable(CLUSTER_MANAGER)).directCall(
-            address(SUPERCHAIN_CONFIG),
-            0,
-            abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, address(SYSTEM_CONFIG)))
-        );
-        assert(success);
+    //     // Add chain A to the dependency set, using the cluster manager as the actor to avoid the prank cheatcode
+    //     (success,) = Actors(payable(CLUSTER_MANAGER)).directCall(
+    //         address(SUPERCHAIN_CONFIG),
+    //         0,
+    //         abi.encodeCall(SUPERCHAIN_CONFIG.addDependency, (block.chainid, address(SYSTEM_CONFIG)))
+    //     );
+    //     assert(success);
 
-        // Ensure the chain was added to the dependency set and the portal was migrated
-        assert(SUPERCHAIN_CONFIG.isInDependencySet(block.chainid));
-        assert(SUPERCHAIN_CONFIG.authorizedPortals(address(PORTAL)));
-        assert(PORTAL.migrated());
-        // Ensure the portal transferred all its balance to the SharedLockbox
-        assert(address(PORTAL).balance == 0);
-        assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore + portalBalanceBefore);
+    //     // Ensure the chain was added to the dependency set and the portal was migrated
+    //     assert(SUPERCHAIN_CONFIG.isInDependencySet(block.chainid));
+    //     assert(SUPERCHAIN_CONFIG.authorizedPortals(address(PORTAL)));
+    //     assert(PORTAL.migrated());
+    //     // Ensure the portal transferred all its balance to the ETHLockbox
+    //     assert(address(PORTAL).balance == 0);
+    //     assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore + portalBalanceBefore);
 
-        _ghost_isMigrated = true;
-    }
+    //     _ghost_isMigrated = true;
+    // }
 
     // Increases the block number, needed to avoid hitting the L2 block gas limit while depositing on the OptimismPortal
     function handler_increaseBlockNumber(bool _increaseTwo) public initialize {

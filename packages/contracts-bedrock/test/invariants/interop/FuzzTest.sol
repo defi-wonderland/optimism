@@ -303,7 +303,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 10
     /// @custom:property Before migration, deposits with value greater than zero MUST keep the ETH in the OptimismPortal
     /// @custom:property-id 12
-    /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the SharedLockbox when on a
+    /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the ETHLockbox when on a
     /// deposit transaction with value greater than zero, without holding any ETH balance from the depositing users
     function test_optimismPortalDeposits(
         address _to,
@@ -325,7 +325,7 @@ contract FuzzTest is Handler {
 
         Actors actor = randomActor(_value);
         _value = clampLte(_value, address(actor).balance);
-        uint256 balanceBefore = _ghost_isMigrated ? address(SHARED_LOCKBOX).balance : address(PORTAL).balance;
+        uint256 balanceBefore = _ghost_isMigrated ? address(ETH_LOCKBOX).balance : address(PORTAL).balance;
 
         // Deposit the transaction
         (bool success,) = actor.directCall(
@@ -335,7 +335,7 @@ contract FuzzTest is Handler {
         );
         assert(success);
 
-        if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == balanceBefore + _value);
+        if (_ghost_isMigrated) assert(address(ETH_LOCKBOX).balance == balanceBefore + _value);
         else assert(address(PORTAL).balance == balanceBefore + _value);
     }
 
@@ -344,7 +344,7 @@ contract FuzzTest is Handler {
     /// being withdrawn is greater than zero
     /// @custom:property-id 13
     /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
-    /// SharedLockbox if it is greater than zero
+    /// ETHLockbox if it is greater than zero
     function test_optimismPortalWithdrawals(
         Types.WithdrawalTransaction memory _tx,
         uint256 _actorIndex
@@ -353,7 +353,7 @@ contract FuzzTest is Handler {
         initialize
     {
         require(_tx.target != address(PORTAL));
-        require(_tx.target != address(SHARED_LOCKBOX));
+        require(_tx.target != address(ETH_LOCKBOX));
         require(!_isL2Contract(_tx.target));
 
         bool success;
@@ -367,7 +367,7 @@ contract FuzzTest is Handler {
         // Gas is limit is out of scope
         _tx.gasLimit = type(uint256).max;
 
-        if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(SHARED_LOCKBOX).balance);
+        if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
         else _tx.value = clampLte(_tx.value, address(PORTAL).balance);
 
         require(!PORTAL.finalizedWithdrawals(Hashing.hashWithdrawal(_tx)));
@@ -381,7 +381,7 @@ contract FuzzTest is Handler {
         assert(success);
 
         uint256 portalBalanceBefore = address(PORTAL).balance;
-        uint256 sharedLockboxBalanceBefore = address(SHARED_LOCKBOX).balance;
+        uint256 ethLockboxBalanceBefore = address(ETH_LOCKBOX).balance;
 
         (success, returnData) =
             actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
@@ -392,32 +392,17 @@ contract FuzzTest is Handler {
 
         // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
         if (safecallSuccess) {
-            if (_ghost_isMigrated) assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+            if (_ghost_isMigrated) assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
             else assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
         } else {
             // If the safecall failed, the balance should be the same
             // TODO: If portal behavior is changed, this will need to be updated
             if (_ghost_isMigrated) {
-                assert(address(SHARED_LOCKBOX).balance == sharedLockboxBalanceBefore - _tx.value);
+                assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
                 assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
             } else {
                 assert(address(PORTAL).balance == portalBalanceBefore);
             }
-        }
-    }
-
-    /// @custom:property-id 15
-    /// @custom:property The CLUSTER_MANAGER role MUST only be modifiable during initialization
-    function test_sameClusterManager() public initialize {
-        assert(SUPERCHAIN_CONFIG.clusterManager() == CLUSTER_MANAGER);
-
-        // Calling `initialize()` since it is the only way to update the cluster manager, it should revert and the state
-        // should not be updated
-        address newClusterManager = address(12345);
-        try SUPERCHAIN_CONFIG.initialize(address(0), false, newClusterManager, address(0)) {
-            assert(false);
-        } catch {
-            assert(SUPERCHAIN_CONFIG.clusterManager() == CLUSTER_MANAGER);
         }
     }
 }

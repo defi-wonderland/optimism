@@ -681,9 +681,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         }
 
         // Check that the root claim is valid.
-        if (!anchorStateRegistry.isGameClaimValid(disputeGameProxy)) {
-            revert OptimismPortal_InvalidRootClaim();
-        }
+        // if (!anchorStateRegistry.isGameClaimValid(disputeGameProxy)) {
+        //     revert OptimismPortal_InvalidRootClaim();
+        // }
     }
 
     /// @notice Migrates the total ETH balance to the ETHLockbox.

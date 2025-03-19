@@ -6,7 +6,7 @@ interface IDeployer815 {
 
     function deployL1Block() external returns (address l1Block);
 
-    function deployLiquidityMigrator(address _sharedLockbox) external returns (address liquidityMigrator);
+    function deployLiquidityMigrator(address _ethLockbox) external returns (address liquidityMigrator);
 
     function deployOptimismPortalInterop(
         uint256 _proofMaturityDelaySeconds,
@@ -26,7 +26,7 @@ interface IDeployer815 {
 
     function deploySuperchainConfig() external returns (address superchainConfig);
 
-    function deploySuperchainConfigInterop() external returns (address superchainConfigInterop);
+    function deploySuperchainConfig() external returns (address superchainConfigInterop);
 
     function deploySuperchainWETH() external returns (address superchainWETH);
 
