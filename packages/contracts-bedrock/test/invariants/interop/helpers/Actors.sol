@@ -9,6 +9,14 @@ import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { vm } from "../utils/VM.sol";
 
+interface ICrossL2InboxWithSlotWarming {
+    function warmSlot(bytes32 _slot) external view returns (uint256 res_);
+
+    function isWarm(bytes32 _slot) external view returns (bool isWarm_, uint256 value_);
+
+    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) external pure returns (bytes32 checksum_);
+}
+
 // Actors handler, reusing the msg.sender used by Medusa (defined in the json)
 // and tracking them, allowing to aggregate balances for instance.
 //
@@ -46,11 +54,16 @@ contract Actors {
 
     function callL2ToL2MessengerRelayMessage(
         Identifier memory _id,
-        bytes memory _message
+        bytes memory _message,
+        bytes32 _slot
     )
         public
         returns (bool _success)
     {
+        if (_slot != bytes32(0)) {
+            ICrossL2InboxWithSlotWarming(L2_TO_L2_CROSS_DOMAIN_MESSENGER).warmSlot(_slot);
+        }
+
         // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
         // though it's the same as the one used in the interface.
         (_success,) = L2_TO_L2_CROSS_DOMAIN_MESSENGER.call(

@@ -11,7 +11,7 @@ import {
     ISuperchainConfig,
     GameType
 } from "../Setup.sol";
-import { Actors } from "./Actors.sol";
+import { Actors, ICrossL2InboxWithSlotWarming } from "./Actors.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
 import { Utils } from "../utils/Utils.sol";
@@ -321,7 +321,8 @@ contract Handler is Setup {
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
         Actors actor = randomActor(_toActorIndex);
-        bool success = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_id, messageHash);
+        bool success = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage, slot);
         assert(success);
         // Check the Ether balances
         assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);

@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Contracts
-import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
+import { CrossL2InboxWithSlotWarming } from "test/mocks/CrossL2InboxWithSlotWarming.sol";
 import { L2ToL2CrossDomainMessenger } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 import { SuperchainERC20ForToBProperties } from "../helpers/SuperchainERC20ForToBProperties.sol";
 import { SuperchainTokenBridge } from "src/L2/SuperchainTokenBridge.sol";
@@ -10,7 +10,7 @@ import { ETHLockbox } from "src/L1/ETHLockbox.sol";
 
 contract Deployer825 {
     function deployCrossL2Inbox() public returns (address crossL2Inbox) {
-        crossL2Inbox = address(new CrossL2Inbox());
+        crossL2Inbox = address(new CrossL2InboxWithSlotWarming());
     }
 
     function deployL2ToL2CrossDomainMessenger() public returns (address l2ToL2CrossDomainMessenger) {

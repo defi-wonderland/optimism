@@ -467,17 +467,13 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
     ///         when the Output Root proof method is deprecated.
     /// @param _tx               Withdrawal transaction to prove.
     /// @param _disputeGameProxy Address of the dispute game to prove the withdrawal against.
-    /// @param _outputRootIndex  Index of the target Output Root within the Super Root.
-    /// @param _superRootProof   Inclusion proof of the Output Root within the Super Root.
-    /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser storage root.
-    /// @param _withdrawalProof  Inclusion proof of the withdrawal within the L2ToL1MessagePasser.
     function _proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         IDisputeGame _disputeGameProxy,
-        uint256 _outputRootIndex,
-        Types.SuperRootProof memory _superRootProof,
-        Types.OutputRootProof memory _outputRootProof,
-        bytes[] memory _withdrawalProof
+        uint256,
+        Types.SuperRootProof memory,
+        Types.OutputRootProof memory,
+        bytes[] memory
     )
         internal
     {

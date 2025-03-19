@@ -18,7 +18,6 @@ import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 
 // Interfaces 0.8.25
-import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { ISuperToken } from "./interfaces/ISuperToken.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
@@ -32,7 +31,7 @@ import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Constants } from "src/libraries/Constants.sol";
-import { HandlerActors, Actors } from "./helpers/Actors.sol";
+import { HandlerActors, Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
 
 contract Setup is PropertiesAsserts, HandlerActors {
     using Utils for *;
@@ -58,7 +57,8 @@ contract Setup is PropertiesAsserts, HandlerActors {
     IAnchorStateRegistry public immutable ANCHOR_STATE_REGISTRY;
 
     // Soldity 0.8.25 Contracts
-    ICrossL2Inbox public immutable CROSS_L2_INBOX = ICrossL2Inbox(Predeploys.CROSS_L2_INBOX);
+    ICrossL2InboxWithSlotWarming public immutable CROSS_L2_INBOX =
+        ICrossL2InboxWithSlotWarming(Predeploys.CROSS_L2_INBOX);
     IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     ISuperchainTokenBridge public immutable SUPERCHAIN_TOKEN_BRIDGE =

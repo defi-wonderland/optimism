@@ -7,7 +7,7 @@ import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { Actors } from "./helpers/Actors.sol";
+import { Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
 
@@ -76,9 +76,20 @@ contract FuzzTest is Handler {
         uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
+        // hash the message
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: message
+        });
+
         // Relay the message by calling the messenger from the actor
         Actors actor = currentActor();
-        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_id, messageHash);
+        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage, slot);
 
         if (success) {
             // Check the state is right after the call
@@ -86,14 +97,6 @@ contract FuzzTest is Handler {
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
         } else {
             // Ensure the message was already relayed
-            bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-                _destination: block.chainid,
-                _source: _id.chainId,
-                _nonce: _message.nonce,
-                _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-                _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-                _message: message
-            });
             assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
         }
     }
@@ -144,15 +147,19 @@ contract FuzzTest is Handler {
         // To avoid a revert, the amount must be lesser than the ETHLiquidity ether balance (insufficient ether) and
         // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
         uint256 totalSupplyBefore = SUPER_WETH.totalSupply();
-        _message.amount =
-            clampLte(_message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - totalSupplyBefore));
 
-        _id.blockNumber = clampLte(_id.blockNumber, type(uint64).max);
-        _id.logIndex = clampLte(_id.logIndex, type(uint32).max);
-        _id.timestamp = clampLte(_id.timestamp, type(uint64).max);
+        // Ensure the inputs are valid
+        {
+            _message.amount = clampLte(
+                _message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - totalSupplyBefore)
+            );
 
-        // Ensure the id is valid
-        _id.origin = address(L2_TO_L2_MESSENGER);
+            _id.origin = address(L2_TO_L2_MESSENGER);
+
+            _id.blockNumber = clampLte(_id.blockNumber, type(uint64).max);
+            _id.logIndex = clampLte(_id.logIndex, type(uint32).max);
+            _id.timestamp = clampLte(_id.timestamp, type(uint64).max);
+        }
 
         // Ensure the message is valid
         address targetActor = address(randomActor(_actorIndex));
@@ -170,29 +177,33 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
-        // Relay the message by calling the messenger from the actor
-        Actors actor = currentActor();
-        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        // hash the message
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _id.chainId,
+            _nonce: _message.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: messageTarget,
+            _message: message
+        });
 
-        if (success) {
-            _ghost_superWethBalancesSum += _message.amount;
+        {
+            // Relay the message by calling the messenger from the actor
+            (bool success) = currentActor().callL2ToL2MessengerRelayMessage(
+                _id, sentMessage, CROSS_L2_INBOX.calculateChecksum(_id, messageHash)
+            );
 
-            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
-            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
-            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
-            assert(SUPER_WETH.totalSupply() == totalSupplyBefore + _message.amount);
-        } else {
-            // If it fails, it should only be because the message was already relayed
-            bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-                _destination: block.chainid,
-                _source: _id.chainId,
-                _nonce: _message.nonce,
-                _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-                _target: messageTarget,
-                _message: message
-            });
+            if (success) {
+                _ghost_superWethBalancesSum += _message.amount;
 
-            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+                assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
+                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+                assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
+                assert(SUPER_WETH.totalSupply() == totalSupplyBefore + _message.amount);
+            } else {
+                // If it fails, it should only be because the message was already relayed
+                assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
+            }
         }
     }
 
@@ -255,7 +266,8 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         // Relay the message
-        bool success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage);
+        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_id, messageHash);
+        bool success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage, slot);
 
         if (success) {
             // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx
