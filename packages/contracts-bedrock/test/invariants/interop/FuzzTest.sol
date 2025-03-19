@@ -54,6 +54,10 @@ contract FuzzTest is Handler {
     {
         _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
+        _id.blockNumber = clampBetween(_id.blockNumber, 0, type(uint64).max);
+        _id.logIndex = clampBetween(_id.logIndex, 0, type(uint32).max);
+        _id.timestamp = clampBetween(_id.timestamp, 0, type(uint64).max);
+
         // Ensure the id is valid
         _id.origin = address(L2_TO_L2_MESSENGER);
 
