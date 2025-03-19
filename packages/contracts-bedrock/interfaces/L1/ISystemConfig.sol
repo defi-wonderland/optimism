@@ -27,6 +27,13 @@ interface ISystemConfig {
         address feeVaultAdmin;
     }
 
+    struct FeeVaultConfigs {
+        Types.FeeVaultConfig baseFeeVaultConfig;
+        Types.FeeVaultConfig sequencerFeeVaultConfig;
+        Types.FeeVaultConfig l1FeeVaultConfig;
+        Types.FeeVaultConfig operatorFeeVaultConfig;
+    }
+
     event ConfigUpdate(uint256 indexed version, UpdateType indexed updateType, bytes data);
     event Initialized(uint8 version);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -62,6 +69,7 @@ interface ISystemConfig {
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         Addresses memory _addresses,
+        FeeVaultConfigs memory _feeVaultConfigs,
         uint256 _l2ChainId
     )
         external;
@@ -87,13 +95,7 @@ interface ISystemConfig {
     function setGasLimit(uint64 _gasLimit) external;
     function setOperatorFeeScalars(uint32 _operatorFeeScalar, uint64 _operatorFeeConstant) external;
     function setUnsafeBlockSigner(address _unsafeBlockSigner) external;
-    function setFeeVaultConfig(
-        Types.ConfigType _type,
-        address _recipient,
-        uint256 _min,
-        Types.WithdrawalNetwork _network
-    )
-        external;
+    function setFeeVaultConfig(Types.ConfigType _type, Types.FeeVaultConfig memory _config) external;
     function setEIP1559Params(uint32 _denominator, uint32 _elasticity) external;
     function startBlock() external view returns (uint256 startBlock_);
     function transferOwnership(address newOwner) external; // nosemgrep

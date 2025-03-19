@@ -47,6 +47,7 @@ contract DeployOPChainInput is BaseDeployIO {
     // TODO Add fault proofs inputs in a future PR.
     uint32 internal _basefeeScalar;
     uint32 internal _blobBaseFeeScalar;
+    bytes internal _feeVaultConfigs;
     uint256 internal _l2ChainId;
     IOPContractsManager internal _opcm;
     string internal _saltMixer;
@@ -122,6 +123,11 @@ contract DeployOPChainInput is BaseDeployIO {
         else revert("DeployOPChainInput: unknown selector");
     }
 
+    function set(bytes4 _sel, bytes memory _value) public {
+        if (_sel == this.feeVaultConfigs.selector) _feeVaultConfigs = _value;
+        else revert("DeployOPChainInput: unknown selector");
+    }
+
     function opChainProxyAdminOwner() public view returns (address) {
         require(_opChainProxyAdminOwner != address(0), "DeployOPChainInput: not set");
         return _opChainProxyAdminOwner;
@@ -165,6 +171,11 @@ contract DeployOPChainInput is BaseDeployIO {
     function blobBaseFeeScalar() public view returns (uint32) {
         require(_blobBaseFeeScalar != 0, "DeployOPChainInput: not set");
         return _blobBaseFeeScalar;
+    }
+
+    function feeVaultConfigs() public view returns (bytes memory) {
+        require(_feeVaultConfigs.length != 0, "DeployOPChainInput: not set");
+        return _feeVaultConfigs;
     }
 
     function l2ChainId() public view returns (uint256) {
@@ -384,6 +395,7 @@ contract DeployOPChain is Script {
             roles: roles,
             basefeeScalar: _doi.basefeeScalar(),
             blobBasefeeScalar: _doi.blobBaseFeeScalar(),
+            feeVaultConfigs: _doi.feeVaultConfigs(),
             l2ChainId: _doi.l2ChainId(),
             startingAnchorRoot: _doi.startingAnchorRoot(),
             saltMixer: _doi.saltMixer(),

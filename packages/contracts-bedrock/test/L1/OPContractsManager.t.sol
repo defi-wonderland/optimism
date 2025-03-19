@@ -18,7 +18,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { Blueprint } from "src/libraries/Blueprint.sol";
 import { ForgeArtifacts } from "scripts/libraries/ForgeArtifacts.sol";
 import { Bytes } from "src/libraries/Bytes.sol";
-
+import { Types } from "src/libraries/Types.sol";
 // Interfaces
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
@@ -114,6 +114,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
         doi.set(doi.feeVaultAdmin.selector, feeVaultAdmin);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
+        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.gasLimit.selector, gasLimit);
@@ -145,6 +146,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
             }),
             basefeeScalar: _doi.basefeeScalar(),
             blobBasefeeScalar: _doi.blobBaseFeeScalar(),
+            feeVaultConfigs: _doi.feeVaultConfigs(),
             l2ChainId: _doi.l2ChainId(),
             startingAnchorRoot: _doi.startingAnchorRoot(),
             saltMixer: _doi.saltMixer(),
@@ -1027,6 +1029,30 @@ contract OPContractsManager_AddGameType_Test is Test {
                         l2SequenceNumber: 0
                     })
                 ),
+                feeVaultConfigs: abi.encode(
+                    ISystemConfig.FeeVaultConfigs({
+                        baseFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        l1FeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        operatorFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        })
+                    })
+                ),
                 l2ChainId: 100,
                 saltMixer: "hello",
                 gasLimit: 30_000_000,
@@ -1382,6 +1408,30 @@ contract OPContractsManager_UpdatePrestate_Test is Test {
                     Proposal({
                         root: Hash.wrap(0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef),
                         l2SequenceNumber: 0
+                    })
+                ),
+                feeVaultConfigs: abi.encode(
+                    ISystemConfig.FeeVaultConfigs({
+                        baseFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        l1FeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        operatorFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        })
                     })
                 ),
                 l2ChainId: 100,

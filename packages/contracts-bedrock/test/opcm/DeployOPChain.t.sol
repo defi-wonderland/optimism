@@ -25,6 +25,8 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProtocolVersions, ProtocolVersion } from "interfaces/L1/IProtocolVersions.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { Types } from "src/libraries/Types.sol";
 
 import { Claim, Duration, GameType, GameTypes, Hash, Proposal } from "src/dispute/lib/Types.sol";
 
@@ -44,6 +46,30 @@ contract DeployOPChainInput_Test is Test {
     uint32 blobBaseFeeScalar = 200;
     uint256 l2ChainId = 300;
     string saltMixer = "saltMixer";
+    bytes feeVaultConfigs = abi.encode(
+        ISystemConfig.FeeVaultConfigs({
+            baseFeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            }),
+            sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            }),
+            l1FeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            }),
+            operatorFeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            })
+        })
+    );
 
     function setUp() public {
         doi = new DeployOPChainInput();
@@ -59,6 +85,7 @@ contract DeployOPChainInput_Test is Test {
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
+        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.allowCustomDisputeParameters.selector, true);
         doi.set(doi.opcm.selector, opcm);
@@ -342,6 +369,30 @@ contract DeployOPChain_TestBase is Test {
     uint256 disputeSplitDepth = 30;
     uint64 disputeClockExtension = Duration.unwrap(Duration.wrap(3 hours));
     uint64 disputeMaxClockDuration = Duration.unwrap(Duration.wrap(3.5 days));
+    bytes feeVaultConfigs = abi.encode(
+        ISystemConfig.FeeVaultConfigs({
+            baseFeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            }),
+            sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            }),
+            l1FeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            }),
+            operatorFeeVaultConfig: Types.FeeVaultConfig({
+                recipient: address(0),
+                min: 0,
+                withdrawalNetwork: Types.WithdrawalNetwork.L1
+            })
+        })
+    );
 
     function setUp() public virtual {
         // Configure and deploy Superchain contracts
@@ -422,6 +473,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
+        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.saltMixer.selector, saltMixer);
@@ -517,6 +569,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
+        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.saltMixer.selector, saltMixer);

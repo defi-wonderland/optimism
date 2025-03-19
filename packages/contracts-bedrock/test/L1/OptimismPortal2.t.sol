@@ -37,6 +37,9 @@ import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.so
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
 contract OptimismPortal2_Test is CommonTest {
+    // Account for the gas used by the SystemConfig.setConfig calls during initialization.
+    uint256 public constant SET_CONFIG_GAS = 1600_000;
+
     address depositor;
 
     function setUp() public virtual override {
@@ -278,7 +281,7 @@ contract OptimismPortal2_Test is CommonTest {
             bound(
                 _gasLimit,
                 optimismPortal2.minimumGasLimit(uint64(_data.length)),
-                systemConfig.resourceConfig().maxResourceLimit
+                systemConfig.resourceConfig().maxResourceLimit - SET_CONFIG_GAS
             )
         );
         if (_isCreation) _to = address(0);
@@ -336,7 +339,7 @@ contract OptimismPortal2_Test is CommonTest {
             bound(
                 _gasLimit,
                 optimismPortal2.minimumGasLimit(uint64(_data.length)),
-                systemConfig.resourceConfig().maxResourceLimit
+                systemConfig.resourceConfig().maxResourceLimit - SET_CONFIG_GAS
             )
         );
         if (_isCreation) _to = address(0);
@@ -390,7 +393,7 @@ contract OptimismPortal2_Test is CommonTest {
             bound(
                 _gasLimit,
                 optimismPortal2.minimumGasLimit(uint64(_data.length)),
-                systemConfig.resourceConfig().maxResourceLimit
+                systemConfig.resourceConfig().maxResourceLimit - SET_CONFIG_GAS
             )
         );
         if (_isCreation) _to = address(0);
@@ -2250,6 +2253,8 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 }
 
 contract OptimismPortal2_Upgradeable_Test is CommonTest {
+    uint64 internal constant SYSTEM_DEPOSIT_GAS_LIMIT = 200_000;
+
     function setUp() public override {
         super.setUp();
     }
@@ -2261,7 +2266,8 @@ contract OptimismPortal2_Upgradeable_Test is CommonTest {
         IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
 
         assertEq(prevBaseFee, rcfg.minimumBaseFee);
-        assertEq(prevBoughtGas, 0);
+        // On SystemConfig deployment, we call setConfig for each fee vault, the L1 addresses, and the remote chain id.
+        assertEq(prevBoughtGas, SYSTEM_DEPOSIT_GAS_LIMIT * 8);
         assertEq(prevBlockNum, block.number);
     }
 

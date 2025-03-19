@@ -102,6 +102,7 @@ interface IOPContractsManager {
         Roles roles;
         uint32 basefeeScalar;
         uint32 blobBasefeeScalar;
+        bytes feeVaultConfigs;
         uint256 l2ChainId;
         // The correct type is OutputRoot memory but OP Deployer does not yet support structs.
         bytes startingAnchorRoot;

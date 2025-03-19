@@ -25,6 +25,7 @@ import {
 
 // Libraries
 import { Constants } from "src/libraries/Constants.sol";
+import { Types as LibTypes } from "src/libraries/Types.sol";
 import { Types } from "scripts/libraries/Types.sol";
 import { Duration } from "src/dispute/lib/LibUDT.sol";
 import { StorageSlot, ForgeArtifacts } from "scripts/libraries/ForgeArtifacts.sol";
@@ -519,6 +520,28 @@ contract Deploy is Deployer {
                         optimismPortal: artifacts.mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: artifacts.mustGetAddress("L1OptimismMintableERC20FactoryProxy")
                     }),
+                    ISystemConfig.FeeVaultConfigs({
+                        baseFeeVaultConfig: LibTypes.FeeVaultConfig({
+                            recipient: cfg.baseFeeVaultRecipient(),
+                            min: cfg.baseFeeVaultMinimumWithdrawalAmount(),
+                            withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
+                        }),
+                        sequencerFeeVaultConfig: LibTypes.FeeVaultConfig({
+                            recipient: cfg.sequencerFeeVaultRecipient(),
+                            min: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
+                            withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
+                        }),
+                        l1FeeVaultConfig: LibTypes.FeeVaultConfig({
+                            recipient: cfg.l1FeeVaultRecipient(),
+                            min: cfg.l1FeeVaultMinimumWithdrawalAmount(),
+                            withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
+                        }),
+                        operatorFeeVaultConfig: LibTypes.FeeVaultConfig({
+                            recipient: cfg.operatorFeeVaultRecipient(),
+                            min: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
+                            withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.operatorFeeVaultWithdrawalNetwork())
+                        })
+                    }),
                     cfg.l2ChainID()
                 )
             )
@@ -953,6 +976,30 @@ contract Deploy is Deployer {
                 challenger: cfg.l2OutputOracleChallenger(),
                 feeVaultAdmin: cfg.systemConfigFeeVaultAdmin()
             }),
+            feeVaultConfigs: abi.encode(
+                ISystemConfig.FeeVaultConfigs({
+                    baseFeeVaultConfig: LibTypes.FeeVaultConfig({
+                        recipient: cfg.baseFeeVaultRecipient(),
+                        min: cfg.baseFeeVaultMinimumWithdrawalAmount(),
+                        withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.baseFeeVaultWithdrawalNetwork())
+                    }),
+                    sequencerFeeVaultConfig: LibTypes.FeeVaultConfig({
+                        recipient: cfg.sequencerFeeVaultRecipient(),
+                        min: cfg.sequencerFeeVaultMinimumWithdrawalAmount(),
+                        withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.sequencerFeeVaultWithdrawalNetwork())
+                    }),
+                    l1FeeVaultConfig: LibTypes.FeeVaultConfig({
+                        recipient: cfg.l1FeeVaultRecipient(),
+                        min: cfg.l1FeeVaultMinimumWithdrawalAmount(),
+                        withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.l1FeeVaultWithdrawalNetwork())
+                    }),
+                    operatorFeeVaultConfig: LibTypes.FeeVaultConfig({
+                        recipient: cfg.operatorFeeVaultRecipient(),
+                        min: cfg.operatorFeeVaultMinimumWithdrawalAmount(),
+                        withdrawalNetwork: LibTypes.WithdrawalNetwork(cfg.operatorFeeVaultWithdrawalNetwork())
+                    })
+                })
+            ),
             basefeeScalar: cfg.basefeeScalar(),
             blobBasefeeScalar: cfg.blobbasefeeScalar(),
             l2ChainId: cfg.l2ChainID(),

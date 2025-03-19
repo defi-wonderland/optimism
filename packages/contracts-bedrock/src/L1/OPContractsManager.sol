@@ -1096,6 +1096,7 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
                 referenceResourceConfig,
                 chainIdToBatchInboxAddress(_input.l2ChainId),
                 opChainAddrs,
+                abi.decode(_input.feeVaultConfigs, (ISystemConfig.FeeVaultConfigs)),
                 _input.l2ChainId
             )
         );
@@ -1192,6 +1193,7 @@ contract OPContractsManager is ISemver {
         Roles roles;
         uint32 basefeeScalar;
         uint32 blobBasefeeScalar;
+        bytes feeVaultConfigs;
         uint256 l2ChainId;
         // The correct type is Proposal memory but OP Deployer does not yet support structs.
         bytes startingAnchorRoot;

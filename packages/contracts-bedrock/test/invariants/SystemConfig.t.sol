@@ -6,9 +6,12 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { Types } from "src/libraries/Types.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 contract SystemConfig_GasLimitBoundaries_Invariant is Test {
     ISystemConfig public config;
+    address public optimismPortal2 = makeAddr("OptimismPortal2");
 
     function setUp() external {
         IProxy proxy = IProxy(
@@ -23,6 +26,11 @@ contract SystemConfig_GasLimitBoundaries_Invariant is Test {
                 _args: DeployUtils.encodeConstructor(abi.encodeCall(ISystemConfig.__constructor__, ()))
             })
         );
+
+        // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
+        vm.etch(optimismPortal2, bytes("123"));
+        vm.mockCall(optimismPortal2, abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
+        vm.expectCall(optimismPortal2, abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
 
         vm.prank(msg.sender);
         proxy.upgradeToAndCall(
@@ -42,8 +50,30 @@ contract SystemConfig_GasLimitBoundaries_Invariant is Test {
                         l1CrossDomainMessenger: address(0),
                         l1ERC721Bridge: address(0),
                         l1StandardBridge: address(0),
-                        optimismPortal: address(0),
+                        optimismPortal: optimismPortal2,
                         optimismMintableERC20Factory: address(0)
+                    }),
+                    ISystemConfig.FeeVaultConfigs({
+                        baseFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        l1FeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        }),
+                        operatorFeeVaultConfig: Types.FeeVaultConfig({
+                            recipient: address(0),
+                            min: 0,
+                            withdrawalNetwork: Types.WithdrawalNetwork.L1
+                        })
                     }),
                     1234 // _l2ChainId
                 )

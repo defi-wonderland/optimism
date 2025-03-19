@@ -279,6 +279,11 @@
             "type": "uint32"
           },
           {
+            "internalType": "bytes",
+            "name": "feeVaultConfigs",
+            "type": "bytes"
+          },
+          {
             "internalType": "uint256",
             "name": "l2ChainId",
             "type": "uint256"

@@ -17,6 +17,7 @@ import { Bytes } from "src/libraries/Bytes.sol";
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 contract SystemConfig_Init is CommonTest {
     event ConfigUpdate(uint256 indexed version, ISystemConfig.UpdateType indexed updateType, bytes data);
@@ -147,6 +148,28 @@ contract SystemConfig_Initialize_Test is SystemConfig_Init {
                 optimismPortal: address(optimismPortal2),
                 optimismMintableERC20Factory: address(0)
             }),
+            _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
+                baseFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                l1FeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                operatorFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                })
+            }),
             _l2ChainId: 1234
         });
 
@@ -202,6 +225,28 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0)
             }),
+            _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
+                baseFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                l1FeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                operatorFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                })
+            }),
             _l2ChainId: 1234
         });
     }
@@ -212,6 +257,13 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
         vm.store(address(systemConfig), bytes32(0), bytes32(0));
         // Set slot startBlock to zero
         vm.store(address(systemConfig), systemConfig.START_BLOCK_SLOT(), bytes32(uint256(0)));
+
+        // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
+        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
+
+        Types.FeeVaultConfig memory feeVaultConfig =
+            Types.FeeVaultConfig({ recipient: address(0), min: 0, withdrawalNetwork: Types.WithdrawalNetwork.L1 });
 
         // Initialize and check that StartBlock updates to current block number
         vm.prank(systemConfig.owner());
@@ -228,8 +280,14 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
                 l1CrossDomainMessenger: address(0),
                 l1ERC721Bridge: address(0),
                 l1StandardBridge: address(0),
-                optimismPortal: address(0),
+                optimismPortal: address(optimismPortal2),
                 optimismMintableERC20Factory: address(0)
+            }),
+            _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
+                baseFeeVaultConfig: feeVaultConfig,
+                sequencerFeeVaultConfig: feeVaultConfig,
+                l1FeeVaultConfig: feeVaultConfig,
+                operatorFeeVaultConfig: feeVaultConfig
             }),
             _l2ChainId: 1234
         });
@@ -242,6 +300,10 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
         vm.store(address(systemConfig), bytes32(0), bytes32(0));
         // Set slot startBlock to non-zero value 1
         vm.store(address(systemConfig), systemConfig.START_BLOCK_SLOT(), bytes32(uint256(1)));
+
+        // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
+        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
 
         // Initialize and check that StartBlock doesn't update
         vm.prank(systemConfig.owner());
@@ -258,8 +320,30 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
                 l1CrossDomainMessenger: address(0),
                 l1ERC721Bridge: address(0),
                 l1StandardBridge: address(0),
-                optimismPortal: address(0),
+                optimismPortal: address(optimismPortal2),
                 optimismMintableERC20Factory: address(0)
+            }),
+            _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
+                baseFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                l1FeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                operatorFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                })
             }),
             _l2ChainId: 1234
         });
@@ -286,7 +370,7 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             minimumBaseFee: 2 gwei,
             maximumBaseFee: 1 gwei
         });
-        _initializeWithResourceConfig(config, "SystemConfig: min base fee must be less than max base");
+        _initializeWithResourceConfig(config, 0, "SystemConfig: min base fee must be less than max base");
     }
 
     /// @dev Tests that `setResourceConfig` reverts if the baseFeeMaxChangeDenominator
@@ -300,7 +384,7 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             minimumBaseFee: 1 gwei,
             maximumBaseFee: 2 gwei
         });
-        _initializeWithResourceConfig(config, "SystemConfig: denominator must be larger than 1");
+        _initializeWithResourceConfig(config, 0, "SystemConfig: denominator must be larger than 1");
     }
 
     /// @dev Tests that `setResourceConfig` reverts if the gas limit is too low.
@@ -315,7 +399,7 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             minimumBaseFee: 1 gwei,
             maximumBaseFee: 2 gwei
         });
-        _initializeWithResourceConfig(config, "SystemConfig: gas limit too low");
+        _initializeWithResourceConfig(config, 0, "SystemConfig: gas limit too low");
     }
 
     /// @dev Tests that `setResourceConfig` reverts if the gas limit is too low.
@@ -328,7 +412,7 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             minimumBaseFee: 1 gwei,
             maximumBaseFee: 2 gwei
         });
-        _initializeWithResourceConfig(config, "SystemConfig: elasticity multiplier cannot be 0");
+        _initializeWithResourceConfig(config, 0, "SystemConfig: elasticity multiplier cannot be 0");
     }
 
     /// @dev Tests that `setResourceConfig` reverts if the elasticity multiplier
@@ -342,13 +426,14 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
             minimumBaseFee: 1 gwei,
             maximumBaseFee: 2 gwei
         });
-        _initializeWithResourceConfig(config, "SystemConfig: precision loss with target resource limit");
+        _initializeWithResourceConfig(config, 0, "SystemConfig: precision loss with target resource limit");
     }
 
-    /// @dev Helper to initialize the system config with a resource config and default values, and expect a revert
-    ///      with the given message.
+    /// @dev Helper to initialize the system config with a resource config, expected number of calls to OptimismPortal2,
+    ///      and default values, and expect a revert with the given message.
     function _initializeWithResourceConfig(
         IResourceMetering.ResourceConfig memory config,
+        uint64 _expectedCallsToOptimismPortal2,
         string memory revertMessage
     )
         internal
@@ -357,6 +442,14 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
         vm.store(address(systemConfig), bytes32(0), bytes32(0));
         // Fetch the current gas limit
         uint64 gasLimit = systemConfig.gasLimit();
+
+        // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
+        vm.expectCall(
+            address(optimismPortal2),
+            abi.encodeWithSelector(IOptimismPortal2.setConfig.selector),
+            _expectedCallsToOptimismPortal2
+        );
 
         vm.expectRevert(bytes(revertMessage));
         systemConfig.initialize({
@@ -375,8 +468,41 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
                 optimismPortal: address(0),
                 optimismMintableERC20Factory: address(0)
             }),
+            _feeVaultConfigs: ISystemConfig.FeeVaultConfigs({
+                baseFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                l1FeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                }),
+                operatorFeeVaultConfig: Types.FeeVaultConfig({
+                    recipient: address(0),
+                    min: 0,
+                    withdrawalNetwork: Types.WithdrawalNetwork.L1
+                })
+            }),
             _l2ChainId: 1234
         });
+    }
+
+    /// @dev Helper to initialize the system config with a resource config and default values, and expect a revert
+    ///      with the given message.
+    function _initializeWithResourceConfig(
+        IResourceMetering.ResourceConfig memory config,
+        string memory revertMessage
+    )
+        internal
+    {
+        _initializeWithResourceConfig(config, 8, revertMessage);
     }
 }
 
@@ -488,7 +614,8 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
         vm.expectRevert("SystemConfig: caller is not the fee admin");
         vm.prank(_caller);
         systemConfig.setFeeVaultConfig(
-            Types.ConfigType.BASE_FEE_VAULT_CONFIG, address(0x20), 0, Types.WithdrawalNetwork.L1
+            Types.ConfigType.BASE_FEE_VAULT_CONFIG,
+            Types.FeeVaultConfig({ recipient: address(0x20), min: 0, withdrawalNetwork: Types.WithdrawalNetwork.L1 })
         );
     }
 }
@@ -601,7 +728,9 @@ contract SystemConfig_Setters_Test is SystemConfig_Init {
         vm.mockCall(address(optimismPortal2), data, abi.encode(true));
 
         vm.prank(systemConfig.feeVaultAdmin());
-        systemConfig.setFeeVaultConfig(configType, _recipient, _min, network);
+        systemConfig.setFeeVaultConfig(
+            configType, Types.FeeVaultConfig({ recipient: _recipient, min: _min, withdrawalNetwork: network })
+        );
     }
 }
 

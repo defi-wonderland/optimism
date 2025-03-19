@@ -56,6 +56,14 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         address feeVaultAdmin;
     }
 
+    /// @notice Struct representing the configuration of all the fee vaults.
+    struct FeeVaultConfigs {
+        Types.FeeVaultConfig baseFeeVaultConfig;
+        Types.FeeVaultConfig sequencerFeeVaultConfig;
+        Types.FeeVaultConfig l1FeeVaultConfig;
+        Types.FeeVaultConfig operatorFeeVaultConfig;
+    }
+
     /// @notice Version identifier, used for upgrades.
     uint256 public constant VERSION = 0;
 
@@ -186,6 +194,7 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         IResourceMetering.ResourceConfig memory _config,
         address _batchInbox,
         SystemConfig.Addresses memory _addresses,
+        FeeVaultConfigs memory _feeVaultConfigs,
         uint256 _l2ChainId
     )
         public
@@ -203,15 +212,29 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Note: FEE_VAULT_ADMIN_SLOT is initialized here and cannot be changed later.
         Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _roles.feeVaultAdmin);
         Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
-        Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
-        Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
-        Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
         Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
         Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
 
+        _setResourceConfig(_config);
+
+        // Set the L1 addresses on OptimismPortal
+        _setAddress(
+            L1_CROSS_DOMAIN_MESSENGER_SLOT,
+            _addresses.l1CrossDomainMessenger,
+            Types.ConfigType.L1_CROSS_DOMAIN_MESSENGER_ADDRESS
+        );
+        _setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge, Types.ConfigType.L1_ERC_721_BRIDGE_ADDRESS);
+        _setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge, Types.ConfigType.L1_STANDARD_BRIDGE_ADDRESS);
+
         _setStartBlock();
 
-        _setResourceConfig(_config);
+        // Set the fee vault configs.
+        _setFeeVaultConfig(Types.ConfigType.BASE_FEE_VAULT_CONFIG, _feeVaultConfigs.baseFeeVaultConfig);
+        _setFeeVaultConfig(Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG, _feeVaultConfigs.sequencerFeeVaultConfig);
+        _setFeeVaultConfig(Types.ConfigType.L1_FEE_VAULT_CONFIG, _feeVaultConfigs.l1FeeVaultConfig);
+        _setFeeVaultConfig(Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG, _feeVaultConfigs.operatorFeeVaultConfig);
+
+        _setRemoteChainId();
 
         l2ChainId = _l2ChainId;
     }
@@ -312,34 +335,16 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice Setter for the FeeVault predeploy configuration.
     /// @param _type The FeeVault type.
-    /// @param _recipient Address that should receive the funds.
-    /// @param _min Minimum withdrawal amount allowed to be processed.
-    /// @param _network The network in which the fees should be withdrawn to.
-    function setFeeVaultConfig(
-        Types.ConfigType _type,
-        address _recipient,
-        uint256 _min,
-        Types.WithdrawalNetwork _network
-    )
-        external
-    {
+    /// @param _config The FeeVault config.
+    function setFeeVaultConfig(Types.ConfigType _type, Types.FeeVaultConfig memory _config) external {
         require(msg.sender == feeVaultAdmin(), "SystemConfig: caller is not the fee admin");
-        _setFeeVaultConfig(_type, _recipient, _min, _network);
+        _setFeeVaultConfig(_type, _config);
     }
 
     /// @notice Internal function for setting the FeeVault config by type.
     /// @param _type The FeeVault type
-    /// @param _recipient Address that should receive the funds.
-    /// @param _min Minimum withdrawal amount allowed to be processed.
-    /// @param _network The network in which the fees should be withdrawn to.
-    function _setFeeVaultConfig(
-        Types.ConfigType _type,
-        address _recipient,
-        uint256 _min,
-        Types.WithdrawalNetwork _network
-    )
-        internal
-    {
+    /// @param _config The FeeVault config.
+    function _setFeeVaultConfig(Types.ConfigType _type, Types.FeeVaultConfig memory _config) internal {
         require(
             _type == Types.ConfigType.BASE_FEE_VAULT_CONFIG || _type == Types.ConfigType.L1_FEE_VAULT_CONFIG
                 || _type == Types.ConfigType.SEQUENCER_FEE_VAULT_CONFIG
@@ -348,7 +353,7 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         );
         IOptimismPortal2(payable(optimismPortal())).setConfig({
             _type: _type,
-            _value: abi.encode(Encoding.encodeFeeVaultConfig(_recipient, _min, _network))
+            _value: abi.encode(Encoding.encodeFeeVaultConfig(_config.recipient, _config.min, _config.withdrawalNetwork))
         });
     }
 
@@ -522,5 +527,24 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         );
 
         _resourceConfig = _config;
+    }
+
+    /// @notice Internal setter for L1 system addresses that need to be legible from within L2.
+    /// @param _slot The local storage slot that the address should be stored in.
+    /// @param _addr The address of the L1 based system address.
+    /// @param _type The ConfigType that represents what the address is.
+    function _setAddress(bytes32 _slot, address _addr, Types.ConfigType _type) internal {
+        Storage.setAddress(_slot, _addr);
+        IOptimismPortal2(payable(optimismPortal())).setConfig({ _type: _type, _value: abi.encode(_addr) });
+    }
+
+    /// @notice Internal setter for the base chain's chain id. This allows for the
+    ///         base chain's chain id to be legible from within the parent chain.
+    ///         In the case of an L2, this would be the L1 chain id.
+    function _setRemoteChainId() internal {
+        IOptimismPortal2(payable(optimismPortal())).setConfig({
+            _type: Types.ConfigType.REMOTE_CHAIN_ID,
+            _value: abi.encode(block.chainid)
+        });
     }
 }

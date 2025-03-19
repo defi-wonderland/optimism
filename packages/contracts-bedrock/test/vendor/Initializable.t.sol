@@ -9,6 +9,7 @@ import { ForgeArtifacts } from "scripts/libraries/ForgeArtifacts.sol";
 import { Process } from "scripts/libraries/Process.sol";
 
 // Libraries
+import { Types } from "src/libraries/Types.sol";
 import { LibString } from "@solady/utils/LibString.sol";
 import { GameType, Hash, Proposal } from "src/dispute/lib/Types.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
@@ -169,6 +170,28 @@ contract Initializer_Test is CommonTest {
                             optimismPortal: address(0),
                             optimismMintableERC20Factory: address(0)
                         }),
+                        ISystemConfig.FeeVaultConfigs({
+                            baseFeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            }),
+                            sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            }),
+                            l1FeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            }),
+                            operatorFeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            })
+                        }),
                         0
                     )
                 )
@@ -203,6 +226,28 @@ contract Initializer_Test is CommonTest {
                             l1StandardBridge: address(0),
                             optimismPortal: address(0),
                             optimismMintableERC20Factory: address(0)
+                        }),
+                        ISystemConfig.FeeVaultConfigs({
+                            baseFeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            }),
+                            sequencerFeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            }),
+                            l1FeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            }),
+                            operatorFeeVaultConfig: Types.FeeVaultConfig({
+                                recipient: address(0),
+                                min: 0,
+                                withdrawalNetwork: Types.WithdrawalNetwork.L1
+                            })
                         }),
                         0
                     )

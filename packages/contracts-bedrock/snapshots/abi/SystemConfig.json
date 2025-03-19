@@ -410,6 +410,101 @@
         "type": "tuple"
       },
       {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "recipient",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "min",
+                "type": "uint256"
+              },
+              {
+                "internalType": "enum Types.WithdrawalNetwork",
+                "name": "withdrawalNetwork",
+                "type": "uint8"
+              }
+            ],
+            "internalType": "struct Types.FeeVaultConfig",
+            "name": "baseFeeVaultConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "recipient",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "min",
+                "type": "uint256"
+              },
+              {
+                "internalType": "enum Types.WithdrawalNetwork",
+                "name": "withdrawalNetwork",
+                "type": "uint8"
+              }
+            ],
+            "internalType": "struct Types.FeeVaultConfig",
+            "name": "sequencerFeeVaultConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "recipient",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "min",
+                "type": "uint256"
+              },
+              {
+                "internalType": "enum Types.WithdrawalNetwork",
+                "name": "withdrawalNetwork",
+                "type": "uint8"
+              }
+            ],
+            "internalType": "struct Types.FeeVaultConfig",
+            "name": "l1FeeVaultConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "recipient",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "min",
+                "type": "uint256"
+              },
+              {
+                "internalType": "enum Types.WithdrawalNetwork",
+                "name": "withdrawalNetwork",
+                "type": "uint8"
+              }
+            ],
+            "internalType": "struct Types.FeeVaultConfig",
+            "name": "operatorFeeVaultConfig",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct SystemConfig.FeeVaultConfigs",
+        "name": "_feeVaultConfigs",
+        "type": "tuple"
+      },
+      {
         "internalType": "uint256",
         "name": "_l2ChainId",
         "type": "uint256"
@@ -680,19 +775,26 @@
         "type": "uint8"
       },
       {
-        "internalType": "address",
-        "name": "_recipient",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_min",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum Types.WithdrawalNetwork",
-        "name": "_network",
-        "type": "uint8"
+        "components": [
+          {
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "min",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum Types.WithdrawalNetwork",
+            "name": "withdrawalNetwork",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct Types.FeeVaultConfig",
+        "name": "_config",
+        "type": "tuple"
       }
     ],
     "name": "setFeeVaultConfig",
