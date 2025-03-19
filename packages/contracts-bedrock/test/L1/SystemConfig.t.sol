@@ -259,8 +259,10 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
         vm.store(address(systemConfig), systemConfig.START_BLOCK_SLOT(), bytes32(uint256(0)));
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
-        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
-        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep:
+            // sol-style-use-abi-encodecall
+        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8); // nosemgrep:
+            // sol-style-use-abi-encodecall
 
         Types.FeeVaultConfig memory feeVaultConfig = Types.FeeVaultConfig({
             recipient: address(0),
@@ -305,8 +307,8 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
         vm.store(address(systemConfig), systemConfig.START_BLOCK_SLOT(), bytes32(uint256(1)));
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
-        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
-        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep: sol-style-use-abi-encodecall
+        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8); // nosemgrep: sol-style-use-abi-encodecall
 
         // Initialize and check that StartBlock doesn't update
         vm.prank(systemConfig.owner());
@@ -447,12 +449,8 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
         uint64 gasLimit = systemConfig.gasLimit();
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
-        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
-        vm.expectCall(
-            address(optimismPortal2),
-            abi.encodeWithSelector(IOptimismPortal2.setConfig.selector),
-            _expectedCallsToOptimismPortal2
-        );
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep: sol-style-use-abi-encodecall
+        vm.expectCall(address(optimismPortal2),abi.encodeWithSelector(IOptimismPortal2.setConfig.selector),_expectedCallsToOptimismPortal2); // nosemgrep: sol-style-use-abi-encodecall
 
         vm.expectRevert(bytes(revertMessage));
         systemConfig.initialize({

@@ -29,8 +29,10 @@ contract SystemConfig_GasLimitBoundaries_Invariant is Test {
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
         vm.etch(optimismPortal2, bytes("123"));
-        vm.mockCall(optimismPortal2, abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes(""));
-        vm.expectCall(optimismPortal2, abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8);
+        vm.mockCall(optimismPortal2, abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep:
+            // sol-style-use-abi-encodecall
+        vm.expectCall(optimismPortal2, abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8); // nosemgrep:
+            // sol-style-use-abi-encodecall
 
         vm.prank(msg.sender);
         proxy.upgradeToAndCall(
