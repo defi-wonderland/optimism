@@ -163,12 +163,11 @@ contract FuzzTest is Handler {
 
         // Ensure the message is valid
         address targetActor = address(randomActor(_actorIndex));
-        address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
         bytes memory message = abi.encodeCall(
             SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, targetActor, _message.amount)
         );
         bytes memory sentMessage = abi.encodePacked(
-            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
+            abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce), // topics
             abi.encode(address(SUPERCHAIN_TOKEN_BRIDGE), message) // data
         );
 
@@ -183,27 +182,25 @@ contract FuzzTest is Handler {
             _source: _id.chainId,
             _nonce: _message.nonce,
             _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: messageTarget,
+            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
             _message: message
         });
 
-        {
-            // Relay the message by calling the messenger from the actor
-            (bool success) = currentActor().callL2ToL2MessengerRelayMessage(
-                _id, sentMessage, CROSS_L2_INBOX.calculateChecksum(_id, messageHash)
-            );
+        // Relay the message by calling the messenger from the actor
+        (bool success) = currentActor().callL2ToL2MessengerRelayMessage(
+            _id, sentMessage, CROSS_L2_INBOX.calculateChecksum(_id, messageHash)
+        );
 
-            if (success) {
-                _ghost_superWethBalancesSum += _message.amount;
+        if (success) {
+            _ghost_superWethBalancesSum += _message.amount;
 
-                assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
-                assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
-                assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
-                assert(SUPER_WETH.totalSupply() == totalSupplyBefore + _message.amount);
-            } else {
-                // If it fails, it should only be because the message was already relayed
-                assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
-            }
+            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
+            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
+            assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
+            assert(SUPER_WETH.totalSupply() == totalSupplyBefore + _message.amount);
+        } else {
+            // If it fails, it should only be because the message was already relayed
+            assertWithMsg(L2_TO_L2_MESSENGER.successfulMessages(messageHash), "Unknown Revert Error");
         }
     }
 
