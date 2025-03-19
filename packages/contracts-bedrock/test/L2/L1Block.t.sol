@@ -198,7 +198,6 @@ contract L1BlockEcotone_Test is L1BlockTest {
     }
 }
 
-/// TODO: FIX THIS AFTER SYNC
 contract L1BlockSetConfig_Test is L1BlockTest {
     /// @dev Tests that `setConfig` reverts if sender address is not the depositor account.
     function test_setConfig_isDepositor_reverts(
