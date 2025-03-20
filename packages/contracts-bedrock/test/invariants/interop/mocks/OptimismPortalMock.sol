@@ -451,7 +451,7 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         }
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
-        (,, IDisputeGame disputeGameProxy) = disputeGameFactory().gameAtIndex(_disputeGameIndex);
+        // (,, IDisputeGame disputeGameProxy) = disputeGameFactory().gameAtIndex(_disputeGameIndex);
 
         // Create a dummy super root proof to pass into the internal function. Note that this is
         // not a valid Super Root proof but it isn't used anywhere in the internal function when
@@ -459,7 +459,9 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         Types.SuperRootProof memory superRootProof;
 
         // Prove the transaction.
-        _proveWithdrawalTransaction(_tx, disputeGameProxy, 0, superRootProof, _outputRootProof, _withdrawalProof);
+        _proveWithdrawalTransaction(
+            _tx, IDisputeGame(address(0)), 0, superRootProof, _outputRootProof, _withdrawalProof
+        );
     }
 
     /// @notice Internal function for proving a withdrawal transaction, used by both the Super Root
@@ -598,27 +600,20 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         if (l2Sender != Constants.DEFAULT_L2_SENDER) {
             revert OptimismPortal_NoReentrancy();
         }
-
         // Make sure that the target address is safe.
         if (_isUnsafeTarget(_tx.target)) {
             revert OptimismPortal_BadTarget();
         }
-
         // Grab the withdrawal.
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
-
         // Check that the withdrawal can be finalized.
         checkWithdrawal(withdrawalHash, _proofSubmitter);
-
         // Mark the withdrawal as finalized so it can't be replayed.
         finalizedWithdrawals[withdrawalHash] = true;
-
         // Unlock the ETH from the ETHLockbox.
         if (_tx.value > 0) ethLockbox.unlockETH(_tx.value);
-
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
-
         // Trigger the call to the target contract. We use a custom low level method
         // SafeCall.callWithMinGas to ensure two key properties
         //   1. Target contracts cannot force this call to run out of gas by returning a very large
@@ -627,14 +622,11 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
         bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
-
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
-
         // All withdrawals are immediately finalized. Replayability can
         // be achieved through contracts built on top of this contract
         emit WithdrawalFinalized(withdrawalHash, success);
-
         // Reverting here is useful for determining the exact gas cost to successfully execute the
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
@@ -650,32 +642,28 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         // Grab the withdrawal and dispute game proxy.
         ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash][_proofSubmitter];
         IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
-
         // Check that this withdrawal has not already been finalized, this is replay protection.
         if (finalizedWithdrawals[_withdrawalHash]) {
             revert OptimismPortal_AlreadyFinalized();
         }
-
         // A withdrawal can only be finalized if it has been proven. We know that a withdrawal has
         // been proven at least once when its timestamp is non-zero. Unproven withdrawals will have
         // a timestamp of zero.
         if (provenWithdrawal.timestamp == 0) {
             revert OptimismPortal_Unproven();
         }
-
         // As a sanity check, we make sure that the proven withdrawal's timestamp is greater than
         // starting timestamp inside the Dispute Game. Not strictly necessary but extra layer of
         // safety against weird bugs in the proving step. Note that this blocks withdrawals that
         // are proven in the same block that a dispute game is created.
-        if (provenWithdrawal.timestamp <= disputeGameProxy.createdAt().raw()) {
-            revert OptimismPortal_InvalidProofTimestamp();
-        }
+        // if (provenWithdrawal.timestamp <= disputeGameProxy.createdAt().raw()) {
+        //     revert OptimismPortal_InvalidProofTimestamp();
+        // }
 
         // A proven withdrawal must wait at least `PROOF_MATURITY_DELAY_SECONDS` before finalizing.
         if (block.timestamp - provenWithdrawal.timestamp <= PROOF_MATURITY_DELAY_SECONDS) {
             revert OptimismPortal_ProofNotOldEnough();
         }
-
         // Check that the root claim is valid.
         if (!anchorStateRegistry.isGameClaimValid(disputeGameProxy)) {
             revert OptimismPortal_InvalidRootClaim();

@@ -255,6 +255,9 @@ contract Setup is PropertiesAsserts, HandlerActors {
         IOptimismPortal[] memory portals = new IOptimismPortal[](1);
         portals[0] = PORTAL;
         ETH_LOCKBOX.initialize(SUPERCHAIN_CONFIG, portals);
+
+        // Migrate liquidity from portal to ETHLockbox
+        PROXY_OWNER.directCall(address(PORTAL), 0, abi.encodeCall(PORTAL.migrateLiquidity, ()));
     }
 
     function _addActors() internal {
@@ -283,10 +286,12 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(address(PORTAL.anchorStateRegistry()) == address(ANCHOR_STATE_REGISTRY));
         assert(address(PORTAL.ethLockbox()) == address(ETH_LOCKBOX));
         assert(PORTAL.superRootsActive() == false);
+        assert(address(PORTAL).balance == 0);
 
-        // ethLockbox
+        // ETHLockbox
         assert(address(ETH_LOCKBOX.superchainConfig()) == address(SUPERCHAIN_CONFIG));
         assert(ETH_LOCKBOX.authorizedPortals(PORTAL) == true);
+        assert(address(ETH_LOCKBOX).balance == INITIAL_PORTAL_ETHER);
 
         // Superchain Config
         assert(SUPERCHAIN_CONFIG.guardian() == GUARDIAN);

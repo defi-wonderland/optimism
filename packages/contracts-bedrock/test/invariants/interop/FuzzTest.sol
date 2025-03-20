@@ -5,11 +5,11 @@ import { Constants, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-import { console } from "forge-std/console.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
+import { IOptimismPortalSingleProveWithdrawal } from "./interfaces/IOptimismPortalSingleProveWithdrawal.sol";
 
 contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
@@ -304,10 +304,9 @@ contract FuzzTest is Handler {
     }
 
     /// @custom:property-id 10
-    /// @custom:property Before migration, deposits with value greater than zero MUST keep the ETH in the OptimismPortal
-    /// @custom:property-id 12
-    /// @custom:property After migration, the OptimismPortal MUST lock the ETH amount on the ETHLockbox when on a
-    /// deposit transaction with value greater than zero, without holding any ETH balance from the depositing users
+    /// @custom:property OptimismPortals MUST lock the ETH amount on the ETHLockbox when on a
+    /// deposit transaction with value greater than zero, without holding any ETH balance from
+    /// the depositing users.
     function test_optimismPortalDeposits(
         address _to,
         uint256 _value,
@@ -328,7 +327,7 @@ contract FuzzTest is Handler {
 
         Actors actor = randomActor(_value);
         _value = clampLte(_value, address(actor).balance);
-        uint256 balanceBefore = _ghost_isMigrated ? address(ETH_LOCKBOX).balance : address(PORTAL).balance;
+        uint256 balanceBefore = address(ETH_LOCKBOX).balance;
 
         // Deposit the transaction
         (bool success,) = actor.directCall(
@@ -338,16 +337,12 @@ contract FuzzTest is Handler {
         );
         assert(success);
 
-        if (_ghost_isMigrated) assert(address(ETH_LOCKBOX).balance == balanceBefore + _value);
-        else assert(address(PORTAL).balance == balanceBefore + _value);
+        assert(address(ETH_LOCKBOX).balance == balanceBefore + _value);
     }
 
     /// @custom:property-id 11
-    /// @custom:property Before migration, withdrawals MUST use the OptimismPortal's own ETH balance if the amount
-    /// being withdrawn is greater than zero
-    /// @custom:property-id 13
-    /// @custom:property After migration, the OptimismPortal MUST unlock the ETH amount being withdrawn from the
-    /// ETHLockbox if it is greater than zero
+    /// @custom:property OptimismPortals MUST unlock the ETH amount being withdrawn from the
+    /// ETHLockbox if it is greater than zero.
     function test_optimismPortalWithdrawals(
         Types.WithdrawalTransaction memory _tx,
         uint256 _actorIndex
@@ -370,27 +365,26 @@ contract FuzzTest is Handler {
         // Gas is limit is out of scope
         _tx.gasLimit = type(uint256).max;
 
-        if (_ghost_isMigrated) _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
-        else _tx.value = clampLte(_tx.value, address(PORTAL).balance);
+        _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
 
+        // Ensure the withdrawal was not already finalized
         require(!PORTAL.finalizedWithdrawals(Hashing.hashWithdrawal(_tx)));
+
+        uint256 portalBalanceBefore = address(PORTAL).balance;
+        uint256 ethLockboxBalanceBefore = address(ETH_LOCKBOX).balance;
 
         Actors actor = randomActor(_actorIndex);
         (success,) = actor.directCall(
             address(PORTAL),
             _ZERO_VALUE,
-            abi.encodeWithSignature(
-                "proveWithdrawalTransaction(Types.WithdrawalTransaction,uint256,Types.OutputRootProof,bytes[])",
-                _tx,
-                disputeGameIndex,
-                outputRootProof,
-                withdrawalProof
+            abi.encodeCall(
+                IOptimismPortalSingleProveWithdrawal.proveWithdrawalTransaction,
+                (_tx, disputeGameIndex, outputRootProof, withdrawalProof)
             )
         );
         assert(success);
 
-        uint256 portalBalanceBefore = address(PORTAL).balance;
-        uint256 ethLockboxBalanceBefore = address(ETH_LOCKBOX).balance;
+        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS);
 
         (success, returnData) =
             actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
@@ -401,32 +395,11 @@ contract FuzzTest is Handler {
 
         // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
         if (safecallSuccess) {
-            console.log("safecallSuccess");
-
-            if (_ghost_isMigrated) {
-                console.log("safecallSuccess 1");
-            } else {
-                assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
-                console.log("safecallSuccess 2");
-            }
+            if (_tx.value == 0) assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore);
+            else assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
         } else {
-            console.log("safecallFailed");
-
-            // If the safecall failed, the balance should be the same
-            // TODO: If portal behavior is changed, this will need to be updated
-            if (_ghost_isMigrated) {
-                console.log("safecallFailed 1");
-                assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
-                console.log("safecallFailed 2");
-                assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
-                console.log("safecallFailed 3");
-            } else {
-                console.log("safecallFailed 4");
-                assert(address(PORTAL).balance == portalBalanceBefore);
-                console.log("safecallFailed 5");
-            }
+            assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
+            assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
         }
     }
 }
-
-import { console } from "forge-std/console.sol";
