@@ -357,6 +357,10 @@ library DeployUtils {
     ///      type(uint8).max (if an implementation contract).
     ///      A call to `initialize` will set proxies to 1 and a call to _disableInitializers will set implementations to
     ///      type(uint8).max.
+    ///      The slot and offset values for the initialized storage slot can be obtained from the contract's storage
+    ///      layout JSON file in the `storageLayout` directory.
+    ///      Example: To check ContractA's initialized state, look up the slot and offset in
+    ///      `storageLayout/ContractA.json` under the "_initialized" variable definition.
     function assertInitialized(address _contractAddress, bool _isProxy, uint256 _slot, uint256 _offset) internal view {
         bytes32 slotVal = vm.load(_contractAddress, bytes32(_slot));
         uint8 val = uint8((uint256(slotVal) >> (_offset * 8)) & 0xFF);
