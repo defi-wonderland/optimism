@@ -433,12 +433,11 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
     /// @notice Proves a withdrawal transaction using an Output Root proof. Only callable when the
     ///         OptimismPortal is using Output Roots (superRootsActive flag is false).
     /// @param _tx               Withdrawal transaction to finalize.
-    /// @param _disputeGameIndex Index of the dispute game to prove the withdrawal against.
     /// @param _outputRootProof  Inclusion proof of the L2ToL1MessagePasser storage root.
     /// @param _withdrawalProof  Inclusion proof of the withdrawal within the L2ToL1MessagePasser.
     function proveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
-        uint256 _disputeGameIndex,
+        uint256,
         Types.OutputRootProof calldata _outputRootProof,
         bytes[] calldata _withdrawalProof
     )
@@ -579,20 +578,29 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
     }
 
     /// @notice Finalizes a withdrawal transaction.
+    /// @dev Updated interface that returns the success of the call to the target contract.
     /// @param _tx Withdrawal transaction to finalize.
-    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external whenNotPaused {
-        finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
+    /// @return success_ True if the withdrawal transaction was successfully finalized, false otherwise.
+    function finalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx)
+        external
+        whenNotPaused
+        returns (bool success_)
+    {
+        success_ = finalizeWithdrawalTransactionExternalProof(_tx, msg.sender);
     }
 
     /// @notice Finalizes a withdrawal transaction, using an external proof submitter.
+    /// @dev Updated interface that returns the success of the call to the target contract.
     /// @param _tx Withdrawal transaction to finalize.
     /// @param _proofSubmitter Address of the proof submitter.
+    /// @return success_ True if the withdrawal transaction was successfully finalized, false otherwise.
     function finalizeWithdrawalTransactionExternalProof(
         Types.WithdrawalTransaction memory _tx,
         address _proofSubmitter
     )
         public
         whenNotPaused
+        returns (bool success_)
     {
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
@@ -621,16 +629,16 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        success_ = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
         // All withdrawals are immediately finalized. Replayability can
         // be achieved through contracts built on top of this contract
-        emit WithdrawalFinalized(withdrawalHash, success);
+        emit WithdrawalFinalized(withdrawalHash, success_);
         // Reverting here is useful for determining the exact gas cost to successfully execute the
         // sub call to the target contract if the minimum gas limit specified by the user would not
         // be sufficient to execute the sub call.
-        if (!success && tx.origin == Constants.ESTIMATION_ADDRESS) {
+        if (!success_ && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert OptimismPortal_GasEstimation();
         }
     }
@@ -641,7 +649,7 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
     function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) public view {
         // Grab the withdrawal and dispute game proxy.
         ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash][_proofSubmitter];
-        IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
+        // IDisputeGame disputeGameProxy = provenWithdrawal.disputeGameProxy;
         // Check that this withdrawal has not already been finalized, this is replay protection.
         if (finalizedWithdrawals[_withdrawalHash]) {
             revert OptimismPortal_AlreadyFinalized();
@@ -665,9 +673,9 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
             revert OptimismPortal_ProofNotOldEnough();
         }
         // Check that the root claim is valid.
-        if (!anchorStateRegistry.isGameClaimValid(disputeGameProxy)) {
-            revert OptimismPortal_InvalidRootClaim();
-        }
+        // if (!anchorStateRegistry.isGameClaimValid(disputeGameProxy)) {
+        //     revert OptimismPortal_InvalidRootClaim();
+        // }
     }
 
     /// @notice Migrates the total ETH balance to the ETHLockbox.

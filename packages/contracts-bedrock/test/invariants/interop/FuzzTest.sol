@@ -9,7 +9,7 @@ import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
-import { IOptimismPortalSingleProveWithdrawal } from "./interfaces/IOptimismPortalSingleProveWithdrawal.sol";
+import { IOptimismPortalMock } from "./interfaces/IOptimismPortalMock.sol";
 
 contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
@@ -378,16 +378,17 @@ contract FuzzTest is Handler {
             address(PORTAL),
             _ZERO_VALUE,
             abi.encodeCall(
-                IOptimismPortalSingleProveWithdrawal.proveWithdrawalTransaction,
+                IOptimismPortalMock.proveWithdrawalTransaction,
                 (_tx, disputeGameIndex, outputRootProof, withdrawalProof)
             )
         );
         assert(success);
 
-        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS);
+        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
 
-        (success, returnData) =
-            actor.directCall(address(PORTAL), _ZERO_VALUE, abi.encodeCall(PORTAL.finalizeWithdrawalTransaction, (_tx)));
+        (success, returnData) = actor.directCall(
+            address(PORTAL), _ZERO_VALUE, abi.encodeCall(IOptimismPortalMock.finalizeWithdrawalTransaction, (_tx))
+        );
         assert(success);
 
         // Cast returnData to bool

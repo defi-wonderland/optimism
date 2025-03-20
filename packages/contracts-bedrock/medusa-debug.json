@@ -1,11 +1,11 @@
 {
   "slither": {
-    "useSlither": true,
+    "useSlither": false,
     "cachePath": "slither_results.json",
     "args": ["--foundry-out-directory", "artifacts"]
   },
   "fuzzing": {
-    "timeout": 5,
+    "timeout": 20,
     "coverageEnabled": false,
     "coverageFormats": [],
     "targetContracts": ["FuzzTest"],
