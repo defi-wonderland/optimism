@@ -8,12 +8,12 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 /// @title L1OptimismMintableERC20Factory
 /// @notice Allows users to create L1 tokens that represent L2 native tokens.
 contract L1OptimismMintableERC20Factory is OptimismMintableERC20Factory, Initializable {
-    /// @custom:semver 1.3.1-beta.5
+    /// @custom:semver 1.3.2
     /// @notice Semantic version.
     ///         The semver MUST be bumped any time that there is a change in
     ///         the OptimismMintableERC20 token contract since this contract
     ///         is responsible for deploying OptimismMintableERC20 contracts.
-    string public constant version = "1.3.1-beta.5";
+    string public constant version = "1.3.2";
 
     /// @custom:spacer
     /// @notice Spacer to fill the remainder of the _initialized slot, preventing the standardBridge

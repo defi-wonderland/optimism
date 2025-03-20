@@ -47,8 +47,8 @@ contract SuperchainConfig is Initializable, ISemver {
     event ConfigUpdate(UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 1.2.0-beta.1
-    string public constant version = "1.2.0-beta.1";
+    /// @custom:semver 1.2.1
+    string public constant version = "1.2.1";
 
     /// @notice Constructs the SuperchainConfig contract.
     constructor() {

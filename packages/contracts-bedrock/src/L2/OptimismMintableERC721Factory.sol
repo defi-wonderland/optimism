@@ -29,8 +29,8 @@ contract OptimismMintableERC721Factory is ISemver {
     /// @notice The semver MUST be bumped any time that there is a change in
     ///         the OptimismMintableERC721 token contract since this contract
     ///         is responsible for deploying OptimismMintableERC721 contracts.
-    /// @custom:semver 1.4.1-beta.8
-    string public constant version = "1.4.1-beta.8";
+    /// @custom:semver 1.4.2
+    string public constant version = "1.4.2";
 
     /// @notice Creates an instance of the standard ERC721.
     /// @param _remoteToken Address of the corresponding token on the other domain.

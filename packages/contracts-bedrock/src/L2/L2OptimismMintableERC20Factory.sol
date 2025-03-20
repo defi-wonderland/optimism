@@ -15,12 +15,12 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 ///         who may be less familiar with deploying smart contracts. Designed to be backwards
 ///         compatible with the older StandardL2ERC20Factory contract.
 contract L2OptimismMintableERC20Factory is OptimismMintableERC20Factory {
-    /// @custom:semver 1.3.1-beta.5
+    /// @custom:semver 1.3.2
     /// @notice Semantic version.
     ///         The semver MUST be bumped any time that there is a change in
     ///         the OptimismMintableERC20 token contract since this contract
     ///         is responsible for deploying OptimismMintableERC20 contracts.
-    string public constant version = "1.3.1-beta.5";
+    string public constant version = "1.3.2";
 
     function bridge() public view virtual override returns (address) {
         return Predeploys.L2_STANDARD_BRIDGE;

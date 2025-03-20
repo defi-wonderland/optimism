@@ -17,8 +17,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @notice The L1FeeVault accumulates the L1 portion of the transaction fees.
 contract L1FeeVault is FeeVault, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.5.0-beta.6
-    string public constant version = "1.5.0-beta.6";
+    /// @custom:semver 1.5.1
+    string public constant version = "1.5.1";
 
     /// @inheritdoc FeeVault
     function config()
