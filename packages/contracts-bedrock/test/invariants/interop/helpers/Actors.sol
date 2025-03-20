@@ -23,6 +23,13 @@ interface ICrossL2InboxWithSlotWarming {
 //
 // Also allows to call the superchain token bridge and the L2 to L2 messenger.
 contract Actors {
+    struct CallRelayParams {
+        Identifier id;
+        bytes messageSent;
+        bytes message;
+        uint256 nonce;
+    }
+
     event ActorsLog(string);
 
     address public immutable SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
@@ -53,33 +60,7 @@ contract Actors {
         }
     }
 
-    function callL2ToL2MessengerRelayMessage(
-        Identifier memory _id,
-        bytes memory _message,
-        bytes32 _slot
-    )
-        public
-        returns (bool _success)
-    {
-        if (_slot != bytes32(0)) {
-            ICrossL2InboxWithSlotWarming(L2_TO_L2_CROSS_DOMAIN_MESSENGER).warmSlot(_slot);
-        }
-
-        // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
-        // though it's the same as the one used in the interface.
-        (_success,) = L2_TO_L2_CROSS_DOMAIN_MESSENGER.call(
-            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _id, _message)
-        );
-    }
-
-    struct CallRelayParams {
-        Identifier id;
-        bytes messageSent;
-        bytes message;
-        uint256 nonce;
-    }
-
-    function callL2ToL2MessengerRelayMessage2(CallRelayParams memory _params)
+    function callL2ToL2MessengerRelayMessage(CallRelayParams memory _params)
         public
         returns (bool _success, bytes32 messageHash)
     {

@@ -76,20 +76,11 @@ contract FuzzTest is Handler {
         uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
         uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
 
-        // hash the message
-        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: block.chainid,
-            _source: _id.chainId,
-            _nonce: _message.nonce,
-            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _message: message
-        });
-
         // Relay the message by calling the messenger from the actor
         Actors actor = currentActor();
-        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_id, messageHash);
-        (bool success) = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage, slot);
+        (bool success, bytes32 messageHash) = actor.callL2ToL2MessengerRelayMessage(
+            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+        );
 
         if (success) {
             // Check the state is right after the call
@@ -179,7 +170,7 @@ contract FuzzTest is Handler {
         // Relay the message by calling the messenger from the actor
         Actors.CallRelayParams memory callRelayParams =
             Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce });
-        (bool success, bytes32 messageHash) = currentActor().callL2ToL2MessengerRelayMessage2(callRelayParams);
+        (bool success, bytes32 messageHash) = currentActor().callL2ToL2MessengerRelayMessage(callRelayParams);
 
         if (success) {
             _ghost_superWethBalancesSum += _message.amount;
@@ -253,8 +244,9 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         // Relay the message
-        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_id, messageHash);
-        bool success = currentActor().callL2ToL2MessengerRelayMessage(_id, sentMessage, slot);
+        (bool success,) = currentActor().callL2ToL2MessengerRelayMessage(
+            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+        );
 
         if (success) {
             // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx
@@ -409,17 +401,32 @@ contract FuzzTest is Handler {
 
         // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
         if (safecallSuccess) {
-            if (_ghost_isMigrated) assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
-            else assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
+            console.log("safecallSuccess");
+
+            if (_ghost_isMigrated) {
+                console.log("safecallSuccess 1");
+            } else {
+                assert(address(PORTAL).balance == portalBalanceBefore - _tx.value);
+                console.log("safecallSuccess 2");
+            }
         } else {
+            console.log("safecallFailed");
+
             // If the safecall failed, the balance should be the same
             // TODO: If portal behavior is changed, this will need to be updated
             if (_ghost_isMigrated) {
+                console.log("safecallFailed 1");
                 assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
+                console.log("safecallFailed 2");
                 assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
+                console.log("safecallFailed 3");
             } else {
+                console.log("safecallFailed 4");
                 assert(address(PORTAL).balance == portalBalanceBefore);
+                console.log("safecallFailed 5");
             }
         }
     }
 }
+
+import { console } from "forge-std/console.sol";

@@ -309,26 +309,20 @@ contract Handler is Setup {
             abi.encode(address(SUPER_WETH), message) // data
         );
 
-        // Ensure the message is not already relayed
-        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: block.chainid,
-            _source: _id.chainId,
-            _nonce: _message.nonce,
-            _sender: address(SUPER_WETH),
-            _target: address(SUPER_WETH),
-            _message: message
-        });
-        require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+        (bool success, bytes32 messageHash) = randomActor(_toActorIndex + 1).callL2ToL2MessengerRelayMessage(
+            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+        );
 
-        Actors actor = randomActor(_toActorIndex);
-        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_id, messageHash);
-        bool success = actor.callL2ToL2MessengerRelayMessage(_id, sentMessage, slot);
-        assert(success);
         // Check the Ether balances
-        assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
-        assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
-        // The total supply of superchain WETH should not change
-        assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
+        if (success) {
+            assert(address(ETH_LIQUIDITY).balance == _ethLiquidityBefore - _message.amount);
+            assert(targetActor.balance == _tagretActorBalanceBefore + _message.amount);
+            // The total supply of superchain WETH should not change
+            assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
+        } else {
+            // If it fails, it should only be because the message was already relayed
+            assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
+        }
     }
 
     // TODO: Remove -- only leaving for now for reference
