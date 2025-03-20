@@ -642,6 +642,11 @@
             "internalType": "Claim",
             "name": "absolutePrestate",
             "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "feeVaultAdmin",
+            "type": "address"
           }
         ],
         "internalType": "struct OPContractsManager.OpChainConfig[]",
@@ -672,6 +677,11 @@
             "internalType": "Claim",
             "name": "absolutePrestate",
             "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "feeVaultAdmin",
+            "type": "address"
           }
         ],
         "internalType": "struct OPContractsManager.OpChainConfig[]",

@@ -177,6 +177,7 @@ interface IOPContractsManager {
         ISystemConfig systemConfigProxy;
         IProxyAdmin proxyAdmin;
         Claim absolutePrestate;
+        address feeVaultAdmin;
     }
 
     struct AddGameInput {

@@ -276,7 +276,8 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
             IOPContractsManager.OpChainConfig({
                 systemConfigProxy: systemConfig,
                 proxyAdmin: proxyAdmin,
-                absolutePrestate: absolutePrestate
+                absolutePrestate: absolutePrestate,
+                feeVaultAdmin: deploy.cfg().systemConfigFeeVaultAdmin()
             })
         );
 
@@ -1458,7 +1459,10 @@ contract OPContractsManager_UpdatePrestate_Test is Test {
     function test_updatePrestate_pdgOnlyWithValidInput_succeeds() public {
         IOPContractsManager.OpChainConfig[] memory inputs = new IOPContractsManager.OpChainConfig[](1);
         inputs[0] = IOPContractsManager.OpChainConfig(
-            chainDeployOutput.systemConfigProxy, chainDeployOutput.opChainProxyAdmin, Claim.wrap(bytes32(hex"ABBA"))
+            chainDeployOutput.systemConfigProxy,
+            chainDeployOutput.opChainProxyAdmin,
+            Claim.wrap(bytes32(hex"ABBA")),
+            address(0x1234)
         );
         address proxyAdminOwner = chainDeployOutput.opChainProxyAdmin.owner();
 
@@ -1489,7 +1493,10 @@ contract OPContractsManager_UpdatePrestate_Test is Test {
 
         IOPContractsManager.OpChainConfig[] memory inputs = new IOPContractsManager.OpChainConfig[](1);
         inputs[0] = IOPContractsManager.OpChainConfig(
-            chainDeployOutput.systemConfigProxy, chainDeployOutput.opChainProxyAdmin, Claim.wrap(bytes32(hex"ABBA"))
+            chainDeployOutput.systemConfigProxy,
+            chainDeployOutput.opChainProxyAdmin,
+            Claim.wrap(bytes32(hex"ABBA")),
+            address(0x1234)
         );
         address proxyAdminOwner = chainDeployOutput.opChainProxyAdmin.owner();
 
@@ -1526,7 +1533,8 @@ contract OPContractsManager_UpdatePrestate_Test is Test {
         inputs[0] = IOPContractsManager.OpChainConfig({
             systemConfigProxy: chainDeployOutput.systemConfigProxy,
             proxyAdmin: chainDeployOutput.opChainProxyAdmin,
-            absolutePrestate: Claim.wrap(bytes32(0))
+            absolutePrestate: Claim.wrap(bytes32(0)),
+            feeVaultAdmin: address(0x1234)
         });
 
         address proxyAdminOwner = chainDeployOutput.opChainProxyAdmin.owner();

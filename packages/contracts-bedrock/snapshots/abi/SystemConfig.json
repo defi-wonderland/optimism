@@ -924,9 +924,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_l2ChainId",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_feeVaultAdmin",
+        "type": "address"
       }
     ],
     "name": "upgrade",

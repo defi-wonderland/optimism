@@ -209,7 +209,6 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         _setGasLimit(_gasLimit);
 
         Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
-        // Note: FEE_VAULT_ADMIN_SLOT is initialized here and cannot be changed later.
         Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _roles.feeVaultAdmin);
         Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
         Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
@@ -239,15 +238,11 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
         l2ChainId = _l2ChainId;
     }
 
-    /// @notice Upgrades the SystemConfig by setting the L2 chain ID variable.
-    /// @param _l2ChainId The L2 chain ID that this SystemConfig configures.
-    function upgrade(uint256 _l2ChainId) external reinitializer(initVersion()) {
-        // Set the L2 chain ID.
-        l2ChainId = _l2ChainId;
-
-        // Clear out the old dispute game factory address, it's derived now.
-        bytes32 disputeGameFactorySlot = bytes32(uint256(keccak256("systemconfig.disputegamefactory")) - 1);
-        Storage.setAddress(disputeGameFactorySlot, address(0));
+    /// @notice Upgrades the SystemConfig by setting the fee vault admin address.
+    /// @param _feeVaultAdmin The address of the fee vault admin.
+    function upgrade(address _feeVaultAdmin) external reinitializer(initVersion()) {
+        // Set the fee vault admin address.
+        Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _feeVaultAdmin);
     }
 
     /// @notice Returns the minimum L2 gas limit that can be safely set for the system to

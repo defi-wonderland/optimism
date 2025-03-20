@@ -378,7 +378,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfig", _sel: _getSel("maximumGasLimit()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("getAddresses()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("l2ChainId()") });
-        _addSpec({ _name: "SystemConfig", _sel: _getSel("upgrade(uint256)") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("upgrade(address)") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("initVersion()") });
 
         // ProxyAdmin

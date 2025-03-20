@@ -101,7 +101,7 @@ interface ISystemConfig {
     function transferOwnership(address newOwner) external; // nosemgrep
     function unsafeBlockSigner() external view returns (address addr_);
     function feeVaultAdmin() external view returns (address addr_);
-    function upgrade(uint256 _l2ChainId) external;
+    function upgrade(address _feeVaultAdmin) external;
     function version() external pure returns (string memory);
 
     function __constructor__() external;

@@ -55,7 +55,8 @@ contract UpgradeOPChainInput_Test is Test {
         configs[0] = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(systemConfig1),
             proxyAdmin: IProxyAdmin(proxyAdmin1),
-            absolutePrestate: Claim.wrap(bytes32(uint256(1)))
+            absolutePrestate: Claim.wrap(bytes32(uint256(1))),
+            feeVaultAdmin: address(0x1234)
         });
 
         // Setup mock addresses and contracts for second config
@@ -67,7 +68,8 @@ contract UpgradeOPChainInput_Test is Test {
         configs[1] = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(systemConfig2),
             proxyAdmin: IProxyAdmin(proxyAdmin2),
-            absolutePrestate: Claim.wrap(bytes32(uint256(2)))
+            absolutePrestate: Claim.wrap(bytes32(uint256(2))),
+            feeVaultAdmin: address(0x1234)
         });
 
         input.set(input.opChainConfigs.selector, configs);
@@ -111,7 +113,8 @@ contract UpgradeOPChainInput_Test is Test {
         configs[0] = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(mockSystemConfig),
             proxyAdmin: IProxyAdmin(mockProxyAdmin),
-            absolutePrestate: Claim.wrap(bytes32(uint256(1)))
+            absolutePrestate: Claim.wrap(bytes32(uint256(1))),
+            feeVaultAdmin: address(0x1234)
         });
 
         vm.expectRevert("UpgradeOPCMInput: unknown selector");
@@ -147,7 +150,8 @@ contract UpgradeOPChain_Test is Test {
         config = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(makeAddr("systemConfigProxy")),
             proxyAdmin: IProxyAdmin(makeAddr("proxyAdmin")),
-            absolutePrestate: Claim.wrap(keccak256("absolutePrestate"))
+            absolutePrestate: Claim.wrap(keccak256("absolutePrestate")),
+            feeVaultAdmin: address(0x1234)
         });
         OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
         configs[0] = config;

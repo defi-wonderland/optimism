@@ -307,8 +307,10 @@ contract SystemConfig_Initialize_TestFail is SystemConfig_Initialize_Test {
         vm.store(address(systemConfig), systemConfig.START_BLOCK_SLOT(), bytes32(uint256(1)));
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
-        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep: sol-style-use-abi-encodecall
-        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8); // nosemgrep: sol-style-use-abi-encodecall
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep:
+            // sol-style-use-abi-encodecall
+        vm.expectCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), 8); // nosemgrep:
+            // sol-style-use-abi-encodecall
 
         // Initialize and check that StartBlock doesn't update
         vm.prank(systemConfig.owner());
@@ -449,8 +451,13 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
         uint64 gasLimit = systemConfig.gasLimit();
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
-        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep: sol-style-use-abi-encodecall
-        vm.expectCall(address(optimismPortal2),abi.encodeWithSelector(IOptimismPortal2.setConfig.selector),_expectedCallsToOptimismPortal2); // nosemgrep: sol-style-use-abi-encodecall
+        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep:
+            // sol-style-use-abi-encodecall
+        vm.expectCall(
+            address(optimismPortal2),
+            abi.encodeWithSelector(IOptimismPortal2.setConfig.selector),
+            _expectedCallsToOptimismPortal2
+        ); // nosemgrep: sol-style-use-abi-encodecall
 
         vm.expectRevert(bytes(revertMessage));
         systemConfig.initialize({
@@ -763,17 +770,14 @@ contract SystemConfig_upgrade_Test is SystemConfig_Init {
         assertNotEq(vm.load(address(systemConfig), disputeGameFactorySlot), bytes32(0));
 
         // Trigger upgrade().
-        systemConfig.upgrade(1234);
+        systemConfig.upgrade(address(0x1234));
 
         // Verify that the initialized slot was updated.
         bytes32 initializedSlotAfter = vm.load(address(systemConfig), bytes32(slot.slot));
         assertEq(initializedSlotAfter, bytes32(uint256(2)));
 
-        // Verify that the l2ChainId was updated.
-        assertEq(systemConfig.l2ChainId(), 1234);
-
-        // Verify that the dispute game factory address was cleared.
-        assertEq(vm.load(address(systemConfig), disputeGameFactorySlot), bytes32(0));
+        // Verify that the feeVaultAdmin was updated.
+        assertEq(systemConfig.feeVaultAdmin(), address(0x1234));
     }
 
     /// @notice Tests that the upgrade() function reverts if called a second time.
@@ -785,11 +789,11 @@ contract SystemConfig_upgrade_Test is SystemConfig_Init {
         vm.store(address(systemConfig), bytes32(slot.slot), bytes32(0));
 
         // Trigger first upgrade.
-        systemConfig.upgrade(1234);
+        systemConfig.upgrade(address(0x1234));
 
         // Try to trigger second upgrade.
         vm.expectRevert("Initializable: contract is already initialized");
-        systemConfig.upgrade(1234);
+        systemConfig.upgrade(address(0x1234));
     }
 
     /// @notice Tests that the upgrade() function reverts if called after initialization.
@@ -803,9 +807,11 @@ contract SystemConfig_upgrade_Test is SystemConfig_Init {
 
         // l2ChainId should be non-zero.
         assertNotEq(systemConfig.l2ChainId(), 0);
+        // feeVaultAdmin should be non-zero.
+        assertNotEq(systemConfig.feeVaultAdmin(), address(0));
 
         // Try to trigger upgrade().
         vm.expectRevert("Initializable: contract is already initialized");
-        systemConfig.upgrade(1234);
+        systemConfig.upgrade(address(0x1234));
     }
 }

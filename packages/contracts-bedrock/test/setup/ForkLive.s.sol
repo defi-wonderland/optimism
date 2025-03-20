@@ -200,7 +200,8 @@ contract ForkLive is Deployer {
         opChains[0] = IOPContractsManager.OpChainConfig({
             systemConfigProxy: systemConfig,
             proxyAdmin: proxyAdmin,
-            absolutePrestate: Claim.wrap(bytes32(keccak256("absolutePrestate")))
+            absolutePrestate: Claim.wrap(bytes32(keccak256("absolutePrestate"))),
+            feeVaultAdmin: cfg.systemConfigFeeVaultAdmin()
         });
 
         IOPContractsManager.OpChainConfig[] memory opmChain = new IOPContractsManager.OpChainConfig[](0);
