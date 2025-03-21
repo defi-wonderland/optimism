@@ -46,6 +46,7 @@ op-acceptor = "op-acceptor/v0.1.4"
 asterisc = "1.2.0"
 kontrol = "1.0.90"
 binary_signer = "1.0.4"
+medusa = "1.1.1"
 
 [alias]
 forge = "ubi:foundry-rs/foundry[exe=forge]"

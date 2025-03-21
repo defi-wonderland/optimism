@@ -32,6 +32,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { HandlerActors, Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
+import { WeirdTarget } from "./mocks/WeirdTarget.sol";
 
 contract Setup is PropertiesAsserts, HandlerActors {
     using Utils for *;
@@ -55,7 +56,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
     IOptimismPortal public immutable PORTAL;
     ISystemConfig public immutable SYSTEM_CONFIG;
     IAnchorStateRegistry public immutable ANCHOR_STATE_REGISTRY;
-
+    WeirdTarget public immutable WEIRD_TARGET;
     // Soldity 0.8.25 Contracts
     ICrossL2InboxWithSlotWarming public immutable CROSS_L2_INBOX =
         ICrossL2InboxWithSlotWarming(Predeploys.CROSS_L2_INBOX);
@@ -190,6 +191,9 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Set the depositor account as an actor
         vm.etch(Constants.DEPOSITOR_ACCOUNT, actorCode);
 
+        // Deploy WeirdTarget
+        WEIRD_TARGET = new WeirdTarget(address(PORTAL), address(ETH_LOCKBOX));
+        _ghost_weirdTargetCallsLength = WEIRD_TARGET.exposeCalls();
         _addActors();
     }
 

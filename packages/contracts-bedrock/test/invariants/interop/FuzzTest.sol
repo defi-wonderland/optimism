@@ -10,6 +10,7 @@ import { Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
 import { IOptimismPortalMock } from "./interfaces/IOptimismPortalMock.sol";
+import { WeirdTarget } from "./mocks/WeirdTarget.sol";
 
 contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
@@ -355,7 +356,6 @@ contract FuzzTest is Handler {
         require(!_isL2Contract(_tx.target));
 
         bool success;
-        bytes memory returnData;
 
         // Setting not used parameters to empty values
         bytes[] memory withdrawalProof = new bytes[](0);
@@ -386,21 +386,85 @@ contract FuzzTest is Handler {
 
         vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
 
-        (success, returnData) = actor.directCall(
-            address(PORTAL), _ZERO_VALUE, abi.encodeCall(IOptimismPortalMock.finalizeWithdrawalTransaction, (_tx))
-        );
-        assert(success);
-
-        // Cast returnData to bool
-        bool safecallSuccess = abi.decode(returnData, (bool));
+        vm.prank(address(actor));
+        success = IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx);
 
         // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
-        if (safecallSuccess) {
+        if (success) {
             if (_tx.value == 0) assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore);
             else assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
         } else {
             assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
             assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
         }
+    }
+
+    /// @custom:property-id 12
+    /// @custom:property `OptimismPortal`s `unlockETH` MUST NOT be called on a finalized withdrawal transaction context
+    function test_noETHUnlockedDuringWithdrawal(
+        address _caller,
+        Types.WithdrawalTransaction memory _tx
+    )
+        public
+        initialize
+    {
+        _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
+        // Set the target to the WeirdTarget and the data to the selector of the function that will be called.
+        _tx.target = address(WEIRD_TARGET);
+        _tx.data = abi.encodeWithSelector(WeirdTarget.callLockboxUnlockETH.selector);
+
+        vm.prank(address(_caller));
+        bool success = IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx);
+        assert(!success);
+    }
+
+    /// @notice Unguided test that doesn't match any specific property, but checks that withdrawal finalization checks
+    ///         are correct by making a malicious call on a target contract.
+    function test_finalizeWithdrawalReverts_unguided(
+        address _caller,
+        Types.WithdrawalTransaction memory _tx,
+        uint256 _callIndex,
+        uint256 _actorIndex
+    )
+        public
+        initialize
+    {
+        // Get the call to be made.
+        bytes4 call = WEIRD_TARGET.calls(_callIndex % _ghost_weirdTargetCallsLength);
+
+        _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
+        _tx.target = address(WEIRD_TARGET);
+        _tx.data = abi.encodeWithSelector(call);
+        // Gas is limit is out of scope
+        _tx.gasLimit = type(uint256).max;
+
+        // Setting not used parameters to empty values
+        bytes[] memory withdrawalProof = new bytes[](0);
+        Types.OutputRootProof memory outputRootProof;
+        uint256 disputeGameIndex = 0;
+
+        // Prove the withdrawal transaction.
+        Actors actor = randomActor(_actorIndex);
+        (bool success,) = actor.directCall(
+            address(PORTAL),
+            _ZERO_VALUE,
+            abi.encodeCall(
+                IOptimismPortalMock.proveWithdrawalTransaction,
+                (_tx, disputeGameIndex, outputRootProof, withdrawalProof)
+            )
+        );
+        assert(success);
+
+        // Finalize the withdrawal transaction.
+        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
+        bytes memory returnData;
+        (success, returnData) = actor.directCall(
+            address(PORTAL), _ZERO_VALUE, abi.encodeCall(IOptimismPortalMock.finalizeWithdrawalTransaction, (_tx))
+        );
+        assert(success);
+
+        // Decode the return data to check that the call to the target reverts.
+        (bool safeCallSuccess) = abi.decode(returnData, (bool));
+        assert(!safeCallSuccess);
     }
 }

@@ -600,7 +600,7 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
     )
         public
         whenNotPaused
-        returns (bool success_)
+        returns (bool)
     {
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
         // than the default value when a withdrawal transaction is being finalized. This check is
@@ -629,7 +629,7 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         //   2. The amount of gas provided to the execution context of the target is at least the
         //      gas limit specified by the user. If there is not enough gas in the current context
         //      to accomplish this, `callWithMinGas` will revert.
-        success_ = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        bool success_ = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
         // All withdrawals are immediately finalized. Replayability can
@@ -641,6 +641,8 @@ contract OptimismPortalMock is Initializable, ResourceMetering, ReinitializableB
         if (!success_ && tx.origin == Constants.ESTIMATION_ADDRESS) {
             revert OptimismPortal_GasEstimation();
         }
+
+        return success_;
     }
 
     /// @notice Checks that a withdrawal has been proven and is ready to be finalized.
