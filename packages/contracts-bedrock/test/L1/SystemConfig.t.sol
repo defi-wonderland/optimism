@@ -534,7 +534,7 @@ contract SystemConfig_Setters_TestFail is SystemConfig_Init {
     }
 
     function test_setGasConfigEcotone_notOwner_reverts(address _caller) external {
-        // TODO(opcm upgrades): remove skip once upgrade is implemented
+        // TODO: (opcm upgrades) remove skip once upgrade is implemented
         skipIfForkTest("SystemConfig_Setters_TestFail: 'setGasConfigEcotone' method DNE on op mainnet");
         vm.assume(_caller != systemConfig.owner());
 
