@@ -105,7 +105,7 @@
   },
   "src/L2/OptimismMintableERC721Factory.sol:OptimismMintableERC721Factory": {
     "initCodeHash": "0xfdc83f2da729d2edf1ad1671bf7a73764543cbd08dbfaa1cd148cea928ab1e13",
-    "sourceCodeHash": "0x9b9f6911cc09f8e3e1650dba212f6fbaf461ebf11fbff30352c3d09eeb038fb6"
+    "sourceCodeHash": "0x899abd2a67bfda8c5cc40a8176779244adc73d9d606526303a53cf014353c640"
   },
   "src/L2/OptimismSuperchainERC20.sol:OptimismSuperchainERC20": {
     "initCodeHash": "0xdac32a1057a6bc8a8d2ffdce1db8f34950cd0ffd1454d2133865736d21869192",
