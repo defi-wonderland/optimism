@@ -17,8 +17,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @notice The OperatorFeeVault accumulates the operator portion of the transaction fees.
 contract OperatorFeeVault is FeeVault, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.0.1
-    string public constant version = "1.0.1";
+    /// @custom:semver 1.1.0
+    string public constant version = "1.1.0";
 
     /// @inheritdoc FeeVault
     function config()
