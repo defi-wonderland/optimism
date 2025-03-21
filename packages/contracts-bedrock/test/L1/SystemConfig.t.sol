@@ -770,11 +770,17 @@ contract SystemConfig_upgrade_Test is SystemConfig_Init {
         assertNotEq(vm.load(address(systemConfig), disputeGameFactorySlot), bytes32(0));
 
         // Trigger upgrade().
-        systemConfig.upgrade(address(0x1234));
+        systemConfig.upgrade(address(0x1234), 1234);
 
         // Verify that the initialized slot was updated.
         bytes32 initializedSlotAfter = vm.load(address(systemConfig), bytes32(slot.slot));
         assertEq(initializedSlotAfter, bytes32(uint256(2)));
+
+        // Verify that the l2ChainId was updated.
+        assertEq(systemConfig.l2ChainId(), 1234);
+
+        // Verify that the dispute game factory address was cleared.
+        assertEq(vm.load(address(systemConfig), disputeGameFactorySlot), bytes32(0));
 
         // Verify that the feeVaultAdmin was updated.
         assertEq(systemConfig.feeVaultAdmin(), address(0x1234));
@@ -789,11 +795,11 @@ contract SystemConfig_upgrade_Test is SystemConfig_Init {
         vm.store(address(systemConfig), bytes32(slot.slot), bytes32(0));
 
         // Trigger first upgrade.
-        systemConfig.upgrade(address(0x1234));
+        systemConfig.upgrade(address(0x1234), 1234);
 
         // Try to trigger second upgrade.
         vm.expectRevert("Initializable: contract is already initialized");
-        systemConfig.upgrade(address(0x1234));
+        systemConfig.upgrade(address(0x1234), 1234);
     }
 
     /// @notice Tests that the upgrade() function reverts if called after initialization.
@@ -812,6 +818,6 @@ contract SystemConfig_upgrade_Test is SystemConfig_Init {
 
         // Try to trigger upgrade().
         vm.expectRevert("Initializable: contract is already initialized");
-        systemConfig.upgrade(address(0x1234));
+        systemConfig.upgrade(address(0x1234), 1234);
     }
 }

@@ -240,9 +240,15 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice Upgrades the SystemConfig by setting the fee vault admin address.
     /// @param _feeVaultAdmin The address of the fee vault admin.
-    function upgrade(address _feeVaultAdmin) external reinitializer(initVersion()) {
+    function upgrade(address _feeVaultAdmin, uint256 _l2ChainId) external reinitializer(initVersion()) {
         // Set the fee vault admin address.
         Storage.setAddress(FEE_VAULT_ADMIN_SLOT, _feeVaultAdmin);
+
+        l2ChainId = _l2ChainId;
+
+        // Clear out the old dispute game factory address, it's derived now.
+        bytes32 disputeGameFactorySlot = bytes32(uint256(keccak256("systemconfig.disputegamefactory")) - 1);
+        Storage.setAddress(disputeGameFactorySlot, address(0));
     }
 
     /// @notice Returns the minimum L2 gas limit that can be safely set for the system to

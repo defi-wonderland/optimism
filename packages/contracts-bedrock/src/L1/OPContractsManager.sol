@@ -547,7 +547,7 @@ contract OPContractsManagerUpgrader is OPContractsManagerBase {
                 _opChainConfigs[i].proxyAdmin,
                 address(_opChainConfigs[i].systemConfigProxy),
                 impls.systemConfigImpl,
-                abi.encodeCall(ISystemConfig.upgrade, (_opChainConfigs[i].feeVaultAdmin))
+                abi.encodeCall(ISystemConfig.upgrade, (_opChainConfigs[i].feeVaultAdmin, l2ChainId))
             );
 
             // Grab chain addresses here. We need to do this after the SystemConfig upgrade or the
