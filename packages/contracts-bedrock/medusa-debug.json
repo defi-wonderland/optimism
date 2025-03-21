@@ -5,7 +5,7 @@
     "args": ["--foundry-out-directory", "artifacts"]
   },
   "fuzzing": {
-    "timeout": 20,
+    "timeout": 15,
     "coverageEnabled": false,
     "coverageFormats": [],
     "targetContracts": ["FuzzTest"],

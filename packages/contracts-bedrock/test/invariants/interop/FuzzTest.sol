@@ -11,15 +11,63 @@ import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
 import { IOptimismPortalMock } from "./interfaces/IOptimismPortalMock.sol";
 import { WeirdTarget } from "./mocks/WeirdTarget.sol";
+import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
+import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 
 contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
     uint256 internal constant _DATA_LENGTH_MAX_LIMIT = 120_000;
 
+    // TODO: Move to a helper function
+    struct CallRelayParams {
+        Identifier id;
+        bytes messageSent;
+        bytes message;
+        uint256 nonce;
+    }
+
+    /// @notice Helper to bypass the access list checksum validation on `CrossL2Inbox`
+    function _callL2ToL2MessengerRelayMessage(
+        address _sender,
+        CallRelayParams memory _params
+    )
+        internal
+        returns (bool _success, bytes32 messageHash)
+    {
+        // Ensure the inputs types are valid
+        _params.id.blockNumber = clampLte(_params.id.blockNumber, type(uint64).max);
+        _params.id.logIndex = clampLte(_params.id.logIndex, type(uint32).max);
+        _params.id.timestamp = clampLte(_params.id.timestamp, type(uint64).max);
+        _params.id.origin = address(L2_TO_L2_MESSENGER);
+
+        // hash the message
+        messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _params.id.chainId,
+            _nonce: _params.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: abi.encode(_params.message)
+        });
+
+        // calculate the checksum
+        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_params.id, keccak256(_params.messageSent));
+
+        // warm the slot
+        CROSS_L2_INBOX.warmSlot(slot);
+
+        // Relay the message
+        vm.prank(_sender);
+        (_success,) = address(L2_TO_L2_MESSENGER).call(
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _params.id, _params.messageSent)
+        );
+    }
+
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
     /// and the sender's balance on the origin chain by exactly the input amount.
-    function test_sendSuperchainERC20(address _to, uint256 _amount) public initialize {
+    function test_sendSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the chain id to a valid one
@@ -28,16 +76,18 @@ contract FuzzTest is Handler {
         _amount = clampLte(_amount, totalSupply);
 
         // Get state before call
-        Actors actor = currentActor();
-        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(address(actor));
+        address actor = address(randomActor(_actorIndex));
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(actor);
         uint256 sTokenTotalSupplyBefore = totalSupply;
 
-        // Call the token bridge from the actor
-        (bool success) = actor.callBridgeSendERC20(address(SUPER_TOKEN), _to, _amount, DESTINATION_CHAIN_ID);
-        if (success) {
-            assert(SUPER_TOKEN.balanceOf(address(actor)) == actorSTokenBalanceBefore - _amount);
+        // Call the token bridge
+        vm.prank(actor);
+        try ISuperchainTokenBridge(SUPERCHAIN_TOKEN_BRIDGE).sendERC20(
+            address(SUPER_TOKEN), _to, _amount, DESTINATION_CHAIN_ID
+        ) {
+            assert(SUPER_TOKEN.balanceOf(actor) == actorSTokenBalanceBefore - _amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore - _amount);
-        } else {
+        } catch {
             assert(actorSTokenBalanceBefore < _amount);
         }
     }
@@ -48,11 +98,13 @@ contract FuzzTest is Handler {
     function test_relaySuperchainERC20(
         Identifier memory _id,
         Message memory _message,
-        uint256 _actorIndex
+        address _sender,
+        address _target
     )
         public
         initialize
     {
+        require(!_isL1Contract(_target));
         _message.amount = clampLte(_message.amount, type(uint256).max - SUPER_TOKEN.totalSupply());
 
         _id.blockNumber = clampLte(_id.blockNumber, type(uint64).max);
@@ -63,10 +115,9 @@ contract FuzzTest is Handler {
         _id.origin = address(L2_TO_L2_MESSENGER);
 
         // Ensure the message is valid
-        address targetActor = address(randomActor(_actorIndex));
         address messageTarget = address(SUPERCHAIN_TOKEN_BRIDGE);
         bytes memory message = abi.encodeCall(
-            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _message.from, targetActor, _message.amount)
+            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_TOKEN), _message.from, _target, _message.amount)
         );
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, messageTarget, _message.nonce), // topics
@@ -75,17 +126,17 @@ contract FuzzTest is Handler {
 
         // Get state before call
         uint256 sTokenTotalSupplyBefore = SUPER_TOKEN.totalSupply();
-        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(targetActor);
+        uint256 actorSTokenBalanceBefore = SUPER_TOKEN.balanceOf(_target);
 
-        // Relay the message by calling the messenger from the actor
-        Actors actor = currentActor();
-        (bool success, bytes32 messageHash) = actor.callL2ToL2MessengerRelayMessage(
-            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+        // Relay the message by calling the messenger
+        (bool success, bytes32 messageHash) = _callL2ToL2MessengerRelayMessage(
+            _sender, CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
         );
 
+        // Assert
         if (success) {
             // Check the state is right after the call
-            assert(SUPER_TOKEN.balanceOf(targetActor) == actorSTokenBalanceBefore + _message.amount);
+            assert(SUPER_TOKEN.balanceOf(_target) == actorSTokenBalanceBefore + _message.amount);
             assert(SUPER_TOKEN.totalSupply() == sTokenTotalSupplyBefore + _message.amount);
         } else {
             // Ensure the message was already relayed
@@ -97,7 +148,7 @@ contract FuzzTest is Handler {
     /// @custom:property Bridging SuperchainWETH through SuperchainTokenBridge from origin to destination increases
     /// the ETHLiquidity Ether balance, and decreases the sender's SuperchainWETH balance on origin as well as
     /// SuperchainWETH total supply and Ether balance by exactly the input amount.
-    function test_sendSuperchainWETH(address _to, uint256 _amount) public initialize {
+    function test_sendSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         // Check the target address is valid
         require(_to != address(0) && _to != address(L2_TO_L2_MESSENGER) && _to != address(CROSS_L2_INBOX));
         // Set the amount to a valid one
@@ -105,22 +156,24 @@ contract FuzzTest is Handler {
         _amount = clampLte(_amount, totalSupply);
 
         // Get state before call
-        Actors actor = currentActor();
-        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(address(actor));
+        address actor = address(randomActor(_actorIndex));
+        uint256 senderSWethBalanceBefore = SUPER_WETH.balanceOf(actor);
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
-        // Call the token bridge from the actor
-        (bool success) = actor.callBridgeSendERC20(address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID);
-        if (success) {
+        // Call the token bridge
+        vm.prank(actor);
+        try ISuperchainTokenBridge(SUPERCHAIN_TOKEN_BRIDGE).sendERC20(
+            address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID
+        ) {
             _ghost_superWethBalancesSum -= _amount;
 
-            assert(SUPER_WETH.balanceOf(address(actor)) == actorSWethBalanceBefore - _amount);
+            assert(SUPER_WETH.balanceOf(actor) == senderSWethBalanceBefore - _amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore - _amount);
             assert(SUPER_WETH.totalSupply() == totalSupply - _amount);
-        } else {
-            assert(actorSWethBalanceBefore < _amount);
+        } catch {
+            assert(senderSWethBalanceBefore < _amount);
         }
     }
 
@@ -131,7 +184,8 @@ contract FuzzTest is Handler {
     function test_relaySuperchainWETH(
         Identifier memory _id,
         Message memory _message,
-        uint256 _actorIndex
+        address _sender,
+        address _target
     )
         public
         initialize
@@ -140,23 +194,13 @@ contract FuzzTest is Handler {
         // lesser than the max uint256 less the SuperchainWETH total supply (overflow)
         uint256 totalSupplyBefore = SUPER_WETH.totalSupply();
 
-        // Ensure the inputs are valid
-        {
-            _message.amount = clampLte(
-                _message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - totalSupplyBefore)
-            );
-
-            _id.origin = address(L2_TO_L2_MESSENGER);
-
-            _id.blockNumber = clampLte(_id.blockNumber, type(uint64).max);
-            _id.logIndex = clampLte(_id.logIndex, type(uint32).max);
-            _id.timestamp = clampLte(_id.timestamp, type(uint64).max);
-        }
+        // Ensure the amount is valid
+        _message.amount =
+            clampLte(_message.amount, Utils.min(address(ETH_LIQUIDITY).balance, type(uint256).max - totalSupplyBefore));
 
         // Ensure the message is valid
-        address targetActor = address(randomActor(_actorIndex));
         bytes memory message = abi.encodeCall(
-            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, targetActor, _message.amount)
+            SUPERCHAIN_TOKEN_BRIDGE.relayERC20, (address(SUPER_WETH), _message.from, _target, _message.amount)
         );
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(_SENT_MESSAGE_EVENT_SELECTOR, block.chainid, address(SUPERCHAIN_TOKEN_BRIDGE), _message.nonce), // topics
@@ -164,19 +208,19 @@ contract FuzzTest is Handler {
         );
 
         // Get state before call
-        uint256 actorSWethBalanceBefore = SUPER_WETH.balanceOf(targetActor);
+        uint256 targetSWethBalanceBefore = SUPER_WETH.balanceOf(_target);
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Relay the message by calling the messenger from the actor
-        Actors.CallRelayParams memory callRelayParams =
-            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce });
-        (bool success, bytes32 messageHash) = currentActor().callL2ToL2MessengerRelayMessage(callRelayParams);
+        CallRelayParams memory callRelayParams =
+            CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce });
+        (bool success, bytes32 messageHash) = _callL2ToL2MessengerRelayMessage(_sender, callRelayParams);
 
         if (success) {
             _ghost_superWethBalancesSum += _message.amount;
 
-            assert(SUPER_WETH.balanceOf(targetActor) == actorSWethBalanceBefore + _message.amount);
+            assert(SUPER_WETH.balanceOf(_target) == targetSWethBalanceBefore + _message.amount);
             assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore - _message.amount);
             assert(address(SUPER_WETH).balance == sWethEthBalanceBefore + _message.amount);
             assert(SUPER_WETH.totalSupply() == totalSupplyBefore + _message.amount);
@@ -191,6 +235,7 @@ contract FuzzTest is Handler {
     function test_mintSuperchainWETH(
         Identifier memory _id,
         Message memory _message,
+        address _sender,
         address _target,
         bool _callSuperWETH
     )
@@ -198,13 +243,6 @@ contract FuzzTest is Handler {
         initialize
     {
         require(!_isL1Contract(_target));
-
-        // Ensure the id is valid
-        _id.origin = address(L2_TO_L2_MESSENGER);
-
-        _id.blockNumber = clampLte(_id.blockNumber, type(uint64).max);
-        _id.logIndex = clampLte(_id.logIndex, type(uint32).max);
-        _id.timestamp = clampLte(_id.timestamp, type(uint64).max);
 
         bytes memory message;
         bytes memory sentMessage;
@@ -245,8 +283,8 @@ contract FuzzTest is Handler {
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
         // Relay the message
-        (bool success,) = currentActor().callL2ToL2MessengerRelayMessage(
-            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+        (bool success,) = _callL2ToL2MessengerRelayMessage(
+            _sender, CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
         );
 
         if (success) {
@@ -278,14 +316,31 @@ contract FuzzTest is Handler {
         // Get state before call
         uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
 
+        address actor = address(currentActor());
         bool success;
         if (_callSuperWETH) {
-            _amount = clampLte(_amount, Utils.min(currentActor().ethBalance(), address(SUPER_WETH).balance));
-            success = currentActor().callSuperchainWETHSendETH{ value: _amount }(_to, DESTINATION_CHAIN_ID);
+            _amount = clampLte(_amount, Utils.min(actor.balance, address(SUPER_WETH).balance));
+
+            // vm.prank(actor);
+            // (success,) = address(SUPER_WETH).call{ value: _amount }(
+            //     abi.encodeWithSelector(ISuperchainWETH.sendETH.selector, _to, DESTINATION_CHAIN_ID)
+            // );
+
+            /// NOTE: `vm.prank` is not working here, so we use `directCall` instead
+            (success,) = Actors(payable(actor)).directCall(
+                address(SUPER_WETH),
+                _amount,
+                abi.encodeWithSelector(ISuperchainWETH.sendETH.selector, _to, DESTINATION_CHAIN_ID)
+            );
         } else {
-            _amount =
-                clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(address(currentActor())), address(SUPER_WETH).balance));
-            success = currentActor().callBridgeSendERC20(address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID);
+            _amount = clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(actor), address(SUPER_WETH).balance));
+
+            vm.prank(actor);
+            (success,) = address(SUPERCHAIN_TOKEN_BRIDGE).call(
+                abi.encodeWithSelector(
+                    ISuperchainTokenBridge.sendERC20.selector, address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID
+                )
+            );
         }
 
         if (success) {
@@ -331,6 +386,7 @@ contract FuzzTest is Handler {
         uint256 balanceBefore = address(ETH_LOCKBOX).balance;
 
         // Deposit the transaction
+        /// NOTE: `vm.prank` is not working here, so we use `directCall` instead
         (bool success,) = actor.directCall(
             address(PORTAL),
             _value,
@@ -355,8 +411,6 @@ contract FuzzTest is Handler {
         require(_tx.target != address(ETH_LOCKBOX));
         require(!_isL2Contract(_tx.target));
 
-        bool success;
-
         // Setting not used parameters to empty values
         bytes[] memory withdrawalProof = new bytes[](0);
         Types.OutputRootProof memory outputRootProof;
@@ -374,33 +428,33 @@ contract FuzzTest is Handler {
         uint256 ethLockboxBalanceBefore = address(ETH_LOCKBOX).balance;
 
         Actors actor = randomActor(_actorIndex);
-        (success,) = actor.directCall(
-            address(PORTAL),
-            _ZERO_VALUE,
-            abi.encodeCall(
-                IOptimismPortalMock.proveWithdrawalTransaction,
-                (_tx, disputeGameIndex, outputRootProof, withdrawalProof)
-            )
-        );
-        assert(success);
-
-        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
 
         vm.prank(address(actor));
-        success = IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx);
+        try PORTAL.proveWithdrawalTransaction(_tx, disputeGameIndex, outputRootProof, withdrawalProof) {
+            vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
+        } catch {
+            assert(false);
+        }
 
-        // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
-        if (success) {
-            if (_tx.value == 0) assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore);
-            else assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
-        } else {
-            assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
-            assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
+        vm.prank(address(actor));
+        try IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx) returns (bool success) {
+            // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
+            if (success) {
+                if (_tx.value == 0) assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore);
+                else assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
+            } else {
+                assert(address(ETH_LOCKBOX).balance == ethLockboxBalanceBefore - _tx.value);
+                assert(address(PORTAL).balance == portalBalanceBefore + _tx.value);
+            }
+        } catch {
+            // Make sure the finalize call doesn't revert.
+            assert(false);
         }
     }
 
     /// @custom:property-id 12
-    /// @custom:property `OptimismPortal`s `unlockETH` MUST NOT be called on a finalized withdrawal transaction context
+    /// @custom:property `OptimismPortal`s `unlockETH` MUST NOT be called on a finalized withdrawal transaction
+    ///                   context
     function test_noETHUnlockedDuringWithdrawal(
         address _caller,
         Types.WithdrawalTransaction memory _tx
@@ -418,8 +472,8 @@ contract FuzzTest is Handler {
         assert(!success);
     }
 
-    /// @notice Unguided test that doesn't match any specific property, but checks that withdrawal finalization checks
-    ///         are correct by making a malicious call on a target contract.
+    /// @notice Unguided test that doesn't match any specific property, but checks that withdrawal finalization
+    ///         checks are correct by making a malicious call on a target contract.
     function test_finalizeWithdrawalReverts_unguided(
         address _caller,
         Types.WithdrawalTransaction memory _tx,
@@ -444,27 +498,23 @@ contract FuzzTest is Handler {
         uint256 disputeGameIndex = 0;
 
         // Prove the withdrawal transaction.
-        Actors actor = randomActor(_actorIndex);
-        (bool success,) = actor.directCall(
-            address(PORTAL),
-            _ZERO_VALUE,
-            abi.encodeCall(
-                IOptimismPortalMock.proveWithdrawalTransaction,
-                (_tx, disputeGameIndex, outputRootProof, withdrawalProof)
-            )
-        );
-        assert(success);
+        vm.prank(_caller);
+        try IOptimismPortalMock(address(PORTAL)).proveWithdrawalTransaction(
+            _tx, disputeGameIndex, outputRootProof, withdrawalProof
+        ) { } catch {
+            // Make sure the call doesn't revert.
+            assert(false);
+        }
 
         // Finalize the withdrawal transaction.
         vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
-        bytes memory returnData;
-        (success, returnData) = actor.directCall(
-            address(PORTAL), _ZERO_VALUE, abi.encodeCall(IOptimismPortalMock.finalizeWithdrawalTransaction, (_tx))
-        );
-        assert(success);
-
-        // Decode the return data to check that the call to the target reverts.
-        (bool safeCallSuccess) = abi.decode(returnData, (bool));
-        assert(!safeCallSuccess);
+        vm.prank(_caller);
+        try IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx) returns (bool success) {
+            // Ensure the WeirdTarget call reverts.
+            assert(!success);
+        } catch {
+            // Make sure the finalize call doesn't revert.
+            assert(false);
+        }
     }
 }
