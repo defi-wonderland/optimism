@@ -275,7 +275,7 @@ contract FuzzTest is Handler {
             _nonce: _message.nonce,
             _sender: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
             _target: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
-            _message: message
+            _message: abi.encode(message)
         });
         require(!L2_TO_L2_MESSENGER.successfulMessages(messageHash));
 
