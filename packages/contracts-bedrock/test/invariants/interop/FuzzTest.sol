@@ -321,10 +321,9 @@ contract FuzzTest is Handler {
         if (_callSuperWETH) {
             _amount = clampLte(_amount, Utils.min(actor.balance, address(SUPER_WETH).balance));
 
-            // vm.prank(actor);
-            // (success,) = address(SUPER_WETH).call{ value: _amount }(
-            //     abi.encodeWithSelector(ISuperchainWETH.sendETH.selector, _to, DESTINATION_CHAIN_ID)
-            // );
+            console.log("super weth balance", address(SUPER_WETH).balance);
+            console.log("balance", actor.balance);
+            console.log("eth amount", _amount);
 
             /// NOTE: `vm.prank` is not working here, so we use `directCall` instead
             (success,) = Actors(payable(actor)).directCall(
@@ -465,11 +464,39 @@ contract FuzzTest is Handler {
         _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
         // Set the target to the WeirdTarget and the data to the selector of the function that will be called.
         _tx.target = address(WEIRD_TARGET);
-        _tx.data = abi.encodeWithSelector(WeirdTarget.callLockboxUnlockETH.selector);
+        _tx.data = abi.encodeWithSelector(WEIRD_TARGET.callLockboxUnlockETH.selector);
+        _tx.gasLimit = type(uint256).max;
 
-        vm.prank(address(_caller));
-        bool success = IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx);
-        assert(!success);
+        // do the call using actor
+        Actors actor = Actors(payable(currentActor()));
+        uint256 disputeGameIndex = 0;
+        Types.OutputRootProof memory outputRootProof;
+        bytes[] memory withdrawalProof = new bytes[](0);
+        (bool success,) = actor.directCall(
+            address(PORTAL),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(
+                IOptimismPortalMock.proveWithdrawalTransaction.selector,
+                _tx,
+                disputeGameIndex,
+                outputRootProof,
+                withdrawalProof
+            )
+        );
+        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
+
+        // finalize
+        bytes memory returnData;
+        (success, returnData) = actor.directCall(
+            address(PORTAL),
+            _ZERO_VALUE,
+            abi.encodeWithSelector(IOptimismPortalMock.finalizeWithdrawalTransaction.selector, _tx)
+        );
+        assert(success);
+
+        // decode
+        (bool safeCall) = abi.decode(returnData, (bool));
+        assert(!safeCall);
     }
 
     /// @notice Unguided test that doesn't match any specific property, but checks that withdrawal finalization
@@ -518,3 +545,5 @@ contract FuzzTest is Handler {
         }
     }
 }
+
+import "forge-std/console.sol";

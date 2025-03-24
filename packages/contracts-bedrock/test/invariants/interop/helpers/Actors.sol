@@ -35,6 +35,7 @@ contract Actors {
     address public immutable SUPERCHAIN_TOKEN_BRIDGE = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
     address public immutable L2_TO_L2_CROSS_DOMAIN_MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
     address public immutable SUPERCHAIN_WETH = Predeploys.SUPERCHAIN_WETH;
+    address public immutable CROSS_L2_INBOX = Predeploys.CROSS_L2_INBOX;
 
     function callBridgeRelayERC20(address _token, address _from, address _to, uint256 _amount) public returns (bool) {
         try ISuperchainTokenBridge(SUPERCHAIN_TOKEN_BRIDGE).relayERC20(_token, _from, _to, _amount) {
@@ -60,26 +61,13 @@ contract Actors {
         }
     }
 
-    function callL2ToL2MessengerRelayMessage(CallRelayParams memory _params)
-        public
-        returns (bool _success, bytes32 messageHash)
-    {
-        // hash the message
-        messageHash = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: block.chainid,
-            _source: _params.id.chainId,
-            _nonce: _params.nonce,
-            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _message: _params.message
-        });
-
+    function callL2ToL2MessengerRelayMessage(CallRelayParams memory _params) public returns (bool _success) {
         // calculate the checksum
         bytes32 slot =
-            ICrossL2InboxWithSlotWarming(L2_TO_L2_CROSS_DOMAIN_MESSENGER).calculateChecksum(_params.id, messageHash);
+            ICrossL2InboxWithSlotWarming(CROSS_L2_INBOX).calculateChecksum(_params.id, keccak256(_params.messageSent));
 
         // warm the slot
-        ICrossL2InboxWithSlotWarming(L2_TO_L2_CROSS_DOMAIN_MESSENGER).warmSlot(slot);
+        ICrossL2InboxWithSlotWarming(CROSS_L2_INBOX).warmSlot(slot);
 
         // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
         // though it's the same as the one used in the interface.

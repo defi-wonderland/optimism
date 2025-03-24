@@ -158,6 +158,10 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
+
+        // NOTE: Not entering HERE
+        console.log("manual fail handler 4");
+        assert(false);
     }
 
     function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public initialize {
@@ -252,6 +256,10 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
+
+        // NOTE: Not entering HERE
+        console.log("manual fail handler 9");
+        assert(false);
     }
 
     function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _actorIndex) public initialize {
@@ -309,7 +317,7 @@ contract Handler is Setup {
             abi.encode(address(SUPER_WETH), message) // data
         );
 
-        (bool success, bytes32 messageHash) = randomActor(_toActorIndex + 1).callL2ToL2MessengerRelayMessage(
+        (bool success) = randomActor(_toActorIndex + 1).callL2ToL2MessengerRelayMessage(
             Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
         );
 
@@ -320,6 +328,16 @@ contract Handler is Setup {
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
         } else {
+            // hash the message
+            bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+                _destination: block.chainid,
+                _source: _id.chainId,
+                _nonce: _message.nonce,
+                _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+                _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+                _message: abi.encode(message)
+            });
+
             // If it fails, it should only be because the message was already relayed
             assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
         }
@@ -359,3 +377,5 @@ contract Handler is Setup {
         if (_to == address(SUPER_WETH)) _ghost_superWethEtherSent += _amount;
     }
 }
+
+import "forge-std/console.sol";
