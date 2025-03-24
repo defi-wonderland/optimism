@@ -235,7 +235,7 @@ contract ForkLive is Deployer {
 
             DelegateCaller(opmUpgrader).dcForward(
                 address(0x026b2F158255Beac46c1E7c6b8BbF29A4b6A7B76),
-                abi.encodeWithSignature("upgrade((address,address,bytes32)[])", opmChain)
+                abi.encodeCall(IOPContractsManagerPre113.upgrade, opmChain)
             );
         }
 
