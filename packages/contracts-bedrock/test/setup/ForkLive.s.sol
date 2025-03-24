@@ -25,6 +25,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
+import { IOPContractsManagerPre113 } from "interfaces/L1/IOPContractsManagerPre113.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
@@ -148,6 +149,7 @@ contract ForkLive is Deployer {
             "L1CrossDomainMessengerProxy", vm.parseTomlAddress(opToml, ".addresses.L1CrossDomainMessengerProxy")
         );
         saveProxyAndImpl("OptimismMintableERC20Factory", opToml, ".addresses.OptimismMintableERC20FactoryProxy");
+        saveProxyAndImpl("L1OptimismMintableERC20Factory", opToml, ".addresses.OptimismMintableERC20FactoryProxy");
         saveProxyAndImpl("L1StandardBridge", opToml, ".addresses.L1StandardBridgeProxy");
         saveProxyAndImpl("L1ERC721Bridge", opToml, ".addresses.L1ERC721BridgeProxy");
 
@@ -204,7 +206,15 @@ contract ForkLive is Deployer {
             feeVaultAdmin: cfg.systemConfigFeeVaultAdmin()
         });
 
-        IOPContractsManager.OpChainConfig[] memory opmChain = new IOPContractsManager.OpChainConfig[](0);
+        IOPContractsManagerPre113.OpChainConfig[] memory opChainsPre113 =
+            new IOPContractsManagerPre113.OpChainConfig[](1);
+        opChainsPre113[0] = IOPContractsManagerPre113.OpChainConfig({
+            systemConfigProxy: systemConfig,
+            proxyAdmin: proxyAdmin,
+            absolutePrestate: Claim.wrap(bytes32(keccak256("absolutePrestate")))
+        });
+
+        IOPContractsManagerPre113.OpChainConfig[] memory opmChain = new IOPContractsManagerPre113.OpChainConfig[](0);
         // Temporarily replace the upgrader with a DelegateCaller so we can test the upgrade,
         // then reset its code to the original code.
 
@@ -225,19 +235,21 @@ contract ForkLive is Deployer {
 
             DelegateCaller(opmUpgrader).dcForward(
                 address(0x026b2F158255Beac46c1E7c6b8BbF29A4b6A7B76),
-                abi.encodeCall(IOPContractsManager.upgrade, (opmChain))
+                abi.encodeWithSignature("upgrade((address,address,bytes32)[])", opmChain)
             );
         }
 
         // Start by doing Upgrade 13.
 
         DelegateCaller(upgrader).dcForward(
-            address(0x026b2F158255Beac46c1E7c6b8BbF29A4b6A7B76), abi.encodeCall(IOPContractsManager.upgrade, (opChains))
+            address(0x026b2F158255Beac46c1E7c6b8BbF29A4b6A7B76),
+            abi.encodeCall(IOPContractsManagerPre113.upgrade, opChainsPre113)
         );
 
         // Then do Upgrade 14.
         DelegateCaller(upgrader).dcForward(
-            address(0x3A1f523a4bc09cd344A2745a108Bb0398288094F), abi.encodeCall(IOPContractsManager.upgrade, (opChains))
+            address(0x3A1f523a4bc09cd344A2745a108Bb0398288094F),
+            abi.encodeCall(IOPContractsManagerPre113.upgrade, opChainsPre113)
         );
 
         // Then do the final upgrade.

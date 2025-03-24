@@ -534,6 +534,8 @@ contract OptimismPortal2_Test is CommonTest {
 
     /// @dev Tests that the callL2ProxyAdmin function succeeds.
     function testFuzz_callL2ProxyAdmin_succeeds(uint32 _gasLimit, bytes memory _calldata) external {
+        skipIfForkTest("callL2ProxyAdmin not available on some forks");
+
         vm.expectEmit(address(optimismPortal2));
         emit TransactionDeposited(
             Constants.DEPOSITOR_ACCOUNT,
@@ -556,6 +558,8 @@ contract OptimismPortal2_Test is CommonTest {
     ///         code path that manually emits a deposit transaction outside of the
     ///         `depositTransaction` function. This is a simple differential test.
     function testFuzz_callL2ProxyAdmin_correctEvent_succeeds(uint32 _gasLimit, bytes memory _calldata) external {
+        skipIfForkTest("callL2ProxyAdmin not available on some forks");
+
         vm.assume(_calldata.length <= 120_000);
         IResourceMetering.ResourceConfig memory rcfg = systemConfig.resourceConfig();
         _gasLimit =
@@ -600,6 +604,8 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
+        skipIfForkTest("callL2ProxyAdmin not available on some forks");
+
         vm.assume(_caller != superchainConfig.upgrader());
 
         vm.expectRevert(IOptimismPortal.OptimismPortal_Unauthorized.selector);

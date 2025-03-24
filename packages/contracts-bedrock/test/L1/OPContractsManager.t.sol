@@ -48,6 +48,7 @@ import {
 } from "interfaces/L1/IOPContractsManager.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IOPContractsManagerPre113 } from "interfaces/L1/IOPContractsManagerPre113.sol";
 
 // Contracts
 import {
@@ -247,6 +248,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
     IProxyAdmin proxyAdmin;
     IProxyAdmin superchainProxyAdmin;
     address upgrader;
+    IOPContractsManagerPre113.OpChainConfig[] opChainConfigsPre113;
     IOPContractsManager.OpChainConfig[] opChainConfigs;
     Claim absolutePrestate;
     string public opChain = vm.envOr("FORK_OP_CHAIN", string("op"));
@@ -271,6 +273,14 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
 
         // Set the upgrader to be a DelegateCaller so we can test the upgrade
         vm.etch(upgrader, vm.getDeployedCode("test/mocks/Callers.sol:DelegateCaller"));
+
+        opChainConfigsPre113.push(
+            IOPContractsManagerPre113.OpChainConfig({
+                systemConfigProxy: systemConfig,
+                proxyAdmin: proxyAdmin,
+                absolutePrestate: absolutePrestate
+            })
+        );
 
         opChainConfigs.push(
             IOPContractsManager.OpChainConfig({
@@ -309,13 +319,15 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
 
         // If the delegate caller is not the mainnet PAO, we need to call upgrade as the mainnet PAO first.
         if (_delegateCaller != mainnetPAO) {
-            IOPContractsManager.OpChainConfig[] memory opmChain = new IOPContractsManager.OpChainConfig[](0);
+            IOPContractsManagerPre113.OpChainConfig[] memory opmChain = new IOPContractsManagerPre113.OpChainConfig[](0);
             ISuperchainConfig superchainConfig = ISuperchainConfig(mainnetPAO);
 
             address opmUpgrader = IProxyAdmin(EIP1967Helper.getAdmin(address(superchainConfig))).owner();
             vm.etch(opmUpgrader, vm.getDeployedCode("test/mocks/Callers.sol:DelegateCaller"));
 
-            DelegateCaller(opmUpgrader).dcForward(OPCM_ADDRESS, abi.encodeCall(IOPContractsManager.upgrade, (opmChain)));
+            DelegateCaller(opmUpgrader).dcForward(
+                OPCM_ADDRESS, abi.encodeCall(IOPContractsManagerPre113.upgrade, (opmChain))
+            );
         }
 
         // Cache the old L1xDM address so we can look for it in the AddressManager's event
@@ -326,7 +338,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
             abi.encode(
                 l2ChainId,
                 string.concat(
-                    string(bytes.concat(bytes32(uint256(uint160(address(opChainConfigs[0].systemConfigProxy))))))
+                    string(bytes.concat(bytes32(uint256(uint160(address(opChainConfigsPre113[0].systemConfigProxy))))))
                 ),
                 "AnchorStateRegistry"
             )
@@ -367,7 +379,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         }
 
         vm.expectEmit(address(_delegateCaller));
-        emit Upgraded(l2ChainId, opChainConfigs[0].systemConfigProxy, address(_delegateCaller));
+        emit Upgraded(l2ChainId, opChainConfigsPre113[0].systemConfigProxy, address(_delegateCaller));
 
         // Temporarily replace the upgrader with a DelegateCaller so we can test the upgrade,
         // then reset its code to the original code.
@@ -375,7 +387,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         vm.etch(_delegateCaller, vm.getDeployedCode("test/mocks/Callers.sol:DelegateCaller"));
 
         DelegateCaller(_delegateCaller).dcForward(
-            address(deployedOPCM), abi.encodeCall(IOPContractsManager.upgrade, (opChainConfigs))
+            address(deployedOPCM), abi.encodeCall(IOPContractsManagerPre113.upgrade, (opChainConfigsPre113))
         );
 
         VmSafe.Gas memory gas = vm.lastCallGas();
@@ -432,13 +444,15 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
 
         // If the delegate caller is not the mainnet PAO, we need to call upgrade as the mainnet PAO first.
         if (_delegateCaller != mainnetPAO) {
-            IOPContractsManager.OpChainConfig[] memory opmChain = new IOPContractsManager.OpChainConfig[](0);
+            IOPContractsManagerPre113.OpChainConfig[] memory opmChain = new IOPContractsManagerPre113.OpChainConfig[](0);
             ISuperchainConfig superchainConfig = ISuperchainConfig(mainnetPAO);
 
             address opmUpgrader = IProxyAdmin(EIP1967Helper.getAdmin(address(superchainConfig))).owner();
             vm.etch(opmUpgrader, vm.getDeployedCode("test/mocks/Callers.sol:DelegateCaller"));
 
-            DelegateCaller(opmUpgrader).dcForward(OPCM_ADDRESS, abi.encodeCall(IOPContractsManager.upgrade, (opmChain)));
+            DelegateCaller(opmUpgrader).dcForward(
+                OPCM_ADDRESS, abi.encodeCall(IOPContractsManagerPre113.upgrade, (opmChain))
+            );
         }
 
         // sanity check
@@ -462,7 +476,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
             emit ImplementationSet(address(0), GameTypes.CANNON);
         }
         vm.expectEmit(address(_delegateCaller));
-        emit Upgraded(l2ChainId, opChainConfigs[0].systemConfigProxy, address(_delegateCaller));
+        emit Upgraded(l2ChainId, opChainConfigsPre113[0].systemConfigProxy, address(_delegateCaller));
 
         // Temporarily replace the upgrader with a DelegateCaller so we can test the upgrade,
         // then reset its code to the original code.
@@ -470,7 +484,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         vm.etch(_delegateCaller, vm.getDeployedCode("test/mocks/Callers.sol:DelegateCaller"));
 
         DelegateCaller(_delegateCaller).dcForward(
-            address(deployedOPCM), abi.encodeCall(IOPContractsManager.upgrade, (opChainConfigs))
+            address(deployedOPCM), abi.encodeCall(IOPContractsManagerPre113.upgrade, (opChainConfigsPre113))
         );
 
         VmSafe.Gas memory gas = vm.lastCallGas();
@@ -591,14 +605,14 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
 
         // Make sure that the SystemConfig is upgraded to the right version. It must also have the
         // right l2ChainId and must be properly initialized.
-        assertEq(ISemver(address(systemConfig)).version(), "3.0.0");
+        assertEq(ISemver(address(systemConfig)).version(), "3.1.0");
         assertEq(impls.systemConfigImpl, EIP1967Helper.getImplementation(address(systemConfig)));
         assertEq(systemConfig.l2ChainId(), l2ChainId);
         DeployUtils.assertInitialized({ _contractAddress: address(systemConfig), _isProxy: true, _slot: 0, _offset: 0 });
 
         // Make sure that the OptimismPortal is upgraded to the right version. It must also have a
         // reference to the new AnchorStateRegistry.
-        assertEq(ISemver(address(optimismPortal2)).version(), "4.1.0");
+        assertEq(ISemver(address(optimismPortal2)).version(), "4.2.0");
         assertEq(impls.optimismPortalImpl, EIP1967Helper.getImplementation(address(optimismPortal2)));
         assertEq(address(optimismPortal2.anchorStateRegistry()), address(newAsrProxy));
         DeployUtils.assertInitialized({
@@ -747,7 +761,7 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
         assertNotEq(fdgPrestateBefore.raw(), bytes32(0));
 
         // Set the absolute prestate input to zero.
-        opChainConfigs[0].absolutePrestate = Claim.wrap(bytes32(0));
+        opChainConfigsPre113[0].absolutePrestate = Claim.wrap(bytes32(0));
 
         // Now run Upgrade 15.
         runUpgrade15UpgradeAndChecks(upgrader);
