@@ -927,6 +927,11 @@
         "internalType": "address",
         "name": "_feeVaultAdmin",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_l2ChainId",
+        "type": "uint256"
       }
     ],
     "name": "upgrade",
