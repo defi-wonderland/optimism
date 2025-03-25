@@ -9,7 +9,7 @@
 	url = https://github.com/transmissions11/solmate
 [submodule "packages/contracts-bedrock/lib/forge-std"]
 	path = packages/contracts-bedrock/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
+	url = https://github.com/foundry-rs/forge-std/commit/6853b9ec7df5dc0c213b05ae67785ad4f4baa0ea
 [submodule "packages/contracts-bedrock/lib/safe-contracts"]
 	path = packages/contracts-bedrock/lib/safe-contracts
 	url = https://github.com/safe-global/safe-contracts
