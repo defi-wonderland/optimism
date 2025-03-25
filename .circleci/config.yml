@@ -1105,6 +1105,75 @@ jobs:
             - notify-failures-on-develop:
                 mentions: "<<parameters.mentions>>"
 
+  op-acceptance-tests:
+    parameters:
+      devnet:
+        description: The name of the devnet to run the acceptance tests against. The devnet must have a recipe defined in kurtosis-devnet/Justfile with the name <devnet>-devnet.
+        type: string
+        default: ""
+      gate:
+        description: The gate to run the acceptance tests against. This gate should be defined in op-acceptance-tests/acceptance-tests.yaml.
+        type: string
+        default: ""
+      resource_class:
+        description: Machine resource class
+        type: string
+        default: xlarge
+      no_output_timeout:
+        description: Timeout for when CircleCI kills the job if there's no output
+        type: string
+        default: 30m
+    machine: true
+    resource_class: <<parameters.resource_class>>
+    steps:
+      - utils/checkout-with-mise
+      - attach_workspace:
+          at: "."
+      # Restore cached Go modules
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+            - go-mod-v1-
+      # Download dependencies first
+      - run:
+          name: Download Go dependencies
+          working_directory: op-acceptance-tests
+          command: go mod download
+      # Prepare the test environment
+      - run:
+          name: Prepare test environment (compile tests and cache results)
+          working_directory: op-acceptance-tests
+          command: go test -v ./... || true # ignore failures; we're just compiling the tests
+      # Run the actual acceptance tests with optimized settings
+      - run:
+          name: Run acceptance tests
+          working_directory: op-acceptance-tests
+          no_output_timeout: <<parameters.no_output_timeout>>
+          environment:
+            GOFLAGS: "-mod=mod"
+            GO111MODULE: "on"
+          command: just acceptance-test "<<parameters.devnet>>" "<<parameters.gate>>"
+      # Save the module cache for future runs
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      # Store test results and artifacts
+      - when:
+          condition: always
+          steps:
+            - store_test_results:
+                path: ./op-acceptance-tests/results
+      - when:
+          condition: always
+          steps:
+            - store_artifacts:
+                path: ./op-acceptance-tests/logs
+      # Notification step
+      - notify-failures-on-develop:
+          channel: "C03N11M0BBN"  # #notify-ci-failures
+          mentions: "@protocol-devx-pod"
+
   sanitize-op-program:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
@@ -1293,6 +1362,36 @@ jobs:
     resource_class: medium
     steps:
       - run: echo Done
+
+  analyze-op-program-client:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: xlarge
+    steps:
+      - utils/checkout-with-mise
+
+      - run:
+          name: Install Build Dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential cmake ninja-build python3 curl git clang lld libc++-dev libc++abi-dev
+
+      - run:
+           name: Install LLVM Objdump via Mise
+           command: |
+             CC=clang CXX=clang++ mise install llvm-objdump@20.1.0
+             mise use -g llvm-objdump@20.1.0
+
+      - run:
+          name: Install vm-compat via Mise
+          command: |
+            mise use -g ubi:ChainSafe/vm-compat@1.1.0
+
+      - run:
+          name: Run Analyzer
+          command: |
+            make analyze-op-program-client
+          working_directory: op-program
 
   op-program-compat:
     machine: true
@@ -1570,12 +1669,21 @@ workflows:
             packages/contracts-bedrock/scripts/verify
             op-dripper
             devnet-sdk
-            kurtosis-devnet
             op-acceptance-tests
+            kurtosis-devnet
           requires:
             - contracts-bedrock-build
             - cannon-prestate-quick
           context: circleci-repo-readonly-authenticated-github-token
+      - analyze-op-program-client:
+          context: circleci-repo-readonly-authenticated-github-token
+      - op-acceptance-tests:
+          devnet: isthmus
+          gate: isthmus
+          context: circleci-repo-readonly-authenticated-github-token
+          filters:
+            branches:
+              only: develop
       - op-program-compat:
           context: circleci-repo-readonly-authenticated-github-token
       - bedrock-go-tests:
@@ -1868,6 +1976,8 @@ workflows:
     jobs:
       - contracts-bedrock-build:
           build_args: --deny-warnings --skip test
+          context:
+            - circleci-repo-readonly-authenticated-github-token
       - cannon-go-lint-and-test:
           name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
           requires:
@@ -1909,6 +2019,7 @@ workflows:
           context:
             - oplabs-gcr
             - slack
+            - circleci-repo-readonly-authenticated-github-token
       - check-cross-platform:
           matrix:
             parameters:

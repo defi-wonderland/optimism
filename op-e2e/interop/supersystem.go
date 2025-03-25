@@ -174,6 +174,10 @@ func (s *interopE2ESystem) prepareWorld(w WorldResourcePaths) (*interopgen.World
 	worldCfg, err := s.recipe.Build(s.hdWallet)
 	require.NoError(s.t, err)
 
+	for _, l2Cfg := range worldCfg.L2s {
+		require.NotNil(s.t, l2Cfg.L2GenesisIsthmusTimeOffset, "expecting isthmus fork to be enabled for interop deployments")
+	}
+
 	// create a logger for the world configuration
 	logger := s.logger.New("role", "world")
 	require.NoError(s.t, worldCfg.Check(logger))
@@ -334,7 +338,7 @@ func (s *interopE2ESystem) SupervisorClient() *sources.SupervisorClient {
 	}
 	cl, err := client.NewRPC(context.Background(), s.logger, s.supervisor.RPC())
 	require.NoError(s.t, err, "failed to dial supervisor RPC")
-	superClient := sources.NewSupervisorClient(cl)
+	superClient := sources.NewSupervisorClient(cl, nil)
 	s.superClient = superClient
 	return superClient
 }
