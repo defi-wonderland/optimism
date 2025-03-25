@@ -158,10 +158,6 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
-
-        // NOTE: Not entering HERE
-        console.log("manual fail handler 4");
-        assert(false);
     }
 
     function handler_depositSuperchainWETH(uint256 _value, uint256 _actorIndex) public initialize {
@@ -256,10 +252,6 @@ contract Handler is Setup {
         } catch {
             assert(false);
         }
-
-        // NOTE: Not entering HERE
-        console.log("manual fail handler 9");
-        assert(false);
     }
 
     function handler_superchainWETHSendETH(address _to, uint256 _value, uint256 _actorIndex) public initialize {

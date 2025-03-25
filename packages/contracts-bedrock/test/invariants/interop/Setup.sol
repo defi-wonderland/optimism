@@ -7,6 +7,7 @@ import { IDeployer815 } from "./interfaces/IDeployer815.sol";
 import { IDeployer825 } from "./interfaces/IDeployer825.sol";
 import { PropertiesAsserts } from "./utils/PropertiesAsserts.sol";
 import { Utils } from "./utils/Utils.sol";
+import { Permit2Mock } from "./mocks/Permit2Mock.sol";
 
 // Interfaces 0.8.15
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
@@ -16,17 +17,15 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-
-// Interfaces 0.8.25
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { ISuperToken } from "./interfaces/ISuperToken.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
-
-// Libraries and Constants
-import { GameType, Proposal, Hash } from "src/dispute/lib/Types.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+
+// Libraries and Constants
+import { GameType, Proposal, Hash } from "src/dispute/lib/Types.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
@@ -79,6 +78,9 @@ contract Setup is PropertiesAsserts, HandlerActors {
     bytes internal _proxyCode;
 
     constructor() {
+        // Etch Permit2 code to be the mock
+        vm.etch(Preinstalls.Permit2, address(new Permit2Mock()).code);
+
         // Etch the proxy owner to be an actor
         bytes memory actorCode = address(new Actors()).code;
         vm.etch(address(PROXY_OWNER), actorCode);

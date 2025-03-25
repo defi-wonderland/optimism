@@ -303,8 +303,7 @@ contract FuzzTest is Handler {
             }
         } else {
             // Check underflow in ETHLiquidity
-            assert(false);
-            // assert(ethLiquidityEthBalanceBefore < _message.amount);
+            assert(ethLiquidityEthBalanceBefore < _message.amount);
         }
     }
 
