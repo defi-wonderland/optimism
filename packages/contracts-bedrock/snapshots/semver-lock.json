@@ -96,8 +96,8 @@
     "sourceCodeHash": "0xe59eec8a64d6c42d9cc2a67aa649718cad590961f92787d62435bf8cde93f7f3"
   },
   "src/L2/OperatorFeeVault.sol:OperatorFeeVault": {
-    "initCodeHash": "0xc875203e9f81e241f46c5eb96e87a66e6327100c6d2f35f74ab87127dbd6f35b",
-    "sourceCodeHash": "0x9ef470cf9917084c33fd9515af15e50822e5cbe15d0306b5e1fa43d72d71be3c"
+    "initCodeHash": "0xd809877ed9c13031d8012faea913ae464e277a51b7b7b8b8db8cdbe71f3f5e01",
+    "sourceCodeHash": "0xdfad6e28de0eb1a62839a0c10b36c05fe04a86071c3c1b8ed5928be4444dad5c"
   },
   "src/L2/OptimismMintableERC721.sol:OptimismMintableERC721": {
     "initCodeHash": "0xcfa6ad9997a422aef5a19a490a0a535bc870ee34b1f5258c2949eb3680f71e8a",

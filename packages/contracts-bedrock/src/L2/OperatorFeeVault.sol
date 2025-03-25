@@ -6,7 +6,7 @@ import { FeeVault } from "src/L2/FeeVault.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Encoding } from "src/libraries/Encoding.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -23,10 +23,12 @@ contract OperatorFeeVault is FeeVault, ISemver {
     /// @inheritdoc FeeVault
     function config()
         public
-        pure
+        view
         override
         returns (address recipient_, uint256 minWithdrawalAmount_, Types.WithdrawalNetwork withdrawalNetwork_)
     {
-        return (Predeploys.BASE_FEE_VAULT, 0, Types.WithdrawalNetwork.L2);
+        bytes memory vaultConfig = L1_BLOCK().getConfig(Types.ConfigType.OPERATOR_FEE_VAULT_CONFIG);
+        (recipient_, minWithdrawalAmount_, withdrawalNetwork_) =
+            Encoding.decodeFeeVaultConfig(abi.decode(vaultConfig, (bytes32)));
     }
 }
