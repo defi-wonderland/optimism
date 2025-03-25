@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Constants, GameType, Predeploys } from "./Setup.sol";
 import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
@@ -12,7 +11,6 @@ import { vm } from "./utils/VM.sol";
 import { IOptimismPortalMock } from "./interfaces/IOptimismPortalMock.sol";
 import { WeirdTarget } from "./mocks/WeirdTarget.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
-import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 
 contract FuzzTest is Handler {
@@ -339,14 +337,13 @@ contract FuzzTest is Handler {
 
         Actors actor = randomActor(_actorIndex);
 
-        vm.prank(address(actor));
+        vm.prankHere(address(actor));
         try PORTAL.proveWithdrawalTransaction(_tx, disputeGameIndex, outputRootProof, withdrawalProof) {
             vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
         } catch {
             assert(false);
         }
 
-        vm.prank(address(actor));
         try IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx) returns (bool success) {
             // If the safecall was successful, the balance should be decreased by the amount of the withdrawal
             if (success) {
@@ -436,7 +433,7 @@ contract FuzzTest is Handler {
         uint256 disputeGameIndex = 0;
 
         // Prove the withdrawal transaction.
-        vm.prank(_caller);
+        vm.prankHere(address(_caller));
         try IOptimismPortalMock(address(PORTAL)).proveWithdrawalTransaction(
             _tx, disputeGameIndex, outputRootProof, withdrawalProof
         ) { } catch {
@@ -446,7 +443,6 @@ contract FuzzTest is Handler {
 
         // Finalize the withdrawal transaction.
         vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
-        vm.prank(_caller);
         try IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx) returns (bool success) {
             // Ensure the WeirdTarget call reverts.
             assert(!success);

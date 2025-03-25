@@ -108,5 +108,5 @@ We excluded function signatures that were broken in the `ToB/properties` depende
 
 **Additional Notes**
 
-- To avoid using the `prank` cheatcode, we deployed an actor to proxy necessary calls from specific addresses.
+- To avoid using the `prank` cheatcode when sending some value on the next call, we deployed an actor to proxy necessary calls from specific addresses.
 - Although portal mocks don't appear covered in the coverage report, we manually verified their coverage.
