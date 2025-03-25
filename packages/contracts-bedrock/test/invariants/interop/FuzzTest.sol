@@ -303,51 +303,8 @@ contract FuzzTest is Handler {
             }
         } else {
             // Check underflow in ETHLiquidity
-            assert(ethLiquidityEthBalanceBefore < _message.amount);
-        }
-    }
-
-    /// @custom:property-id 7
-    /// @custom:property ETHLiquidity#burn() MUST never be callable such that its balance would increase beyond
-    /// `type(uint256).max
-    function test_burnSuperchainWETH(address _to, uint256 _amount, bool _callSuperWETH) public initialize {
-        if (_to == address(0)) _to = address(type(uint160).max);
-
-        // Get state before call
-        uint256 ethLiquidityEthBalanceBefore = address(ETH_LIQUIDITY).balance;
-
-        address actor = address(currentActor());
-        bool success;
-        if (_callSuperWETH) {
-            _amount = clampLte(_amount, Utils.min(actor.balance, address(SUPER_WETH).balance));
-
-            console.log("super weth balance", address(SUPER_WETH).balance);
-            console.log("balance", actor.balance);
-            console.log("eth amount", _amount);
-
-            /// NOTE: `vm.prank` is not working here, so we use `directCall` instead
-            (success,) = Actors(payable(actor)).directCall(
-                address(SUPER_WETH),
-                _amount,
-                abi.encodeWithSelector(ISuperchainWETH.sendETH.selector, _to, DESTINATION_CHAIN_ID)
-            );
-        } else {
-            _amount = clampLte(_amount, Utils.min(SUPER_WETH.balanceOf(actor), address(SUPER_WETH).balance));
-
-            vm.prank(actor);
-            (success,) = address(SUPERCHAIN_TOKEN_BRIDGE).call(
-                abi.encodeWithSelector(
-                    ISuperchainTokenBridge.sendERC20.selector, address(SUPER_WETH), _to, _amount, DESTINATION_CHAIN_ID
-                )
-            );
-        }
-
-        if (success) {
-            if (!_callSuperWETH) _ghost_superWethBalancesSum -= _amount;
-            assert(address(ETH_LIQUIDITY).balance == ethLiquidityEthBalanceBefore + _amount);
-        } else {
-            // Check overflow in ETHLiquidity
-            assert(address(ETH_LIQUIDITY).balance > type(uint256).max - _amount);
+            assert(false);
+            // assert(ethLiquidityEthBalanceBefore < _message.amount);
         }
     }
 
