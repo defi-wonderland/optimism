@@ -5,7 +5,7 @@ import { Handler } from "./helpers/Handler.sol";
 import { Utils } from "./utils/Utils.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { Actors, ICrossL2InboxWithSlotWarming } from "./helpers/Actors.sol";
+import { Actors } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
 import { IOptimismPortalMock } from "./interfaces/IOptimismPortalMock.sol";
@@ -452,5 +452,3 @@ contract FuzzTest is Handler {
         }
     }
 }
-
-import "forge-std/console.sol";
