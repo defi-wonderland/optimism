@@ -19,51 +19,6 @@ contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
     uint256 internal constant _DATA_LENGTH_MAX_LIMIT = 120_000;
 
-    // TODO: Move to a helper function
-    struct CallRelayParams {
-        Identifier id;
-        bytes messageSent;
-        bytes message;
-        uint256 nonce;
-    }
-
-    /// @notice Helper to bypass the access list checksum validation on `CrossL2Inbox`
-    function _callL2ToL2MessengerRelayMessage(
-        address _sender,
-        CallRelayParams memory _params
-    )
-        internal
-        returns (bool _success, bytes32 messageHash)
-    {
-        // Ensure the inputs types are valid
-        _params.id.blockNumber = clampLte(_params.id.blockNumber, type(uint64).max);
-        _params.id.logIndex = clampLte(_params.id.logIndex, type(uint32).max);
-        _params.id.timestamp = clampLte(_params.id.timestamp, type(uint64).max);
-        _params.id.origin = address(L2_TO_L2_MESSENGER);
-
-        // hash the message
-        messageHash = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: block.chainid,
-            _source: _params.id.chainId,
-            _nonce: _params.nonce,
-            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _message: abi.encode(_params.message)
-        });
-
-        // calculate the checksum
-        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_params.id, keccak256(_params.messageSent));
-
-        // warm the slot
-        CROSS_L2_INBOX.warmSlot(slot);
-
-        // Relay the message
-        vm.prank(_sender);
-        (_success,) = address(L2_TO_L2_MESSENGER).call(
-            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _params.id, _params.messageSent)
-        );
-    }
-
     /// @custom:property-id 1
     /// @custom:property Bridging SuperchainERC20s from the origin to destination decreases the token's totalSupply
     /// and the sender's balance on the origin chain by exactly the input amount.

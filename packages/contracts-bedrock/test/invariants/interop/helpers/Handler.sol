@@ -23,11 +23,19 @@ import { SafeSend } from "src/universal/SafeSend.sol";
 import { OptimismPortal2 as OptimismPortal } from "src/L1/OptimismPortal2.sol";
 
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
 contract Handler is Setup {
     struct Message {
         address from;
         uint256 amount;
+        uint256 nonce;
+    }
+
+    struct CallRelayParams {
+        Identifier id;
+        bytes messageSent;
+        bytes message;
         uint256 nonce;
     }
 
@@ -49,14 +57,52 @@ contract Handler is Setup {
         _;
     }
 
+    /// @notice Helper to bypass the access list checksum validation on `CrossL2Inbox`
+    function _callL2ToL2MessengerRelayMessage(
+        address _sender,
+        CallRelayParams memory _params
+    )
+        internal
+        returns (bool _success, bytes32 messageHash)
+    {
+        // Ensure the inputs types are valid
+        _params.id.blockNumber = clampLte(_params.id.blockNumber, type(uint64).max);
+        _params.id.logIndex = clampLte(_params.id.logIndex, type(uint32).max);
+        _params.id.timestamp = clampLte(_params.id.timestamp, type(uint64).max);
+        _params.id.origin = address(L2_TO_L2_MESSENGER);
+
+        // hash the message
+        messageHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: block.chainid,
+            _source: _params.id.chainId,
+            _nonce: _params.nonce,
+            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _message: abi.encode(_params.message)
+        });
+
+        // calculate the checksum
+        bytes32 slot = CROSS_L2_INBOX.calculateChecksum(_params.id, keccak256(_params.messageSent));
+
+        // warm the slot
+        CROSS_L2_INBOX.warmSlot(slot);
+
+        // Relay the message
+        vm.prank(_sender);
+        (_success,) = address(L2_TO_L2_MESSENGER).call(
+            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _params.id, _params.messageSent)
+        );
+    }
+
     function handler_transferSuperchainERC20(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(actor)));
 
-        (bool success,) = actor.directCall(
-            address(SUPER_TOKEN), _ZERO_VALUE, abi.encodeWithSelector(SUPER_TOKEN.transfer.selector, _to, _amount)
-        );
-        assert(success);
+        vm.prank(address(actor));
+        try SUPER_TOKEN.transfer(_to, _amount) { }
+        catch {
+            assert(false);
+        }
     }
 
     function handler_transferFromSuperchainERC20(
@@ -73,20 +119,18 @@ contract Handler is Setup {
         _amount = clampLte(_amount, SUPER_TOKEN.balanceOf(address(fromActor)));
 
         // Approve the spender to transfer the tokens
-        (bool success,) = fromActor.directCall(
-            address(SUPER_TOKEN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(SUPER_TOKEN.approve.selector, address(callerActor), _amount)
-        );
-        assert(success);
+        vm.prank(address(fromActor));
+        try SUPER_TOKEN.approve(address(callerActor), _amount) { }
+        catch {
+            assert(false);
+        }
 
         // Transfer the tokens
-        (success,) = callerActor.directCall(
-            address(SUPER_TOKEN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, address(fromActor), _to, _amount)
-        );
-        assert(success);
+        vm.prank(address(callerActor));
+        try SUPER_TOKEN.transferFrom(address(fromActor), _to, _amount) { }
+        catch {
+            assert(false);
+        }
     }
 
     function handler_permitSuperchainERC20(
@@ -121,13 +165,12 @@ contract Handler is Setup {
         uint256 callerActorBalanceBefore = SUPER_TOKEN.balanceOf(address(callerActor));
 
         // Call transferFrom
-        (bool success,) = callerActor.directCall(
-            address(SUPER_TOKEN),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(SUPER_TOKEN.transferFrom.selector, fromEOA, address(callerActor), _amount)
-        );
-        assert(success);
-        assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
+        vm.prank(address(callerActor));
+        try SUPER_TOKEN.transferFrom(fromEOA, address(callerActor), _amount) {
+            assert(SUPER_TOKEN.balanceOf(address(callerActor)) == callerActorBalanceBefore + _amount);
+        } catch {
+            assert(false);
+        }
     }
 
     function handler_permit2SuperchainERC20(
@@ -177,21 +220,23 @@ contract Handler is Setup {
         Actors actor = randomActor(_actorIndex);
         _value = clampLte(_value, SUPER_WETH.balanceOf(address(actor)));
 
-        (bool success,) = actor.directCall(
-            address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.withdraw.selector, _value)
-        );
-        assert(success);
-        _ghost_superWethBalancesSum -= _value;
+        vm.prank(address(actor));
+        try SUPER_WETH.withdraw(_value) {
+            _ghost_superWethBalancesSum -= _value;
+        } catch {
+            assert(false);
+        }
     }
 
     function handler_transferSuperchainWETH(address _to, uint256 _amount, uint256 _actorIndex) public initialize {
         Actors actor = randomActor(_actorIndex);
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(actor)));
 
-        (bool success,) = actor.directCall(
-            address(SUPER_WETH), _ZERO_VALUE, abi.encodeWithSelector(SUPER_WETH.transfer.selector, _to, _amount)
-        );
-        assert(success);
+        vm.prank(address(actor));
+        try SUPER_WETH.transfer(_to, _amount) { }
+        catch {
+            assert(false);
+        }
     }
 
     function handler_transferFromSuperchainWETH(
@@ -208,20 +253,18 @@ contract Handler is Setup {
         _amount = clampLte(_amount, SUPER_WETH.balanceOf(address(fromActor)));
 
         // Approve the spender to transfer the tokens
-        (bool success,) = fromActor.directCall(
-            address(SUPER_WETH),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(SUPER_WETH.approve.selector, address(callerActor), _amount)
-        );
-        assert(success);
+        vm.prank(address(fromActor));
+        try SUPER_WETH.approve(address(callerActor), _amount) { }
+        catch {
+            assert(false);
+        }
 
         // Transfer the tokens
-        (success,) = callerActor.directCall(
-            address(SUPER_WETH),
-            _ZERO_VALUE,
-            abi.encodeWithSelector(SUPER_WETH.transferFrom.selector, address(fromActor), _to, _amount)
-        );
-        assert(success);
+        vm.prank(address(callerActor));
+        try SUPER_WETH.transferFrom(address(fromActor), _to, _amount) { }
+        catch {
+            assert(false);
+        }
     }
 
     function handler_permit2SuperchainWETH(
@@ -309,8 +352,10 @@ contract Handler is Setup {
             abi.encode(address(SUPER_WETH), message) // data
         );
 
-        (bool success) = randomActor(_toActorIndex + 1).callL2ToL2MessengerRelayMessage(
-            Actors.CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+        // Relay the message
+        (bool success, bytes32 messageHash) = _callL2ToL2MessengerRelayMessage(
+            address(randomActor(_toActorIndex + 1)),
+            CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
         );
 
         // Check the Ether balances
@@ -320,16 +365,6 @@ contract Handler is Setup {
             // The total supply of superchain WETH should not change
             assert(SUPER_WETH.totalSupply() == _sWETHTotalSupplyBefore);
         } else {
-            // hash the message
-            bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
-                _destination: block.chainid,
-                _source: _id.chainId,
-                _nonce: _message.nonce,
-                _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-                _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-                _message: abi.encode(message)
-            });
-
             // If it fails, it should only be because the message was already relayed
             assert(L2_TO_L2_MESSENGER.successfulMessages(messageHash));
         }

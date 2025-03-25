@@ -61,21 +61,6 @@ contract Actors {
         }
     }
 
-    function callL2ToL2MessengerRelayMessage(CallRelayParams memory _params) public returns (bool _success) {
-        // calculate the checksum
-        bytes32 slot =
-            ICrossL2InboxWithSlotWarming(CROSS_L2_INBOX).calculateChecksum(_params.id, keccak256(_params.messageSent));
-
-        // warm the slot
-        ICrossL2InboxWithSlotWarming(CROSS_L2_INBOX).warmSlot(slot);
-
-        // NOTE: Need to use low-level call or otherwise medusa compiler complains about the identifier type, even
-        // though it's the same as the one used in the interface.
-        (_success,) = L2_TO_L2_CROSS_DOMAIN_MESSENGER.call(
-            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.relayMessage.selector, _params.id, _params.messageSent)
-        );
-    }
-
     function callSuperchainWETHSendETH(address _to, uint256 _chainId) public payable returns (bool _success) {
         try ISuperchainWETH(payable(SUPERCHAIN_WETH)).sendETH{ value: msg.value }(_to, _chainId) {
             return true;
