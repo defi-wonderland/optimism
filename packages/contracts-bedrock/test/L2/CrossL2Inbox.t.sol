@@ -62,9 +62,7 @@ contract CrossL2InboxTest is Test {
         emit ExecutingMessage(_messageHash, _id);
 
         // Validate the message
-        // vm.accessList(accessList);
-        // vm.warmSlot(address(crossL2Inbox), slot);
-        crossL2Inbox.warmSlot(slot);
+        vm.accessList(accessList);
         crossL2Inbox.validateMessage(_id, _messageHash);
     }
 
