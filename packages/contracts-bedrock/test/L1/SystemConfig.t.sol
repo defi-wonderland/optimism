@@ -451,13 +451,11 @@ contract SystemConfig_Init_ResourceConfig is SystemConfig_Init {
         uint64 gasLimit = systemConfig.gasLimit();
 
         // Mock the call to setConfig on OptimismPortal2 for each fee vault, the L1 addresses, and the remote chain id.
-        vm.mockCall(address(optimismPortal2), abi.encodeWithSelector(IOptimismPortal2.setConfig.selector), bytes("")); // nosemgrep:
-            // sol-style-use-abi-encodecall
+        // Loosely matching the data allows to expect `setConfig` to be called with different arguments.
+        vm.mockCall(address(optimismPortal2), abi.encode(IOptimismPortal2.setConfig.selector), bytes(""));
         vm.expectCall(
-            address(optimismPortal2),
-            abi.encodeWithSelector(IOptimismPortal2.setConfig.selector),
-            _expectedCallsToOptimismPortal2
-        ); // nosemgrep: sol-style-use-abi-encodecall
+            address(optimismPortal2), abi.encode(IOptimismPortal2.setConfig.selector), _expectedCallsToOptimismPortal2
+        );
 
         vm.expectRevert(bytes(revertMessage));
         systemConfig.initialize({
