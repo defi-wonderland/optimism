@@ -61,6 +61,34 @@ contract EOA_isEOA_Test is Test {
         assertEq(harness.isSenderEOA(), true);
     }
 
+    /// @notice Tests that a 7702 EOA is detected as an EOA when `tx.origin` is different from
+    ///  `msg.sender`.
+    /// @param _privateKey The private key of the sender.
+    /// @param _7702Target The target of the 7702 EOA.
+    function testFuzz_isEOA_is7702EOAWhenDifferentOrigin_succeeds(
+        address _caller,
+        uint256 _privateKey,
+        address _7702Target
+    )
+        external
+    {
+        // Make sure that the private key is in the range of a valid secp256k1 private key.
+        _privateKey = boundPrivateKey(_privateKey);
+        address sender = vm.addr(_privateKey);
+        vm.assume(_caller != sender);
+
+        // Make sure that the sender is a 7702 EOA.
+        vm.etch(sender, abi.encodePacked(hex"EF0100", _7702Target));
+
+        // Should be considered a 7702 EOA.
+        vm.prank(sender, _caller);
+        assertEq(harness.isSenderEOA(), true);
+
+        // Should still be considered an EOA even if origin is different.
+        vm.prank(sender, address(0x0420));
+        assertEq(harness.isSenderEOA(), true);
+    }
+
     /// @notice Tests that a contract is not detected as an EOA.
     /// @param _privateKey The private key of the sender.
     /// @param _code The code of the sender.
