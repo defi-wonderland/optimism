@@ -24,7 +24,7 @@ func TestCombineDeployConfig(t *testing.T) {
 		Eip1559Denominator:                       1,
 		Eip1559Elasticity:                        2,
 		BaseFeeVaultRecipient:                    common.HexToAddress("0x123"),
-		L1FeeVaultRecipient:                      common.HexToAddress("0x456"), 
+		L1FeeVaultRecipient:                      common.HexToAddress("0x456"),
 		SequencerFeeVaultRecipient:               common.HexToAddress("0x789"),
 		OperatorFeeVaultRecipient:                common.HexToAddress("0xabc"),
 		BaseFeeVaultMinimumWithdrawalAmount:      (*hexutil.Big)(big.NewInt(10)),
@@ -32,7 +32,7 @@ func TestCombineDeployConfig(t *testing.T) {
 		SequencerFeeVaultMinimumWithdrawalAmount: (*hexutil.Big)(big.NewInt(10)),
 		OperatorFeeVaultMinimumWithdrawalAmount:  (*hexutil.Big)(big.NewInt(10)),
 		BaseFeeVaultWithdrawalNetwork:            "remote",
-		L1FeeVaultWithdrawalNetwork:              "remote", 
+		L1FeeVaultWithdrawalNetwork:              "remote",
 		SequencerFeeVaultWithdrawalNetwork:       "remote",
 		OperatorFeeVaultWithdrawalNetwork:        "remote",
 		Roles: ChainRoles{

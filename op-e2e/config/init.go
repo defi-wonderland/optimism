@@ -434,14 +434,14 @@ func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address,
 				Eip1559Elasticity:                        6,
 				Roles: state.ChainRoles{
 					// Use deployer as L1PAO to deploy additional dispute impls
-					L1ProxyAdminOwner:  	deployer,
-					L2ProxyAdminOwner:  	deployer,
-					SystemConfigOwner:  	deployer,
-					SystemConfigFeeAdmin: 	deployer,
-					UnsafeBlockSigner:  	common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"),
-					Batcher:            	addresses.Batcher,
-					Proposer:           	addresses.Proposer,
-					Challenger:        		common.HexToAddress("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"),
+					L1ProxyAdminOwner:    deployer,
+					L2ProxyAdminOwner:    deployer,
+					SystemConfigOwner:    deployer,
+					SystemConfigFeeAdmin: deployer,
+					UnsafeBlockSigner:    common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"),
+					Batcher:              addresses.Batcher,
+					Proposer:             addresses.Proposer,
+					Challenger:           common.HexToAddress("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"),
 				},
 				AdditionalDisputeGames: []state.AdditionalDisputeGame{
 					{

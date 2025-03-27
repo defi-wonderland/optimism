@@ -208,11 +208,11 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 	}
 
 	l2Cfg := &L2Config{
-		Deployer:          		deployer,
-		Proposer:          		proposer,
-		Challenger:        		challenger,
-		SystemConfigOwner: 		systemConfigOwner,
-		SystemConfigFeeAdmin: 	systemConfigFeeAdmin,
+		Deployer:             deployer,
+		Proposer:             proposer,
+		Challenger:           challenger,
+		SystemConfigOwner:    systemConfigOwner,
+		SystemConfigFeeAdmin: systemConfigFeeAdmin,
 		L2InitializationConfig: genesis.L2InitializationConfig{
 			DevDeployConfig: genesis.DevDeployConfig{
 				FundDevAccounts: true,
