@@ -186,6 +186,8 @@ func (role ChainOperatorRole) String() string {
 		return "l1-fee-vault-recipient"
 	case SequencerFeeVaultRecipientRole:
 		return "sequencer-fee-vault-recipient"
+	case OperatorFeeVaultRecipientRole:
+		return "operator-fee-vault-recipient"
 	case SystemConfigOwner:
 		return "system-config-owner"
 	case SystemConfigFeeAdmin:
