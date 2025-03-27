@@ -195,6 +195,9 @@ contract Setup is PropertiesAsserts, HandlerActors {
         // Set the depositor account as an actor
         vm.etch(Constants.DEPOSITOR_ACCOUNT, actorCode);
 
+        // Deploy 20 chains
+        _deployChains();
+
         // Deploy WeirdTarget
         WEIRD_TARGET = new WeirdTarget(address(PORTAL), address(ETH_LOCKBOX));
         _ghost_weirdTargetCallsLength = WEIRD_TARGET.exposeCalls();
@@ -340,6 +343,65 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPER_WETH.version().hashString() != emptyStringHash);
         assert(L2_TO_L2_MESSENGER.version().hashString() != emptyStringHash);
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
+    }
+
+    function _deployChains() internal {
+        for (uint256 i; i < _GHOST_NUMBER_OF_CHAINS; i++) {
+            // Deploy ETHLockbox for the new chain
+            IETHLockbox newEthLockbox =
+                IETHLockbox(payable(vm.addr(uint256(keccak256(abi.encode(++_ghost_saltCounter))))));
+            _setCode(address(newEthLockbox), DEPLOYER_8_25.deployETHLockbox(), true);
+            _ghost_isL1Contract[address(newEthLockbox)] = true;
+
+            // Deploy OptimismPortal for the new chain
+            IOptimismPortal newPortal =
+                IOptimismPortal(payable(vm.addr(uint256(keccak256(abi.encode(++_ghost_saltCounter))))));
+            _setCode(address(newPortal), DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS), true);
+            _ghost_isL1Contract[address(newPortal)] = true;
+
+            // Deploy an anchor state registry for the new chain
+            address newAnchorRegistry = vm.addr(uint256(keccak256(abi.encode(++_ghost_saltCounter))));
+            _setCode(
+                newAnchorRegistry, DEPLOYER_8_15.deployAnchorStateRegistry(DISPUTE_GAME_FINALITY_DELAY_SECONDS), true
+            );
+
+            _ghost_chains[i] =
+                Chain({ portal: newPortal, ethLockbox: newEthLockbox, anchorRegistry: newAnchorRegistry });
+        }
+    }
+
+    function _initializeChain(uint256 _chainIndex, bool _upgrade) internal {
+        IOptimismPortal newPortal = _ghost_chains[_chainIndex].portal;
+        IETHLockbox newEthLockbox = _ghost_chains[_chainIndex].ethLockbox;
+        address newAnchorRegistry = _ghost_chains[_chainIndex].anchorRegistry;
+
+        // Initialize the portal
+        try newPortal.initialize(
+            SYSTEM_CONFIG, SUPERCHAIN_CONFIG, IAnchorStateRegistry(newAnchorRegistry), newEthLockbox
+        ) { } catch {
+            assert(false);
+        }
+
+        // Initialize the ETHLockbox
+        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
+        portals[0] = newPortal;
+        try newEthLockbox.initialize(SUPERCHAIN_CONFIG, portals) { }
+        catch {
+            assert(false);
+        }
+
+        if (_upgrade) {
+            /// NOTE: Not exactly mimicking the real behavior, since for this case the portal will be on the previous
+            ///       version, but it is good enough for the purpose of this testing campaign
+            // Overwrite the initialized slot, setting it to false
+            vm.store(address(newPortal), bytes32(uint256(0)), bytes32(uint256(0)));
+
+            // Upgrade the portal
+            try newPortal.upgrade(IAnchorStateRegistry(newAnchorRegistry), newEthLockbox) { }
+            catch {
+                assert(false);
+            }
+        }
     }
 
     /// @dev Check if a contract is a L1 contract - Useful to don't mix up Ether balances state between L1 and L2

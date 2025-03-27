@@ -406,45 +406,13 @@ contract Handler is Setup {
     }
 
     function handler_addFreshChain() public initialize {
-        // Make sure that the last block combination is not the same as the current block and timestamp to avoid
-        // collisions when generating the addresses of the new contracts.
-        if (_ghost_lastBlockCombination == block.timestamp + block.number) handler_increaseBlockNumber(true);
+        if (_ghost_lastAddedChain == _GHOST_NUMBER_OF_CHAINS) return;
+        bool upgrade = false;
+        _initializeChain(_ghost_lastAddedChain, upgrade);
 
-        // Deploy ETHLockbox for the new chain
-        IETHLockbox newEthLockbox =
-            IETHLockbox(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination))))));
-        _setCode(address(newEthLockbox), ETH_LOCKBOX_IMPLEMENTATION_ADDRESS, true);
-        _ghost_isL1Contract[address(newEthLockbox)] = true;
-
-        // Deploy OptimismPortal for the new chain
-        IOptimismPortal newPortal =
-            IOptimismPortal(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 1))))));
-        _setCode(address(newPortal), DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS), true);
-        _ghost_isL1Contract[address(newPortal)] = true;
-
-        // Deploy SuperchainConfig for the new chain
-        ISuperchainConfig newSuperchainConfig =
-            ISuperchainConfig(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 2)))));
-        _setCode(address(newSuperchainConfig), DEPLOYER_8_15.deploySuperchainConfig(), true);
-        _ghost_isL1Contract[address(newSuperchainConfig)] = true;
-
-        // Initialize them
-        try newSuperchainConfig.initialize(GUARDIAN, false) { }
-        catch {
-            assert(false);
-        }
-
-        try newPortal.initialize(SYSTEM_CONFIG, newSuperchainConfig, ANCHOR_STATE_REGISTRY, ETH_LOCKBOX) { }
-        catch {
-            assert(false);
-        }
-
-        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
-        portals[0] = newPortal;
-        try newEthLockbox.initialize(newSuperchainConfig, portals) { }
-        catch {
-            assert(false);
-        }
+        // Get the chain's contracts
+        IOptimismPortal newPortal = _ghost_chains[_ghost_lastAddedChain].portal;
+        IETHLockbox newEthLockbox = _ghost_chains[_ghost_lastAddedChain].ethLockbox;
 
         // Authorize the new portal on the new lockbox
         vm.prank(address(PROXY_OWNER));
@@ -454,31 +422,24 @@ contract Handler is Setup {
         }
 
         // Migrate liquidity from portal to ETHLockbox
+        /// NOTE: Having issues with `prankHere` so using `prank` for each call instead
         vm.prank(address(PROXY_OWNER));
         try newPortal.migrateLiquidity() { }
         catch {
             assert(false);
         }
 
-        /// NOTE: Having issues with `prankHere` so using `prank` for each call instead
         vm.prank(address(PROXY_OWNER));
         // Authorize the new lockbox on the current lockbox
         try ETH_LOCKBOX.authorizeLockbox(newEthLockbox) { }
         catch {
             /// NOTE: Fails here
-            console.log("authorize lockbox fail");
 
-            console.log("new eth lockbox proxy code length", address(newEthLockbox).code.length);
-            vm.prank(address(PROXY_ADMIN));
-            console.log(
-                "new eth lockbox implementation code length",
-                address(Proxy(payable(address(newEthLockbox))).implementation()).code.length
-            );
             assert(false);
         }
+
         // Authorize the new portal on the new lockbox
         vm.prank(address(PROXY_OWNER));
-
         try ETH_LOCKBOX.authorizePortal(newPortal) { }
         catch {
             assert(false);
@@ -498,47 +459,28 @@ contract Handler is Setup {
             assert(false);
         }
 
-        // Migrate the chain to the current Lockbox
-        _ghost_lastBlockCombination = block.timestamp + block.number;
-
         // Assert the migration was successful
         assert(ETH_LOCKBOX.authorizedPortals(newPortal));
         assert(ETH_LOCKBOX.authorizedLockboxes(newEthLockbox));
         assert(address(newPortal.ethLockbox()) == address(ETH_LOCKBOX));
         assert(newPortal.superRootsActive());
 
-        console.log("manual fail new chain");
-        assert(false);
+        // Store the ghost variable
+        _ghost_lastAddedChain++;
     }
 
     function handler_addExistingChain() public initialize {
-        // Make sure that the last block combination is not the same as the current block and timestamp to avoid
-        // collisions when generating the addresses of the new contracts.
-        if (_ghost_lastBlockCombination == block.timestamp + block.number) handler_increaseBlockNumber(true);
+        if (_ghost_lastAddedChain == _GHOST_NUMBER_OF_CHAINS) return;
+        bool upgrade = true;
+        _initializeChain(_ghost_lastAddedChain, upgrade);
 
-        // TODO: Need to deploy system config and anchor registry for the new chain?
-
-        // Deploy ETHLockbox for the new chain
-        IETHLockbox newEthLockbox =
-            IETHLockbox(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination))))));
-        _setCode(address(newEthLockbox), ETH_LOCKBOX_IMPLEMENTATION_ADDRESS, true);
-        _ghost_isL1Contract[address(newEthLockbox)] = true;
-
-        // Deploy OptimismPortal for the new chain
-        IOptimismPortal newPortal =
-            IOptimismPortal(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 1))))));
-        _setCode(address(newPortal), DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS), true);
-        _ghost_isL1Contract[address(newPortal)] = true;
-
-        // Deploy SuperchainConfig for the new chain
-        ISuperchainConfig newSuperchainConfig =
-            ISuperchainConfig(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 2)))));
-        _setCode(address(newSuperchainConfig), DEPLOYER_8_15.deploySuperchainConfig(), true);
-        _ghost_isL1Contract[address(newSuperchainConfig)] = true;
+        // Get the chain's contracts
+        IOptimismPortal newPortal = _ghost_chains[_ghost_lastAddedChain].portal;
+        IETHLockbox newEthLockbox = _ghost_chains[_ghost_lastAddedChain].ethLockbox;
 
         // Add some ether to the portal
         uint256 initialBalance = 100 ether;
-        vm.deal(address(PORTAL), initialBalance);
+        vm.deal(address(newPortal), initialBalance);
 
         // Authorize the portal on the new lockbox
         vm.prank(address(PROXY_OWNER));
@@ -560,18 +502,6 @@ contract Handler is Setup {
         try ETH_LOCKBOX.authorizeLockbox(newEthLockbox) { }
         catch {
             /// NOTE: Fails here
-            console.log("new eth lockbox proxy code length", address(newEthLockbox).code.length);
-            vm.prank(address(PROXY_ADMIN));
-            console.log(
-                "current eth lockbox implementation code length",
-                Proxy(payable(address(ETH_LOCKBOX))).implementation().code.length
-            );
-            console.log(
-                "new eth lockbox implementation code length",
-                Proxy(payable(address(newEthLockbox))).implementation().code.length
-            );
-
-            console.log("authorize lockbox fail");
             assert(false);
         }
 
@@ -597,8 +527,6 @@ contract Handler is Setup {
             assert(false);
         }
 
-        _ghost_lastBlockCombination = block.timestamp + block.number;
-
         // Assert the migration was successful
         assert(ETH_LOCKBOX.authorizedPortals(newPortal));
         assert(ETH_LOCKBOX.authorizedLockboxes(newEthLockbox));
@@ -608,7 +536,7 @@ contract Handler is Setup {
         assert(address(newEthLockbox).balance == 0);
         assert(address(ETH_LOCKBOX).balance == initialBalance + currentLiquidity);
 
-        console.log("manual fail existing chain");
-        assert(false);
+        // Store the ghost variable
+        _ghost_lastAddedChain++;
     }
 }

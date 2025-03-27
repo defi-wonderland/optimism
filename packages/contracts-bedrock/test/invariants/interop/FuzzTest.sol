@@ -362,13 +362,7 @@ contract FuzzTest is Handler {
     /// @custom:property-id 12
     /// @custom:property `OptimismPortal`s `unlockETH` MUST NOT be called on a finalized withdrawal transaction
     ///                   context
-    function test_noETHUnlockedDuringWithdrawal(
-        address _caller,
-        Types.WithdrawalTransaction memory _tx
-    )
-        public
-        initialize
-    {
+    function test_noETHUnlockedDuringWithdrawal(Types.WithdrawalTransaction memory _tx) public initialize {
         _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
         // Set the target to the WeirdTarget and the data to the selector of the function that will be called.
         _tx.target = address(WEIRD_TARGET);
@@ -415,8 +409,7 @@ contract FuzzTest is Handler {
     function test_finalizeWithdrawalReverts_unguided(
         address _caller,
         Types.WithdrawalTransaction memory _tx,
-        uint256 _callIndex,
-        uint256 _actorIndex
+        uint256 _callIndex
     )
         public
         initialize
