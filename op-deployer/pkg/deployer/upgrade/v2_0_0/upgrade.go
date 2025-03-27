@@ -22,6 +22,7 @@ type OPChainConfig struct {
 	SystemConfigProxy common.Address `json:"systemConfigProxy"`
 	ProxyAdmin        common.Address `json:"proxyAdmin"`
 	AbsolutePrestate  common.Hash    `json:"absolutePrestate"`
+	SystemConfigFeeAdmin common.Address `json:"systemConfigFeeAdmin"`
 }
 
 var opChainConfigEncoder = w3.MustNewFunc("dummy((address systemConfigProxy,address proxyAdmin,bytes32 absolutePrestate)[])", "")
