@@ -18,7 +18,6 @@ abstract contract ProxyAdminOwnedBase {
         // Return the owner of the proxy admin.
         console.log("3 proxy admin owner", proxyAdmin.owner());
         return proxyAdmin.owner();
-        console.log("here 3");
     }
 
     /// @notice Checks if the ProxyAdmin owner of the current contract is the same as the ProxyAdmin owner of the given
