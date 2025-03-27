@@ -1,6 +1,7 @@
 package state
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
@@ -20,17 +21,27 @@ func TestCombineDeployConfig(t *testing.T) {
 		ID: common.HexToHash("0x123"),
 	}
 	chainIntent := ChainIntent{
-		Eip1559Denominator:         1,
-		Eip1559Elasticity:          2,
-		BaseFeeVaultRecipient:      common.HexToAddress("0x123"),
-		L1FeeVaultRecipient:        common.HexToAddress("0x456"),
-		SequencerFeeVaultRecipient: common.HexToAddress("0x789"),
+		Eip1559Denominator:                       1,
+		Eip1559Elasticity:                        2,
+		BaseFeeVaultRecipient:                    common.HexToAddress("0x123"),
+		L1FeeVaultRecipient:                      common.HexToAddress("0x456"), 
+		SequencerFeeVaultRecipient:               common.HexToAddress("0x789"),
+		OperatorFeeVaultRecipient:                common.HexToAddress("0xabc"),
+		BaseFeeVaultMinimumWithdrawalAmount:      (*hexutil.Big)(big.NewInt(10)),
+		L1FeeVaultMinimumWithdrawalAmount:        (*hexutil.Big)(big.NewInt(10)),
+		SequencerFeeVaultMinimumWithdrawalAmount: (*hexutil.Big)(big.NewInt(10)),
+		OperatorFeeVaultMinimumWithdrawalAmount:  (*hexutil.Big)(big.NewInt(10)),
+		BaseFeeVaultWithdrawalNetwork:            "remote",
+		L1FeeVaultWithdrawalNetwork:              "remote", 
+		SequencerFeeVaultWithdrawalNetwork:       "remote",
+		OperatorFeeVaultWithdrawalNetwork:        "remote",
 		Roles: ChainRoles{
-			SystemConfigOwner: common.HexToAddress("0x123"),
-			L1ProxyAdminOwner: common.HexToAddress("0x456"),
-			L2ProxyAdminOwner: common.HexToAddress("0x789"),
-			UnsafeBlockSigner: common.HexToAddress("0xabc"),
-			Batcher:           common.HexToAddress("0xdef"),
+			SystemConfigOwner:    common.HexToAddress("0x123"),
+			L1ProxyAdminOwner:    common.HexToAddress("0x456"),
+			L2ProxyAdminOwner:    common.HexToAddress("0x789"),
+			UnsafeBlockSigner:    common.HexToAddress("0xabc"),
+			Batcher:              common.HexToAddress("0xdef"),
+			SystemConfigFeeAdmin: common.HexToAddress("0x123"),
 		},
 	}
 	state := State{

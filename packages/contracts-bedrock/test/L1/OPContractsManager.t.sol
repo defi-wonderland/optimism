@@ -122,7 +122,18 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
         doi.set(doi.feeVaultAdmin.selector, feeVaultAdmin);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
-        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
+        doi.set(doi.baseFeeVaultRecipient.selector, baseFeeVaultRecipient);
+        doi.set(doi.baseFeeVaultMinWithdrawalAmount.selector, baseFeeVaultMinWithdrawalAmount);
+        doi.set(doi.baseFeeVaultWithdrawalNetwork.selector, baseFeeVaultWithdrawalNetwork);
+        doi.set(doi.sequencerFeeVaultRecipient.selector, sequencerFeeVaultRecipient);
+        doi.set(doi.sequencerFeeVaultMinWithdrawalAmount.selector, sequencerFeeVaultMinWithdrawalAmount);
+        doi.set(doi.sequencerFeeVaultWithdrawalNetwork.selector, sequencerFeeVaultWithdrawalNetwork);
+        doi.set(doi.l1FeeVaultRecipient.selector, l1FeeVaultRecipient);
+        doi.set(doi.l1FeeVaultMinWithdrawalAmount.selector, l1FeeVaultMinWithdrawalAmount);
+        doi.set(doi.l1FeeVaultWithdrawalNetwork.selector, l1FeeVaultWithdrawalNetwork);
+        doi.set(doi.operatorFeeVaultRecipient.selector, operatorFeeVaultRecipient);
+        doi.set(doi.operatorFeeVaultMinWithdrawalAmount.selector, operatorFeeVaultMinWithdrawalAmount);
+        doi.set(doi.operatorFeeVaultWithdrawalNetwork.selector, operatorFeeVaultWithdrawalNetwork);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.gasLimit.selector, gasLimit);
@@ -154,7 +165,20 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase {
             }),
             basefeeScalar: _doi.basefeeScalar(),
             blobBasefeeScalar: _doi.blobBaseFeeScalar(),
-            feeVaultConfigs: _doi.feeVaultConfigs(),
+            feeVaultConfigs: abi.encode(
+                _doi.baseFeeVaultRecipient(),
+                _doi.baseFeeVaultMinWithdrawalAmount(),
+                _doi.baseFeeVaultWithdrawalNetwork(),
+                _doi.sequencerFeeVaultRecipient(),
+                _doi.sequencerFeeVaultMinWithdrawalAmount(),
+                _doi.sequencerFeeVaultWithdrawalNetwork(),
+                _doi.l1FeeVaultRecipient(),
+                _doi.l1FeeVaultMinWithdrawalAmount(),
+                _doi.l1FeeVaultWithdrawalNetwork(),
+                _doi.operatorFeeVaultRecipient(),
+                _doi.operatorFeeVaultMinWithdrawalAmount(),
+                _doi.operatorFeeVaultWithdrawalNetwork()
+            ),
             l2ChainId: _doi.l2ChainId(),
             startingAnchorRoot: _doi.startingAnchorRoot(),
             saltMixer: _doi.saltMixer(),

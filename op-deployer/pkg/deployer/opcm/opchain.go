@@ -25,6 +25,7 @@ type DeployOPChainInput struct {
 	UnsafeBlockSigner      common.Address
 	Proposer               common.Address
 	Challenger             common.Address
+	FeeVaultAdmin          common.Address
 
 	BasefeeScalar     uint32
 	BlobBaseFeeScalar uint32
@@ -43,6 +44,22 @@ type DeployOPChainInput struct {
 
 	OperatorFeeScalar   uint32
 	OperatorFeeConstant uint64
+
+	BaseFeeVaultRecipient           common.Address
+	BaseFeeVaultMinWithdrawalAmount *big.Int
+	BaseFeeVaultWithdrawalNetwork   uint8
+
+	SequencerFeeVaultRecipient           common.Address
+	SequencerFeeVaultMinWithdrawalAmount *big.Int
+	SequencerFeeVaultWithdrawalNetwork   uint8
+
+	L1FeeVaultRecipient           common.Address
+	L1FeeVaultMinWithdrawalAmount *big.Int
+	L1FeeVaultWithdrawalNetwork   uint8
+
+	OperatorFeeVaultRecipient           common.Address
+	OperatorFeeVaultMinWithdrawalAmount *big.Int
+	OperatorFeeVaultWithdrawalNetwork   uint8
 }
 
 func (input *DeployOPChainInput) InputSet() bool {

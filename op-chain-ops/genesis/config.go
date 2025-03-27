@@ -181,6 +181,9 @@ func (d *L2VaultsDeployConfig) Check(log log.Logger) error {
 	if d.SequencerFeeVaultRecipient == (common.Address{}) {
 		return fmt.Errorf("%w: SequencerFeeVaultRecipient cannot be address(0)", ErrInvalidDeployConfig)
 	}
+	if d.OperatorFeeVaultRecipient == (common.Address{}) {
+		return fmt.Errorf("%w: OperatorFeeVaultRecipient cannot be address(0)", ErrInvalidDeployConfig)
+	}
 	if !d.BaseFeeVaultWithdrawalNetwork.Valid() {
 		return fmt.Errorf("%w: BaseFeeVaultWithdrawalNetwork can only be 0 (L1) or 1 (L2)", ErrInvalidDeployConfig)
 	}
@@ -308,7 +311,7 @@ type OperatorDeployConfig struct {
 	// Transactions sent from this account to the batch inbox address are considered valid.
 	BatchSenderAddress common.Address `json:"batchSenderAddress"`
 	// SystemConfigfeeAdmin is the address of the account that has the ability to set the fee parameters.
-	SystemConfigfeeAdmin common.Address `json:"systemConfigFeeVaultAdmin"`
+	SystemConfigFeeAdmin common.Address `json:"systemConfigFeeVaultAdmin"`
 }
 
 var _ ConfigChecker = (*OperatorDeployConfig)(nil)

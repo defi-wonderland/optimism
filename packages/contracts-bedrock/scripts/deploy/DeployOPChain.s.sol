@@ -47,7 +47,6 @@ contract DeployOPChainInput is BaseDeployIO {
     // TODO Add fault proofs inputs in a future PR.
     uint32 internal _basefeeScalar;
     uint32 internal _blobBaseFeeScalar;
-    bytes internal _feeVaultConfigs;
     uint256 internal _l2ChainId;
     IOPContractsManager internal _opcm;
     string internal _saltMixer;
@@ -65,6 +64,22 @@ contract DeployOPChainInput is BaseDeployIO {
     uint32 internal _operatorFeeScalar;
     uint64 internal _operatorFeeConstant;
 
+    address internal _baseFeeVaultRecipient;
+    uint256 internal _baseFeeVaultMinWithdrawalAmount;
+    uint8 internal _baseFeeVaultWithdrawalNetwork;
+
+    address internal _sequencerFeeVaultRecipient;
+    uint256 internal _sequencerFeeVaultMinWithdrawalAmount;
+    uint8 internal _sequencerFeeVaultWithdrawalNetwork;
+
+    address internal _l1FeeVaultRecipient;
+    uint256 internal _l1FeeVaultMinWithdrawalAmount;
+    uint8 internal _l1FeeVaultWithdrawalNetwork;
+
+    address internal _operatorFeeVaultRecipient;
+    uint256 internal _operatorFeeVaultMinWithdrawalAmount;
+    uint8 internal _operatorFeeVaultWithdrawalNetwork;
+
     function set(bytes4 _sel, address _addr) public {
         require(_addr != address(0), "DeployOPChainInput: cannot set zero address");
         if (_sel == this.opChainProxyAdminOwner.selector) _opChainProxyAdminOwner = _addr;
@@ -75,6 +90,10 @@ contract DeployOPChainInput is BaseDeployIO {
         else if (_sel == this.proposer.selector) _proposer = _addr;
         else if (_sel == this.challenger.selector) _challenger = _addr;
         else if (_sel == this.opcm.selector) _opcm = IOPContractsManager(_addr);
+        else if (_sel == this.baseFeeVaultRecipient.selector) _baseFeeVaultRecipient = _addr;
+        else if (_sel == this.sequencerFeeVaultRecipient.selector) _sequencerFeeVaultRecipient = _addr;
+        else if (_sel == this.l1FeeVaultRecipient.selector) _l1FeeVaultRecipient = _addr;
+        else if (_sel == this.operatorFeeVaultRecipient.selector) _operatorFeeVaultRecipient = _addr;
         else revert("DeployOPChainInput: unknown selector");
     }
 
@@ -102,6 +121,22 @@ contract DeployOPChainInput is BaseDeployIO {
             _operatorFeeScalar = SafeCast.toUint32(_value);
         } else if (_sel == this.operatorFeeConstant.selector) {
             _operatorFeeConstant = SafeCast.toUint64(_value);
+        } else if (_sel == this.baseFeeVaultMinWithdrawalAmount.selector) {
+            _baseFeeVaultMinWithdrawalAmount = _value;
+        } else if (_sel == this.baseFeeVaultWithdrawalNetwork.selector) {
+            _baseFeeVaultWithdrawalNetwork = SafeCast.toUint8(_value);
+        } else if (_sel == this.sequencerFeeVaultMinWithdrawalAmount.selector) {
+            _sequencerFeeVaultMinWithdrawalAmount = _value;
+        } else if (_sel == this.sequencerFeeVaultWithdrawalNetwork.selector) {
+            _sequencerFeeVaultWithdrawalNetwork = SafeCast.toUint8(_value);
+        } else if (_sel == this.l1FeeVaultMinWithdrawalAmount.selector) {
+            _l1FeeVaultMinWithdrawalAmount = _value;
+        } else if (_sel == this.l1FeeVaultWithdrawalNetwork.selector) {
+            _l1FeeVaultWithdrawalNetwork = SafeCast.toUint8(_value);
+        } else if (_sel == this.operatorFeeVaultMinWithdrawalAmount.selector) {
+            _operatorFeeVaultMinWithdrawalAmount = _value;
+        } else if (_sel == this.operatorFeeVaultWithdrawalNetwork.selector) {
+            _operatorFeeVaultWithdrawalNetwork = SafeCast.toUint8(_value);
         } else {
             revert("DeployOPChainInput: unknown selector");
         }
@@ -120,11 +155,6 @@ contract DeployOPChainInput is BaseDeployIO {
 
     function set(bytes4 _sel, bool _value) public {
         if (_sel == this.allowCustomDisputeParameters.selector) _allowCustomDisputeParameters = _value;
-        else revert("DeployOPChainInput: unknown selector");
-    }
-
-    function set(bytes4 _sel, bytes memory _value) public {
-        if (_sel == this.feeVaultConfigs.selector) _feeVaultConfigs = _value;
         else revert("DeployOPChainInput: unknown selector");
     }
 
@@ -173,9 +203,60 @@ contract DeployOPChainInput is BaseDeployIO {
         return _blobBaseFeeScalar;
     }
 
-    function feeVaultConfigs() public view returns (bytes memory) {
-        require(_feeVaultConfigs.length != 0, "DeployOPChainInput: not set");
-        return _feeVaultConfigs;
+    function baseFeeVaultRecipient() public view returns (address) {
+        require(_baseFeeVaultRecipient != address(0), "DeployOPChainInput: not set");
+        return _baseFeeVaultRecipient;
+    }
+
+    function baseFeeVaultMinWithdrawalAmount() public view returns (uint256) {
+        require(_baseFeeVaultMinWithdrawalAmount != 0, "DeployOPChainInput: not set");
+        return _baseFeeVaultMinWithdrawalAmount;
+    }
+
+    function baseFeeVaultWithdrawalNetwork() public view returns (uint8) {
+        return _baseFeeVaultWithdrawalNetwork;
+    }
+
+    function sequencerFeeVaultRecipient() public view returns (address) {
+        require(_sequencerFeeVaultRecipient != address(0), "DeployOPChainInput: not set");
+        return _sequencerFeeVaultRecipient;
+    }
+
+    function sequencerFeeVaultMinWithdrawalAmount() public view returns (uint256) {
+        require(_sequencerFeeVaultMinWithdrawalAmount != 0, "DeployOPChainInput: not set");
+        return _sequencerFeeVaultMinWithdrawalAmount;
+    }
+
+    function sequencerFeeVaultWithdrawalNetwork() public view returns (uint8) {
+        return _sequencerFeeVaultWithdrawalNetwork;
+    }
+
+    function l1FeeVaultRecipient() public view returns (address) {
+        require(_l1FeeVaultRecipient != address(0), "DeployOPChainInput: not set");
+        return _l1FeeVaultRecipient;
+    }
+
+    function l1FeeVaultMinWithdrawalAmount() public view returns (uint256) {
+        require(_l1FeeVaultMinWithdrawalAmount != 0, "DeployOPChainInput: not set");
+        return _l1FeeVaultMinWithdrawalAmount;
+    }
+
+    function l1FeeVaultWithdrawalNetwork() public view returns (uint8) {
+        return _l1FeeVaultWithdrawalNetwork;
+    }
+
+    function operatorFeeVaultRecipient() public view returns (address) {
+        require(_operatorFeeVaultRecipient != address(0), "DeployOPChainInput: not set");
+        return _operatorFeeVaultRecipient;
+    }
+
+    function operatorFeeVaultMinWithdrawalAmount() public view returns (uint256) {
+        require(_operatorFeeVaultMinWithdrawalAmount != 0, "DeployOPChainInput: not set");
+        return _operatorFeeVaultMinWithdrawalAmount;
+    }
+
+    function operatorFeeVaultWithdrawalNetwork() public view returns (uint8) {
+        return _operatorFeeVaultWithdrawalNetwork;
     }
 
     function l2ChainId() public view returns (uint256) {
@@ -382,6 +463,21 @@ contract DeployOPChain is Script {
     function run(DeployOPChainInput _doi, DeployOPChainOutput _doo) public {
         IOPContractsManager opcm = _doi.opcm();
 
+        bytes memory feeVaultConfigs = abi.encode(
+            _doi.baseFeeVaultRecipient(),
+            _doi.baseFeeVaultMinWithdrawalAmount(),
+            _doi.baseFeeVaultWithdrawalNetwork(),
+            _doi.sequencerFeeVaultRecipient(),
+            _doi.sequencerFeeVaultMinWithdrawalAmount(),
+            _doi.sequencerFeeVaultWithdrawalNetwork(),
+            _doi.l1FeeVaultRecipient(),
+            _doi.l1FeeVaultMinWithdrawalAmount(),
+            _doi.l1FeeVaultWithdrawalNetwork(),
+            _doi.operatorFeeVaultRecipient(),
+            _doi.operatorFeeVaultMinWithdrawalAmount(),
+            _doi.operatorFeeVaultWithdrawalNetwork()
+        );
+
         IOPContractsManager.Roles memory roles = IOPContractsManager.Roles({
             opChainProxyAdminOwner: _doi.opChainProxyAdminOwner(),
             systemConfigOwner: _doi.systemConfigOwner(),
@@ -395,7 +491,7 @@ contract DeployOPChain is Script {
             roles: roles,
             basefeeScalar: _doi.basefeeScalar(),
             blobBasefeeScalar: _doi.blobBaseFeeScalar(),
-            feeVaultConfigs: _doi.feeVaultConfigs(),
+            feeVaultConfigs: feeVaultConfigs,
             l2ChainId: _doi.l2ChainId(),
             startingAnchorRoot: _doi.startingAnchorRoot(),
             saltMixer: _doi.saltMixer(),

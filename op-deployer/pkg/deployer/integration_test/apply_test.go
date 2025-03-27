@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/testutil"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
@@ -247,6 +248,7 @@ func TestGlobalOverrides(t *testing.T) {
 	expectedBaseFeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000001")
 	expectedL1FeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000002")
 	expectedSequencerFeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000003")
+	expectedOperatorFeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000004")
 	expectedBaseFeeVaultMinimumWithdrawalAmount := strings.ToLower("0x1BC16D674EC80000")
 	expectedBaseFeeVaultWithdrawalNetwork := genesis.FromUint8(0)
 	expectedEnableGovernance := false
@@ -259,6 +261,7 @@ func TestGlobalOverrides(t *testing.T) {
 		"baseFeeVaultRecipient":               expectedBaseFeeVaultRecipient,
 		"l1FeeVaultRecipient":                 expectedL1FeeVaultRecipient,
 		"sequencerFeeVaultRecipient":          expectedSequencerFeeVaultRecipient,
+		"operatorFeeVaultRecipient":           expectedOperatorFeeVaultRecipient,
 		"baseFeeVaultMinimumWithdrawalAmount": expectedBaseFeeVaultMinimumWithdrawalAmount,
 		"baseFeeVaultWithdrawalNetwork":       expectedBaseFeeVaultWithdrawalNetwork,
 		"enableGovernance":                    expectedEnableGovernance,
@@ -276,6 +279,7 @@ func TestGlobalOverrides(t *testing.T) {
 	require.Equal(t, expectedBaseFeeVaultRecipient, cfg.L2InitializationConfig.L2VaultsDeployConfig.BaseFeeVaultRecipient, "Base Fee Vault Recipient should be the expected address")
 	require.Equal(t, expectedL1FeeVaultRecipient, cfg.L2InitializationConfig.L2VaultsDeployConfig.L1FeeVaultRecipient, "L1 Fee Vault Recipient should be the expected address")
 	require.Equal(t, expectedSequencerFeeVaultRecipient, cfg.L2InitializationConfig.L2VaultsDeployConfig.SequencerFeeVaultRecipient, "Sequencer Fee Vault Recipient should be the expected address")
+	require.Equal(t, expectedOperatorFeeVaultRecipient, cfg.L2InitializationConfig.L2VaultsDeployConfig.OperatorFeeVaultRecipient, "Operator Fee Vault Recipient should be the expected address")
 	require.Equal(t, expectedBaseFeeVaultMinimumWithdrawalAmount, strings.ToLower(cfg.L2InitializationConfig.L2VaultsDeployConfig.BaseFeeVaultMinimumWithdrawalAmount.String()), "Base Fee Vault Minimum Withdrawal Amount should be the expected value")
 	require.Equal(t, expectedBaseFeeVaultWithdrawalNetwork, cfg.L2InitializationConfig.L2VaultsDeployConfig.BaseFeeVaultWithdrawalNetwork, "Base Fee Vault Withdrawal Network should be the expected value")
 	require.Equal(t, expectedEnableGovernance, cfg.L2InitializationConfig.GovernanceDeployConfig.EnableGovernance, "Governance should be disabled")
@@ -471,6 +475,12 @@ func TestInvalidL2Genesis(t *testing.T) {
 			},
 		},
 		{
+			name: "operator fee vault recipient not set",
+			overrides: map[string]any{
+				"operatorFeeVaultRecipient": nil,
+			},
+		},
+		{
 			name: "l1 chain ID not set",
 			overrides: map[string]any{
 				"l1ChainID": nil,
@@ -662,21 +672,31 @@ func newIntent(
 
 func newChainIntent(t *testing.T, dk *devkeys.MnemonicDevKeys, l1ChainID *big.Int, l2ChainID *uint256.Int) *state.ChainIntent {
 	return &state.ChainIntent{
-		ID:                         l2ChainID.Bytes32(),
-		BaseFeeVaultRecipient:      addrFor(t, dk, devkeys.BaseFeeVaultRecipientRole.Key(l1ChainID)),
-		L1FeeVaultRecipient:        addrFor(t, dk, devkeys.L1FeeVaultRecipientRole.Key(l1ChainID)),
-		SequencerFeeVaultRecipient: addrFor(t, dk, devkeys.SequencerFeeVaultRecipientRole.Key(l1ChainID)),
-		Eip1559DenominatorCanyon:   standard.Eip1559DenominatorCanyon,
-		Eip1559Denominator:         standard.Eip1559Denominator,
-		Eip1559Elasticity:          standard.Eip1559Elasticity,
+		ID:                                       l2ChainID.Bytes32(),
+		BaseFeeVaultRecipient:                    addrFor(t, dk, devkeys.BaseFeeVaultRecipientRole.Key(l1ChainID)),
+		L1FeeVaultRecipient:                      addrFor(t, dk, devkeys.L1FeeVaultRecipientRole.Key(l1ChainID)),
+		SequencerFeeVaultRecipient:               addrFor(t, dk, devkeys.SequencerFeeVaultRecipientRole.Key(l1ChainID)),
+		OperatorFeeVaultRecipient:                addrFor(t, dk, devkeys.OperatorFeeVaultRecipientRole.Key(l1ChainID)),
+		BaseFeeVaultMinimumWithdrawalAmount:      (*hexutil.Big)(big.NewInt(10)),
+		L1FeeVaultMinimumWithdrawalAmount:        (*hexutil.Big)(big.NewInt(10)),
+		SequencerFeeVaultMinimumWithdrawalAmount: (*hexutil.Big)(big.NewInt(10)),
+		OperatorFeeVaultMinimumWithdrawalAmount:  (*hexutil.Big)(big.NewInt(10)),
+		BaseFeeVaultWithdrawalNetwork:            "remote",
+		L1FeeVaultWithdrawalNetwork:              "remote",
+		SequencerFeeVaultWithdrawalNetwork:       "remote",
+		OperatorFeeVaultWithdrawalNetwork:        "remote",
+		Eip1559DenominatorCanyon:                 standard.Eip1559DenominatorCanyon,
+		Eip1559Denominator:                       standard.Eip1559Denominator,
+		Eip1559Elasticity:                        standard.Eip1559Elasticity,
 		Roles: state.ChainRoles{
-			L1ProxyAdminOwner: addrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainID)),
-			L2ProxyAdminOwner: addrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainID)),
-			SystemConfigOwner: addrFor(t, dk, devkeys.SystemConfigOwner.Key(l1ChainID)),
-			UnsafeBlockSigner: addrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainID)),
-			Batcher:           addrFor(t, dk, devkeys.BatcherRole.Key(l1ChainID)),
-			Proposer:          addrFor(t, dk, devkeys.ProposerRole.Key(l1ChainID)),
-			Challenger:        addrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainID)),
+			L1ProxyAdminOwner: 		addrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainID)),
+			L2ProxyAdminOwner: 		addrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainID)),
+			SystemConfigOwner: 		addrFor(t, dk, devkeys.SystemConfigOwner.Key(l1ChainID)),
+			SystemConfigFeeAdmin: 	addrFor(t, dk, devkeys.SystemConfigFeeAdmin.Key(l1ChainID)),
+			UnsafeBlockSigner: 		addrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainID)),
+			Batcher:           		addrFor(t, dk, devkeys.BatcherRole.Key(l1ChainID)),
+			Proposer:          		addrFor(t, dk, devkeys.ProposerRole.Key(l1ChainID)),
+			Challenger:        		addrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainID)),
 		},
 	}
 }
@@ -791,6 +811,7 @@ func validateOPChainDeployment(t *testing.T, cg codeGetter, st *state.State, int
 		checkImmutableBehindProxy(t, alloc, predeploys.BaseFeeVaultAddr, chainIntent.BaseFeeVaultRecipient)
 		checkImmutableBehindProxy(t, alloc, predeploys.L1FeeVaultAddr, chainIntent.L1FeeVaultRecipient)
 		checkImmutableBehindProxy(t, alloc, predeploys.SequencerFeeVaultAddr, chainIntent.SequencerFeeVaultRecipient)
+		checkImmutableBehindProxy(t, alloc, predeploys.OperatorFeeVaultAddr, chainIntent.OperatorFeeVaultRecipient)
 		checkImmutableBehindProxy(t, alloc, predeploys.OptimismMintableERC721FactoryAddr, common.BigToHash(new(big.Int).SetUint64(intent.L1ChainID)))
 
 		// ownership slots

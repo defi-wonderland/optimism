@@ -25,7 +25,6 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProtocolVersions, ProtocolVersion } from "interfaces/L1/IProtocolVersions.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { Types } from "src/libraries/Types.sol";
 
 import { Claim, Duration, GameType, GameTypes, Hash, Proposal } from "src/dispute/lib/Types.sol";
@@ -46,30 +45,18 @@ contract DeployOPChainInput_Test is Test {
     uint32 blobBaseFeeScalar = 200;
     uint256 l2ChainId = 300;
     string saltMixer = "saltMixer";
-    bytes feeVaultConfigs = abi.encode(
-        ISystemConfig.FeeVaultConfigs({
-            baseFeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            }),
-            sequencerFeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            }),
-            l1FeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            }),
-            operatorFeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            })
-        })
-    );
+    address baseFeeVaultRecipient = address(0x1);
+    uint256 baseFeeVaultMinWithdrawalAmount = 400;
+    uint8 baseFeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
+    address sequencerFeeVaultRecipient = address(0x2);
+    uint256 sequencerFeeVaultMinWithdrawalAmount = 500;
+    uint8 sequencerFeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
+    address l1FeeVaultRecipient = address(0x3);
+    uint256 l1FeeVaultMinWithdrawalAmount = 600;
+    uint8 l1FeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
+    address operatorFeeVaultRecipient = address(0x4);
+    uint256 operatorFeeVaultMinWithdrawalAmount = 700;
+    uint8 operatorFeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
 
     function setUp() public {
         doi = new DeployOPChainInput();
@@ -85,7 +72,18 @@ contract DeployOPChainInput_Test is Test {
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
-        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
+        doi.set(doi.baseFeeVaultRecipient.selector, baseFeeVaultRecipient);
+        doi.set(doi.baseFeeVaultMinWithdrawalAmount.selector, baseFeeVaultMinWithdrawalAmount);
+        doi.set(doi.baseFeeVaultWithdrawalNetwork.selector, baseFeeVaultWithdrawalNetwork);
+        doi.set(doi.sequencerFeeVaultRecipient.selector, sequencerFeeVaultRecipient);
+        doi.set(doi.sequencerFeeVaultMinWithdrawalAmount.selector, sequencerFeeVaultMinWithdrawalAmount);
+        doi.set(doi.sequencerFeeVaultWithdrawalNetwork.selector, sequencerFeeVaultWithdrawalNetwork);
+        doi.set(doi.l1FeeVaultRecipient.selector, l1FeeVaultRecipient);
+        doi.set(doi.l1FeeVaultMinWithdrawalAmount.selector, l1FeeVaultMinWithdrawalAmount);
+        doi.set(doi.l1FeeVaultWithdrawalNetwork.selector, l1FeeVaultWithdrawalNetwork);
+        doi.set(doi.operatorFeeVaultRecipient.selector, operatorFeeVaultRecipient);
+        doi.set(doi.operatorFeeVaultMinWithdrawalAmount.selector, operatorFeeVaultMinWithdrawalAmount);
+        doi.set(doi.operatorFeeVaultWithdrawalNetwork.selector, operatorFeeVaultWithdrawalNetwork);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.allowCustomDisputeParameters.selector, true);
         doi.set(doi.opcm.selector, opcm);
@@ -369,30 +367,18 @@ contract DeployOPChain_TestBase is Test {
     uint256 disputeSplitDepth = 30;
     uint64 disputeClockExtension = Duration.unwrap(Duration.wrap(3 hours));
     uint64 disputeMaxClockDuration = Duration.unwrap(Duration.wrap(3.5 days));
-    bytes feeVaultConfigs = abi.encode(
-        ISystemConfig.FeeVaultConfigs({
-            baseFeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            }),
-            sequencerFeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            }),
-            l1FeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            }),
-            operatorFeeVaultConfig: Types.FeeVaultConfig({
-                recipient: address(0),
-                minWithdrawalAmount: 0,
-                withdrawalNetwork: Types.WithdrawalNetwork.L1
-            })
-        })
-    );
+    address baseFeeVaultRecipient = address(0x1);
+    uint256 baseFeeVaultMinWithdrawalAmount = 400;
+    uint8 baseFeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
+    address sequencerFeeVaultRecipient = address(0x2);
+    uint256 sequencerFeeVaultMinWithdrawalAmount = 500;
+    uint8 sequencerFeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
+    address l1FeeVaultRecipient = address(0x3);
+    uint256 l1FeeVaultMinWithdrawalAmount = 600;
+    uint8 l1FeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
+    address operatorFeeVaultRecipient = address(0x4);
+    uint256 operatorFeeVaultMinWithdrawalAmount = 700;
+    uint8 operatorFeeVaultWithdrawalNetwork = uint8(Types.WithdrawalNetwork.L1);
 
     function setUp() public virtual {
         // Configure and deploy Superchain contracts
@@ -463,6 +449,18 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         blobBaseFeeScalar = uint32(uint256(hash(_seed, 7)));
         l2ChainId = uint256(hash(_seed, 8));
         feeVaultAdmin = address(uint160(uint256(hash(_seed, 9))));
+        baseFeeVaultRecipient = address(uint160(uint256(hash(_seed, 10))));
+        baseFeeVaultMinWithdrawalAmount = uint88(uint256(hash(_seed, 11)));
+        baseFeeVaultWithdrawalNetwork = uint8(bound(uint256(hash(_seed, 12)), 0, 1));
+        sequencerFeeVaultRecipient = address(uint160(uint256(hash(_seed, 13))));
+        sequencerFeeVaultMinWithdrawalAmount = uint88(uint256(hash(_seed, 14)));
+        sequencerFeeVaultWithdrawalNetwork = uint8(bound(uint256(hash(_seed, 15)), 0, 1));
+        l1FeeVaultRecipient = address(uint160(uint256(hash(_seed, 16))));
+        l1FeeVaultMinWithdrawalAmount = uint88(uint256(hash(_seed, 17)));
+        l1FeeVaultWithdrawalNetwork = uint8(bound(uint256(hash(_seed, 18)), 0, 1));
+        operatorFeeVaultRecipient = address(uint160(uint256(hash(_seed, 19))));
+        operatorFeeVaultMinWithdrawalAmount = uint88(uint256(hash(_seed, 20)));
+        operatorFeeVaultWithdrawalNetwork = uint8(bound(uint256(hash(_seed, 21)), 0, 1));
 
         doi.set(doi.opChainProxyAdminOwner.selector, opChainProxyAdminOwner);
         doi.set(doi.systemConfigOwner.selector, systemConfigOwner);
@@ -473,7 +471,18 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
-        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
+        doi.set(doi.baseFeeVaultRecipient.selector, baseFeeVaultRecipient);
+        doi.set(doi.baseFeeVaultMinWithdrawalAmount.selector, baseFeeVaultMinWithdrawalAmount);
+        doi.set(doi.baseFeeVaultWithdrawalNetwork.selector, baseFeeVaultWithdrawalNetwork);
+        doi.set(doi.sequencerFeeVaultRecipient.selector, sequencerFeeVaultRecipient);
+        doi.set(doi.sequencerFeeVaultMinWithdrawalAmount.selector, sequencerFeeVaultMinWithdrawalAmount);
+        doi.set(doi.sequencerFeeVaultWithdrawalNetwork.selector, sequencerFeeVaultWithdrawalNetwork);
+        doi.set(doi.l1FeeVaultRecipient.selector, l1FeeVaultRecipient);
+        doi.set(doi.l1FeeVaultMinWithdrawalAmount.selector, l1FeeVaultMinWithdrawalAmount);
+        doi.set(doi.l1FeeVaultWithdrawalNetwork.selector, l1FeeVaultWithdrawalNetwork);
+        doi.set(doi.operatorFeeVaultRecipient.selector, operatorFeeVaultRecipient);
+        doi.set(doi.operatorFeeVaultMinWithdrawalAmount.selector, operatorFeeVaultMinWithdrawalAmount);
+        doi.set(doi.operatorFeeVaultWithdrawalNetwork.selector, operatorFeeVaultWithdrawalNetwork);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.saltMixer.selector, saltMixer);
@@ -508,6 +517,18 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(disputeSplitDepth, doi.disputeSplitDepth(), "1600");
         assertEq(disputeClockExtension, Duration.unwrap(doi.disputeClockExtension()), "1700");
         assertEq(disputeMaxClockDuration, Duration.unwrap(doi.disputeMaxClockDuration()), "1800");
+        assertEq(baseFeeVaultRecipient, doi.baseFeeVaultRecipient(), "1900");
+        assertEq(baseFeeVaultMinWithdrawalAmount, doi.baseFeeVaultMinWithdrawalAmount(), "2000");
+        assertEq(baseFeeVaultWithdrawalNetwork, doi.baseFeeVaultWithdrawalNetwork(), "2100");
+        assertEq(sequencerFeeVaultRecipient, doi.sequencerFeeVaultRecipient(), "2200");
+        assertEq(sequencerFeeVaultMinWithdrawalAmount, doi.sequencerFeeVaultMinWithdrawalAmount(), "2300");
+        assertEq(sequencerFeeVaultWithdrawalNetwork, doi.sequencerFeeVaultWithdrawalNetwork(), "2400");
+        assertEq(l1FeeVaultRecipient, doi.l1FeeVaultRecipient(), "2500");
+        assertEq(l1FeeVaultMinWithdrawalAmount, doi.l1FeeVaultMinWithdrawalAmount(), "2600");
+        assertEq(l1FeeVaultWithdrawalNetwork, doi.l1FeeVaultWithdrawalNetwork(), "2700");
+        assertEq(operatorFeeVaultRecipient, doi.operatorFeeVaultRecipient(), "2800");
+        assertEq(operatorFeeVaultMinWithdrawalAmount, doi.operatorFeeVaultMinWithdrawalAmount(), "2900");
+        assertEq(operatorFeeVaultWithdrawalNetwork, doi.operatorFeeVaultWithdrawalNetwork(), "3000");
 
         // Assert inputs were properly passed through to the contract initializers.
         assertEq(address(doo.opChainProxyAdmin().owner()), opChainProxyAdminOwner, "2100");
@@ -569,7 +590,18 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.challenger.selector, challenger);
         doi.set(doi.basefeeScalar.selector, basefeeScalar);
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
-        doi.set(doi.feeVaultConfigs.selector, feeVaultConfigs);
+        doi.set(doi.baseFeeVaultRecipient.selector, baseFeeVaultRecipient);
+        doi.set(doi.baseFeeVaultMinWithdrawalAmount.selector, baseFeeVaultMinWithdrawalAmount);
+        doi.set(doi.baseFeeVaultWithdrawalNetwork.selector, baseFeeVaultWithdrawalNetwork);
+        doi.set(doi.sequencerFeeVaultRecipient.selector, sequencerFeeVaultRecipient);
+        doi.set(doi.sequencerFeeVaultMinWithdrawalAmount.selector, sequencerFeeVaultMinWithdrawalAmount);
+        doi.set(doi.sequencerFeeVaultWithdrawalNetwork.selector, sequencerFeeVaultWithdrawalNetwork);
+        doi.set(doi.l1FeeVaultRecipient.selector, l1FeeVaultRecipient);
+        doi.set(doi.l1FeeVaultMinWithdrawalAmount.selector, l1FeeVaultMinWithdrawalAmount);
+        doi.set(doi.l1FeeVaultWithdrawalNetwork.selector, l1FeeVaultWithdrawalNetwork);
+        doi.set(doi.operatorFeeVaultRecipient.selector, operatorFeeVaultRecipient);
+        doi.set(doi.operatorFeeVaultMinWithdrawalAmount.selector, operatorFeeVaultMinWithdrawalAmount);
+        doi.set(doi.operatorFeeVaultWithdrawalNetwork.selector, operatorFeeVaultWithdrawalNetwork);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.opcm.selector, address(opcm));
         doi.set(doi.saltMixer.selector, saltMixer);

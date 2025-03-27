@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type VMType string
@@ -36,30 +37,39 @@ type AdditionalDisputeGame struct {
 }
 
 type ChainIntent struct {
-	ID                         common.Hash               `json:"id" toml:"id"`
-	BaseFeeVaultRecipient      common.Address            `json:"baseFeeVaultRecipient" toml:"baseFeeVaultRecipient"`
-	L1FeeVaultRecipient        common.Address            `json:"l1FeeVaultRecipient" toml:"l1FeeVaultRecipient"`
-	SequencerFeeVaultRecipient common.Address            `json:"sequencerFeeVaultRecipient" toml:"sequencerFeeVaultRecipient"`
-	OperatorFeeVaultRecipient  common.Address            `json:"operatorFeeVaultRecipient" toml:"operatorFeeVaultRecipient"`
-	Eip1559DenominatorCanyon   uint64                    `json:"eip1559DenominatorCanyon" toml:"eip1559DenominatorCanyon"`
-	Eip1559Denominator         uint64                    `json:"eip1559Denominator" toml:"eip1559Denominator"`
-	Eip1559Elasticity          uint64                    `json:"eip1559Elasticity" toml:"eip1559Elasticity"`
-	Roles                      ChainRoles                `json:"roles" toml:"roles"`
-	DeployOverrides            map[string]any            `json:"deployOverrides" toml:"deployOverrides"`
-	DangerousAltDAConfig       genesis.AltDADeployConfig `json:"dangerousAltDAConfig,omitempty" toml:"dangerousAltDAConfig,omitempty"`
-	AdditionalDisputeGames     []AdditionalDisputeGame   `json:"dangerousAdditionalDisputeGames" toml:"dangerousAdditionalDisputeGames,omitempty"`
-	OperatorFeeScalar          uint32                    `json:"operatorFeeScalar,omitempty" toml:"operatorFeeScalar,omitempty"`
-	OperatorFeeConstant        uint64                    `json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
+	ID                                          common.Hash               	`json:"id" toml:"id"`
+	BaseFeeVaultRecipient                       common.Address            	`json:"baseFeeVaultRecipient" toml:"baseFeeVaultRecipient"`
+	L1FeeVaultRecipient                         common.Address            	`json:"l1FeeVaultRecipient" toml:"l1FeeVaultRecipient"`
+	SequencerFeeVaultRecipient                  common.Address            	`json:"sequencerFeeVaultRecipient" toml:"sequencerFeeVaultRecipient"`
+	OperatorFeeVaultRecipient                   common.Address            	`json:"operatorFeeVaultRecipient" toml:"operatorFeeVaultRecipient"`
+	BaseFeeVaultMinimumWithdrawalAmount         *hexutil.Big              	`json:"baseFeeVaultMinimumWithdrawalAmount" toml:"baseFeeVaultMinimumWithdrawalAmount"`
+	L1FeeVaultMinimumWithdrawalAmount           *hexutil.Big              	`json:"l1FeeVaultMinimumWithdrawalAmount" toml:"l1FeeVaultMinimumWithdrawalAmount"`
+	SequencerFeeVaultMinimumWithdrawalAmount    *hexutil.Big              	`json:"sequencerFeeVaultMinimumWithdrawalAmount" toml:"sequencerFeeVaultMinimumWithdrawalAmount"`
+	OperatorFeeVaultMinimumWithdrawalAmount     *hexutil.Big              	`json:"operatorFeeVaultMinimumWithdrawalAmount" toml:"operatorFeeVaultMinimumWithdrawalAmount"`
+	BaseFeeVaultWithdrawalNetwork               genesis.WithdrawalNetwork 	`json:"baseFeeVaultWithdrawalNetwork" toml:"baseFeeVaultWithdrawalNetwork"`
+	L1FeeVaultWithdrawalNetwork                 genesis.WithdrawalNetwork 	`json:"l1FeeVaultWithdrawalNetwork" toml:"l1FeeVaultWithdrawalNetwork"`
+	SequencerFeeVaultWithdrawalNetwork          genesis.WithdrawalNetwork 	`json:"sequencerFeeVaultWithdrawalNetwork" toml:"sequencerFeeVaultWithdrawalNetwork"`
+	OperatorFeeVaultWithdrawalNetwork           genesis.WithdrawalNetwork 	`json:"operatorFeeVaultWithdrawalNetwork" toml:"operatorFeeVaultWithdrawalNetwork"`
+	Eip1559DenominatorCanyon                    uint64                    	`json:"eip1559DenominatorCanyon" toml:"eip1559DenominatorCanyon"`
+	Eip1559Denominator                          uint64                    	`json:"eip1559Denominator" toml:"eip1559Denominator"`
+	Eip1559Elasticity                           uint64                    	`json:"eip1559Elasticity" toml:"eip1559Elasticity"`
+	Roles                                       ChainRoles                	`json:"roles" toml:"roles"`
+	DeployOverrides                             map[string]any            	`json:"deployOverrides" toml:"deployOverrides"`
+	DangerousAltDAConfig                        genesis.AltDADeployConfig 	`json:"dangerousAltDAConfig,omitempty" toml:"dangerousAltDAConfig,omitempty"`
+	AdditionalDisputeGames                      []AdditionalDisputeGame   	`json:"dangerousAdditionalDisputeGames" toml:"dangerousAdditionalDisputeGames,omitempty"`
+	OperatorFeeScalar                           uint32                    	`json:"operatorFeeScalar,omitempty" toml:"operatorFeeScalar,omitempty"`
+	OperatorFeeConstant                         uint64                    	`json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
 }
 
 type ChainRoles struct {
-	L1ProxyAdminOwner common.Address `json:"l1ProxyAdminOwner" toml:"l1ProxyAdminOwner"`
-	L2ProxyAdminOwner common.Address `json:"l2ProxyAdminOwner" toml:"l2ProxyAdminOwner"`
-	SystemConfigOwner common.Address `json:"systemConfigOwner" toml:"systemConfigOwner"`
-	UnsafeBlockSigner common.Address `json:"unsafeBlockSigner" toml:"unsafeBlockSigner"`
-	Batcher           common.Address `json:"batcher" toml:"batcher"`
-	Proposer          common.Address `json:"proposer" toml:"proposer"`
-	Challenger        common.Address `json:"challenger" toml:"challenger"`
+	L1ProxyAdminOwner 		common.Address `json:"l1ProxyAdminOwner" toml:"l1ProxyAdminOwner"`
+	L2ProxyAdminOwner 		common.Address `json:"l2ProxyAdminOwner" toml:"l2ProxyAdminOwner"`
+	SystemConfigOwner 		common.Address `json:"systemConfigOwner" toml:"systemConfigOwner"`
+	UnsafeBlockSigner 		common.Address `json:"unsafeBlockSigner" toml:"unsafeBlockSigner"`
+	Batcher           		common.Address `json:"batcher" toml:"batcher"`
+	Proposer          		common.Address `json:"proposer" toml:"proposer"`
+	Challenger        		common.Address `json:"challenger" toml:"challenger"`
+	SystemConfigFeeAdmin    common.Address `json:"systemConfigFeeVaultAdmin" toml:"systemConfigFeeVaultAdmin"`
 }
 
 var ErrChainRoleZeroAddress = fmt.Errorf("ChainRole is set to zero address")

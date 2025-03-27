@@ -178,6 +178,10 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 	if err != nil {
 		return nil, err
 	}
+	operatorFeeVaultRecipient, err := addrs.Address(chainOps(devkeys.OperatorFeeVaultRecipientRole))
+	if err != nil {
+		return nil, err
+	}
 	sequencerP2P, err := addrs.Address(chainOps(devkeys.SequencerP2PRole))
 	if err != nil {
 		return nil, err
@@ -198,12 +202,17 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 	if err != nil {
 		return nil, err
 	}
+	systemConfigFeeAdmin, err := addrs.Address(chainOps(devkeys.SystemConfigFeeAdmin))
+	if err != nil {
+		return nil, err
+	}
 
 	l2Cfg := &L2Config{
-		Deployer:          deployer,
-		Proposer:          proposer,
-		Challenger:        challenger,
-		SystemConfigOwner: systemConfigOwner,
+		Deployer:          		deployer,
+		Proposer:          		proposer,
+		Challenger:        		challenger,
+		SystemConfigOwner: 		systemConfigOwner,
+		SystemConfigFeeAdmin: 	systemConfigFeeAdmin,
 		L2InitializationConfig: genesis.L2InitializationConfig{
 			DevDeployConfig: genesis.DevDeployConfig{
 				FundDevAccounts: true,
@@ -220,12 +229,15 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 				BaseFeeVaultRecipient:                    baseFeeVaultRecipient,
 				L1FeeVaultRecipient:                      l1FeeVaultRecipient,
 				SequencerFeeVaultRecipient:               sequencerFeeVaultRecipient,
+				OperatorFeeVaultRecipient:                operatorFeeVaultRecipient,
 				BaseFeeVaultMinimumWithdrawalAmount:      (*hexutil.Big)(Ether(10)),
 				L1FeeVaultMinimumWithdrawalAmount:        (*hexutil.Big)(Ether(10)),
 				SequencerFeeVaultMinimumWithdrawalAmount: (*hexutil.Big)(Ether(10)),
+				OperatorFeeVaultMinimumWithdrawalAmount:  (*hexutil.Big)(Ether(10)),
 				BaseFeeVaultWithdrawalNetwork:            "remote",
 				L1FeeVaultWithdrawalNetwork:              "remote",
 				SequencerFeeVaultWithdrawalNetwork:       "remote",
+				OperatorFeeVaultWithdrawalNetwork:        "remote",
 			},
 			GovernanceDeployConfig: genesis.GovernanceDeployConfig{
 				EnableGovernance: false,
