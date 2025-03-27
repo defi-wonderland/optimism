@@ -52,6 +52,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
     IETHLiquidity public immutable ETH_LIQUIDITY = IETHLiquidity(Predeploys.ETH_LIQUIDITY);
     ISuperchainWETH public immutable SUPER_WETH = ISuperchainWETH(payable(Predeploys.SUPERCHAIN_WETH));
     IETHLockbox public immutable ETH_LOCKBOX;
+    address public immutable ETH_LOCKBOX_IMPLEMENTATION_ADDRESS;
     ISuperchainConfig public immutable SUPERCHAIN_CONFIG;
     IOptimismPortal public immutable PORTAL;
     ISystemConfig public immutable SYSTEM_CONFIG;
@@ -171,10 +172,10 @@ contract Setup is PropertiesAsserts, HandlerActors {
         _ghost_isL1Contract[superchainConfigAddress] = true;
 
         // Deploy ETHLockbox
-        address ethLockboxAddress = vm.addr(uint256(keccak256("ETHLockbox")));
-        _setCode(ethLockboxAddress, DEPLOYER_8_25.deployETHLockbox(), true);
-        ETH_LOCKBOX = IETHLockbox(ethLockboxAddress);
-        _ghost_isL1Contract[ethLockboxAddress] = true;
+        ETH_LOCKBOX_IMPLEMENTATION_ADDRESS = vm.addr(uint256(keccak256("ETHLockbox")));
+        _setCode(ETH_LOCKBOX_IMPLEMENTATION_ADDRESS, DEPLOYER_8_25.deployETHLockbox(), true);
+        ETH_LOCKBOX = IETHLockbox(ETH_LOCKBOX_IMPLEMENTATION_ADDRESS);
+        _ghost_isL1Contract[address(ETH_LOCKBOX)] = true;
 
         // Deploy SystemConfig
         address systemConfigAddress = vm.addr(uint256(keccak256("SystemConfig")));

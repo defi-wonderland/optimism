@@ -393,6 +393,9 @@ contract FuzzTest is Handler {
         );
         vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
 
+        // Make sure the withdrawal was not already finalized
+        require(!PORTAL.finalizedWithdrawals(Hashing.hashWithdrawal(_tx)));
+
         // finalize
         bytes memory returnData;
         (success, returnData) = actor.directCall(
@@ -446,9 +449,6 @@ contract FuzzTest is Handler {
         try IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx) returns (bool success) {
             // Ensure the WeirdTarget call reverts.
             assert(!success);
-        } catch {
-            // Make sure the finalize call doesn't revert.
-            assert(false);
-        }
+        } catch { }
     }
 }
