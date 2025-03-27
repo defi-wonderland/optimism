@@ -69,6 +69,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
     // Portal Immutables - Values not important for the scope of this testing campaign
     uint256 public immutable PROOF_MATURITY_DELAY_SECONDS = 1 weeks;
     uint256 public immutable DISPUTE_GAME_FINALITY_DELAY_SECONDS = 3.5 days;
+    ISystemConfig.Addresses public addresses;
 
     // System addresses
     address public immutable GUARDIAN = vm.addr(uint256(keccak256("Guardian")));
@@ -221,14 +222,13 @@ contract Setup is PropertiesAsserts, HandlerActors {
         SUPERCHAIN_CONFIG.initialize(GUARDIAN, false);
 
         // Initialize SystemConfig
-        ISystemConfig.Addresses memory addresses = ISystemConfig.Addresses({
+        addresses = ISystemConfig.Addresses({
             l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
             l1ERC721Bridge: address(0),
             l1StandardBridge: address(0),
             optimismPortal: address(PORTAL),
             optimismMintableERC20Factory: address(0)
         });
-        IResourceMetering.ResourceConfig memory config = Constants.DEFAULT_RESOURCE_CONFIG();
         SYSTEM_CONFIG.initialize(
             address(PROXY_ADMIN),
             0,
@@ -236,7 +236,7 @@ contract Setup is PropertiesAsserts, HandlerActors {
             0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
             60000000,
             0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
-            config,
+            Constants.DEFAULT_RESOURCE_CONFIG(),
             0xFF00000000000000000000000000000000000010,
             addresses,
             DESTINATION_CHAIN_ID
@@ -244,19 +244,14 @@ contract Setup is PropertiesAsserts, HandlerActors {
 
         // Initialize AnchorStateRegistry
         ANCHOR_STATE_REGISTRY.initialize(
-            ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
+            SUPERCHAIN_CONFIG,
             IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
             Proposal(Hash.wrap(bytes32(0)), 0),
             GameType.wrap(0)
         );
 
         // Initialize Portal
-        PORTAL.initialize(
-            ISystemConfig(address(SYSTEM_CONFIG)),
-            ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
-            IAnchorStateRegistry(address(ANCHOR_STATE_REGISTRY)),
-            IETHLockbox(address(ETH_LOCKBOX))
-        );
+        PORTAL.initialize(SYSTEM_CONFIG, SUPERCHAIN_CONFIG, ANCHOR_STATE_REGISTRY, ETH_LOCKBOX);
 
         // Initialize ETHLockbox
         IOptimismPortal[] memory portals = new IOptimismPortal[](1);

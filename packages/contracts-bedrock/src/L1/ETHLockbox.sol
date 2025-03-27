@@ -167,14 +167,20 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
     ///         cannot be removed from the authorized list once added.
     /// @param _lockbox The address of the ETH lockbox to authorize.
     function authorizeLockbox(IETHLockbox _lockbox) external {
+        console.log("authorizeLockbox");
+        console.log("msg.sender", msg.sender);
+        console.log("proxyAdminOwner", proxyAdminOwner());
         // Check that the sender is the proxy admin owner.
         if (msg.sender != proxyAdminOwner()) revert ETHLockbox_Unauthorized();
 
         // Check that the lockbox has the same proxy admin owner.
+        console.log("sameProxyAdminOwner", _sameProxyAdminOwner(address(_lockbox)));
         if (!_sameProxyAdminOwner(address(_lockbox))) revert ETHLockbox_DifferentProxyAdminOwner();
+        console.log("after same 1");
 
         // Authorize the lockbox.
         authorizedLockboxes[_lockbox] = true;
+        console.log("after same 2");
 
         // Emit the event.
         emit LockboxAuthorized(_lockbox);
@@ -216,3 +222,5 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
         emit PortalAuthorized(_portal);
     }
 }
+
+import "forge-std/console.sol";

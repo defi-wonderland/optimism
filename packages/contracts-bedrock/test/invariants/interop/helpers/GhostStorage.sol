@@ -13,6 +13,9 @@ contract GhostStorage {
     // The number of calls that can be made to the WeirdTarget.
     uint256 internal _ghost_weirdTargetCallsLength;
 
+    // The last block combination of the current chain.
+    uint256 internal _ghost_lastBlockCombination;
+
     mapping(address => bool) internal _ghost_isL1Contract;
     mapping(address => bool) internal _ghost_isL2Contract;
 }

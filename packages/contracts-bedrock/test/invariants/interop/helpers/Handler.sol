@@ -22,6 +22,8 @@ import { SafeSend } from "src/universal/SafeSend.sol";
 import { OptimismPortal2 as OptimismPortal } from "src/L1/OptimismPortal2.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 
 contract Handler is Setup {
     struct Message {
@@ -401,4 +403,189 @@ contract Handler is Setup {
 
         if (_to == address(SUPER_WETH)) _ghost_superWethEtherSent += _amount;
     }
+
+    function handler_addFreshChain() public initialize {
+        // Make sure that the last block combination is not the same as the current block and timestamp to avoid
+        // collisions when generating the addresses of the new contracts.
+        if (_ghost_lastBlockCombination == block.timestamp + block.number) handler_increaseBlockNumber(true);
+
+        // Deploy ETHLockbox for the new chain
+        IETHLockbox newEthLockbox =
+            IETHLockbox(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination))))));
+        _setCode(address(newEthLockbox), DEPLOYER_8_25.deployETHLockbox(), true);
+        _ghost_isL1Contract[address(newEthLockbox)] = true;
+
+        // Deploy OptimismPortal for the new chain
+        IOptimismPortal newPortal =
+            IOptimismPortal(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 1))))));
+        _setCode(address(newPortal), DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS), true);
+        _ghost_isL1Contract[address(newPortal)] = true;
+
+        // Deploy SuperchainConfig for the new chain
+        ISuperchainConfig newSuperchainConfig =
+            ISuperchainConfig(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 2)))));
+        _setCode(address(newSuperchainConfig), DEPLOYER_8_15.deploySuperchainConfig(), true);
+        _ghost_isL1Contract[address(newSuperchainConfig)] = true;
+
+        // Initialize them
+        try newSuperchainConfig.initialize(GUARDIAN, false) { }
+        catch {
+            assert(false);
+        }
+
+        try newPortal.initialize(SYSTEM_CONFIG, newSuperchainConfig, ANCHOR_STATE_REGISTRY, ETH_LOCKBOX) { }
+        catch {
+            assert(false);
+        }
+
+        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
+        portals[0] = newPortal;
+        try newEthLockbox.initialize(newSuperchainConfig, portals) { }
+        catch {
+            assert(false);
+        }
+
+        // Authorize the new portal on the new lockbox
+        vm.prank(address(PROXY_OWNER));
+        try newEthLockbox.authorizePortal(newPortal) { }
+        catch {
+            assert(false);
+        }
+
+        // Migrate liquidity from portal to ETHLockbox
+        vm.prank(address(PROXY_OWNER));
+        try newPortal.migrateLiquidity() { }
+        catch {
+            assert(false);
+        }
+
+        /// NOTE: Having issues with `prankHere` so using `prank` for each call instead
+        vm.prank(address(PROXY_OWNER));
+        // Authorize the new lockbox on the current lockbox
+        try ETH_LOCKBOX.authorizeLockbox(newEthLockbox) { }
+        catch {
+            /// NOTE: Fails here
+            console.log("authorize lockbox fail");
+            assert(false);
+        }
+        // Authorize the new portal on the new lockbox
+        vm.prank(address(PROXY_OWNER));
+
+        try ETH_LOCKBOX.authorizePortal(newPortal) { }
+        catch {
+            assert(false);
+        }
+
+        // Migrate liquidity from the new lockbox to the current lockbox
+        vm.prank(address(PROXY_OWNER));
+        try newEthLockbox.migrateLiquidity(ETH_LOCKBOX) { }
+        catch {
+            assert(false);
+        }
+
+        // Migrate to super roots
+        vm.prank(address(PROXY_OWNER));
+        try newPortal.migrateToSuperRoots(ETH_LOCKBOX, ANCHOR_STATE_REGISTRY) { }
+        catch {
+            assert(false);
+        }
+
+        // Migrate the chain to the current Lockbox
+        _ghost_lastBlockCombination = block.timestamp + block.number;
+
+        // Assert the migration was successful
+        assert(ETH_LOCKBOX.authorizedPortals(newPortal));
+        assert(ETH_LOCKBOX.authorizedLockboxes(newEthLockbox));
+        assert(address(newPortal.ethLockbox()) == address(ETH_LOCKBOX));
+        assert(newPortal.superRootsActive());
+    }
+
+    function handler_addExistingChain() public initialize {
+        // Make sure that the last block combination is not the same as the current block and timestamp to avoid
+        // collisions when generating the addresses of the new contracts.
+        if (_ghost_lastBlockCombination == block.timestamp + block.number) handler_increaseBlockNumber(true);
+
+        // TODO: Need to deploy system config and anchor registry for the new chain?
+
+        // Deploy ETHLockbox for the new chain
+        IETHLockbox newEthLockbox =
+            IETHLockbox(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination))))));
+        _setCode(address(newEthLockbox), DEPLOYER_8_25.deployETHLockbox(), true);
+        _ghost_isL1Contract[address(newEthLockbox)] = true;
+
+        // Deploy OptimismPortal for the new chain
+        IOptimismPortal newPortal =
+            IOptimismPortal(payable(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 1))))));
+        _setCode(address(newPortal), DEPLOYER_8_15.deployOptimismPortal(PROOF_MATURITY_DELAY_SECONDS), true);
+        _ghost_isL1Contract[address(newPortal)] = true;
+
+        // Deploy SuperchainConfig for the new chain
+        ISuperchainConfig newSuperchainConfig =
+            ISuperchainConfig(vm.addr(uint256(keccak256(abi.encode(_ghost_lastBlockCombination + 2)))));
+        _setCode(address(newSuperchainConfig), DEPLOYER_8_15.deploySuperchainConfig(), true);
+        _ghost_isL1Contract[address(newSuperchainConfig)] = true;
+
+        // Add some ether to the portal
+        uint256 initialBalance = 100 ether;
+        vm.deal(address(PORTAL), initialBalance);
+
+        // Authorize the portal on the new lockbox
+        vm.prank(address(PROXY_OWNER));
+        try newEthLockbox.authorizePortal(newPortal) { }
+        catch {
+            assert(false);
+        }
+
+        /// NOTE: Having issues with `prankHere` so using `prank` for each call instead
+        vm.prank(address(PROXY_OWNER));
+        // Migrate liquidity from portal to the new lockbox
+        try newPortal.migrateLiquidity() { }
+        catch {
+            assert(false);
+        }
+
+        // Authorize the new lockbox on the current lockbox
+        vm.prank(address(PROXY_OWNER));
+        try ETH_LOCKBOX.authorizeLockbox(newEthLockbox) { }
+        catch {
+            /// NOTE: Fails here
+            console.log("authorize lockbox fail");
+            assert(false);
+        }
+
+        // Authorize the new portal on the new lockbox
+        vm.prank(address(PROXY_OWNER));
+        try ETH_LOCKBOX.authorizePortal(newPortal) { }
+        catch {
+            assert(false);
+        }
+
+        // Get the current liquidity and migrate new lockbox to the current lockbox
+        uint256 currentLiquidity = address(ETH_LOCKBOX).balance;
+        vm.prank(address(PROXY_OWNER));
+        try newEthLockbox.migrateLiquidity(ETH_LOCKBOX) { }
+        catch {
+            assert(false);
+        }
+
+        // Migrate to super roots
+        vm.prank(address(PROXY_OWNER));
+        try newPortal.migrateToSuperRoots(ETH_LOCKBOX, ANCHOR_STATE_REGISTRY) { }
+        catch {
+            assert(false);
+        }
+
+        _ghost_lastBlockCombination = block.timestamp + block.number;
+
+        // Assert the migration was successful
+        assert(ETH_LOCKBOX.authorizedPortals(newPortal));
+        assert(ETH_LOCKBOX.authorizedLockboxes(newEthLockbox));
+        assert(address(newPortal.ethLockbox()) == address(ETH_LOCKBOX));
+        assert(newPortal.superRootsActive());
+        assert(address(newPortal).balance == 0);
+        assert(address(newEthLockbox).balance == 0);
+        assert(address(ETH_LOCKBOX).balance == initialBalance + currentLiquidity);
+    }
 }
+
+import { console } from "forge-std/console.sol";
