@@ -19,9 +19,9 @@ type UpgradeOPChainInput struct {
 }
 
 type OPChainConfig struct {
-	SystemConfigProxy common.Address `json:"systemConfigProxy"`
-	ProxyAdmin        common.Address `json:"proxyAdmin"`
-	AbsolutePrestate  common.Hash    `json:"absolutePrestate"`
+	SystemConfigProxy    common.Address `json:"systemConfigProxy"`
+	ProxyAdmin           common.Address `json:"proxyAdmin"`
+	AbsolutePrestate     common.Hash    `json:"absolutePrestate"`
 	SystemConfigFeeAdmin common.Address `json:"systemConfigFeeAdmin"`
 }
 
