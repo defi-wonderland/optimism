@@ -79,7 +79,7 @@ contract Handler is Setup {
             _nonce: _params.nonce,
             _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
             _target: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _message: abi.encode(_params.message)
+            _message: _params.message
         });
 
         // calculate the checksum
