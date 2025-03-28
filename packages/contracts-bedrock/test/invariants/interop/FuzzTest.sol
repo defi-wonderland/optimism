@@ -83,9 +83,16 @@ contract FuzzTest is Handler {
 
         // Relay the message by calling the messenger
         (bool success, bytes32 messageHash) = _callL2ToL2MessengerRelayMessage(
-            _sender, CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+            _sender,
+            CallRelayParams({
+                id: _id,
+                messageSent: sentMessage,
+                message: message,
+                nonce: _message.nonce,
+                sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+                target: address(SUPERCHAIN_TOKEN_BRIDGE)
+            })
         );
-
         // Assert
         if (success) {
             // Check the state is right after the call
@@ -166,8 +173,14 @@ contract FuzzTest is Handler {
         uint256 sWethEthBalanceBefore = address(SUPER_WETH).balance;
 
         // Relay the message by calling the messenger from the actor
-        CallRelayParams memory callRelayParams =
-            CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce });
+        CallRelayParams memory callRelayParams = CallRelayParams({
+            id: _id,
+            messageSent: sentMessage,
+            message: message,
+            nonce: _message.nonce,
+            sender: address(SUPERCHAIN_TOKEN_BRIDGE),
+            target: address(SUPERCHAIN_TOKEN_BRIDGE)
+        });
         (bool success, bytes32 messageHash) = _callL2ToL2MessengerRelayMessage(_sender, callRelayParams);
 
         if (success) {
@@ -237,9 +250,16 @@ contract FuzzTest is Handler {
 
         // Relay the message
         (bool success,) = _callL2ToL2MessengerRelayMessage(
-            _sender, CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+            _sender,
+            CallRelayParams({
+                id: _id,
+                messageSent: sentMessage,
+                message: message,
+                nonce: _message.nonce,
+                sender: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE),
+                target: _callSuperWETH ? address(SUPER_WETH) : address(SUPERCHAIN_TOKEN_BRIDGE)
+            })
         );
-
         if (success) {
             // If the relay target was SuperchainWETH, the total supply should be updated, independently of the tx
             // path

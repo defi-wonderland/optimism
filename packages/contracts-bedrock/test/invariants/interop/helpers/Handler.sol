@@ -38,6 +38,8 @@ contract Handler is Setup {
         bytes messageSent;
         bytes message;
         uint256 nonce;
+        address sender;
+        address target;
     }
 
     /// @notice Event selector for the SentMessage event.
@@ -77,8 +79,8 @@ contract Handler is Setup {
             _destination: block.chainid,
             _source: _params.id.chainId,
             _nonce: _params.nonce,
-            _sender: address(SUPERCHAIN_TOKEN_BRIDGE),
-            _target: address(SUPERCHAIN_TOKEN_BRIDGE),
+            _sender: _params.sender,
+            _target: _params.target,
             _message: _params.message
         });
 
@@ -356,7 +358,14 @@ contract Handler is Setup {
         // Relay the message
         (bool success, bytes32 messageHash) = _callL2ToL2MessengerRelayMessage(
             address(randomActor(_toActorIndex + 1)),
-            CallRelayParams({ id: _id, messageSent: sentMessage, message: message, nonce: _message.nonce })
+            CallRelayParams({
+                id: _id,
+                messageSent: sentMessage,
+                message: message,
+                nonce: _message.nonce,
+                sender: address(SUPER_WETH),
+                target: address(SUPER_WETH)
+            })
         );
 
         // Check the Ether balances
