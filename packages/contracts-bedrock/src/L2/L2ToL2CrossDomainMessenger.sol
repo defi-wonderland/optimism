@@ -178,7 +178,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: sender,
             _target: target,
-            _message: abi.encode(message)
+            _message: message
         });
 
         if (successfulMessages[messageHash]) {

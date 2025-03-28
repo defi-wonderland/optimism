@@ -158,6 +158,7 @@ contract ETHLockbox is ProxyAdminOwnedBase, Initializable, ISemver {
 
         // Using donateETH to avoid triggering a deposit.
         sender.donateETH{ value: _value }();
+
         // Emit the event.
         emit ETHUnlocked(sender, _value);
     }
