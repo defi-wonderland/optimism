@@ -220,71 +220,6 @@ contract Setup is PropertiesAsserts, HandlerActors {
         }
     }
 
-    function _initializeProxies() internal {
-        // Initialize SuperchainConfig
-        SUPERCHAIN_CONFIG.initialize(GUARDIAN, false);
-
-        // Initialize SystemConfig
-        ISystemConfig.Addresses memory addresses = ISystemConfig.Addresses({
-            l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
-            l1ERC721Bridge: address(0),
-            l1StandardBridge: address(0),
-            optimismPortal: address(PORTAL),
-            optimismMintableERC20Factory: address(0)
-        });
-        IResourceMetering.ResourceConfig memory config = Constants.DEFAULT_RESOURCE_CONFIG();
-        SYSTEM_CONFIG.initialize(
-            address(PROXY_ADMIN),
-            0,
-            0,
-            0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
-            60000000,
-            0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
-            config,
-            0xFF00000000000000000000000000000000000010,
-            addresses,
-            DESTINATION_CHAIN_ID
-        );
-
-        // Initialize AnchorStateRegistry
-        ANCHOR_STATE_REGISTRY.initialize(
-            ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
-            IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
-            Proposal(Hash.wrap(bytes32(0)), 0),
-            GameType.wrap(0)
-        );
-
-        // Initialize Portal
-        PORTAL.initialize(
-            ISystemConfig(address(SYSTEM_CONFIG)),
-            ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
-            IAnchorStateRegistry(address(ANCHOR_STATE_REGISTRY)),
-            IETHLockbox(address(ETH_LOCKBOX))
-        );
-
-        // Initialize ETHLockbox
-        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
-        portals[0] = PORTAL;
-        ETH_LOCKBOX.initialize(SUPERCHAIN_CONFIG, portals);
-
-        // Migrate liquidity from portal to ETHLockbox
-        PROXY_OWNER.directCall(address(PORTAL), 0, abi.encodeCall(PORTAL.migrateLiquidity, ()));
-    }
-
-    function _addActors() internal {
-        for (uint256 i; i < NUMBER_OF_ACTORS; i++) {
-            Actors _newActor = new Actors();
-            _ghost_actors.push(address(_newActor));
-
-            // Mint SUPER_TOKEN only to the first 8 actors
-            if (i > 8) continue;
-            uint256 amount = uint256(keccak256(abi.encode(address(_newActor))));
-            // Avoid minting too much on the setup
-            amount = clampLte(amount, type(uint128).max);
-            SUPER_TOKEN.mint(address(_newActor), amount);
-        }
-    }
-
     /// Check setup proper deployment and initialization of the contracts
     function _setupSanityCheck() internal view {
         /* Contracts with some storage intialization on setup */
@@ -345,6 +280,59 @@ contract Setup is PropertiesAsserts, HandlerActors {
         assert(SUPERCHAIN_TOKEN_BRIDGE.version().hashString() != emptyStringHash);
     }
 
+    function _initializeProxies() internal {
+        // Initialize SuperchainConfig
+        SUPERCHAIN_CONFIG.initialize(GUARDIAN, false);
+
+        // Initialize SystemConfig
+        ISystemConfig.Addresses memory addresses = ISystemConfig.Addresses({
+            l1CrossDomainMessenger: address(0), // Setting 0 to those values that are not needed for this campaign
+            l1ERC721Bridge: address(0),
+            l1StandardBridge: address(0),
+            optimismPortal: address(PORTAL),
+            optimismMintableERC20Factory: address(0)
+        });
+        IResourceMetering.ResourceConfig memory config = Constants.DEFAULT_RESOURCE_CONFIG();
+        SYSTEM_CONFIG.initialize(
+            address(PROXY_ADMIN),
+            0,
+            0,
+            0x0000000000000000000000006887246668a3b87f54deb3b94ba47a6f63f32985,
+            60000000,
+            0xAAAA45d9549EDA09E70937013520214382Ffc4A2,
+            config,
+            0xFF00000000000000000000000000000000000010,
+            addresses,
+            DESTINATION_CHAIN_ID
+        );
+
+        // Initialize AnchorStateRegistry
+        ANCHOR_STATE_REGISTRY.initialize(
+            ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
+            IDisputeGameFactory(_DISPUTE_GAME_FACTORY),
+            Proposal(Hash.wrap(bytes32(0)), 0),
+            GameType.wrap(0)
+        );
+
+        // Initialize Portal
+        PORTAL.initialize(
+            ISystemConfig(address(SYSTEM_CONFIG)),
+            ISuperchainConfig(address(SUPERCHAIN_CONFIG)),
+            IAnchorStateRegistry(address(ANCHOR_STATE_REGISTRY)),
+            IETHLockbox(address(ETH_LOCKBOX))
+        );
+
+        // Initialize ETHLockbox
+        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
+        portals[0] = PORTAL;
+        ETH_LOCKBOX.initialize(SUPERCHAIN_CONFIG, portals);
+
+        // Migrate liquidity from portal to ETHLockbox
+        PROXY_OWNER.directCall(address(PORTAL), 0, abi.encodeCall(PORTAL.migrateLiquidity, ()));
+    }
+
+    /// @notice Deploys the `AnchorStateRegistry`, `ETHLockbox` and `OptimismPortal` for each chain.
+    /// @dev Restricting to only those 3 contracts since they're the unique needed to perform the migration.
     function _deployChains() internal {
         for (uint256 i; i < _GHOST_NUMBER_OF_CHAINS; i++) {
             // Deploy ETHLockbox for the new chain
@@ -370,46 +358,24 @@ contract Setup is PropertiesAsserts, HandlerActors {
         }
     }
 
-    function _initializeChain(uint256 _chainIndex, bool _upgrade) internal {
-        IOptimismPortal newPortal = _ghost_chains[_chainIndex].portal;
-        IETHLockbox newEthLockbox = _ghost_chains[_chainIndex].ethLockbox;
-        address newAnchorRegistry = _ghost_chains[_chainIndex].anchorRegistry;
+    function _addActors() internal {
+        for (uint256 i; i < NUMBER_OF_ACTORS; i++) {
+            Actors _newActor = new Actors();
+            _ghost_actors.push(address(_newActor));
 
-        // Initialize the portal
-        try newPortal.initialize(
-            SYSTEM_CONFIG, SUPERCHAIN_CONFIG, IAnchorStateRegistry(newAnchorRegistry), newEthLockbox
-        ) { } catch {
-            assert(false);
-        }
-
-        // Initialize the ETHLockbox
-        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
-        portals[0] = newPortal;
-        try newEthLockbox.initialize(SUPERCHAIN_CONFIG, portals) { }
-        catch {
-            assert(false);
-        }
-
-        if (_upgrade) {
-            /// NOTE: Not exactly mimicking the real behavior, since for this case the portal will be on the previous
-            ///       version, but it is good enough for the purpose of this testing campaign
-            // Overwrite the initialized slot, setting it to false
-            vm.store(address(newPortal), bytes32(uint256(0)), bytes32(uint256(0)));
-
-            // Upgrade the portal
-            try newPortal.upgrade(IAnchorStateRegistry(newAnchorRegistry), newEthLockbox) { }
-            catch {
-                assert(false);
-            }
+            // Mint SUPER_TOKEN only to the first 8 actors
+            if (i > 8) continue;
+            uint256 amount = uint256(keccak256(abi.encode(address(_newActor))));
+            // Avoid minting too much on the setup
+            amount = clampLte(amount, type(uint128).max);
+            SUPER_TOKEN.mint(address(_newActor), amount);
         }
     }
 
-    /// @dev Check if a contract is a L1 contract - Useful to don't mix up Ether balances state between L1 and L2
     function _isL1Contract(address _contract) internal view returns (bool) {
         return _ghost_isL1Contract[_contract];
     }
 
-    /// @dev Check if a contract is a L2 contract - Useful to don't mix up Ether balances state between L1 and L2
     function _isL2Contract(address _contract) internal view returns (bool) {
         return _ghost_isL2Contract[_contract];
     }

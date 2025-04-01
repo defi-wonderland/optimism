@@ -7,6 +7,8 @@ import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { Types } from "src/libraries/Types.sol";
 
+/// @notice Target of a withdrawal transaction that tries to bypass safety checks on the system
+///         and tries to perform malicious or unexpected actions.
 contract WeirdTarget {
     IOptimismPortal2 public immutable PORTAL;
     IETHLockbox public immutable ETH_LOCKBOX;

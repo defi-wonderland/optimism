@@ -1,30 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {
-    Setup,
-    Preinstalls,
-    Constants,
-    Predeploys,
-    IDisputeGameFactory,
-    ISystemConfig,
-    ISuperchainConfig,
-    GameType
-} from "../Setup.sol";
+import { Setup, Preinstalls } from "../Setup.sol";
 import { Actors } from "./Actors.sol";
-import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { Permit2Mock as Permit2 } from "../mocks/Permit2Mock.sol";
 import { Utils } from "../utils/Utils.sol";
 import { vm } from "../utils/VM.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
-import { OptimismPortal2 as OptimismPortal } from "src/L1/OptimismPortal2.sol";
-import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
-import { Proxy } from "src/universal/Proxy.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
 contract Handler is Setup {
     struct Message {
@@ -414,10 +402,14 @@ contract Handler is Setup {
         if (_to == address(SUPER_WETH)) _ghost_superWethEtherSent += _amount;
     }
 
+    /// @notice Initializes a new chain and adds it to the current `ETHLockbox` cluster.
     function handler_addFreshChain() public initialize {
+        // If all the chains were already added, skip execution
         if (_ghost_lastAddedChain == _GHOST_NUMBER_OF_CHAINS) return;
+
+        // Initialize the chain
         bool upgrade = false;
-        _initializeChain(_ghost_lastAddedChain, upgrade);
+        _setupChain(_ghost_lastAddedChain, upgrade);
 
         // Get the chain's contracts
         IOptimismPortal newPortal = _ghost_chains[_ghost_lastAddedChain].portal;
@@ -478,10 +470,13 @@ contract Handler is Setup {
         _ghost_lastAddedChain++;
     }
 
+    /// @notice Upgrades an existing chain and adds it to the current `ETHLockbox` cluster.
     function handler_addExistingChain() public initialize {
+        // If all the chains were already added, skip execution
         if (_ghost_lastAddedChain == _GHOST_NUMBER_OF_CHAINS) return;
+        // Upgrade the chain
         bool upgrade = true;
-        _initializeChain(_ghost_lastAddedChain, upgrade);
+        _setupChain(_ghost_lastAddedChain, upgrade);
 
         // Get the chain's contracts
         IOptimismPortal newPortal = _ghost_chains[_ghost_lastAddedChain].portal;
@@ -547,5 +542,40 @@ contract Handler is Setup {
 
         // Store the ghost variable
         _ghost_lastAddedChain++;
+    }
+
+    /// @notice Either initializes or upgrades a chain.
+    function _setupChain(uint256 _chainIndex, bool _upgrade) internal {
+        IOptimismPortal newPortal = _ghost_chains[_chainIndex].portal;
+        IETHLockbox newEthLockbox = _ghost_chains[_chainIndex].ethLockbox;
+        address newAnchorRegistry = _ghost_chains[_chainIndex].anchorRegistry;
+
+        // Initialize the portal
+        try newPortal.initialize(
+            SYSTEM_CONFIG, SUPERCHAIN_CONFIG, IAnchorStateRegistry(newAnchorRegistry), newEthLockbox
+        ) { } catch {
+            assert(false);
+        }
+
+        // Initialize the ETHLockbox
+        IOptimismPortal[] memory portals = new IOptimismPortal[](1);
+        portals[0] = newPortal;
+        try newEthLockbox.initialize(SUPERCHAIN_CONFIG, portals) { }
+        catch {
+            assert(false);
+        }
+
+        if (_upgrade) {
+            /// NOTE: Not exactly mimicking the real behavior, since for this case the portal will be on the previous
+            ///       version, but it is good enough for the purpose of this testing campaign
+            // Overwrite the initialized slot, setting it to false
+            vm.store(address(newPortal), bytes32(uint256(0)), bytes32(uint256(0)));
+
+            // Upgrade the portal
+            try newPortal.upgrade(IAnchorStateRegistry(newAnchorRegistry), newEthLockbox) { }
+            catch {
+                assert(false);
+            }
+        }
     }
 }

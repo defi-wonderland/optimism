@@ -15,7 +15,7 @@ This campaign involves deploying the following contracts:
 **L1 Contracts**
 
 - SuperchainConfig
-- SharedLockbox
+- ETHLockbox
 - SystemConfig
 - OptimismPortal
 
@@ -33,18 +33,21 @@ This campaign involves deploying the following contracts:
 **Additional Infrastructure Contracts**
 
 - ProxyAdmin
+- ProxyAdmin Owner
 - Actors
 - Deployer_8_15\*
 - Deployer_8_25\*
+- WeirdTarget \*\*
 
 \*The deployers are used to deploy contracts having dependencies with different compiler versions -- 0.8.15 and 0.8.25.
 In this way, both contracts versions are compatible with each other.
+\*\*The `WeirdTarget` is a target of a withdrawal transaction that tries to bypass safety checks on the system and tries to perform malicious or unexpected actions. It is used on the unguided test inside the `UnguidedCalls` contract.
 
 ---
 
 ### Overview
 
-We deployed contracts within the constructor but initialized them using an `initialize()` modifier present in every test and handler. This approach was necessary because interacting with contracts directly in the constructor caused Medusa to crash.
+We deployed contracts within the constructor but initialized them using an `initialize()` modifier present in every test and handler. This approach was necessary because interacting with contracts directly in the constructor caused Medusa to crash. The same is true for the contracts deployed per chain that are then being used on the `handler_addFreshChain` and `handler_addExistingChain` handlers.
 
 In the constructor, we managed the deployment of both proxy and non-proxy contracts. For proxies, we deployed `src/universal/Proxy.sol`, setting `ProxyAdmin` as the owner and the target contract as the implementation. To avoid using the `prank` cheatcode—which can lead to issues in Medusa—we deployed `ProxyAdmin` as another actor.
 
@@ -54,59 +57,8 @@ The `initialize()` modifier handled contract initialization and performed a `_se
 
 ---
 
-### Migration Process
-
-For the `SharedLockbox` properties, we managed two distinct states:
-
-- Before enabling the Interop feature on L1
-- After enabling the Interop feature on L1
-
-We provided a `handler_migrateAndAddL1Dependency()` function, allowing the fuzzer to migrate the system across different states. This function migrated `SuperchainConfig` to `SuperchainConfigInterop`, `OptimismPortal` to `OptimismPortalInterop`, and called `addDependency()` to complete the migration process, including assertions to confirm success.
-
-```mermaid
-sequenceDiagram
-    participant Handler
-    participant ProxyAdmin
-    participant SuperchainConfigProxy
-    participant OptimismPortalProxy
-    participant DEPLOYER_8_15
-
-    %% Update SuperchainConfig to StorageSetter and reset `initialize` flag
-    Handler->>+ProxyAdmin: upgrade(SuperchainConfigProxy, new StorageSetter())
-    ProxyAdmin->>SuperchainConfigProxy: upgradeTo(StorageSetter)
-    Handler->>SuperchainConfigProxy: reset `initialize` flag
-
-    %% upgrade SuperchainConfigProxy to use SuperchainConfigInterop as implementation
-    Handler->>DEPLOYER_8_15: deploySuperchainConfigInterop()
-    DEPLOYER_8_15-->>Handler: superchainConfigInteropImplementation
-    Handler->>+ProxyAdmin: upgrade(SuperchainConfigProxy, superchainConfigInteropImplementation)
-    ProxyAdmin->>SuperchainConfigProxy: upgradeTo(superchainConfigInteropImplementation)
-
-    %% Initialize SuperchainConfigInterop
-    Handler->>SuperchainConfigProxy: initialize()
-
-
-    %% Update OptimismPortal to StorageSetter and reset `initialize` flag
-    Handler->>+ProxyAdmin: upgrade(OptimismPortalProxy, new StorageSetter())
-    ProxyAdmin->>OptimismPortalProxy: upgradeTo(StorageSetter)
-    Handler->>OptimismPortalProxy: reset `initialize` flag
-
-    %% upgrade OptimismPortalProxy to use OptimismPortalInterop as implementaiton
-    Handler->>DEPLOYER_8_15: deployOptimismPortalInterop()
-    DEPLOYER_8_15-->>Handler: optimismPortalInteropImplementation
-    Handler->>+ProxyAdmin: upgradeAndCall(OptimismPortalProxy, optimismPortalInteropImplementation, initializeCall)
-    ProxyAdmin->>OptimismPortalProxy: upgradeToAndCall(optimismPortalInteropImplementation, initializeCall)
-
-    Handler->>Handler: Set _ghost_isMigrated = true
-```
-
-Since the sequencer was outside the scope of this campaign, we didn't focus on sharing a single state between L1 and L2. This allowed us to utilize a broader range of fuzzing values, helping identify complex edge cases.
-
-We excluded function signatures that were broken in the `ToB/properties` dependency used to ensure ERC20 compliance. All breaking tests were reported.
-
----
-
 **Additional Notes**
 
-- To avoid using the `prank` cheatcode when sending some value on the next call, we deployed an actor to proxy necessary calls from specific addresses.
+- `prank` usage fails when sending value on the next call - that's why we had to maintain the actors system for those cases.
 - Although portal mocks don't appear covered in the coverage report, we manually verified their coverage.
+- A refactor on the organization of the tests was attempted, but it unexpectedly failed with `[vm error ('stack underflow (0 <=> 1)')]` error, for which the unique solution was to keep the storage layout of the contract as is to avoid the Medusa crash.
