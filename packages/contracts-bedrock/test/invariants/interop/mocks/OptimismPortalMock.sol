@@ -13,9 +13,8 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
-import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
-import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
+import { GameType } from "src/dispute/lib/Types.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";

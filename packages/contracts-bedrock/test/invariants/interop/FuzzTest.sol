@@ -9,9 +9,7 @@ import { Actors } from "./helpers/Actors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { vm } from "./utils/VM.sol";
 import { IOptimismPortalMock } from "./interfaces/IOptimismPortalMock.sol";
-import { WeirdTarget } from "./mocks/WeirdTarget.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
-import { ISuperchainWETH } from "interfaces/L2/ISuperchainWETH.sol";
 
 contract FuzzTest is Handler {
     uint64 internal constant _WITHDRAWAL_GAS_OVERHEAD = 285_000;
