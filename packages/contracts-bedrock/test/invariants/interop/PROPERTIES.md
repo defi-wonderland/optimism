@@ -4,8 +4,9 @@ This campaign aims to develop a testing suite that fuzzes over the interop invar
 
 ## Milestones
 
-- SuperchainERC20: Mainly composed of invariants related to `SuperchainERC20` and `SuperchainWETH` contracts, as well as the `SuperchainTokenBridge` and other contracts that interact with them.
-- ETHLockbox: Mainly composed of invariants related to the `ETHLockbox` and `OptimismPortal` contracts, as well as other contracts that interact with them.
+- **SuperchainERC20:** Mainly composed of invariants related to `SuperchainERC20` and `SuperchainWETH` contracts, as well as the `SuperchainTokenBridge` and other contracts that interact with them.
+- **ETHLockbox:** Mainly composed of invariants related to the `ETHLockbox` and `OptimismPortal` contracts, as well as other contracts that interact with them.
+- **DoS Interop:** Fixes on the offchain and on chain interaction to make the system DoS-proof, being txs access list the key component of the solution. Note that any invariant of this feature is in the scope of the testing campaign, but is covered with unit tests.
 
 # Properties
 
@@ -24,23 +25,24 @@ This campaign aims to develop a testing suite that fuzzes over the interop invar
 | 4   | SuperchainERC20 | Relaying `SuperchainWETH` sent from origin through `SuperchainTokenBridge` on destination decreases the `ETHLiquidity` Ether balance, and increases the target's `SuperchainWETH` balance on destination as well as `SuperchainWETH` total supply and Ether balance by exactly the input amount. | [X]    |
 | 5   | SuperchainERC20 | The `SuperchainERC20` token MUST be compliant with the ERC20 standard                                                                                                                                                                                                                            | [X]    |
 | 6   | SuperchainERC20 | `ETHLiquidity#mint()` MUST never be callable such that balance would decrease below `0`                                                                                                                                                                                                          | [X]    |
-| 7   | SuperchainERC20 | `ETHLiquidity#burn()` MUST never be callable such that balance would increase beyond `type(uint256).max`                                                                                                                                                                                         | [X]    |
-| 8   | SuperchainERC20 | The total sum of `SuperchainWETH` user balances MUST be equal to the total supply.                                                                                                                                                                                                               | [X]    |
-| 9   | SuperchainERC20 | The ERC20 logic of `SuperchainWETH` must be compliant with the ERC20 standard                                                                                                                                                                                                                    | [X]    |
-| 10  | ETHLockbox      | `OptimismPortal`s MUST lock the ETH amount on the `ETHLockbox` when on a deposit transaction with value greater than zero, without holding any ETH balance from the depositing users                                                                                                             | [X]    |
-| 11  | ETHLockbox      | `OptimismPortal`s MUST unlock the ETH amount being withdrawn from the `ETHLockbox` if it is greater than zero                                                                                                                                                                                    | [X]    |
-| 12  | ETHLockbox      | Once migrated, the total withdrawable ETH amount present on all the dependency set's chains MUST NEVER be more than the amount held by the `ETHLockbox` of the cluster                                                                                                                           | [~]    |
-| 13  | ETHLockbox      | `authorizePortal` MUST only be callable by the `ProxyAdmin` owner, and the input proxy’s owner MUST match it.                                                                                                                                                                                    | []     |
-| 14  | ETHLockbox      | `authorizeLockbox` MUST only be callable by the `ProxyAdmin` owner, and the input proxy’s owner MUST match it.                                                                                                                                                                                   | []     |
-| 15  | ETHLockbox      | `migrateLiquidity` MUST only be callable by the `ProxyAdmin` owner, and the input proxy’s owner MUST match it.                                                                                                                                                                                   | []     |
+| 7   | SuperchainERC20 | The total sum of `SuperchainWETH` user balances MUST be equal to the total supply.                                                                                                                                                                                                               | [X]    |
+| 8   | SuperchainERC20 | The ERC20 logic of `SuperchainWETH` must be compliant with the ERC20 standard                                                                                                                                                                                                                    | [X]    |
+| 9   | ETHLockbox      | `OptimismPortal`s MUST lock the ETH amount on the `ETHLockbox` when on a deposit transaction with value greater than zero, without holding any ETH balance from the depositing users                                                                                                             | [X]    |
+| 10  | ETHLockbox      | `OptimismPortal`s MUST unlock the ETH amount being withdrawn from the `ETHLockbox` if it is greater than zero                                                                                                                                                                                    | [X]    |
+| 11  | ETHLockbox      | `OptimismPortal`s `unlockETH` MUST NOT be called on a finalized withdrawal transaction context                                                                                                                                                                                                   | [X]    |
+| 12  | ETHLockbox      | The total withdrawable ETH amount present on all the dependency set's chains MUST NEVER be more than the amount held by the `ETHLockbox` of the cluster                                                                                                                                          | [~]    |
 
 ---
 
 **Notes:**
 
-- **Note on Property 12:** Property marked as partially tested due to testing environment constraints. Full verification would require L1-L2 integration testing including sequencer and proof verification components, which exceeds the scope of this Interop-contracts focused campaign. The testing framework presents a fundamental limitation in its ability to switch between different chain environments during test execution. Additionally, L2 predeploys sharing the same address prevents accurate multi-L2 simulation. Attempting to implement this test on the campaign would require introducing numerous trust assumptions, mocks, and clamped values, resulting in poor coverage quality and unreliable test scenarios. Property is considered partially tested as all other ETHLockbox invariants are thoroughly covered in the test suite, with only this cross-chain balance verification remaining limited.
+- **Property 12:** Property marked as partially tested due to testing environment constraints. Full verification would require L1-L2 integration testing including sequencer and proof verification components, which exceeds the scope of this Interop-contracts focused campaign. The testing framework presents a fundamental limitation in its ability to switch between different chain environments during test execution. Additionally, L2 predeploys sharing the same address prevents accurate multi-L2 simulation. Attempting to implement this test on the campaign would require introducing numerous trust assumptions, mocks, and clamped values, resulting in poor coverage quality and unreliable test scenarios. Property is considered partially tested as all other ETHLockbox invariants are thoroughly covered in the test suite, with only this cross-chain balance verification remaining limited.
   Given the complexity of setting up the testing environment to cover this property, we recommend creating a dedicated monitoring script in a production environment to check the invariant is never broken.
-- The previously `7` property '`ETHLiquidity#burn()` MUST never be callable such that balance would increase beyond `type(uint256)`' was removed since is not true unless fixed on the client, and if fixed, it won't be able to be tested on the campaign.
+- The previously `7` property:
+
+  **"`ETHLiquidity#burn()` MUST never be callable such that balance would increase beyond `type(uint256)`"**
+
+  Was removed since is not true unless handled on the client, and if that happens, it won't be able to be tested on the campaign.
 
 <br><br>
 
@@ -71,8 +73,15 @@ The following properties are considered to be easily testable by **Unit tests**,
 | 34  | The ETHLiquidity#mint call MUST always revert when the caller is not the SuperchainWETH contract.                           | YES                                |
 | 35  | The ETHLiquidity#burn call MUST always revert when the caller is not the SuperchainWETH contract.                           | YES                                |
 | 36  | Once migrated, the OptimismPortal MUST NOT allow withdrawals to target the ETHLockbox or its own address.                   | YES                                |
+| 37  | `authorizePortal` MUST only be callable by the `ProxyAdmin` owner, and the input proxy’s owner MUST match it.               | YES                                |
+| 38  | `authorizeLockbox` MUST only be callable by the `ProxyAdmin` owner, and the input proxy’s owner MUST match it.              | YES                                |
+| 39  | `migrateLiquidity` MUST only be callable by the `ProxyAdmin` owner, and the input proxy’s owner MUST match it.              | YES                                |
+| 40  | Every successful message execution that involves SuperchainERC20 MUST emit an ExecutingMessage event.                       | YES                                |
+| 41  | Every successful message execution that involves SuperchainWETH MUST emit an ExecutingMessage event.                        | YES                                |
 
 ---
+
+**Note on property 27:** Currently, deposit txs don’t have any access list so they will fail. But this functionalitiy is not on-chain enforced, so can’t be tested.
 
 <br><br>
 

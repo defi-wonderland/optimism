@@ -280,14 +280,14 @@ contract FuzzTest is Handler {
         }
     }
 
-    /// @custom:property-id 8
+    /// @custom:property-id 7
     /// @custom:property The total sum of SuperchainWETH user balances MUST be equal or less to the total supply
     function test_superWETHSupplyEqualsBalances() public initialize {
         // The user balances sum should be equal to the total supply less the Ether relayed or sent to SuperWETH
         assert(_ghost_superWethBalancesSum == SUPER_WETH.totalSupply() - _ghost_superWethEtherSent);
     }
 
-    /// @custom:property-id 10
+    /// @custom:property-id 9
     /// @custom:property OptimismPortals MUST lock the ETH amount on the ETHLockbox when on a
     /// deposit transaction with value greater than zero, without holding any ETH balance from
     /// the depositing users.
@@ -325,7 +325,7 @@ contract FuzzTest is Handler {
         assert(address(ETH_LOCKBOX).balance == balanceBefore + _value);
     }
 
-    /// @custom:property-id 11
+    /// @custom:property-id 10
     /// @custom:property OptimismPortals MUST unlock the ETH amount being withdrawn from the
     /// ETHLockbox if it is greater than zero.
     function test_optimismPortalWithdrawals(
@@ -379,7 +379,7 @@ contract FuzzTest is Handler {
         }
     }
 
-    /// @custom:property-id 12
+    /// @custom:property-id 11
     /// @custom:property `OptimismPortal`s `unlockETH` MUST NOT be called on a finalized withdrawal transaction
     ///                   context
     function test_noETHUnlockedDuringWithdrawal(Types.WithdrawalTransaction memory _tx) public initialize {
@@ -422,46 +422,5 @@ contract FuzzTest is Handler {
         // decode
         (bool safeCall) = abi.decode(returnData, (bool));
         assert(!safeCall);
-    }
-
-    /// @notice Unguided test that doesn't match any specific property, but checks that withdrawal finalization
-    ///         checks are correct by making a malicious call on a target contract.
-    function test_finalizeWithdrawalReverts_unguided(
-        address _caller,
-        Types.WithdrawalTransaction memory _tx,
-        uint256 _callIndex
-    )
-        public
-        initialize
-    {
-        // Get the call to be made.
-        bytes4 call = WEIRD_TARGET.calls(_callIndex % _ghost_weirdTargetCallsLength);
-
-        _tx.value = clampLte(_tx.value, address(ETH_LOCKBOX).balance);
-        _tx.target = address(WEIRD_TARGET);
-        _tx.data = abi.encodeWithSelector(call);
-        // Gas is limit is out of scope
-        _tx.gasLimit = type(uint256).max;
-
-        // Setting not used parameters to empty values
-        bytes[] memory withdrawalProof = new bytes[](0);
-        Types.OutputRootProof memory outputRootProof;
-        uint256 disputeGameIndex = 0;
-
-        // Prove the withdrawal transaction.
-        vm.prankHere(address(_caller));
-        try IOptimismPortalMock(address(PORTAL)).proveWithdrawalTransaction(
-            _tx, disputeGameIndex, outputRootProof, withdrawalProof
-        ) { } catch {
-            // Make sure the call doesn't revert.
-            assert(false);
-        }
-
-        // Finalize the withdrawal transaction.
-        vm.warp(block.timestamp + PROOF_MATURITY_DELAY_SECONDS + 1);
-        try IOptimismPortalMock(address(PORTAL)).finalizeWithdrawalTransaction(_tx) returns (bool success) {
-            // Ensure the WeirdTarget call reverts.
-            assert(!success);
-        } catch { }
     }
 }

@@ -21,6 +21,7 @@
     "coverageFormats": ["html", "lcov"],
     "targetContracts": [
       "FuzzTest",
+      "UnguidedCalls",
       "SuperchainERC20ForToBProperties",
       "SuperchainWETHForToBProperties"
     ],

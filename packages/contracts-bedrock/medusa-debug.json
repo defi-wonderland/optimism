@@ -8,7 +8,7 @@
     "timeout": 15,
     "coverageEnabled": false,
     "coverageFormats": [],
-    "targetContracts": ["FuzzTest"],
+    "targetContracts": ["FuzzTest", "UnguidedCalls"],
     "predeployedContracts": {
       "Deployer815": "0x4200000000000000000000000000000000000815",
       "Deployer825": "0x4200000000000000000000000000000000000825"
