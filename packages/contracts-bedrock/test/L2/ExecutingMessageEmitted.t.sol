@@ -7,14 +7,10 @@ import { VmSafe } from "forge-std/Vm.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Hashing } from "src/libraries/Hashing.sol";
 
 // Target contract
 import { IL2ToL2CrossDomainMessenger, Identifier } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
-import { ICrossL2Inbox, Identifier as CrossL2InboxIdentifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { IERC7802, IERC165 } from "interfaces/L2/IERC7802.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IOptimismSuperchainERC20 } from "interfaces/L2/IOptimismSuperchainERC20.sol";
+import { Identifier as CrossL2InboxIdentifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
 
 /// @notice Integration test that checks that the `ExecutingMessage` event is emitted on crosschain mints. It's tested
@@ -109,7 +105,8 @@ contract ExecutingMessageEmittedTest is CommonTest {
 
         // Prepare the access list to be sent with the relay call
         bytes32 slot = crossL2Inbox.calculateChecksum(
-            CrossL2InboxIdentifier(_id.origin, _id.blockNumber, _id.logIndex, _id.timestamp, _id.chainId), messageHash
+            CrossL2InboxIdentifier(_id.origin, _id.blockNumber, _id.logIndex, _id.timestamp, _id.chainId),
+            keccak256(sentMessage)
         );
         bytes32[] memory slots = new bytes32[](1);
         slots[0] = slot;
