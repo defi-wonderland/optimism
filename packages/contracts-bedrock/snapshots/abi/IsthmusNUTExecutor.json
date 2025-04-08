@@ -1,0 +1,15 @@
+[
+  {
+    "inputs": [],
+    "name": "execute",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "returnData_",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

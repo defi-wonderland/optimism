@@ -8,6 +8,7 @@ import { Vm, VmSafe } from "forge-std/Vm.sol";
 // Scripts
 import { Deploy } from "scripts/deploy/Deploy.s.sol";
 import { ForkLive } from "test/setup/ForkLive.s.sol";
+import { L2ForkLive } from "test/setup/L2ForkLive.s.sol";
 import { Fork, LATEST_FORK } from "scripts/libraries/Config.sol";
 import { L2Genesis, L1Dependencies } from "scripts/L2Genesis.s.sol";
 import { OutputMode, Fork, ForkUtils } from "scripts/libraries/Config.sol";
@@ -77,6 +78,9 @@ contract Setup {
     ForkLive internal constant forkLive =
         ForkLive(address(uint160(uint256(keccak256(abi.encode("optimism.forklive"))))));
 
+    L2ForkLive internal constant l2ForkLive =
+        L2ForkLive(address(uint160(uint256(keccak256(abi.encode("optimism.l2forklive"))))));
+
     /// @notice The address of the Artifacts contract. Set into state by Deployer.setUp() with `etch` to avoid
     ///         mutating any nonces. MUST not have constructor logic.
     Artifacts public constant artifacts =
@@ -140,6 +144,14 @@ contract Setup {
         return vm.envOr("FORK_TEST", false);
     }
 
+    function isL1ForkTest() public view returns (bool) {
+        return block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet;
+    }
+
+    function isL2ForkTest() public view returns (bool) {
+        return block.chainid == Chains.OPSepolia || block.chainid == Chains.OPMainnet;
+    }
+
     /// @notice Indicates whether a test is running against a forked network that is OP.
     function isOpFork() public view returns (bool) {
         string memory opChain = vm.envOr("FORK_OP_CHAIN", string("op"));
@@ -159,23 +171,30 @@ contract Setup {
         if (isForkTest()) {
             vm.createSelectFork(vm.envString("FORK_RPC_URL"), vm.envUint("FORK_BLOCK_NUMBER"));
             console.log("Setup: fork selected!");
-            require(
-                block.chainid == Chains.Sepolia || block.chainid == Chains.Mainnet,
-                "Setup: ETH_RPC_URL must be set to a production (Sepolia or Mainnet) RPC URL"
-            );
         }
 
         // Etch the contracts used to setup the test environment
         DeployUtils.etchLabelAndAllowCheatcodes({ _etchTo: address(deploy), _cname: "Deploy" });
         DeployUtils.etchLabelAndAllowCheatcodes({ _etchTo: address(forkLive), _cname: "ForkLive" });
+        DeployUtils.etchLabelAndAllowCheatcodes({ _etchTo: address(l2ForkLive), _cname: "L2ForkLive" });
 
-        deploy.setUp();
-        forkLive.setUp();
         console.log("Setup: L1 setup done!");
 
         if (isForkTest()) {
+            deploy.setUp();
+        }
+
+        if (isL1ForkTest()) {
+            forkLive.setUp();
+
             // Return early if this is a fork test as we don't need to setup L2
             console.log("Setup: fork test detected, skipping L2 genesis generation");
+            return;
+        }
+
+        if (isL2ForkTest()) {
+            console.log("Setup: L2 fork test detected, running L2ForkLive");
+            l2ForkLive.run();
             return;
         }
 
@@ -237,7 +256,7 @@ contract Setup {
             hex"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3"
         );
 
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             forkLive.run();
         } else {
             deploy.run();
@@ -249,7 +268,7 @@ contract Setup {
 
         // Only skip ETHLockbox assignment if we're in a fork test with non-upgraded fork
         // TODO(#14691): Remove this check once Upgrade 15 is deployed on Mainnet.
-        if (!isForkTest() || deploy.cfg().useUpgradedFork()) {
+        if (!isL1ForkTest() || deploy.cfg().useUpgradedFork()) {
             ethLockbox = IETHLockbox(artifacts.mustGetAddress("ETHLockboxProxy"));
         }
 
@@ -280,21 +299,23 @@ contract Setup {
     /// @dev Sets up the L2 contracts. Depends on `L1()` being called first.
     function L2() public {
         // Fork tests focus on L1 contracts so there is no need to do all the work of setting up L2.
-        if (isForkTest()) {
+        if (isL1ForkTest()) {
             console.log("Setup: fork test detected, skipping L2 setup");
             return;
         }
 
-        console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
-        l2Genesis.runWithOptions(
-            OutputMode.NONE,
-            l2Fork,
-            L1Dependencies({
-                l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
-                l1StandardBridgeProxy: payable(address(l1StandardBridge)),
-                l1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
-            })
-        );
+        if (!isL2ForkTest()) {
+            console.log("Setup: creating L2 genesis with fork %s", l2Fork.toString());
+            l2Genesis.runWithOptions(
+                OutputMode.NONE,
+                l2Fork,
+                L1Dependencies({
+                    l1CrossDomainMessengerProxy: payable(address(l1CrossDomainMessenger)),
+                    l1StandardBridgeProxy: payable(address(l1StandardBridge)),
+                    l1ERC721BridgeProxy: payable(address(l1ERC721Bridge))
+                })
+            );
+        }
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
