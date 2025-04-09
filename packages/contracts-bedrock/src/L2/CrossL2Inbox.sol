@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Interfaces
-import { ISemver } from "interfaces/universal/ISemver.sol";
+import {ISemver} from "interfaces/universal/ISemver.sol";
 
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
 /// @custom:field origin The origin address of the message.
@@ -50,8 +50,8 @@ contract CrossL2Inbox is ISemver {
     error LogIndexTooHigh();
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0
-    string public constant version = "1.0.0";
+    /// @custom:semver 1.0.1
+    string public constant version = "1.0.1";
 
     /// @notice The mask for the most significant bits of the checksum.
     /// @dev    Used to set the most significant byte to zero.

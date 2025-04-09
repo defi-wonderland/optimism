@@ -61,8 +61,8 @@ contract MIPS2 is ISemver {
     }
 
     /// @notice The semantic version of the MIPS2 contract.
-    /// @custom:semver 1.0.0
-    string public constant version = "1.0.0";
+    /// @custom:semver 1.0.1
+    string public constant version = "1.0.1";
 
     /// @notice The preimage oracle contract.
     IPreimageOracle internal immutable ORACLE;
@@ -555,7 +555,7 @@ contract MIPS2 is ISemver {
                 // ignored
             } else if (syscall_no == sys.SYS_MINCORE) {
                 // ignored
-            } else if (syscall_no == sys.SYS_TGKILL) {
+            } else if (syscall_no == sys.SYS_TGILL) {
                 // ignored
             } else if (syscall_no == sys.SYS_SETITIMER) {
                 // ignored
