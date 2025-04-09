@@ -254,35 +254,35 @@ contract SemgrepTest__sol_safety_expectrevert_no_args {
 
 contract SemgrepTest__sol_safety_natspec_semver_match {
     // ok: sol-safety-natspec-semver-match
-    /// @custom:semver 2.8.1
-    string public constant version = "2.8.1";
+    /// @custom:semver 2.8.1-beta.4
+    string public constant version = "2.8.1-beta.4";
 
     // ok: sol-safety-natspec-semver-match
-    /// @custom:semver 2.8.1
+    /// @custom:semver 2.8.1-beta.3
     function version() public pure virtual returns (string memory) {
-        return "2.8.1";
+        return "2.8.1-beta.3";
     }
 
     // ok: sol-safety-natspec-semver-match
-    /// @custom:semver +interop
+    /// @custom:semver +interop-beta.1
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop");
+        return string.concat(super.version(), "+interop-beta.1");
     }
 
     // ruleid: sol-safety-natspec-semver-match
-    /// @custom:semver 2.8.1
-    string public constant version = "2.8.1";
+    /// @custom:semver 2.8.1-beta.5
+    string public constant version = "2.8.1-beta.4";
 
     // ruleid: sol-safety-natspec-semver-match
-    /// @custom:semver 2.8.1
+    /// @custom:semver 2.8.1-beta.4
     function version() public pure virtual returns (string memory) {
-        return "2.8.1";
+        return "2.8.1-beta.3";
     }
 
     // ruleid: sol-safety-natspec-semver-match
-    /// @custom:semver +interop
+    /// @custom:semver +interop-beta.2
     function version() public pure override returns (string memory) {
-        return string.concat(super.version(), "+interop");
+        return string.concat(super.version(), "+interop-beta.1");
     }
 }
 
