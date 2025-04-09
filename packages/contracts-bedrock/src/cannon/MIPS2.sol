@@ -555,7 +555,7 @@ contract MIPS2 is ISemver {
                 // ignored
             } else if (syscall_no == sys.SYS_MINCORE) {
                 // ignored
-            } else if (syscall_no == sys.SYS_TGILL) {
+            } else if (syscall_no == sys.SYS_TGKILL) {
                 // ignored
             } else if (syscall_no == sys.SYS_SETITIMER) {
                 // ignored

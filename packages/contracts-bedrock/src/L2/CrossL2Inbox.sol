@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Interfaces
-import {ISemver} from "interfaces/universal/ISemver.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @notice The struct for a pointer to a message payload in a remote (or local) chain.
 /// @custom:field origin The origin address of the message.
