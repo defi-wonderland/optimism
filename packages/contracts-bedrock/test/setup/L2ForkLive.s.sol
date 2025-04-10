@@ -8,26 +8,41 @@ import { IsthmusNUTExecutor_2 } from "src/L2/IsthmusNutExecutor_2.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 contract L2ForkLive is Script {
-    struct NUTExecutorInfo {
-        bytes byteCode;
-        address sender;
-    }
-
     function run() public {
         // TODO: Add more executors for each network upgrade
         // TODO: Heuristic to determine what upgrades to apply based on the block number (?)
-        NUTExecutorInfo[] memory nutExecutors = new NUTExecutorInfo[](2);
-        nutExecutors[0] = NUTExecutorInfo({ byteCode: type(IsthmusNUTExecutor_1).runtimeCode, sender: address(0) });
-        nutExecutors[1] =
-            NUTExecutorInfo({ byteCode: type(IsthmusNUTExecutor_2).runtimeCode, sender: Constants.DEPOSITOR_ACCOUNT });
+        NUTExecutor[] memory nutExecutors = new NUTExecutor[](2);
+        nutExecutors[0] = new IsthmusNUTExecutor_1();
+        nutExecutors[1] = new IsthmusNUTExecutor_2();
 
-        for (uint256 i = 0; i < nutExecutors.length; i++) {
-            vm.etch(address(nutExecutors[i].sender), nutExecutors[i].byteCode);
+        // It boils down to this:
+        // - We need to make `address(0)`, Proxy Admin or Depositor Account perform a delegatecall in the Go scripts
+        // - In the case of OPCM it works because multisig is able to make a delegatecall to the OPCM
+        bytes memory code = vm.getDeployedCode("L2ForkLive.s.sol:DummyExecutor");
+        address prank = address(0);
+        vm.etch(prank, code);
+        vm.store(prank, bytes32(0), bytes32(uint256(uint160(address(nutExecutors[0])))));
+        vm.label(prank, "DummyExecutor:ProxyOwner");
+        DummyExecutor(prank).execute();
+        // clear the code
+        vm.etch(prank, "");
 
-            NUTExecutor(address(nutExecutors[i].sender)).execute();
+        prank = Constants.DEPOSITOR_ACCOUNT;
+        vm.etch(prank, code);
+        vm.store(prank, bytes32(0), bytes32(uint256(uint160(address(nutExecutors[1])))));
+        vm.label(prank, "DummyExecutor:Depositor");
+        DummyExecutor(prank).execute();
+        // clear the code
+        vm.etch(prank, "");
+    }
+}
 
-            // Reset the bytecode to empty
-            vm.etch(address(nutExecutors[i].sender), "");
-        }
+contract DummyExecutor {
+    address internal _nutExecutor;
+
+    function execute() external returns (bool, bytes memory) {
+        bytes memory data = abi.encodeCall(DummyExecutor.execute, ());
+        (bool success, bytes memory result) = _nutExecutor.delegatecall(data);
+        return (success, result);
     }
 }
