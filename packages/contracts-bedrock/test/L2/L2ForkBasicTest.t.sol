@@ -27,6 +27,16 @@ contract L2ForkBasicTest is CommonTest {
             keccak256(abi.encodePacked(ContractVersion(Predeploys.L1_BLOCK_ATTRIBUTES).version())),
             keccak256(abi.encodePacked("1.6.0"))
         );
+
+        assertEq(
+            keccak256(abi.encodePacked(ContractVersion(Predeploys.OPERATOR_FEE_VAULT).version())),
+            keccak256(abi.encodePacked("1.0.0"))
+        );
+
+        assertEq(
+            keccak256(abi.encodePacked(ContractVersion(Predeploys.GAS_PRICE_ORACLE).version())),
+            keccak256(abi.encodePacked("1.4.0"))
+        );
     }
 
     // function test_isthmus_nut_executor_2() external {
