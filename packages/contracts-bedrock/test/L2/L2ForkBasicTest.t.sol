@@ -14,7 +14,13 @@ interface ContractVersion {
 contract L2ForkBasicTest is CommonTest {
     bytes32 internal constant OWNER_KEY = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
-    function test_isthmus_nut_executor_1() external {
+    modifier skipUpgrade() {
+        // Skip the test for blocks after the fork
+        vm.skip(block.number > 134354841);
+        _;
+    }
+
+    function test_isthmus_nut_executor_1() external skipUpgrade {
         IsthmusNUTExecutor_1 executor = new IsthmusNUTExecutor_1();
 
         vm.store(Predeploys.L1_BLOCK_ATTRIBUTES, OWNER_KEY, bytes32(uint256(uint160(address(executor)))));
@@ -39,9 +45,9 @@ contract L2ForkBasicTest is CommonTest {
         );
     }
 
-    // function test_isthmus_nut_executor_2() external {
-    //     IsthmusNUTExecutor_2 executor = new IsthmusNUTExecutor_2();
+    function test_isthmus_nut_executor_2() external skipUpgrade {
+        IsthmusNUTExecutor_2 executor = new IsthmusNUTExecutor_2();
 
-    //     executor.execute();
-    // }
+        executor.execute();
+    }
 }
