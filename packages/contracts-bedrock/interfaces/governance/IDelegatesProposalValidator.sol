@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {VotingModule} from "@optimism-governor/modules/VotingModule.sol";
-import {IOptimismGovernor} from "@optimism-governor/interfaces/IOptimismGovernor.sol";
+import {VotingModule} from "src/governance/VotingModule.sol";
+import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 
 interface IDelegatesProposalValidator {
     /*//////////////////////////////////////////////////////////////
@@ -11,7 +11,6 @@ interface IDelegatesProposalValidator {
 
     function governor() external view returns (IOptimismGovernor);
     function minimumVotingPower() external view returns (uint256);
-    function proposalThreshold() external view returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
                                  FUNCTIONS
@@ -21,7 +20,8 @@ interface IDelegatesProposalValidator {
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        string memory description
+        string memory description,
+        uint8 proposalType
     ) external returns (uint256 proposalId);
 
     function proposeWithModule(

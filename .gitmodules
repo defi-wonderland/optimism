@@ -32,6 +32,3 @@
 [submodule "packages/contracts-bedrock/lib/superchain-registry"]
 	path = packages/contracts-bedrock/lib/superchain-registry
 	url = https://github.com/ethereum-optimism/superchain-registry
-[submodule "packages/contracts-bedrock/lib/optimism-governor"]
-	path = packages/contracts-bedrock/lib/optimism-governor
-	url = https://github.com/voteagora/optimism-governor
