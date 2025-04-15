@@ -20,6 +20,9 @@ contract SuperchainETHBridge is ISemver {
     /// SuperchainETHBridge.
     error InvalidCrossDomainSender();
 
+    /// @notice Thrown when the ETH amount to relay exceeds the rate limit set per block.
+    error RateLimitExceeded();
+
     /// @notice Emitted when ETH is sent from one chain to another.
     /// @param from          Address of the sender.
     /// @param to            Address of the recipient.
@@ -38,12 +41,29 @@ contract SuperchainETHBridge is ISemver {
     /// @custom:semver 1.0.1
     string public constant version = "1.0.1";
 
+    // TODO: Make it updatable through a setter?
+    /// @notice The maximum amount of ETH that can be relayed per block.
+    uint256 public immutable RATE_LIMIT;
+
+    /// @notice block number => amount of ETH relayed.
+    mapping(uint256 => uint256) public ethRelayed;
+
+    /// @notice Constructs the SuperchainETHBridge contract.
+    /// @param _rateLimit The maximum amount of ETH that can be relayed per block.
+    constructor(uint256 _rateLimit) {
+        RATE_LIMIT = _rateLimit;
+    }
+
     /// @notice Sends ETH to some target address on another chain.
     /// @param _to       Address to send ETH to.
     /// @param _chainId  Chain ID of the destination chain.
     /// @return msgHash_ Hash of the message sent.
     function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
         if (_to == address(0)) revert ZeroAddress();
+
+        // Make sure the amount to be sent is not greater than the rate limit.
+        // TODO: Limit the amount to be ~90% of the rate limit instead of the total?
+        if (msg.value > RATE_LIMIT) revert RateLimitExceeded();
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
@@ -64,10 +84,17 @@ contract SuperchainETHBridge is ISemver {
     function relayETH(address _from, address _to, uint256 _amount) external {
         if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
 
+        // Make sure the rate limit is not exceeded.
+        uint256 amountRelayed = ethRelayed[block.number];
+        if (amountRelayed + _amount > RATE_LIMIT) revert RateLimitExceeded();
+
         (address crossDomainMessageSender, uint256 source) =
             IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).crossDomainMessageContext();
 
         if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
+
+        // Update the amount of ETH relayed for the current block.
+        ethRelayed[block.number] += _amount;
 
         // NOTE: 'mint' will soon change to 'withdraw'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
