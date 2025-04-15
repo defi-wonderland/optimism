@@ -48,6 +48,10 @@ contract SuperchainETHBridge is ISemver {
     /// @notice block number => amount of ETH relayed.
     mapping(uint256 => uint256) public ethRelayed;
 
+    /// @notice Amount of ETH relayed on the current block.
+    /// @dev Composed of the packed values of the amount of ETH relayed and the block number.
+    uint256 public ethAmountPerBlock;
+
     /// @notice Sends ETH to some target address on another chain.
     /// @param _to       Address to send ETH to.
     /// @param _chainId  Chain ID of the destination chain.
@@ -79,7 +83,7 @@ contract SuperchainETHBridge is ISemver {
         if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
 
         // Make sure the rate limit is not exceeded.
-        uint256 amountRelayed = ethRelayed[block.number];
+        uint128 amountRelayed = uint128(ethAmountPerBlock >> 128);
         if (amountRelayed + _amount > RATE_LIMIT) revert RateLimitExceeded();
 
         (address crossDomainMessageSender, uint256 source) =
@@ -88,7 +92,12 @@ contract SuperchainETHBridge is ISemver {
         if (crossDomainMessageSender != address(this)) revert InvalidCrossDomainSender();
 
         // Update the amount of ETH relayed for the current block.
-        ethRelayed[block.number] += _amount;
+        uint128 blockNumber = uint128(ethAmountPerBlock);
+        if (blockNumber != block.number) {
+            ethAmountPerBlock = (_amount << 128) | block.number;
+        } else {
+            ethAmountPerBlock += _amount;
+        }
 
         // NOTE: 'mint' will soon change to 'withdraw'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
