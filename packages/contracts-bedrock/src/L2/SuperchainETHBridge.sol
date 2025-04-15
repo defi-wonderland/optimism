@@ -41,18 +41,12 @@ contract SuperchainETHBridge is ISemver {
     /// @custom:semver 1.0.1
     string public constant version = "1.0.1";
 
-    // TODO: Make it updatable through a setter?
+    // TODO: Should it be immutable or variable with a setter instead?
     /// @notice The maximum amount of ETH that can be relayed per block.
-    uint256 public immutable RATE_LIMIT;
+    uint256 public constant RATE_LIMIT = 1000 ether; // TODO: Define value
 
     /// @notice block number => amount of ETH relayed.
     mapping(uint256 => uint256) public ethRelayed;
-
-    /// @notice Constructs the SuperchainETHBridge contract.
-    /// @param _rateLimit The maximum amount of ETH that can be relayed per block.
-    constructor(uint256 _rateLimit) {
-        RATE_LIMIT = _rateLimit;
-    }
 
     /// @notice Sends ETH to some target address on another chain.
     /// @param _to       Address to send ETH to.
