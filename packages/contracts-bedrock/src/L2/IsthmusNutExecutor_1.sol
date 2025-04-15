@@ -8,9 +8,12 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { OperatorFeeVault } from "src/L2/OperatorFeeVault.sol";
 import { GasPriceOracle } from "src/L2/GasPriceOracle.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
+import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
+import { console2 } from "forge-std/console2.sol";
 
 contract IsthmusNUTExecutor_1 is NUTExecutor {
     function execute() external override returns (bytes memory returnData_) {
+        console2.log("address(this): ", address(this));
         /**
          * Network Upgrade Transactions
          * L1Block deployment
@@ -35,10 +38,13 @@ contract IsthmusNUTExecutor_1 is NUTExecutor {
         // 4. Update L1Block Proxy ERC-1967 Implementation
         IProxy(payable(Predeploys.L1_BLOCK_ATTRIBUTES)).upgradeTo(l1BlockImpl);
 
+        // 5. Update GasPriceOracle Proxy ERC-1967 Implementation
+        IProxy(payable(Predeploys.GAS_PRICE_ORACLE)).upgradeTo(gasPriceOracleImpl);
+
         // 6. Update Operator Fee vault Proxy ERC-1967 Implementation
         IProxy(payable(Predeploys.OPERATOR_FEE_VAULT)).upgradeTo(operatorFeeVaultImpl);
 
-        // 5. Update GasPriceOracle Proxy ERC-1967 Implementation
-        IProxy(payable(Predeploys.GAS_PRICE_ORACLE)).upgradeTo(gasPriceOracleImpl);
+        // 7. GasPriceOracle Enable Isthmus
+        IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE).setIsthmus();
     }
 }
