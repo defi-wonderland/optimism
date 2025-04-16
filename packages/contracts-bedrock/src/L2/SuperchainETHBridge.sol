@@ -50,7 +50,7 @@ contract SuperchainETHBridge is ISemver {
 
     /// @notice Amount of ETH relayed on the current block.
     /// @dev Composed of the packed values of the amount of ETH relayed and the block number.
-    uint256 public ethAmountPerBlock;
+    uint256 public ethAmountPerBlock = uint128(0) | block.number;
 
     /// @notice Sends ETH to some target address on another chain.
     /// @param _to       Address to send ETH to.
