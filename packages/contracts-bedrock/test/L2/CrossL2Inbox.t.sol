@@ -94,6 +94,69 @@ contract CrossL2InboxTest is CommonTest {
         }
     }
 
+    /// Test that an invalid tx calling `validateMessage` doesn't warm the slot for the next one.
+    /// forge-config: default.isolate = true
+    function test_validateMessage_revertDoesntWarm_reverts(
+        Identifier memory _idOne,
+        Identifier memory _idTwo,
+        bytes32 _messageHashOne,
+        bytes32 _messageHashTwo
+    )
+        external
+    {
+        // Bound values types to ensure they are not too large
+        _idOne.blockNumber = bound(_idOne.blockNumber, 0, type(uint64).max);
+        _idOne.logIndex = bound(_idOne.logIndex, 0, type(uint32).max);
+        _idOne.timestamp = bound(_idOne.timestamp, 0, type(uint64).max);
+        _idTwo.blockNumber = bound(_idTwo.blockNumber, 0, type(uint64).max);
+        _idTwo.logIndex = bound(_idTwo.logIndex, 0, type(uint32).max);
+        _idTwo.timestamp = bound(_idTwo.timestamp, 0, type(uint64).max);
+
+        // Make sure the first message is valid
+        bytes32 slotTwo = crossL2Inbox.calculateChecksum(_idTwo, _messageHashTwo);
+        bytes32[] memory slots = new bytes32[](1);
+        slots[0] = slotTwo;
+        VmSafe.AccessListItem[] memory accessList = new VmSafe.AccessListItem[](1);
+        accessList[0] = VmSafe.AccessListItem({ target: address(crossL2Inbox), storageKeys: slots });
+
+        // Expect a revert on the tx1 warming the slot two
+        vm.expectRevert(ICrossL2Inbox.NotInAccessList.selector);
+        vm.accessList(accessList);
+        crossL2Inbox.validateMessage(_idOne, _messageHashOne);
+
+        // Send the tx2 but without any access list and check that it reverts since the slot should not be warmed
+        vm.expectRevert(ICrossL2Inbox.NotInAccessList.selector);
+        crossL2Inbox.validateMessage(_idTwo, _messageHashTwo);
+    }
+
+    /// Test that a valid tx calling `validateMessage` doesn't warm the slot for the next one.
+    /// forge-config: default.isolate = true
+    function test_validateMessage_validDoesntWarm_reverts(Identifier memory _id, bytes32 _messageHash) external {
+        // Bound values types to ensure they are not too large
+        _id.blockNumber = bound(_id.blockNumber, 0, type(uint64).max);
+        _id.logIndex = bound(_id.logIndex, 0, type(uint32).max);
+        _id.timestamp = bound(_id.timestamp, 0, type(uint64).max);
+
+        // Make sure the first message is valid
+        bytes32 slotOne = crossL2Inbox.calculateChecksum(_id, _messageHash);
+        bytes32[] memory slots = new bytes32[](1);
+        slots[0] = slotOne;
+        VmSafe.AccessListItem[] memory accessList = new VmSafe.AccessListItem[](1);
+        accessList[0] = VmSafe.AccessListItem({ target: address(crossL2Inbox), storageKeys: slots });
+
+        // Expect `ExecutingMessage` event to be emitted
+        vm.expectEmit(address(crossL2Inbox));
+        emit ExecutingMessage(_messageHash, _id);
+
+        // Validate the message
+        vm.accessList(accessList);
+        crossL2Inbox.validateMessage(_id, _messageHash);
+
+        // Send the same msg but without any access list and check that it reverts since the slot should not be warmed
+        vm.expectRevert(ICrossL2Inbox.NotInAccessList.selector);
+        crossL2Inbox.validateMessage(_id, _messageHash);
+    }
+
     /// Test that calculate checcksum reverts when the block number is greater than 2^64.
     function testFuzz_calculateChecksum_withTooLargeBlockNumber_reverts(
         Identifier memory _id,
