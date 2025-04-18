@@ -157,6 +157,68 @@ contract CrossL2InboxTest is CommonTest {
         crossL2Inbox.validateMessage(_id, _messageHash);
     }
 
+    /// Test that an invalid message without access list does not succeed warm the slot and fails the second time
+    function test_validateMessage_sameMsgWithoutAccessListTwice_reverts(
+        Identifier memory _id,
+        bytes32 _messageHash
+    )
+        public
+    {
+        // Make sure the Identifier is valid
+        _id.blockNumber = bound(_id.blockNumber, 0, type(uint64).max);
+        _id.logIndex = bound(_id.logIndex, 0, type(uint32).max);
+        _id.timestamp = bound(_id.timestamp, 0, type(uint64).max);
+
+        // Try to validate the message without any access list
+        try crossL2Inbox.validateMessage(_id, _messageHash) {
+            // It should always revert
+            assertFalse(true);
+        } catch {
+            // It should revert with NotInAccessList when called a second time without any access list
+            vm.expectRevert(ICrossL2Inbox.NotInAccessList.selector);
+            crossL2Inbox.validateMessage(_id, _messageHash);
+        }
+    }
+
+    /// Test that multiple calls to `validateMessage` with multiple storage keys succeeds on the same tx succeeds.
+    /// forge-config: default.isolate = true
+    function test_validateMessage_multipleStorageKeys_succeeds(
+        Identifier[2] memory _ids,
+        bytes32[2] memory _messageHash
+    )
+        public
+    {
+        bytes32[] memory slots = new bytes32[](_ids.length);
+        for (uint256 i; i < _ids.length; i++) {
+            // Make sure the Identifier is valid
+            _ids[i].blockNumber = bound(_ids[i].blockNumber, 0, type(uint64).max);
+            _ids[i].logIndex = bound(_ids[i].logIndex, 0, type(uint32).max);
+            _ids[i].timestamp = bound(_ids[i].timestamp, 0, type(uint64).max);
+
+            // Calculate the checksum for the message
+            bytes32 slot = crossL2Inbox.calculateChecksum(_ids[i], _messageHash[i]);
+            console.log("slot, number: ", i);
+            console.logBytes32(slot);
+
+            slots[i] = slot;
+        }
+
+        // Prepare the access list to be sent with the next txs
+        VmSafe.AccessListItem[] memory accessList = new VmSafe.AccessListItem[](slots.length);
+        for (uint256 i; i < slots.length; i++) {
+            accessList[i] = VmSafe.AccessListItem({ target: address(crossL2Inbox), storageKeys: slots });
+            console.log("slot added to access list: ");
+            console.logBytes32(accessList[i].storageKeys[i]);
+        }
+
+        // Validate the message
+        vm.accessList(accessList);
+        for (uint256 i; i < _ids.length; i++) {
+            console.log("validating i: ", i);
+            crossL2Inbox.validateMessage(_ids[i], _messageHash[i]);
+        }
+    }
+
     /// Test that calculate checcksum reverts when the block number is greater than 2^64.
     function testFuzz_calculateChecksum_withTooLargeBlockNumber_reverts(
         Identifier memory _id,
@@ -221,3 +283,5 @@ contract CrossL2InboxTest is CommonTest {
         assertEq(checksum, expectedChecksum);
     }
 }
+
+import { console } from "forge-std/console.sol";
