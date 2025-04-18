@@ -75,8 +75,6 @@ contract CrossL2Inbox is ISemver {
     /// @param _msgHash Hash of the message payload to call target with.
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external {
         bytes32 checksum = calculateChecksum(_id, _msgHash);
-        console.log("checksum: ");
-        console.logBytes32(checksum);
         (bool isWarm,) = _isWarm(checksum);
         if (!isWarm) revert NotInAccessList();
 
@@ -130,5 +128,3 @@ contract CrossL2Inbox is ISemver {
         }
     }
 }
-
-import { console } from "forge-std/console.sol";
