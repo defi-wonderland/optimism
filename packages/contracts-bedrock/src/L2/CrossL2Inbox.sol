@@ -29,9 +29,6 @@ struct Identifier {
 ///      in the tx's access list. Nodes pre-check message validity before execution. The checksum
 ///      combines the message's `Identifier` and `msgHash` with type-3 bit masking.
 contract CrossL2Inbox is ISemver {
-    /// @notice Thrown when trying to execute a cross chain message on a deposit transaction.
-    error NoExecutingDeposits();
-
     /// @notice Thrown when trying to validate a cross chain message with a checksum
     ///         that is invalid or was not provided in the transaction's access list to set the slot
     ///         as warm.

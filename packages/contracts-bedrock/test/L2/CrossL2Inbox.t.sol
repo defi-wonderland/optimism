@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
@@ -12,6 +13,9 @@ import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 /// @dev Contract for testing the CrossL2Inbox contract.
 contract CrossL2InboxTest is CommonTest {
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
+
+    mapping(bytes32 => bool) public relayedMessages;
+    mapping(bytes32 => bool) public warmedSlots;
 
     function setUp() public override {
         useInteropOverride = true;
@@ -35,19 +39,22 @@ contract CrossL2InboxTest is CommonTest {
 
     /// Test that `validateMessage` succeeds when the slot for the message checksum is warm.
     /// forge-config: default.isolate = true
-    function testFuzz_validateMessage_succeeds(Identifier memory _id, bytes32 _messageHash) external {
+    function testFuzz_validateMessage_succeeds(
+        Identifier memory _id,
+        bytes32 _messageHash
+    )
+        public
+        returns (bytes32 slot_)
+    {
         // Bound values types to ensure they are not too large
         _id.blockNumber = bound(_id.blockNumber, 0, type(uint64).max);
         _id.logIndex = bound(_id.logIndex, 0, type(uint32).max);
         _id.timestamp = bound(_id.timestamp, 0, type(uint64).max);
 
-        // cool the contract's slots
-        vm.cool(address(crossL2Inbox));
-
         // Prepare the access list to be sent with the next call
-        bytes32 slot = crossL2Inbox.calculateChecksum(_id, _messageHash);
+        slot_ = crossL2Inbox.calculateChecksum(_id, _messageHash);
         bytes32[] memory slots = new bytes32[](1);
-        slots[0] = slot;
+        slots[0] = slot_;
         VmSafe.AccessListItem[] memory accessList = new VmSafe.AccessListItem[](1);
         accessList[0] = VmSafe.AccessListItem({ target: address(crossL2Inbox), storageKeys: slots });
 
@@ -58,6 +65,34 @@ contract CrossL2InboxTest is CommonTest {
         // Validate the message
         vm.accessList(accessList);
         crossL2Inbox.validateMessage(_id, _messageHash);
+    }
+
+    /// Test that multiple calls to`validateMessage` with different access lists don't collide and succeeds.
+    /// @dev This tests that the way we encode and hash the checksum slot is unique enough to avoid collisions.
+    /// forge-config: default.isolate = true
+    function testFuzz_validateMessage_multipleAccessLists_succeeds(
+        Identifier[20] memory _ids,
+        bytes32[20] calldata _messageHash
+    )
+        external
+    {
+        // Send batches of calls with different access lists and check they never collide and always succeed
+        for (uint256 i; i < _ids.length; i++) {
+            // Make sure we're not re-validating the same message
+            bytes32 msgToValidate = keccak256(abi.encode(_ids[i], _messageHash[i]));
+            vm.assume(relayedMessages[msgToValidate] == false);
+            relayedMessages[msgToValidate] = true;
+
+            // Call validateMessage and get the slot
+            bytes32 slot_ = testFuzz_validateMessage_succeeds(_ids[i], _messageHash[i]);
+            // Check that the slot doesn't match a previously warmed slot
+            assertEq(warmedSlots[slot_], false);
+            // Mark the slot as warmed
+            warmedSlots[slot_] = true;
+
+            // Remove the access list
+            vm.noAccessList();
+        }
     }
 
     /// Test that calculate checcksum reverts when the block number is greater than 2^64.
