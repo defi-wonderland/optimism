@@ -48,7 +48,7 @@ contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
         proposal.description = description;
         proposal.proposalType = proposalType;
         proposal.inVoting = false;
-        proposal.approvalCount = 0;
+        proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
         
         emit ProposalSubmitted(
             proposalId,
@@ -68,10 +68,18 @@ contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
      * @param proposalId The ID of the proposal to approve
      */
     function approveProposal(uint256 proposalId) external {
+        if (!canSignOff(msg.sender)) {
+            revert DelegatesProposalValidator_InsufficientVotingPower();
+        }
+
         ProposalData storage proposal = _proposals[proposalId];
+
+        if (proposal.delegateApprovals[msg.sender]) {
+            revert DelegatesProposalValidator_AlreadyApproved();
+        }
         
         proposal.delegateApprovals[msg.sender] = true;
-        proposal.approvalCount++;
+        proposal.remainingApprovalsRequired--; // Expected overflow when all approvals are granted
         
         emit ProposalApproved(proposalId, msg.sender);
     }
@@ -83,6 +91,14 @@ contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
      */
     function moveToVote(uint256 proposalId) external returns (uint256) {
         ProposalData storage proposal = _proposals[proposalId];
+
+        if (proposal.remainingApprovalsRequired > 0) {
+            revert DelegatesProposalValidator_InsufficientApprovals();
+        }
+
+        if (proposal.inVoting) {
+            revert DelegatesProposalValidator_AlreadyProposed();
+        }
         
         proposal.inVoting = true;
         
@@ -97,6 +113,11 @@ contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
         emit ProposalMovedToVote(proposalId, msg.sender);
         
         return governorProposalId;
+    }
+
+    /// @notice Returns whether a delegate has enough voting power to vote on a proposal
+    function canSignOff(address _delegate) public view returns (bool) {
+        return votingToken.balanceOf(_delegate) >= minimumVotingPower;
     }
 
     function propose(address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas, string memory _description, uint8 _proposalType) external returns (uint256) {

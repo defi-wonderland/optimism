@@ -16,7 +16,7 @@ interface IDelegatesProposalValidator {
     error DelegatesProposalValidator_InsufficientApprovals();
     error DelegatesProposalValidator_AlreadyApproved();
     error DelegatesProposalValidator_NotDelegate();
-    error DelegatesProposalValidator_AlreadyInVoting();
+    error DelegatesProposalValidator_AlreadyProposed();
     error DelegatesProposalValidator_InsufficientVotingPower();
 
     /*//////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ interface IDelegatesProposalValidator {
         uint8 proposalType;
         bool inVoting;
         mapping(address => bool) delegateApprovals;
-        uint256 approvalCount;
+        uint256 remainingApprovalsRequired;
     }
 
     /*//////////////////////////////////////////////////////////////
