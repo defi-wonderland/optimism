@@ -1,13 +1,13 @@
 
 pragma solidity 0.8.15;
 
-import {IDelegatesProposalValidator} from "interfaces/governance/IDelegatesProposalValidator.sol";
+import {IProposalValidator} from "interfaces/governance/IProposalValidator.sol";
 import {IOptimismGovernor} from "interfaces/governance/IOptimismGovernor.sol";
 import {VotingModule} from "src/governance/VotingModule.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGovernanceToken} from "interfaces/governance/IGovernanceToken.sol";
 
-contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
+contract ProposalValidator is IProposalValidator, Ownable {
     uint256 public minimumVotingPower;
     IOptimismGovernor public governor;
     IGovernanceToken public votingToken;
@@ -69,13 +69,13 @@ contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
      */
     function approveProposal(uint256 proposalId) external {
         if (!canSignOff(msg.sender)) {
-            revert DelegatesProposalValidator_InsufficientVotingPower();
+            revert ProposalValidator_InsufficientVotingPower();
         }
 
         ProposalData storage proposal = _proposals[proposalId];
 
         if (proposal.delegateApprovals[msg.sender]) {
-            revert DelegatesProposalValidator_AlreadyApproved();
+            revert ProposalValidator_AlreadyApproved();
         }
         
         proposal.delegateApprovals[msg.sender] = true;
@@ -93,11 +93,11 @@ contract DelegatesProposalValidator is IDelegatesProposalValidator, Ownable {
         ProposalData storage proposal = _proposals[proposalId];
 
         if (proposal.remainingApprovalsRequired > 0) {
-            revert DelegatesProposalValidator_InsufficientApprovals();
+            revert ProposalValidator_InsufficientApprovals();
         }
 
         if (proposal.inVoting) {
-            revert DelegatesProposalValidator_AlreadyProposed();
+            revert ProposalValidator_AlreadyProposed();
         }
         
         proposal.inVoting = true;

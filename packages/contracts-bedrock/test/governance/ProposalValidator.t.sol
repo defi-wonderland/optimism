@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IDelegatesProposalValidator} from "interfaces/governance/IDelegatesProposalValidator.sol";
-import {DelegatesProposalValidator} from "src/governance/DelegatesProposalValidator.sol";
+import {IProposalValidator} from "interfaces/governance/IProposalValidator.sol";
+import {ProposalValidator} from "src/governance/ProposalValidator.sol";
 import {IOptimismGovernor} from "interfaces/governance/IOptimismGovernor.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
 
-contract DelegatesProposalValidator_Test is CommonTest {
+contract ProposalValidator_Test is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
 
     address owner;
@@ -19,7 +19,7 @@ contract DelegatesProposalValidator_Test is CommonTest {
     address topDelegate_C;
     address topDelegate_D;
 
-    DelegatesProposalValidator validator;
+    ProposalValidator validator;
     IOptimismGovernor governor;
 
     /// @notice Helper function to setup a mock and expect a call to it.
@@ -48,7 +48,7 @@ contract DelegatesProposalValidator_Test is CommonTest {
         rando = makeAddr("rando");
         governor = IOptimismGovernor(makeAddr("governor"));
 
-        validator = new DelegatesProposalValidator(owner, governor, governanceToken);
+        validator = new ProposalValidator(owner, governor, governanceToken);
 
         vm.prank(owner);
         validator.setMinimumVotingPower(TOP_DELEGATE_VOTING_POWER);
@@ -75,7 +75,7 @@ contract DelegatesProposalValidator_Test is CommonTest {
         assertEq(proposalId, 1);
 
         // It reverts when caller is not a top delegate
-        vm.expectRevert(IDelegatesProposalValidator.DelegatesProposalValidator_InsufficientVotingPower.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientVotingPower.selector);
         _approveProposal(rando, proposalId);
 
         _approveProposal(topDelegate_A, proposalId);
@@ -83,7 +83,7 @@ contract DelegatesProposalValidator_Test is CommonTest {
         _approveProposal(topDelegate_C, proposalId);
 
         // It reverts when proposal hasn't reached the required approvals
-        vm.expectRevert(IDelegatesProposalValidator.DelegatesProposalValidator_InsufficientApprovals.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientApprovals.selector);
         vm.prank(owner);
         validator.moveToVote(proposalId);
 
@@ -95,7 +95,7 @@ contract DelegatesProposalValidator_Test is CommonTest {
         validator.moveToVote(proposalId);
 
         // It reverts when proposal is already in voting phase
-        vm.expectRevert(IDelegatesProposalValidator.DelegatesProposalValidator_AlreadyProposed.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyProposed.selector);
         vm.prank(owner);
         validator.moveToVote(proposalId);
     }

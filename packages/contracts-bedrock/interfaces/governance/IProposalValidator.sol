@@ -5,19 +5,19 @@ import {VotingModule} from "src/governance/VotingModule.sol";
 import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 import {IGovernanceToken} from "./IGovernanceToken.sol";
 
-interface IDelegatesProposalValidator {
+interface IProposalValidator {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error DelegatesProposalValidator_NotApprovedProposer();
-    error DelegatesProposalValidator_InvalidProposalType();
-    error DelegatesProposalValidator_ProposalNotFound();
-    error DelegatesProposalValidator_InsufficientApprovals();
-    error DelegatesProposalValidator_AlreadyApproved();
-    error DelegatesProposalValidator_NotDelegate();
-    error DelegatesProposalValidator_AlreadyProposed();
-    error DelegatesProposalValidator_InsufficientVotingPower();
+    error ProposalValidator_NotApprovedProposer();
+    error ProposalValidator_InvalidProposalType();
+    error ProposalValidator_ProposalNotFound();
+    error ProposalValidator_InsufficientApprovals();
+    error ProposalValidator_AlreadyApproved();
+    error ProposalValidator_NotDelegate();
+    error ProposalValidator_AlreadyProposed();
+    error ProposalValidator_InsufficientVotingPower();
 
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
