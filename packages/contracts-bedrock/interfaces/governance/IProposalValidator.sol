@@ -18,6 +18,7 @@ interface IProposalValidator {
     error ProposalValidator_NotDelegate();
     error ProposalValidator_AlreadyProposed();
     error ProposalValidator_InsufficientVotingPower();
+    error ProposalValidator_InvalidAttestation();
 
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
@@ -29,10 +30,22 @@ interface IProposalValidator {
         uint256[] values;
         bytes[] calldatas;
         string description;
-        uint8 proposalType;
+        ProposalType proposalType;
         bool inVoting;
         mapping(address => bool) delegateApprovals;
         uint256 remainingApprovalsRequired;
+    }
+    
+    /*//////////////////////////////////////////////////////////////
+                                 ENUMS
+    //////////////////////////////////////////////////////////////*/
+
+    enum ProposalType {
+        ProtocolOrGovernorUpgrade,
+        MaintenanceUpgradeProposals,
+        CouncilMemberElections,
+        GovernanceFund,
+        CouncilBudget
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -54,7 +67,7 @@ interface IProposalValidator {
         uint256[] values,
         bytes[] calldatas,
         string description,
-        uint8 proposalType
+        ProposalType proposalType
     );
 
     event ProposalApproved(
@@ -71,27 +84,13 @@ interface IProposalValidator {
                                  FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function propose(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        uint8 proposalType
-    ) external returns (uint256 proposalId);
-
-    function proposeWithModule(
-        VotingModule module,
-        bytes memory proposalData,
-        string memory description,
-        uint8 proposalType
-    ) external returns (uint256 proposalId);
-
     function submitProposal(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description,
-        uint8 proposalType
+        ProposalType proposalType,
+        bytes32 attestationUid
     ) external returns (uint256 proposalId);
 
     function approveProposal(uint256 proposalId) external;

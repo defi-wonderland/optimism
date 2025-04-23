@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IProposalValidator} from "interfaces/governance/IProposalValidator.sol";
-import {ProposalValidator} from "src/governance/ProposalValidator.sol";
-import {IOptimismGovernor} from "interfaces/governance/IOptimismGovernor.sol";
-import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import { IProposalValidator } from "interfaces/governance/IProposalValidator.sol";
+import { ProposalValidator } from "src/governance/ProposalValidator.sol";
+import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
+import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {IEAS, AttestationRequest, AttestationRequestData} from "src/vendor/eas/IEAS.sol";
+import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
@@ -19,8 +22,9 @@ contract ProposalValidator_Test is CommonTest {
     address topDelegate_C;
     address topDelegate_D;
 
-    ProposalValidator validator;
-    IOptimismGovernor governor;
+    ProposalValidator public validator;
+    IOptimismGovernor public governor;
+    bytes32 public ATTESTATION_SCHEMA_UID;
 
     /// @notice Helper function to setup a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
@@ -48,7 +52,14 @@ contract ProposalValidator_Test is CommonTest {
         rando = makeAddr("rando");
         governor = IOptimismGovernor(makeAddr("governor"));
 
-        validator = new ProposalValidator(owner, governor, governanceToken);
+        vm.prank(owner);
+        ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
+            "address approvedAddress,uint8 proposalType",
+            ISchemaResolver(address(0)),
+            false
+        );
+
+        validator = new ProposalValidator(owner, governor, governanceToken, ATTESTATION_SCHEMA_UID);
 
         vm.prank(owner);
         validator.setMinimumVotingPower(TOP_DELEGATE_VOTING_POWER);
@@ -65,13 +76,28 @@ contract ProposalValidator_Test is CommonTest {
         targets[0] = address(0);
         uint256[] memory values = new uint256[](1);
         values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);  
+        bytes[] memory calldatas = new bytes[](1);
         calldatas[0] = bytes("");
         string memory description = "Test proposal";
-        uint8 proposalType = 1;
+        IProposalValidator.ProposalType proposalType = IProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
 
-        vm.prank(owner);    
-        uint256 proposalId = validator.submitProposal(targets, values, calldatas, description, proposalType);
+        vm.prank(owner);
+        bytes32 attestationUid = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: address(0),
+                    expirationTime: 0,
+                    revocable: false,
+                    refUID: bytes32(0),
+                    data: abi.encode(topDelegate_A, proposalType),
+                    value: 0
+                })
+            })
+        );
+
+        vm.prank(topDelegate_A);
+        uint256 proposalId = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
         assertEq(proposalId, 1);
 
         // It reverts when caller is not a top delegate
@@ -89,7 +115,11 @@ contract ProposalValidator_Test is CommonTest {
 
         _approveProposal(topDelegate_D, proposalId);
 
-        _mockAndExpect(address(governor), abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, proposalType)), abi.encode(1));
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, uint8(proposalType))),
+            abi.encode(1)
+        );
 
         vm.prank(owner);
         validator.moveToVote(proposalId);

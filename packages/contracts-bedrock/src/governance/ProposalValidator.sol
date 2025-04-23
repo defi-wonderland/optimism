@@ -6,8 +6,11 @@ import {IOptimismGovernor} from "interfaces/governance/IOptimismGovernor.sol";
 import {VotingModule} from "src/governance/VotingModule.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IGovernanceToken} from "interfaces/governance/IGovernanceToken.sol";
+import {IEAS, Attestation} from "src/vendor/eas/IEAS.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 contract ProposalValidator is IProposalValidator, Ownable {
+    bytes32 public immutable ATTESTATION_SCHEMA_UID; // { approvedDelegate: address, proposalType: uint8 }
     uint256 public minimumVotingPower;
     IOptimismGovernor public governor;
     IGovernanceToken public votingToken;
@@ -16,10 +19,11 @@ contract ProposalValidator is IProposalValidator, Ownable {
     
     uint256 private _proposalCounter;
 
-    constructor(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken) {
+    constructor(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken, bytes32 _attestationSchemaUid) {
         transferOwnership(_owner);
         governor = _governor;
         votingToken = _votingToken;
+        ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
     }
 
     /**
@@ -36,8 +40,11 @@ contract ProposalValidator is IProposalValidator, Ownable {
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description,
-        uint8 proposalType
+        ProposalType proposalType,
+        bytes32 attestationUid
     ) external returns (uint256) {
+        _validateProposal(targets, values, calldatas, proposalType, attestationUid);
+
         uint256 proposalId = ++_proposalCounter;
         
         ProposalData storage proposal = _proposals[proposalId];
@@ -107,7 +114,7 @@ contract ProposalValidator is IProposalValidator, Ownable {
             proposal.values,
             proposal.calldatas,
             proposal.description,
-            proposal.proposalType
+            uint8(proposal.proposalType)
         );
         
         emit ProposalMovedToVote(proposalId, msg.sender);
@@ -119,14 +126,6 @@ contract ProposalValidator is IProposalValidator, Ownable {
     function canSignOff(address _delegate) public view returns (bool) {
         return votingToken.balanceOf(_delegate) >= minimumVotingPower;
     }
-
-    function propose(address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas, string memory _description, uint8 _proposalType) external returns (uint256) {
-        return governor.propose(_targets, _values, _calldatas, _description, _proposalType);
-    }
-
-    function proposeWithModule(VotingModule _module, bytes memory _proposalData, string memory _description, uint8 _proposalType) external returns (uint256) {
-        return governor.proposeWithModule(_module, _proposalData, _description, _proposalType);
-    }   
 
     function setMinimumVotingPower(uint256 _minimumVotingPower) external onlyOwner {
         minimumVotingPower = _minimumVotingPower;
@@ -154,5 +153,29 @@ contract ProposalValidator is IProposalValidator, Ownable {
      */
     function setVotingToken(IGovernanceToken _votingToken) external onlyOwner {
         votingToken = _votingToken;
+    }
+
+    function _validateProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        ProposalType proposalType,
+        bytes32 attestationUid
+    ) internal {
+        if (_requiresApproval(proposalType)) {
+            Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(attestationUid);
+            if (attestation.attester != owner() || attestation.schema != ATTESTATION_SCHEMA_UID || !_isValidAttestationData(attestation.data, proposalType)) {
+                revert ProposalValidator_InvalidAttestation();
+            }
+        }
+    }
+
+    function _requiresApproval(ProposalType proposalType) internal pure returns (bool) {
+        return proposalType == ProposalType.ProtocolOrGovernorUpgrade || proposalType == ProposalType.MaintenanceUpgradeProposals || proposalType == ProposalType.CouncilMemberElections;
+    }
+
+    function _isValidAttestationData(bytes memory data, ProposalType expectedProposalType) internal view returns (bool) {
+        (address approvedDelegate, uint8 proposalType) = abi.decode(data, (address, uint8));
+        return approvedDelegate == msg.sender && proposalType == uint8(expectedProposalType);
     }
 }
