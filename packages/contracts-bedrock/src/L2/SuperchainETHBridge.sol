@@ -104,10 +104,9 @@ contract SuperchainETHBridge is ISemver {
     /// @return msgHash_ Hash of the message sent.
     function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
         if (_to == address(0)) revert ZeroAddress();
+        if (msg.value > MAX_PERMITTED_AMOUNT) revert AmountTooHigh();
 
         uint256 amountToSend = msg.value - _calculateFee(msg.value);
-
-        if (amountToSend > MAX_PERMITTED_AMOUNT) revert AmountTooHigh();
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
