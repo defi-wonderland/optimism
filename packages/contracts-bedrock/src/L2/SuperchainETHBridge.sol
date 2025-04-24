@@ -51,16 +51,17 @@ contract SuperchainETHBridge is ISemver {
 
     /// Fee calculation parameters
     uint256 public constant MAX_FEE_PERCENTAGE = 0.02e18; // 2%
-    uint256 public constant MAX_PERMITTED_AMOUNT = 200 ether;
     uint256 public constant CURVE_EXPONENT = 8;
     uint256 public constant BASE_FEE = 0.0001 ether;
+    uint256 public constant REFILL_TIME_WINDOW = 1 hours;
 
-    /// Token bucket parameters
-    uint256 public constant REFILL_RATE = 1 ether; // 1 ether per second
-    uint256 public tokens = 100 ether;
+    /// The maximum amount of ETH that can be sent in a single transaction
+    uint256 public maxAmount = 70 * bucketCapacity() / 100; // 70% of the bucket capacity
+    /// TODO: These two vars could be packed into a single uint256 slot
     uint256 public lastRefillTime = block.timestamp;
+    uint256 public lastBucketUsage;
 
-    function _bucketCapacity() internal view returns (uint256) {
+    function bucketCapacity() public view returns (uint256) {
         if (block.timestamp - INTEROP_LAUNCH > 7 days) {
             return 500 ether;
         } else if (block.timestamp - INTEROP_LAUNCH > 14 days) {
@@ -72,17 +73,32 @@ contract SuperchainETHBridge is ISemver {
         }
     }
 
-    function _refill() internal {
-        uint256 nowTime = block.timestamp;
-        uint256 elapsed = nowTime - lastRefillTime;
-        uint256 refillAmount = elapsed * REFILL_RATE;
-        tokens = _min(_bucketCapacity(), tokens + refillAmount);
-        lastRefillTime = nowTime;
+    /// @dev bucketAvailable = bucketCapacity - bucketUsage
+    /// @dev The bucketUsage is calculated based on the the time elapsed since the last refill
+    function bucketAvailable() public view returns (uint256 bucketAvailable_) {
+        if (lastBucketUsage == 0) return bucketAvailable_ = bucketCapacity();
+
+        // Calculate the refill amount based on the time elapsed since the last refill
+        uint256 refillRate = bucketCapacity() / REFILL_TIME_WINDOW;
+        uint256 refillAmount = (block.timestamp - lastRefillTime) * refillRate;
+
+        // Calculate the new bucket usage
+        uint256 newBucketUsage;
+        if (refillAmount > lastBucketUsage) {
+            // The bucket is fully refilled
+            newBucketUsage = 0;
+        } else {
+            // The bucket is partially refilled
+            newBucketUsage = lastBucketUsage - refillAmount;
+        }
+
+        // Return the current bucket availibility
+        bucketAvailable_ = bucketCapacity() - newBucketUsage;
     }
 
-    function _calculateFee(uint256 amount) internal pure returns (uint256) {
+    function calculateFee(uint256 amount) public view returns (uint256) {
         // Normalize amount to [0, 1] in 18 decimals
-        uint256 normalized = amount.divWad(MAX_PERMITTED_AMOUNT);
+        uint256 normalized = amount.divWad(maxAmount);
 
         // Raise to the exponent (e.g., x^3)
         uint256 powered = normalized.rpow(CURVE_EXPONENT, 1e18);
@@ -94,19 +110,15 @@ contract SuperchainETHBridge is ISemver {
         return percentageFee + BASE_FEE;
     }
 
-    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
-
     /// @notice Sends ETH to some target address on another chain.
     /// @param _to       Address to send ETH to.
     /// @param _chainId  Chain ID of the destination chain.
     /// @return msgHash_ Hash of the message sent.
     function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
         if (_to == address(0)) revert ZeroAddress();
-        if (msg.value > MAX_PERMITTED_AMOUNT) revert AmountTooHigh();
+        if (msg.value > maxAmount) revert AmountTooHigh();
 
-        uint256 amountToSend = msg.value - _calculateFee(msg.value);
+        uint256 amountToSend = msg.value - calculateFee(msg.value);
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
@@ -135,13 +147,8 @@ contract SuperchainETHBridge is ISemver {
         // NOTE: 'mint' will soon change to 'withdraw'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).mint(_amount);
 
-        _refill();
-
-        if (_amount > tokens) revert RateLimitExceeded();
-
-        unchecked {
-            tokens -= _amount;
-        }
+        if (_amount > bucketAvailable()) revert RateLimitExceeded();
+        lastBucketUsage += _amount;
 
         // This is a forced ETH send to the recipient, the recipient should NOT expect to be called.
         new SafeSend{ value: _amount }(payable(_to));
