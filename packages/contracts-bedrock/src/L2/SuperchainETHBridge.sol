@@ -26,6 +26,9 @@ contract SuperchainETHBridge is ISemver {
     /// @notice Thrown when the rate limit is exceeded.
     error RateLimitExceeded();
 
+    /// @notice Thrown when the amount is too high.
+    error AmountTooHigh();
+
     /// @notice Emitted when ETH is sent from one chain to another.
     /// @param from          Address of the sender.
     /// @param to            Address of the recipient.
@@ -101,6 +104,7 @@ contract SuperchainETHBridge is ISemver {
     /// @return msgHash_ Hash of the message sent.
     function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
         if (_to == address(0)) revert ZeroAddress();
+        if (msg.value > MAX_PERMITTED_AMOUNT) revert AmountTooHigh();
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
