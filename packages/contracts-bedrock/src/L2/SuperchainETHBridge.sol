@@ -67,28 +67,30 @@ contract SuperchainETHBridge is ISemver {
     /// @notice The refill time window for the bucket
     uint256 public constant REFILL_TIME_WINDOW = 1 hours;
 
-    /// @notice The maximum amount of ETH that can be sent in a single transaction, 70% of the bucket capacity
-    uint256 public maxTxETHAmount = 70 * bucketCapacity() / 100;
-
     /// @notice The last checkpoint of the bucket usage state
     BucketCheckpoint public lastBucketCheckpoint = BucketCheckpoint({ timestamp: uint128(block.timestamp), usage: 0 });
 
     /// @notice Returns the bucket capacity based on the time since the rate limit activation
     // TODO: Define proper bucket capacity values
     function bucketCapacity() public view returns (uint256) {
-        uint256 timeSinceActivation = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
+        uint256 maturityTime = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
 
-        if (timeSinceActivation > 30 days) {
+        if (maturityTime > 30 days) {
             return 2000 ether;
-        } else if (timeSinceActivation > 14 days) {
+        } else if (maturityTime > 14 days) {
             return 1000 ether;
-        } else if (timeSinceActivation > 7 days) {
+        } else if (maturityTime > 7 days) {
             return 500 ether;
-        } else if (timeSinceActivation > 1 days) {
+        } else if (maturityTime > 1 days) {
             return 100 ether;
         } else {
             return 10_000 ether;
         }
+    }
+
+    /// @notice The maximum amount of ETH that can be sent in a single transaction, 70% of the bucket capacity
+    function maxTxETHAmount() public view returns (uint256) {
+        return 70 * bucketCapacity() / 100;
     }
 
     /// @notice Returns the bucket available amount and the bucket refill amount since the last bucket usage checkpoint
@@ -123,7 +125,7 @@ contract SuperchainETHBridge is ISemver {
     /// @param amount The amount to calculate the fee for.
     /// @return fee The fee for the given amount.
     function calculateFee(uint256 amount) public view returns (uint256) {
-        return Fee.calculateFee(amount, maxTxETHAmount, CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
+        return Fee.calculateFee(amount, maxTxETHAmount(), CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
     }
 
     /// @notice Sends ETH to some target address on another chain.
@@ -132,10 +134,10 @@ contract SuperchainETHBridge is ISemver {
     /// @return msgHash_ Hash of the message sent.
     function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
         if (_to == address(0)) revert ZeroAddress();
-        if (msg.value > maxTxETHAmount) revert AmountTooHigh();
+        if (msg.value > maxTxETHAmount()) revert AmountTooHigh();
 
         uint256 amountToSend =
-            msg.value - Fee.calculateFee(msg.value, maxTxETHAmount, CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
+            msg.value - Fee.calculateFee(msg.value, maxTxETHAmount(), CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
