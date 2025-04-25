@@ -10,7 +10,7 @@ contract Fee_Test is Test {
     }
 
     struct Case {
-        uint256 expected;
+        uint256 feeExpected;
         Input inputs;
     }
 
@@ -22,6 +22,7 @@ contract Fee_Test is Test {
         uint256 maxPermittedAmount;
     }
 
+    /// @notice Tests the calculateFee function based on the pre calculated (on Excel)test data in Fee.json
     function test_calculateFee() public view {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/libraries/Fee/Fee.json");
@@ -29,7 +30,7 @@ contract Fee_Test is Test {
         bytes memory data = vm.parseJson(json);
         TestSet memory testSet = abi.decode(data, (TestSet));
 
-        for (uint256 i = 0; i < testSet.cases.length; i++) {
+        for (uint256 i; i < testSet.cases.length; i++) {
             uint256 fee = Fee.calculateFee(
                 testSet.cases[i].inputs.amount,
                 testSet.cases[i].inputs.maxPermittedAmount,
@@ -39,7 +40,7 @@ contract Fee_Test is Test {
             );
 
             // Allow for 0.1% error
-            assertApproxEqRel(fee, testSet.cases[i].expected, 1e15);
+            assertApproxEqRel(fee, testSet.cases[i].feeExpected, 1e15);
         }
     }
 }

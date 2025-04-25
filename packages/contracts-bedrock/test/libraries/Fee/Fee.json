@@ -8,7 +8,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 100000007812500
+      "feeExpected": 100000007812500
     },
     {
       "inputs": {
@@ -18,7 +18,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 100004000000000
+      "feeExpected": 100004000000000
     },
     {
       "inputs": {
@@ -28,7 +28,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 100153773437500
+      "feeExpected": 100153773437500
     },
     {
       "inputs": {
@@ -38,7 +38,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 102048000000000
+      "feeExpected": 102048000000000
     },
     {
       "inputs": {
@@ -48,7 +48,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 115258789062500
+      "feeExpected": 115258789062500
     },
     {
       "inputs": {
@@ -58,7 +58,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 178732000000000
+      "feeExpected": 178732000000000
     },
     {
       "inputs": {
@@ -68,7 +68,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 415262554687500
+      "feeExpected": 415262554687500
     },
     {
       "inputs": {
@@ -78,7 +78,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 1148576000000000
+      "feeExpected": 1148576000000000
     },
     {
       "inputs": {
@@ -88,7 +88,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 3126722570312500
+      "feeExpected": 3126722570312500
     },
     {
       "inputs": {
@@ -98,7 +98,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 7912500000000000
+      "feeExpected": 7912500000000000
     },
     {
       "inputs": {
@@ -108,7 +108,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 18521466335937500
+      "feeExpected": 18521466335937500
     },
     {
       "inputs": {
@@ -118,7 +118,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 40410784000000000
+      "feeExpected": 40410784000000000
     },
     {
       "inputs": {
@@ -128,7 +128,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 82947651351562500
+      "feeExpected": 82947651351562500
     },
     {
       "inputs": {
@@ -138,7 +138,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 161514428000000000
+      "feeExpected": 161514428000000000
     },
     {
       "inputs": {
@@ -148,7 +148,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 300438745117188000
+      "feeExpected": 300438745117188000
     },
     {
       "inputs": {
@@ -158,7 +158,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 536970912000000000
+      "feeExpected": 536970912000000000
     },
     {
       "inputs": {
@@ -168,7 +168,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 926567785132812000
+      "feeExpected": 926567785132812000
     },
     {
       "inputs": {
@@ -178,7 +178,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 1549781956000000000
+      "feeExpected": 1549781956000000000
     },
     {
       "inputs": {
@@ -188,7 +188,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 2521097638898440000
+      "feeExpected": 2521097638898440000
     },
     {
       "inputs": {
@@ -198,7 +198,7 @@
         "maxFeePercentage": 20000000000000000,
         "baseFee": 100000000000000
       },
-      "expected": 4000100000000000000
+      "feeExpected": 4000100000000000000
     }
   ]
 }
