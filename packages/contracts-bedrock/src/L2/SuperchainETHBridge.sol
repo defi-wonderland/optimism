@@ -157,7 +157,6 @@ contract SuperchainETHBridge is ISemver {
         if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
 
         // Check that the amount is within the rate limit
-        if (_amount > maxTxETHAmount) revert AmountTooHigh();
         (uint256 bucketAvailableAmount, uint256 bucketRefillAmount) = bucketAvailable();
         if (_amount > bucketAvailableAmount) revert NoBucketAvailability();
 
