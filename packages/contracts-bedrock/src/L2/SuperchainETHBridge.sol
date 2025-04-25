@@ -69,26 +69,30 @@ contract SuperchainETHBridge is ISemver {
     /// @notice The refill time window for the bucket
     uint256 public constant REFILL_TIME_WINDOW = 1 hours;
 
-    /// @notice The maximum amount of ETH that can be sent in a single transaction, 70% of the bucket capacity
-    uint256 public maxTxETHAmount = 70 * bucketCapacity() / 100;
-
     /// @notice The last checkpoint of the bucket usage state
     BucketCheckpoint public lastBucketCheckpoint = BucketCheckpoint({ timestamp: uint128(block.timestamp), usage: 0 });
 
     /// @notice Returns the bucket capacity based on the time since the rate limit activation
     // TODO: Define proper bucket capacity values
     function bucketCapacity() public view returns (uint256) {
-        if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 30 days) {
+        uint256 maturityTime = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
+        if (maturityTime > 30 days) {
             return 2000 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 14 days) {
+        } else if (maturityTime > 14 days) {
             return 1000 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 7 days) {
+        } else if (maturityTime > 7 days) {
             return 500 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 1 days) {
+        } else if (maturityTime > 1 days) {
             return 100 ether;
         } else {
+            // If more than 30 days, the bucket capacity reaches the max
             return 10_000 ether;
         }
+    }
+
+    /// @notice The maximum amount of ETH that can be sent in a single transaction, 70% of the bucket capacity
+    function maxTxETHAmount() public view returns (uint256) {
+        return 70 * bucketCapacity() / 100;
     }
 
     /// @notice Returns the bucket available amount and the bucket refill amount since the last bucket usage checkpoint
@@ -122,7 +126,7 @@ contract SuperchainETHBridge is ISemver {
     // TODO: Move to a library
     function calculateFee(uint256 amount) public view returns (uint256) {
         // Normalize amount to [0, 1] in 18 decimals
-        uint256 normalized = amount.divWad(maxTxETHAmount);
+        uint256 normalized = amount.divWad(maxTxETHAmount());
 
         // Raise to the exponent (e.g., x^3)
         uint256 powered = normalized.rpow(CURVE_EXPONENT, 1e18);
@@ -140,7 +144,7 @@ contract SuperchainETHBridge is ISemver {
     /// @return msgHash_ Hash of the message sent.
     function sendETH(address _to, uint256 _chainId) external payable returns (bytes32 msgHash_) {
         if (_to == address(0)) revert ZeroAddress();
-        if (msg.value > maxTxETHAmount) revert AmountTooHigh();
+        if (msg.value > maxTxETHAmount()) revert AmountTooHigh();
 
         uint256 amountToSend = msg.value - calculateFee(msg.value);
 
@@ -164,7 +168,6 @@ contract SuperchainETHBridge is ISemver {
         if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
 
         // Check that the amount is within the rate limit
-        if (_amount > maxTxETHAmount) revert AmountTooHigh();
         (uint256 bucketAvailableAmount, uint256 bucketRefillAmount) = bucketAvailable();
         if (_amount > bucketAvailableAmount) revert NoBucketAvailability();
 
