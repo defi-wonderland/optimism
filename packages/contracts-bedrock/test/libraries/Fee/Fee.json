@@ -1,0 +1,204 @@
+{
+  "cases": [
+    {
+      "inputs": {
+        "amount": 10000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 100000007812500
+    },
+    {
+      "inputs": {
+        "amount": 20000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 100004000000000
+    },
+    {
+      "inputs": {
+        "amount": 30000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 100153773437500
+    },
+    {
+      "inputs": {
+        "amount": 40000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 102048000000000
+    },
+    {
+      "inputs": {
+        "amount": 50000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 115258789062500
+    },
+    {
+      "inputs": {
+        "amount": 60000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 178732000000000
+    },
+    {
+      "inputs": {
+        "amount": 70000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 415262554687500
+    },
+    {
+      "inputs": {
+        "amount": 80000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 1148576000000000
+    },
+    {
+      "inputs": {
+        "amount": 90000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 3126722570312500
+    },
+    {
+      "inputs": {
+        "amount": 100000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 7912500000000000
+    },
+    {
+      "inputs": {
+        "amount": 110000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 18521466335937500
+    },
+    {
+      "inputs": {
+        "amount": 120000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 40410784000000000
+    },
+    {
+      "inputs": {
+        "amount": 130000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 82947651351562500
+    },
+    {
+      "inputs": {
+        "amount": 140000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 161514428000000000
+    },
+    {
+      "inputs": {
+        "amount": 150000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 300438745117188000
+    },
+    {
+      "inputs": {
+        "amount": 160000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 536970912000000000
+    },
+    {
+      "inputs": {
+        "amount": 170000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 926567785132812000
+    },
+    {
+      "inputs": {
+        "amount": 180000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 1549781956000000000
+    },
+    {
+      "inputs": {
+        "amount": 190000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 2521097638898440000
+    },
+    {
+      "inputs": {
+        "amount": 200000000000000000000,
+        "maxPermittedAmount": 200000000000000000000,
+        "curveExponent": 8,
+        "maxFeePercentage": 20000000000000000,
+        "baseFee": 100000000000000
+      },
+      "expected": 4000100000000000000
+    }
+  ]
+}

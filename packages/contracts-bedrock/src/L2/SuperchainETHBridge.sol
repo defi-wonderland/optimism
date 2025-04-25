@@ -5,8 +5,7 @@ pragma solidity 0.8.15;
 import { Unauthorized, ZeroAddress } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
-import { FixedPointMathLib } from "@solady/utils/FixedPointMathLib.sol";
-
+import { Fee } from "src/libraries/Fee.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
@@ -17,8 +16,6 @@ import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
 /// @title SuperchainETHBridge
 /// @notice SuperchainETHBridge enables ETH transfers between chains within an interop cluster.
 contract SuperchainETHBridge is ISemver {
-    using FixedPointMathLib for uint256;
-
     /// @notice Thrown when attempting to relay a message and the cross domain message sender is not
     /// SuperchainETHBridge.
     error InvalidCrossDomainSender();
@@ -80,20 +77,6 @@ contract SuperchainETHBridge is ISemver {
         lastRefillTime = nowTime;
     }
 
-    function _calculateFee(uint256 amount) internal pure returns (uint256) {
-        // Normalize amount to [0, 1] in 18 decimals
-        uint256 normalized = amount.divWad(MAX_PERMITTED_AMOUNT);
-
-        // Raise to the exponent (e.g., x^3)
-        uint256 powered = normalized.rpow(CURVE_EXPONENT, 1e18);
-
-        // Calculate the percentage of the amount
-        uint256 percentageFee = amount.mulWad(powered.mulWad(MAX_FEE_PERCENTAGE));
-
-        // Add base fee
-        return percentageFee + BASE_FEE;
-    }
-
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
     }
@@ -106,7 +89,8 @@ contract SuperchainETHBridge is ISemver {
         if (_to == address(0)) revert ZeroAddress();
         if (msg.value > MAX_PERMITTED_AMOUNT) revert AmountTooHigh();
 
-        uint256 amountToSend = msg.value - _calculateFee(msg.value);
+        uint256 amountToSend =
+            msg.value - Fee.calculateFee(msg.value, MAX_PERMITTED_AMOUNT, CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
