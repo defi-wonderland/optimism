@@ -117,6 +117,13 @@ contract SuperchainETHBridge is ISemver {
         bucketAvailable_ = bucketCapacity() - newBucketUsage;
     }
 
+    /// @notice Calculates the fee for the given amount.
+    /// @param amount The amount to calculate the fee for.
+    /// @return fee The fee for the given amount.
+    function calculateFee(uint256 amount) public view returns (uint256) {
+        return Fee.calculateFee(amount, maxTxETHAmount, CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
+    }
+
     /// @notice Sends ETH to some target address on another chain.
     /// @param _to       Address to send ETH to.
     /// @param _chainId  Chain ID of the destination chain.
