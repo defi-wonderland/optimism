@@ -47,12 +47,12 @@ contract SuperchainETHBridge is ISemver {
     /// @custom:semver 1.0.1
     string public constant version = "1.0.1";
 
-    uint256 public constant INTEROP_LAUNCH = 1745340856; // 22 apr
+    uint256 public constant ETH_RATE_LIMIT_ACTIVATION = 1745340856; // 22 apr
 
     /// Fee calculation parameters
     uint256 public constant MAX_FEE_PERCENTAGE = 0.02e18; // 2%
     uint256 public constant CURVE_EXPONENT = 8;
-    uint256 public constant BASE_FEE = 0.0001 ether;
+    uint256 public constant BASE_FEE = 100_000;
     uint256 public constant REFILL_TIME_WINDOW = 1 hours;
 
     /// The maximum amount of ETH that can be sent in a single transaction
@@ -62,11 +62,11 @@ contract SuperchainETHBridge is ISemver {
     uint256 public lastBucketUsage;
 
     function bucketCapacity() public view returns (uint256) {
-        if (block.timestamp - INTEROP_LAUNCH > 7 days) {
+        if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 7 days) {
             return 500 ether;
-        } else if (block.timestamp - INTEROP_LAUNCH > 14 days) {
+        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 14 days) {
             return 1000 ether;
-        } else if (block.timestamp - INTEROP_LAUNCH > 21 days) {
+        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 21 days) {
             return 2000 ether;
         } else {
             return 10_000 ether;
