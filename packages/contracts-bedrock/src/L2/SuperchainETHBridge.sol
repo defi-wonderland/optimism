@@ -22,7 +22,7 @@ contract SuperchainETHBridge is ISemver {
     /// @notice The bucket checkpoint struct
     /// @param timestamp The timestamp of the last bucket usage checkpoint
     /// @param usage The amount of ETH used from the bucket since the last checkpoint
-    /// @dev Packing both values in
+    /// @dev Packing both values in a single storage slot to save gas
     struct BucketCheckpoint {
         uint128 timestamp;
         uint128 usage;
@@ -96,6 +96,7 @@ contract SuperchainETHBridge is ISemver {
     /// @return bucketRefillAmount_ The potential refill amount since the last bucket usage checkpoint
     function bucketAvailable() public view returns (uint256 bucketAvailable_, uint256 bucketRefillAmount_) {
         uint256 elapsedTime = block.timestamp - lastBucketCheckpoint.timestamp;
+        // If the time elapsed is greater than the refill time window, the bucket usage is fully available
         if (elapsedTime > REFILL_TIME_WINDOW) {
             return (bucketAvailable_ = bucketCapacity(), bucketRefillAmount_ = lastBucketCheckpoint.usage);
         }
