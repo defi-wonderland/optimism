@@ -76,13 +76,15 @@ contract SuperchainETHBridge is ISemver {
     /// @notice Returns the bucket capacity based on the time since the rate limit activation
     // TODO: Define proper bucket capacity values
     function bucketCapacity() public view returns (uint256) {
-        if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 30 days) {
+        uint256 timeSinceActivation = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
+
+        if (timeSinceActivation > 30 days) {
             return 2000 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 14 days) {
+        } else if (timeSinceActivation > 14 days) {
             return 1000 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 7 days) {
+        } else if (timeSinceActivation > 7 days) {
             return 500 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 1 days) {
+        } else if (timeSinceActivation > 1 days) {
             return 100 ether;
         } else {
             return 10_000 ether;
@@ -144,7 +146,7 @@ contract SuperchainETHBridge is ISemver {
             _message: abi.encodeCall(this.relayETH, (msg.sender, _to, amountToSend))
         });
 
-        emit SendETH(msg.sender, _to, msg.value, _chainId);
+        emit SendETH(msg.sender, _to, amountToSend, _chainId);
     }
 
     /// @notice Relays ETH received from another chain.
