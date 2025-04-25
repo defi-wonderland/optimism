@@ -5,7 +5,7 @@ pragma solidity 0.8.15;
 import { Unauthorized, ZeroAddress } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
-import { FixedPointMathLib } from "@solady/utils/FixedPointMathLib.sol";
+import { Fee } from "src/libraries/Fee.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -17,8 +17,6 @@ import { IETHLiquidity } from "interfaces/L2/IETHLiquidity.sol";
 /// @title SuperchainETHBridge
 /// @notice SuperchainETHBridge enables ETH transfers between chains within an interop cluster.
 contract SuperchainETHBridge is ISemver {
-    using FixedPointMathLib for uint256;
-
     /// @notice The bucket checkpoint struct
     /// @param timestamp The timestamp of the last bucket usage checkpoint
     /// @param usage The amount of ETH used from the bucket since the last checkpoint
@@ -78,13 +76,15 @@ contract SuperchainETHBridge is ISemver {
     /// @notice Returns the bucket capacity based on the time since the rate limit activation
     // TODO: Define proper bucket capacity values
     function bucketCapacity() public view returns (uint256) {
-        if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 30 days) {
+        uint256 timeSinceActivation = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
+
+        if (timeSinceActivation > 30 days) {
             return 2000 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 14 days) {
+        } else if (timeSinceActivation > 14 days) {
             return 1000 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 7 days) {
+        } else if (timeSinceActivation > 7 days) {
             return 500 ether;
-        } else if (block.timestamp - ETH_RATE_LIMIT_ACTIVATION > 1 days) {
+        } else if (timeSinceActivation > 1 days) {
             return 100 ether;
         } else {
             return 10_000 ether;
@@ -119,19 +119,11 @@ contract SuperchainETHBridge is ISemver {
         bucketAvailable_ = bucketCapacity() - newBucketUsage;
     }
 
-    // TODO: Move to a library
+    /// @notice Calculates the fee for the given amount.
+    /// @param amount The amount to calculate the fee for.
+    /// @return fee The fee for the given amount.
     function calculateFee(uint256 amount) public view returns (uint256) {
-        // Normalize amount to [0, 1] in 18 decimals
-        uint256 normalized = amount.divWad(maxTxETHAmount);
-
-        // Raise to the exponent (e.g., x^3)
-        uint256 powered = normalized.rpow(CURVE_EXPONENT, 1e18);
-
-        // Calculate the percentage of the amount
-        uint256 percentageFee = amount.mulWad(powered.mulWad(MAX_FEE_PERCENTAGE));
-
-        // Add base fee
-        return percentageFee + BASE_FEE;
+        return Fee.calculateFee(amount, maxTxETHAmount, CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
     }
 
     /// @notice Sends ETH to some target address on another chain.
@@ -142,7 +134,8 @@ contract SuperchainETHBridge is ISemver {
         if (_to == address(0)) revert ZeroAddress();
         if (msg.value > maxTxETHAmount) revert AmountTooHigh();
 
-        uint256 amountToSend = msg.value - calculateFee(msg.value);
+        uint256 amountToSend =
+            msg.value - Fee.calculateFee(msg.value, maxTxETHAmount, CURVE_EXPONENT, MAX_FEE_PERCENTAGE, BASE_FEE);
 
         // NOTE: 'burn' will soon change to 'deposit'.
         IETHLiquidity(Predeploys.ETH_LIQUIDITY).burn{ value: msg.value }();
@@ -153,7 +146,7 @@ contract SuperchainETHBridge is ISemver {
             _message: abi.encodeCall(this.relayETH, (msg.sender, _to, amountToSend))
         });
 
-        emit SendETH(msg.sender, _to, msg.value, _chainId);
+        emit SendETH(msg.sender, _to, amountToSend, _chainId);
     }
 
     /// @notice Relays ETH received from another chain.
@@ -164,7 +157,6 @@ contract SuperchainETHBridge is ISemver {
         if (msg.sender != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert Unauthorized();
 
         // Check that the amount is within the rate limit
-        if (_amount > maxTxETHAmount) revert AmountTooHigh();
         (uint256 bucketAvailableAmount, uint256 bucketRefillAmount) = bucketAvailable();
         if (_amount > bucketAvailableAmount) revert NoBucketAvailability();
 
