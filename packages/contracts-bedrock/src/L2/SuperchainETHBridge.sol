@@ -75,16 +75,16 @@ contract SuperchainETHBridge is ISemver {
     function bucketCapacity() public view returns (uint256) {
         uint256 maturityTime = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
 
-        if (maturityTime > 30 days) {
+        if (maturityTime >= 30 days) {
             return 2000 ether;
-        } else if (maturityTime > 14 days) {
+        } else if (maturityTime >= 14 days) {
             return 1000 ether;
-        } else if (maturityTime > 7 days) {
+        } else if (maturityTime >= 7 days) {
             return 500 ether;
-        } else if (maturityTime > 1 days) {
+        } else if (maturityTime >= 1 days) {
             return 100 ether;
         } else {
-            return 10_000 ether;
+            return 0;
         }
     }
 
