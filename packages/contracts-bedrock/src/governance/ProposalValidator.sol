@@ -1,12 +1,12 @@
 pragma solidity 0.8.15;
 
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-contract ProposalValidator is Ownable {
+contract ProposalValidator is OwnableUpgradeable {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -75,15 +75,26 @@ contract ProposalValidator is Ownable {
     mapping(bytes32 => ProposalData) private _proposals;
 
     constructor(
-        address _owner,
-        IOptimismGovernor _governor,
-        IGovernanceToken _votingToken,
         bytes32 _attestationSchemaUid
     ) {
-        transferOwnership(_owner);
+        ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
+        _disableInitializers();
+    }
+
+    function initialize(
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken,
+        uint256 _minimumVotingPower,
+        address _owner
+    )
+        external
+        initializer
+    {
         governor = _governor;
         votingToken = _votingToken;
-        ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
+        minimumVotingPower = _minimumVotingPower;
+        __Ownable_init();
+        _transferOwnership(_owner);
     }
 
     /**

@@ -9,6 +9,9 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
+import { Proxy } from "src/universal/Proxy.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
+import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
 contract ProposalValidator_Test is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
@@ -20,7 +23,8 @@ contract ProposalValidator_Test is CommonTest {
     address topDelegate_C;
     address topDelegate_D;
 
-    ProposalValidator public validator;
+    address public impl;
+    ProposalValidator public validatorProxy;
     IOptimismGovernor public governor;
     bytes32 public ATTESTATION_SCHEMA_UID;
 
@@ -40,7 +44,7 @@ contract ProposalValidator_Test is CommonTest {
 
     function _approveProposal(address _delegate, bytes32 _proposalHash) internal {
         vm.prank(_delegate);
-        validator.approveProposal(_proposalHash);
+        validatorProxy.approveProposal(_proposalHash);
     }
 
     /// @dev Sets up the test suite.
@@ -55,10 +59,11 @@ contract ProposalValidator_Test is CommonTest {
             "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
-        validator = new ProposalValidator(owner, governor, governanceToken, ATTESTATION_SCHEMA_UID);
+        impl = address(new ProposalValidator(ATTESTATION_SCHEMA_UID));
+        validatorProxy = ProposalValidator(address(new Proxy(owner)));
 
         vm.prank(owner);
-        validator.setMinimumVotingPower(TOP_DELEGATE_VOTING_POWER);
+        IProxy(payable(address(validatorProxy))).upgradeToAndCall(address(impl), abi.encodeCall(impl.initialize, (governor, governanceToken, TOP_DELEGATE_VOTING_POWER, owner)));
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");
         topDelegate_B = _makeTopDelegate("topDelegate_B");
@@ -96,7 +101,7 @@ contract ProposalValidator_Test is CommonTest {
 
         // Submit the proposal
         vm.prank(topDelegate_A);
-        bytes32 proposalHash = validator.submitProposal(
+        bytes32 proposalHash = validatorProxy.submitProposal(
             targets, values, calldatas, description, proposalType, proposalTypeConfigurator, attestationUid
         );
 
@@ -115,7 +120,7 @@ contract ProposalValidator_Test is CommonTest {
 
         // Move to vote phase
         vm.prank(owner);
-        uint256 governorProposalId = validator.moveToVote(targets, values, calldatas, description);
+        uint256 governorProposalId = validatorProxy.moveToVote(targets, values, calldatas, description);
 
         // Verify the proposal was created in the governor
         assertEq(governorProposalId, 1);
