@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {VotingModule} from "src/governance/VotingModule.sol";
 import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 import {IGovernanceToken} from "./IGovernanceToken.sol";
 
@@ -54,6 +53,8 @@ interface IProposalValidator {
     function governor() external view returns (IOptimismGovernor);
     function minimumVotingPower() external view returns (uint256);
     function votingToken() external view returns (IGovernanceToken);
+    function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+    function owner() external view returns (address);
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -92,25 +93,34 @@ interface IProposalValidator {
         ProposalType proposalType,
         uint8 proposalTypeConfigurator,
         bytes32 attestationUid
-    ) external returns (bytes32 proposalHash);
+    ) external returns (bytes32 proposalHash_);
 
     function approveProposal(bytes32 proposalHash) external;
 
     function moveToVote(
-        bytes32 proposalHash,
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description
-    ) external returns (uint256 governorProposalId);
+    ) external returns (uint256);
     
-    function setMinimumVotingPower(uint256 minimumVotingPower) external;
+    function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
-    function setProposalDeadline(uint256 proposalId, uint64 deadline) external;
+    function setProposalDeadline(uint256 _proposalId, uint64 _deadline) external;
     
-    function setVotingDelay(uint256 newVotingDelay) external;
+    function setVotingDelay(uint256 _newVotingDelay) external;
     
-    function setVotingPeriod(uint256 newVotingPeriod) external;
+    function setVotingPeriod(uint256 _newVotingPeriod) external;
     
-    function setProposalThreshold(uint256 newProposalThreshold) external;
+    function setProposalThreshold(uint256 _newProposalThreshold) external;
+
+    function setVotingToken(IGovernanceToken _votingToken) external;
+
+    function transferOwnership(address newOwner) external;
+
+    function renounceOwnership() external;
+
+    function canSignOff(address _delegate) external returns (bool);
+
+    function __constructor__(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken, bytes32 _attestationSchemaUid) external;
 }

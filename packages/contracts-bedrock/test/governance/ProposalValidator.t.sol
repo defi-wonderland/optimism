@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { IProposalValidator } from "interfaces/governance/IProposalValidator.sol";
 import { ProposalValidator } from "src/governance/ProposalValidator.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
-import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import {IEAS, AttestationRequest, AttestationRequestData} from "src/vendor/eas/IEAS.sol";
+import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas/IEAS.sol";
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
@@ -54,9 +52,7 @@ contract ProposalValidator_Test is CommonTest {
 
         vm.prank(owner);
         ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType",
-            ISchemaResolver(address(0)),
-            false
+            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
         validator = new ProposalValidator(owner, governor, governanceToken, ATTESTATION_SCHEMA_UID);
@@ -70,7 +66,7 @@ contract ProposalValidator_Test is CommonTest {
         topDelegate_D = _makeTopDelegate("topDelegate_D");
     }
 
-    function test_proposalHappyPath() public {
+    function test_proposalHappyPath_succeeds() public {
         // Create a proposal
         address[] memory targets = new address[](1);
         targets[0] = address(0);
@@ -79,7 +75,7 @@ contract ProposalValidator_Test is CommonTest {
         bytes[] memory calldatas = new bytes[](1);
         calldatas[0] = bytes("");
         string memory description = "Test proposal";
-        IProposalValidator.ProposalType proposalType = IProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         uint8 proposalTypeConfigurator = 0;
 
         // Create attestation for the delegate
@@ -101,13 +97,7 @@ contract ProposalValidator_Test is CommonTest {
         // Submit the proposal
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitProposal(
-            targets, 
-            values, 
-            calldatas, 
-            description, 
-            proposalType, 
-            proposalTypeConfigurator, 
-            attestationUid
+            targets, values, calldatas, description, proposalType, proposalTypeConfigurator, attestationUid
         );
 
         // Collect all required approvals
@@ -119,23 +109,14 @@ contract ProposalValidator_Test is CommonTest {
         // Mock the governor call
         _mockAndExpect(
             address(governor),
-            abi.encodeCall(
-                IOptimismGovernor.propose, 
-                (targets, values, calldatas, description, uint8(proposalType))
-            ),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, uint8(proposalType))),
             abi.encode(1)
         );
 
         // Move to vote phase
         vm.prank(owner);
-        uint256 governorProposalId = validator.moveToVote(
-            proposalHash, 
-            targets, 
-            values, 
-            calldatas, 
-            description
-        );
-        
+        uint256 governorProposalId = validator.moveToVote(targets, values, calldatas, description);
+
         // Verify the proposal was created in the governor
         assertEq(governorProposalId, 1);
     }
