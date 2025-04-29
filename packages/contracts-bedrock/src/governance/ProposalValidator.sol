@@ -74,9 +74,7 @@ contract ProposalValidator is OwnableUpgradeable {
 
     mapping(bytes32 => ProposalData) private _proposals;
 
-    constructor(
-        bytes32 _attestationSchemaUid
-    ) {
+    constructor(bytes32 _attestationSchemaUid) {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
         _disableInitializers();
     }

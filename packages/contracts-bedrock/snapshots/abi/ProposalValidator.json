@@ -2,21 +2,6 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IOptimismGovernor",
-        "name": "_governor",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IGovernanceToken",
-        "name": "_votingToken",
-        "type": "address"
-      },
-      {
         "internalType": "bytes32",
         "name": "_attestationSchemaUid",
         "type": "bytes32"
@@ -81,6 +66,34 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IOptimismGovernor",
+        "name": "_governor",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IGovernanceToken",
+        "name": "_votingToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minimumVotingPower",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -307,6 +320,19 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
   },
   {
     "anonymous": false,

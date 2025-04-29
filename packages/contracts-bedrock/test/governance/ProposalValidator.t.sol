@@ -11,7 +11,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
-import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
 contract ProposalValidator_Test is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
@@ -23,7 +22,7 @@ contract ProposalValidator_Test is CommonTest {
     address topDelegate_C;
     address topDelegate_D;
 
-    address public impl;
+    ProposalValidator public impl;
     ProposalValidator public validatorProxy;
     IOptimismGovernor public governor;
     bytes32 public ATTESTATION_SCHEMA_UID;
@@ -59,11 +58,14 @@ contract ProposalValidator_Test is CommonTest {
             "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
-        impl = address(new ProposalValidator(ATTESTATION_SCHEMA_UID));
+        impl = new ProposalValidator(ATTESTATION_SCHEMA_UID);
         validatorProxy = ProposalValidator(address(new Proxy(owner)));
 
         vm.prank(owner);
-        IProxy(payable(address(validatorProxy))).upgradeToAndCall(address(impl), abi.encodeCall(impl.initialize, (governor, governanceToken, TOP_DELEGATE_VOTING_POWER, owner)));
+        IProxy(payable(address(validatorProxy))).upgradeToAndCall(
+            address(impl),
+            abi.encodeCall(impl.initialize, (governor, governanceToken, TOP_DELEGATE_VOTING_POWER, owner))
+        );
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");
         topDelegate_B = _makeTopDelegate("topDelegate_B");
