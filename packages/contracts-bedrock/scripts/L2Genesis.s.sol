@@ -284,9 +284,6 @@ contract L2Genesis is Deployer {
         if (cfg.useInterop()) {
             setCrossL2Inbox(); // 22
             setL2ToL2CrossDomainMessenger(); // 23
-            setSuperchainETHBridge(); // 24
-            setETHLiquidity(); // 25
-            setSuperchainTokenBridge(); // 28
         }
     }
 

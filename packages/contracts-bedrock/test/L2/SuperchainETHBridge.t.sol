@@ -26,6 +26,14 @@ contract SuperchainETHBridge_Test is CommonTest {
     function setUp() public virtual override {
         super.enableInterop();
         super.setUp();
+
+        // Remove when Deploy.s.sol includes these contracts.
+        address[2] memory _addr = [Predeploys.SUPERCHAIN_ETH_BRIDGE, Predeploys.ETH_LIQUIDITY];
+        for (uint256 i; i < _addr.length; i++) {
+            string memory cname = Predeploys.getName(_addr[i]);
+            address impl = Predeploys.predeployToCodeNamespace(_addr[i]);
+            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
+        }
     }
 
     /// @notice Helper function to setup a mock and expect a call to it.
