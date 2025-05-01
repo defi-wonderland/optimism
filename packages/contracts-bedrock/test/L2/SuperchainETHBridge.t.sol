@@ -36,6 +36,7 @@ contract SuperchainETHBridge_Test is CommonTest {
         vm.expectCall(_receiver, _calldata);
     }
 
+    /// @notice Tests the `bucketCapacity` function.
     function test_bucketCapacity() public {
         assertEq(superchainETHBridge.bucketCapacity(), 0);
 
@@ -52,6 +53,7 @@ contract SuperchainETHBridge_Test is CommonTest {
         assertEq(superchainETHBridge.bucketCapacity(), 2000 ether);
     }
 
+    /// @notice Tests the `maxTxETHAmount` function.
     function test_maxTxETHAmount() public {
         assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
 
@@ -66,6 +68,66 @@ contract SuperchainETHBridge_Test is CommonTest {
 
         skip(30 days);
         assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
+    }
+
+    /// @notice Tests the `bucketAvailable` function.
+    function test_bucketAvailable() public {
+        (uint256 _bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        assertEq(_bucketAvailable, 0);
+
+        skip(1 days);
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        assertEq(_bucketAvailable, 100 ether);
+
+        skip(7 days);
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        assertEq(_bucketAvailable, 500 ether);
+
+        skip(14 days);
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        assertEq(_bucketAvailable, 1000 ether);
+
+        skip(30 days);
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        assertEq(_bucketAvailable, 2000 ether);
+    }
+
+    function test_bucketAvailableWithUsage(
+        uint256 _skip,
+        uint256 _amount,
+        uint256 _source,
+        address _to,
+        address _from
+    )
+        public
+    {
+        skip(bound(_skip, 0, 30 days));
+        (uint256 _bucketAvailable,) = superchainETHBridge.bucketAvailable();
+
+        _amount = bound(_amount, 0, _bucketAvailable);
+
+        // Arrange
+        vm.deal(address(superchainETHBridge), _amount);
+        vm.deal(Predeploys.ETH_LIQUIDITY, _amount);
+        _mockAndExpect(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageContext, ()),
+            abi.encode(address(superchainETHBridge), _source)
+        );
+
+        // Call the `RelayETH` function with the messenger caller
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        superchainETHBridge.relayETH(_from, _to, _amount);
+
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+
+        // Assert
+        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amount);
+
+        skip(superchainETHBridge.REFILL_TIME_WINDOW());
+
+        // Assert
+        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity());
     }
 
     /// @notice Tests the `sendETH` function reverts when the address `_to` is zero.
