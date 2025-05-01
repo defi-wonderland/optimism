@@ -131,22 +131,6 @@ contract ProposalValidator is IProposalValidator, Ownable {
         minimumVotingPower = _minimumVotingPower;
     }
 
-    function setProposalThreshold(uint256 _newProposalThreshold) external onlyOwner {
-        governor.setProposalThreshold(_newProposalThreshold);
-    }
-
-    function setProposalDeadline(uint256 _proposalId, uint64 _deadline) external onlyOwner {
-        governor.setProposalDeadline(_proposalId, _deadline);
-    }
-
-    function setVotingDelay(uint256 _newVotingDelay) external onlyOwner {
-        governor.setVotingDelay(_newVotingDelay);
-    }
-
-    function setVotingPeriod(uint256 _newVotingPeriod) external onlyOwner {
-        governor.setVotingPeriod(_newVotingPeriod);
-    }
-
     /**
      * @notice Sets the voting token used to determine voting power
      * @param _votingToken The token used for determining voting power
