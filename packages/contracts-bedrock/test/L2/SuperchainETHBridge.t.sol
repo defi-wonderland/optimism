@@ -143,6 +143,19 @@ contract SuperchainETHBridge_Test is CommonTest {
         superchainETHBridge.sendETH{ value: _amount }(ZERO_ADDRESS, _chainId);
     }
 
+    /// @notice Tests the `sendETH` function reverts when the amount is greater than the bucket available.
+    function testFuzz_sendETH_amountGreatermaxTxETHAmount_reverts(address _sender, uint256 _chainId) public {
+        uint256 _amount = superchainETHBridge.maxTxETHAmount() + 1;
+
+        // Expect the revert with `AmountTooHigh` selector
+        vm.expectRevert(ISuperchainETHBridge.AmountTooHigh.selector);
+
+        vm.deal(_sender, _amount);
+        vm.prank(_sender);
+        // Call the `sendETH` function with the zero address as `_to`
+        superchainETHBridge.sendETH{ value: _amount }(address(1), _chainId);
+    }
+
     /// @notice Tests the `sendETH` function burns the sender ETH, sends the message, and emits the `SendETH`
     /// event.
     function testFuzz_sendETH_succeeds(
@@ -241,6 +254,17 @@ contract SuperchainETHBridge_Test is CommonTest {
         // Call the `relayETH` function with the sender caller
         vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         superchainETHBridge.relayETH(_crossDomainMessageSender, _to, _amount);
+    }
+
+    /// @notice Tests the `relayETH` function reverts when the amount is greater than the bucket available.
+    function testFuzz_relayETH_amountGreaterThanBucketAvailable_reverts(address _from, address _to) public {
+        (uint256 _bucketAvailableAmount,) = superchainETHBridge.bucketAvailable();
+        uint256 _amount = _bucketAvailableAmount + 1;
+        // Expect the revert with `NoBucketAvailability` selector
+        vm.expectRevert(ISuperchainETHBridge.NoBucketAvailability.selector);
+        // Call the `relayETH` function with the sender caller
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        superchainETHBridge.relayETH(_from, _to, _amount);
     }
 
     /// @notice Tests the `relayETH` function relays the proper amount of ETH and emits the `RelayETH` event.

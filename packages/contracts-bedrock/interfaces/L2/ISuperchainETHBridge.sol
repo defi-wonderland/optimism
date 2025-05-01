@@ -7,6 +7,8 @@ interface ISuperchainETHBridge is ISemver {
     error Unauthorized();
     error InvalidCrossDomainSender();
     error ZeroAddress();
+    error AmountTooHigh();
+    error NoBucketAvailability();
 
     event SendETH(address indexed from, address indexed to, uint256 amount, uint256 destination);
 
