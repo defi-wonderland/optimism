@@ -126,6 +126,8 @@ contract SuperchainETHBridge_Test is CommonTest {
 
         skip(superchainETHBridge.REFILL_TIME_WINDOW());
 
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+
         // Assert
         assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity());
     }
