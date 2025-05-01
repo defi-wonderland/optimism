@@ -17,6 +17,8 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Libraries
 import { console } from "forge-std/console.sol";
+// Remove when Deploy.s.sol includes these contracts.
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { IOptimismMintableERC20Full } from "interfaces/universal/IOptimismMintableERC20Full.sol";
@@ -193,6 +195,16 @@ contract CommonTest is Test, Setup, Events {
     function enableInterop() public {
         _checkNotDeployed("interop");
         useInteropOverride = true;
+
+        // Remove when Deploy.s.sol includes these contracts.
+        address[3] memory _addr =
+            [Predeploys.SUPERCHAIN_ETH_BRIDGE, Predeploys.ETH_LIQUIDITY, Predeploys.SUPERCHAIN_TOKEN_BRIDGE];
+        for (uint256 i; i < _addr.length; i++) {
+            string memory cname = Predeploys.getName(_addr[i]);
+            address impl = Predeploys.predeployToCodeNamespace(_addr[i]);
+            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
+        }
+        vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
     }
 
     /// @dev Disables upgrade mode for testing. By default the fork testing env will be upgraded to the latest

@@ -8,9 +8,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { InvalidAmount } from "src/libraries/errors/CommonErrors.sol";
 
-// Libraries (remove when Deploy.s.sol includes these contracts.)
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 /// @title ETHLiquidity_Test
 /// @notice Contract for testing the ETHLiquidity contract.
 contract ETHLiquidity_Test is CommonTest {
@@ -30,15 +27,6 @@ contract ETHLiquidity_Test is CommonTest {
     function setUp() public virtual override {
         super.enableInterop();
         super.setUp();
-
-        // Remove when Deploy.s.sol includes these contracts.
-        address[1] memory _addr = [Predeploys.ETH_LIQUIDITY];
-        for (uint256 i; i < _addr.length; i++) {
-            string memory cname = Predeploys.getName(_addr[i]);
-            address impl = Predeploys.predeployToCodeNamespace(_addr[i]);
-            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
-        }
-        vm.deal(Predeploys.ETH_LIQUIDITY, type(uint248).max);
     }
 
     /// @notice Tests that contract is set up with the correct starting balance.

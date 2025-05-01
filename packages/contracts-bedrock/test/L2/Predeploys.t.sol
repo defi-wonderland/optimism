@@ -130,15 +130,6 @@ contract PredeploysInteropTest is PredeploysBaseTest {
     function setUp() public virtual override {
         super.enableInterop();
         super.setUp();
-
-        // Remove when Deploy.s.sol includes these contracts.
-        address[3] memory _addr =
-            [Predeploys.SUPERCHAIN_ETH_BRIDGE, Predeploys.ETH_LIQUIDITY, Predeploys.SUPERCHAIN_TOKEN_BRIDGE];
-        for (uint256 i; i < _addr.length; i++) {
-            string memory cname = Predeploys.getName(_addr[i]);
-            address impl = Predeploys.predeployToCodeNamespace(_addr[i]);
-            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
-        }
     }
 
     /// @dev Tests that the predeploy addresses are set correctly. They have code
