@@ -10,7 +10,7 @@ import {IEAS, Attestation} from "src/vendor/eas/IEAS.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 contract ProposalValidator is IProposalValidator, Ownable {
-    bytes32 public immutable ATTESTATION_SCHEMA_UID; // { approvedDelegate: address, proposalType: uint8 }
+    bytes32 public immutable ATTESTATION_SCHEMA_UID; // { approvedProposer: address, proposalType: uint8 }
     uint256 public minimumVotingPower;
     IOptimismGovernor public governor;
     IGovernanceToken public votingToken;
