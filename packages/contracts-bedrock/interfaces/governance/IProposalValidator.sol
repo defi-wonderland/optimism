@@ -58,37 +58,37 @@ interface IProposalValidator {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     function submitProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        ProposalType proposalType,
-        bytes32 attestationUid
-    ) external returns (uint256);
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description,
+        ProposalType _proposalType,
+        bytes32 _attestationUid
+    ) external returns (uint256 proposalId_);
 
-    function approveProposal(uint256 proposalId) external;
+    function approveProposal(uint256 _proposalId) external;
 
-    function moveToVote(uint256 proposalId) external returns (uint256);
+    function moveToVote(uint256 _proposalId) external returns (uint256 governorProposalId_);
     
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
     
     function renounceOwnership() external;
     
-    function canSignOff(address _delegate) external view returns (bool);
+    function canSignOff(address _delegate) external view returns (bool canSignOff_);
     
     function setVotingToken(IGovernanceToken _votingToken) external;
     
-    function transferOwnership(address newOwner) external;
+    function transferOwnership(address _newOwner) external;
 
-    function minimumVotingPower() external view returns (uint256);
+    function minimumVotingPower() external view returns (uint256 minimumVotingPower_);
 
-    function votingToken() external view returns (IGovernanceToken);
+    function votingToken() external view returns (IGovernanceToken votingToken_);
 
-    function governor() external view returns (IOptimismGovernor);
+    function governor() external view returns (IOptimismGovernor governor_);
 
-    function owner() external view returns (address);
+    function owner() external view returns (address owner_);
 
-    function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+    function ATTESTATION_SCHEMA_UID() external view returns (bytes32 attestationSchemaUid_);
     
     function __constructor__(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken, bytes32 _attestationSchemaUid) external;
 }

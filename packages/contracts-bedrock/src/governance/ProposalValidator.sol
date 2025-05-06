@@ -90,53 +90,53 @@ contract ProposalValidator is Ownable {
 
     /**
      * @notice Submit a proposal for delegate approval
-     * @param targets Target addresses for proposal calls
-     * @param values ETH values for proposal calls
-     * @param calldatas Function data for proposal calls
-     * @param description Description of the proposal
-     * @param proposalType Type of the proposal
-     * @return proposalId The ID of the submitted proposal
+     * @param _targets Target addresses for proposal calls
+     * @param _values ETH values for proposal calls
+     * @param _calldatas Function data for proposal calls
+     * @param _description Description of the proposal
+     * @param _proposalType Type of the proposal
+     * @return proposalId_ The ID of the submitted proposal
      */
     function submitProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        ProposalType proposalType,
-        bytes32 attestationUid
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description,
+        ProposalType _proposalType,
+        bytes32 _attestationUid
     )
         external
-        returns (uint256)
+        returns (uint256 proposalId_)
     {
-        _validateProposal(targets, values, calldatas, proposalType, attestationUid);
+        _validateProposal(_targets, _values, _calldatas, _proposalType, _attestationUid);
 
-        uint256 proposalId = ++_proposalCounter;
+        proposalId_ = ++_proposalCounter;
 
-        ProposalData storage proposal = _proposals[proposalId];
+        ProposalData storage proposal = _proposals[proposalId_];
         proposal.proposer = msg.sender;
-        proposal.targets = targets;
-        proposal.values = values;
-        proposal.calldatas = calldatas;
-        proposal.description = description;
-        proposal.proposalType = proposalType;
+        proposal.targets = _targets;
+        proposal.values = _values;
+        proposal.calldatas = _calldatas;
+        proposal.description = _description;
+        proposal.proposalType = _proposalType;
         proposal.inVoting = false;
         proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
 
-        emit ProposalSubmitted(proposalId, msg.sender, targets, values, calldatas, description, proposalType);
+        emit ProposalSubmitted(proposalId_, msg.sender, _targets, _values, _calldatas, _description, _proposalType);
 
-        return proposalId;
+        return proposalId_;
     }
 
     /**
      * @notice Approve a proposal (only callable by delegates with sufficient voting power)
-     * @param proposalId The ID of the proposal to approve
+     * @param _proposalId The ID of the proposal to approve
      */
-    function approveProposal(uint256 proposalId) external {
+    function approveProposal(uint256 _proposalId) external {
         if (!canSignOff(msg.sender)) {
             revert ProposalValidator_InsufficientVotingPower();
         }
 
-        ProposalData storage proposal = _proposals[proposalId];
+        ProposalData storage proposal = _proposals[_proposalId];
 
         if (proposal.delegateApprovals[msg.sender]) {
             revert ProposalValidator_AlreadyApproved();
@@ -145,16 +145,16 @@ contract ProposalValidator is Ownable {
         proposal.delegateApprovals[msg.sender] = true;
         proposal.remainingApprovalsRequired--; // Expected overflow when all approvals are granted
 
-        emit ProposalApproved(proposalId, msg.sender);
+        emit ProposalApproved(_proposalId, msg.sender);
     }
 
     /**
      * @notice Move a proposal to voting phase after sufficient delegate approvals
-     * @param proposalId The ID of the proposal to move to vote
-     * @return The proposal ID in the governor contract
+     * @param _proposalId The ID of the proposal to move to vote
+     * @return governorProposalId_ The proposal ID in the governor contract
      */
-    function moveToVote(uint256 proposalId) external returns (uint256) {
-        ProposalData storage proposal = _proposals[proposalId];
+    function moveToVote(uint256 _proposalId) external returns (uint256 governorProposalId_) {
+        ProposalData storage proposal = _proposals[_proposalId];
 
         if (proposal.remainingApprovalsRequired > 0) {
             revert ProposalValidator_InsufficientApprovals();
@@ -166,17 +166,17 @@ contract ProposalValidator is Ownable {
 
         proposal.inVoting = true;
 
-        uint256 governorProposalId = governor.propose(
+        governorProposalId_ = governor.propose(
             proposal.targets, proposal.values, proposal.calldatas, proposal.description, uint8(proposal.proposalType)
         );
 
-        emit ProposalMovedToVote(proposalId, msg.sender);
+        emit ProposalMovedToVote(_proposalId, msg.sender);
 
-        return governorProposalId;
+        return governorProposalId_;
     }
 
     /// @notice Returns whether a delegate has enough voting power to vote on a proposal
-    function canSignOff(address _delegate) public view returns (bool) {
+    function canSignOff(address _delegate) public view returns (bool canSignOff_) {
         return votingToken.balanceOf(_delegate) >= minimumVotingPower;
     }
 
@@ -193,41 +193,41 @@ contract ProposalValidator is Ownable {
     }
 
     function _validateProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        ProposalType proposalType,
-        bytes32 attestationUid
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        ProposalType _proposalType,
+        bytes32 _attestationUid
     )
         internal
         view
     {
-        if (_requiresApproval(proposalType)) {
-            Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(attestationUid);
+        if (_requiresApproval(_proposalType)) {
+            Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
             if (
                 attestation.attester != owner() || attestation.schema != ATTESTATION_SCHEMA_UID
-                    || !_isValidAttestationData(attestation.data, proposalType)
+                    || !_isValidAttestationData(attestation.data, _proposalType)
             ) {
                 revert ProposalValidator_InvalidAttestation();
             }
         }
     }
 
-    function _requiresApproval(ProposalType proposalType) internal pure returns (bool) {
-        return proposalType == ProposalType.ProtocolOrGovernorUpgrade
-            || proposalType == ProposalType.MaintenanceUpgradeProposals
-            || proposalType == ProposalType.CouncilMemberElections;
+    function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
+        return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
+            || _proposalType == ProposalType.MaintenanceUpgradeProposals
+            || _proposalType == ProposalType.CouncilMemberElections;
     }
 
     function _isValidAttestationData(
-        bytes memory data,
-        ProposalType expectedProposalType
+        bytes memory _data,
+        ProposalType _expectedProposalType
     )
         internal
         view
-        returns (bool)
+        returns (bool isValid_)
     {
-        (address approvedDelegate, uint8 proposalType) = abi.decode(data, (address, uint8));
-        return approvedDelegate == msg.sender && proposalType == uint8(expectedProposalType);
+        (address approvedDelegate, uint8 proposalType) = abi.decode(_data, (address, uint8));
+        return approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
     }
 }
