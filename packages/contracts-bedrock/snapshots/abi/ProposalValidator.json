@@ -552,7 +552,7 @@
   },
   {
     "inputs": [],
-    "name": "ProposalValidator_UnexistentProposal",
+    "name": "ProposalValidator_ProposalDoesNotExist",
     "type": "error"
   }
 ]

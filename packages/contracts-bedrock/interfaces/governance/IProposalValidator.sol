@@ -12,7 +12,7 @@ interface IProposalValidator {
     error ProposalValidator_ProposalAlreadyInVoting();
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
-    error ProposalValidator_UnexistentProposal();
+    error ProposalValidator_ProposalDoesNotExist();
 
     struct ProposalData {
         address proposer;

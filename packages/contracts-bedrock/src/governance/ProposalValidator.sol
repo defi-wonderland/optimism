@@ -36,7 +36,7 @@ contract ProposalValidator is Ownable {
     error ProposalValidator_InvalidAttestation();
 
     /// @notice Thrown when a proposal does not exist.
-    error ProposalValidator_UnexistentProposal();
+    error ProposalValidator_ProposalDoesNotExist();
 
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
@@ -289,7 +289,7 @@ contract ProposalValidator is Ownable {
         ProposalData storage proposal = _proposals[_proposalHash];
 
         if (proposal.proposer == address(0)) {
-            revert ProposalValidator_UnexistentProposal();
+            revert ProposalValidator_ProposalDoesNotExist();
         }
 
         if (proposal.remainingApprovalsRequired > 0) {
