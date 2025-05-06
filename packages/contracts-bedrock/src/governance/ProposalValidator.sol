@@ -387,7 +387,7 @@ contract ProposalValidator is Ownable {
         emit DistributionThresholdSet(_distributionThreshold);
     }
 
-    /// @notice Internal function to set the proposal required approvals and emit event.
+    /// @notice Internal function to set a proposal's type required approvals and emit event.
     /// @param _proposalType The type of proposal to set the required approvals for.
     /// @param _requiredApprovals The new required approvals.
     function _setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) private {
