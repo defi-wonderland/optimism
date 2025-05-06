@@ -106,6 +106,23 @@ contract ProposalValidator is Ownable {
     /// @param executor The address that executed the move to vote.
     event ProposalMovedToVote(uint256 indexed proposalId, address indexed executor);
 
+    /// @notice Emitted when the minimum voting power is set.
+    /// @param newMinimumVotingPower The new minimum voting power.
+    event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
+
+    /// @notice Emitted when the voting cycle block is set.
+    /// @param newVotingCycleBlock The new voting cycle block.
+    event VotingCycleBlockSet(uint256 newVotingCycleBlock);
+
+    /// @notice Emitted when the distribution threshold is set.
+    /// @param newDistributionThreshold The new distribution threshold.
+    event DistributionThresholdSet(uint256 newDistributionThreshold);
+
+    /// @notice Emitted when the number of approvals required for a proposal type is set.
+    /// @param proposalType The type of proposal.
+    /// @param newApprovalThreshold The new approval threshold.
+    event ProposalApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
+
     /// @notice The schema UID for attestations in the Ethereum Attestation Service.
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
     bytes32 public immutable ATTESTATION_SCHEMA_UID;
@@ -119,6 +136,15 @@ contract ProposalValidator is Ownable {
     /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
 
+    /// @notice The block number of the current voting cycle.
+    uint256 public votingCycleBlock;
+
+    /// @notice The max amount of tokens that can be distributed in a proposal.
+    uint256 public distributionThreshold;
+
+    /// @notice The number of approvals required for each proposal type.
+    mapping(ProposalType => uint256) private _proposalRequiredApprovals;
+
     /// @notice Mapping of proposal IDs to their corresponding proposal data.
     mapping(uint256 => ProposalData) private _proposals;
 
@@ -130,16 +156,34 @@ contract ProposalValidator is Ownable {
     /// @param _governor The Optimism Governor contract address.
     /// @param _votingToken The token used to determine voting power.
     /// @param _attestationSchemaUid The schema UID for attestations in EAS.
+    /// @param _minimumVotingPower The minimum voting power required for a delegate to approve proposals.
+    /// @param _votingCycleBlock The block number of the current voting cycle.
+    /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
+    /// @param _proposalTypes Array of proposal types to set approval thresholds for.
+    /// @param _requiredApprovals Array of approval thresholds corresponding to the proposal types.
     constructor(
         address _owner,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken,
-        bytes32 _attestationSchemaUid
+        bytes32 _attestationSchemaUid,
+        uint256 _minimumVotingPower,
+        uint256 _votingCycleBlock,
+        uint256 _distributionThreshold,
+        ProposalType[] memory _proposalTypes,
+        uint256[] memory _requiredApprovals
     ) {
         transferOwnership(_owner);
         governor = _governor;
         votingToken = _votingToken;
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
+
+        _setMinimumVotingPower(_minimumVotingPower);
+        _setVotingCycleBlock(_votingCycleBlock);
+        _setDistributionThreshold(_distributionThreshold);
+
+        for (uint256 i = 0; i < _proposalTypes.length; i++) {
+            _setProposalRequiredApprovals(_proposalTypes[i], _requiredApprovals[i]);
+        }
     }
 
     /// @notice Submit a proposal for delegate approval.
@@ -234,7 +278,26 @@ contract ProposalValidator is Ownable {
     /// @notice Sets the minimum voting power required for a delegate to approve proposals.
     /// @param _minimumVotingPower The new minimum voting power threshold.
     function setMinimumVotingPower(uint256 _minimumVotingPower) external onlyOwner {
-        minimumVotingPower = _minimumVotingPower;
+        _setMinimumVotingPower(_minimumVotingPower);
+    }
+
+    /// @notice Sets the block number of the current voting cycle.
+    /// @param _votingCycleBlock The new voting cycle block number.
+    function setVotingCycleBlock(uint256 _votingCycleBlock) external onlyOwner {
+        _setVotingCycleBlock(_votingCycleBlock);
+    }
+
+    /// @notice Sets the max amount of tokens that can be distributed in a proposal.
+    /// @param _distributionThreshold The new distribution threshold.
+    function setDistributionThreshold(uint256 _distributionThreshold) external onlyOwner {
+        _setDistributionThreshold(_distributionThreshold);
+    }
+
+    /// @notice Sets the number of approvals required for each proposal type.
+    /// @param _proposalType The type of proposal to set the required approvals for.
+    /// @param _requiredApprovals The new required approvals.
+    function setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) external onlyOwner {
+        _setProposalRequiredApprovals(_proposalType, _requiredApprovals);
     }
 
     /// @notice Validates a proposal before submission.
@@ -288,5 +351,34 @@ contract ProposalValidator is Ownable {
     {
         (address approvedDelegate, uint8 proposalType) = abi.decode(_data, (address, uint8));
         return approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
+    }
+
+    /// @notice Internal function to set the minimum voting power and emit event.
+    /// @param _minimumVotingPower The new minimum voting power threshold.
+    function _setMinimumVotingPower(uint256 _minimumVotingPower) private {
+        minimumVotingPower = _minimumVotingPower;
+        emit MinimumVotingPowerSet(_minimumVotingPower);
+    }
+
+    /// @notice Internal function to set the voting cycle block and emit event.
+    /// @param _votingCycleBlock The new voting cycle block number.
+    function _setVotingCycleBlock(uint256 _votingCycleBlock) private {
+        votingCycleBlock = _votingCycleBlock;
+        emit VotingCycleBlockSet(_votingCycleBlock);
+    }
+
+    /// @notice Internal function to set the distribution threshold and emit event.
+    /// @param _distributionThreshold The new distribution threshold.
+    function _setDistributionThreshold(uint256 _distributionThreshold) private {
+        distributionThreshold = _distributionThreshold;
+        emit DistributionThresholdSet(_distributionThreshold);
+    }
+
+    /// @notice Internal function to set the proposal required approvals and emit event.
+    /// @param _proposalType The type of proposal to set the required approvals for.
+    /// @param _requiredApprovals The new required approvals.
+    function _setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) private {
+        _proposalRequiredApprovals[_proposalType] = _requiredApprovals;
+        emit ProposalApprovalThresholdSet(_proposalType, _requiredApprovals);
     }
 }

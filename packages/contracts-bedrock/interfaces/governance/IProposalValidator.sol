@@ -55,6 +55,14 @@ interface IProposalValidator {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
+
+    event VotingCycleBlockSet(uint256 newVotingCycleBlock);
+
+    event DistributionThresholdSet(uint256 newDistributionThreshold);
+
+    event ProposalApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
+
     function submitProposal(
         address[] memory _targets,
         uint256[] memory _values,
@@ -69,6 +77,12 @@ interface IProposalValidator {
     function moveToVote(uint256 _proposalId) external returns (uint256 governorProposalId_);
     
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
+
+    function setVotingCycleBlock(uint256 _votingCycleBlock) external;
+
+    function setDistributionThreshold(uint256 _distributionThreshold) external;
+
+    function setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) external;
     
     function renounceOwnership() external;
     
@@ -78,6 +92,10 @@ interface IProposalValidator {
 
     function minimumVotingPower() external view returns (uint256);
 
+    function votingCycleBlock() external view returns (uint256);
+
+    function distributionThreshold() external view returns (uint256);
+
     function votingToken() external view returns (IGovernanceToken);
 
     function governor() external view returns (IOptimismGovernor);
@@ -86,5 +104,13 @@ interface IProposalValidator {
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
     
-    function __constructor__(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken, bytes32 _attestationSchemaUid) external;
+    function __constructor__(        address _owner,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken,
+        bytes32 _attestationSchemaUid,
+        uint256 _minimumVotingPower,
+        uint256 _votingCycleBlock,
+        uint256 _distributionThreshold,
+        ProposalType[] memory _proposalTypes,
+        uint256[] memory _requiredApprovals) external;
 }

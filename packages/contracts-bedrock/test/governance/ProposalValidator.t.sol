@@ -20,6 +20,10 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 /// @notice Test suite for ProposalValidator contract.
 contract ProposalValidatorTest is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
+    uint256 public constant VOTING_CYCLE_BLOCK = 100;
+    uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
+    uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
+    uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
 
     address owner;
     address rando;
@@ -53,6 +57,28 @@ contract ProposalValidatorTest is CommonTest {
         validator.approveProposal(_proposalId);
     }
 
+    function _getProposalTypesRequiredApprovals()
+        internal
+        pure
+        returns (ProposalValidator.ProposalType[] memory, uint256[] memory)
+    {
+        ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](5);
+        proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgradeProposals;
+        proposalTypes[2] = ProposalValidator.ProposalType.CouncilMemberElections;
+        proposalTypes[3] = ProposalValidator.ProposalType.GovernanceFund;
+        proposalTypes[4] = ProposalValidator.ProposalType.CouncilBudget;
+
+        uint256[] memory requiredApprovals = new uint256[](5);
+        requiredApprovals[0] = PROPOSAL_REQUIRED_APPROVALS;
+        requiredApprovals[1] = PROPOSAL_REQUIRED_APPROVALS;
+        requiredApprovals[2] = PROPOSAL_REQUIRED_APPROVALS;
+        requiredApprovals[3] = PROPOSAL_REQUIRED_APPROVALS;
+        requiredApprovals[4] = PROPOSAL_REQUIRED_APPROVALS;
+
+        return (proposalTypes, requiredApprovals);
+    }
+
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
         super.setUp();
@@ -65,10 +91,20 @@ contract ProposalValidatorTest is CommonTest {
             "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
-        validator = new ProposalValidator(owner, governor, governanceToken, ATTESTATION_SCHEMA_UID);
+        (ProposalValidator.ProposalType[] memory proposalTypes, uint256[] memory requiredApprovals) =
+            _getProposalTypesRequiredApprovals();
 
-        vm.prank(owner);
-        validator.setMinimumVotingPower(TOP_DELEGATE_VOTING_POWER);
+        validator = new ProposalValidator(
+            owner,
+            governor,
+            governanceToken,
+            ATTESTATION_SCHEMA_UID,
+            MINIMUM_VOTING_POWER,
+            VOTING_CYCLE_BLOCK,
+            DISTRIBUTION_THRESHOLD,
+            proposalTypes,
+            requiredApprovals
+        );
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");
         topDelegate_B = _makeTopDelegate("topDelegate_B");
