@@ -4,13 +4,11 @@ pragma solidity ^0.8.0;
 import {IGovernanceToken} from "./IGovernanceToken.sol";
 import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 
+/// @title IProposalValidator
+/// @notice Interface for the ProposalValidator contract.
 interface IProposalValidator {
-    error ProposalValidator_NotApprovedProposer();
-    error ProposalValidator_InvalidProposalType();
-    error ProposalValidator_ProposalNotFound();
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_AlreadyApproved();
-    error ProposalValidator_NotDelegate();
     error ProposalValidator_AlreadyProposed();
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
@@ -78,17 +76,17 @@ interface IProposalValidator {
     
     function setVotingToken(IGovernanceToken _votingToken) external;
     
-    function transferOwnership(address _newOwner) external;
+    function transferOwnership(address newOwner) external;
 
-    function minimumVotingPower() external view returns (uint256 minimumVotingPower_);
+    function minimumVotingPower() external view returns (uint256);
 
-    function votingToken() external view returns (IGovernanceToken votingToken_);
+    function votingToken() external view returns (IGovernanceToken);
 
-    function governor() external view returns (IOptimismGovernor governor_);
+    function governor() external view returns (IOptimismGovernor);
 
-    function owner() external view returns (address owner_);
+    function owner() external view returns (address);
 
-    function ATTESTATION_SCHEMA_UID() external view returns (bytes32 attestationSchemaUid_);
+    function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
     
     function __constructor__(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken, bytes32 _attestationSchemaUid) external;
 }

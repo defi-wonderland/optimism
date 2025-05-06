@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
@@ -6,25 +7,43 @@ import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
+/// @title ProposalValidator
+/// @notice The ProposalValidator contract is responsible for validating proposals and moving
+///         them to the vote phase on the Optimism Governor.
 contract ProposalValidator is Ownable {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error ProposalValidator_NotApprovedProposer();
-    error ProposalValidator_InvalidProposalType();
-    error ProposalValidator_ProposalNotFound();
+    /// @notice Thrown when a proposal doesn't have enough delegate approvals to move to vote.
     error ProposalValidator_InsufficientApprovals();
+
+    /// @notice Thrown when a delegate attempts to approve a proposal they've already approved.
     error ProposalValidator_AlreadyApproved();
-    error ProposalValidator_NotDelegate();
+
+    /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
     error ProposalValidator_AlreadyProposed();
+
+    /// @notice Thrown when a delegate has insufficient voting power to approve a proposal.
     error ProposalValidator_InsufficientVotingPower();
+
+    /// @notice Thrown when an invalid attestation is provided for a proposal.
     error ProposalValidator_InvalidAttestation();
 
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Data structure for storing proposal information.
+    /// @param proposer The address that submitted the proposal.
+    /// @param targets Target addresses for proposal calls.
+    /// @param values ETH values for proposal calls.
+    /// @param calldatas Function data for proposal calls.
+    /// @param description Description of the proposal.
+    /// @param proposalType Type of the proposal from the ProposalType enum.
+    /// @param inVoting Whether the proposal has been moved to the voting phase.
+    /// @param delegateApprovals Mapping of delegate addresses to their approval status.
+    /// @param remainingApprovalsRequired Number of approvals still needed before voting.
     struct ProposalData {
         address proposer;
         address[] targets;
@@ -41,6 +60,12 @@ contract ProposalValidator is Ownable {
                                  ENUMS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Types of proposals that can be submitted.
+    /// @param ProtocolOrGovernorUpgrade Proposals for upgrading the protocol or governor.
+    /// @param MaintenanceUpgradeProposals Proposals for maintenance upgrades.
+    /// @param CouncilMemberElections Proposals for council member elections.
+    /// @param GovernanceFund Proposals related to the governance fund.
+    /// @param CouncilBudget Proposals related to the council budget.
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
         MaintenanceUpgradeProposals,
@@ -53,6 +78,14 @@ contract ProposalValidator is Ownable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new proposal is submitted.
+    /// @param proposalId The ID of the submitted proposal.
+    /// @param proposer The address that submitted the proposal.
+    /// @param targets Target addresses for proposal calls.
+    /// @param values ETH values for proposal calls.
+    /// @param calldatas Function data for proposal calls.
+    /// @param description Description of the proposal.
+    /// @param proposalType Type of the proposal.
     event ProposalSubmitted(
         uint256 indexed proposalId,
         address indexed proposer,
@@ -63,19 +96,40 @@ contract ProposalValidator is Ownable {
         ProposalType proposalType
     );
 
+    /// @notice Emitted when a delegate approves a proposal.
+    /// @param proposalId The ID of the approved proposal.
+    /// @param approver The address of the delegate who approved the proposal.
     event ProposalApproved(uint256 indexed proposalId, address indexed approver);
 
+    /// @notice Emitted when a proposal is moved to the voting phase.
+    /// @param proposalId The ID of the proposal moved to vote.
+    /// @param executor The address that executed the move to vote.
     event ProposalMovedToVote(uint256 indexed proposalId, address indexed executor);
 
-    bytes32 public immutable ATTESTATION_SCHEMA_UID; // { approvedProposer: address, proposalType: uint8 }
+    /// @notice The schema UID for attestations in the Ethereum Attestation Service.
+    /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
+    bytes32 public immutable ATTESTATION_SCHEMA_UID;
+
+    /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
+
+    /// @notice The Optimism Governor contract that will handle the voting phase.
     IOptimismGovernor public governor;
+
+    /// @notice The token used to determine voting power.
     IGovernanceToken public votingToken;
 
+    /// @notice Mapping of proposal IDs to their corresponding proposal data.
     mapping(uint256 => ProposalData) private _proposals;
 
+    /// @notice Counter for generating unique proposal IDs.
     uint256 private _proposalCounter;
 
+    /// @notice Initializes the ProposalValidator contract.
+    /// @param _owner The address that will own the contract.
+    /// @param _governor The Optimism Governor contract address.
+    /// @param _votingToken The token used to determine voting power.
+    /// @param _attestationSchemaUid The schema UID for attestations in EAS.
     constructor(
         address _owner,
         IOptimismGovernor _governor,
@@ -88,15 +142,14 @@ contract ProposalValidator is Ownable {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
     }
 
-    /**
-     * @notice Submit a proposal for delegate approval
-     * @param _targets Target addresses for proposal calls
-     * @param _values ETH values for proposal calls
-     * @param _calldatas Function data for proposal calls
-     * @param _description Description of the proposal
-     * @param _proposalType Type of the proposal
-     * @return proposalId_ The ID of the submitted proposal
-     */
+    /// @notice Submit a proposal for delegate approval.
+    /// @param _targets Target addresses for proposal calls.
+    /// @param _values ETH values for proposal calls.
+    /// @param _calldatas Function data for proposal calls.
+    /// @param _description Description of the proposal.
+    /// @param _proposalType Type of the proposal.
+    /// @param _attestationUid The UID of the attestation proving eligibility.
+    /// @return proposalId_ The ID of the submitted proposal.
     function submitProposal(
         address[] memory _targets,
         uint256[] memory _values,
@@ -127,10 +180,8 @@ contract ProposalValidator is Ownable {
         return proposalId_;
     }
 
-    /**
-     * @notice Approve a proposal (only callable by delegates with sufficient voting power)
-     * @param _proposalId The ID of the proposal to approve
-     */
+    /// @notice Approve a proposal (only callable by delegates with sufficient voting power).
+    /// @param _proposalId The ID of the proposal to approve.
     function approveProposal(uint256 _proposalId) external {
         if (!canSignOff(msg.sender)) {
             revert ProposalValidator_InsufficientVotingPower();
@@ -148,11 +199,9 @@ contract ProposalValidator is Ownable {
         emit ProposalApproved(_proposalId, msg.sender);
     }
 
-    /**
-     * @notice Move a proposal to voting phase after sufficient delegate approvals
-     * @param _proposalId The ID of the proposal to move to vote
-     * @return governorProposalId_ The proposal ID in the governor contract
-     */
+    /// @notice Move a proposal to voting phase after sufficient delegate approvals.
+    /// @param _proposalId The ID of the proposal to move to vote.
+    /// @return governorProposalId_ The proposal ID in the governor contract.
     function moveToVote(uint256 _proposalId) external returns (uint256 governorProposalId_) {
         ProposalData storage proposal = _proposals[_proposalId];
 
@@ -175,23 +224,32 @@ contract ProposalValidator is Ownable {
         return governorProposalId_;
     }
 
-    /// @notice Returns whether a delegate has enough voting power to vote on a proposal
+    /// @notice Returns whether a delegate has enough voting power to approve a proposal.
+    /// @param _delegate The address of the delegate to check.
+    /// @return canSignOff_ True if the delegate has sufficient voting power, false otherwise.
     function canSignOff(address _delegate) public view returns (bool canSignOff_) {
         return votingToken.balanceOf(_delegate) >= minimumVotingPower;
     }
 
+    /// @notice Sets the minimum voting power required for a delegate to approve proposals.
+    /// @param _minimumVotingPower The new minimum voting power threshold.
     function setMinimumVotingPower(uint256 _minimumVotingPower) external onlyOwner {
         minimumVotingPower = _minimumVotingPower;
     }
 
-    /**
-     * @notice Sets the voting token used to determine voting power
-     * @param _votingToken The token used for determining voting power
-     */
+    /// @notice Sets the voting token used to determine voting power.
+    /// @param _votingToken The token used for determining voting power.
     function setVotingToken(IGovernanceToken _votingToken) external onlyOwner {
         votingToken = _votingToken;
     }
 
+    /// @notice Validates a proposal before submission.
+    /// @dev Checks if the proposal requires approval and validates the attestation.
+    /// @param _targets Target addresses for proposal calls.
+    /// @param _values ETH values for proposal calls.
+    /// @param _calldatas Function data for proposal calls.
+    /// @param _proposalType Type of the proposal.
+    /// @param _attestationUid The UID of the attestation proving eligibility.
     function _validateProposal(
         address[] memory _targets,
         uint256[] memory _values,
@@ -213,12 +271,19 @@ contract ProposalValidator is Ownable {
         }
     }
 
+    /// @notice Determines if a proposal type requires approval via attestation.
+    /// @param _proposalType The type of proposal to check.
+    /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
     function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
         return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
             || _proposalType == ProposalType.MaintenanceUpgradeProposals
             || _proposalType == ProposalType.CouncilMemberElections;
     }
 
+    /// @notice Validates the attestation data for a proposal.
+    /// @param _data The attestation data to validate.
+    /// @param _expectedProposalType The expected proposal type from the attestation.
+    /// @return isValid_ True if the attestation data is valid, false otherwise.
     function _isValidAttestationData(
         bytes memory _data,
         ProposalType _expectedProposalType

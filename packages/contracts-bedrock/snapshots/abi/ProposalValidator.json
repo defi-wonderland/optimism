@@ -42,7 +42,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "proposalId",
+        "name": "_proposalId",
         "type": "uint256"
       }
     ],
@@ -63,7 +63,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "canSignOff_",
         "type": "bool"
       }
     ],
@@ -100,7 +100,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "proposalId",
+        "name": "_proposalId",
         "type": "uint256"
       }
     ],
@@ -108,7 +108,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "governorProposalId_",
         "type": "uint256"
       }
     ],
@@ -165,32 +165,32 @@
     "inputs": [
       {
         "internalType": "address[]",
-        "name": "targets",
+        "name": "_targets",
         "type": "address[]"
       },
       {
         "internalType": "uint256[]",
-        "name": "values",
+        "name": "_values",
         "type": "uint256[]"
       },
       {
         "internalType": "bytes[]",
-        "name": "calldatas",
+        "name": "_calldatas",
         "type": "bytes[]"
       },
       {
         "internalType": "string",
-        "name": "description",
+        "name": "_description",
         "type": "string"
       },
       {
         "internalType": "enum ProposalValidator.ProposalType",
-        "name": "proposalType",
+        "name": "_proposalType",
         "type": "uint8"
       },
       {
         "internalType": "bytes32",
-        "name": "attestationUid",
+        "name": "_attestationUid",
         "type": "bytes32"
       }
     ],
@@ -198,7 +198,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "proposalId_",
         "type": "uint256"
       }
     ],
@@ -360,26 +360,6 @@
   {
     "inputs": [],
     "name": "ProposalValidator_InvalidAttestation",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_InvalidProposalType",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_NotApprovedProposer",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_NotDelegate",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_ProposalNotFound",
     "type": "error"
   }
 ]

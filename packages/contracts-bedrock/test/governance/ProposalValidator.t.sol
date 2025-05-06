@@ -11,7 +11,9 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
 
-contract ProposalValidator_Test is CommonTest {
+/// @title ProposalValidatorTest
+/// @notice Test suite for ProposalValidator contract.
+contract ProposalValidatorTest is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
 
     address owner;
@@ -31,6 +33,7 @@ contract ProposalValidator_Test is CommonTest {
         vm.expectCall(_receiver, _calldata);
     }
 
+    /// @notice Helper function to make a top delegate.
     function _makeTopDelegate(string memory _name) internal returns (address) {
         address delegate = makeAddr(_name);
         deal(address(governanceToken), delegate, TOP_DELEGATE_VOTING_POWER);
@@ -39,6 +42,7 @@ contract ProposalValidator_Test is CommonTest {
         return delegate;
     }
 
+    /// @notice Helper function to make a (top) delegate approve a proposal.
     function _approveProposal(address _delegate, uint256 _proposalId) internal {
         vm.prank(_delegate);
         validator.approveProposal(_proposalId);
@@ -67,6 +71,7 @@ contract ProposalValidator_Test is CommonTest {
         topDelegate_D = _makeTopDelegate("topDelegate_D");
     }
 
+    /// @notice Test the full flow of a proposal.
     function test_proposalFullFlow_succeeds() public {
         // Create a proposal
         address[] memory targets = new address[](1);
