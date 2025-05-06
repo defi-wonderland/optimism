@@ -74,8 +74,6 @@ interface IProposalValidator {
     
     function canSignOff(address _delegate) external view returns (bool canSignOff_);
     
-    function setVotingToken(IGovernanceToken _votingToken) external;
-    
     function transferOwnership(address newOwner) external;
 
     function minimumVotingPower() external view returns (uint256);

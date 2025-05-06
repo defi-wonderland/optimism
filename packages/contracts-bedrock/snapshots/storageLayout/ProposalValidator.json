@@ -21,24 +21,17 @@
     "type": "contract IOptimismGovernor"
   },
   {
-    "bytes": "20",
-    "label": "votingToken",
-    "offset": 0,
-    "slot": "3",
-    "type": "contract IGovernanceToken"
-  },
-  {
     "bytes": "32",
     "label": "_proposals",
     "offset": 0,
-    "slot": "4",
+    "slot": "3",
     "type": "mapping(uint256 => struct ProposalValidator.ProposalData)"
   },
   {
     "bytes": "32",
     "label": "_proposalCounter",
     "offset": 0,
-    "slot": "5",
+    "slot": "4",
     "type": "uint256"
   }
 ]

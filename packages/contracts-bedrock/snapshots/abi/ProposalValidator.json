@@ -151,19 +151,6 @@
   {
     "inputs": [
       {
-        "internalType": "contract IGovernanceToken",
-        "name": "_votingToken",
-        "type": "address"
-      }
-    ],
-    "name": "setVotingToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address[]",
         "name": "_targets",
         "type": "address[]"

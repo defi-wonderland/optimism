@@ -117,7 +117,7 @@ contract ProposalValidator is Ownable {
     IOptimismGovernor public governor;
 
     /// @notice The token used to determine voting power.
-    IGovernanceToken public votingToken;
+    IGovernanceToken public immutable votingToken;
 
     /// @notice Mapping of proposal IDs to their corresponding proposal data.
     mapping(uint256 => ProposalData) private _proposals;
@@ -235,12 +235,6 @@ contract ProposalValidator is Ownable {
     /// @param _minimumVotingPower The new minimum voting power threshold.
     function setMinimumVotingPower(uint256 _minimumVotingPower) external onlyOwner {
         minimumVotingPower = _minimumVotingPower;
-    }
-
-    /// @notice Sets the voting token used to determine voting power.
-    /// @param _votingToken The token used for determining voting power.
-    function setVotingToken(IGovernanceToken _votingToken) external onlyOwner {
-        votingToken = _votingToken;
     }
 
     /// @notice Validates a proposal before submission.
