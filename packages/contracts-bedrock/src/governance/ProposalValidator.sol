@@ -337,7 +337,7 @@ contract ProposalValidator is Ownable {
         private
         view
     {
-        if (_requiresApproval(_proposalType)) {
+        if (_requiresAttestation(_proposalType)) {
             Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
             if (
                 attestation.attester != owner() || attestation.schema != ATTESTATION_SCHEMA_UID
@@ -350,8 +350,8 @@ contract ProposalValidator is Ownable {
 
     /// @notice Determines if a proposal type requires approval via attestation.
     /// @param _proposalType The type of proposal to check.
-    /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
-    function _requiresApproval(ProposalType _proposalType) private pure returns (bool requiresApproval_) {
+    /// @return requiresAttestation_ True if the proposal type requires approval, false otherwise.
+    function _requiresAttestation(ProposalType _proposalType) private pure returns (bool requiresAttestation_) {
         return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
             || _proposalType == ProposalType.MaintenanceUpgrade || _proposalType == ProposalType.CouncilMemberElections;
     }
