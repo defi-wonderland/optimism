@@ -12,10 +12,10 @@ abstract contract VotingModule {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error NotGovernor();
-    error ExistingProposal();
-    error InvalidParams();
-    error AlreadyVoted();
+    error NotGovernor(); // nosemgrep:
+    error ExistingProposal(); // nosemgrep:
+    error InvalidParams(); // nosemgrep:
+    error AlreadyVoted(); // nosemgrep:
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS

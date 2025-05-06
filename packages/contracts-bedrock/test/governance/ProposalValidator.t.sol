@@ -140,15 +140,15 @@ contract ProposalValidator_Init is CommonTest {
     function _createProposalSetup()
         internal
         view
-        returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description)
+        returns (address[] memory targets_, uint256[] memory values_, bytes[] memory calldatas_, string memory description_)
     {
-        targets = new address[](1);
-        targets[0] = address(0);
-        values = new uint256[](1);
-        values[0] = 0;
-        calldatas = new bytes[](1);
-        calldatas[0] = bytes("");
-        description = "Test proposal";
+        targets_ = new address[](1);
+        targets_[0] = address(0);
+        values_ = new uint256[](1);
+        values_[0] = 0;
+        calldatas_ = new bytes[](1);
+        calldatas_[0] = bytes("");
+        description_ = "Test proposal";
     }
 }
 
@@ -156,7 +156,7 @@ contract ProposalValidator_Init is CommonTest {
 /// @notice Happy path tests for submitProposal function
 contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
     function test_submitProposal_succeeds() public {
-        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+        (address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas, string memory _description) =
             _createProposalSetup();
 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -164,7 +164,7 @@ contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
 
         vm.prank(topDelegate_A);
         uint256 proposalId =
-            validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+            validator.submitProposal(_targets, _values, _calldatas, _description, proposalType, attestationUid);
 
         assertEq(proposalId, 1);
     }
