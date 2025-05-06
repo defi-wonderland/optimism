@@ -334,7 +334,7 @@ contract ProposalValidator is Ownable {
         ProposalType _proposalType,
         bytes32 _attestationUid
     )
-        internal
+        private
         view
     {
         if (_requiresApproval(_proposalType)) {
@@ -351,7 +351,7 @@ contract ProposalValidator is Ownable {
     /// @notice Determines if a proposal type requires approval via attestation.
     /// @param _proposalType The type of proposal to check.
     /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
-    function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
+    function _requiresApproval(ProposalType _proposalType) private pure returns (bool requiresApproval_) {
         return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
             || _proposalType == ProposalType.MaintenanceUpgrade || _proposalType == ProposalType.CouncilMemberElections;
     }
@@ -365,7 +365,7 @@ contract ProposalValidator is Ownable {
         bytes memory _data,
         ProposalType _expectedProposalType
     )
-        internal
+        private
         view
         returns (bool isValid_)
     {
@@ -373,28 +373,28 @@ contract ProposalValidator is Ownable {
         return approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
     }
 
-    /// @notice Internal function to set the minimum voting power and emit event.
+    /// @notice Private function to set the minimum voting power and emit event.
     /// @param _minimumVotingPower The new minimum voting power threshold.
     function _setMinimumVotingPower(uint256 _minimumVotingPower) private {
         minimumVotingPower = _minimumVotingPower;
         emit MinimumVotingPowerSet(_minimumVotingPower);
     }
 
-    /// @notice Internal function to set the voting cycle block and emit event.
+    /// @notice Private function to set the voting cycle block and emit event.
     /// @param _votingCycleBlock The new voting cycle block number.
     function _setVotingCycleBlock(uint256 _votingCycleBlock) private {
         votingCycleBlock = _votingCycleBlock;
         emit VotingCycleBlockSet(_votingCycleBlock);
     }
 
-    /// @notice Internal function to set the distribution threshold and emit event.
+    /// @notice Private function to set the distribution threshold and emit event.
     /// @param _distributionThreshold The new distribution threshold.
     function _setDistributionThreshold(uint256 _distributionThreshold) private {
         distributionThreshold = _distributionThreshold;
         emit DistributionThresholdSet(_distributionThreshold);
     }
 
-    /// @notice Internal function to set a proposal's type required approvals and emit event.
+    /// @notice Private function to set a proposal's type required approvals and emit event.
     /// @param _proposalType The type of proposal to set the required approvals for.
     /// @param _requiredApprovals The new required approvals.
     function _setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) private {
