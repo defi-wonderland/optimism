@@ -142,10 +142,10 @@ contract ProposalValidator is Ownable {
     bytes32 public immutable ATTESTATION_SCHEMA_UID;
 
     /// @notice The Optimism Governor contract that will handle the voting phase.
-    IOptimismGovernor public immutable governor;
+    IOptimismGovernor public immutable GOVERNOR;
 
     /// @notice The token used to determine voting power.
-    IGovernanceToken public immutable votingToken;
+    IGovernanceToken public immutable VOTING_TOKEN;
 
     /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
@@ -192,8 +192,8 @@ contract ProposalValidator is Ownable {
         ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     ) {
         transferOwnership(_owner);
-        governor = _governor;
-        votingToken = _votingToken;
+        GOVERNOR = _governor;
+        VOTING_TOKEN = _votingToken;
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
 
         _setMinimumVotingPower(_minimumVotingPower);
@@ -279,7 +279,7 @@ contract ProposalValidator is Ownable {
 
         proposal.inVoting = true;
 
-        governorProposalId_ = governor.propose(
+        governorProposalId_ = GOVERNOR.propose(
             proposal.targets, proposal.values, proposal.calldatas, proposal.description, uint8(proposal.proposalType)
         );
 
@@ -292,7 +292,7 @@ contract ProposalValidator is Ownable {
     /// @param _delegate The address of the delegate to check.
     /// @return canSignOff_ True if the delegate has sufficient voting power, false otherwise.
     function canSignOff(address _delegate) public view returns (bool canSignOff_) {
-        return votingToken.balanceOf(_delegate) >= minimumVotingPower;
+        return VOTING_TOKEN.balanceOf(_delegate) >= minimumVotingPower;
     }
 
     /// @notice Sets the minimum voting power required for a delegate to approve proposals.
