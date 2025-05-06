@@ -140,7 +140,12 @@ contract ProposalValidator_Init is CommonTest {
     function _createProposalSetup()
         internal
         view
-        returns (address[] memory targets_, uint256[] memory values_, bytes[] memory calldatas_, string memory description_)
+        returns (
+            address[] memory targets_,
+            uint256[] memory values_,
+            bytes[] memory calldatas_,
+            string memory description_
+        )
     {
         targets_ = new address[](1);
         targets_[0] = address(0);

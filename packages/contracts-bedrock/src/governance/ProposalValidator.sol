@@ -338,8 +338,7 @@ contract ProposalValidator is Ownable {
     /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
     function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
         return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
-            || _proposalType == ProposalType.MaintenanceUpgrade
-            || _proposalType == ProposalType.CouncilMemberElections;
+            || _proposalType == ProposalType.MaintenanceUpgrade || _proposalType == ProposalType.CouncilMemberElections;
     }
 
     /// @notice Validates the attestation data for a proposal.

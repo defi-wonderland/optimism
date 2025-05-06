@@ -104,7 +104,8 @@ interface IProposalValidator {
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
     
-    function __constructor__(        address _owner,
+    function __constructor__(
+        address _owner,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken,
         bytes32 _attestationSchemaUid,
@@ -112,5 +113,6 @@ interface IProposalValidator {
         uint256 _votingCycleBlock,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals) external;
+        uint256[] memory _requiredApprovals
+    ) external;
 }
