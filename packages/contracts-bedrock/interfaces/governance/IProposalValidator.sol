@@ -27,7 +27,7 @@ interface IProposalValidator {
 
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
-        MaintenanceUpgradeProposals,
+        MaintenanceUpgrade,
         CouncilMemberElections,
         GovernanceFund,
         CouncilBudget

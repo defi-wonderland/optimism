@@ -64,7 +64,7 @@ contract ProposalValidator_Init is CommonTest {
     {
         ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](5);
         proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgradeProposals;
+        proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgrade;
         proposalTypes[2] = ProposalValidator.ProposalType.CouncilMemberElections;
         proposalTypes[3] = ProposalValidator.ProposalType.GovernanceFund;
         proposalTypes[4] = ProposalValidator.ProposalType.CouncilBudget;

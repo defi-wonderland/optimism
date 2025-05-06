@@ -67,13 +67,13 @@ contract ProposalValidator is Ownable {
 
     /// @notice Types of proposals that can be submitted.
     /// @param ProtocolOrGovernorUpgrade Proposals for upgrading the protocol or governor.
-    /// @param MaintenanceUpgradeProposals Proposals for maintenance upgrades.
+    /// @param MaintenanceUpgrade Proposals for maintenance upgrades.
     /// @param CouncilMemberElections Proposals for council member elections.
     /// @param GovernanceFund Proposals related to the governance fund.
     /// @param CouncilBudget Proposals related to the council budget.
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
-        MaintenanceUpgradeProposals,
+        MaintenanceUpgrade,
         CouncilMemberElections,
         GovernanceFund,
         CouncilBudget
@@ -338,7 +338,7 @@ contract ProposalValidator is Ownable {
     /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
     function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
         return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
-            || _proposalType == ProposalType.MaintenanceUpgradeProposals
+            || _proposalType == ProposalType.MaintenanceUpgrade
             || _proposalType == ProposalType.CouncilMemberElections;
     }
 
