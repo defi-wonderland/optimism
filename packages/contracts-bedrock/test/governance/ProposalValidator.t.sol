@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Interfaces
 import { IProposalValidator } from "interfaces/governance/IProposalValidator.sol";
-import { ProposalValidator } from "src/governance/ProposalValidator.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas/IEAS.sol";
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
+
+// Contracts
+import { ProposalValidator } from "src/governance/ProposalValidator.sol";
+
+// Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Testing utilities

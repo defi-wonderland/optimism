@@ -110,14 +110,14 @@ contract ProposalValidator is Ownable {
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
     bytes32 public immutable ATTESTATION_SCHEMA_UID;
 
-    /// @notice The minimum voting power required for a delegate to approve proposals.
-    uint256 public minimumVotingPower;
-
     /// @notice The Optimism Governor contract that will handle the voting phase.
-    IOptimismGovernor public governor;
+    IOptimismGovernor public immutable governor;
 
     /// @notice The token used to determine voting power.
     IGovernanceToken public immutable votingToken;
+
+    /// @notice The minimum voting power required for a delegate to approve proposals.
+    uint256 public minimumVotingPower;
 
     /// @notice Mapping of proposal IDs to their corresponding proposal data.
     mapping(uint256 => ProposalData) private _proposals;
