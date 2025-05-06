@@ -249,8 +249,8 @@ contract ProposalValidator is Ownable {
         );
     }
 
-        /// @notice Approve a proposal (only callable by delegates with sufficient voting power)
-        /// @param _proposalHash The hash of the proposal to approve
+    /// @notice Approve a proposal (only callable by delegates with sufficient voting power)
+    /// @param _proposalHash The hash of the proposal to approve
     function approveProposal(bytes32 _proposalHash) external {
         if (!canSignOff(msg.sender)) {
             revert ProposalValidator_InsufficientVotingPower();
