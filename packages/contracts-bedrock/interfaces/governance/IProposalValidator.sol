@@ -12,7 +12,6 @@ interface IProposalValidator {
     error ProposalValidator_AlreadyProposed();
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
-    error ProposalValidator_InvalidProposalData();
     error ProposalValidator_UnexistentProposal();
 
     struct ProposalData {
@@ -64,24 +63,23 @@ interface IProposalValidator {
     event ProposalApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
 
     function submitProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        ProposalType proposalType,
-        uint8 proposalTypeConfigurator,
-        bytes32 attestationUid
-    ) external returns (bytes32 proposalHash);
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description,
+        ProposalType _proposalType,
+        uint8 _proposalTypeConfigurator,
+        bytes32 _attestationUid
+    ) external returns (bytes32 proposalHash_);
 
-    function approveProposal(bytes32 proposalHash) external;
+    function approveProposal(bytes32 _proposalHash) external;
 
     function moveToVote(
-        bytes32 proposalHash,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-    ) external returns (uint256 governorProposalId);
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    ) external returns (uint256 governorProposalId_);
     
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 

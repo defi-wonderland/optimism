@@ -189,25 +189,28 @@ contract ProposalValidator is Ownable {
 
     /**
      * @notice Submit a proposal for delegate approval
-     * @param targets Target addresses for proposal calls
-     * @param values ETH values for proposal calls
-     * @param calldatas Function data for proposal calls
-     * @param description Description of the proposal
-     * @param proposalType Type of the proposal
+     * @param _targets Target addresses for proposal calls
+     * @param _values ETH values for proposal calls
+     * @param _calldatas Function data for proposal calls
+     * @param _description Description of the proposal
+     * @param _proposalType Type of the proposal
      * @return proposalHash_ The hash of the submitted proposal
      */
     function submitProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        ProposalType proposalType,
-        uint8 proposalTypeConfigurator,
-        bytes32 attestationUid
-    ) external returns (bytes32 proposalHash_) {
-        _validateProposal(targets, values, calldatas, proposalType, attestationUid);
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description,
+        ProposalType _proposalType,
+        uint8 _proposalTypeConfigurator,
+        bytes32 _attestationUid
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        _validateProposal(_targets, _values, _calldatas, _proposalType, _attestationUid);
 
-        proposalHash_ = _hashProposal(targets, values, calldatas, description);
+        proposalHash_ = _hashProposal(_targets, _values, _calldatas, _description);
         ProposalData storage proposal = _proposals[proposalHash_];
 
         if (proposal.proposer != address(0)) {
@@ -215,33 +218,33 @@ contract ProposalValidator is Ownable {
         }
 
         proposal.proposer = msg.sender;
-        proposal.proposalType = proposalType;
-        proposal.proposalTypeConfigurator = proposalTypeConfigurator;
+        proposal.proposalType = _proposalType;
+        proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
         proposal.inVoting = false;
         proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
 
         emit ProposalSubmitted(
             proposalHash_,
             msg.sender,
-            targets,
-            values,
-            calldatas,
-            description,
-            proposalType,
-            proposalTypeConfigurator
+            _targets,
+            _values,
+            _calldatas,
+            _description,
+            _proposalType,
+            _proposalTypeConfigurator
         );
     }
 
     /**
      * @notice Approve a proposal (only callable by delegates with sufficient voting power)
-     * @param proposalHash The hash of the proposal to approve
+     * @param _proposalHash The hash of the proposal to approve
      */
-    function approveProposal(bytes32 proposalHash) external {
+    function approveProposal(bytes32 _proposalHash) external {
         if (!canSignOff(msg.sender)) {
             revert ProposalValidator_InsufficientVotingPower();
         }
 
-        ProposalData storage proposal = _proposals[proposalHash];
+        ProposalData storage proposal = _proposals[_proposalHash];
 
         if (proposal.delegateApprovals[msg.sender]) {
             revert ProposalValidator_AlreadyApproved();
@@ -249,30 +252,31 @@ contract ProposalValidator is Ownable {
 
         proposal.delegateApprovals[msg.sender] = true;
         proposal.remainingApprovalsRequired--; // Expected overflow when all approvals are granted
-        
-        emit ProposalApproved(proposalHash, msg.sender);
+
+        emit ProposalApproved(_proposalHash, msg.sender);
     }
 
     /**
      * @notice Move a proposal to voting phase after sufficient delegate approvals
-     * @param proposalHash The hash of the proposal to move to vote
-     * @param targets Target addresses for proposal calls
-     * @param values ETH values for proposal calls
-     * @param calldatas Function data for proposal calls
-     * @param description Description of the proposal
-     * @return The proposal ID in the governor contract
+     * @param _targets Target addresses for proposal calls
+     * @param _values ETH values for proposal calls
+     * @param _calldatas Function data for proposal calls
+     * @param _description Description of the proposal
+     * @return governorProposalId_ The proposal ID in the governor contract
      */
     function moveToVote(
-        bytes32 proposalHash,
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-    ) external returns (uint256) {
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    )
+        external
+        returns (uint256 governorProposalId_)
+    {
         // Verify that the provided data matches the proposalHash
-        bytes32 _proposalHash = _hashProposal(targets, values, calldatas, description);
-        
-        ProposalData storage proposal = _proposals[proposalHash];
+        bytes32 _proposalHash = _hashProposal(_targets, _values, _calldatas, _description);
+
+        ProposalData storage proposal = _proposals[_proposalHash];
 
         if (proposal.proposer == address(0)) {
             revert ProposalValidator_UnexistentProposal();
@@ -287,25 +291,18 @@ contract ProposalValidator is Ownable {
         }
 
         proposal.inVoting = true;
-        
-        uint256 governorProposalId = governor.propose(
-            targets,
-            values,
-            calldatas,
-            description,
-            proposal.proposalTypeConfigurator
-        );
-        
-        emit ProposalMovedToVote(proposalHash, msg.sender);
-        
-        return governorProposalId;
+
+        governorProposalId_ =
+            governor.propose(_targets, _values, _calldatas, _description, proposal.proposalTypeConfigurator);
+
+        emit ProposalMovedToVote(_proposalHash, msg.sender);
     }
 
     /// @notice Returns whether a delegate has enough voting power to approve a proposal.
     /// @param _delegate The address of the delegate to check.
     /// @return canSignOff_ True if the delegate has sufficient voting power, false otherwise.
     function canSignOff(address _delegate) public view returns (bool canSignOff_) {
-        return votingToken.balanceOf(_delegate) >= minimumVotingPower;
+        canSignOff_ = votingToken.balanceOf(_delegate) >= minimumVotingPower;
     }
 
     /// @notice Sets the minimum voting power required for a delegate to approve proposals.
@@ -365,7 +362,7 @@ contract ProposalValidator is Ownable {
     /// @param _proposalType The type of proposal to check.
     /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
     function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
-        return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
+        requiresApproval_ = _proposalType == ProposalType.ProtocolOrGovernorUpgrade
             || _proposalType == ProposalType.MaintenanceUpgradeProposals
             || _proposalType == ProposalType.CouncilMemberElections;
     }
@@ -383,11 +380,20 @@ contract ProposalValidator is Ownable {
         returns (bool isValid_)
     {
         (address approvedDelegate, uint8 proposalType) = abi.decode(_data, (address, uint8));
-        return approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
+        isValid_ = approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
     }
 
-    function _hashProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) internal pure returns (bytes32) {
-        return keccak256(abi.encode(targets, values, calldatas, description));
+    function _hashProposal(
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    )
+        internal
+        pure
+        returns (bytes32 proposalHash_)
+    {
+        return keccak256(abi.encode(_targets, _values, _calldatas, _description));
     }
 
     /// @notice Internal function to set the minimum voting power and emit event.
