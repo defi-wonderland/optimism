@@ -351,6 +351,7 @@ contract ProposalValidator is Ownable {
     }
 
     /// @notice Validates the attestation data for a proposal.
+    /// @dev Checks that the sender is the approved delegate and that the proposal type is correct.
     /// @param _data The attestation data to validate.
     /// @param _expectedProposalType The expected proposal type from the attestation.
     /// @return isValid_ True if the attestation data is valid, false otherwise.
