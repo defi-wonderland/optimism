@@ -92,7 +92,7 @@ contract ProposalValidator is Ownable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a new proposal is submitted.
+    /// @notice Emitted when a new proposal is submitted to the validator contract.
     /// @param proposalId The ID of the submitted proposal.
     /// @param proposer The address that submitted the proposal.
     /// @param targets Target addresses for proposal calls.
@@ -115,7 +115,7 @@ contract ProposalValidator is Ownable {
     /// @param approver The address of the delegate who approved the proposal.
     event ProposalApproved(uint256 indexed proposalId, address indexed approver);
 
-    /// @notice Emitted when a proposal is moved to the voting phase.
+    /// @notice Emitted when a proposal is moved to the voting phase in the governor contract.
     /// @param proposalId The ID of the proposal moved to vote.
     /// @param executor The address that executed the move to vote.
     event ProposalMovedToVote(uint256 indexed proposalId, address indexed executor);
