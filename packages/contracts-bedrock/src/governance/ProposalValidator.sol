@@ -61,6 +61,16 @@ contract ProposalValidator is Ownable {
         uint256 remainingApprovalsRequired;
     }
 
+    /// @notice Data structure for storing immutable proposal type data.
+    /// @param targets Target addresses for proposal calls.
+    /// @param values ETH values for proposal calls.
+    /// @param signatures Function signatures for proposal calls.
+    struct ImmutableProposalTypeData {
+        address[] targets;
+        uint256[] values;
+        string[] signatures;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                  ENUMS
     //////////////////////////////////////////////////////////////*/

@@ -25,6 +25,12 @@ interface IProposalValidator {
         uint256 remainingApprovalsRequired;
     }
 
+    struct ImmutableProposalTypeData {
+        address[] targets;
+        uint256[] values;
+        string[] signatures;
+    }
+
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
         MaintenanceUpgrade,
