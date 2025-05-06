@@ -47,7 +47,7 @@ contract ProposalValidator is Ownable {
     /// @param proposalType Type of the proposal from the ProposalType enum.
     /// @param inVoting Whether the proposal has been moved to the voting phase.
     /// @param delegateApprovals Mapping of delegate addresses to their approval status.
-    /// @param remainingApprovalsRequired Number of approvals still needed before voting.
+    /// @param remainingApprovalsRequired Number of approvals still needed before being able to move for voting.
     struct ProposalData {
         address proposer;
         address[] targets;
