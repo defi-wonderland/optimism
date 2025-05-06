@@ -27,7 +27,7 @@ contract ProposalValidator is Ownable {
     error ProposalValidator_ProposalAlreadyApproved();
 
     /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
-    error ProposalValidator_ProposalAlreadyInVoting();
+    error ProposalValidator_ProposalAlreadySubmitted();
 
     /// @notice Thrown when a delegate has insufficient voting power to approve a proposal.
     error ProposalValidator_InsufficientVotingPower();
@@ -228,7 +228,7 @@ contract ProposalValidator is Ownable {
         ProposalData storage proposal = _proposals[proposalHash_];
 
         if (proposal.proposer != address(0)) {
-            revert ProposalValidator_ProposalAlreadyInVoting();
+            revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
         proposal.proposer = msg.sender;
@@ -297,7 +297,7 @@ contract ProposalValidator is Ownable {
         }
 
         if (proposal.inVoting) {
-            revert ProposalValidator_ProposalAlreadyInVoting();
+            revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
         proposal.inVoting = true;

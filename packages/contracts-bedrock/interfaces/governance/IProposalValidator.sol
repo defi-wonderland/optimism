@@ -9,7 +9,7 @@ import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 interface IProposalValidator {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
-    error ProposalValidator_ProposalAlreadyInVoting();
+    error ProposalValidator_ProposalAlreadySubmitted();
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_ProposalDoesNotExist();

@@ -390,7 +390,7 @@ contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyInVoting.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
     }
@@ -451,7 +451,7 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         uint256 governorProposalId = validator.moveToVote(targets, values, calldatas, description);
 
         // It reverts when proposal is already in voting phase
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyInVoting.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
     }
