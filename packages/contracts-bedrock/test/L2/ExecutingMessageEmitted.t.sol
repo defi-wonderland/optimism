@@ -33,7 +33,7 @@ contract ExecutingMessageEmittedTest is CommonTest {
         super.setUp();
 
         {
-            // TODO: Remove this block when Deploy.s.sol includes this contract.
+            // TODO: Remove this block when L2Genesis includes this contract.
             vm.etch(
                 Predeploys.SUPERCHAIN_TOKEN_BRIDGE,
                 vm.getDeployedCode("SuperchainTokenBridge.sol:SuperchainTokenBridge")

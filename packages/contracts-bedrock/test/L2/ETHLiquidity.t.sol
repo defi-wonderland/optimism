@@ -29,7 +29,7 @@ contract ETHLiquidity_Test is CommonTest {
         super.setUp();
 
         {
-            // TODO: Remove this block when Deploy.s.sol includes this contract.
+            // TODO: Remove this block when L2Genesis includes this contract.
             vm.etch(address(superchainETHBridge), vm.getDeployedCode("SuperchainETHBridge.sol:SuperchainETHBridge"));
             vm.etch(address(ethLiquidity), vm.getDeployedCode("ETHLiquidity.sol:ETHLiquidity"));
             vm.deal(address(ethLiquidity), type(uint248).max);
