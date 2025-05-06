@@ -479,16 +479,6 @@
   },
   {
     "inputs": [],
-    "name": "ProposalValidator_AlreadyApproved",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_AlreadyProposed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "ProposalValidator_InsufficientApprovals",
     "type": "error"
   },
@@ -500,6 +490,16 @@
   {
     "inputs": [],
     "name": "ProposalValidator_InvalidAttestation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProposalValidator_ProposalAlreadyApproved",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProposalValidator_ProposalAlreadyInVoting",
     "type": "error"
   }
 ]

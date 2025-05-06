@@ -22,12 +22,11 @@ contract ProposalValidator is Ownable {
 
     /// @notice Thrown when a proposal doesn't have enough delegate approvals to move to vote.
     error ProposalValidator_InsufficientApprovals();
-
     /// @notice Thrown when a delegate attempts to approve a proposal they've already approved.
-    error ProposalValidator_AlreadyApproved();
+    error ProposalValidator_ProposalAlreadyApproved();
 
     /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
-    error ProposalValidator_AlreadyProposed();
+    error ProposalValidator_ProposalAlreadyInVoting();
 
     /// @notice Thrown when a delegate has insufficient voting power to approve a proposal.
     error ProposalValidator_InsufficientVotingPower();
@@ -249,7 +248,7 @@ contract ProposalValidator is Ownable {
         ProposalData storage proposal = _proposals[_proposalId];
 
         if (proposal.delegateApprovals[msg.sender]) {
-            revert ProposalValidator_AlreadyApproved();
+            revert ProposalValidator_ProposalAlreadyApproved();
         }
 
         proposal.delegateApprovals[msg.sender] = true;
@@ -269,7 +268,7 @@ contract ProposalValidator is Ownable {
         }
 
         if (proposal.inVoting) {
-            revert ProposalValidator_AlreadyProposed();
+            revert ProposalValidator_ProposalAlreadyInVoting();
         }
 
         proposal.inVoting = true;

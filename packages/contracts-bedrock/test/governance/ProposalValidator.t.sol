@@ -257,7 +257,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
     function test_approveProposal_alreadyApproved_reverts() public {
         _approveProposal(topDelegate_A, proposalId);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyApproved.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyApproved.selector);
         _approveProposal(topDelegate_A, proposalId);
     }
 }
@@ -352,7 +352,7 @@ contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
         vm.prank(owner);
         validator.moveToVote(proposalId);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyProposed.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyInVoting.selector);
         vm.prank(owner);
         validator.moveToVote(proposalId);
     }
@@ -418,7 +418,7 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         validator.moveToVote(proposalId);
 
         // It reverts when proposal is already in voting phase
-        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyProposed.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyInVoting.selector);
         vm.prank(owner);
         validator.moveToVote(proposalId);
     }

@@ -8,8 +8,8 @@ import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 /// @notice Interface for the ProposalValidator contract.
 interface IProposalValidator {
     error ProposalValidator_InsufficientApprovals();
-    error ProposalValidator_AlreadyApproved();
-    error ProposalValidator_AlreadyProposed();
+    error ProposalValidator_ProposalAlreadyApproved();
+    error ProposalValidator_ProposalAlreadyInVoting();
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
 
