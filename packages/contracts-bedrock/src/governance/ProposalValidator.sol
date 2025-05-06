@@ -1,26 +1,190 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IProposalValidator} from "interfaces/governance/IProposalValidator.sol";
-import {IOptimismGovernor} from "interfaces/governance/IOptimismGovernor.sol";
-import {VotingModule} from "src/governance/VotingModule.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IGovernanceToken} from "interfaces/governance/IGovernanceToken.sol";
-import {IEAS, Attestation} from "src/vendor/eas/IEAS.sol";
+// Contracts
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
+// Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-contract ProposalValidator is IProposalValidator, Ownable {
-    bytes32 public immutable ATTESTATION_SCHEMA_UID; // { approvedDelegate: address, proposalType: uint8 }
+// Interfaces
+import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
+import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
+import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
+
+/// @title ProposalValidator
+/// @notice The ProposalValidator contract is responsible for validating proposals and moving
+///         them to the vote phase on the Optimism Governor.
+contract ProposalValidator is Ownable {
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Thrown when a proposal doesn't have enough delegate approvals to move to vote.
+    error ProposalValidator_InsufficientApprovals();
+
+    /// @notice Thrown when a delegate attempts to approve a proposal they've already approved.
+    error ProposalValidator_AlreadyApproved();
+
+    /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
+    error ProposalValidator_AlreadyProposed();
+
+    /// @notice Thrown when a delegate has insufficient voting power to approve a proposal.
+    error ProposalValidator_InsufficientVotingPower();
+
+    /// @notice Thrown when an invalid attestation is provided for a proposal.
+    error ProposalValidator_InvalidAttestation();
+
+    /// @notice Thrown when a proposal does not exist.
+    error ProposalValidator_UnexistentProposal();
+
+    /*//////////////////////////////////////////////////////////////
+                                 STRUCTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Data structure for storing proposal information.
+    /// @param proposer The address that submitted the proposal.
+    /// @param proposalType Type of the proposal from the ProposalType enum.
+    /// @param proposalTypeConfigurator Configuration value specific to the proposal type.
+    /// @param inVoting Whether the proposal has been moved to the voting phase.
+    /// @param delegateApprovals Mapping of delegate addresses to their approval status.
+    /// @param remainingApprovalsRequired Number of approvals still needed before voting.
+    struct ProposalData {
+        address proposer;
+        ProposalType proposalType;
+        uint8 proposalTypeConfigurator;
+        bool inVoting;
+        mapping(address => bool) delegateApprovals;
+        uint256 remainingApprovalsRequired;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                 ENUMS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Types of proposals that can be submitted.
+    /// @param ProtocolOrGovernorUpgrade Proposals for upgrading the protocol or governor.
+    /// @param MaintenanceUpgradeProposals Proposals for maintenance upgrades.
+    /// @param CouncilMemberElections Proposals for council member elections.
+    /// @param GovernanceFund Proposals related to the governance fund.
+    /// @param CouncilBudget Proposals related to the council budget.
+    enum ProposalType {
+        ProtocolOrGovernorUpgrade,
+        MaintenanceUpgradeProposals,
+        CouncilMemberElections,
+        GovernanceFund,
+        CouncilBudget
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a new proposal is submitted.
+    /// @param proposalHash The hash of the submitted proposal.
+    /// @param proposer The address that submitted the proposal.
+    /// @param targets Target addresses for proposal calls.
+    /// @param values ETH values for proposal calls.
+    /// @param calldatas Function data for proposal calls.
+    /// @param description Description of the proposal.
+    /// @param proposalType Type of the proposal.
+    /// @param proposalTypeConfigurator Configuration value specific to the proposal type.
+    event ProposalSubmitted(
+        bytes32 indexed proposalHash,
+        address indexed proposer,
+        address[] targets,
+        uint256[] values,
+        bytes[] calldatas,
+        string description,
+        ProposalType proposalType,
+        uint8 proposalTypeConfigurator
+    );
+
+    /// @notice Emitted when a delegate approves a proposal.
+    /// @param proposalHash The hash of the approved proposal.
+    /// @param approver The address of the delegate who approved the proposal.
+    event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
+
+    /// @notice Emitted when a proposal is moved to the voting phase.
+    /// @param proposalHash The hash of the proposal moved to vote.
+    /// @param executor The address that executed the move to vote.
+    event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
+
+    /// @notice Emitted when the minimum voting power is set.
+    /// @param newMinimumVotingPower The new minimum voting power.
+    event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
+
+    /// @notice Emitted when the voting cycle block is set.
+    /// @param newVotingCycleBlock The new voting cycle block.
+    event VotingCycleBlockSet(uint256 newVotingCycleBlock);
+
+    /// @notice Emitted when the distribution threshold is set.
+    /// @param newDistributionThreshold The new distribution threshold.
+    event DistributionThresholdSet(uint256 newDistributionThreshold);
+
+    /// @notice Emitted when the number of approvals required for a proposal type is set.
+    /// @param proposalType The type of proposal.
+    /// @param newApprovalThreshold The new approval threshold.
+    event ProposalApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
+
+    /// @notice The schema UID for attestations in the Ethereum Attestation Service.
+    /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
+    bytes32 public immutable ATTESTATION_SCHEMA_UID;
+
+    /// @notice The Optimism Governor contract that will handle the voting phase.
+    IOptimismGovernor public immutable governor;
+
+    /// @notice The token used to determine voting power.
+    IGovernanceToken public immutable votingToken;
+
+    /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
-    IOptimismGovernor public governor;
-    IGovernanceToken public votingToken;
-    
+
+    /// @notice The block number of the current voting cycle.
+    uint256 public votingCycleBlock;
+
+    /// @notice The max amount of tokens that can be distributed in a proposal.
+    uint256 public distributionThreshold;
+
+    /// @notice The number of approvals required for each proposal type.
+    mapping(ProposalType => uint256) private _proposalRequiredApprovals;
+
+    /// @notice Mapping of proposal IDs to their corresponding proposal data.
     mapping(bytes32 => ProposalData) private _proposals;
 
-    constructor(address _owner, IOptimismGovernor _governor, IGovernanceToken _votingToken, bytes32 _attestationSchemaUid) {
+    /// @notice Initializes the ProposalValidator contract.
+    /// @param _owner The address that will own the contract.
+    /// @param _governor The Optimism Governor contract address.
+    /// @param _votingToken The token used to determine voting power.
+    /// @param _attestationSchemaUid The schema UID for attestations in EAS.
+    /// @param _minimumVotingPower The minimum voting power required for a delegate to approve proposals.
+    /// @param _votingCycleBlock The block number of the current voting cycle.
+    /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
+    /// @param _proposalTypes Array of proposal types to set approval thresholds for.
+    /// @param _requiredApprovals Array of approval thresholds corresponding to the proposal types.
+    constructor(
+        address _owner,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken,
+        bytes32 _attestationSchemaUid,
+        uint256 _minimumVotingPower,
+        uint256 _votingCycleBlock,
+        uint256 _distributionThreshold,
+        ProposalType[] memory _proposalTypes,
+        uint256[] memory _requiredApprovals
+    ) {
         transferOwnership(_owner);
         governor = _governor;
         votingToken = _votingToken;
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
+
+        _setMinimumVotingPower(_minimumVotingPower);
+        _setVotingCycleBlock(_votingCycleBlock);
+        _setDistributionThreshold(_distributionThreshold);
+
+        for (uint256 i = 0; i < _proposalTypes.length; i++) {
+            _setProposalRequiredApprovals(_proposalTypes[i], _requiredApprovals[i]);
+        }
     }
 
     /**
@@ -82,7 +246,7 @@ contract ProposalValidator is IProposalValidator, Ownable {
         if (proposal.delegateApprovals[msg.sender]) {
             revert ProposalValidator_AlreadyApproved();
         }
-        
+
         proposal.delegateApprovals[msg.sender] = true;
         proposal.remainingApprovalsRequired--; // Expected overflow when all approvals are granted
         
@@ -121,7 +285,7 @@ contract ProposalValidator is IProposalValidator, Ownable {
         if (proposal.inVoting) {
             revert ProposalValidator_AlreadyProposed();
         }
-        
+
         proposal.inVoting = true;
         
         uint256 governorProposalId = governor.propose(
@@ -129,7 +293,7 @@ contract ProposalValidator is IProposalValidator, Ownable {
             values,
             calldatas,
             description,
-            uint8(proposal.proposalType)
+            proposal.proposalTypeConfigurator
         );
         
         emit ProposalMovedToVote(proposalHash, msg.sender);
@@ -137,64 +301,121 @@ contract ProposalValidator is IProposalValidator, Ownable {
         return governorProposalId;
     }
 
-    /// @notice Returns whether a delegate has enough voting power to vote on a proposal
-    function canSignOff(address _delegate) public view returns (bool) {
+    /// @notice Returns whether a delegate has enough voting power to approve a proposal.
+    /// @param _delegate The address of the delegate to check.
+    /// @return canSignOff_ True if the delegate has sufficient voting power, false otherwise.
+    function canSignOff(address _delegate) public view returns (bool canSignOff_) {
         return votingToken.balanceOf(_delegate) >= minimumVotingPower;
     }
 
+    /// @notice Sets the minimum voting power required for a delegate to approve proposals.
+    /// @param _minimumVotingPower The new minimum voting power threshold.
     function setMinimumVotingPower(uint256 _minimumVotingPower) external onlyOwner {
-        minimumVotingPower = _minimumVotingPower;
+        _setMinimumVotingPower(_minimumVotingPower);
     }
 
-    function setProposalThreshold(uint256 _newProposalThreshold) external onlyOwner {
-        governor.setProposalThreshold(_newProposalThreshold);
+    /// @notice Sets the block number of the current voting cycle.
+    /// @param _votingCycleBlock The new voting cycle block number.
+    function setVotingCycleBlock(uint256 _votingCycleBlock) external onlyOwner {
+        _setVotingCycleBlock(_votingCycleBlock);
     }
 
-    function setProposalDeadline(uint256 _proposalId, uint64 _deadline) external onlyOwner {
-        governor.setProposalDeadline(_proposalId, _deadline);
+    /// @notice Sets the max amount of tokens that can be distributed in a proposal.
+    /// @param _distributionThreshold The new distribution threshold.
+    function setDistributionThreshold(uint256 _distributionThreshold) external onlyOwner {
+        _setDistributionThreshold(_distributionThreshold);
     }
 
-    function setVotingDelay(uint256 _newVotingDelay) external onlyOwner {
-        governor.setVotingDelay(_newVotingDelay);
+    /// @notice Sets the number of approvals required for each proposal type.
+    /// @param _proposalType The type of proposal to set the required approvals for.
+    /// @param _requiredApprovals The new required approvals.
+    function setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) external onlyOwner {
+        _setProposalRequiredApprovals(_proposalType, _requiredApprovals);
     }
 
-    function setVotingPeriod(uint256 _newVotingPeriod) external onlyOwner {
-        governor.setVotingPeriod(_newVotingPeriod);
-    }
-
-    /**
-     * @notice Sets the voting token used to determine voting power
-     * @param _votingToken The token used for determining voting power
-     */
-    function setVotingToken(IGovernanceToken _votingToken) external onlyOwner {
-        votingToken = _votingToken;
-    }
-
+    /// @notice Validates a proposal before submission.
+    /// @dev Checks if the proposal requires approval and validates the attestation.
+    /// @param _targets Target addresses for proposal calls.
+    /// @param _values ETH values for proposal calls.
+    /// @param _calldatas Function data for proposal calls.
+    /// @param _proposalType Type of the proposal.
+    /// @param _attestationUid The UID of the attestation proving eligibility.
     function _validateProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        ProposalType proposalType,
-        bytes32 attestationUid
-    ) internal {
-        if (_requiresApproval(proposalType)) {
-            Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(attestationUid);
-            if (attestation.attester != owner() || attestation.schema != ATTESTATION_SCHEMA_UID || !_isValidAttestationData(attestation.data, proposalType)) {
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        ProposalType _proposalType,
+        bytes32 _attestationUid
+    )
+        internal
+        view
+    {
+        if (_requiresApproval(_proposalType)) {
+            Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
+            if (
+                attestation.attester != owner() || attestation.schema != ATTESTATION_SCHEMA_UID
+                    || !_isValidAttestationData(attestation.data, _proposalType)
+            ) {
                 revert ProposalValidator_InvalidAttestation();
             }
         }
     }
 
-    function _requiresApproval(ProposalType proposalType) internal pure returns (bool) {
-        return proposalType == ProposalType.ProtocolOrGovernorUpgrade || proposalType == ProposalType.MaintenanceUpgradeProposals || proposalType == ProposalType.CouncilMemberElections;
+    /// @notice Determines if a proposal type requires approval via attestation.
+    /// @param _proposalType The type of proposal to check.
+    /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
+    function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
+        return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
+            || _proposalType == ProposalType.MaintenanceUpgradeProposals
+            || _proposalType == ProposalType.CouncilMemberElections;
     }
 
-    function _isValidAttestationData(bytes memory data, ProposalType expectedProposalType) internal view returns (bool) {
-        (address approvedDelegate, uint8 proposalType) = abi.decode(data, (address, uint8));
-        return approvedDelegate == msg.sender && proposalType == uint8(expectedProposalType);
+    /// @notice Validates the attestation data for a proposal.
+    /// @param _data The attestation data to validate.
+    /// @param _expectedProposalType The expected proposal type from the attestation.
+    /// @return isValid_ True if the attestation data is valid, false otherwise.
+    function _isValidAttestationData(
+        bytes memory _data,
+        ProposalType _expectedProposalType
+    )
+        internal
+        view
+        returns (bool isValid_)
+    {
+        (address approvedDelegate, uint8 proposalType) = abi.decode(_data, (address, uint8));
+        return approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
     }
 
     function _hashProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) internal pure returns (bytes32) {
         return keccak256(abi.encode(targets, values, calldatas, description));
+    }
+
+    /// @notice Internal function to set the minimum voting power and emit event.
+    /// @param _minimumVotingPower The new minimum voting power threshold.
+    function _setMinimumVotingPower(uint256 _minimumVotingPower) private {
+        minimumVotingPower = _minimumVotingPower;
+        emit MinimumVotingPowerSet(_minimumVotingPower);
+    }
+
+    /// @notice Internal function to set the voting cycle block and emit event.
+    /// @param _votingCycleBlock The new voting cycle block number.
+    function _setVotingCycleBlock(uint256 _votingCycleBlock) private {
+        votingCycleBlock = _votingCycleBlock;
+        emit VotingCycleBlockSet(_votingCycleBlock);
+    }
+
+    /// @notice Internal function to set the distribution threshold and emit event.
+    /// @param _distributionThreshold The new distribution threshold.
+    function _setDistributionThreshold(uint256 _distributionThreshold) private {
+        distributionThreshold = _distributionThreshold;
+        emit DistributionThresholdSet(_distributionThreshold);
+    }
+
+    /// @notice Internal function to set the proposal required approvals and emit event.
+    /// @param _proposalType The type of proposal to set the required approvals for.
+    /// @param _requiredApprovals The new required approvals.
+    function _setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) private {
+        _proposalRequiredApprovals[_proposalType] = _requiredApprovals;
+        emit ProposalApprovalThresholdSet(_proposalType, _requiredApprovals);
     }
 }

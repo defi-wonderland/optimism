@@ -1,30 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {VotingModule} from "src/governance/VotingModule.sol";
-import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 import {IGovernanceToken} from "./IGovernanceToken.sol";
+import {IOptimismGovernor} from "./IOptimismGovernor.sol";
 
+/// @title IProposalValidator
+/// @notice Interface for the ProposalValidator contract.
 interface IProposalValidator {
-    /*//////////////////////////////////////////////////////////////
-                                 ERRORS
-    //////////////////////////////////////////////////////////////*/
-
-    error ProposalValidator_NotApprovedProposer();
-    error ProposalValidator_InvalidProposalType();
-    error ProposalValidator_ProposalNotFound();
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_AlreadyApproved();
-    error ProposalValidator_NotDelegate();
     error ProposalValidator_AlreadyProposed();
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_InvalidProposalData();
     error ProposalValidator_UnexistentProposal();
-
-    /*//////////////////////////////////////////////////////////////
-                                 STRUCTS
-    //////////////////////////////////////////////////////////////*/
 
     struct ProposalData {
         address proposer;
@@ -34,10 +23,6 @@ interface IProposalValidator {
         mapping(address => bool) delegateApprovals;
         uint256 remainingApprovalsRequired;
     }
-    
-    /*//////////////////////////////////////////////////////////////
-                                 ENUMS
-    //////////////////////////////////////////////////////////////*/
 
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
@@ -46,18 +31,6 @@ interface IProposalValidator {
         GovernanceFund,
         CouncilBudget
     }
-
-    /*//////////////////////////////////////////////////////////////
-                                 VARIABLES
-    //////////////////////////////////////////////////////////////*/
-
-    function governor() external view returns (IOptimismGovernor);
-    function minimumVotingPower() external view returns (uint256);
-    function votingToken() external view returns (IGovernanceToken);
-
-    /*//////////////////////////////////////////////////////////////
-                                 EVENTS
-    //////////////////////////////////////////////////////////////*/
 
     event ProposalSubmitted(
         bytes32 indexed proposalHash,
@@ -80,9 +53,15 @@ interface IProposalValidator {
         address indexed executor
     );
 
-    /*//////////////////////////////////////////////////////////////
-                                 FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
+
+    event VotingCycleBlockSet(uint256 newVotingCycleBlock);
+
+    event DistributionThresholdSet(uint256 newDistributionThreshold);
+
+    event ProposalApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
 
     function submitProposal(
         address[] memory targets,
@@ -104,13 +83,41 @@ interface IProposalValidator {
         string memory description
     ) external returns (uint256 governorProposalId);
     
-    function setMinimumVotingPower(uint256 minimumVotingPower) external;
+    function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
-    function setProposalDeadline(uint256 proposalId, uint64 deadline) external;
+    function setVotingCycleBlock(uint256 _votingCycleBlock) external;
+
+    function setDistributionThreshold(uint256 _distributionThreshold) external;
+
+    function setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) external;
     
-    function setVotingDelay(uint256 newVotingDelay) external;
+    function renounceOwnership() external;
     
-    function setVotingPeriod(uint256 newVotingPeriod) external;
+    function canSignOff(address _delegate) external view returns (bool canSignOff_);
     
-    function setProposalThreshold(uint256 newProposalThreshold) external;
+    function transferOwnership(address newOwner) external;
+
+    function minimumVotingPower() external view returns (uint256);
+
+    function votingCycleBlock() external view returns (uint256);
+
+    function distributionThreshold() external view returns (uint256);
+
+    function votingToken() external view returns (IGovernanceToken);
+
+    function governor() external view returns (IOptimismGovernor);
+
+    function owner() external view returns (address);
+
+    function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+    
+    function __constructor__(        address _owner,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken,
+        bytes32 _attestationSchemaUid,
+        uint256 _minimumVotingPower,
+        uint256 _votingCycleBlock,
+        uint256 _distributionThreshold,
+        ProposalType[] memory _proposalTypes,
+        uint256[] memory _requiredApprovals) external;
 }
