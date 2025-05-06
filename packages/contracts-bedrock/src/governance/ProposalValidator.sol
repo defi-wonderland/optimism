@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
+// Contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Interfaces
+import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @title ProposalValidator
 /// @notice The ProposalValidator contract is responsible for validating proposals and moving
