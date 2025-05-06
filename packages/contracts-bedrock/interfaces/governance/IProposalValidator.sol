@@ -107,9 +107,9 @@ interface IProposalValidator {
 
     function distributionThreshold() external view returns (uint256);
 
-    function votingToken() external view returns (IGovernanceToken);
+    function VOTING_TOKEN() external view returns (IGovernanceToken);
 
-    function governor() external view returns (IOptimismGovernor);
+    function GOVERNOR() external view returns (IOptimismGovernor);
 
     function owner() external view returns (address);
 

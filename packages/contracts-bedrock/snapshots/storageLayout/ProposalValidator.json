@@ -46,6 +46,13 @@
     "label": "_proposals",
     "offset": 0,
     "slot": "6",
-    "type": "mapping(bytes32 => struct ProposalValidator.ProposalData)"
+    "type": "mapping(uint256 => struct ProposalValidator.ProposalData)"
+  },
+  {
+    "bytes": "32",
+    "label": "_proposalCounter",
+    "offset": 0,
+    "slot": "7",
+    "type": "uint256"
   }
 ]

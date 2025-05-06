@@ -90,7 +90,7 @@ contract ProposalValidator is Ownable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Emitted when a new proposal is submitted.
+    /// @notice Emitted when a new proposal is submitted to the validator contract.
     /// @param proposalHash The hash of the submitted proposal.
     /// @param proposer The address that submitted the proposal.
     /// @param targets Target addresses for proposal calls.
@@ -115,7 +115,7 @@ contract ProposalValidator is Ownable {
     /// @param approver The address of the delegate who approved the proposal.
     event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
 
-    /// @notice Emitted when a proposal is moved to the voting phase.
+    /// @notice Emitted when a proposal is moved to the voting phase in the governor contract.
     /// @param proposalHash The hash of the proposal moved to vote.
     /// @param executor The address that executed the move to vote.
     event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
@@ -142,10 +142,10 @@ contract ProposalValidator is Ownable {
     bytes32 public immutable ATTESTATION_SCHEMA_UID;
 
     /// @notice The Optimism Governor contract that will handle the voting phase.
-    IOptimismGovernor public immutable governor;
+    IOptimismGovernor public immutable GOVERNOR;
 
     /// @notice The token used to determine voting power.
-    IGovernanceToken public immutable votingToken;
+    IGovernanceToken public immutable VOTING_TOKEN;
 
     /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
@@ -162,7 +162,7 @@ contract ProposalValidator is Ownable {
     /// @notice The immutable data for each proposal type.
     mapping(ProposalType => ImmutableProposalTypeData) private _proposalTypeData;
 
-    /// @notice Mapping of proposal IDs to their corresponding proposal data.
+    /// @notice Mapping of proposal hash to their corresponding proposal data.
     mapping(bytes32 => ProposalData) private _proposals;
 
     /// @notice Initializes the ProposalValidator contract.
@@ -189,8 +189,8 @@ contract ProposalValidator is Ownable {
         ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     ) {
         transferOwnership(_owner);
-        governor = _governor;
-        votingToken = _votingToken;
+        GOVERNOR = _governor;
+        VOTING_TOKEN = _votingToken;
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
 
         _setMinimumVotingPower(_minimumVotingPower);
@@ -303,7 +303,7 @@ contract ProposalValidator is Ownable {
         proposal.inVoting = true;
 
         governorProposalId_ =
-            governor.propose(_targets, _values, _calldatas, _description, proposal.proposalTypeConfigurator);
+            GOVERNOR.propose(_targets, _values, _calldatas, _description, proposal.proposalTypeConfigurator);
 
         emit ProposalMovedToVote(_proposalHash, msg.sender);
     }
@@ -312,7 +312,7 @@ contract ProposalValidator is Ownable {
     /// @param _delegate The address of the delegate to check.
     /// @return canSignOff_ True if the delegate has sufficient voting power, false otherwise.
     function canSignOff(address _delegate) public view returns (bool canSignOff_) {
-        canSignOff_ = votingToken.balanceOf(_delegate) >= minimumVotingPower;
+        canSignOff_ = VOTING_TOKEN.balanceOf(_delegate) >= minimumVotingPower;
     }
 
     /// @notice Sets the minimum voting power required for a delegate to approve proposals.
