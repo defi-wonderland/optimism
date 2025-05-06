@@ -24,10 +24,10 @@ contract ProposalValidator is Ownable {
     error ProposalValidator_InsufficientApprovals();
 
     /// @notice Thrown when a delegate attempts to approve a proposal they've already approved.
-    error ProposalValidator_AlreadyApproved();
+    error ProposalValidator_ProposalAlreadyApproved();
 
     /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
-    error ProposalValidator_AlreadyProposed();
+    error ProposalValidator_ProposalAlreadyInVoting();
 
     /// @notice Thrown when a delegate has insufficient voting power to approve a proposal.
     error ProposalValidator_InsufficientVotingPower();
@@ -58,19 +58,29 @@ contract ProposalValidator is Ownable {
         uint256 remainingApprovalsRequired;
     }
 
+    /// @notice Data structure for storing immutable proposal type data.
+    /// @param targets Target addresses for proposal calls.
+    /// @param values ETH values for proposal calls.
+    /// @param signatures Function signatures for proposal calls.
+    struct ImmutableProposalTypeData {
+        address[] targets;
+        uint256[] values;
+        string[] signatures;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                  ENUMS
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Types of proposals that can be submitted.
     /// @param ProtocolOrGovernorUpgrade Proposals for upgrading the protocol or governor.
-    /// @param MaintenanceUpgradeProposals Proposals for maintenance upgrades.
+    /// @param MaintenanceUpgrade Proposals for maintenance upgrades.
     /// @param CouncilMemberElections Proposals for council member elections.
     /// @param GovernanceFund Proposals related to the governance fund.
     /// @param CouncilBudget Proposals related to the council budget.
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
-        MaintenanceUpgradeProposals,
+        MaintenanceUpgrade,
         CouncilMemberElections,
         GovernanceFund,
         CouncilBudget
@@ -214,7 +224,7 @@ contract ProposalValidator is Ownable {
         ProposalData storage proposal = _proposals[proposalHash_];
 
         if (proposal.proposer != address(0)) {
-            revert ProposalValidator_AlreadyProposed();
+            revert ProposalValidator_ProposalAlreadyInVoting();
         }
 
         proposal.proposer = msg.sender;
@@ -247,7 +257,7 @@ contract ProposalValidator is Ownable {
         ProposalData storage proposal = _proposals[_proposalHash];
 
         if (proposal.delegateApprovals[msg.sender]) {
-            revert ProposalValidator_AlreadyApproved();
+            revert ProposalValidator_ProposalAlreadyApproved();
         }
 
         proposal.delegateApprovals[msg.sender] = true;
@@ -287,7 +297,7 @@ contract ProposalValidator is Ownable {
         }
 
         if (proposal.inVoting) {
-            revert ProposalValidator_AlreadyProposed();
+            revert ProposalValidator_ProposalAlreadyInVoting();
         }
 
         proposal.inVoting = true;
@@ -362,12 +372,12 @@ contract ProposalValidator is Ownable {
     /// @param _proposalType The type of proposal to check.
     /// @return requiresApproval_ True if the proposal type requires approval, false otherwise.
     function _requiresApproval(ProposalType _proposalType) internal pure returns (bool requiresApproval_) {
-        requiresApproval_ = _proposalType == ProposalType.ProtocolOrGovernorUpgrade
-            || _proposalType == ProposalType.MaintenanceUpgradeProposals
-            || _proposalType == ProposalType.CouncilMemberElections;
+        return _proposalType == ProposalType.ProtocolOrGovernorUpgrade
+            || _proposalType == ProposalType.MaintenanceUpgrade || _proposalType == ProposalType.CouncilMemberElections;
     }
 
     /// @notice Validates the attestation data for a proposal.
+    /// @dev Checks that the sender is the approved delegate and that the proposal type is correct.
     /// @param _data The attestation data to validate.
     /// @param _expectedProposalType The expected proposal type from the attestation.
     /// @return isValid_ True if the attestation data is valid, false otherwise.
@@ -417,7 +427,7 @@ contract ProposalValidator is Ownable {
         emit DistributionThresholdSet(_distributionThreshold);
     }
 
-    /// @notice Internal function to set the proposal required approvals and emit event.
+    /// @notice Internal function to set a proposal's type required approvals and emit event.
     /// @param _proposalType The type of proposal to set the required approvals for.
     /// @param _requiredApprovals The new required approvals.
     function _setProposalRequiredApprovals(ProposalType _proposalType, uint256 _requiredApprovals) private {

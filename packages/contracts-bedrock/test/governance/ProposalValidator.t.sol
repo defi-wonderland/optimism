@@ -65,7 +65,7 @@ contract ProposalValidator_Init is CommonTest {
     {
         ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](5);
         proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgradeProposals;
+        proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgrade;
         proposalTypes[2] = ProposalValidator.ProposalType.CouncilMemberElections;
         proposalTypes[3] = ProposalValidator.ProposalType.GovernanceFund;
         proposalTypes[4] = ProposalValidator.ProposalType.CouncilBudget;
@@ -141,15 +141,20 @@ contract ProposalValidator_Init is CommonTest {
     function _createProposalSetup()
         internal
         view
-        returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description)
+        returns (
+            address[] memory targets_,
+            uint256[] memory values_,
+            bytes[] memory calldatas_,
+            string memory description_
+        )
     {
-        targets = new address[](1);
-        targets[0] = address(0);
-        values = new uint256[](1);
-        values[0] = 0;
-        calldatas = new bytes[](1);
-        calldatas[0] = bytes("");
-        description = "Test proposal";
+        targets_ = new address[](1);
+        targets_[0] = address(0);
+        values_ = new uint256[](1);
+        values_[0] = 0;
+        calldatas_ = new bytes[](1);
+        calldatas_[0] = bytes("");
+        description_ = "Test proposal";
     }
 }
 
@@ -157,7 +162,7 @@ contract ProposalValidator_Init is CommonTest {
 /// @notice Happy path tests for submitProposal function
 contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
     function test_submitProposal_succeeds() public {
-        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+        (address[] memory _targets, uint256[] memory _values, bytes[] memory _calldatas, string memory _description) =
             _createProposalSetup();
 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -167,10 +172,10 @@ contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
         // Submit the proposal
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitProposal(
-            targets, values, calldatas, description, proposalType, proposalTypeConfigurator, attestationUid
+            _targets, _values, _calldatas, _description, proposalType, proposalTypeConfigurator, attestationUid
         );
 
-        assertEq(proposalHash, keccak256(abi.encode(targets, values, calldatas, description)));
+        assertEq(proposalHash, keccak256(abi.encode(_targets, _values, _calldatas, _description)));
     }
 }
 
@@ -264,7 +269,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
     function test_approveProposal_alreadyApproved_reverts() public {
         _approveProposal(topDelegate_A, proposalHash);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyApproved.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyApproved.selector);
         _approveProposal(topDelegate_A, proposalHash);
     }
 }
@@ -369,7 +374,7 @@ contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyProposed.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyInVoting.selector);
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
     }
@@ -429,7 +434,9 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         vm.prank(owner);
         uint256 governorProposalId = validator.moveToVote(targets, values, calldatas, description);
 
-        // Verify the proposal was created in the governor
-        assertEq(governorProposalId, 1);
+        // It reverts when proposal is already in voting phase
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyInVoting.selector);
+        vm.prank(owner);
+        validator.moveToVote(targets, values, calldatas, description);
     }
 }
