@@ -16,9 +16,9 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
 
-/// @title ProposalValidatorTest
-/// @notice Test suite for ProposalValidator contract.
-contract ProposalValidatorTest is CommonTest {
+/// @title ProposalValidator_Init
+/// @notice Setup contract for ProposalValidator tests
+contract ProposalValidator_Init is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
     uint256 public constant VOTING_CYCLE_BLOCK = 100;
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
@@ -112,20 +112,16 @@ contract ProposalValidatorTest is CommonTest {
         topDelegate_D = _makeTopDelegate("topDelegate_D");
     }
 
-    /// @notice Test the full flow of a proposal.
-    function test_proposalFullFlow_succeeds() public {
-        // Create a proposal
-        address[] memory targets = new address[](1);
-        targets[0] = address(0);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = bytes("");
-        string memory description = "Test proposal";
-        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-
+    /// @notice Helper to create a valid attestation for a proposal
+    function _createAttestation(
+        address _delegate,
+        ProposalValidator.ProposalType _proposalType
+    )
+        internal
+        returns (bytes32)
+    {
         vm.prank(owner);
-        bytes32 attestationUid = IEAS(Predeploys.EAS).attest(
+        return IEAS(Predeploys.EAS).attest(
             AttestationRequest({
                 schema: ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
@@ -133,15 +129,263 @@ contract ProposalValidatorTest is CommonTest {
                     expirationTime: 0,
                     revocable: false,
                     refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, proposalType),
+                    data: abi.encode(_delegate, _proposalType),
                     value: 0
                 })
             })
         );
+    }
+
+    /// @notice Helper to create a standard proposal setup
+    function _createProposalSetup()
+        internal
+        view
+        returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description)
+    {
+        targets = new address[](1);
+        targets[0] = address(0);
+        values = new uint256[](1);
+        values[0] = 0;
+        calldatas = new bytes[](1);
+        calldatas[0] = bytes("");
+        description = "Test proposal";
+    }
+}
+
+/// @title ProposalValidator_SubmitProposal_Test
+/// @notice Happy path tests for submitProposal function
+contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
+    function test_submitProposal_succeeds() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _createProposalSetup();
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
 
         vm.prank(topDelegate_A);
         uint256 proposalId =
             validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+
+        assertEq(proposalId, 1);
+    }
+}
+
+/// @title ProposalValidator_SubmitProposal_TestFail
+/// @notice Sad path tests for submitProposal function
+contract ProposalValidator_SubmitProposal_TestFail is ProposalValidator_Init {
+    function test_submitProposal_invalidAttestation_reverts() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _createProposalSetup();
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 invalidAttestationUid = bytes32(uint256(1)); // Invalid attestation UID
+
+        vm.prank(topDelegate_A);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        validator.submitProposal(targets, values, calldatas, description, proposalType, invalidAttestationUid);
+    }
+
+    function test_submitProposal_wrongAttester_reverts() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _createProposalSetup();
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+
+        // Create attestation with wrong delegate
+        bytes32 attestationUid = _createAttestation(topDelegate_B, proposalType);
+
+        vm.prank(topDelegate_A);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+    }
+}
+
+/// @title ProposalValidator_ApproveProposal_Test
+/// @notice Happy path tests for approveProposal function
+contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
+    uint256 proposalId;
+
+    function setUp() public override {
+        super.setUp();
+
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _createProposalSetup();
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+
+        vm.prank(topDelegate_A);
+        proposalId = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+    }
+
+    function test_approveProposal_succeeds() public {
+        _approveProposal(topDelegate_A, proposalId);
+        _approveProposal(topDelegate_B, proposalId);
+        _approveProposal(topDelegate_C, proposalId);
+        _approveProposal(topDelegate_D, proposalId);
+    }
+}
+
+/// @title ProposalValidator_ApproveProposal_TestFail
+/// @notice Sad path tests for approveProposal function
+contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
+    uint256 proposalId;
+
+    function setUp() public override {
+        super.setUp();
+
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _createProposalSetup();
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+
+        vm.prank(topDelegate_A);
+        proposalId = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+    }
+
+    function test_approveProposal_insufficientVotingPower_reverts() public {
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientVotingPower.selector);
+        _approveProposal(rando, proposalId);
+    }
+
+    function test_approveProposal_alreadyApproved_reverts() public {
+        _approveProposal(topDelegate_A, proposalId);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyApproved.selector);
+        _approveProposal(topDelegate_A, proposalId);
+    }
+}
+
+/// @title ProposalValidator_MoveToVote_Test
+/// @notice Happy path tests for moveToVote function
+contract ProposalValidator_MoveToVote_Test is ProposalValidator_Init {
+    uint256 proposalId;
+    address[] targets;
+    uint256[] values;
+    bytes[] calldatas;
+    string description;
+    ProposalValidator.ProposalType proposalType;
+
+    function setUp() public override {
+        super.setUp();
+
+        (targets, values, calldatas, description) = _createProposalSetup();
+
+        proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+
+        vm.prank(topDelegate_A);
+        proposalId = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+
+        _approveProposal(topDelegate_A, proposalId);
+        _approveProposal(topDelegate_B, proposalId);
+        _approveProposal(topDelegate_C, proposalId);
+        _approveProposal(topDelegate_D, proposalId);
+    }
+
+    function test_moveToVote_succeeds() public {
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, uint8(proposalType))),
+            abi.encode(1)
+        );
+
+        vm.prank(owner);
+        uint256 governorProposalId = validator.moveToVote(proposalId);
+
+        assertEq(governorProposalId, 1);
+    }
+}
+
+/// @title ProposalValidator_MoveToVote_TestFail
+/// @notice Sad path tests for moveToVote function
+contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
+    uint256 proposalId;
+    address[] targets;
+    uint256[] values;
+    bytes[] calldatas;
+    string description;
+    ProposalValidator.ProposalType proposalType;
+
+    function setUp() public override {
+        super.setUp();
+
+        (targets, values, calldatas, description) = _createProposalSetup();
+
+        proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+
+        vm.prank(topDelegate_A);
+        proposalId = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+    }
+
+    function test_moveToVote_insufficientApprovals_reverts() public {
+        // Only approve with 3 delegates (need 4)
+        _approveProposal(topDelegate_A, proposalId);
+        _approveProposal(topDelegate_B, proposalId);
+        _approveProposal(topDelegate_C, proposalId);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientApprovals.selector);
+        vm.prank(owner);
+        validator.moveToVote(proposalId);
+    }
+
+    function test_moveToVote_alreadyProposed_reverts() public {
+        // Approve with all 4 delegates
+        _approveProposal(topDelegate_A, proposalId);
+        _approveProposal(topDelegate_B, proposalId);
+        _approveProposal(topDelegate_C, proposalId);
+        _approveProposal(topDelegate_D, proposalId);
+
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, uint8(proposalType))),
+            abi.encode(1)
+        );
+
+        vm.prank(owner);
+        validator.moveToVote(proposalId);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_AlreadyProposed.selector);
+        vm.prank(owner);
+        validator.moveToVote(proposalId);
+    }
+}
+
+/// @title ProposalValidator_Getters_Test
+/// @notice Tests for getter functions
+contract ProposalValidator_Getters_Test is ProposalValidator_Init {
+    function test_canSignOff_succeeds() public {
+        bool canSignOff = validator.canSignOff(topDelegate_A);
+        assertTrue(canSignOff);
+
+        bool cannotSignOff = validator.canSignOff(rando);
+        assertFalse(cannotSignOff);
+    }
+}
+
+/// @title ProposalValidator_Setters_Test
+/// @notice Tests for setter functions
+contract ProposalValidator_Setters_Test is ProposalValidator_Init {
+// TODO: Implement tests for setters
+}
+
+/// @title ProposalValidator_Integration_Test
+/// @notice Integration tests for the full proposal flow
+contract ProposalValidator_Integration_Test is ProposalValidator_Init {
+    function test_proposalFullFlow_succeeds() public {
+        // Create a proposal
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) =
+            _createProposalSetup();
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+
+        vm.prank(topDelegate_A);
+        uint256 proposalId =
+            validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+
         assertEq(proposalId, 1);
 
         // It reverts when caller is not a top delegate
