@@ -264,6 +264,7 @@ contract ProposalValidator is Ownable {
     }
 
     /// @notice Move a proposal to voting phase after sufficient delegate approvals.
+    /// @dev After passing all checks, the proposal is submitted with a external call to the governor contract.
     /// @param _proposalId The ID of the proposal to move to vote.
     /// @return governorProposalId_ The proposal ID in the governor contract.
     function moveToVote(uint256 _proposalId) external returns (uint256 governorProposalId_) {
