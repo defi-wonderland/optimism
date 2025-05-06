@@ -57,10 +57,14 @@ contract ProposalValidator_Init is CommonTest {
         validator.approveProposal(_proposalId);
     }
 
-    function _getProposalTypesRequiredApprovals()
+    function _getProposalTypesRequiredApprovalsAndImmutableData()
         internal
         pure
-        returns (ProposalValidator.ProposalType[] memory, uint256[] memory)
+        returns (
+            ProposalValidator.ProposalType[] memory,
+            uint256[] memory,
+            ProposalValidator.ImmutableProposalTypeData[] memory
+        )
     {
         ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](5);
         proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -76,7 +80,15 @@ contract ProposalValidator_Init is CommonTest {
         requiredApprovals[3] = PROPOSAL_REQUIRED_APPROVALS;
         requiredApprovals[4] = PROPOSAL_REQUIRED_APPROVALS;
 
-        return (proposalTypes, requiredApprovals);
+        ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData =
+            new ProposalValidator.ImmutableProposalTypeData[](5);
+        immutableProposalTypeData[0] = ProposalValidator.ImmutableProposalTypeData({
+            targets: new address[](1),
+            values: new uint256[](1),
+            signatures: new string[](1)
+        });
+
+        return (proposalTypes, requiredApprovals, immutableProposalTypeData);
     }
 
     /// @dev Sets up the test suite.
@@ -91,8 +103,11 @@ contract ProposalValidator_Init is CommonTest {
             "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
-        (ProposalValidator.ProposalType[] memory proposalTypes, uint256[] memory requiredApprovals) =
-            _getProposalTypesRequiredApprovals();
+        (
+            ProposalValidator.ProposalType[] memory proposalTypes,
+            uint256[] memory requiredApprovals,
+            ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData
+        ) = _getProposalTypesRequiredApprovalsAndImmutableData();
 
         validator = new ProposalValidator(
             owner,
@@ -103,7 +118,8 @@ contract ProposalValidator_Init is CommonTest {
             VOTING_CYCLE_BLOCK,
             DISTRIBUTION_THRESHOLD,
             proposalTypes,
-            requiredApprovals
+            requiredApprovals,
+            immutableProposalTypeData
         );
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");

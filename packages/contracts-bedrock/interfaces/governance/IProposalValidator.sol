@@ -119,6 +119,7 @@ interface IProposalValidator {
         uint256 _votingCycleBlock,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals
+        uint256[] memory _requiredApprovals,
+        ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     ) external;
 }

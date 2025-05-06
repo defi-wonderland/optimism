@@ -159,6 +159,9 @@ contract ProposalValidator is Ownable {
     /// @notice The number of approvals required for each proposal type.
     mapping(ProposalType => uint256) private _proposalRequiredApprovals;
 
+    /// @notice The immutable data for each proposal type.
+    mapping(ProposalType => ImmutableProposalTypeData) private _proposalTypeData;
+
     /// @notice Mapping of proposal IDs to their corresponding proposal data.
     mapping(uint256 => ProposalData) private _proposals;
 
@@ -175,6 +178,7 @@ contract ProposalValidator is Ownable {
     /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
     /// @param _proposalTypes Array of proposal types to set approval thresholds for.
     /// @param _requiredApprovals Array of approval thresholds corresponding to the proposal types.
+    /// @param _immutableProposalTypeDatas Array of immutable proposal type data corresponding to the proposal types.
     constructor(
         address _owner,
         IOptimismGovernor _governor,
@@ -184,7 +188,8 @@ contract ProposalValidator is Ownable {
         uint256 _votingCycleBlock,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals
+        uint256[] memory _requiredApprovals,
+        ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     ) {
         transferOwnership(_owner);
         governor = _governor;
@@ -197,6 +202,7 @@ contract ProposalValidator is Ownable {
 
         for (uint256 i = 0; i < _proposalTypes.length; i++) {
             _setProposalRequiredApprovals(_proposalTypes[i], _requiredApprovals[i]);
+            _proposalTypeData[_proposalTypes[i]] = _immutableProposalTypeDatas[i];
         }
     }
 
