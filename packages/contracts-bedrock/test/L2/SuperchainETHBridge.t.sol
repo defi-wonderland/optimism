@@ -53,7 +53,7 @@ contract SuperchainETHBridge_Test is CommonTest {
         assertEq(superchainETHBridge.bucketCapacity(), 2000 ether);
     }
 
-    /// @notice Tests the `maxTxETHAmount` function.
+    /// @notice Tests the `maxTxETHAmount` function is always a 70% of the bucket capacity.
     function test_maxTxETHAmount() public {
         assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
 
