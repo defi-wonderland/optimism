@@ -75,17 +75,11 @@ contract SuperchainETHBridge is ISemver {
     function bucketCapacity() public view returns (uint256) {
         uint256 maturityTime = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
 
-        if (maturityTime >= 30 days) {
-            return 2000 ether;
-        } else if (maturityTime >= 14 days) {
-            return 1000 ether;
-        } else if (maturityTime >= 7 days) {
-            return 500 ether;
-        } else if (maturityTime >= 1 days) {
-            return 100 ether;
-        } else {
-            return 0;
-        }
+        if (maturityTime >= 30 days) return 2000 ether;
+        if (maturityTime >= 14 days) return 1000 ether;
+        if (maturityTime >= 7 days) return 500 ether;
+        if (maturityTime >= 1 days) return 100 ether;
+        return 0;
     }
 
     /// @notice The maximum amount of ETH that can be sent in a single transaction, 70% of the bucket capacity
@@ -104,8 +98,7 @@ contract SuperchainETHBridge is ISemver {
         }
 
         // Calculate the refill amount based on the time elapsed since the last refill
-        uint256 bucketRefillRate = bucketCapacity() / REFILL_TIME_WINDOW;
-        bucketRefillAmount_ = elapsedTime * bucketRefillRate;
+        bucketRefillAmount_ = (elapsedTime * bucketCapacity()) / REFILL_TIME_WINDOW;
 
         // Calculate the new bucket usage
         uint256 newBucketUsage;
