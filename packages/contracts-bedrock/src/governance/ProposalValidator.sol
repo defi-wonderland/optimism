@@ -23,6 +23,7 @@ contract ProposalValidator is OwnableUpgradeable {
 
     /// @notice Thrown when a proposal doesn't have enough delegate approvals to move to vote.
     error ProposalValidator_InsufficientApprovals();
+    
     /// @notice Thrown when a delegate attempts to approve a proposal they've already approved.
     error ProposalValidator_ProposalAlreadyApproved();
 
