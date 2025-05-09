@@ -215,7 +215,8 @@ contract SuperchainETHBridge_Test is CommonTest {
     function testFuzz_relayETH_succeeds(
         address _from,
         address _to,
-        uint256 _amount,
+        uint256 _amountMsg1,
+        uint256 _amountMsg2,
         uint256 _source,
         uint256 _skip
     )
@@ -226,11 +227,21 @@ contract SuperchainETHBridge_Test is CommonTest {
         assumePayable(_to);
 
         skip(bound(_skip, 1 days, 50 days));
-        _amount = bound(_amount, superchainETHBridge.BASE_FEE(), superchainETHBridge.maxTxETHAmount());
+        // Ensure the amount of ETH to send in the first message is greater than the base fee and less than the max tx
+        // amount
+        _amountMsg1 = bound(
+            _amountMsg1,
+            superchainETHBridge.BASE_FEE(),
+            superchainETHBridge.maxTxETHAmount() - superchainETHBridge.BASE_FEE()
+        );
+        // Ensure the amount of ETH to send in the second message is greater than the base fee and less than the
+        // max tx amount minus the amount of ETH to send in the first message
+        _amountMsg2 =
+            bound(_amountMsg2, superchainETHBridge.BASE_FEE(), superchainETHBridge.maxTxETHAmount() - _amountMsg1);
 
         // Arrange
-        vm.deal(address(superchainETHBridge), _amount);
-        vm.deal(Predeploys.ETH_LIQUIDITY, _amount);
+        vm.deal(address(superchainETHBridge), _amountMsg1 + _amountMsg2);
+        vm.deal(Predeploys.ETH_LIQUIDITY, _amountMsg1 + _amountMsg2);
         _mockAndExpect(
             Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
             abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageContext, ()),
@@ -241,29 +252,46 @@ contract SuperchainETHBridge_Test is CommonTest {
 
         // Look for the emit of the `RelayETH` event
         vm.expectEmit(address(superchainETHBridge));
-        emit RelayETH(_from, _to, _amount, _source);
+        emit RelayETH(_from, _to, _amountMsg1, _source);
 
         // Expect the call to the `mint` function in the `ETHLiquidity` contract
-        vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.mint, (_amount)), 1);
+        vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.mint, (_amountMsg1)), 1);
 
         // Call the `RelayETH` function with the messenger caller
         vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        superchainETHBridge.relayETH(_from, _to, _amount);
+        superchainETHBridge.relayETH(_from, _to, _amountMsg1);
 
-        assertEq(_to.balance, _toBalanceBefore + _amount);
+        assertEq(_to.balance, _toBalanceBefore + _amountMsg1);
 
         (uint256 _bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        (uint128 _bucketTimestamp, uint128 _bucketUsage) = superchainETHBridge.lastBucketCheckpoint();
 
-        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amount);
+        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amountMsg1);
+        assertEq(_bucketTimestamp, block.timestamp);
+        assertEq(_bucketUsage, _amountMsg1);
+
+        // Expect the call to the `mint` function in the `ETHLiquidity` contract
+        vm.expectCall(Predeploys.ETH_LIQUIDITY, abi.encodeCall(IETHLiquidity.mint, (_amountMsg2)), 1);
+
+        // Call the `RelayETH` function with the messenger caller
+        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        superchainETHBridge.relayETH(_from, _to, _amountMsg2);
+
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+        (_bucketTimestamp, _bucketUsage) = superchainETHBridge.lastBucketCheckpoint();
+
+        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amountMsg1 - _amountMsg2);
+        assertEq(_bucketTimestamp, block.timestamp);
+        assertEq(_bucketUsage, _amountMsg1 + _amountMsg2);
 
         skip(superchainETHBridge.REFILL_TIME_WINDOW() / 2);
 
         (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
 
-        assertGt(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amount);
+        assertGt(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amountMsg1 - _amountMsg2);
         assertLe(_bucketAvailable, superchainETHBridge.bucketCapacity());
 
-        skip(superchainETHBridge.REFILL_TIME_WINDOW());
+        skip(superchainETHBridge.REFILL_TIME_WINDOW() / 2);
 
         (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
 

@@ -24,6 +24,8 @@ interface ISuperchainETHBridge is ISemver {
 
     function REFILL_TIME_WINDOW() external view returns (uint256);
 
+    function lastBucketCheckpoint() external view returns (uint128 usage, uint128 timestamp);
+
     function bucketCapacity() external view returns (uint256);
 
     function maxTxETHAmount() external view returns (uint256);
