@@ -38,9 +38,6 @@ contract SuperchainETHBridge_Test is CommonTest {
 
     /// @notice Tests the `bucketCapacity` function.
     function test_bucketCapacity() public {
-        assertEq(superchainETHBridge.bucketCapacity(), 0);
-
-        skip(1 days);
         assertEq(superchainETHBridge.bucketCapacity(), 100 ether);
 
         skip(7 days);
@@ -54,28 +51,15 @@ contract SuperchainETHBridge_Test is CommonTest {
     }
 
     /// @notice Tests the `maxTxETHAmount` function is always a 70% of the bucket capacity.
-    function test_maxTxETHAmount() public {
-        assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
-
-        skip(1 days);
-        assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
-
-        skip(7 days);
-        assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
-
-        skip(14 days);
-        assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
-
-        skip(30 days);
+    function test_maxTxETHAmount(uint256 _skip) public {
+        skip(bound(_skip, 0, 30 days));
         assertEq(superchainETHBridge.maxTxETHAmount(), 70 * superchainETHBridge.bucketCapacity() / 100);
     }
 
     /// @notice Tests the `bucketAvailable` function.
     function test_bucketAvailable() public {
         (uint256 _bucketAvailable,) = superchainETHBridge.bucketAvailable();
-        assertEq(_bucketAvailable, 0);
 
-        skip(1 days);
         (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
         assertEq(_bucketAvailable, 100 ether);
 
@@ -90,46 +74,6 @@ contract SuperchainETHBridge_Test is CommonTest {
         skip(30 days);
         (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
         assertEq(_bucketAvailable, 2000 ether);
-    }
-
-    function test_bucketAvailableWithUsage(
-        uint256 _skip,
-        uint256 _amount,
-        uint256 _source,
-        address _to,
-        address _from
-    )
-        public
-    {
-        skip(bound(_skip, 0, 30 days));
-        (uint256 _bucketAvailable,) = superchainETHBridge.bucketAvailable();
-
-        _amount = bound(_amount, 0, _bucketAvailable);
-
-        // Arrange
-        vm.deal(address(superchainETHBridge), _amount);
-        vm.deal(Predeploys.ETH_LIQUIDITY, _amount);
-        _mockAndExpect(
-            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-            abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageContext, ()),
-            abi.encode(address(superchainETHBridge), _source)
-        );
-
-        // Call the `RelayETH` function with the messenger caller
-        vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        superchainETHBridge.relayETH(_from, _to, _amount);
-
-        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
-
-        // Assert
-        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amount);
-
-        skip(superchainETHBridge.REFILL_TIME_WINDOW());
-
-        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
-
-        // Assert
-        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity());
     }
 
     /// @notice Tests the `sendETH` function reverts when the address `_to` is zero.
@@ -307,5 +251,22 @@ contract SuperchainETHBridge_Test is CommonTest {
         superchainETHBridge.relayETH(_from, _to, _amount);
 
         assertEq(_to.balance, _toBalanceBefore + _amount);
+
+        (uint256 _bucketAvailable,) = superchainETHBridge.bucketAvailable();
+
+        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amount);
+
+        skip(superchainETHBridge.REFILL_TIME_WINDOW() / 2);
+
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+
+        assertGt(_bucketAvailable, superchainETHBridge.bucketCapacity() - _amount);
+        assertLe(_bucketAvailable, superchainETHBridge.bucketCapacity());
+
+        skip(superchainETHBridge.REFILL_TIME_WINDOW());
+
+        (_bucketAvailable,) = superchainETHBridge.bucketAvailable();
+
+        assertEq(_bucketAvailable, superchainETHBridge.bucketCapacity());
     }
 }

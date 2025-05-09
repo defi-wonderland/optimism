@@ -76,10 +76,9 @@ contract SuperchainETHBridge is ISemver {
         uint256 maturityTime = block.timestamp - ETH_RATE_LIMIT_ACTIVATION;
 
         if (maturityTime >= 30 days) return 2000 ether;
-        if (maturityTime >= 14 days) return 1000 ether;
-        if (maturityTime >= 7 days) return 500 ether;
-        if (maturityTime >= 1 days) return 100 ether;
-        return 0;
+        else if (maturityTime >= 14 days) return 1000 ether;
+        else if (maturityTime >= 7 days) return 500 ether;
+        else return 100 ether;
     }
 
     /// @notice The maximum amount of ETH that can be sent in a single transaction, 70% of the bucket capacity
