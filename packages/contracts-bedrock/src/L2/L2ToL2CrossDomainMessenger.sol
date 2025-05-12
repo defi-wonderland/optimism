@@ -55,6 +55,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     bytes32 internal constant CROSS_DOMAIN_MESSAGE_SOURCE_SLOT =
         0x711dfa3259c842fffc17d6e1f1e0fc5927756133a2345ca56b4cb8178589fee7;
 
+    /// @notice Storage slot for the context of the current cross domain message.
+    ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.context")) - 1)
+    bytes32 internal constant CROSS_DOMAIN_MESSAGE_CONTEXT_SLOT =
+        0x3a44497cbc2aebc161f6363847442155c66e50761ba6a20dff3957d614c82156;
+
     /// @notice Event selector for the SentMessage event. Will be removed in favor of reading
     //          the `selector` property directly once crytic/slithe/#2566 is fixed.
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
@@ -105,6 +110,16 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash, bytes32 returnDataHash
     );
 
+    /// @notice Emitted whenever a message is successfully relayed on this chain.
+    /// @param msgHash Hash of the message that was relayed.
+    /// @param rootMsgHash Hash of the root message that was relayed.
+    /// @param relayer Address of the relayer that relayed the message.
+    /// @param txOrigin Address of the transaction origin.
+    /// @param cost Cost of the message relay.
+    event RelayedMessageGasReceipt(
+        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, address txOrigin, uint256 cost
+    );
+
     /// @notice Retrieves the sender of the current cross domain message. If not entered, reverts.
     /// @return sender_ Address of the sender of the current cross domain message.
     function crossDomainMessageSender() external view onlyEntered returns (address sender_) {
@@ -124,11 +139,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
     /// @return sender_ Address of the sender of the current cross domain message.
     /// @return source_ Chain ID of the source of the current cross domain message.
-    function crossDomainMessageContext() external view onlyEntered returns (address sender_, uint256 source_) {
-        assembly {
-            sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
-            source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
-        }
+    /// @return context_ Context of the current cross domain message.
+    function crossDomainMessageContext()
+        external
+        view
+        onlyEntered
+        returns (address sender_, uint256 source_, bytes memory context_)
+    {
+        return _crossDomainMessageContext();
     }
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
@@ -150,7 +168,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
-        bytes memory _context; // TODO: Add context
+        (,, bytes memory _context) = _crossDomainMessageContext();
+        if (_context.length == 0) {
+            // new "top-level" cross domain call (messageHash_ == outbound message)
+            _context = abi.encodePacked(version, abi.encode(messageHash_, tx.origin));
+        }
 
         uint256 nonce = messageNonce();
         messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
@@ -184,13 +206,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 _nonce,
         address _sender,
         address _target,
-        bytes calldata _message
+        bytes calldata _message,
+        bytes calldata _context
     )
         external
         returns (bytes32 messageHash_)
     {
-        bytes memory _context; // TODO: Add context
-
         messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
             _source: block.chainid,
@@ -244,7 +265,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _sender: sender,
             _target: target,
             _message: message,
-            _context: ""
+            _context: context
         });
 
         if (successfulMessages[messageHash]) {
@@ -252,12 +273,18 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         successfulMessages[messageHash] = true;
-        _storeMessageMetadata(source, sender);
+        _storeMessageMetadata(source, sender, context);
 
+        uint256 _gasLeft = gasleft();
         bool success;
         (success, returnData_) = target.call{ value: msg.value }(message);
+        uint256 gasUsed = (_gasLeft - gasleft()) + 21000; // RELAY_MESSAGE_OVERHEAD;
 
-        if (!success) {
+        uint256 cost = block.basefee * gasUsed;
+
+        if (success) {
+            emit RelayedMessageGasReceipt(messageHash, messageHash, msg.sender, tx.origin, cost);
+        } else {
             assembly {
                 revert(add(32, returnData_), mload(returnData_))
             }
@@ -265,7 +292,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         emit RelayedMessage(source, nonce, messageHash, keccak256(returnData_));
 
-        _storeMessageMetadata(0, address(0));
+        _storeMessageMetadata(0, address(0), context);
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
@@ -278,10 +305,27 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Stores message data such as sender and source in transient storage.
     /// @param _source Chain ID of the source chain.
     /// @param _sender Address of the sender of the message.
-    function _storeMessageMetadata(uint256 _source, address _sender) internal {
+    function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _context) internal {
         assembly {
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
             tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
+            tstore(CROSS_DOMAIN_MESSAGE_CONTEXT_SLOT, _context)
+        }
+    }
+
+    /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
+    /// @return sender_ Address of the sender of the current cross domain message.
+    /// @return source_ Chain ID of the source of the current cross domain message.
+    /// @return context_ Context of the current cross domain message.
+    function _crossDomainMessageContext()
+        internal
+        view
+        returns (address sender_, uint256 source_, bytes memory context_)
+    {
+        assembly {
+            sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
+            source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
+            context_ := tload(CROSS_DOMAIN_MESSAGE_CONTEXT_SLOT)
         }
     }
 
