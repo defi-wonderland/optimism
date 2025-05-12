@@ -138,13 +138,14 @@ library Hashing {
         uint256 _nonce,
         address _sender,
         address _target,
-        bytes memory _message
+        bytes memory _message,
+        bytes memory _context
     )
         internal
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(_destination, _source, _nonce, _sender, _target, _message));
+        return keccak256(abi.encode(_destination, _source, _nonce, _sender, _target, _message, _context));
     }
 
     /// @notice Hashes a Super Root proof into a Super Root.
