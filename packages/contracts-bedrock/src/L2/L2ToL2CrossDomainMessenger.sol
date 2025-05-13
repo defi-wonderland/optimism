@@ -168,27 +168,32 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
-        (,, bytes memory _context) = _crossDomainMessageContext();
-        if (_context.length == 0) {
-            // new "top-level" cross domain call (messageHash_ == outbound message)
-            _context = abi.encodePacked(version, abi.encode(messageHash_, tx.origin));
-        }
-
         uint256 nonce = messageNonce();
-        messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
             _source: block.chainid,
             _nonce: nonce,
             _sender: msg.sender,
             _target: _target,
-            _message: _message,
-            _context: _context
+            _message: _message
         });
+
+        (,, bytes memory originContext) = _crossDomainMessageContext();
+        bytes32 originContextHash;
+        if (originContext.length == 0) {
+            // TODO: Why was this proposed instead?
+            // originContext = abi.encodePacked(version, abi.encode(messagePayloadHash, tx.origin));
+            originContext = abi.encodePacked(version, messagePayloadHash, tx.origin);
+            // new "top-level" cross domain call (messageHash_ == outbound message)
+            originContextHash = keccak256(originContext);
+        }
+
+        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
 
         sentMessages[messageHash_] = true;
         msgNonce++;
 
-        emit SentMessage(_destination, _target, nonce, msg.sender, _message, _context);
+        emit SentMessage(_destination, _target, nonce, msg.sender, _message, originContext);
     }
 
     /// @notice Re-emits a previously sent message event for old messages that haven't been
@@ -207,24 +212,26 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         address _sender,
         address _target,
         bytes calldata _message,
-        bytes calldata _context
+        bytes calldata _originContext
     )
         external
         returns (bytes32 messageHash_)
     {
-        messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
             _source: block.chainid,
             _nonce: _nonce,
             _sender: _sender,
             _target: _target,
-            _message: _message,
-            _context: _context
+            _message: _message
         });
+
+        bytes32 originContextHash = keccak256(_originContext);
+        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
 
         if (!sentMessages[messageHash_]) revert InvalidMessage();
 
-        emit SentMessage(_destination, _target, _nonce, _sender, _message, _context);
+        emit SentMessage(_destination, _target, _nonce, _sender, _message, _originContext);
     }
 
     /// @notice Relays a message that was sent by the other L2ToL2CrossDomainMessenger contract. Can only be executed
@@ -251,29 +258,37 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
 
         // Decode the payload
-        (uint256 destination, address target, uint256 nonce, address sender, bytes memory message, bytes memory context)
-        = _decodeSentMessagePayload(_sentMessage);
+        (
+            uint256 destination,
+            address target,
+            uint256 nonce,
+            address sender,
+            bytes memory message,
+            bytes memory originContext
+        ) = _decodeSentMessagePayload(_sentMessage);
 
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
 
         uint256 source = _id.chainId;
-        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: destination,
             _source: source,
             _nonce: nonce,
             _sender: sender,
             _target: target,
-            _message: message,
-            _context: context
+            _message: message
         });
+
+        bytes32 originContextHash = keccak256(originContext);
+        bytes32 messageHash = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
 
         if (successfulMessages[messageHash]) {
             revert MessageAlreadyRelayed();
         }
 
         successfulMessages[messageHash] = true;
-        _storeMessageMetadata(source, sender, context);
+        _storeMessageMetadata(source, sender, originContext);
 
         uint256 _gasLeft = gasleft();
         bool success;
@@ -283,7 +298,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 cost = block.basefee * gasUsed;
 
         if (success) {
-            emit RelayedMessageGasReceipt(messageHash, messageHash, msg.sender, tx.origin, cost);
+            (, bytes32 contextMessagePayloadHash, address txOrigin) =
+                abi.decode(originContext, (uint256, bytes32, address));
+            bytes32 rootMessageHash = keccak256(abi.encodePacked(contextMessagePayloadHash, originContextHash));
+
+            emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, cost);
         } else {
             assembly {
                 revert(add(32, returnData_), mload(returnData_))
@@ -292,7 +311,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         emit RelayedMessage(source, nonce, messageHash, keccak256(returnData_));
 
-        _storeMessageMetadata(0, address(0), context);
+        _storeMessageMetadata(0, address(0), originContext);
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message

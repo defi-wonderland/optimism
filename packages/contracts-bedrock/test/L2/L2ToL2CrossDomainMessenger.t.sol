@@ -59,6 +59,14 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
         }
     }
+
+    /// @dev Sets the cross domain messenger context in transient storage.
+    /// @param _context Context to set.
+    function setCrossDomainMessageContext(bytes memory _context) external {
+        assembly {
+            tstore(CROSS_DOMAIN_MESSAGE_CONTEXT_SLOT, _context)
+        }
+    }
 }
 
 /// @title L2ToL2CrossDomainMessengerTest
@@ -99,7 +107,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(
             msgHash,
             Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, address(this), _target, _message, ""
+                _destination, block.chainid, messageNonce, address(this), _target, _message
             )
         );
 
@@ -194,9 +202,8 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         external
     {
         // Get the message hash and ensure it has not been sent yet
-        bytes32 msgHash = Hashing.hashL2toL2CrossDomainMessage(
-            _destination, block.chainid, _nonce, _sender, _target, _message, _context
-        );
+        bytes32 msgHash =
+            Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, _nonce, _sender, _target, _message);
         vm.assume(l2ToL2CrossDomainMessenger.sentMessages(msgHash) == false);
 
         // Expect a revert with the InvalidMessage selector
@@ -234,9 +241,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessage(_destination, _target, _message);
         assertEq(
             msgHash,
-            Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, _sender, _target, _message, _context
-            )
+            Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, messageNonce, _sender, _target, _message)
         );
 
         // Check that the event was emitted with the correct parameters
@@ -761,6 +766,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             l2ToL2CrossDomainMessenger.crossDomainMessageContext();
         assertEq(crossDomainContextSender, _sender);
         assertEq(crossDomainContextSource, _source);
+        assertEq(crossDomainContext, _context);
     }
 
     /// @dev Tests that the `crossDomainMessageContext` function reverts when not entered.
