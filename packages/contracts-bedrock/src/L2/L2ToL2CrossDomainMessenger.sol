@@ -198,17 +198,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         });
 
         bytes memory originContext = _crossDomainMessageOriginContext();
-
-        bytes32 originContextHash;
-
         if (originContext.length == 0) {
             // TODO: Why was this proposed instead?
             // originContext = abi.encodePacked(version, abi.encode(messagePayloadHash, tx.origin));
             originContext = abi.encodePacked(version, messagePayloadHash, tx.origin);
-            // new "top-level" cross domain call (messageHash_ == outbound message)
-            originContextHash = keccak256(originContext);
         }
 
+        // new "top-level" cross domain call (messageHash_ == outbound message)
+        bytes32 originContextHash = keccak256(originContext);
         messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
 
         sentMessages[messageHash_] = true;
