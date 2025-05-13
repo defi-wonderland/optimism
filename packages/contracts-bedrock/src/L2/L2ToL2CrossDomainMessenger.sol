@@ -252,12 +252,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         emit SentMessage(_destination, _target, _nonce, _sender, _message, _originContext);
     }
 
+    event Touched();
     /// @notice Relays a message that was sent by the other L2ToL2CrossDomainMessenger contract. Can only be executed
     ///         via cross chain call from the other messenger OR if the message was already received once and is
     ///         currently being replayed.
     /// @param _id          Identifier of the SentMessage event to be relayed
     /// @param _sentMessage Payload of the `SentMessage` event
     /// @return returnData_ Return data from the target contract call.
+
     function relayMessage(
         Identifier calldata _id,
         bytes calldata _sentMessage
@@ -309,6 +311,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (success) {
             (, bytes32 contextMessagePayloadHash, address txOrigin) =
                 abi.decode(decodedPayload.context, (uint256, bytes32, address));
+            emit Touched();
             bytes32 rootMessageHash = keccak256(abi.encodePacked(contextMessagePayloadHash, originContextHash));
 
             emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
