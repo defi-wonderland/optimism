@@ -64,7 +64,7 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
     /// @param _context Context to set.
     function setCrossDomainMessageContext(bytes memory _context) external {
         assembly {
-            tstore(CROSS_DOMAIN_MESSAGE_CONTEXT_SLOT, _context)
+            tstore(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, _context)
         }
     }
 }
