@@ -211,6 +211,9 @@ contract SuperchainETHBridge_Test is CommonTest {
         superchainETHBridge.relayETH(_from, _to, _amount);
     }
 
+    // TODO: Check that the bucket usage is properly uupdated when is not at full capacity, checking that the math
+    // properly works
+    /// and that the last checkpoint usage is updated correctly as well.
     /// @notice Tests the `relayETH` function relays the proper amount of ETH and emits the `RelayETH` event.
     function testFuzz_relayETH_succeeds(
         address _from,
