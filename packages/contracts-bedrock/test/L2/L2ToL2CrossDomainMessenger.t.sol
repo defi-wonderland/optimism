@@ -617,12 +617,20 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Ensure that the target contract does not revert (using the message also as the return data)
         vm.mockCall({ callee: _target, msgValue: _value, data: _message, returnData: _message });
 
+        bytes memory context = abi.encode(uint256(0), keccak256(""), address(0));
+
         // Look for correct emitted event for first call.
-        vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        vm.expectEmit(true, true, true, true, Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         emit L2ToL2CrossDomainMessenger.RelayedMessage(
             _source,
             _nonce,
-            keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message, "")),
+            // message payload hash + context hash
+            keccak256(
+                abi.encodePacked(
+                    keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message)),
+                    keccak256(context)
+                )
+            ),
             keccak256(_message)
         );
 
@@ -630,7 +638,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
-            abi.encode(_sender, _message, "") // data
+            abi.encode(_sender, _message, context) // data
         );
 
         // Ensure the CrossL2Inbox validates this message
