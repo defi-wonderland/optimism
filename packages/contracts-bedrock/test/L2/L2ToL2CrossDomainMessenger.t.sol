@@ -26,6 +26,8 @@ import {
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 
+import { GasTank } from "src/L2/GasTank.sol";
+
 /// @title L2ToL2CrossDomainMessengerWithModifiableTransientStorage
 /// @dev L2ToL2CrossDomainMessenger contract with methods to modify the transient storage.
 ///      This is used to test the transient storage of L2ToL2CrossDomainMessenger.
@@ -787,5 +789,32 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Call `crossDomainMessageContext` to provoke revert
         l2ToL2CrossDomainMessenger.crossDomainMessageContext();
+    }
+
+    // 1.  send message on l1 and check context is good
+    // 2.  relay message on l2 and sent message back to l1 to claim
+    // 3. claim
+    function test_primitivesAndGasTankIntegration_succeeds() external {
+        /* 0. deploy and fund gas tank */
+        address user = makeAddr("user");
+        address relayer = makeAddr("relayer");
+        GasTank gasTank = new GasTank();
+
+        hoax(user, 0.01 ether);
+        gasTank.deposit{ value: 0.01 ether }();
+
+        /* 1. send message */
+        vm.prank(user);
+        l2ToL2CrossDomainMessenger.sendMessage(block.chainid + 1, user, "");
+
+        /* 2. relay message */
+        vm.prank(relayer);
+        // TODO: Relay
+        /* relay and check gas consumption properly reflects the relay cost */
+        // l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+
+        /* 3. claim */
+        vm.prank(relayer);
+        // gasTank.claim(id, payload);
     }
 }
