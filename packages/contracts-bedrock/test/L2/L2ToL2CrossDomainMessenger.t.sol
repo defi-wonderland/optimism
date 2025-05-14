@@ -104,12 +104,12 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Call the sendMessage function
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessage(_destination, _target, _message);
-        assertEq(
-            msgHash,
-            Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, address(this), _target, _message
-            )
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage(
+            _destination, block.chainid, messageNonce, address(this), _target, _message
         );
+        bytes memory originContext =
+            abi.encodePacked(l2ToL2CrossDomainMessenger.version(), messagePayloadHash, tx.origin);
+        assertEq(msgHash, keccak256(abi.encode(messagePayloadHash, keccak256(originContext))));
 
         // Check that the event was emitted with the correct parameters
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -122,7 +122,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(logs[0].topics[3], bytes32(messageNonce));
 
         // data
-        assertEq(logs[0].data, abi.encode(address(this), _message, ""));
+        assertEq(logs[0].data, abi.encode(address(this), _message, originContext));
 
         // Check that the message nonce has been incremented and the message hash has been stored
         assertEq(l2ToL2CrossDomainMessenger.messageNonce(), messageNonce + 1);
