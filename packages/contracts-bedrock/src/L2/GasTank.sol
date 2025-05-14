@@ -78,7 +78,7 @@ contract GasTank {
         returns (bytes32 msgHash, bytes32 rootMsgHash, address relayer, address txOrigin, uint256 relayCost)
     { }
 
-    // TODO: Timelocked withdrawal mechanism
+    // TODO: NOT PoC: Timelocked withdrawal mechanism
 }
 
 // 1.  send message on l1 and check context is good

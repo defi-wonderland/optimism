@@ -205,8 +205,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         // new "top-level" cross domain call (messageHash_ == outbound message)
-        bytes32 originContextHash = keccak256(originContext);
-        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
+        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContext));
 
         sentMessages[messageHash_] = true;
         msgNonce++;
@@ -291,8 +290,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: decodedPayload.message
         });
 
-        bytes32 originContextHash = keccak256(decodedPayload.context);
-        bytes32 messageHash = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
+        bytes32 messageHash = keccak256(abi.encodePacked(messagePayloadHash, decodedPayload.context));
 
         if (successfulMessages[messageHash]) {
             revert MessageAlreadyRelayed();
@@ -310,7 +308,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             (, bytes32 contextMessagePayloadHash, address txOrigin) =
                 abi.decode(decodedPayload.context, (uint256, bytes32, address));
 
-            bytes32 rootMessageHash = keccak256(abi.encodePacked(contextMessagePayloadHash, originContextHash));
+            bytes32 rootMessageHash = keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.context));
 
             emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
         } else {
