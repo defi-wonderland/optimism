@@ -22,7 +22,10 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 /// @notice Setup contract for ProposalValidator tests
 contract ProposalValidator_Init is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
-    uint256 public constant VOTING_CYCLE_BLOCK = 100;
+    uint256 public constant CYCLE_NUMBER = 1;
+    uint256 public constant START_BLOCK = 1000000;
+    uint256 public constant DURATION = 100;
+    uint256 public constant DISTRIBUTION_LIMIT = 10000 ether;
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
@@ -123,7 +126,7 @@ contract ProposalValidator_Init is CommonTest {
         vm.prank(owner);
         IProxy(payable(address(validator))).upgradeToAndCall(
             address(impl),
-            abi.encodeCall(impl.initialize, (owner, MINIMUM_VOTING_POWER, VOTING_CYCLE_BLOCK, DISTRIBUTION_THRESHOLD, proposalTypes, requiredApprovals, immutableProposalTypeData))
+            abi.encodeCall(impl.initialize, (owner, MINIMUM_VOTING_POWER, CYCLE_NUMBER, START_BLOCK, DURATION, DISTRIBUTION_LIMIT, DISTRIBUTION_THRESHOLD, proposalTypes, requiredApprovals, immutableProposalTypeData))
         );
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");
@@ -393,7 +396,70 @@ contract ProposalValidator_Getters_Test is ProposalValidator_Init {
 /// @title ProposalValidator_Setters_Test
 /// @notice Tests for setter functions
 contract ProposalValidator_Setters_Test is ProposalValidator_Init {
-// TODO: Implement tests for setters
+    function test_setMinimumVotingPower_succeeds() public {
+        vm.prank(owner);
+        validator.setMinimumVotingPower(10000 ether);
+
+        assertEq(validator.minimumVotingPower(), 10000 ether);
+    }
+
+    function test_setMinimumVotingPower_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setMinimumVotingPower(10000 ether);
+    }
+
+    function test_setVotingCycleData_succeeds() public {
+        vm.prank(owner);
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+
+        (uint256 startingBlock, uint256 duration, uint256 votingCycleDistributionLimit) = validator.votingCycles(2);
+
+        assertEq(startingBlock, block.number);
+        assertEq(duration, 100);
+        assertEq(votingCycleDistributionLimit, 10000 ether);
+    }
+
+    function test_setVotingCycleData_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+    }
+
+    function test_setVotingCycleData_votingCycleAlreadySet_reverts() public {
+        vm.prank(owner);
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_VotingCycleAlreadySet.selector);
+        vm.prank(owner);
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+    }
+    
+    function test_setDistributionThreshold_succeeds() public {
+        vm.prank(owner);
+        validator.setDistributionThreshold(10000 ether);
+
+        assertEq(validator.distributionThreshold(), 10000 ether);
+    }
+    
+    function test_setDistributionThreshold_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setDistributionThreshold(10000 ether);
+    }
+    
+    function test_setProposalTypeApprovalThreshold_succeeds() public {
+        vm.prank(owner);
+        validator.setProposalTypeApprovalThreshold(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 4);
+
+        assertEq(validator.proposalRequiredApprovals(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade), 4);
+    }
+
+    function test_setProposalTypeApprovalThreshold_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setProposalTypeApprovalThreshold(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 4);
+    }
 }
 
 /// @title ProposalValidator_Integration_Test
