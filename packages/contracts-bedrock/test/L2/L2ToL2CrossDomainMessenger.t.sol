@@ -79,6 +79,12 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     /// @dev L2ToL2CrossDomainMessenger contract instance with modifiable transient storage.
     L2ToL2CrossDomainMessengerWithModifiableTransientStorage l2ToL2CrossDomainMessenger;
 
+    // TODO: Remove
+    uint256 public immutable origin = block.chainid;
+    uint256 public immutable destination = block.chainid + 1;
+    address public immutable user = makeAddr("user");
+    address public immutable relayer = makeAddr("relayer");
+
     /// @dev Sets up the test suite.
     function setUp() public {
         // Deploy the L2ToL2CrossDomainMessenger contract
@@ -795,9 +801,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     // 2.  relay message on l2 and sent message back to l1 to claim
     // 3. claim
     function test_primitivesAndGasTankIntegration_succeeds() external {
-        /* 0. deploy and fund gas tank */
-        address user = makeAddr("user");
-        address relayer = makeAddr("relayer");
+        /* 0. deploy and send funds to gas tank from the user */
         GasTank gasTank = new GasTank();
 
         hoax(user, 0.01 ether);
@@ -805,16 +809,57 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         /* 1. send message */
         vm.prank(user);
-        l2ToL2CrossDomainMessenger.sendMessage(block.chainid + 1, user, "");
+        bytes memory message = "";
+        bytes32 rootMessageHash = l2ToL2CrossDomainMessenger.sendMessage(destination, user, message);
+
+        // Get the values to construct the id and message to relay on destination
+        uint256 nonce = l2ToL2CrossDomainMessenger.messageNonce() - 1;
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: destination,
+            _source: origin,
+            _nonce: nonce,
+            _sender: user,
+            _target: user,
+            _message: message
+        });
+        bytes memory originContext = abi.encodePacked(l2ToL2CrossDomainMessenger.version(), messagePayloadHash, user);
 
         /* 2. relay message */
+        vm.chainId(destination);
         vm.prank(relayer);
-        // TODO: Relay
         /* relay and check gas consumption properly reflects the relay cost */
-        // l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+        // Construct and relay the message
+        Identifier memory id =
+            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, origin);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, destination, user, nonce), // topics
+            abi.encode(user, message, originContext) // data
+        );
+        l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+
+        // TODO: Expect event emitted and get values
+        // TODO: Check gas cost is ok and add to the var
+        uint256 gasUsed = 0;
 
         /* 3. claim */
+        vm.chainId(origin);
+
+        Identifier memory idRelay =
+            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, destination);
+
+        bytes32 relayMessageHash = keccak256(abi.encodePacked(messagePayloadHash, originContext));
+        bytes memory gasReceiptPayload = abi.encode(
+            L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector,
+            relayMessageHash,
+            rootMessageHash,
+            relayer,
+            user,
+            gasUsed
+        );
+
         vm.prank(relayer);
-        // gasTank.claim(id, payload);
+        gasTank.claim(idRelay, gasReceiptPayload);
+
+        // TODO: Check gas tank transferred is the same as the gas used
     }
 }
