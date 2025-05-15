@@ -37,6 +37,10 @@ contract GasTank {
         emit Deposit(msg.sender, msg.value);
     }
 
+    function flag(bytes32 rootMessageHash) external { }
+
+    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
+
     function claim(Identifier calldata id, bytes calldata payload) external {
         // Ensure the origin is the messenger
         if (id.origin != address(MESSENGER)) revert InvalidOrigin();
