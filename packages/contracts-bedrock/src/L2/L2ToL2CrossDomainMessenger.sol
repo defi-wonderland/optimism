@@ -172,8 +172,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         assembly {
             sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
             source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
-            originContextFirstSlot := tload(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT)
-            messagePayloadHash := tload(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 1))
+            originContextFirstSlot := tload(ORIGIN_CONTEXT_INITIAL_SLOT)
+            messagePayloadHash := tload(ORIGIN_CONTEXT_SECOND_SLOT)
         }
 
         // TODO: See if an encode and decode can be avoided
@@ -321,11 +321,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            bytes32 contextMessagePayloadHash = decodedPayload.originContext.messagePayloadHash;
+            (uint8, address txOrigin, bytes32 contextMessagePayloadHash) =
+                abi.decode(decodedPayload.originContext, (uint8, address, bytes32));
             bytes32 rootMessageHash = keccak256(abi.encode(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
 
-            address txOrigin = decodedPayload.originContext.txOrigin;
             uint256 gasUsed = (initialGas - gasleft()); // TODO: + non reentrat overhead + RELAY_MESSAGE_GAS_OVERHEAD;
             emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
         } else {
