@@ -347,11 +347,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _sender Address of the sender of the message.
     function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _originContext) internal {
         // Decode the origin context
-        (uint8 originContextVersion, bytes memory originContextData) = abi.decode(_originContext, (uint8, bytes));
-        (bytes32 messagePayloadHash, address txOrigin) = abi.decode(originContextData, (bytes32, address));
-
-        // Pack the origin context version and tx origin
-        bytes memory originContextFirstSlot = abi.encodePacked(originContextVersion, txOrigin);
+        (bytes32 originContextFirstSlot, bytes32 messagePayloadHash) = _parseOriginContext(_originContext);
 
         // Store the message metadata
         assembly {
@@ -364,7 +360,20 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     // TODO: Add internal function just to know how to write and read the context, so if it changes, that only changes
     // there
-    function _parseOriginContext(bytes memory _originContext) internal view returns (bytes memory originContext_) { }
+    function _parseOriginContext(bytes memory _originContext)
+        internal
+        view
+        returns (bytes32 originContextFirstSlot_, bytes32 messagePayloadHash_)
+    {
+        address txOrigin;
+        (uint8 originContextVersion, bytes memory originContextData) = abi.decode(_originContext, (uint8, bytes));
+        (messagePayloadHash_, txOrigin) = abi.decode(originContextData, (bytes32, address));
+
+        // Pack the origin context version and tx origin
+        bytes memory originContextFirstSlot = abi.encodePacked(originContextVersion, txOrigin);
+
+        return (originContextFirstSlot, messagePayloadHash_);
+    }
 
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
     /// @return originContext_ Origin context of the current cross domain message.
