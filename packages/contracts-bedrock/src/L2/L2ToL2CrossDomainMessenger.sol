@@ -362,7 +362,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     // there
     function _parseOriginContext(bytes memory _originContext)
         internal
-        view
+        pure
         returns (bytes32 originContextFirstSlot_, bytes32 messagePayloadHash_)
     {
         address txOrigin;
@@ -370,9 +370,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         (messagePayloadHash_, txOrigin) = abi.decode(originContextData, (bytes32, address));
 
         // Pack the origin context version and tx origin
-        bytes memory originContextFirstSlot = abi.encodePacked(originContextVersion, txOrigin);
-
-        return (originContextFirstSlot, messagePayloadHash_);
+        originContextFirstSlot_ = bytes32(abi.encodePacked(originContextVersion, txOrigin));
     }
 
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
