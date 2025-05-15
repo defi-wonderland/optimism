@@ -384,7 +384,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         (uint8 encodingVersion, address txOrigin) = abi.decode(abi.encode(originContextFirstSlot), (uint8, address));
-        originContext_ = abi.encode(encodingVersion, txOrigin, messagePayloadHash);
+        originContext_ = abi.encodePacked(encodingVersion, abi.encode(txOrigin, messagePayloadHash));
     }
 
     /// @notice Calculates the cost of a message relay.
