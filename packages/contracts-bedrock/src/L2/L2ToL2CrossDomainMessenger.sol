@@ -44,7 +44,7 @@ struct DecodedPayload {
     uint256 nonce;
     address sender;
     bytes message;
-    bytes context;
+    bytes32[3] context;
 }
 
 /// @custom:proxied true
@@ -72,7 +72,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Event selector for the SentMessage event. Will be removed in favor of reading
     //          the `selector` property directly once crytic/slithe/#2566 is fixed.
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0x687289caffce8cccd179ad6b3eebf5b30d65912f573a6b50d0525642b073297e;
+        0xcca6b8595265a5da3fee3254bfb353e227b23b8d4653683aa54cd7ff9e380078;
 
     /// @notice Current message version identifier.
     uint16 public constant messageVersion = uint16(0);
@@ -107,7 +107,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 indexed messageNonce,
         address sender,
         bytes message,
-        bytes context
+        bytes32[3] context
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
@@ -147,7 +147,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Retrieves the origin context of the current cross domain message. If not entered, reverts.
     /// @return context_ Origin context of the current cross domain message.
-    function crossDomainMessageOriginContext() external view onlyEntered returns (bytes memory context_) {
+    function crossDomainMessageOriginContext() external view onlyEntered returns (bytes32[3] memory context_) {
         return _crossDomainMessageOriginContext();
     }
 
@@ -159,13 +159,19 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         external
         view
         onlyEntered
-        returns (address sender_, uint256 source_, bytes memory context_)
+        returns (address sender_, uint256 source_, bytes32[3] memory context_)
     {
+        bytes32 context0;
+        bytes32 context1;
+        bytes32 context2;
         assembly {
             sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
             source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
-            context_ := tload(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT)
+            context0 := tload(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT)
+            context1 := tload(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 1))
+            context2 := tload(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 2))
         }
+        context_ = [context0, context1, context2];
     }
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
@@ -197,11 +203,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: _message
         });
 
-        bytes memory originContext = _crossDomainMessageOriginContext();
-        if (originContext.length == 0) {
+        bytes32[3] memory originContext = _crossDomainMessageOriginContext();
+        if (originContext[0] == bytes32(0) && originContext[1] == bytes32(0) && originContext[2] == bytes32(0)) {
             // TODO: Why was this proposed instead?
             // originContext = abi.encodePacked(version, abi.encode(messagePayloadHash, tx.origin));
-            originContext = abi.encodePacked(version, messagePayloadHash, tx.origin);
+            originContext = [keccak256(abi.encode(version)), messagePayloadHash, bytes32(uint256(uint160(tx.origin)))];
         }
 
         // new "top-level" cross domain call (messageHash_ == outbound message)
@@ -229,7 +235,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         address _sender,
         address _target,
         bytes calldata _message,
-        bytes calldata _originContext
+        bytes32[3] calldata _originContext
     )
         external
         returns (bytes32 messageHash_)
@@ -243,8 +249,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: _message
         });
 
-        bytes32 originContextHash = keccak256(_originContext);
-        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContextHash));
+        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, _originContext));
 
         if (!sentMessages[messageHash_]) revert InvalidMessage();
 
@@ -302,24 +307,22 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 _gasLeft = gasleft();
         bool success;
         (success, returnData_) = decodedPayload.target.call{ value: msg.value }(decodedPayload.message);
-        uint256 gasUsed = (_gasLeft - gasleft()) + 21000; // RELAY_MESSAGE_OVERHEAD;
 
         if (success) {
-            (, bytes32 contextMessagePayloadHash, address txOrigin) =
-                abi.decode(decodedPayload.context, (uint256, bytes32, address));
+            bytes32 contextMessagePayloadHash = decodedPayload.context[1];
+            address txOrigin = address(uint160(uint256(decodedPayload.context[2])));
 
             bytes32 rootMessageHash = keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.context));
+            emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
+            _storeMessageMetadata(0, address(0), [bytes32(0), bytes32(0), bytes32(0)]);
 
+            uint256 gasUsed = (_gasLeft - gasleft()); // + RELAY_MESSAGE_OVERHEAD;
             emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
         } else {
             assembly {
                 revert(add(32, returnData_), mload(returnData_))
             }
         }
-
-        emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
-
-        _storeMessageMetadata(0, address(0), "");
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
@@ -332,25 +335,36 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Stores message data such as sender and source in transient storage.
     /// @param _source Chain ID of the source chain.
     /// @param _sender Address of the sender of the message.
-    function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _context) internal {
+    function _storeMessageMetadata(uint256 _source, address _sender, bytes32[3] memory _context) internal {
+        bytes32 context0 = _context[0];
+        bytes32 context1 = _context[1];
+        bytes32 context2 = _context[2];
         assembly {
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
             tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
-            tstore(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, _context)
+            tstore(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, context0)
+            tstore(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 1), context1)
+            tstore(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 2), context2)
         }
     }
 
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
     /// @return context_ Context of the current cross domain message.
-    function _crossDomainMessageOriginContext() internal view returns (bytes memory context_) {
+    function _crossDomainMessageOriginContext() internal view returns (bytes32[3] memory context_) {
+        bytes32 context0;
+        bytes32 context1;
+        bytes32 context2;
         assembly {
-            context_ := tload(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT)
+            context0 := tload(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT)
+            context1 := tload(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 1))
+            context2 := tload(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 2))
         }
+        context_ = [context0, context1, context2];
     }
 
     /// @notice Calculates the cost of a message relay.
     function _cost(uint256 _gasUsed) internal view returns (uint256) {
-        return block.basefee * _gasUsed;
+        return tx.gasprice * _gasUsed;
     }
 
     /// @notice Decodes the payload of a SentMessage event.
@@ -375,8 +389,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             abi.decode(_payload[32:128], (uint256, address, uint256));
 
         // Data
-        (address sender_, bytes memory message_, bytes memory context_) =
-            abi.decode(_payload[128:], (address, bytes, bytes));
+        (address sender_, bytes memory message_, bytes32[3] memory context_) =
+            abi.decode(_payload[128:], (address, bytes, bytes32[3]));
 
         decodedPayload_ = DecodedPayload({
             destination: destination_,

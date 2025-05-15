@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Testing utilities
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 // Libraries
@@ -64,9 +64,14 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
 
     /// @dev Sets the cross domain messenger context in transient storage.
     /// @param _context Context to set.
-    function setCrossDomainMessageContext(bytes memory _context) external {
+    function setCrossDomainMessageOriginContext(bytes32[3] memory _context) external {
+        bytes32 context0 = _context[0];
+        bytes32 context1 = _context[1];
+        bytes32 context2 = _context[2];
         assembly {
-            tstore(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, _context)
+            tstore(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, context0)
+            tstore(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 1), context1)
+            tstore(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 2), context2)
         }
     }
 }
@@ -115,9 +120,12 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage(
             _destination, block.chainid, messageNonce, address(this), _target, _message
         );
-        bytes memory originContext =
-            abi.encodePacked(l2ToL2CrossDomainMessenger.version(), messagePayloadHash, tx.origin);
-        assertEq(msgHash, keccak256(abi.encode(messagePayloadHash, keccak256(originContext))));
+        bytes32[3] memory originContext = [
+            keccak256(abi.encode(l2ToL2CrossDomainMessenger.version())),
+            messagePayloadHash,
+            bytes32(uint256(uint160(tx.origin)))
+        ];
+        assertEq(msgHash, keccak256(abi.encodePacked(messagePayloadHash, originContext)));
 
         // Check that the event was emitted with the correct parameters
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -205,7 +213,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         address _sender,
         address _target,
         bytes calldata _message,
-        bytes calldata _context
+        bytes32[3] calldata _context
     )
         external
     {
@@ -227,8 +235,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         address _sender,
         uint256 _destination,
         address _target,
-        bytes calldata _message,
-        bytes calldata _context
+        bytes calldata _message
     )
         external
     {
@@ -247,10 +254,14 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Call the `sendMessage` function
         vm.prank(_sender);
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessage(_destination, _target, _message);
-        assertEq(
-            msgHash,
-            Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, messageNonce, _sender, _target, _message)
-        );
+        bytes32 messagePayloadHash =
+            Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, messageNonce, _sender, _target, _message);
+        bytes32[3] memory context = [
+            keccak256(abi.encode(l2ToL2CrossDomainMessenger.version())),
+            messagePayloadHash,
+            bytes32(uint256(uint160(tx.origin)))
+        ];
+        assertEq(msgHash, keccak256(abi.encodePacked(messagePayloadHash, context)));
 
         // Check that the event was emitted with the correct parameters
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -263,7 +274,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(logs[0].topics[3], bytes32(messageNonce));
 
         // data
-        assertEq(logs[0].data, abi.encode(_sender, _message, _context));
+        assertEq(logs[0].data, abi.encode(_sender, _message, context));
 
         // Check that the message nonce has been incremented and the message hash has been stored
         assertEq(l2ToL2CrossDomainMessenger.messageNonce(), messageNonce + 1);
@@ -271,7 +282,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Call the `resendMessage` function
         bytes32 resendMsgHash =
-            l2ToL2CrossDomainMessenger.resendMessage(_destination, messageNonce, _sender, _target, _message, _context);
+            l2ToL2CrossDomainMessenger.resendMessage(_destination, messageNonce, _sender, _target, _message, context);
 
         // Check that the event was emitted with the correct parameters
         logs = vm.getRecordedLogs();
@@ -353,7 +364,15 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         address target = address(this);
         bytes memory message = abi.encodeCall(this.mockTarget, (_source, _sender));
 
-        bytes32 msgHash = keccak256(abi.encode(block.chainid, _source, _nonce, _sender, target, message, ""));
+        bytes32 messagePayloadHash = keccak256(abi.encode(block.chainid, _source, _nonce, _sender, target, message));
+
+        bytes32[3] memory context = [
+            keccak256(abi.encode(l2ToL2CrossDomainMessenger.version())),
+            messagePayloadHash,
+            bytes32(uint256(uint160(tx.origin)))
+        ];
+
+        bytes32 msgHash = keccak256(abi.encodePacked(messagePayloadHash, context));
 
         // Look for correct emitted event
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -367,7 +386,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, target, _nonce), // topics
-            abi.encode(_sender, message, "") // data
+            abi.encode(_sender, message, context) // data
         );
 
         // Ensure the CrossL2Inbox validates this message
@@ -625,18 +644,17 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Ensure that the target contract does not revert (using the message also as the return data)
         vm.mockCall({ callee: _target, msgValue: _value, data: _message, returnData: _message });
 
-        bytes memory context = abi.encode(uint256(0), keccak256(""), address(0));
+        bytes32[3] memory context = [bytes32(uint256(0)), keccak256(""), bytes32(uint256(uint160(address(0))))];
 
         // Look for correct emitted event for first call.
-        vm.expectEmit(true, true, true, true, Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         emit L2ToL2CrossDomainMessenger.RelayedMessage(
             _source,
             _nonce,
-            // message payload hash + context hash
+            // message payload hash + context
             keccak256(
                 abi.encodePacked(
-                    keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message)),
-                    keccak256(context)
+                    keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message)), context
                 )
             ),
             keccak256(_message)
@@ -764,7 +782,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     function testFuzz_crossDomainMessageContext_succeeds(
         address _sender,
         uint256 _source,
-        bytes calldata _context
+        bytes32[3] memory _context
     )
         external
     {
@@ -776,13 +794,18 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Set cross domain message source in the transient storage
         l2ToL2CrossDomainMessenger.setCrossDomainMessageSender(_sender);
         l2ToL2CrossDomainMessenger.setCrossDomainMessageSource(_source);
-        l2ToL2CrossDomainMessenger.setCrossDomainMessageContext(_context);
+        l2ToL2CrossDomainMessenger.setCrossDomainMessageOriginContext(_context);
+
+        l2ToL2CrossDomainMessenger.crossDomainMessageOriginContext();
+
         // Check that the `crossDomainMessageContext` function returns the correct value
-        (address crossDomainContextSender, uint256 crossDomainContextSource, bytes memory crossDomainContext) =
+        (address crossDomainContextSender, uint256 crossDomainContextSource, bytes32[3] memory crossDomainContext) =
             l2ToL2CrossDomainMessenger.crossDomainMessageContext();
         assertEq(crossDomainContextSender, _sender);
         assertEq(crossDomainContextSource, _source);
-        assertEq(crossDomainContext, _context);
+        assertEq(crossDomainContext[0], _context[0]);
+        assertEq(crossDomainContext[1], _context[1]);
+        assertEq(crossDomainContext[2], _context[2]);
     }
 
     /// @dev Tests that the `crossDomainMessageContext` function reverts when not entered.
@@ -822,7 +845,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _target: user,
             _message: message
         });
-        bytes memory originContext = abi.encodePacked(l2ToL2CrossDomainMessenger.version(), messagePayloadHash, user);
+        bytes32[3] memory originContext = [
+            keccak256(abi.encode(l2ToL2CrossDomainMessenger.version())),
+            messagePayloadHash,
+            bytes32(uint256(uint160(tx.origin)))
+        ];
 
         /* 2. relay message */
         vm.chainId(destination);
@@ -835,11 +862,21 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, destination, user, nonce), // topics
             abi.encode(user, message, originContext) // data
         );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+        vm.txGasPrice(503249890);
+        uint256 gasStart = gasleft();
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+        uint256 gasEnd = gasleft();
+        uint256 gasUsed = (gasStart - gasEnd) * tx.gasprice;
 
         // TODO: Expect event emitted and get values
         // TODO: Check gas cost is ok and add to the var
-        uint256 gasUsed = 0;
 
         /* 3. claim */
         vm.chainId(origin);
@@ -848,13 +885,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, destination);
 
         bytes32 relayMessageHash = keccak256(abi.encodePacked(messagePayloadHash, originContext));
-        bytes memory gasReceiptPayload = abi.encode(
-            L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector,
-            relayMessageHash,
-            rootMessageHash,
-            relayer,
-            user,
-            gasUsed
+        bytes memory gasReceiptPayload = abi.encodePacked(
+            abi.encode(
+                L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector, relayMessageHash, rootMessageHash, relayer
+            ), // topics
+            abi.encode(user, gasUsed) // data
         );
 
         vm.prank(relayer);
