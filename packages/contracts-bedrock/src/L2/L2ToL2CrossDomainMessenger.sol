@@ -321,7 +321,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            (uint8 version, address txOrigin, bytes32 contextMessagePayloadHash) =
+            (, address txOrigin, bytes32 contextMessagePayloadHash) =
                 abi.decode(decodedPayload.originContext, (uint8, address, bytes32));
             bytes32 rootMessageHash = keccak256(abi.encode(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
@@ -346,14 +346,19 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _source Chain ID of the source chain.
     /// @param _sender Address of the sender of the message.
     function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _originContext) internal {
-        bytes32 originContextFirstSlot =
-            bytes32(abi.encodePacked(_originContext.encodingVersion, _originContext.txOrigin));
-        bytes32 messagePayloadHash = _originContext.messagePayloadHash;
+        // Decode the origin context
+        (uint8 originContextVersion, bytes memory originContextData) = abi.decode(_originContext, (uint8, bytes));
+        (bytes32 messagePayloadHash, address txOrigin) = abi.decode(originContextData, (bytes32, address));
+
+        // Pack the origin context version and tx origin
+        bytes memory originContextFirstSlot = abi.encodePacked(originContextVersion, txOrigin);
+
+        // Store the message metadata
         assembly {
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
             tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
-            tstore(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, originContextFirstSlot)
-            tstore(add(CROSS_DOMAIN_MESSAGE_ORIGIN_CONTEXT_SLOT, 1), messagePayloadHash)
+            tstore(ORIGIN_CONTEXT_INITIAL_SLOT, originContextFirstSlot)
+            tstore(ORIGIN_CONTEXT_SECOND_SLOT, messagePayloadHash)
         }
     }
 
