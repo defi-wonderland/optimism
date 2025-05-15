@@ -321,7 +321,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            (uint8, address txOrigin, bytes32 contextMessagePayloadHash) =
+            (uint8 version, address txOrigin, bytes32 contextMessagePayloadHash) =
                 abi.decode(decodedPayload.originContext, (uint8, address, bytes32));
             bytes32 rootMessageHash = keccak256(abi.encode(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
