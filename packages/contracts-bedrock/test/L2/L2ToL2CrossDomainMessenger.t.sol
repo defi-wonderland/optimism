@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Testing utilities
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 // Libraries
@@ -845,7 +845,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _target: user,
             _message: message
         });
-        bytes memory originContext = abi.encodePacked(l2ToL2CrossDomainMessenger.version(), messagePayloadHash, user);
+        bytes32[3] memory originContext = [
+            keccak256(abi.encode(l2ToL2CrossDomainMessenger.version())),
+            messagePayloadHash,
+            bytes32(uint256(uint160(tx.origin)))
+        ];
 
         /* 2. relay message */
         vm.chainId(destination);
@@ -858,11 +862,21 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, destination, user, nonce), // topics
             abi.encode(user, message, originContext) // data
         );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+        vm.txGasPrice(503249890);
+        uint256 gasStart = gasleft();
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+        uint256 gasEnd = gasleft();
+        uint256 gasUsed = (gasStart - gasEnd) * tx.gasprice;
 
         // TODO: Expect event emitted and get values
         // TODO: Check gas cost is ok and add to the var
-        uint256 gasUsed = 0;
 
         /* 3. claim */
         vm.chainId(origin);
@@ -871,13 +885,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, destination);
 
         bytes32 relayMessageHash = keccak256(abi.encodePacked(messagePayloadHash, originContext));
-        bytes memory gasReceiptPayload = abi.encode(
-            L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector,
-            relayMessageHash,
-            rootMessageHash,
-            relayer,
-            user,
-            gasUsed
+        bytes memory gasReceiptPayload = abi.encodePacked(
+            abi.encode(
+                L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector, relayMessageHash, rootMessageHash, relayer
+            ), // topics
+            abi.encode(user, gasUsed) // data
         );
 
         vm.prank(relayer);

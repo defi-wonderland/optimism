@@ -307,24 +307,22 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 _gasLeft = gasleft();
         bool success;
         (success, returnData_) = decodedPayload.target.call{ value: msg.value }(decodedPayload.message);
-        uint256 gasUsed = (_gasLeft - gasleft()) + 21000; // RELAY_MESSAGE_OVERHEAD;
 
         if (success) {
             bytes32 contextMessagePayloadHash = decodedPayload.context[1];
             address txOrigin = address(uint160(uint256(decodedPayload.context[2])));
 
             bytes32 rootMessageHash = keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.context));
+            emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
+            _storeMessageMetadata(0, address(0), [bytes32(0), bytes32(0), bytes32(0)]);
 
+            uint256 gasUsed = (_gasLeft - gasleft()); // + RELAY_MESSAGE_OVERHEAD;
             emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
         } else {
             assembly {
                 revert(add(32, returnData_), mload(returnData_))
             }
         }
-
-        emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
-
-        _storeMessageMetadata(0, address(0), [bytes32(0), bytes32(0), bytes32(0)]);
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
@@ -366,7 +364,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Calculates the cost of a message relay.
     function _cost(uint256 _gasUsed) internal view returns (uint256) {
-        return block.basefee * _gasUsed;
+        return tx.gasprice * _gasUsed;
     }
 
     /// @notice Decodes the payload of a SentMessage event.

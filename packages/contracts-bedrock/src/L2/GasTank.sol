@@ -75,8 +75,15 @@ contract GasTank {
     // TODO: code logic
     function decodeGasReceiptPayload(bytes calldata payload)
         public
+        pure
         returns (bytes32 msgHash, bytes32 rootMsgHash, address relayer, address txOrigin, uint256 relayCost)
-    { }
+    {
+        // Decode Topics
+        (msgHash, rootMsgHash, relayer) = abi.decode(payload[32:128], (bytes32, bytes32, address));
+
+        // Decode Data
+        (txOrigin, relayCost) = abi.decode(payload[128:], (address, uint256));
+    }
 
     // TODO: NOT PoC: Timelocked withdrawal mechanism
 }
