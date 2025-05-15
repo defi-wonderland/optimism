@@ -178,7 +178,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         // TODO: See if an encode and decode can be avoided
         (uint8 encodingVersion, address txOrigin) = abi.decode(originContextFirstSlot, (uint8, address));
-        originContext_ = abi.encode(encodingVersion, txOrigin, messagePayloadHash);
+        originContext_ = abi.encodePacked(encodingVersion, abi.encode(messagePayloadHash, txOrigin));
     }
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
@@ -212,7 +212,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         bytes memory originContext = _crossDomainMessageOriginContext();
         if (originContext.length == 0) {
-            originContext = abi.encodePacked(ORIGIN_CONTEXT_ENCODING_VERSION, abi.encode(tx.origin, messagePayloadHash));
+            originContext = abi.encodePacked(ORIGIN_CONTEXT_ENCODING_VERSION, abi.encode(messagePayloadHash, tx.origin));
         }
 
         // new "top-level" cross domain call (messageHash_ == outbound message)
@@ -384,7 +384,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         (uint8 encodingVersion, address txOrigin) = abi.decode(abi.encode(originContextFirstSlot), (uint8, address));
-        originContext_ = abi.encodePacked(encodingVersion, abi.encode(txOrigin, messagePayloadHash));
+        originContext_ = abi.encodePacked(encodingVersion, abi.encode(messagePayloadHash, txOrigin));
     }
 
     /// @notice Calculates the cost of a message relay.
