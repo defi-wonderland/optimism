@@ -190,6 +190,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         originContext_ = abi.encode(encodingVersion, messagePayloadHash, txOrigin);
     }
 
+    event Test(string, bytes32);
+
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
     ///         then the message will be unrelayable and any ETH sent will be permanently locked. The same will occur
     ///         if the target on the other chain is considered unsafe (see the _isUnsafeTarget() function).
@@ -220,7 +222,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         });
 
         bytes memory originContext = _crossDomainMessageOriginContext();
-        if (originContext.length == 0) {
+        (uint8 encodingVersion,,) = _parseOriginContext(originContext);
+
+        if (encodingVersion == 0) {
             originContext = abi.encode(ORIGIN_CONTEXT_ENCODING_VERSION, messagePayloadHash, tx.origin);
         }
 
@@ -266,7 +270,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         });
 
         // TODO: Add this encoding on hashing lib as well as msg payload hashing
-        messageHash_ = keccak256(abi.encode(messagePayloadHash, _originContext));
+        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, _originContext));
 
         if (!sentMessages[messageHash_]) revert InvalidMessage();
 
