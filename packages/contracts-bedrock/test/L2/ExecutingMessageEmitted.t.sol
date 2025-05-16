@@ -82,10 +82,10 @@ contract ExecutingMessageEmittedTest is CommonTest {
         _id.logIndex = bound(_id.logIndex, 0, type(uint32).max);
         _id.timestamp = bound(_id.timestamp, 0, type(uint64).max);
         bytes memory message = abi.encodeCall(ISuperchainTokenBridge.relayERC20, (_token, _sender, _to, _amount));
-        bytes memory context = abi.encode(uint256(0), keccak256(""), address(0));
+        bytes memory originContext = abi.encode(uint256(0), keccak256(""), address(0));
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(SENT_MESSAGE_EVENT_SELECTOR, block.chainid, SUPERCHAIN_TOKEN_BRIDGE, _nonce), // topics
-            abi.encode(_sender, message, context) // data
+            abi.encode(_sender, message, originContext) // data
         );
 
         // Mock `crossDomainMessageContext` call for it to succeed

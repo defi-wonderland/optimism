@@ -377,8 +377,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
     }
 
-    // TODO: Add internal function just to know how to write and read the context, so if it changes, that only changes
-    // there
+    // Use this internal function just to know how to write and read the context, so if it changes, it's only here
     function _parseOriginContext(bytes memory _originContext)
         internal
         pure
