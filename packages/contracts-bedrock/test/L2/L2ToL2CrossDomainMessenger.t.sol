@@ -907,5 +907,137 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     // 3. relay message on C
     // 4. claim chain B on A
     // 4. claim chain C on A
-    function test_primitivesAndGasTankIntegration_multipleMessages_succeeds() external { }
+    function test_primitivesAndGasTankIntegration_multipleMessages_succeeds() external {
+        /* 0. deploy and send funds to gas tank from the user */
+        GasTank gasTank = new GasTank();
+        ChainByPass chainByPass = new ChainByPass();
+
+        hoax(user, 0.01 ether);
+        gasTank.deposit{ value: 0.01 ether }();
+
+        /* 1. send message */
+        vm.chainId(1);
+        bytes memory messageOne = abi.encodeCall(chainByPass.sendMessage, (3, user, ""));
+
+        uint256 nonce = l2ToL2CrossDomainMessenger.messageNonce();
+        bytes32 messageOnePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: 2,
+            _source: 1,
+            _nonce: nonce,
+            _sender: user,
+            _target: address(chainByPass),
+            _message: messageOne
+        });
+        bytes memory originContext =
+            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messageOnePayloadHash, tx.origin);
+
+        vm.prank(user);
+        bytes32 rootMessageHash = l2ToL2CrossDomainMessenger.sendMessage(2, address(chainByPass), messageOne);
+
+        assertEq(rootMessageHash, keccak256(abi.encodePacked(messageOnePayloadHash, originContext)));
+
+        /* 2. relay message */
+        vm.chainId(2);
+        vm.fee(503249890);
+
+        bytes memory messageTwo = "";
+        nonce = l2ToL2CrossDomainMessenger.messageNonce();
+        bytes32 messageTwoPayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: 3,
+            _source: 2,
+            _nonce: nonce,
+            _sender: user,
+            _target: user,
+            _message: messageTwo
+        });
+        originContext =
+            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messageOnePayloadHash, tx.origin);
+
+        bytes32 messageTwoHash = keccak256(abi.encodePacked(messageTwoPayloadHash, originContext));
+
+        // Construct and relay the message
+        Identifier memory id =
+            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, 1);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, 2, user, nonce - 1), // topics
+            abi.encode(user, messageOne, originContext) // data
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: abi.encode("")
+        });
+
+        vm.prank(relayer);
+        l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+
+        /* 3. relay message */
+        vm.chainId(3);
+        vm.fee(403000890);
+
+        // Construct and relay the message
+        id = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, 2);
+        sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, 3, user, nonce - 1), // topics
+            abi.encode(user, messageTwo, originContext) // data
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: abi.encode("")
+        });
+
+        vm.prank(relayer);
+        l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+
+        /* 4. claim chain B on A */
+        vm.chainId(1);
+
+        Identifier memory idRelay =
+            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, 2);
+
+        bytes32 relayMessageHash = keccak256(abi.encode(messageOnePayloadHash, originContext));
+        bytes memory gasReceiptPayload = abi.encodePacked(
+            abi.encode(
+                L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector, relayMessageHash, rootMessageHash, relayer
+            ), // topics
+            abi.encode(user, 24528649169850) // data
+        );
+
+        // mock crossl2inbox call
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (idRelay, keccak256(gasReceiptPayload))),
+            returnData: abi.encode("")
+        });
+
+        vm.prank(relayer);
+        gasTank.claim(idRelay, gasReceiptPayload);
+        vm.expectRevert();
+        gasTank.claim(idRelay, gasReceiptPayload);
+
+        idRelay = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, block.number, 1, block.timestamp, 3);
+        relayMessageHash = keccak256(abi.encode(messageTwoPayloadHash, originContext));
+        gasReceiptPayload = abi.encodePacked(
+            abi.encode(
+                L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector, relayMessageHash, rootMessageHash, relayer
+            ), // topics
+            abi.encode(user, 24528649169850) // data
+        );
+
+        vm.prank(relayer);
+        gasTank.claim(idRelay, gasReceiptPayload);
+    }
+}
+
+contract ChainByPass {
+    function sendMessage(uint256 _destination, address _target, bytes memory _message) external returns (bytes32) {
+        return L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessage(
+            _destination, _target, _message
+        );
+    }
 }
