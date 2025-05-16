@@ -21,6 +21,7 @@ contract GasTank {
     error AlreadyClaimed();
 
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
+    // TODO: Calculate claim overhead
     uint256 public constant CLAIM_OVERHEAD = 100_000;
 
     IL2ToL2CrossDomainMessenger public constant MESSENGER =

@@ -869,7 +869,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
 
         // TODO: Check gas cost is ok based on what was emitted on the event (get the log from the call)
-        uint256 gasUsed = 0; // Update
+        uint256 cost = 30630304554850; // Manually hardcoded from the event for now
 
         /* 3. claim */
         vm.chainId(origin);
@@ -882,7 +882,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             abi.encode(
                 L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector, relayMessageHash, rootMessageHash, relayer
             ), // topics
-            abi.encode(user, gasUsed) // data
+            abi.encode(user, cost) // data
         );
 
         // mock crossl2inbox call
@@ -895,7 +895,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         vm.prank(relayer);
         gasTank.claim(idRelay, gasReceiptPayload);
 
-        // TODO: Check gas tank transferred is the same as the gas used
+        // TODO: Check gas tank transferred is the same as the 'cost + claim overhead'
     }
 
     // 1. send message on A
