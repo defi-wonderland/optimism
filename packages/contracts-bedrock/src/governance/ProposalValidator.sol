@@ -38,7 +38,7 @@ contract ProposalValidator is OwnableUpgradeable {
 
     /// @notice Thrown when a voting cycle is already set.
     error ProposalValidator_VotingCycleAlreadySet();
-    
+
     /// @notice Thrown when a proposal does not exist.
     error ProposalValidator_ProposalDoesNotExist();
 
@@ -143,7 +143,9 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param startBlock The block number of the starting block of the voting cycle.
     /// @param duration The duration of the voting cycle.
     /// @param votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    event VotingCycleDataSet(uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit);
+    event VotingCycleDataSet(
+        uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit
+    );
 
     /// @notice Emitted when the distribution threshold is set.
     /// @param newDistributionThreshold The new distribution threshold.
@@ -358,7 +360,15 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _startBlock The block number of the starting block of the voting cycle.
     /// @param _duration The duration of the voting cycle.
     /// @param _votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    function setVotingCycleData(uint256 _cycleNumber, uint256 _startBlock, uint256 _duration, uint256 _votingCycleDistributionLimit) external onlyOwner {
+    function setVotingCycleData(
+        uint256 _cycleNumber,
+        uint256 _startBlock,
+        uint256 _duration,
+        uint256 _votingCycleDistributionLimit
+    )
+        external
+        onlyOwner
+    {
         _setVotingCycleData(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
     }
 
@@ -371,7 +381,13 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @notice Sets the number of approvals required for each proposal type.
     /// @param _proposalType The type of proposal to set the required approvals for.
     /// @param _requiredApprovals The new required approvals.
-    function setProposalTypeApprovalThreshold(ProposalType _proposalType, uint256 _requiredApprovals) external onlyOwner {
+    function setProposalTypeApprovalThreshold(
+        ProposalType _proposalType,
+        uint256 _requiredApprovals
+    )
+        external
+        onlyOwner
+    {
         _setProposalTypeApprovalThreshold(_proposalType, _requiredApprovals);
     }
 
@@ -453,7 +469,14 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _startBlock The block number of the starting block of the voting cycle.
     /// @param _duration The duration of the voting cycle.
     /// @param _votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    function _setVotingCycleData(uint256 _cycleNumber, uint256 _startBlock, uint256 _duration, uint256 _votingCycleDistributionLimit) private {
+    function _setVotingCycleData(
+        uint256 _cycleNumber,
+        uint256 _startBlock,
+        uint256 _duration,
+        uint256 _votingCycleDistributionLimit
+    )
+        private
+    {
         if (votingCycles[_cycleNumber].startingBlock != 0) {
             revert ProposalValidator_VotingCycleAlreadySet();
         }
