@@ -51,9 +51,6 @@ contract GasTank {
         (bytes32 msgHash, bytes32 rootMsgHash, address relayer, address txOrigin, uint256 relayCost) =
             decodeGasReceiptPayload(payload);
 
-        // Ensure the original outbound message was sent from this chain
-        if (!MESSENGER.sentMessages(rootMsgHash)) revert InvalidRootMessage();
-
         // Ensure unclaimed
         if (claimed[msgHash]) revert AlreadyClaimed();
 
@@ -62,6 +59,9 @@ contract GasTank {
         uint256 cost = relayCost + claimCost;
         // TODO: Make it more flexible so to allow partial repayment, but tracking the claim as partially repaid
         if (balanceOf[txOrigin] < cost) revert InsufficientBalance();
+
+        // Ensure the original outbound message was sent from this chain
+        if (!MESSENGER.sentMessages(rootMsgHash)) revert InvalidRootMessage();
 
         // Validate the message
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(id, keccak256(payload));

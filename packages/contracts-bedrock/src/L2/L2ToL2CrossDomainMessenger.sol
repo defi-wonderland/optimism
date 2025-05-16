@@ -317,7 +317,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: decodedPayload.message
         });
 
-        bytes32 messageHash = keccak256(abi.encode(messagePayloadHash, decodedPayload.originContext));
+        bytes32 messageHash = keccak256(abi.encodePacked(messagePayloadHash, decodedPayload.originContext));
 
         if (successfulMessages[messageHash]) {
             revert MessageAlreadyRelayed();
