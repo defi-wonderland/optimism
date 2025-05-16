@@ -911,13 +911,14 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         // Check only that emitted root hash and message hash on the gas receipt event are the same
         // TODO: Fails in foundry, but it's the same
-        // vm.expectEmit(true, true, false, false, address(l2ToL2CrossDomainMessenger));
-        // emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-        //     rootMessageHash, rootMessageHash, relayer, originUser, 66109000000
-        // );
 
         vm.expectEmit(address(chainByPass));
         emit ChainByPass.MessageHash(messageSentOnBHash);
+
+        vm.expectEmit(address(l2ToL2CrossDomainMessenger));
+        emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
+            rootMessageHash, rootMessageHash, relayer, originUser, 977300000000
+        );
 
         changePrank(relayer);
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
