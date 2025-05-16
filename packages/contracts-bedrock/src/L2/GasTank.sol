@@ -7,6 +7,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
 contract GasTank {
+    event Flagged(bytes32 rootMessageHash);
     event Claimed(bytes32 msgHash, address relayer, uint256 amount);
     event Deposit(address depositor, uint256 amount);
     event RelayedMessageGasReceipt(
@@ -29,6 +30,7 @@ contract GasTank {
 
     mapping(address => uint256) public balanceOf;
     mapping(bytes32 => bool) public claimed;
+    mapping(bytes32 => bool) public flaggedMessages;
 
     function deposit() external payable {
         uint256 newBalance = balanceOf[msg.sender] + msg.value;
@@ -38,9 +40,10 @@ contract GasTank {
         emit Deposit(msg.sender, msg.value);
     }
 
-    function flag(bytes32 rootMessageHash) external { }
-
-    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
+    function flag(bytes32 rootMessageHash) external {
+        flaggedMessages[rootMessageHash] = true;
+        emit Flagged(rootMessageHash);
+    }
 
     function claim(Identifier calldata id, bytes calldata payload) external {
         // Ensure the origin is the messenger
@@ -50,6 +53,9 @@ contract GasTank {
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
         (bytes32 msgHash, bytes32 rootMsgHash, address relayer, address txOrigin, uint256 relayCost) =
             decodeGasReceiptPayload(payload);
+
+        // Ensure the message is flagged
+        if (!flaggedMessages[rootMsgHash]) revert InvalidRootMessage();
 
         // Ensure unclaimed
         if (claimed[msgHash]) revert AlreadyClaimed();
@@ -90,7 +96,9 @@ contract GasTank {
         (txOrigin, relayCost) = abi.decode(payload[128:], (address, uint256));
     }
 
-    // TODO: NOT PoC: Timelocked withdrawal mechanism
+    // TODO: Out of scope for PoC
+    //    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
+    // function withdraw(bytes32 rootMessageHash) external {}
 }
 
 // 1.  send message on l1 and check context is good

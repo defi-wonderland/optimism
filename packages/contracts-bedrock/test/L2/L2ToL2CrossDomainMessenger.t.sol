@@ -853,7 +853,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         hoax(originUser, 0.01 ether);
         gasTank.deposit{ value: 0.01 ether }();
 
-        /* 1. send message */
+        /* 1. send message and flag it into the gas tank */
         vm.chainId(A);
 
         // Nest message for C on message for B
@@ -864,6 +864,9 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         vm.startPrank(randomCaller, originUser);
         // rootMessageHash on the origin chain is the same as the message hash of the first Sent Message.
         bytes32 rootMessageHash = l2ToL2CrossDomainMessenger.sendMessage(B, address(chainByPass), messageForB);
+
+        // Flag the message into the gas tank
+        gasTank.flag(rootMessageHash);
 
         // Calculate the values
         bytes32 messageAPayloadHash = Hashing.hashL2toL2CrossDomainMessage({
