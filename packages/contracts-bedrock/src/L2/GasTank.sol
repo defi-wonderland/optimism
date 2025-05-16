@@ -32,6 +32,7 @@ contract GasTank {
     mapping(bytes32 => bool) public claimed;
     mapping(bytes32 => bool) public flaggedMessages;
 
+    // Deposit funds into the gas tank, from which the relayer can claim the repayment after relaying
     function deposit() external payable {
         uint256 newBalance = balanceOf[msg.sender] + msg.value;
         if (msg.value > MAX_DEPOSIT) revert MaxDepositExceeded();
@@ -40,11 +41,13 @@ contract GasTank {
         emit Deposit(msg.sender, msg.value);
     }
 
+    // Flag a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
     function flag(bytes32 rootMessageHash) external {
         flaggedMessages[rootMessageHash] = true;
         emit Flagged(rootMessageHash);
     }
 
+    // Claim repayment for a relayed message
     function claim(Identifier calldata id, bytes calldata payload) external {
         // Ensure the origin is the messenger
         if (id.origin != address(MESSENGER)) revert InvalidOrigin();
@@ -76,14 +79,13 @@ contract GasTank {
         balanceOf[txOrigin] -= cost;
         claimed[msgHash] = true;
 
-        // Send the funds to the relayer
-        // TODO: Better to do a low-level call?
+        // Send the cost repayment back to the relayer
         new SafeSend{ value: cost }(payable(relayer));
 
         emit Claimed(msgHash, relayer, cost);
     }
 
-    // TODO: code logic
+    // Decode the payload of the RelayedMessageGasReceipt event
     function decodeGasReceiptPayload(bytes calldata payload)
         public
         pure
@@ -100,7 +102,3 @@ contract GasTank {
     //    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
     // function withdraw(bytes32 rootMessageHash) external {}
 }
-
-// 1.  send message on l1 and check context is good
-// 2.  relay message on l2 and sent message back to l1 to claim
-// 3. check gas consumption properly reflects the relay cost
