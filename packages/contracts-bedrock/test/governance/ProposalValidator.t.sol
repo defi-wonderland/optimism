@@ -470,15 +470,15 @@ contract ProposalValidator_Getters_Test is ProposalValidator_Init {
 /// @title ProposalValidator_Setters_Test
 /// @notice Tests for setter functions
 contract ProposalValidator_Setters_Test is ProposalValidator_Init {
-    function test_setMinimumVotingPower_succeeds() public {
+    function testFuzz_setMinimumVotingPower_succeeds(uint256 newMinimumVotingPower) public {
         // Expect the MinimumVotingPowerSet event to be emitted
         vm.expectEmit(address(validator));
-        emit MinimumVotingPowerSet(10000 ether);
+        emit MinimumVotingPowerSet(newMinimumVotingPower);
         
         vm.prank(owner);
-        validator.setMinimumVotingPower(10000 ether);
+        validator.setMinimumVotingPower(newMinimumVotingPower);
 
-        assertEq(validator.minimumVotingPower(), 10000 ether);
+        assertEq(validator.minimumVotingPower(), newMinimumVotingPower);
     }
 
     function test_setMinimumVotingPower_notOwner_reverts() public {
@@ -487,19 +487,26 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         validator.setMinimumVotingPower(10000 ether);
     }
 
-    function test_setVotingCycleData_succeeds() public {
+    function testFuzz_setVotingCycleData_succeeds(
+        uint256 cycleNumber,
+        uint256 startBlock,
+        uint256 duration,
+        uint256 distributionLimit
+    ) public {
+        vm.assume(cycleNumber != CYCLE_NUMBER); // Avoid existing cycle
+
         // Expect the VotingCycleDataSet event to be emitted
         vm.expectEmit(address(validator));
-        emit VotingCycleDataSet(2, block.number, 100, 10000 ether);
+        emit VotingCycleDataSet(cycleNumber, startBlock, duration, distributionLimit);
         
         vm.prank(owner);
-        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+        validator.setVotingCycleData(cycleNumber, startBlock, duration, distributionLimit);
 
-        (uint256 startingBlock, uint256 duration, uint256 votingCycleDistributionLimit) = validator.votingCycles(2);
+        (uint256 actualStartBlock, uint256 actualDuration, uint256 actualDistributionLimit) = validator.votingCycles(cycleNumber);
 
-        assertEq(startingBlock, block.number);
-        assertEq(duration, 100);
-        assertEq(votingCycleDistributionLimit, 10000 ether);
+        assertEq(actualStartBlock, startBlock);
+        assertEq(actualDuration, duration);
+        assertEq(actualDistributionLimit, distributionLimit);
     }
 
     function test_setVotingCycleData_notOwner_reverts() public {
@@ -517,15 +524,15 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         validator.setVotingCycleData(2, block.number, 100, 10000 ether);
     }
     
-    function test_setDistributionThreshold_succeeds() public {
+    function testFuzz_setDistributionThreshold_succeeds(uint256 newDistributionThreshold) public {
         // Expect the DistributionThresholdSet event to be emitted
         vm.expectEmit(address(validator));
-        emit DistributionThresholdSet(10000 ether);
+        emit DistributionThresholdSet(newDistributionThreshold);
         
         vm.prank(owner);
-        validator.setDistributionThreshold(10000 ether);
+        validator.setDistributionThreshold(newDistributionThreshold);
 
-        assertEq(validator.distributionThreshold(), 10000 ether);
+        assertEq(validator.distributionThreshold(), newDistributionThreshold);
     }
     
     function test_setDistributionThreshold_notOwner_reverts() public {
@@ -534,15 +541,22 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         validator.setDistributionThreshold(10000 ether);
     }
     
-    function test_setProposalTypeApprovalThreshold_succeeds() public {
+    function testFuzz_setProposalTypeApprovalThreshold_succeeds(
+        uint8 proposalTypeValue,
+        uint256 newThreshold
+    ) public {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        
         // Expect the ProposalTypeApprovalThresholdSet event to be emitted
         vm.expectEmit(address(validator));
-        emit ProposalTypeApprovalThresholdSet(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 4);
+        emit ProposalTypeApprovalThresholdSet(proposalType, newThreshold);
         
         vm.prank(owner);
-        validator.setProposalTypeApprovalThreshold(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 4);
+        validator.setProposalTypeApprovalThreshold(proposalType, newThreshold);
 
-        assertEq(validator.proposalRequiredApprovals(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade), 4);
+        assertEq(validator.proposalRequiredApprovals(proposalType), newThreshold);
     }
 
     function test_setProposalTypeApprovalThreshold_notOwner_reverts() public {
