@@ -186,11 +186,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             txOrigin := tload(ORIGIN_CONTEXT_TX_ORIGIN)
         }
 
-        // TODO: See if an encode and decode can be avoided
         originContext_ = abi.encode(encodingVersion, messagePayloadHash, txOrigin);
     }
-
-    event Test(string, bytes32);
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
     ///         then the message will be unrelayable and any ETH sent will be permanently locked. The same will occur
