@@ -317,6 +317,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: decodedPayload.message
         });
 
+        console.log("messagePayloadHash");
+        console.logBytes32(messagePayloadHash);
+
+        console.log("decodedPayload.originContext");
+        console.logBytes(decodedPayload.originContext);
+
         bytes32 messageHash = keccak256(abi.encodePacked(messagePayloadHash, decodedPayload.originContext));
 
         if (successfulMessages[messageHash]) {
@@ -336,7 +342,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (success) {
             (, bytes32 contextMessagePayloadHash, address txOrigin) =
                 abi.decode(decodedPayload.originContext, (uint8, bytes32, address));
-            bytes32 rootMessageHash = keccak256(abi.encode(contextMessagePayloadHash, decodedPayload.originContext));
+            bytes32 rootMessageHash =
+                keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
 
             uint256 gasUsed = (initialGas - gasleft()) + NON_REENTRANT_OVERHEAD + GAS_RECEIPT_EVENT_OVERHEAD;
@@ -444,3 +451,5 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         });
     }
 }
+
+import { console } from "forge-std/console.sol";
