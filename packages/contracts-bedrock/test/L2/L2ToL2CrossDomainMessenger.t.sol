@@ -856,11 +856,13 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         /* 1. send message */
         vm.chainId(A);
 
+        // Nest message for C on message for B
         bytes memory messageForC = abi.encodeCall(receiverOnC.receiveMessage, ());
         bytes memory messageForB = abi.encodeCall(chainByPass.sendMessage, (C, address(receiverOnC), messageForC));
 
         // Send message on A to B
         vm.startPrank(randomCaller, originUser);
+        // rootMessageHash on the origin chain is the same as the message hash of the first Sent Message.
         bytes32 rootMessageHash = l2ToL2CrossDomainMessenger.sendMessage(B, address(chainByPass), messageForB);
 
         // Calculate the values
@@ -872,6 +874,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _target: address(chainByPass),
             _message: messageForB
         });
+        // This origin context must persist through the nested messages.
         bytes memory originContext =
             abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messageAPayloadHash, originUser);
 
@@ -891,7 +894,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _message: messageForC
         });
 
-        // Check this matches on the event
+        // Check this matches on the event (Checked with vm.expectEmit in the relayMessage call on Step 3)
         bytes32 messageSentOnBHash = keccak256(abi.encodePacked(messageBPayloadHashOnSend, originContext));
 
         // Construct and relay the message
@@ -909,12 +912,10 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             returnData: abi.encode("")
         });
 
-        // Check only that emitted root hash and message hash on the gas receipt event are the same
-        // TODO: Fails in foundry, but it's the same
-
         vm.expectEmit(address(chainByPass));
         emit ChainByPass.MessageHash(messageSentOnBHash);
 
+        // Check only that emitted root hash and message hash on the gas receipt event are the same
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
             rootMessageHash, rootMessageHash, relayer, originUser, 977300000000
@@ -943,6 +944,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         vm.expectEmit(address(receiverOnC));
         emit ReceiverOnC.Received();
+
+        vm.expectEmit(address(l2ToL2CrossDomainMessenger));
+        emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
+            messageSentOnBHash, rootMessageHash, relayer, originUser, 66109000000
+        );
 
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
 
