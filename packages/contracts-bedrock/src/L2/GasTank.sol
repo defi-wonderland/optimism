@@ -51,7 +51,7 @@ contract GasTank {
             decodeGasReceiptPayload(payload);
 
         // Ensure the original outbound message was sent from this chain
-        if (!MESSENGER.successfulMessages(rootMsgHash)) revert InvalidRootMessage();
+        if (!MESSENGER.sentMessages(rootMsgHash)) revert InvalidRootMessage();
 
         // Ensure unclaimed
         if (claimed[msgHash]) revert AlreadyClaimed();

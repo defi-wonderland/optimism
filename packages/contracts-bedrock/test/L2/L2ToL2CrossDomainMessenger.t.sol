@@ -862,16 +862,14 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
-            returnData: ""
+            returnData: abi.encode("")
         });
-        vm.txGasPrice(503249890);
-        uint256 gasStart = gasleft();
-        l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
-        uint256 gasEnd = gasleft();
-        uint256 gasUsed = (gasStart - gasEnd) * tx.gasprice;
+        vm.fee(503249890);
 
-        // TODO: Expect event emitted and get values
-        // TODO: Check gas cost is ok and add to the var
+        l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+
+        // TODO: Check gas cost is ok based on what was emitted on the event (get the log from the call)
+        uint256 gasUsed = 0; // Update
 
         /* 3. claim */
         vm.chainId(origin);
@@ -886,6 +884,13 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             ), // topics
             abi.encode(user, gasUsed) // data
         );
+
+        // mock crossl2inbox call
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (idRelay, keccak256(gasReceiptPayload))),
+            returnData: abi.encode("")
+        });
 
         vm.prank(relayer);
         gasTank.claim(idRelay, gasReceiptPayload);

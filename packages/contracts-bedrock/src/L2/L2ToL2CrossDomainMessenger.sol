@@ -54,6 +54,10 @@ struct DecodedPayload {
 ///         features necessary for secure transfers ERC20 tokens between L2 chains. Messages sent through the
 ///         L2ToL2CrossDomainMessenger on the source chain receive both replay protection as well as domain binding.
 contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
+    // TODO: Using exact overheads, add some buffer?
+    uint256 public constant NON_REENTRANT_OVERHEAD = 730;
+    uint256 public constant GAS_RECEIPT_EVENT_OVERHEAD = 28772;
+
     /// @notice Current origin context encoding version identifier.
     uint8 public constant ORIGIN_CONTEXT_ENCODING_VERSION = 1;
 
@@ -285,7 +289,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         returns (bytes memory returnData_)
     {
         uint256 initialGas = gasleft();
-
         // Ensure the log came from the messenger.
         if (_id.origin != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
             revert IdOriginNotL2ToL2CrossDomainMessenger();
@@ -317,6 +320,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         successfulMessages[messageHash] = true;
+
         _storeMessageMetadata(source, decodedPayload.sender, decodedPayload.originContext);
 
         bool success;
@@ -326,12 +330,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            (, address txOrigin, bytes32 contextMessagePayloadHash) =
-                abi.decode(decodedPayload.originContext, (uint8, address, bytes32));
+            (, bytes32 contextMessagePayloadHash, address txOrigin) =
+                abi.decode(decodedPayload.originContext, (uint8, bytes32, address));
             bytes32 rootMessageHash = keccak256(abi.encode(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
 
-            uint256 gasUsed = (initialGas - gasleft()); // TODO: + non reentrat overhead + RELAY_MESSAGE_GAS_OVERHEAD;
+            uint256 gasUsed = (initialGas - gasleft()) + NON_REENTRANT_OVERHEAD + GAS_RECEIPT_EVENT_OVERHEAD;
             emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
         } else {
             assembly {
@@ -352,7 +356,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _sender Address of the sender of the message.
     function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _originContext) internal {
         // Decode the origin context
-        (uint8 encodingVersion, bytes32 messagePayloadHash, address txOrigin) = _parseOriginContext(_originContext);
+        uint8 encodingVersion;
+        bytes32 messagePayloadHash;
+        address txOrigin;
+        if (_originContext.length == 0) {
+            (encodingVersion, messagePayloadHash, txOrigin) = (0, bytes32(0), address(0));
+        } else {
+            (encodingVersion, messagePayloadHash, txOrigin) = _parseOriginContext(_originContext);
+        }
 
         // Store the message metadata
         assembly {
