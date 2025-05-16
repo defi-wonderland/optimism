@@ -142,8 +142,8 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param cycleNumber The number of the voting cycle.
     /// @param startBlock The block number of the starting block of the voting cycle.
     /// @param duration The duration of the voting cycle.
-    /// @param distributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    event VotingCycleDataSet(uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 distributionLimit);
+    /// @param votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
+    event VotingCycleDataSet(uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit);
 
     /// @notice Emitted when the distribution threshold is set.
     /// @param newDistributionThreshold The new distribution threshold.
@@ -202,7 +202,7 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _cycleNumber The number of the current voting cycle.
     /// @param _startBlock The block number of the starting block of the voting cycle.
     /// @param _duration The duration of the voting cycle.
-    /// @param _distributionLimit The max amount of tokens that can be distributed during the voting cycle.
+    /// @param _votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
     /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
     /// @param _proposalTypes Array of proposal types to set approval thresholds for.
     /// @param _requiredApprovals Array of approval thresholds corresponding to the proposal types.
@@ -213,7 +213,7 @@ contract ProposalValidator is OwnableUpgradeable {
         uint256 _cycleNumber,
         uint256 _startBlock,
         uint256 _duration,
-        uint256 _distributionLimit,
+        uint256 _votingCycleDistributionLimit,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
         uint256[] memory _requiredApprovals,
@@ -223,7 +223,7 @@ contract ProposalValidator is OwnableUpgradeable {
         initializer
     {
         _setMinimumVotingPower(_minimumVotingPower);
-        _setVotingCycleData(_cycleNumber, _startBlock, _duration, _distributionLimit);
+        _setVotingCycleData(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
         _setDistributionThreshold(_distributionThreshold);
 
         for (uint256 i = 0; i < _proposalTypes.length; i++) {
@@ -357,9 +357,9 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _cycleNumber The number of the voting cycle to set.
     /// @param _startBlock The block number of the starting block of the voting cycle.
     /// @param _duration The duration of the voting cycle.
-    /// @param _distributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    function setVotingCycleData(uint256 _cycleNumber, uint256 _startBlock, uint256 _duration, uint256 _distributionLimit) external onlyOwner {
-        _setVotingCycleData(_cycleNumber, _startBlock, _duration, _distributionLimit);
+    /// @param _votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
+    function setVotingCycleData(uint256 _cycleNumber, uint256 _startBlock, uint256 _duration, uint256 _votingCycleDistributionLimit) external onlyOwner {
+        _setVotingCycleData(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
     }
 
     /// @notice Sets the max amount of tokens that can be distributed in a proposal.
@@ -452,8 +452,8 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _cycleNumber The number of the voting cycle to set.
     /// @param _startBlock The block number of the starting block of the voting cycle.
     /// @param _duration The duration of the voting cycle.
-    /// @param _distributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    function _setVotingCycleData(uint256 _cycleNumber, uint256 _startBlock, uint256 _duration, uint256 _distributionLimit) private {
+    /// @param _votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
+    function _setVotingCycleData(uint256 _cycleNumber, uint256 _startBlock, uint256 _duration, uint256 _votingCycleDistributionLimit) private {
         if (votingCycles[_cycleNumber].startingBlock != 0) {
             revert ProposalValidator_VotingCycleAlreadySet();
         }
@@ -461,9 +461,9 @@ contract ProposalValidator is OwnableUpgradeable {
         votingCycles[_cycleNumber] = VotingCycleData({
             startingBlock: _startBlock,
             duration: _duration,
-            votingCycleDistributionLimit: _distributionLimit
+            votingCycleDistributionLimit: _votingCycleDistributionLimit
         });
-        emit VotingCycleDataSet(_cycleNumber, _startBlock, _duration, _distributionLimit);
+        emit VotingCycleDataSet(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
     }
 
     /// @notice Private function to set the distribution threshold and emit event.
