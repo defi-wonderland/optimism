@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Testing utilities
-import { Test, console } from "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 // Libraries
@@ -137,9 +137,10 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         vm.recordLogs();
 
         // Call the sendMessage function
+        vm.prank(randomCaller, originUser);
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessage(_destination, _target, _message);
         bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage(
-            _destination, block.chainid, messageNonce, address(this), _target, _message
+            _destination, block.chainid, messageNonce, randomCaller, _target, _message
         );
         bytes memory originContext =
             abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messagePayloadHash, originUser);
@@ -156,7 +157,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(logs[0].topics[3], bytes32(messageNonce));
 
         // data
-        assertEq(logs[0].data, abi.encode(address(this), _message, originContext));
+        assertEq(logs[0].data, abi.encode(randomCaller, _message, originContext));
 
         // Check that the message nonce has been incremented and the message hash has been stored
         assertEq(l2ToL2CrossDomainMessenger.messageNonce(), messageNonce + 1);
@@ -271,7 +272,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         vm.recordLogs();
 
         // Call the `sendMessage` function
-        vm.prank(_sender);
+        vm.prank(_sender, originUser);
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessage(_destination, _target, _message);
         bytes32 messagePayloadHash =
             Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, messageNonce, _sender, _target, _message);
@@ -388,7 +389,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         bytes memory originContext =
             abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messagePayloadHash, originUser);
 
-        bytes32 msgHash = keccak256(abi.encode(messagePayloadHash, originContext));
+        bytes32 msgHash = keccak256(abi.encodePacked(messagePayloadHash, originContext));
 
         // Look for correct emitted event
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -675,7 +676,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _nonce,
             // message payload hash + context
             keccak256(
-                abi.encode(
+                abi.encodePacked(
                     keccak256(abi.encode(block.chainid, _source, _nonce, _sender, _target, _message)), originContext
                 )
             ),
@@ -921,7 +922,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Check only that emitted root hash and message hash on the gas receipt event are the same
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-            rootMessageHash, rootMessageHash, relayer, originUser, 977300000000
+            rootMessageHash, rootMessageHash, relayer, originUser, 957390000000
         );
 
         changePrank(relayer);
@@ -950,7 +951,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-            messageSentOnBHash, rootMessageHash, relayer, originUser, 66109000000
+            messageSentOnBHash, rootMessageHash, relayer, originUser, 64119000000
         );
 
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
@@ -963,7 +964,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         assertEq(rootMessageHash, relayMessageOnBHash, "3");
 
-        uint256 cost = 977300000000; // (with manually hardcoded cost obtained from the event)
+        uint256 cost = 957390000000; // (with manually hardcoded cost obtained from the event)
         bytes memory gasReceiptPayload = abi.encodePacked(
             abi.encode(
                 L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector,
@@ -997,7 +998,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         /* 5. claim chain C on A */
         id = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, ID_BLOCK_NUMBER, logIndex++, ID_TIMESTAMP, C);
 
-        cost = 66109000000; // (with manually hardcoded cost obtained from the event)
+        cost = 64119000000; // (with manually hardcoded cost obtained from the event)
         gasReceiptPayload = abi.encodePacked(
             abi.encode(
                 L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt.selector,
@@ -1024,12 +1025,6 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         assertEq(relayer.balance, relayerBalanceBefore + expectedRepayment, "7");
         assertEq(gasTank.balanceOf(originUser), userFundsBefore - expectedRepayment, "8");
     }
-
-    // function test_calculateGas() external {
-    //     uint256 initialGas = gasleft();
-    //     // relay
-    //     gasleft();
-    // }
 }
 
 contract ChainByPass {
@@ -1057,5 +1052,3 @@ contract ReceiverOnC {
         emit Received();
     }
 }
-
-import { console } from "forge-std/console.sol";
