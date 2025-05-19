@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 // Interfaces
 import { IProposalValidator } from "interfaces/governance/IProposalValidator.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
+import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas/IEAS.sol";
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
@@ -18,11 +19,39 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
 
+/// @title ProposalValidatorForTest
+/// @notice A test contract that exposes the private _hashProposal function
+contract ProposalValidatorForTest is ProposalValidator {
+    constructor(
+        bytes32 _attestationSchemaUid,
+        IOptimismGovernor _governor,
+        IGovernanceToken _governanceToken
+    )
+        ProposalValidator(_attestationSchemaUid, _governor, _governanceToken)
+    { }
+
+    function hashProposal(
+        address[] memory _targets,
+        uint256[] memory _values,
+        bytes[] memory _calldatas,
+        string memory _description
+    )
+        public
+        pure
+        returns (bytes32)
+    {
+        return _hashProposal(_targets, _values, _calldatas, _description);
+    }
+}
+
 /// @title ProposalValidator_Init
 /// @notice Setup contract for ProposalValidator tests
 contract ProposalValidator_Init is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
-    uint256 public constant VOTING_CYCLE_BLOCK = 100;
+    uint256 public constant CYCLE_NUMBER = 1;
+    uint256 public constant START_BLOCK = 1000000;
+    uint256 public constant DURATION = 100;
+    uint256 public constant DISTRIBUTION_LIMIT = 10000 ether;
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
@@ -34,11 +63,30 @@ contract ProposalValidator_Init is CommonTest {
     address topDelegate_C;
     address topDelegate_D;
 
-    ProposalValidator public validator;
-    ProposalValidator public impl;
+    ProposalValidatorForTest public validator;
+    ProposalValidatorForTest public impl;
     IOptimismGovernor public governor;
     bytes32 public ATTESTATION_SCHEMA_UID;
     bytes32 public proposalHash;
+
+    event ProposalSubmitted(
+        bytes32 indexed proposalHash,
+        address indexed proposer,
+        address[] targets,
+        uint256[] values,
+        bytes[] calldatas,
+        string description,
+        ProposalValidator.ProposalType proposalType,
+        uint8 proposalTypeConfigurator
+    );
+    event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
+    event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
+    event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
+    event VotingCycleDataSet(
+        uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit
+    );
+    event DistributionThresholdSet(uint256 newDistributionThreshold);
+    event ProposalTypeApprovalThresholdSet(ProposalValidator.ProposalType proposalType, uint256 newApprovalThreshold);
 
     /// @notice Helper function to setup a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
@@ -113,18 +161,28 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData
         ) = _getProposalTypesRequiredApprovalsAndImmutableData();
 
-        impl = new ProposalValidator(
-            ATTESTATION_SCHEMA_UID,
-            governor,
-            governanceToken
-        );
+        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
 
-        validator = ProposalValidator(address(new Proxy(owner)));
+        validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
         vm.prank(owner);
         IProxy(payable(address(validator))).upgradeToAndCall(
             address(impl),
-            abi.encodeCall(impl.initialize, (owner, MINIMUM_VOTING_POWER, VOTING_CYCLE_BLOCK, DISTRIBUTION_THRESHOLD, proposalTypes, requiredApprovals, immutableProposalTypeData))
+            abi.encodeCall(
+                impl.initialize,
+                (
+                    owner,
+                    MINIMUM_VOTING_POWER,
+                    CYCLE_NUMBER,
+                    START_BLOCK,
+                    DURATION,
+                    DISTRIBUTION_LIMIT,
+                    DISTRIBUTION_THRESHOLD,
+                    proposalTypes,
+                    requiredApprovals,
+                    immutableProposalTypeData
+                )
+            )
         );
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");
@@ -188,6 +246,20 @@ contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         uint8 proposalTypeConfigurator = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 expectedProposalHash = validator.hashProposal(_targets, _values, _calldatas, _description);
+
+        // Expect event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalSubmitted(
+            expectedProposalHash,
+            topDelegate_A,
+            _targets,
+            _values,
+            _calldatas,
+            _description,
+            proposalType,
+            proposalTypeConfigurator
+        );
 
         // Submit the proposal
         vm.prank(topDelegate_A);
@@ -195,7 +267,7 @@ contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
             _targets, _values, _calldatas, _description, proposalType, proposalTypeConfigurator, attestationUid
         );
 
-        assertEq(proposalHash, keccak256(abi.encode(_targets, _values, _calldatas, _description)));
+        assertEq(proposalHash, expectedProposalHash);
     }
 }
 
@@ -255,9 +327,24 @@ contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
     }
 
     function test_approveProposal_succeeds() public {
+        // Expect event to be emitted when approving
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_A);
         _approveProposal(topDelegate_A, proposalHash);
+
+        // Expect event to be emitted when approving
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_B);
         _approveProposal(topDelegate_B, proposalHash);
+
+        // Expect event to be emitted when approving
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_C);
         _approveProposal(topDelegate_C, proposalHash);
+
+        // Expect event to be emitted when approving
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_D);
         _approveProposal(topDelegate_D, proposalHash);
     }
 }
@@ -332,6 +419,10 @@ contract ProposalValidator_MoveToVote_Test is ProposalValidator_Init {
             ),
             abi.encode(1)
         );
+
+        // Expect the ProposalMovedToVote event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(proposalHash, owner);
 
         vm.prank(owner);
         uint256 governorProposalId = validator.moveToVote(targets, values, calldatas, description);
@@ -415,7 +506,100 @@ contract ProposalValidator_Getters_Test is ProposalValidator_Init {
 /// @title ProposalValidator_Setters_Test
 /// @notice Tests for setter functions
 contract ProposalValidator_Setters_Test is ProposalValidator_Init {
-// TODO: Implement tests for setters
+    function testFuzz_setMinimumVotingPower_succeeds(uint256 newMinimumVotingPower) public {
+        // Expect the MinimumVotingPowerSet event to be emitted
+        vm.expectEmit(address(validator));
+        emit MinimumVotingPowerSet(newMinimumVotingPower);
+
+        vm.prank(owner);
+        validator.setMinimumVotingPower(newMinimumVotingPower);
+
+        assertEq(validator.minimumVotingPower(), newMinimumVotingPower);
+    }
+
+    function test_setMinimumVotingPower_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setMinimumVotingPower(10000 ether);
+    }
+
+    function testFuzz_setVotingCycleData_succeeds(
+        uint256 cycleNumber,
+        uint256 startBlock,
+        uint256 duration,
+        uint256 distributionLimit
+    )
+        public
+    {
+        vm.assume(cycleNumber != CYCLE_NUMBER); // Avoid existing cycle
+
+        // Expect the VotingCycleDataSet event to be emitted
+        vm.expectEmit(address(validator));
+        emit VotingCycleDataSet(cycleNumber, startBlock, duration, distributionLimit);
+
+        vm.prank(owner);
+        validator.setVotingCycleData(cycleNumber, startBlock, duration, distributionLimit);
+
+        (uint256 actualStartBlock, uint256 actualDuration, uint256 actualDistributionLimit) =
+            validator.votingCycles(cycleNumber);
+
+        assertEq(actualStartBlock, startBlock);
+        assertEq(actualDuration, duration);
+        assertEq(actualDistributionLimit, distributionLimit);
+    }
+
+    function test_setVotingCycleData_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+    }
+
+    function test_setVotingCycleData_votingCycleAlreadySet_reverts() public {
+        vm.prank(owner);
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_VotingCycleAlreadySet.selector);
+        vm.prank(owner);
+        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+    }
+
+    function testFuzz_setDistributionThreshold_succeeds(uint256 newDistributionThreshold) public {
+        // Expect the DistributionThresholdSet event to be emitted
+        vm.expectEmit(address(validator));
+        emit DistributionThresholdSet(newDistributionThreshold);
+
+        vm.prank(owner);
+        validator.setDistributionThreshold(newDistributionThreshold);
+
+        assertEq(validator.distributionThreshold(), newDistributionThreshold);
+    }
+
+    function test_setDistributionThreshold_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setDistributionThreshold(10000 ether);
+    }
+
+    function testFuzz_setProposalTypeApprovalThreshold_succeeds(uint8 proposalTypeValue, uint256 newThreshold) public {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
+        // Expect the ProposalTypeApprovalThresholdSet event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalTypeApprovalThresholdSet(proposalType, newThreshold);
+
+        vm.prank(owner);
+        validator.setProposalTypeApprovalThreshold(proposalType, newThreshold);
+
+        assertEq(validator.proposalRequiredApprovals(proposalType), newThreshold);
+    }
+
+    function test_setProposalTypeApprovalThreshold_notOwner_reverts() public {
+        vm.prank(rando);
+        vm.expectRevert("Ownable: caller is not the owner");
+        validator.setProposalTypeApprovalThreshold(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 4);
+    }
 }
 
 /// @title ProposalValidator_Integration_Test
@@ -430,15 +614,40 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         uint8 proposalTypeConfigurator = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
 
+        // Expect ProposalSubmitted event
+        bytes32 expectedProposalHash = keccak256(abi.encode(targets, values, calldatas, description));
+        vm.expectEmit(address(validator));
+        emit ProposalSubmitted(
+            expectedProposalHash,
+            topDelegate_A,
+            targets,
+            values,
+            calldatas,
+            description,
+            proposalType,
+            proposalTypeConfigurator
+        );
+
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitProposal(
             targets, values, calldatas, description, proposalType, proposalTypeConfigurator, attestationUid
         );
 
-        // Collect all required approvals
+        // Expect ProposalApproved events for each approval
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_A);
         _approveProposal(topDelegate_A, proposalHash);
+
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_B);
         _approveProposal(topDelegate_B, proposalHash);
+
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_C);
         _approveProposal(topDelegate_C, proposalHash);
+
+        vm.expectEmit(address(validator));
+        emit ProposalApproved(proposalHash, topDelegate_D);
         _approveProposal(topDelegate_D, proposalHash);
 
         // Mock the governor call
@@ -449,6 +658,10 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
             ),
             abi.encode(1)
         );
+
+        // Expect ProposalMovedToVote event
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(proposalHash, owner);
 
         // Move to vote phase
         vm.prank(owner);
