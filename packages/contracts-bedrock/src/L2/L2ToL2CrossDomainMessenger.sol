@@ -226,7 +226,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         // new "top-level" cross domain call (messageHash_ == outbound message)
-        // TODO: Check if packing is too different and more efficient
         messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContext));
 
         sentMessages[messageHash_] = true;

@@ -102,4 +102,5 @@ contract GasTank {
     // TODO: Out of scope for PoC
     //    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
     // function withdraw(bytes32 rootMessageHash) external {}
+    // TODO: Add function to add authorized relayers only to withdraw from the gas tank (business logic)
 }
