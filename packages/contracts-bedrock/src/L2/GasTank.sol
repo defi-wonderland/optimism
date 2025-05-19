@@ -35,7 +35,8 @@ contract GasTank {
     // Deposit funds into the gas tank, from which the relayer can claim the repayment after relaying
     function deposit() external payable {
         uint256 newBalance = balanceOf[msg.sender] + msg.value;
-        if (msg.value > MAX_DEPOSIT) revert MaxDepositExceeded();
+
+        if (newBalance > MAX_DEPOSIT) revert MaxDepositExceeded();
 
         balanceOf[msg.sender] = newBalance;
         emit Deposit(msg.sender, msg.value);
