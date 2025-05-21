@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {VotingModule} from "src/governance/VotingModule.sol";
+
 interface IOptimismGovernor {
     function propose(
         address[] memory targets,
@@ -17,4 +18,6 @@ interface IOptimismGovernor {
         string memory description,
         uint8 proposalType
     ) external returns (uint256 proposalId);
+
+    function timelock() external view returns (address);
 }

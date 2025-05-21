@@ -11,6 +11,10 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+// Modules
+import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
 
 /// @custom:upgradeable
 /// @title ProposalValidator
@@ -41,6 +45,12 @@ contract ProposalValidator is OwnableUpgradeable {
 
     /// @notice Thrown when a proposal does not exist.
     error ProposalValidator_ProposalDoesNotExist();
+    
+    /// @notice Thrown when the proposal type is not valid for a funding proposal.
+    error ProposalValidator_InvalidFundingProposalType();
+    
+    /// @notice Thrown when the requested amount exceeds the distribution threshold.
+    error ProposalValidator_ExceedsDistributionThreshold();
 
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
@@ -124,6 +134,16 @@ contract ProposalValidator is OwnableUpgradeable {
         uint8 proposalTypeConfigurator
     );
 
+    event FundingProposalSubmitted(
+        bytes32 indexed proposalHash,
+        address indexed proposer,
+        address to,
+        uint256 amount,
+        string description,
+        ProposalType proposalType,
+        uint8 proposalTypeConfigurator
+    );
+
     /// @notice Emitted when a delegate approves a proposal.
     /// @param proposalHash The hash of the approved proposal.
     /// @param approver The address of the delegate who approved the proposal.
@@ -160,6 +180,8 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
     bytes32 public immutable ATTESTATION_SCHEMA_UID;
 
+    address public immutable APPROVAL_VOTING_MODULE;
+
     /// @notice The Optimism Governor contract that will handle the voting phase.
     IOptimismGovernor public immutable GOVERNOR;
 
@@ -191,8 +213,9 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _attestationSchemaUid The schema UID for attestations in EAS.
     /// @param _governor The Optimism Governor contract address.
     /// @param _votingToken The token used to determine voting power.
-    constructor(bytes32 _attestationSchemaUid, IOptimismGovernor _governor, IGovernanceToken _votingToken) {
+    constructor(bytes32 _attestationSchemaUid, address _approvalVotingModule, IOptimismGovernor _governor, IGovernanceToken _votingToken) {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
+        APPROVAL_VOTING_MODULE = _approvalVotingModule;
         GOVERNOR = _governor;
         VOTING_TOKEN = _votingToken;
         _disableInitializers();
@@ -281,6 +304,49 @@ contract ProposalValidator is OwnableUpgradeable {
             _proposalType,
             _proposalTypeConfigurator
         );
+    }
+
+    /// @notice Submit a funding proposal for delegate approval.
+    /// @param _to The recipient address to receive tokens.
+    /// @param _amount The amount of tokens to transfer.
+    /// @param _description Description of the proposal.
+    /// @param _proposalType Type of the proposal (must be GovernanceFund or CouncilBudget).
+    /// @param _proposalTypeConfigurator Configuration value specific to the proposal type.
+    /// @return proposalHash_ The hash of the submitted proposal.
+    function submitFundingProposal(
+        address _to,
+        uint256 _amount,
+        string memory _description,
+        ProposalType _proposalType,
+        uint8 _proposalTypeConfigurator
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
+            revert ProposalValidator_InvalidFundingProposalType();
+        }
+
+        if (_amount > distributionThreshold) {
+            revert ProposalValidator_ExceedsDistributionThreshold();
+        }
+
+        (bytes memory _proposalData,,) = _createFundingProposalData(_to, _amount);
+        
+        proposalHash_ = _hashProposalWithModule(msg.sender, APPROVAL_VOTING_MODULE, _proposalData, _description);
+        ProposalData storage proposal = _proposals[proposalHash_];
+
+        if (proposal.proposer != address(0)) {
+            revert ProposalValidator_ProposalAlreadySubmitted();
+        }
+
+        proposal.proposer = msg.sender;
+        proposal.proposalType = _proposalType;
+        proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
+        proposal.inVoting = false;
+        proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
+
+        emit FundingProposalSubmitted(proposalHash_, msg.sender, _to, _amount, _description, _proposalType, _proposalTypeConfigurator);
     }
 
     /// @notice Approve a proposal (only callable by delegates with sufficient voting power)
@@ -457,6 +523,19 @@ contract ProposalValidator is OwnableUpgradeable {
         return keccak256(abi.encode(_targets, _values, _calldatas, _description));
     }
 
+    function _hashProposalWithModule(
+        address _sender,
+        address _module,
+        bytes memory _proposalData,
+        string memory _description
+    )
+        internal
+        pure
+        returns (bytes32 proposalHash_)
+    {
+        return keccak256(abi.encode(_sender, _module, _proposalData, _description));
+    }
+
     /// @notice Private function to set the minimum voting power and emit event.
     /// @param _minimumVotingPower The new minimum voting power threshold.
     function _setMinimumVotingPower(uint256 _minimumVotingPower) private {
@@ -502,5 +581,32 @@ contract ProposalValidator is OwnableUpgradeable {
     function _setProposalTypeApprovalThreshold(ProposalType _proposalType, uint256 _requiredApprovals) private {
         proposalRequiredApprovals[_proposalType] = _requiredApprovals;
         emit ProposalTypeApprovalThresholdSet(_proposalType, _requiredApprovals);
+    }
+
+    function _createFundingProposalData(address to, uint256 amount)
+        internal
+        view
+        returns (bytes memory proposalData, ProposalOption[] memory options, ProposalSettings memory settings)
+    {
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+        
+        // Transfer `amount` OP tokens to `to` address
+        targets[0] = Predeploys.GOVERNANCE_TOKEN;
+        calldatas[0] = abi.encodeCall(IERC20.transfer, (to, amount));
+
+        options = new ProposalOption[](1);
+        options[0] = ProposalOption(0, targets, values, calldatas, "option 1");
+
+        settings = ProposalSettings({
+            maxApprovals: 2,
+            criteria: uint8(PassingCriteria.TopChoices),
+            criteriaValue: 2,
+            budgetToken: Predeploys.GOVERNANCE_TOKEN,
+            budgetAmount: 1e18
+        });
+
+        proposalData = abi.encode(options, settings);
     }
 }

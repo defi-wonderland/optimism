@@ -12,6 +12,7 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 // Contracts
 import { ProposalValidator } from "src/governance/ProposalValidator.sol";
 import { Proxy } from "src/universal/Proxy.sol";
+import { ApprovalVotingModule } from "src/governance/ApprovalVotingModule.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -24,10 +25,11 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 contract ProposalValidatorForTest is ProposalValidator {
     constructor(
         bytes32 _attestationSchemaUid,
+        address _approvalVotingModule,
         IOptimismGovernor _governor,
         IGovernanceToken _governanceToken
     )
-        ProposalValidator(_attestationSchemaUid, _governor, _governanceToken)
+        ProposalValidator(_attestationSchemaUid, _approvalVotingModule, _governor, _governanceToken)
     { }
 
     function hashProposal(
@@ -41,6 +43,23 @@ contract ProposalValidatorForTest is ProposalValidator {
         returns (bytes32)
     {
         return _hashProposal(_targets, _values, _calldatas, _description);
+    }
+
+    function hashProposalWithModule(
+        address _sender,
+        address _module,
+        bytes memory _proposalData,
+        string memory _description
+    )
+        public
+        pure
+        returns (bytes32 proposalHash_)
+    {
+        proposalHash_ = _hashProposalWithModule(_sender, _module, _proposalData, _description);
+    }
+
+    function createFundingProposalData(address _to, uint256 _amount) public view returns (bytes memory proposalData) {
+        (proposalData ,,) = _createFundingProposalData(_to, _amount);
     }
 }
 
@@ -65,6 +84,7 @@ contract ProposalValidator_Init is CommonTest {
 
     ProposalValidatorForTest public validator;
     ProposalValidatorForTest public impl;
+    address public approvalVotingModule;
     IOptimismGovernor public governor;
     bytes32 public ATTESTATION_SCHEMA_UID;
     bytes32 public proposalHash;
@@ -149,6 +169,7 @@ contract ProposalValidator_Init is CommonTest {
         owner = governanceToken.owner();
         rando = makeAddr("rando");
         governor = IOptimismGovernor(makeAddr("governor"));
+        approvalVotingModule = address(new ApprovalVotingModule(address(governor)));
 
         vm.prank(owner);
         ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
@@ -161,7 +182,7 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData
         ) = _getProposalTypesRequiredApprovalsAndImmutableData();
 
-        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
+        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, approvalVotingModule, governor, governanceToken);
 
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
@@ -304,6 +325,26 @@ contract ProposalValidator_SubmitProposal_TestFail is ProposalValidator_Init {
         validator.submitProposal(
             targets, values, calldatas, description, proposalType, proposalTypeConfigurator, attestationUid
         );
+    }
+}
+
+/// @title ProposalValidator_SubmitFundingProposal_Test
+/// @notice Happy path tests for submitFundingProposal function
+contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init {
+    function test_submitFundingProposal_succeeds(address _to, uint256 _amount) public {
+        _amount = bound(_amount, 0, DISTRIBUTION_THRESHOLD);
+
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.CouncilBudget;
+        uint8 proposalTypeConfigurator = 0;
+        string memory _description = "test";
+        bytes32 expectedProposalHash = validator.hashProposalWithModule(topDelegate_A, approvalVotingModule, validator.createFundingProposalData(_to, _amount), _description);
+
+
+        // Submit the proposal
+        vm.prank(topDelegate_A);
+        bytes32 proposalHash = validator.submitFundingProposal(_to, _amount, _description, proposalType, proposalTypeConfigurator);
+
+        assertEq(proposalHash, expectedProposalHash);
     }
 }
 
