@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {EnumerableSetUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeCastLib} from "@solady/utils/SafeCastLib.sol";
-import {IOptimismGovernor} from "interfaces/governance/IOptimismGovernor.sol";
-import {VotingModule} from "./VotingModule.sol";
+import { EnumerableSetUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeCastLib } from "@solady/utils/SafeCastLib.sol";
+import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
+import { VotingModule } from "./VotingModule.sol";
 
 enum VoteType {
     Against,
@@ -71,14 +72,13 @@ contract ApprovalVotingModule is VotingModule {
     //////////////////////////////////////////////////////////////*/
 
     mapping(uint256 => Proposal) public proposals;
-    mapping(uint256 => mapping(address => EnumerableSetUpgradeable.UintSet)) private
-        accountVotesSet;
+    mapping(uint256 => mapping(address => EnumerableSetUpgradeable.UintSet)) private accountVotesSet;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _governor) VotingModule(_governor) {}
+    constructor(address _governor) VotingModule(_governor) { }
 
     /*//////////////////////////////////////////////////////////////
                             WRITE FUNCTIONS
@@ -132,7 +132,8 @@ contract ApprovalVotingModule is VotingModule {
     }
 
     /**
-     * Count approvals voted by `account`. If voting for, options need to be set in ascending order. Votes can only be cast once.
+     * Count approvals voted by `account`. If voting for, options need to be set in ascending order. Votes can only be
+     * cast once.
      *
      * @param proposalId The id of the proposal.
      * @param account The account to count votes for.
@@ -140,7 +141,13 @@ contract ApprovalVotingModule is VotingModule {
      * @param weight The total vote weight of the `account`.
      * @param params The ids of the options to vote for sorted in ascending order, encoded as `uint256[]`.
      */
-    function _countVote(uint256 proposalId, address account, uint8 support, uint256 weight, bytes memory params)
+    function _countVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        uint256 weight,
+        bytes memory params
+    )
         external
         virtual
         override
@@ -170,7 +177,10 @@ contract ApprovalVotingModule is VotingModule {
      * @return values The values of the proposal.
      * @return calldatas The calldatas of the proposal.
      */
-    function _formatExecuteParams(uint256 proposalId, bytes memory proposalData)
+    function _formatExecuteParams(
+        uint256 proposalId,
+        bytes memory proposalData
+    )
         public
         override
         returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas)
@@ -232,7 +242,8 @@ contract ApprovalVotingModule is VotingModule {
                 // Check if budgetAmount is exceeded for non-ETH tokens
                 if (settings.budgetToken != address(0) && settings.budgetAmount != 0) {
                     if (option.budgetTokensSpent != 0) {
-                        if (totalValue + option.budgetTokensSpent > settings.budgetAmount) break; // break outer loop for non-ETH tokens
+                        if (totalValue + option.budgetTokensSpent > settings.budgetAmount) break; // break outer loop
+                            // for non-ETH tokens
                         totalValue += option.budgetTokensSpent;
                     }
                 }
@@ -398,7 +409,9 @@ contract ApprovalVotingModule is VotingModule {
         uint256[] memory options,
         uint256 totalOptions,
         uint256 maxApprovals
-    ) internal {
+    )
+        internal
+    {
         uint256 option;
         uint256 prevOption;
         for (uint256 i; i < totalOptions;) {
@@ -427,7 +440,10 @@ contract ApprovalVotingModule is VotingModule {
     }
 
     // Sort `options` by `optionVotes` in descending order
-    function _sortOptions(uint128[] memory optionVotes, ProposalOption[] memory options)
+    function _sortOptions(
+        uint128[] memory optionVotes,
+        ProposalOption[] memory options
+    )
         internal
         pure
         returns (uint128[] memory, ProposalOption[] memory)
@@ -468,7 +484,11 @@ contract ApprovalVotingModule is VotingModule {
         ProposalOption[] memory options,
         uint128[] memory optionVotes,
         ProposalSettings memory settings
-    ) internal pure returns (uint256 executeParamsLength, uint256 succeededOptionsLength) {
+    )
+        internal
+        pure
+        returns (uint256 executeParamsLength, uint256 succeededOptionsLength)
+    {
         uint256 n = options.length;
         unchecked {
             uint256 i;

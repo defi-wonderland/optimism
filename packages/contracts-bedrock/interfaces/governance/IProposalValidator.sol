@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IGovernanceToken} from "./IGovernanceToken.sol";
-import {IOptimismGovernor} from "./IOptimismGovernor.sol";
+import {IGovernanceToken} from './IGovernanceToken.sol';
+import {IOptimismGovernor} from './IOptimismGovernor.sol';
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
@@ -14,6 +14,8 @@ interface IProposalValidator {
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_ProposalDoesNotExist();
     error ProposalValidator_VotingCycleAlreadySet();
+    error ProposalValidator_InvalidFundingProposalType();
+    error ProposalValidator_ExceedsDistributionThreshold();
 
     struct ProposalData {
         address proposer;
@@ -66,15 +68,25 @@ interface IProposalValidator {
     event DistributionThresholdSet(uint256 newDistributionThreshold);
 
     event ProposalTypeApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
-    
+
     event VotingCycleDataSet(
-        uint256 cycleNumber, 
-        uint256 startBlock, 
-        uint256 duration, 
+        uint256 cycleNumber,
+        uint256 startBlock,
+        uint256 duration,
         uint256 votingCycleDistributionLimit
     );
-    
+
     event Initialized(uint8 version);
+
+    event FundingProposalSubmitted(
+        bytes32 indexed proposalHash,
+        address indexed proposer,
+        address to,
+        uint256 amount,
+        string description,
+        ProposalType proposalType,
+        uint8 proposalTypeConfigurator
+    );
 
     function submitProposal(
         address[] memory _targets,
@@ -86,6 +98,14 @@ interface IProposalValidator {
         bytes32 _attestationUid
     ) external returns (bytes32 proposalHash_);
 
+    function submitFundingProposal(
+        address _to,
+        uint256 _amount,
+        string memory _description,
+        ProposalType _proposalType,
+        uint8 _proposalTypeConfigurator
+    ) external returns (bytes32 proposalHash_);
+
     function approveProposal(bytes32 _proposalHash) external;
 
     function moveToVote(
@@ -94,20 +114,20 @@ interface IProposalValidator {
         bytes[] memory _calldatas,
         string memory _description
     ) external returns (uint256 governorProposalId_);
-    
+
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
     function setDistributionThreshold(uint256 _distributionThreshold) external;
-    
+
     function setProposalTypeApprovalThreshold(ProposalType _proposalType, uint256 _requiredApprovals) external;
-    
+
     function setVotingCycleData(
         uint256 _cycleNumber,
         uint256 _startBlock,
         uint256 _duration,
         uint256 _votingCycleDistributionLimit
     ) external;
-    
+
     function initialize(
         address _owner,
         uint256 _minimumVotingPower,
@@ -120,11 +140,11 @@ interface IProposalValidator {
         uint256[] memory _requiredApprovals,
         ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     ) external;
-    
+
     function renounceOwnership() external;
-    
+
     function canSignOff(address _delegate) external view returns (bool canSignOff_);
-    
+
     function transferOwnership(address newOwner) external;
 
     function minimumVotingPower() external view returns (uint256);
@@ -137,17 +157,19 @@ interface IProposalValidator {
 
     function GOVERNOR() external view returns (IOptimismGovernor);
 
+    function APPROVAL_VOTING_MODULE() external view returns (address);
+
     function owner() external view returns (address);
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
-    
+
     function proposalRequiredApprovals(ProposalType) external view returns (uint256);
-    
+
     function votingCycles(uint256) external view returns (
-        uint256 startingBlock, 
-        uint256 duration, 
+        uint256 startingBlock,
+        uint256 duration,
         uint256 votingCycleDistributionLimit
     );
 
-    function __constructor__(bytes32 _attestationSchemaUid, IOptimismGovernor _governor, IGovernanceToken _votingToken) external;
+    function __constructor__(bytes32 _attestationSchemaUid, address _approvalVotingModule, IOptimismGovernor _governor, IGovernanceToken _votingToken) external;
 }

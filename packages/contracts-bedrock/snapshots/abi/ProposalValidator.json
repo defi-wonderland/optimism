@@ -7,6 +7,11 @@
         "type": "bytes32"
       },
       {
+        "internalType": "address",
+        "name": "_approvalVotingModule",
+        "type": "address"
+      },
+      {
         "internalType": "contract IOptimismGovernor",
         "name": "_governor",
         "type": "address"
@@ -19,6 +24,19 @@
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "APPROVAL_VOTING_MODULE",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -340,6 +358,45 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "_description",
+        "type": "string"
+      },
+      {
+        "internalType": "enum ProposalValidator.ProposalType",
+        "name": "_proposalType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_proposalTypeConfigurator",
+        "type": "uint8"
+      }
+    ],
+    "name": "submitFundingProposal",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "proposalHash_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address[]",
         "name": "_targets",
         "type": "address[]"
@@ -452,6 +509,55 @@
       }
     ],
     "name": "DistributionThresholdSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "proposalHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum ProposalValidator.ProposalType",
+        "name": "proposalType",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "proposalTypeConfigurator",
+        "type": "uint8"
+      }
+    ],
+    "name": "FundingProposalSubmitted",
     "type": "event"
   },
   {
@@ -644,6 +750,11 @@
   },
   {
     "inputs": [],
+    "name": "ProposalValidator_ExceedsDistributionThreshold",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ProposalValidator_InsufficientApprovals",
     "type": "error"
   },
@@ -655,6 +766,11 @@
   {
     "inputs": [],
     "name": "ProposalValidator_InvalidAttestation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProposalValidator_InvalidFundingProposalType",
     "type": "error"
   },
   {

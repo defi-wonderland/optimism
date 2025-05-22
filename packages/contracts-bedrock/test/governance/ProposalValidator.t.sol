@@ -59,7 +59,7 @@ contract ProposalValidatorForTest is ProposalValidator {
     }
 
     function createFundingProposalData(address _to, uint256 _amount) public view returns (bytes memory proposalData) {
-        (proposalData ,,) = _createFundingProposalData(_to, _amount);
+        (proposalData,,) = _createFundingProposalData(_to, _amount);
     }
 }
 
@@ -337,12 +337,14 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.CouncilBudget;
         uint8 proposalTypeConfigurator = 0;
         string memory _description = "test";
-        bytes32 expectedProposalHash = validator.hashProposalWithModule(topDelegate_A, approvalVotingModule, validator.createFundingProposalData(_to, _amount), _description);
-
+        bytes32 expectedProposalHash = validator.hashProposalWithModule(
+            topDelegate_A, approvalVotingModule, validator.createFundingProposalData(_to, _amount), _description
+        );
 
         // Submit the proposal
         vm.prank(topDelegate_A);
-        bytes32 proposalHash = validator.submitFundingProposal(_to, _amount, _description, proposalType, proposalTypeConfigurator);
+        bytes32 proposalHash =
+            validator.submitFundingProposal(_to, _amount, _description, proposalType, proposalTypeConfigurator);
 
         assertEq(proposalHash, expectedProposalHash);
     }

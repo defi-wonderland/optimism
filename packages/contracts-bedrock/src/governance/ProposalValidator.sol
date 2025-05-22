@@ -11,7 +11,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Modules
 import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
@@ -45,10 +45,10 @@ contract ProposalValidator is OwnableUpgradeable {
 
     /// @notice Thrown when a proposal does not exist.
     error ProposalValidator_ProposalDoesNotExist();
-    
+
     /// @notice Thrown when the proposal type is not valid for a funding proposal.
     error ProposalValidator_InvalidFundingProposalType();
-    
+
     /// @notice Thrown when the requested amount exceeds the distribution threshold.
     error ProposalValidator_ExceedsDistributionThreshold();
 
@@ -213,7 +213,12 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _attestationSchemaUid The schema UID for attestations in EAS.
     /// @param _governor The Optimism Governor contract address.
     /// @param _votingToken The token used to determine voting power.
-    constructor(bytes32 _attestationSchemaUid, address _approvalVotingModule, IOptimismGovernor _governor, IGovernanceToken _votingToken) {
+    constructor(
+        bytes32 _attestationSchemaUid,
+        address _approvalVotingModule,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken
+    ) {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
         APPROVAL_VOTING_MODULE = _approvalVotingModule;
         GOVERNOR = _governor;
@@ -332,7 +337,7 @@ contract ProposalValidator is OwnableUpgradeable {
         }
 
         (bytes memory _proposalData,,) = _createFundingProposalData(_to, _amount);
-        
+
         proposalHash_ = _hashProposalWithModule(msg.sender, APPROVAL_VOTING_MODULE, _proposalData, _description);
         ProposalData storage proposal = _proposals[proposalHash_];
 
@@ -346,7 +351,9 @@ contract ProposalValidator is OwnableUpgradeable {
         proposal.inVoting = false;
         proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
 
-        emit FundingProposalSubmitted(proposalHash_, msg.sender, _to, _amount, _description, _proposalType, _proposalTypeConfigurator);
+        emit FundingProposalSubmitted(
+            proposalHash_, msg.sender, _to, _amount, _description, _proposalType, _proposalTypeConfigurator
+        );
     }
 
     /// @notice Approve a proposal (only callable by delegates with sufficient voting power)
@@ -583,7 +590,10 @@ contract ProposalValidator is OwnableUpgradeable {
         emit ProposalTypeApprovalThresholdSet(_proposalType, _requiredApprovals);
     }
 
-    function _createFundingProposalData(address to, uint256 amount)
+    function _createFundingProposalData(
+        address to,
+        uint256 amount
+    )
         internal
         view
         returns (bytes memory proposalData, ProposalOption[] memory options, ProposalSettings memory settings)
@@ -591,7 +601,7 @@ contract ProposalValidator is OwnableUpgradeable {
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
         bytes[] memory calldatas = new bytes[](1);
-        
+
         // Transfer `amount` OP tokens to `to` address
         targets[0] = Predeploys.GOVERNANCE_TOKEN;
         calldatas[0] = abi.encodeCall(IERC20.transfer, (to, amount));
