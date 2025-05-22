@@ -350,6 +350,38 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     }
 }
 
+/// @title ProposalValidator_SubmitFundingProposal_TestFail
+/// @notice Sad path tests for submitFundingProposal function
+contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_Init {
+    function test_submitFundingProposal_invalidFundingProposalType_reverts() public {
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
+        validator.submitFundingProposal(
+            topDelegate_A, 10000 ether, "test", ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 0
+        );
+    }
+
+    function test_submitFundingProposal_exceedsDistributionThreshold_reverts() public {
+        vm.expectRevert(IProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        validator.submitFundingProposal(
+            topDelegate_A, DISTRIBUTION_THRESHOLD + 1, "test", ProposalValidator.ProposalType.CouncilBudget, 0
+        );
+    }
+
+    function test_submitFundingProposal_alreadySubmitted_reverts() public {
+        vm.prank(topDelegate_A);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            topDelegate_A, 10000 ether, "test", ProposalValidator.ProposalType.CouncilBudget, 0
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+
+        vm.prank(topDelegate_A);
+        validator.submitFundingProposal(
+            topDelegate_A, 10000 ether, "test", ProposalValidator.ProposalType.CouncilBudget, 0
+        );
+    }
+}
+
 /// @title ProposalValidator_ApproveProposal_Test
 /// @notice Happy path tests for approveProposal function
 contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {

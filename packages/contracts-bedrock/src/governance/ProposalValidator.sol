@@ -364,13 +364,7 @@ contract ProposalValidator is OwnableUpgradeable {
         proposal.remainingApprovalsRequired = 4; // TODO: Review remaining approvals required
 
         emit FundingProposalSubmitted(
-            proposalHash_,
-            _msgSender(),
-            _to,
-            _amount,
-            _description,
-            _proposalType,
-            _proposalTypeConfigurator
+            proposalHash_, _msgSender(), _to, _amount, _description, _proposalType, _proposalTypeConfigurator
         );
     }
 
