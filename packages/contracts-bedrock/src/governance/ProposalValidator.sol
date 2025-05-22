@@ -309,7 +309,7 @@ contract ProposalValidator is OwnableUpgradeable {
         proposal.proposalType = _proposalType;
         proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
         proposal.inVoting = false;
-        proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
+        proposal.remainingApprovalsRequired = 4; // TODO: Review remaining approvals required
 
         emit ProposalSubmitted(
             proposalHash_,
@@ -361,7 +361,7 @@ contract ProposalValidator is OwnableUpgradeable {
         proposal.proposalType = _proposalType;
         proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
         proposal.inVoting = false;
-        proposal.remainingApprovalsRequired = 4; // Hardcoded for now, will change with proposalTypes
+        proposal.remainingApprovalsRequired = 4; // TODO: Review remaining approvals required
 
         emit FundingProposalSubmitted(
             proposalHash_, msg.sender, _to, _amount, _description, _proposalType, _proposalTypeConfigurator
