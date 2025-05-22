@@ -550,7 +550,7 @@ contract ProposalValidator is OwnableUpgradeable {
 
     /// @notice Hashes a proposal's data with module and sender to generate a unique proposal hash.
     /// @param _sender The address of the sender.
-    /// @param _module The address of the module.
+    /// @param _module The address of the voting module.
     /// @param _proposalData The encoded proposal data.
     /// @param _description Description of the proposal.
     /// @return proposalHash_ The keccak256 hash of the proposal data with module and sender.
