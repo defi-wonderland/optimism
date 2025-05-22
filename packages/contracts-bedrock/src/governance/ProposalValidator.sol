@@ -591,25 +591,25 @@ contract ProposalValidator is OwnableUpgradeable {
     }
 
     function _createFundingProposalData(
-        address to,
-        uint256 amount
+        address _to,
+        uint256 _amount
     )
         internal
         view
-        returns (bytes memory proposalData, ProposalOption[] memory options, ProposalSettings memory settings)
+        returns (bytes memory proposalData_, ProposalOption[] memory options_, ProposalSettings memory settings_)
     {
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
         bytes[] memory calldatas = new bytes[](1);
 
-        // Transfer `amount` OP tokens to `to` address
+        // Transfer `_amount` OP tokens to `_to` address
         targets[0] = Predeploys.GOVERNANCE_TOKEN;
-        calldatas[0] = abi.encodeCall(IERC20.transfer, (to, amount));
+        calldatas[0] = abi.encodeCall(IERC20.transfer, (_to, _amount));
 
-        options = new ProposalOption[](1);
-        options[0] = ProposalOption(0, targets, values, calldatas, "option 1");
+        options_ = new ProposalOption[](1);
+        options_[0] = ProposalOption(0, targets, values, calldatas, "option 1");
 
-        settings = ProposalSettings({
+        settings_ = ProposalSettings({
             maxApprovals: 2,
             criteria: uint8(PassingCriteria.TopChoices),
             criteriaValue: 2,
@@ -617,6 +617,6 @@ contract ProposalValidator is OwnableUpgradeable {
             budgetAmount: 1e18
         });
 
-        proposalData = abi.encode(options, settings);
+        proposalData_ = abi.encode(options_, settings_);
     }
 }

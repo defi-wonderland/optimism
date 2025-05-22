@@ -40,9 +40,9 @@ contract ProposalValidatorForTest is ProposalValidator {
     )
         public
         pure
-        returns (bytes32)
+        returns (bytes32 proposalHash_)
     {
-        return _hashProposal(_targets, _values, _calldatas, _description);
+        proposalHash_ = _hashProposal(_targets, _values, _calldatas, _description);
     }
 
     function hashProposalWithModule(
@@ -58,8 +58,8 @@ contract ProposalValidatorForTest is ProposalValidator {
         proposalHash_ = _hashProposalWithModule(_sender, _module, _proposalData, _description);
     }
 
-    function createFundingProposalData(address _to, uint256 _amount) public view returns (bytes memory proposalData) {
-        (proposalData,,) = _createFundingProposalData(_to, _amount);
+    function createFundingProposalData(address _to, uint256 _amount) public view returns (bytes memory proposalData_) {
+        (proposalData_,,) = _createFundingProposalData(_to, _amount);
     }
 }
 
