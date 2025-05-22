@@ -33,13 +33,13 @@ contract GasTank {
     mapping(bytes32 => bool) public flaggedMessages;
 
     // Deposit funds into the gas tank, from which the relayer can claim the repayment after relaying
-    function deposit() external payable {
-        uint256 newBalance = balanceOf[msg.sender] + msg.value;
+    function deposit(address _to) external payable {
+        uint256 newBalance = balanceOf[_to] + msg.value;
 
         if (newBalance > MAX_DEPOSIT) revert MaxDepositExceeded();
 
-        balanceOf[msg.sender] = newBalance;
-        emit Deposit(msg.sender, msg.value);
+        balanceOf[_to] = newBalance;
+        emit Deposit(_to, msg.value);
     }
 
     // Flag a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying

@@ -852,7 +852,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     function test_primitivesAndGasTankIntegration_multipleMessages_succeeds() external {
         /* 0. send funds to gas tank from the user originating the messages */
         hoax(originUser, 0.01 ether);
-        gasTank.deposit{ value: 0.01 ether }();
+        gasTank.deposit{ value: 0.01 ether }(originUser);
 
         /* 1. send message and flag it into the gas tank */
         vm.chainId(A);
