@@ -136,10 +136,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param msgHash Hash of the message that was relayed.
     /// @param rootMsgHash Hash of the root message that was relayed.
     /// @param relayer Address of the relayer that relayed the message.
-    /// @param txOrigin Address of the transaction origin.
     /// @param cost Cost of the message relay.
     event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, address txOrigin, uint256 cost
+        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
     );
 
     /// @notice Retrieves the sender of the current cross domain message. If not entered, reverts.
@@ -330,14 +329,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            (, bytes32 contextMessagePayloadHash, address txOrigin) =
+            (, bytes32 contextMessagePayloadHash, ) =
                 abi.decode(decodedPayload.originContext, (uint8, bytes32, address));
             bytes32 rootMessageHash =
                 keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
 
             uint256 gasUsed = (initialGas - gasleft()) + NON_REENTRANT_OVERHEAD + GAS_RECEIPT_EVENT_OVERHEAD;
-            emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, txOrigin, _cost(gasUsed));
+            emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, _cost(gasUsed));
         } else {
             assembly {
                 revert(add(32, returnData_), mload(returnData_))

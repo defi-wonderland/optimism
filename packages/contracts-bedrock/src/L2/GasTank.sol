@@ -11,7 +11,7 @@ contract GasTank {
     event Claimed(bytes32 msgHash, address relayer, uint256 amount);
     event Deposit(address depositor, uint256 amount);
     event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, address txOrigin, uint256 cost
+        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
     );
 
     error MaxDepositExceeded();

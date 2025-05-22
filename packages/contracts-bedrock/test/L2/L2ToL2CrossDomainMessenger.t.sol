@@ -922,7 +922,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Check only that emitted root hash and message hash on the gas receipt event are the same
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-            rootMessageHash, rootMessageHash, relayer, originUser, 957390000000
+            rootMessageHash, rootMessageHash, relayer, 957330000000
         );
 
         changePrank(relayer);
@@ -951,7 +951,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-            messageSentOnBHash, rootMessageHash, relayer, originUser, 64119000000
+            messageSentOnBHash, rootMessageHash, relayer, 64113000000
         );
 
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
