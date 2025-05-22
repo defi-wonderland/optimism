@@ -134,6 +134,14 @@ contract ProposalValidator is OwnableUpgradeable {
         uint8 proposalTypeConfigurator
     );
 
+    /// @notice Emitted when a funding proposal is submitted to the validator contract.
+    /// @param proposalHash The hash of the submitted proposal.
+    /// @param proposer The address that submitted the proposal.
+    /// @param to The recipient address to receive tokens.
+    /// @param amount The amount of tokens to transfer.
+    /// @param description Description of the proposal.
+    /// @param proposalType Type of the proposal.
+    /// @param proposalTypeConfigurator Configuration value specific to the proposal type.
     event FundingProposalSubmitted(
         bytes32 indexed proposalHash,
         address indexed proposer,
@@ -180,6 +188,7 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
     bytes32 public immutable ATTESTATION_SCHEMA_UID;
 
+    /// @notice The address of the approval voting module.
     address public immutable APPROVAL_VOTING_MODULE;
 
     /// @notice The Optimism Governor contract that will handle the voting phase.
@@ -211,6 +220,7 @@ contract ProposalValidator is OwnableUpgradeable {
 
     /// @notice Constructs the ProposalValidator contract.
     /// @param _attestationSchemaUid The schema UID for attestations in EAS.
+    /// @param _approvalVotingModule The address of the approval voting module.
     /// @param _governor The Optimism Governor contract address.
     /// @param _votingToken The token used to determine voting power.
     constructor(
@@ -271,6 +281,8 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @param _calldatas Function data for proposal calls
     /// @param _description Description of the proposal
     /// @param _proposalType Type of the proposal
+    /// @param _proposalTypeConfigurator Configuration value specific to the proposal type
+    /// @param _attestationUid The UID of the attestation proving eligibility
     /// @return proposalHash_ The hash of the submitted proposal
     function submitProposal(
         address[] memory _targets,
@@ -517,6 +529,12 @@ contract ProposalValidator is OwnableUpgradeable {
         isValid_ = approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
     }
 
+    /// @notice Hashes a proposal's data to generate a unique proposal hash.
+    /// @param _targets Target addresses for proposal calls.
+    /// @param _values ETH values for proposal calls.
+    /// @param _calldatas Function data for proposal calls.
+    /// @param _description Description of the proposal.
+    /// @return proposalHash_ The keccak256 hash of the proposal data.
     function _hashProposal(
         address[] memory _targets,
         uint256[] memory _values,
@@ -530,6 +548,12 @@ contract ProposalValidator is OwnableUpgradeable {
         return keccak256(abi.encode(_targets, _values, _calldatas, _description));
     }
 
+    /// @notice Hashes a proposal's data with module and sender to generate a unique proposal hash.
+    /// @param _sender The address of the sender.
+    /// @param _module The address of the module.
+    /// @param _proposalData The encoded proposal data.
+    /// @param _description Description of the proposal.
+    /// @return proposalHash_ The keccak256 hash of the proposal data with module and sender.
     function _hashProposalWithModule(
         address _sender,
         address _module,
@@ -590,6 +614,12 @@ contract ProposalValidator is OwnableUpgradeable {
         emit ProposalTypeApprovalThresholdSet(_proposalType, _requiredApprovals);
     }
 
+    /// @notice Creates the encoded proposal data, options, and settings for a funding proposal.
+    /// @param _to The recipient address to receive tokens.
+    /// @param _amount The amount of tokens to transfer.
+    /// @return proposalData_ The encoded proposal data.
+    /// @return options_ The array of proposal options.
+    /// @return settings_ The proposal settings.
     function _createFundingProposalData(
         address _to,
         uint256 _amount
