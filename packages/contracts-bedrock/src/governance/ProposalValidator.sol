@@ -637,9 +637,9 @@ contract ProposalValidator is OwnableUpgradeable {
         calldatas[0] = abi.encodeCall(IERC20.transfer, (_to, _amount));
 
         options_ = new ProposalOption[](1);
-        options_[0] = ProposalOption(0, targets, values, calldatas, "option 1");
+        options_[0] = ProposalOption(0, targets, values, calldatas, "option 1"); // TODO: Review option name
 
-        settings_ = ProposalSettings({
+        settings_ = ProposalSettings({ // TODO: Review settings data
             maxApprovals: 2,
             criteria: uint8(PassingCriteria.TopChoices),
             criteriaValue: 2,
