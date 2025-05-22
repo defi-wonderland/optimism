@@ -305,7 +305,7 @@ contract ProposalValidator is OwnableUpgradeable {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
         proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
         proposal.inVoting = false;
@@ -313,7 +313,7 @@ contract ProposalValidator is OwnableUpgradeable {
 
         emit ProposalSubmitted(
             proposalHash_,
-            msg.sender,
+            _msgSender(),
             _targets,
             _values,
             _calldatas,
@@ -350,41 +350,47 @@ contract ProposalValidator is OwnableUpgradeable {
 
         (bytes memory _proposalData,,) = _createFundingProposalData(_to, _amount);
 
-        proposalHash_ = _hashProposalWithModule(msg.sender, APPROVAL_VOTING_MODULE, _proposalData, _description);
+        proposalHash_ = _hashProposalWithModule(_msgSender(), APPROVAL_VOTING_MODULE, _proposalData, _description);
         ProposalData storage proposal = _proposals[proposalHash_];
 
         if (proposal.proposer != address(0)) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
         proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
         proposal.inVoting = false;
         proposal.remainingApprovalsRequired = 4; // TODO: Review remaining approvals required
 
         emit FundingProposalSubmitted(
-            proposalHash_, msg.sender, _to, _amount, _description, _proposalType, _proposalTypeConfigurator
+            proposalHash_,
+            _msgSender(),
+            _to,
+            _amount,
+            _description,
+            _proposalType,
+            _proposalTypeConfigurator
         );
     }
 
     /// @notice Approve a proposal (only callable by delegates with sufficient voting power)
     /// @param _proposalHash The hash of the proposal to approve
     function approveProposal(bytes32 _proposalHash) external {
-        if (!canSignOff(msg.sender)) {
+        if (!canSignOff(_msgSender())) {
             revert ProposalValidator_InsufficientVotingPower();
         }
 
         ProposalData storage proposal = _proposals[_proposalHash];
 
-        if (proposal.delegateApprovals[msg.sender]) {
+        if (proposal.delegateApprovals[_msgSender()]) {
             revert ProposalValidator_ProposalAlreadyApproved();
         }
 
-        proposal.delegateApprovals[msg.sender] = true;
+        proposal.delegateApprovals[_msgSender()] = true;
         proposal.remainingApprovalsRequired--; // Expected overflow when all approvals are granted
 
-        emit ProposalApproved(_proposalHash, msg.sender);
+        emit ProposalApproved(_proposalHash, _msgSender());
     }
 
     /// @notice Move a proposal to voting phase after sufficient delegate approvals
@@ -424,7 +430,7 @@ contract ProposalValidator is OwnableUpgradeable {
         governorProposalId_ =
             GOVERNOR.propose(_targets, _values, _calldatas, _description, proposal.proposalTypeConfigurator);
 
-        emit ProposalMovedToVote(_proposalHash, msg.sender);
+        emit ProposalMovedToVote(_proposalHash, _msgSender());
     }
 
     /// @notice Returns whether a delegate has enough voting power to approve a proposal.
@@ -526,7 +532,7 @@ contract ProposalValidator is OwnableUpgradeable {
         returns (bool isValid_)
     {
         (address approvedDelegate, uint8 proposalType) = abi.decode(_data, (address, uint8));
-        isValid_ = approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
+        isValid_ = approvedDelegate == _msgSender() && proposalType == uint8(_expectedProposalType);
     }
 
     /// @notice Hashes a proposal's data to generate a unique proposal hash.
