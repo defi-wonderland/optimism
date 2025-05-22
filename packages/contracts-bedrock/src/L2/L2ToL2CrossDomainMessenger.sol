@@ -78,11 +78,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         0xaf29438f3d49a80862278626ba8ccaf84aebc36dcd6f78f3e9101efa0aaef129;
 
     /// @notice Second storage slot for the context of the current cross domain message.
-    ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.context.txOrigin")) - 1)
-    bytes32 internal constant ORIGIN_CONTEXT_TX_ORIGIN =
-        0xbd435faadf513438d6d393fd3b01cc16018376ece7526488074a5d57d59d2619;
-
-    /// @notice Second storage slot for the context of the current cross domain message.
     ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.context.messagePayloadHash")) - 1)
     bytes32 internal constant ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH =
         0x1599376b7dd96feafb3dee69530b7c0f4ac6e0447ea06adb0f7c431e59c5547c;
@@ -176,16 +171,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     {
         uint8 encodingVersion;
         bytes32 messagePayloadHash;
-        address txOrigin;
         assembly {
             sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
             source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
             encodingVersion := tload(ORIGIN_CONTEXT_VERSION)
             messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH)
-            txOrigin := tload(ORIGIN_CONTEXT_TX_ORIGIN)
         }
 
-        originContext_ = abi.encode(encodingVersion, messagePayloadHash, txOrigin);
+        originContext_ = abi.encode(encodingVersion, messagePayloadHash);
     }
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
@@ -218,10 +211,10 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         });
 
         bytes memory originContext = _crossDomainMessageOriginContext();
-        (uint8 encodingVersion,,) = _parseOriginContext(originContext);
+        (uint8 encodingVersion,) = _parseOriginContext(originContext);
 
         if (encodingVersion == 0) {
-            originContext = abi.encode(ORIGIN_CONTEXT_ENCODING_VERSION, messagePayloadHash, tx.origin);
+            originContext = abi.encode(ORIGIN_CONTEXT_ENCODING_VERSION, messagePayloadHash);
         }
 
         // new "top-level" cross domain call (messageHash_ == outbound message)
@@ -329,8 +322,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            (, bytes32 contextMessagePayloadHash, ) =
-                abi.decode(decodedPayload.originContext, (uint8, bytes32, address));
+            (, bytes32 contextMessagePayloadHash) =
+                abi.decode(decodedPayload.originContext, (uint8, bytes32));
             bytes32 rootMessageHash =
                 keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
@@ -358,11 +351,10 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         // Decode the origin context
         uint8 encodingVersion;
         bytes32 messagePayloadHash;
-        address txOrigin;
         if (_originContext.length == 0) {
-            (encodingVersion, messagePayloadHash, txOrigin) = (0, bytes32(0), address(0));
+            (encodingVersion, messagePayloadHash) = (0, bytes32(0));
         } else {
-            (encodingVersion, messagePayloadHash, txOrigin) = _parseOriginContext(_originContext);
+            (encodingVersion, messagePayloadHash) = _parseOriginContext(_originContext);
         }
 
         // Store the message metadata
@@ -371,7 +363,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
             tstore(ORIGIN_CONTEXT_VERSION, encodingVersion)
             tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH, messagePayloadHash)
-            tstore(ORIGIN_CONTEXT_TX_ORIGIN, txOrigin)
         }
     }
 
@@ -379,9 +370,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     function _parseOriginContext(bytes memory _originContext)
         internal
         pure
-        returns (uint8 encodingVersion_, bytes32 messagePayloadHash_, address txOrigin_)
+        returns (uint8 encodingVersion_, bytes32 messagePayloadHash_)
     {
-        (encodingVersion_, messagePayloadHash_, txOrigin_) = abi.decode(_originContext, (uint8, bytes32, address));
+        (encodingVersion_, messagePayloadHash_) = abi.decode(_originContext, (uint8, bytes32));
     }
 
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
@@ -389,14 +380,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     function _crossDomainMessageOriginContext() internal view returns (bytes memory originContext_) {
         uint8 encodingVersion;
         bytes32 messagePayloadHash;
-        address txOrigin;
         assembly {
             encodingVersion := tload(ORIGIN_CONTEXT_VERSION)
             messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH)
-            txOrigin := tload(ORIGIN_CONTEXT_TX_ORIGIN)
         }
 
-        originContext_ = abi.encode(encodingVersion, messagePayloadHash, txOrigin);
+        originContext_ = abi.encode(encodingVersion, messagePayloadHash);
     }
 
     /// @notice Calculates the cost of a message relay.
