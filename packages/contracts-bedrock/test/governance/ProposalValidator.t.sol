@@ -353,17 +353,23 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 /// @title ProposalValidator_SubmitFundingProposal_TestFail
 /// @notice Sad path tests for submitFundingProposal function
 contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_Init {
-    function test_submitFundingProposal_invalidFundingProposalType_reverts() public {
+    function testFuzz_submitFundingProposal_invalidFundingProposalType_reverts(uint8 proposalTypeRaw) public {
+        // Bound to 0,1,2 (the three invalid types for funding proposals)
+        proposalTypeRaw = uint8(bound(proposalTypeRaw, 0, 2));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeRaw);
+
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
         validator.submitFundingProposal(
-            topDelegate_A, 10000 ether, "test", ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, 0
+            topDelegate_A, 10000 ether, "test", proposalType, 0
         );
     }
 
-    function test_submitFundingProposal_exceedsDistributionThreshold_reverts() public {
+    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 amount) public {
+        amount = bound(amount, DISTRIBUTION_THRESHOLD + 1, type(uint256).max);
+
         vm.expectRevert(IProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
         validator.submitFundingProposal(
-            topDelegate_A, DISTRIBUTION_THRESHOLD + 1, "test", ProposalValidator.ProposalType.CouncilBudget, 0
+            topDelegate_A, amount, "test", ProposalValidator.ProposalType.CouncilBudget, 0
         );
     }
 
