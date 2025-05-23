@@ -123,81 +123,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minimumVotingPower",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_cycleNumber",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_startBlock",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_duration",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_votingCycleDistributionLimit",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_distributionThreshold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum ProposalValidator.ProposalType[]",
-        "name": "_proposalTypes",
-        "type": "uint8[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "_requiredApprovals",
-        "type": "uint256[]"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address[]",
-            "name": "targets",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "values",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "string[]",
-            "name": "signatures",
-            "type": "string[]"
-          }
-        ],
-        "internalType": "struct ProposalValidator.ImmutableProposalTypeData[]",
-        "name": "_immutableProposalTypeDatas",
-        "type": "tuple[]"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "initVersion",
     "outputs": [
@@ -679,19 +604,6 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint8",
-        "name": "version",
-        "type": "uint8"
-      }
-    ],
-    "name": "Initialized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
         "internalType": "uint256",
         "name": "newMinimumVotingPower",
         "type": "uint256"
@@ -829,37 +741,6 @@
       }
     ],
     "name": "ProposalTypeApprovalThresholdSet",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "cycleNumber",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "startBlock",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "duration",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "votingCycleDistributionLimit",
-        "type": "uint256"
-      }
-    ],
-    "name": "VotingCycleDataSet",
     "type": "event"
   },
   {

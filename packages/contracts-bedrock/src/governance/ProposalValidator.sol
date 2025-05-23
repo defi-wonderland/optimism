@@ -236,7 +236,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         address _approvalVotingModule,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken
-    ) ReinitializableBase(1) {
+    )
+        ReinitializableBase(1)
+    {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
         APPROVAL_VOTING_MODULE = _approvalVotingModule;
         GOVERNOR = _governor;
