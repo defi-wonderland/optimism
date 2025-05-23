@@ -149,22 +149,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_cycleNumber",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_startBlock",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_duration",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_votingCycleDistributionLimit",
+        "name": "_votingCycleBlock",
         "type": "uint256"
       },
       {
@@ -812,11 +797,6 @@
   {
     "inputs": [],
     "name": "ProposalValidator_ProposalDoesNotExist",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_VotingCycleAlreadySet",
     "type": "error"
   },
   {
