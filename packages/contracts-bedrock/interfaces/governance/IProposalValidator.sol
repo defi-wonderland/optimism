@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IGovernanceToken} from "./IGovernanceToken.sol";
-import {IOptimismGovernor} from "./IOptimismGovernor.sol";
+// Interfaces
+import {IGovernanceToken} from './IGovernanceToken.sol';
+import {IOptimismGovernor} from './IOptimismGovernor.sol';
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
-interface IProposalValidator {
+interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
@@ -14,6 +16,7 @@ interface IProposalValidator {
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_ProposalDoesNotExist();
     error ProposalValidator_VotingCycleAlreadySet();
+    error ReinitializableBase_ZeroInitVersion();
 
     struct ProposalData {
         address proposer;
@@ -74,6 +77,8 @@ interface IProposalValidator {
         uint256 votingCycleDistributionLimit
     );
     
+    event Initialized(uint8 version);
+
     event Initialized(uint8 version);
 
     function submitProposal(
@@ -139,6 +144,8 @@ interface IProposalValidator {
 
     function owner() external view returns (address);
 
+    function initVersion() external view returns (uint8);
+
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
     
     function proposalRequiredApprovals(ProposalType) external view returns (uint256);
@@ -149,5 +156,19 @@ interface IProposalValidator {
         uint256 votingCycleDistributionLimit
     );
 
-    function __constructor__(bytes32 _attestationSchemaUid, IOptimismGovernor _governor, IGovernanceToken _votingToken) external;
+    function initialize(
+        address _owner,
+        uint256 _minimumVotingPower,
+        uint256 _votingCycleBlock,
+        uint256 _distributionThreshold,
+        IProposalValidator.ProposalType[] memory _proposalTypes,
+        uint256[] memory _requiredApprovals,
+        IProposalValidator.ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+    ) external;
+
+    function __constructor__(
+        bytes32 _attestationSchemaUid,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken
+    ) external;
 }
