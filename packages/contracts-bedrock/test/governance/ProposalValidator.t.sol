@@ -113,18 +113,25 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData
         ) = _getProposalTypesRequiredApprovalsAndImmutableData();
 
-        impl = new ProposalValidator(
-            ATTESTATION_SCHEMA_UID,
-            governor,
-            governanceToken
-        );
+        impl = new ProposalValidator(ATTESTATION_SCHEMA_UID, governor, governanceToken);
 
         validator = ProposalValidator(address(new Proxy(owner)));
 
         vm.prank(owner);
         IProxy(payable(address(validator))).upgradeToAndCall(
             address(impl),
-            abi.encodeCall(impl.initialize, (owner, MINIMUM_VOTING_POWER, VOTING_CYCLE_BLOCK, DISTRIBUTION_THRESHOLD, proposalTypes, requiredApprovals, immutableProposalTypeData))
+            abi.encodeCall(
+                impl.initialize,
+                (
+                    owner,
+                    MINIMUM_VOTING_POWER,
+                    VOTING_CYCLE_BLOCK,
+                    DISTRIBUTION_THRESHOLD,
+                    proposalTypes,
+                    requiredApprovals,
+                    immutableProposalTypeData
+                )
+            )
         );
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");

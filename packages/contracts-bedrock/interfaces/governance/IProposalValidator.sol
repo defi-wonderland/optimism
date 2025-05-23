@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IGovernanceToken} from "./IGovernanceToken.sol";
-import {IOptimismGovernor} from "./IOptimismGovernor.sol";
+// Interfaces
+import {IGovernanceToken} from './IGovernanceToken.sol';
+import {IOptimismGovernor} from './IOptimismGovernor.sol';
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
-interface IProposalValidator {
+interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
@@ -68,6 +70,8 @@ interface IProposalValidator {
 
     event ProposalApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
 
+    event Initialized(uint8 version);
+
     function submitProposal(
         address[] memory _targets,
         uint256[] memory _values,
@@ -114,17 +118,20 @@ interface IProposalValidator {
     function owner() external view returns (address);
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
-    
-    function __constructor__(
+
+    function initialize(
         address _owner,
-        IOptimismGovernor _governor,
-        IGovernanceToken _votingToken,
-        bytes32 _attestationSchemaUid,
         uint256 _minimumVotingPower,
         uint256 _votingCycleBlock,
         uint256 _distributionThreshold,
-        ProposalType[] memory _proposalTypes,
+        IProposalValidator.ProposalType[] memory _proposalTypes,
         uint256[] memory _requiredApprovals,
-        ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+        IProposalValidator.ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+    ) external;
+
+    function __constructor__(
+        bytes32 _attestationSchemaUid,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken
     ) external;
 }
