@@ -12,7 +12,7 @@ import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
 
-/// @custom:upgradeable
+/// @custom:proxied true
 /// @title ProposalValidator
 /// @notice The ProposalValidator contract is responsible for validating proposals and moving
 ///         them to the vote phase on the Optimism Governor.
