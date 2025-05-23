@@ -11,7 +11,7 @@ contract GasTank {
     event Claimed(bytes32 msgHash, address relayer, uint256 amount);
     event Deposit(address depositor, uint256 amount);
     event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, address txOrigin, uint256 cost
+        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
     );
 
     error MaxDepositExceeded();
@@ -20,6 +20,7 @@ contract GasTank {
     error InvalidRootMessage();
     error InsufficientBalance();
     error AlreadyClaimed();
+    error InvalidPayer();
 
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
     // TODO: Calculate claim overhead
@@ -30,36 +31,36 @@ contract GasTank {
 
     mapping(address => uint256) public balanceOf;
     mapping(bytes32 => bool) public claimed;
-    mapping(bytes32 => bool) public flaggedMessages;
+    mapping(address gasProvider => mapping(bytes32 msgHash => bool)) public flaggedMessages;
 
     // Deposit funds into the gas tank, from which the relayer can claim the repayment after relaying
-    function deposit() external payable {
-        uint256 newBalance = balanceOf[msg.sender] + msg.value;
+    function deposit(address _to) external payable {
+        uint256 newBalance = balanceOf[_to] + msg.value;
 
         if (newBalance > MAX_DEPOSIT) revert MaxDepositExceeded();
 
-        balanceOf[msg.sender] = newBalance;
-        emit Deposit(msg.sender, msg.value);
+        balanceOf[_to] = newBalance;
+        emit Deposit(_to, msg.value);
     }
 
     // Flag a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
     function flag(bytes32 rootMessageHash) external {
-        flaggedMessages[rootMessageHash] = true;
+        flaggedMessages[msg.sender][rootMessageHash] = true;
         emit Flagged(rootMessageHash);
     }
 
     // Claim repayment for a relayed message
-    function claim(Identifier calldata id, bytes calldata payload) external {
+    function claim(Identifier calldata id, address gasProvider, bytes calldata payload) external {
         // Ensure the origin is the messenger
         if (id.origin != address(MESSENGER)) revert InvalidOrigin();
 
         // Decode the receipt
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
-        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, address txOrigin, uint256 relayCost) =
+        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost) =
             decodeGasReceiptPayload(payload);
 
-        // Ensure the message is flagged
-        if (!flaggedMessages[rootMsgHash]) revert InvalidRootMessage();
+        // Ensure the message is flagged for relaying
+        if (!flaggedMessages[gasProvider][rootMsgHash]) revert InvalidPayer();
 
         // Ensure unclaimed
         if (claimed[msgHash]) revert AlreadyClaimed();
@@ -68,7 +69,7 @@ contract GasTank {
         uint256 claimCost = CLAIM_OVERHEAD * block.basefee;
         uint256 cost = relayCost + claimCost;
         // TODO: Make it more flexible so to allow partial repayment, but tracking the claim as partially repaid
-        if (balanceOf[txOrigin] < cost) revert InsufficientBalance();
+        if (balanceOf[gasProvider] < cost) revert InsufficientBalance();
 
         // Ensure the original outbound message was sent from this chain
         if (!MESSENGER.sentMessages(rootMsgHash)) revert InvalidRootMessage();
@@ -77,7 +78,7 @@ contract GasTank {
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(id, keccak256(payload));
 
         // Update the balance and mark the claim
-        balanceOf[txOrigin] -= cost;
+        balanceOf[gasProvider] -= cost;
         claimed[msgHash] = true;
 
         // Send the cost repayment back to the relayer
@@ -90,13 +91,13 @@ contract GasTank {
     function decodeGasReceiptPayload(bytes calldata payload)
         public
         pure
-        returns (bytes32 msgHash, bytes32 rootMsgHash, address relayer, address txOrigin, uint256 relayCost)
+        returns (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost)
     {
         // Decode Topics
         (msgHash, rootMsgHash, relayer) = abi.decode(payload[32:128], (bytes32, bytes32, address));
 
         // Decode Data
-        (txOrigin, relayCost) = abi.decode(payload[128:], (address, uint256));
+        relayCost = abi.decode(payload[128:], (uint256));
     }
 
     // TODO: Out of scope for PoC

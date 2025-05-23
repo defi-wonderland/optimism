@@ -66,12 +66,11 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
     /// @param _originContext Context to set.
 
     function setCrossDomainMessageOriginContext(bytes memory _originContext) external {
-        (uint8 encodingVersion, bytes32 messagePayloadHash, address txOrigin) = _parseOriginContext(_originContext);
+        (uint8 encodingVersion, bytes32 messagePayloadHash) = _parseOriginContext(_originContext);
 
         assembly {
             tstore(ORIGIN_CONTEXT_VERSION, encodingVersion)
             tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH, messagePayloadHash)
-            tstore(ORIGIN_CONTEXT_TX_ORIGIN, txOrigin)
         }
     }
 }
@@ -143,7 +142,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _destination, block.chainid, messageNonce, randomCaller, _target, _message
         );
         bytes memory originContext =
-            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messagePayloadHash, originUser);
+            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messagePayloadHash);
         assertEq(msgHash, keccak256(abi.encodePacked(messagePayloadHash, originContext)));
 
         // Check that the event was emitted with the correct parameters
@@ -278,7 +277,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, messageNonce, _sender, _target, _message);
 
         bytes memory originContext =
-            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messagePayloadHash, originUser);
+            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messagePayloadHash);
 
         assertEq(msgHash, keccak256(abi.encodePacked(messagePayloadHash, originContext)));
 
@@ -807,12 +806,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         address _sender,
         uint256 _source,
         uint8 _contextEncodingVersion,
-        bytes32 _messagePayloadHash,
-        address _txOrigin
+        bytes32 _messagePayloadHash
     )
         external
     {
-        bytes memory originContext = abi.encode(_contextEncodingVersion, _messagePayloadHash, _txOrigin);
+        bytes memory originContext = abi.encode(_contextEncodingVersion, _messagePayloadHash);
 
         // Set `entered` to non-zero value to prevent NotEntered revert
         l2ToL2CrossDomainMessenger.setEntered(1);
@@ -852,7 +850,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
     function test_primitivesAndGasTankIntegration_multipleMessages_succeeds() external {
         /* 0. send funds to gas tank from the user originating the messages */
         hoax(originUser, 0.01 ether);
-        gasTank.deposit{ value: 0.01 ether }();
+        gasTank.deposit{ value: 0.01 ether }(originUser);
 
         /* 1. send message and flag it into the gas tank */
         vm.chainId(A);
@@ -862,12 +860,9 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         bytes memory messageForB = abi.encodeCall(chainByPass.sendMessage, (C, address(receiverOnC), messageForC));
 
         // Send message on A to B
-        vm.startPrank(randomCaller, originUser);
+        vm.startPrank(randomCaller);
         // rootMessageHash on the origin chain is the same as the message hash of the first Sent Message.
         bytes32 rootMessageHash = l2ToL2CrossDomainMessenger.sendMessage(B, address(chainByPass), messageForB);
-
-        // Flag the message into the gas tank
-        gasTank.flag(rootMessageHash);
 
         // Calculate the values
         bytes32 messageAPayloadHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -878,11 +873,16 @@ contract L2ToL2CrossDomainMessengerTest is Test {
             _target: address(chainByPass),
             _message: messageForB
         });
+
         // This origin context must persist through the nested messages.
         bytes memory originContext =
-            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messageAPayloadHash, originUser);
+            abi.encode(l2ToL2CrossDomainMessenger.ORIGIN_CONTEXT_ENCODING_VERSION(), messageAPayloadHash);
 
         assertEq(rootMessageHash, keccak256(abi.encodePacked(messageAPayloadHash, originContext)), "1");
+
+        // Flag the message into the gas tank
+        changePrank(originUser);
+        gasTank.flag(rootMessageHash);
 
         /* 2. relay message on B */
         vm.chainId(B);
@@ -922,7 +922,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Check only that emitted root hash and message hash on the gas receipt event are the same
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-            rootMessageHash, rootMessageHash, relayer, originUser, 957390000000
+            rootMessageHash, rootMessageHash, relayer, 947710000000
         );
 
         changePrank(relayer);
@@ -951,7 +951,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
 
         vm.expectEmit(address(l2ToL2CrossDomainMessenger));
         emit L2ToL2CrossDomainMessenger.RelayedMessageGasReceipt(
-            messageSentOnBHash, rootMessageHash, relayer, originUser, 64119000000
+            messageSentOnBHash, rootMessageHash, relayer, 63661000000
         );
 
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
@@ -972,7 +972,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
                 rootMessageHash,
                 relayer
             ), // topics
-            abi.encode(originUser, cost) // data
+            abi.encode(cost) // data
         );
 
         // Mock crossl2inbox call
@@ -986,10 +986,11 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         uint256 userFundsBefore = gasTank.balanceOf(originUser);
 
         // Claim
-        gasTank.claim(id, gasReceiptPayload);
+        gasTank.claim(id, originUser, gasReceiptPayload);
+
         // Shouldn't be claimable 2 times
         vm.expectRevert(GasTank.AlreadyClaimed.selector);
-        gasTank.claim(id, gasReceiptPayload);
+        gasTank.claim(id, originUser, gasReceiptPayload);
 
         uint256 expectedRepayment = cost + (gasTank.CLAIM_OVERHEAD() * block.basefee);
         assertEq(relayer.balance, relayerBalanceBefore + expectedRepayment, "4");
@@ -1006,7 +1007,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
                 rootMessageHash,
                 relayer
             ), // topics
-            abi.encode(originUser, cost) // data (with manually hardcoded cost obtained from the event)
+            abi.encode(cost) // data (with manually hardcoded cost obtained from the event)
         );
 
         assertNotEq(rootMessageHash, messageSentOnBHash, "6");
@@ -1015,10 +1016,10 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         relayerBalanceBefore = relayer.balance;
 
         // Claim
-        gasTank.claim(id, gasReceiptPayload);
+        gasTank.claim(id, originUser, gasReceiptPayload);
         // Shouldn't be claimable 2 times
         vm.expectRevert(GasTank.AlreadyClaimed.selector);
-        gasTank.claim(id, gasReceiptPayload);
+        gasTank.claim(id, originUser, gasReceiptPayload);
 
         // Assert proper updates
         expectedRepayment = cost + (gasTank.CLAIM_OVERHEAD() * block.basefee);
