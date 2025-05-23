@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -17,7 +18,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @title ProposalValidator
 /// @notice The ProposalValidator contract is responsible for validating proposals and moving
 ///         them to the vote phase on the Optimism Governor.
-contract ProposalValidator is OwnableUpgradeable, ISemver {
+contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -177,7 +178,13 @@ contract ProposalValidator is OwnableUpgradeable, ISemver {
     /// @param _attestationSchemaUid The schema UID for attestations in EAS.
     /// @param _governor The Optimism Governor contract address.
     /// @param _votingToken The token used to determine voting power.
-    constructor(bytes32 _attestationSchemaUid, IOptimismGovernor _governor, IGovernanceToken _votingToken) {
+    constructor(
+        bytes32 _attestationSchemaUid,
+        IOptimismGovernor _governor,
+        IGovernanceToken _votingToken
+    )
+        ReinitializableBase(1)
+    {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
         GOVERNOR = _governor;
         VOTING_TOKEN = _votingToken;
@@ -202,7 +209,7 @@ contract ProposalValidator is OwnableUpgradeable, ISemver {
         ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     )
         external
-        initializer
+        reinitializer(initVersion())
     {
         _setMinimumVotingPower(_minimumVotingPower);
         _setVotingCycleBlock(_votingCycleBlock);

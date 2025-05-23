@@ -15,6 +15,7 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_ProposalDoesNotExist();
+    error ReinitializableBase_ZeroInitVersion();
 
     struct ProposalData {
         address proposer;
@@ -116,6 +117,8 @@ interface IProposalValidator is ISemver {
     function GOVERNOR() external view returns (IOptimismGovernor);
 
     function owner() external view returns (address);
+
+    function initVersion() external view returns (uint8);
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 
