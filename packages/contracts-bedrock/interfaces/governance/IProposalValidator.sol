@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// Interfaces
 import {IGovernanceToken} from './IGovernanceToken.sol';
 import {IOptimismGovernor} from './IOptimismGovernor.sol';
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
-interface IProposalValidator {
+interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
@@ -16,6 +18,7 @@ interface IProposalValidator {
     error ProposalValidator_VotingCycleAlreadySet();
     error ProposalValidator_InvalidFundingProposalType();
     error ProposalValidator_ExceedsDistributionThreshold();
+    error ReinitializableBase_ZeroInitVersion();
 
     struct ProposalData {
         address proposer;
@@ -128,6 +131,7 @@ interface IProposalValidator {
         uint256 _votingCycleDistributionLimit
     ) external;
 
+    
     function initialize(
         address _owner,
         uint256 _minimumVotingPower,
@@ -160,6 +164,8 @@ interface IProposalValidator {
     function APPROVAL_VOTING_MODULE() external view returns (address);
 
     function owner() external view returns (address);
+
+    function initVersion() external view returns (uint8);
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 

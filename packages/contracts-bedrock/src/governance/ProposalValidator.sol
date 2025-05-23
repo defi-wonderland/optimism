@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -15,12 +16,13 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Modules
 import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
-/// @custom:upgradeable
+/// @custom:proxied true
 /// @title ProposalValidator
 /// @notice The ProposalValidator contract is responsible for validating proposals and moving
 ///         them to the vote phase on the Optimism Governor.
-contract ProposalValidator is OwnableUpgradeable {
+contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -218,6 +220,12 @@ contract ProposalValidator is OwnableUpgradeable {
     /// @notice Mapping of proposal hash to their corresponding proposal data.
     mapping(bytes32 => ProposalData) private _proposals;
 
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0-beta.1
+    function version() public pure virtual returns (string memory) {
+        return "1.0.0-beta.1";
+    }
+
     /// @notice Constructs the ProposalValidator contract.
     /// @param _attestationSchemaUid The schema UID for attestations in EAS.
     /// @param _approvalVotingModule The address of the approval voting module.
@@ -228,7 +236,7 @@ contract ProposalValidator is OwnableUpgradeable {
         address _approvalVotingModule,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken
-    ) {
+    ) ReinitializableBase(1) {
         ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
         APPROVAL_VOTING_MODULE = _approvalVotingModule;
         GOVERNOR = _governor;
@@ -260,7 +268,7 @@ contract ProposalValidator is OwnableUpgradeable {
         ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
     )
         external
-        initializer
+        reinitializer(initVersion())
     {
         _setMinimumVotingPower(_minimumVotingPower);
         _setVotingCycleData(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
