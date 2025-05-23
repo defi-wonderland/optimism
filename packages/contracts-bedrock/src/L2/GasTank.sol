@@ -20,6 +20,7 @@ contract GasTank {
     error InvalidRootMessage();
     error InsufficientBalance();
     error AlreadyClaimed();
+    error InvalidPayer();
 
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
     // TODO: Calculate claim overhead
@@ -59,7 +60,7 @@ contract GasTank {
             decodeGasReceiptPayload(payload);
 
         // Ensure the message is flagged for relaying
-        if (!flaggedMessages[gasProvider][rootMsgHash]) revert InvalidRootMessage();  // TODO change error desc InvalidPayer
+        if (!flaggedMessages[gasProvider][rootMsgHash]) revert InvalidPayer();
 
         // Ensure unclaimed
         if (claimed[msgHash]) revert AlreadyClaimed();
