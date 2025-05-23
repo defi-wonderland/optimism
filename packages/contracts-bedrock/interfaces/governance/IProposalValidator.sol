@@ -79,8 +79,6 @@ interface IProposalValidator is ISemver {
     
     event Initialized(uint8 version);
 
-    event Initialized(uint8 version);
-
     function submitProposal(
         address[] memory _targets,
         uint256[] memory _values,
@@ -155,16 +153,6 @@ interface IProposalValidator is ISemver {
         uint256 duration, 
         uint256 votingCycleDistributionLimit
     );
-
-    function initialize(
-        address _owner,
-        uint256 _minimumVotingPower,
-        uint256 _votingCycleBlock,
-        uint256 _distributionThreshold,
-        IProposalValidator.ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals,
-        IProposalValidator.ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
-    ) external;
 
     function __constructor__(
         bytes32 _attestationSchemaUid,
