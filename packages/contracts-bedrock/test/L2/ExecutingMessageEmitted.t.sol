@@ -16,7 +16,7 @@ import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol
 /// @notice Integration test that checks that the `ExecutingMessage` event is emitted on crosschain mints.
 contract ExecutingMessageEmittedTest is CommonTest {
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
+        0x687289caffce8cccd179ad6b3eebf5b30d65912f573a6b50d0525642b073297e;
 
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
 
@@ -76,6 +76,10 @@ contract ExecutingMessageEmittedTest is CommonTest {
         // Ensure that the target is not a forge address.
         assumeNotForgeAddress(_to);
 
+        // Construct the origin context
+        bytes32 messagePayloadHash = keccak256(abi.encode(block.chainid, _nonce, _sender, _to, _amount));
+        bytes memory originContext = abi.encode(uint8(1), messagePayloadHash);
+
         // Construct the SentMessage payload & identifier
         _id.origin = address(MESSENGER);
         _id.blockNumber = bound(_id.blockNumber, 0, type(uint64).max);
@@ -84,7 +88,7 @@ contract ExecutingMessageEmittedTest is CommonTest {
         bytes memory message = abi.encodeCall(ISuperchainTokenBridge.relayERC20, (_token, _sender, _to, _amount));
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(SENT_MESSAGE_EVENT_SELECTOR, block.chainid, SUPERCHAIN_TOKEN_BRIDGE, _nonce), // topics
-            abi.encode(_sender, message) // data
+            abi.encode(_sender, message, originContext) // data
         );
 
         // Mock `crossDomainMessageContext` call for it to succeed

@@ -45,8 +45,14 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param messageNonce Nonce associated with the messsage sent
     /// @param sender       Address initiating this message call
     /// @param message      Message payload to call target with.
+    /// @param originContext Context of the message.
     event SentMessage(
-        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message
+        uint256 indexed destination,
+        address indexed target,
+        uint256 indexed messageNonce,
+        address sender,
+        bytes message,
+        bytes originContext
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
@@ -116,13 +122,15 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param _sender Address that sent the message
     /// @param _target Target contract or wallet address.
     /// @param _message Message payload to call target with.
+    /// @param _originContext Context of the message.
     /// @return messageHash_ The hash of the message being re-sent.
     function resendMessage(
         uint256 _destination,
         uint256 _nonce,
         address _sender,
         address _target,
-        bytes calldata _message
+        bytes calldata _message,
+        bytes calldata _originContext
     )
         external
         returns (bytes32 messageHash_);

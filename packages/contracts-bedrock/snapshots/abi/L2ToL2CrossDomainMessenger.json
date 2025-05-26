@@ -1,6 +1,19 @@
 [
   {
     "inputs": [],
+    "name": "ORIGIN_CONTEXT_ENCODING_VERSION",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "crossDomainMessageContext",
     "outputs": [
       {
@@ -12,6 +25,24 @@
         "internalType": "uint256",
         "name": "source_",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "originContext_",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "crossDomainMessageOriginContext",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "context_",
+        "type": "bytes"
       }
     ],
     "stateMutability": "view",
@@ -145,6 +176,11 @@
       {
         "internalType": "bytes",
         "name": "_message",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_originContext",
         "type": "bytes"
       }
     ],
@@ -301,6 +337,12 @@
         "indexed": false,
         "internalType": "bytes",
         "name": "message",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "originContext",
         "type": "bytes"
       }
     ],
