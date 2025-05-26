@@ -38,6 +38,13 @@ error ReentrantCall();
 /// @notice Thrown when the provided message parameters do not match any hash of a previously sent message.
 error InvalidMessage();
 
+/// @notice Decoded payload of a SentMessage event.
+/// @param destination Chain ID of the destination chain.
+/// @param target Target contract or wallet address.
+/// @param nonce Nonce associated with the message sent
+/// @param sender Address initiating this message call
+/// @param message Message payload to call target with.
+/// @param originContext Context of the message
 struct DecodedPayload {
     uint256 destination;
     address target;
