@@ -194,7 +194,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
         uint256 nonce = messageNonce();
-        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessagePayload({
             _destination: _destination,
             _source: block.chainid,
             _nonce: nonce,
@@ -211,7 +211,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         // new "top-level" cross domain call (messageHash_ == outbound message)
-        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, originContext));
+        messageHash_ = Hashing.hashL2toL2CrossDomainMessage(messagePayloadHash, originContext);
 
         sentMessages[messageHash_] = true;
         msgNonce++;
@@ -241,7 +241,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         external
         returns (bytes32 messageHash_)
     {
-        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessagePayload({
             _destination: _destination,
             _source: block.chainid,
             _nonce: _nonce,
@@ -250,7 +250,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: _message
         });
 
-        messageHash_ = keccak256(abi.encodePacked(messagePayloadHash, _originContext));
+        messageHash_ = Hashing.hashL2toL2CrossDomainMessage(messagePayloadHash, _originContext);
 
         if (!sentMessages[messageHash_]) revert InvalidMessage();
 
@@ -287,7 +287,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (decodedPayload.destination != block.chainid) revert MessageDestinationNotRelayChain();
 
         uint256 source = _id.chainId;
-        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessagePayload({
             _destination: decodedPayload.destination,
             _source: source,
             _nonce: decodedPayload.nonce,
@@ -296,7 +296,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: decodedPayload.message
         });
 
-        bytes32 messageHash = keccak256(abi.encodePacked(messagePayloadHash, decodedPayload.originContext));
+        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage(messagePayloadHash, decodedPayload.originContext);
 
         if (successfulMessages[messageHash]) {
             revert MessageAlreadyRelayed();
@@ -316,7 +316,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
 
-        _storeMessageMetadata(0, address(0), bytes(""));
+        _storeMessageMetadata(0, address(0), bytes(abi.encode(uint8(0), bytes32(0))));
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
@@ -331,13 +331,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _sender Address of the sender of the message.
     function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _originContext) internal {
         // Decode the origin context
-        uint8 encodingVersion;
-        bytes32 messagePayloadHash;
-        if (_originContext.length == 0) {
-            (encodingVersion, messagePayloadHash) = (0, bytes32(0));
-        } else {
-            (encodingVersion, messagePayloadHash) = _parseOriginContext(_originContext);
-        }
+        (uint8 encodingVersion, bytes32 messagePayloadHash) = _parseOriginContext(_originContext);
 
         // Store the message metadata
         assembly {
