@@ -69,7 +69,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice First storage slot for the context of the current cross domain message.
     ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.context.version")) - 1)
-    bytes32 internal constant ORIGIN_CONTEXT_VERSION =
+    bytes32 internal constant ORIGIN_CONTEXT_VERSION_SLOT =
         0xaf29438f3d49a80862278626ba8ccaf84aebc36dcd6f78f3e9101efa0aaef129;
 
     /// @notice Second storage slot for the context of the current cross domain message.
