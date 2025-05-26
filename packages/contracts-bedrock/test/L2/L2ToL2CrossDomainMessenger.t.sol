@@ -66,8 +66,8 @@ contract L2ToL2CrossDomainMessengerWithModifiableTransientStorage is L2ToL2Cross
         (uint8 encodingVersion, bytes32 messagePayloadHash) = _parseOriginContext(_originContext);
 
         assembly {
-            tstore(ORIGIN_CONTEXT_VERSION, encodingVersion)
-            tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH, messagePayloadHash)
+            tstore(ORIGIN_CONTEXT_VERSION_SLOT, encodingVersion)
+            tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT, messagePayloadHash)
         }
     }
 }

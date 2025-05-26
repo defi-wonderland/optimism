@@ -160,8 +160,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         assembly {
             sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
             source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
-            encodingVersion := tload(ORIGIN_CONTEXT_VERSION)
-            messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH)
+            encodingVersion := tload(ORIGIN_CONTEXT_VERSION_SLOT)
+            messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT)
         }
 
         originContext_ = abi.encode(encodingVersion, messagePayloadHash);
@@ -336,8 +336,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         assembly {
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
             tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
-            tstore(ORIGIN_CONTEXT_VERSION, encodingVersion)
-            tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH, messagePayloadHash)
+            tstore(ORIGIN_CONTEXT_VERSION_SLOT, encodingVersion)
+            tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT, messagePayloadHash)
         }
     }
 
@@ -356,8 +356,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint8 encodingVersion;
         bytes32 messagePayloadHash;
         assembly {
-            encodingVersion := tload(ORIGIN_CONTEXT_VERSION)
-            messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH)
+            encodingVersion := tload(ORIGIN_CONTEXT_VERSION_SLOT)
+            messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT)
         }
 
         originContext_ = abi.encode(encodingVersion, messagePayloadHash);
