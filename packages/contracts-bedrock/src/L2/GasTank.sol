@@ -13,6 +13,8 @@ contract GasTank {
     event RelayedMessageGasReceipt(
         bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
     );
+    event WithdrawalInitiated(address indexed from, uint256 amount);
+    event WithdrawalFinalized(address indexed from, address indexed to, uint256 amount);
 
     error MaxDepositExceeded();
     error InvalidOrigin();
@@ -21,15 +23,24 @@ contract GasTank {
     error InsufficientBalance();
     error AlreadyClaimed();
     error InvalidPayer();
+    error WithdrawPending();
+    error WithdrawDoesNotExist();
 
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
+    uint256 public constant WITHDRAWAL_DELAY = 1 days;
     // TODO: Calculate claim overhead
     uint256 public constant CLAIM_OVERHEAD = 100_000;
 
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
+    struct Withdrawal {
+        uint256 timestamp;
+        uint256 amount;
+    }
+
     mapping(address => uint256) public balanceOf;
+    mapping(address gasProvider => Withdrawal) public withdrawals;
     mapping(bytes32 => bool) public claimed;
     mapping(address gasProvider => mapping(bytes32 msgHash => bool)) public flaggedMessages;
 
@@ -41,6 +52,42 @@ contract GasTank {
 
         balanceOf[_to] = newBalance;
         emit Deposit(_to, msg.value);
+    }
+
+    function initiateWithdrawal(uint256 amount) external {
+        // Ensure the caller has enough balance
+        if (balanceOf[msg.sender] < amount) revert InsufficientBalance();
+
+        // Record the pending withdrawal
+        withdrawals[msg.sender] = Withdrawal({
+            timestamp: block.timestamp,
+            amount: amount
+        });
+
+        // Emit an event for the withdrawal initiation
+        emit WithdrawalInitiated(msg.sender, amount);
+    }
+
+    function finalizeWithdrawal(address to) external {
+        Withdrawal memory withdrawal = withdrawals[msg.sender];
+
+        // Ensure the withdrawal exists
+        if (withdrawal.timestamp == 0) revert WithdrawDoesNotExist();
+
+        // Ensure the withdraw is not pending
+        if (block.timestamp < withdrawal.timestamp + WITHDRAWAL_DELAY) revert WithdrawPending();
+
+        // Update the balance
+        uint256 amount = balanceOf[msg.sender] < withdrawal.amount ? balanceOf[msg.sender] : withdrawal.amount;
+        balanceOf[msg.sender] -= amount;
+
+        // Clear the pending withdrawal
+        delete withdrawals[msg.sender];
+
+        // Send the funds to the recipient
+        new SafeSend{ value: amount }(payable(to));
+
+        emit WithdrawalFinalized(msg.sender, to, amount);
     }
 
     // Flag a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying

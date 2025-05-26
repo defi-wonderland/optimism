@@ -34,18 +34,108 @@ contract GasTankTest is Test {
   event Claimed(bytes32 msgHash, address relayer, uint256 amount);
 
   function setUp() public {
-    // Set up the test environment
     gasTank = new GasTank();
   }
 
   function testDeposit_Exceeded(uint256 depositAmount) external {
     uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    depositAmount = bound(depositAmount, maxDeposit, type(uint256).max);
+    depositAmount = bound(depositAmount, maxDeposit + 1, type(uint256).max);
 
     vm.deal(address(this), depositAmount);
     vm.expectRevert(GasTank.MaxDepositExceeded.selector);
     gasTank.deposit{value: depositAmount}(address(this));
   }
+
+  function testDeposit(uint256 depositAmount) external {
+    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+    depositAmount = bound(depositAmount, 1, maxDeposit);
+
+    vm.deal(address(this), depositAmount);
+    vm.expectEmit(address(gasTank));
+    emit GasTank.Deposit(address(this), depositAmount);
+    gasTank.deposit{value: depositAmount}(address(this));
+
+    assertEq(
+      gasTank.balanceOf(address(this)),
+      depositAmount,
+      "GasTank balance should match the deposited amount"
+    );
+  }
+
+  function testIntiateWithdrawal_InsufficientBalance(uint256 withdrawalAmount) external {
+    vm.assume(withdrawalAmount > 0);
+
+    vm.expectRevert(GasTank.InsufficientBalance.selector);
+    gasTank.initiateWithdrawal(withdrawalAmount);
+  }
+
+  function testIntiateWithdrawal(uint256 withdrawalAmount) external {
+    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+    withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
+
+    vm.deal(address(this), withdrawalAmount);
+    gasTank.deposit{value: withdrawalAmount}(address(this));
+
+    vm.expectEmit(address(gasTank));
+    emit GasTank.WithdrawalInitiated(address(this), withdrawalAmount);
+    gasTank.initiateWithdrawal(withdrawalAmount);
+
+    (uint256 timestamp, uint256 amount) = gasTank.withdrawals(address(this));
+    assertEq(
+      amount,
+      withdrawalAmount,
+      "GasTank should have recorded the pending withdrawal"
+    );
+    assertTrue(
+      timestamp == block.timestamp,
+      "GasTank should have recorded the withdrawal timestamp"
+    );
+  }
+
+  function testFinalizeWithdrawal_WithoutInitializing() external {
+    vm.expectRevert(GasTank.WithdrawDoesNotExist.selector);
+    gasTank.finalizeWithdrawal(address(this));
+  }
+
+  function testFinalizeWithdrawal_PendingWithdrawal(uint256 withdrawalAmount) external {
+    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+    withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
+    vm.deal(address(this), withdrawalAmount);
+    gasTank.deposit{value: withdrawalAmount}(address(this));
+
+    gasTank.initiateWithdrawal(withdrawalAmount);
+
+    vm.expectRevert(GasTank.WithdrawPending.selector);
+    gasTank.finalizeWithdrawal(address(this));
+  }
+
+  function testFinalizeWithdrawal(uint256 withdrawalAmount, address to) external {
+    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+    withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
+
+    vm.deal(address(this), withdrawalAmount);
+    gasTank.deposit{value: withdrawalAmount}(address(this));
+
+    gasTank.initiateWithdrawal(withdrawalAmount);
+
+    vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
+
+    vm.expectEmit(address(gasTank));
+    emit GasTank.WithdrawalFinalized(address(this), to, withdrawalAmount);
+    gasTank.finalizeWithdrawal(to);
+
+    assertEq(
+      gasTank.balanceOf(address(this)),
+      0,
+      "GasTank balance should be 0 after finalizing the withdrawal"
+    );
+    assertEq(
+      to.balance,
+      withdrawalAmount,
+      "Address should have received the withdrawn amount"
+    );
+  }
+
 
   function testClaim_InvalidOrigin(address origin) external {
     vm.assume(origin != address(MESSENGER));
