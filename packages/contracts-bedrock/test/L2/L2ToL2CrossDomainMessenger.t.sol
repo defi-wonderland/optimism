@@ -25,6 +25,7 @@ import {
 
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IGasTank } from "interfaces/L2/IGasTank.sol";
 
 import { GasTank } from "src/L2/GasTank.sol";
 
@@ -989,7 +990,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         gasTank.claim(id, originUser, gasReceiptPayload);
 
         // Shouldn't be claimable 2 times
-        vm.expectRevert(GasTank.AlreadyClaimed.selector);
+        vm.expectRevert(IGasTank.AlreadyClaimed.selector);
         gasTank.claim(id, originUser, gasReceiptPayload);
 
         uint256 expectedRepayment = cost + (gasTank.CLAIM_OVERHEAD() * block.basefee);
@@ -1018,7 +1019,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         // Claim
         gasTank.claim(id, originUser, gasReceiptPayload);
         // Shouldn't be claimable 2 times
-        vm.expectRevert(GasTank.AlreadyClaimed.selector);
+        vm.expectRevert(IGasTank.AlreadyClaimed.selector);
         gasTank.claim(id, originUser, gasReceiptPayload);
 
         // Assert proper updates

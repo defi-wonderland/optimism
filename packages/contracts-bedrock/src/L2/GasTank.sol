@@ -3,26 +3,13 @@ pragma solidity 0.8.25;
 
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
-contract GasTank {
-    event Flagged(bytes32 rootMessageHash);
-    event Claimed(bytes32 msgHash, address relayer, uint256 amount);
-    event Deposit(address depositor, uint256 amount);
-    event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
-    );
-
-    error MaxDepositExceeded();
-    error InvalidOrigin();
-    error InvalidPayload();
-    error InvalidRootMessage();
-    error InsufficientBalance();
-    error AlreadyClaimed();
-    error InvalidPayer();
-
+contract GasTank is IGasTank {
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
+    uint256 public constant WITHDRAWAL_DELAY = 7 days;
     // TODO: Calculate claim overhead
     uint256 public constant CLAIM_OVERHEAD = 100_000;
 
@@ -30,6 +17,7 @@ contract GasTank {
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
     mapping(address => uint256) public balanceOf;
+    mapping(address gasProvider => Withdrawal) public withdrawals;
     mapping(bytes32 => bool) public claimed;
     mapping(address gasProvider => mapping(bytes32 msgHash => bool)) public flaggedMessages;
 
@@ -41,6 +29,36 @@ contract GasTank {
 
         balanceOf[_to] = newBalance;
         emit Deposit(_to, msg.value);
+    }
+
+    function initiateWithdrawal(uint256 amount) external {
+        // Ensure the caller has enough balance
+        if (balanceOf[msg.sender] < amount) revert InsufficientBalance();
+
+        // Record the pending withdrawal
+        withdrawals[msg.sender] = Withdrawal({ timestamp: block.timestamp, amount: amount });
+
+        // Emit an event for the withdrawal initiation
+        emit WithdrawalInitiated(msg.sender, amount);
+    }
+
+    function finalizeWithdrawal(address to) external {
+        Withdrawal memory withdrawal = withdrawals[msg.sender];
+
+        // Ensure the withdraw is not pending
+        if (block.timestamp < withdrawal.timestamp + WITHDRAWAL_DELAY) revert WithdrawPending();
+
+        // Update the balance
+        uint256 amount = balanceOf[msg.sender] < withdrawal.amount ? balanceOf[msg.sender] : withdrawal.amount;
+        balanceOf[msg.sender] -= amount;
+
+        // Clear the pending withdrawal
+        delete withdrawals[msg.sender];
+
+        // Send the funds to the recipient
+        new SafeSend{ value: amount }(payable(to));
+
+        emit WithdrawalFinalized(msg.sender, to, amount);
     }
 
     // Flag a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
@@ -56,8 +74,7 @@ contract GasTank {
 
         // Decode the receipt
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
-        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost) =
-            decodeGasReceiptPayload(payload);
+        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost) = decodeGasReceiptPayload(payload);
 
         // Ensure the message is flagged for relaying
         if (!flaggedMessages[gasProvider][rootMsgHash]) revert InvalidPayer();
@@ -99,9 +116,4 @@ contract GasTank {
         // Decode Data
         relayCost = abi.decode(payload[128:], (uint256));
     }
-
-    // TODO: Out of scope for PoC
-    //    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
-    // function withdraw(bytes32 rootMessageHash) external {}
-    // TODO: Add function to add authorized relayers only to withdraw from the gas tank (business logic)
 }

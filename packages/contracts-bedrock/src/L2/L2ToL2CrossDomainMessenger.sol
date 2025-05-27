@@ -132,9 +132,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param rootMsgHash Hash of the root message that was relayed.
     /// @param relayer Address of the relayer that relayed the message.
     /// @param cost Cost of the message relay.
-    event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
-    );
+    event RelayedMessageGasReceipt(bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost);
 
     /// @notice Retrieves the sender of the current cross domain message. If not entered, reverts.
     /// @return sender_ Address of the sender of the current cross domain message.
@@ -322,8 +320,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0), bytes(""));
 
         if (success) {
-            (, bytes32 contextMessagePayloadHash) =
-                abi.decode(decodedPayload.originContext, (uint8, bytes32));
+            (, bytes32 contextMessagePayloadHash) = abi.decode(decodedPayload.originContext, (uint8, bytes32));
             bytes32 rootMessageHash =
                 keccak256(abi.encodePacked(contextMessagePayloadHash, decodedPayload.originContext));
             emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
