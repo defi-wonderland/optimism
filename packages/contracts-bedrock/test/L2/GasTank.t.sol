@@ -29,11 +29,6 @@ contract GasTankTest is Test {
   IL2ToL2CrossDomainMessenger public constant MESSENGER =
     IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-  event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
-  );
-  event Claimed(bytes32 msgHash, address relayer, uint256 amount);
-
   function setUp() public {
     gasTank = new GasTank();
   }
@@ -145,7 +140,7 @@ contract GasTankTest is Test {
 
   function testClaim_InvalidPayload(bytes calldata payload) external {
     vm.assume(payload.length >= 32);
-    vm.assume(bytes32(payload[:32]) != RelayedMessageGasReceipt.selector);
+    vm.assume(bytes32(payload[:32]) != IGasTank.RelayedMessageGasReceipt.selector);
 
     Identifier memory id;
     id.origin = address(MESSENGER);
@@ -159,7 +154,7 @@ contract GasTankTest is Test {
     id.origin = address(MESSENGER);
 
     bytes memory payload = abi.encode(
-      RelayedMessageGasReceipt.selector,
+      IGasTank.RelayedMessageGasReceipt.selector,
       bytes32(0), // msgHash
       bytes32(0), // rootMsgHash
       address(this), // relayer
@@ -175,7 +170,7 @@ contract GasTankTest is Test {
     id.origin = address(MESSENGER);
 
     bytes memory payload = abi.encode(
-      RelayedMessageGasReceipt.selector,
+      IGasTank.RelayedMessageGasReceipt.selector,
       msgHash,
       rootMsgHash,
       address(this),
@@ -205,7 +200,7 @@ contract GasTankTest is Test {
     id.origin = address(MESSENGER);
 
     bytes memory payload = abi.encode(
-      RelayedMessageGasReceipt.selector,
+      IGasTank.RelayedMessageGasReceipt.selector,
       msgHash,
       rootMsgHash,
       address(this),
@@ -227,7 +222,7 @@ contract GasTankTest is Test {
     id.origin = address(MESSENGER);
 
     bytes memory payload = abi.encode(
-      RelayedMessageGasReceipt.selector,
+      IGasTank.RelayedMessageGasReceipt.selector,
       msgHash,
       rootMsgHash,
       address(this),
@@ -273,7 +268,7 @@ contract GasTankTest is Test {
     id.origin = address(MESSENGER);
 
     bytes memory payload = abi.encode(
-      RelayedMessageGasReceipt.selector,
+      IGasTank.RelayedMessageGasReceipt.selector,
       msgHash,
       rootMsgHash,
       address(this),
@@ -303,7 +298,7 @@ contract GasTankTest is Test {
     );
 
     vm.expectEmit(address(gasTank));
-    emit Claimed(
+    emit IGasTank.Claimed(
       msgHash,
       address(this),
       totalCost
