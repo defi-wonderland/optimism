@@ -316,7 +316,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
 
-        _storeMessageMetadata(0, address(0), bytes(abi.encode(uint8(0), bytes32(0))));
+        _storeMessageMetadata(0, address(0), "");
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
@@ -330,8 +330,13 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _source Chain ID of the source chain.
     /// @param _sender Address of the sender of the message.
     function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _originContext) internal {
-        // Decode the origin context
-        (uint8 encodingVersion, bytes32 messagePayloadHash) = _parseOriginContext(_originContext);
+        uint8 encodingVersion;
+        bytes32 messagePayloadHash;
+
+        if (_originContext.length != 0) {
+            // Decode the origin context
+            (encodingVersion, messagePayloadHash) = _parseOriginContext(_originContext);
+        }
 
         // Store the message metadata
         assembly {
@@ -382,20 +387,19 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (selector != SentMessage.selector) revert EventPayloadNotSentMessage();
 
         // Topics
-        (uint256 destination_, address target_, uint256 nonce_) =
-            abi.decode(_payload[32:128], (uint256, address, uint256));
+        (uint256 destination, address target, uint256 nonce) = abi.decode(_payload[32:128], (uint256, address, uint256));
 
         // Data
-        (address sender_, bytes memory message_, bytes memory originContext_) =
+        (address sender, bytes memory message, bytes memory originContext) =
             abi.decode(_payload[128:], (address, bytes, bytes));
 
         decodedPayload_ = DecodedPayload({
-            destination: destination_,
-            target: target_,
-            nonce: nonce_,
-            sender: sender_,
-            message: message_,
-            originContext: originContext_
+            destination: destination,
+            target: target,
+            nonce: nonce,
+            sender: sender,
+            message: message,
+            originContext: originContext
         });
     }
 }
