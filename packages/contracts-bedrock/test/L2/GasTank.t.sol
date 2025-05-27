@@ -16,6 +16,7 @@ import {
 } from "src/L2/GasTank.sol";
 
 // Interfaces
+import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
@@ -42,7 +43,7 @@ contract GasTankTest is Test {
     depositAmount = bound(depositAmount, maxDeposit + 1, type(uint256).max);
 
     vm.deal(address(this), depositAmount);
-    vm.expectRevert(GasTank.MaxDepositExceeded.selector);
+    vm.expectRevert(IGasTank.MaxDepositExceeded.selector);
     gasTank.deposit{value: depositAmount}(address(this));
   }
 
@@ -52,7 +53,7 @@ contract GasTankTest is Test {
 
     vm.deal(address(this), depositAmount);
     vm.expectEmit(address(gasTank));
-    emit GasTank.Deposit(address(this), depositAmount);
+    emit IGasTank.Deposit(address(this), depositAmount);
     gasTank.deposit{value: depositAmount}(address(this));
 
     assertEq(
@@ -65,7 +66,7 @@ contract GasTankTest is Test {
   function testIntiateWithdrawal_InsufficientBalance(uint256 withdrawalAmount) external {
     vm.assume(withdrawalAmount > 0);
 
-    vm.expectRevert(GasTank.InsufficientBalance.selector);
+    vm.expectRevert(IGasTank.InsufficientBalance.selector);
     gasTank.initiateWithdrawal(withdrawalAmount);
   }
 
@@ -77,7 +78,7 @@ contract GasTankTest is Test {
     gasTank.deposit{value: withdrawalAmount}(address(this));
 
     vm.expectEmit(address(gasTank));
-    emit GasTank.WithdrawalInitiated(address(this), withdrawalAmount);
+    emit IGasTank.WithdrawalInitiated(address(this), withdrawalAmount);
     gasTank.initiateWithdrawal(withdrawalAmount);
 
     (uint256 timestamp, uint256 amount) = gasTank.withdrawals(address(this));
@@ -100,7 +101,7 @@ contract GasTankTest is Test {
 
     gasTank.initiateWithdrawal(withdrawalAmount);
 
-    vm.expectRevert(GasTank.WithdrawPending.selector);
+    vm.expectRevert(IGasTank.WithdrawPending.selector);
     gasTank.finalizeWithdrawal(address(this));
   }
 
@@ -116,7 +117,7 @@ contract GasTankTest is Test {
     vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
     vm.expectEmit(address(gasTank));
-    emit GasTank.WithdrawalFinalized(address(this), to, withdrawalAmount);
+    emit IGasTank.WithdrawalFinalized(address(this), to, withdrawalAmount);
     gasTank.finalizeWithdrawal(to);
 
     assertEq(
@@ -138,7 +139,7 @@ contract GasTankTest is Test {
     Identifier memory id;
     id.origin = origin;
 
-    vm.expectRevert(GasTank.InvalidOrigin.selector);
+    vm.expectRevert(IGasTank.InvalidOrigin.selector);
     gasTank.claim(id, address(this), "payload");
   }
 
@@ -149,7 +150,7 @@ contract GasTankTest is Test {
     Identifier memory id;
     id.origin = address(MESSENGER);
 
-    vm.expectRevert(GasTank.InvalidPayload.selector);
+    vm.expectRevert(IGasTank.InvalidPayload.selector);
     gasTank.claim(id, address(this), payload);
   }
 
@@ -165,7 +166,7 @@ contract GasTankTest is Test {
       0 // relayerCost
     );
 
-    vm.expectRevert(GasTank.InvalidPayer.selector);
+    vm.expectRevert(IGasTank.InvalidPayer.selector);
     gasTank.claim(id, gasProvider, payload);
   }
 
@@ -192,7 +193,7 @@ contract GasTankTest is Test {
       .with_key(msgHash)
       .checked_write(true);
 
-    vm.expectRevert(GasTank.AlreadyClaimed.selector);
+    vm.expectRevert(IGasTank.AlreadyClaimed.selector);
     gasTank.claim(id, address(this), payload);
   }
 
@@ -217,7 +218,7 @@ contract GasTankTest is Test {
       .with_key(rootMsgHash)
       .checked_write(true);
 
-    vm.expectRevert(GasTank.InsufficientBalance.selector);
+    vm.expectRevert(IGasTank.InsufficientBalance.selector);
     gasTank.claim(id, address(this), payload);
   }
 
@@ -251,7 +252,7 @@ contract GasTankTest is Test {
 
     vm.assume(!sentMessageExists);
 
-    vm.expectRevert(GasTank.InvalidRootMessage.selector);
+    vm.expectRevert(IGasTank.InvalidRootMessage.selector);
     gasTank.claim(id, address(this), payload);
   }
 

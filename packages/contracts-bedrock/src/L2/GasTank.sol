@@ -3,41 +3,18 @@ pragma solidity 0.8.25;
 
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
-contract GasTank {
-    event Flagged(bytes32 rootMessageHash);
-    event Claimed(bytes32 msgHash, address relayer, uint256 amount);
-    event Deposit(address depositor, uint256 amount);
-    event RelayedMessageGasReceipt(
-        bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost
-    );
-    event WithdrawalInitiated(address indexed from, uint256 amount);
-    event WithdrawalFinalized(address indexed from, address indexed to, uint256 amount);
-
-    error MaxDepositExceeded();
-    error InvalidOrigin();
-    error InvalidPayload();
-    error InvalidRootMessage();
-    error InsufficientBalance();
-    error AlreadyClaimed();
-    error InvalidPayer();
-    error WithdrawPending();
-    error WithdrawDoesNotExist();
-
+contract GasTank is IGasTank {
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
-    uint256 public constant WITHDRAWAL_DELAY = 1 days;
+    uint256 public constant WITHDRAWAL_DELAY = 7 days;
     // TODO: Calculate claim overhead
     uint256 public constant CLAIM_OVERHEAD = 100_000;
 
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-
-    struct Withdrawal {
-        uint256 timestamp;
-        uint256 amount;
-    }
 
     mapping(address => uint256) public balanceOf;
     mapping(address gasProvider => Withdrawal) public withdrawals;
@@ -143,9 +120,4 @@ contract GasTank {
         // Decode Data
         relayCost = abi.decode(payload[128:], (uint256));
     }
-
-    // TODO: Out of scope for PoC
-    //    function flagAndDeposit(bytes32 rootMessageHash) external payable { }
-    // function withdraw(bytes32 rootMessageHash) external {}
-    // TODO: Add function to add authorized relayers only to withdraw from the gas tank (business logic)
 }
