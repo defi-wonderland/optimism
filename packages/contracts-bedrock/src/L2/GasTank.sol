@@ -71,9 +71,6 @@ contract GasTank {
     function finalizeWithdrawal(address to) external {
         Withdrawal memory withdrawal = withdrawals[msg.sender];
 
-        // Ensure the withdrawal exists
-        if (withdrawal.timestamp == 0) revert WithdrawDoesNotExist();
-
         // Ensure the withdraw is not pending
         if (block.timestamp < withdrawal.timestamp + WITHDRAWAL_DELAY) revert WithdrawPending();
 

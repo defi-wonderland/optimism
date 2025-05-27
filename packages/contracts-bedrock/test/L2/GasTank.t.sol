@@ -92,11 +92,6 @@ contract GasTankTest is Test {
     );
   }
 
-  function testFinalizeWithdrawal_WithoutInitializing() external {
-    vm.expectRevert(GasTank.WithdrawDoesNotExist.selector);
-    gasTank.finalizeWithdrawal(address(this));
-  }
-
   function testFinalizeWithdrawal_PendingWithdrawal(uint256 withdrawalAmount) external {
     uint256 maxDeposit = gasTank.MAX_DEPOSIT();
     withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
