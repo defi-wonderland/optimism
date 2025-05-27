@@ -36,10 +36,7 @@ contract GasTank is IGasTank {
         if (balanceOf[msg.sender] < amount) revert InsufficientBalance();
 
         // Record the pending withdrawal
-        withdrawals[msg.sender] = Withdrawal({
-            timestamp: block.timestamp,
-            amount: amount
-        });
+        withdrawals[msg.sender] = Withdrawal({ timestamp: block.timestamp, amount: amount });
 
         // Emit an event for the withdrawal initiation
         emit WithdrawalInitiated(msg.sender, amount);
@@ -77,8 +74,7 @@ contract GasTank is IGasTank {
 
         // Decode the receipt
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
-        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost) =
-            decodeGasReceiptPayload(payload);
+        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost) = decodeGasReceiptPayload(payload);
 
         // Ensure the message is flagged for relaying
         if (!flaggedMessages[gasProvider][rootMsgHash]) revert InvalidPayer();
