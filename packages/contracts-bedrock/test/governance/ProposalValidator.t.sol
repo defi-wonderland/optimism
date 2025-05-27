@@ -22,7 +22,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 /// @notice Setup contract for ProposalValidator tests
 contract ProposalValidator_Init is CommonTest {
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
-    uint256 public constant VOTING_CYCLE_BLOCK = 100;
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
@@ -125,7 +124,6 @@ contract ProposalValidator_Init is CommonTest {
                 (
                     owner,
                     MINIMUM_VOTING_POWER,
-                    VOTING_CYCLE_BLOCK,
                     DISTRIBUTION_THRESHOLD,
                     proposalTypes,
                     requiredApprovals,

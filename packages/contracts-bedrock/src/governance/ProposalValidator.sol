@@ -127,10 +127,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param newMinimumVotingPower The new minimum voting power.
     event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
 
-    /// @notice Emitted when the voting cycle block is set.
-    /// @param newVotingCycleBlock The new voting cycle block.
-    event VotingCycleBlockSet(uint256 newVotingCycleBlock);
-
     /// @notice Emitted when the distribution threshold is set.
     /// @param newDistributionThreshold The new distribution threshold.
     event DistributionThresholdSet(uint256 newDistributionThreshold);
@@ -152,9 +148,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
-
-    /// @notice The block number of the current voting cycle.
-    uint256 public votingCycleBlock;
 
     /// @notice The max amount of tokens that can be distributed in a proposal.
     uint256 public distributionThreshold;
@@ -194,7 +187,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Initializes the ProposalValidator contract.
     /// @param _owner The address that will own the contract.
     /// @param _minimumVotingPower The minimum voting power required for a delegate to approve proposals.
-    /// @param _votingCycleBlock The block number of the current voting cycle.
     /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
     /// @param _proposalTypes Array of proposal types to set approval thresholds for.
     /// @param _requiredApprovals Array of approval thresholds corresponding to the proposal types.
@@ -202,7 +194,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     function initialize(
         address _owner,
         uint256 _minimumVotingPower,
-        uint256 _votingCycleBlock,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
         uint256[] memory _requiredApprovals,
@@ -212,7 +203,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         reinitializer(initVersion())
     {
         _setMinimumVotingPower(_minimumVotingPower);
-        _setVotingCycleBlock(_votingCycleBlock);
         _setDistributionThreshold(_distributionThreshold);
 
         for (uint256 i = 0; i < _proposalTypes.length; i++) {
@@ -342,12 +332,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         _setMinimumVotingPower(_minimumVotingPower);
     }
 
-    /// @notice Sets the block number of the current voting cycle.
-    /// @param _votingCycleBlock The new voting cycle block number.
-    function setVotingCycleBlock(uint256 _votingCycleBlock) external onlyOwner {
-        _setVotingCycleBlock(_votingCycleBlock);
-    }
-
     /// @notice Sets the max amount of tokens that can be distributed in a proposal.
     /// @param _distributionThreshold The new distribution threshold.
     function setDistributionThreshold(uint256 _distributionThreshold) external onlyOwner {
@@ -432,13 +416,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     function _setMinimumVotingPower(uint256 _minimumVotingPower) private {
         minimumVotingPower = _minimumVotingPower;
         emit MinimumVotingPowerSet(_minimumVotingPower);
-    }
-
-    /// @notice Private function to set the voting cycle block and emit event.
-    /// @param _votingCycleBlock The new voting cycle block number.
-    function _setVotingCycleBlock(uint256 _votingCycleBlock) private {
-        votingCycleBlock = _votingCycleBlock;
-        emit VotingCycleBlockSet(_votingCycleBlock);
     }
 
     /// @notice Private function to set the distribution threshold and emit event.
