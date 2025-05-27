@@ -25,13 +25,7 @@ interface IProposalValidator is ISemver {
         mapping(address => bool) delegateApprovals;
         uint256 remainingApprovalsRequired;
     }
-
-    struct ImmutableProposalTypeData {
-        address[] targets;
-        uint256[] values;
-        string[] signatures;
-    }
-
+    
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
         MaintenanceUpgrade,
@@ -121,8 +115,7 @@ interface IProposalValidator is ISemver {
         uint256 _minimumVotingPower,
         uint256 _distributionThreshold,
         IProposalValidator.ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals,
-        IProposalValidator.ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+        uint256[] memory _requiredApprovals
     ) external;
 
     function __constructor__(

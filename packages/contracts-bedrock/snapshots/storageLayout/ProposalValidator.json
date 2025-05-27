@@ -57,16 +57,9 @@
   },
   {
     "bytes": "32",
-    "label": "_proposalTypeData",
-    "offset": 0,
-    "slot": "104",
-    "type": "mapping(enum ProposalValidator.ProposalType => struct ProposalValidator.ImmutableProposalTypeData)"
-  },
-  {
-    "bytes": "32",
     "label": "_proposals",
     "offset": 0,
-    "slot": "105",
+    "slot": "104",
     "type": "mapping(bytes32 => struct ProposalValidator.ProposalData)"
   }
 ]
