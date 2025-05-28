@@ -26,13 +26,7 @@ interface IProposalValidator is ISemver {
         mapping(address => bool) delegateApprovals;
         uint256 remainingApprovalsRequired;
     }
-
-    struct ImmutableProposalTypeData {
-        address[] targets;
-        uint256[] values;
-        string[] signatures;
-    }
-
+    
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
         MaintenanceUpgrade,
@@ -122,8 +116,7 @@ interface IProposalValidator is ISemver {
         uint256 _votingCycleDistributionLimit,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals,
-        ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+        uint256[] memory _requiredApprovals
     ) external;
     
     function renounceOwnership() external;
@@ -133,8 +126,6 @@ interface IProposalValidator is ISemver {
     function transferOwnership(address newOwner) external;
 
     function minimumVotingPower() external view returns (uint256);
-
-    function votingCycleBlock() external view returns (uint256);
 
     function distributionThreshold() external view returns (uint256);
 

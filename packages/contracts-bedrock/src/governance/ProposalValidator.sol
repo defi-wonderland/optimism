@@ -64,16 +64,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 remainingApprovalsRequired;
     }
 
-    /// @notice Data structure for storing immutable proposal type data.
-    /// @param targets Target addresses for proposal calls.
-    /// @param values ETH values for proposal calls.
-    /// @param signatures Function signatures for proposal calls.
-    struct ImmutableProposalTypeData {
-        address[] targets;
-        uint256[] values;
-        string[] signatures;
-    }
-
     /// @notice Data structure for storing voting cycle data.
     /// @param startingBlock The block number of the starting block of the voting cycle.
     /// @param duration The duration of the voting cycle.
@@ -171,9 +161,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
 
-    /// @notice The block number of the current voting cycle.
-    uint256 public votingCycleBlock;
-
     /// @notice The max amount of tokens that can be distributed in a proposal.
     uint256 public distributionThreshold;
 
@@ -182,9 +169,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice The number of approvals required for each proposal type.
     mapping(ProposalType => uint256) public proposalRequiredApprovals;
-
-    /// @notice The immutable data for each proposal type.
-    mapping(ProposalType => ImmutableProposalTypeData) private _proposalTypeData;
 
     /// @notice Mapping of proposal hash to their corresponding proposal data.
     mapping(bytes32 => ProposalData) private _proposals;
@@ -222,7 +206,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
     /// @param _proposalTypes Array of proposal types to set approval thresholds for.
     /// @param _requiredApprovals Array of approval thresholds corresponding to the proposal types.
-    /// @param _immutableProposalTypeDatas Array of immutable proposal type data corresponding to the proposal types.
     function initialize(
         address _owner,
         uint256 _minimumVotingPower,
@@ -232,8 +215,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 _votingCycleDistributionLimit,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals,
-        ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+        uint256[] memory _requiredApprovals
     )
         external
         reinitializer(initVersion())

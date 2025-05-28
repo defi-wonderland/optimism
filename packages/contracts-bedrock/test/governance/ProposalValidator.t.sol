@@ -109,14 +109,10 @@ contract ProposalValidator_Init is CommonTest {
         validator.approveProposal(_proposalHash);
     }
 
-    function _getProposalTypesRequiredApprovalsAndImmutableData()
+    function _getProposalTypesRequiredApprovals()
         internal
         pure
-        returns (
-            ProposalValidator.ProposalType[] memory,
-            uint256[] memory,
-            ProposalValidator.ImmutableProposalTypeData[] memory
-        )
+        returns (ProposalValidator.ProposalType[] memory, uint256[] memory)
     {
         ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](5);
         proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -132,15 +128,7 @@ contract ProposalValidator_Init is CommonTest {
         requiredApprovals[3] = PROPOSAL_REQUIRED_APPROVALS;
         requiredApprovals[4] = PROPOSAL_REQUIRED_APPROVALS;
 
-        ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData =
-            new ProposalValidator.ImmutableProposalTypeData[](5);
-        immutableProposalTypeData[0] = ProposalValidator.ImmutableProposalTypeData({
-            targets: new address[](1),
-            values: new uint256[](1),
-            signatures: new string[](1)
-        });
-
-        return (proposalTypes, requiredApprovals, immutableProposalTypeData);
+        return (proposalTypes, requiredApprovals);
     }
 
     /// @dev Sets up the test suite.
@@ -155,11 +143,8 @@ contract ProposalValidator_Init is CommonTest {
             "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
-        (
-            ProposalValidator.ProposalType[] memory proposalTypes,
-            uint256[] memory requiredApprovals,
-            ProposalValidator.ImmutableProposalTypeData[] memory immutableProposalTypeData
-        ) = _getProposalTypesRequiredApprovalsAndImmutableData();
+        (ProposalValidator.ProposalType[] memory proposalTypes, uint256[] memory requiredApprovals) =
+            _getProposalTypesRequiredApprovals();
 
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
 
@@ -179,8 +164,7 @@ contract ProposalValidator_Init is CommonTest {
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
                     proposalTypes,
-                    requiredApprovals,
-                    immutableProposalTypeData
+                    requiredApprovals
                 )
             )
         );
