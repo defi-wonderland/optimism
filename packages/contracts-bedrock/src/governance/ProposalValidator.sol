@@ -226,7 +226,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         for (uint256 i = 0; i < _proposalTypes.length; i++) {
             _setProposalTypeApprovalThreshold(_proposalTypes[i], _requiredApprovals[i]);
-            _proposalTypeData[_proposalTypes[i]] = _immutableProposalTypeDatas[i];
         }
 
         __Ownable_init();

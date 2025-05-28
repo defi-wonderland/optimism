@@ -73,8 +73,6 @@ interface IProposalValidator is ISemver {
     
     event Initialized(uint8 version);
 
-    event Initialized(uint8 version);
-
     function submitProposal(
         address[] memory _targets,
         uint256[] memory _values,
