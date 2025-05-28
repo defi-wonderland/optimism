@@ -4,16 +4,13 @@ pragma solidity 0.8.25;
 // Testing utilities
 import { Test, stdStorage, StdStorage } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
-import {console} from "forge-std/console.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
 // Target contract
-import {
-    GasTank
-} from "src/L2/GasTank.sol";
+import { GasTank } from "src/L2/GasTank.sol";
 
 // Interfaces
 import { IGasTank } from "interfaces/L2/IGasTank.sol";
@@ -23,302 +20,232 @@ import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMes
 import { GasTank } from "src/L2/GasTank.sol";
 
 contract GasTankTest is Test {
-  using stdStorage for StdStorage;
+    using stdStorage for StdStorage;
 
-  GasTank public gasTank;
-  IL2ToL2CrossDomainMessenger public constant MESSENGER =
-    IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    GasTank public gasTank;
+    IL2ToL2CrossDomainMessenger public constant MESSENGER =
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-  function setUp() public {
-    gasTank = new GasTank();
-  }
+    function setUp() public {
+        gasTank = new GasTank();
+    }
 
-  function testDeposit_Exceeded(uint256 depositAmount) external {
-    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    depositAmount = bound(depositAmount, maxDeposit + 1, type(uint256).max);
+    function testDeposit_Exceeded(uint256 depositAmount) external {
+        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+        depositAmount = bound(depositAmount, maxDeposit + 1, type(uint256).max);
 
-    vm.deal(address(this), depositAmount);
-    vm.expectRevert(IGasTank.MaxDepositExceeded.selector);
-    gasTank.deposit{value: depositAmount}(address(this));
-  }
+        vm.deal(address(this), depositAmount);
+        vm.expectRevert(IGasTank.MaxDepositExceeded.selector);
+        gasTank.deposit{ value: depositAmount }(address(this));
+    }
 
-  function testDeposit(uint256 depositAmount) external {
-    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    depositAmount = bound(depositAmount, 1, maxDeposit);
+    function testDeposit(uint256 depositAmount) external {
+        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+        depositAmount = bound(depositAmount, 1, maxDeposit);
 
-    vm.deal(address(this), depositAmount);
-    vm.expectEmit(address(gasTank));
-    emit IGasTank.Deposit(address(this), depositAmount);
-    gasTank.deposit{value: depositAmount}(address(this));
+        vm.deal(address(this), depositAmount);
+        vm.expectEmit(address(gasTank));
+        emit IGasTank.Deposit(address(this), depositAmount);
+        gasTank.deposit{ value: depositAmount }(address(this));
 
-    assertEq(
-      gasTank.balanceOf(address(this)),
-      depositAmount,
-      "GasTank balance should match the deposited amount"
-    );
-  }
+        assertEq(gasTank.balanceOf(address(this)), depositAmount, "GasTank balance should match the deposited amount");
+    }
 
-  function testIntiateWithdrawal_InsufficientBalance(uint256 withdrawalAmount) external {
-    vm.assume(withdrawalAmount > 0);
+    function testIntiateWithdrawal_InsufficientBalance(uint256 withdrawalAmount) external {
+        vm.assume(withdrawalAmount > 0);
 
-    vm.expectRevert(IGasTank.InsufficientBalance.selector);
-    gasTank.initiateWithdrawal(withdrawalAmount);
-  }
+        vm.expectRevert(IGasTank.InsufficientBalance.selector);
+        gasTank.initiateWithdrawal(withdrawalAmount);
+    }
 
-  function testIntiateWithdrawal(uint256 withdrawalAmount) external {
-    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
+    function testIntiateWithdrawal(uint256 withdrawalAmount) external {
+        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+        withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
 
-    vm.deal(address(this), withdrawalAmount);
-    gasTank.deposit{value: withdrawalAmount}(address(this));
+        vm.deal(address(this), withdrawalAmount);
+        gasTank.deposit{ value: withdrawalAmount }(address(this));
 
-    vm.expectEmit(address(gasTank));
-    emit IGasTank.WithdrawalInitiated(address(this), withdrawalAmount);
-    gasTank.initiateWithdrawal(withdrawalAmount);
+        vm.expectEmit(address(gasTank));
+        emit IGasTank.WithdrawalInitiated(address(this), withdrawalAmount);
+        gasTank.initiateWithdrawal(withdrawalAmount);
 
-    (uint256 timestamp, uint256 amount) = gasTank.withdrawals(address(this));
-    assertEq(
-      amount,
-      withdrawalAmount,
-      "GasTank should have recorded the pending withdrawal"
-    );
-    assertTrue(
-      timestamp == block.timestamp,
-      "GasTank should have recorded the withdrawal timestamp"
-    );
-  }
+        (uint256 timestamp, uint256 amount) = gasTank.withdrawals(address(this));
+        assertEq(amount, withdrawalAmount, "GasTank should have recorded the pending withdrawal");
+        assertTrue(timestamp == block.timestamp, "GasTank should have recorded the withdrawal timestamp");
+    }
 
-  function testFinalizeWithdrawal_PendingWithdrawal(uint256 withdrawalAmount) external {
-    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
-    vm.deal(address(this), withdrawalAmount);
-    gasTank.deposit{value: withdrawalAmount}(address(this));
+    function testFinalizeWithdrawal_PendingWithdrawal(uint256 withdrawalAmount) external {
+        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+        withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
+        vm.deal(address(this), withdrawalAmount);
+        gasTank.deposit{ value: withdrawalAmount }(address(this));
 
-    gasTank.initiateWithdrawal(withdrawalAmount);
+        gasTank.initiateWithdrawal(withdrawalAmount);
 
-    vm.expectRevert(IGasTank.WithdrawPending.selector);
-    gasTank.finalizeWithdrawal(address(this));
-  }
+        vm.expectRevert(IGasTank.WithdrawPending.selector);
+        gasTank.finalizeWithdrawal(address(this));
+    }
 
-  function testFinalizeWithdrawal(uint256 withdrawalAmount, address to) external {
-    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
+    function testFinalizeWithdrawal(uint256 withdrawalAmount, address to) external {
+        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+        withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
 
-    vm.deal(address(this), withdrawalAmount);
-    gasTank.deposit{value: withdrawalAmount}(address(this));
+        vm.deal(address(this), withdrawalAmount);
+        gasTank.deposit{ value: withdrawalAmount }(address(this));
 
-    gasTank.initiateWithdrawal(withdrawalAmount);
+        gasTank.initiateWithdrawal(withdrawalAmount);
 
-    vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
+        vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
-    vm.expectEmit(address(gasTank));
-    emit IGasTank.WithdrawalFinalized(address(this), to, withdrawalAmount);
-    gasTank.finalizeWithdrawal(to);
+        vm.expectEmit(address(gasTank));
+        emit IGasTank.WithdrawalFinalized(address(this), to, withdrawalAmount);
+        gasTank.finalizeWithdrawal(to);
 
-    assertEq(
-      gasTank.balanceOf(address(this)),
-      0,
-      "GasTank balance should be 0 after finalizing the withdrawal"
-    );
-    assertEq(
-      to.balance,
-      withdrawalAmount,
-      "Address should have received the withdrawn amount"
-    );
-  }
+        assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0 after finalizing the withdrawal");
+        assertEq(to.balance, withdrawalAmount, "Address should have received the withdrawn amount");
+    }
 
+    function testClaim_InvalidOrigin(address origin) external {
+        vm.assume(origin != address(MESSENGER));
 
-  function testClaim_InvalidOrigin(address origin) external {
-    vm.assume(origin != address(MESSENGER));
+        Identifier memory id;
+        id.origin = origin;
 
-    Identifier memory id;
-    id.origin = origin;
+        vm.expectRevert(IGasTank.InvalidOrigin.selector);
+        gasTank.claim(id, address(this), "payload");
+    }
 
-    vm.expectRevert(IGasTank.InvalidOrigin.selector);
-    gasTank.claim(id, address(this), "payload");
-  }
+    function testClaim_InvalidPayload(bytes calldata payload) external {
+        vm.assume(payload.length >= 32);
+        vm.assume(bytes32(payload[:32]) != IGasTank.RelayedMessageGasReceipt.selector);
 
-  function testClaim_InvalidPayload(bytes calldata payload) external {
-    vm.assume(payload.length >= 32);
-    vm.assume(bytes32(payload[:32]) != IGasTank.RelayedMessageGasReceipt.selector);
+        Identifier memory id;
+        id.origin = address(MESSENGER);
 
-    Identifier memory id;
-    id.origin = address(MESSENGER);
+        vm.expectRevert(IGasTank.InvalidPayload.selector);
+        gasTank.claim(id, address(this), payload);
+    }
 
-    vm.expectRevert(IGasTank.InvalidPayload.selector);
-    gasTank.claim(id, address(this), payload);
-  }
+    function testClaim_InvalidPayer(address gasProvider) external {
+        Identifier memory id;
+        id.origin = address(MESSENGER);
 
-  function testClaim_InvalidPayer(address gasProvider) external {
-    Identifier memory id;
-    id.origin = address(MESSENGER);
+        bytes memory payload = abi.encode(
+            IGasTank.RelayedMessageGasReceipt.selector,
+            bytes32(0), // msgHash
+            bytes32(0), // rootMsgHash
+            address(this), // relayer
+            0 // relayerCost
+        );
 
-    bytes memory payload = abi.encode(
-      IGasTank.RelayedMessageGasReceipt.selector,
-      bytes32(0), // msgHash
-      bytes32(0), // rootMsgHash
-      address(this), // relayer
-      0 // relayerCost
-    );
+        vm.expectRevert(IGasTank.InvalidPayer.selector);
+        gasTank.claim(id, gasProvider, payload);
+    }
 
-    vm.expectRevert(IGasTank.InvalidPayer.selector);
-    gasTank.claim(id, gasProvider, payload);
-  }
+    function testClaim_AlreadyClaimed(bytes32 msgHash, bytes32 rootMsgHash) external {
+        Identifier memory id;
+        id.origin = address(MESSENGER);
 
-  function testClaim_AlreadyClaimed(bytes32 msgHash, bytes32 rootMsgHash) external {
-    Identifier memory id;
-    id.origin = address(MESSENGER);
+        bytes memory payload =
+            abi.encode(IGasTank.RelayedMessageGasReceipt.selector, msgHash, rootMsgHash, address(this), 0);
 
-    bytes memory payload = abi.encode(
-      IGasTank.RelayedMessageGasReceipt.selector,
-      msgHash,
-      rootMsgHash,
-      address(this),
-      0
-    );
+        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+            rootMsgHash
+        ).checked_write(true);
 
-    stdstore.target(address(gasTank))
-      .sig("flaggedMessages(address,bytes32)")
-      .with_key(address(this))
-      .with_key(rootMsgHash)
-      .checked_write(true);
+        stdstore.target(address(gasTank)).sig("claimed(bytes32)").with_key(msgHash).checked_write(true);
 
-    stdstore.target(address(gasTank))
-      .sig("claimed(bytes32)")
-      .with_key(msgHash)
-      .checked_write(true);
+        vm.expectRevert(IGasTank.AlreadyClaimed.selector);
+        gasTank.claim(id, address(this), payload);
+    }
 
-    vm.expectRevert(IGasTank.AlreadyClaimed.selector);
-    gasTank.claim(id, address(this), payload);
-  }
+    function testClaim_InsufficientBalance(uint256 basefee, bytes32 msgHash, bytes32 rootMsgHash) external {
+        basefee = bound(basefee, 1, type(uint256).max / 100_000);
+        vm.fee(basefee);
 
-  function testClaim_InsufficientBalance(uint256 basefee, bytes32 msgHash, bytes32 rootMsgHash) external {
-    basefee = bound(basefee, 1, type(uint256).max/100_000);
-    vm.fee(basefee);
+        Identifier memory id;
+        id.origin = address(MESSENGER);
 
-    Identifier memory id;
-    id.origin = address(MESSENGER);
+        bytes memory payload =
+            abi.encode(IGasTank.RelayedMessageGasReceipt.selector, msgHash, rootMsgHash, address(this), 0);
 
-    bytes memory payload = abi.encode(
-      IGasTank.RelayedMessageGasReceipt.selector,
-      msgHash,
-      rootMsgHash,
-      address(this),
-      0
-    );
+        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+            rootMsgHash
+        ).checked_write(true);
 
-    stdstore.target(address(gasTank))
-      .sig("flaggedMessages(address,bytes32)")
-      .with_key(address(this))
-      .with_key(rootMsgHash)
-      .checked_write(true);
+        vm.expectRevert(IGasTank.InsufficientBalance.selector);
+        gasTank.claim(id, address(this), payload);
+    }
 
-    vm.expectRevert(IGasTank.InsufficientBalance.selector);
-    gasTank.claim(id, address(this), payload);
-  }
+    function testClaim_InvalidRootMessage(bytes32 msgHash, bytes32 rootMsgHash, bool sentMessageExists) external {
+        Identifier memory id;
+        id.origin = address(MESSENGER);
 
-  function testClaim_InvalidRootMessage(bytes32 msgHash, bytes32 rootMsgHash, bool sentMessageExists) external {
-    Identifier memory id;
-    id.origin = address(MESSENGER);
+        bytes memory payload =
+            abi.encode(IGasTank.RelayedMessageGasReceipt.selector, msgHash, rootMsgHash, address(this), 0);
 
-    bytes memory payload = abi.encode(
-      IGasTank.RelayedMessageGasReceipt.selector,
-      msgHash,
-      rootMsgHash,
-      address(this),
-      0
-    );
+        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+            rootMsgHash
+        ).checked_write(true);
 
-    stdstore.target(address(gasTank))
-      .sig("flaggedMessages(address,bytes32)")
-      .with_key(address(this))
-      .with_key(rootMsgHash)
-      .checked_write(true);
+        vm.expectCall(address(MESSENGER), abi.encodeWithSignature("sentMessages(bytes32)", rootMsgHash));
+        vm.mockCall(
+            address(MESSENGER),
+            abi.encodeWithSignature("sentMessages(bytes32)", rootMsgHash),
+            abi.encode(sentMessageExists)
+        );
 
-    vm.expectCall(
-      address(MESSENGER),
-      abi.encodeWithSignature("sentMessages(bytes32)", rootMsgHash)
-    );
-    vm.mockCall(
-      address(MESSENGER),
-      abi.encodeWithSignature("sentMessages(bytes32)", rootMsgHash),
-      abi.encode(sentMessageExists)
-    );
+        vm.assume(!sentMessageExists);
 
-    vm.assume(!sentMessageExists);
+        vm.expectRevert(IGasTank.InvalidRootMessage.selector);
+        gasTank.claim(id, address(this), payload);
+    }
 
-    vm.expectRevert(IGasTank.InvalidRootMessage.selector);
-    gasTank.claim(id, address(this), payload);
-  }
+    function testClaim(uint256 baseFee, uint256 relayCost, bytes32 msgHash, bytes32 rootMsgHash) external {
+        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
+        uint256 maxBaseFee = (maxDeposit / 100_000) - 1;
+        baseFee = bound(baseFee, 1, maxBaseFee);
+        uint256 claimCost = 100_000 * baseFee;
+        relayCost = bound(relayCost, 1, (maxDeposit - claimCost));
 
-  function testClaim(uint256 baseFee, uint256 relayCost, bytes32 msgHash, bytes32 rootMsgHash) external {
-    uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-    uint256 maxBaseFee = (maxDeposit / 100_000) - 1;
-    baseFee = bound(baseFee, 1, maxBaseFee);
-    uint256 claimCost = 100_000 * baseFee;
-    relayCost = bound(relayCost, 1, (maxDeposit - claimCost));
+        vm.fee(baseFee);
 
-    vm.fee(baseFee);
+        uint256 totalCost = claimCost + relayCost;
+        vm.deal(address(this), totalCost);
+        gasTank.deposit{ value: totalCost }(address(this));
 
-    uint256 totalCost = claimCost + relayCost;
-    vm.deal(address(this), totalCost);
-    gasTank.deposit{value: totalCost}(address(this));
+        Identifier memory id;
+        id.origin = address(MESSENGER);
 
-    Identifier memory id;
-    id.origin = address(MESSENGER);
+        bytes memory payload =
+            abi.encode(IGasTank.RelayedMessageGasReceipt.selector, msgHash, rootMsgHash, address(this), relayCost);
 
-    bytes memory payload = abi.encode(
-      IGasTank.RelayedMessageGasReceipt.selector,
-      msgHash,
-      rootMsgHash,
-      address(this),
-      relayCost
-    );
+        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+            rootMsgHash
+        ).checked_write(true);
 
-    stdstore.target(address(gasTank))
-      .sig("flaggedMessages(address,bytes32)")
-      .with_key(address(this))
-      .with_key(rootMsgHash)
-      .checked_write(true);
+        vm.mockCall(address(MESSENGER), abi.encodeWithSignature("sentMessages(bytes32)", rootMsgHash), abi.encode(true));
 
-    vm.mockCall(
-      address(MESSENGER),
-      abi.encodeWithSignature("sentMessages(bytes32)", rootMsgHash),
-      abi.encode(true)
-    );
+        vm.expectCall(
+            address(Predeploys.CROSS_L2_INBOX),
+            abi.encodeWithSignature(
+                "validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(payload)
+            )
+        );
+        vm.mockCall(
+            address(Predeploys.CROSS_L2_INBOX),
+            abi.encodeWithSignature(
+                "validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(payload)
+            ),
+            abi.encode(true)
+        );
 
-    vm.expectCall(
-      address(Predeploys.CROSS_L2_INBOX),
-      abi.encodeWithSignature("validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(payload))
-    );
-    vm.mockCall(
-      address(Predeploys.CROSS_L2_INBOX),
-      abi.encodeWithSignature("validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(payload)),
-      abi.encode(true)
-    );
+        vm.expectEmit(address(gasTank));
+        emit IGasTank.Claimed(msgHash, address(this), totalCost);
+        gasTank.claim(id, address(this), payload);
 
-    vm.expectEmit(address(gasTank));
-    emit IGasTank.Claimed(
-      msgHash,
-      address(this),
-      totalCost
-    );
-    gasTank.claim(id, address(this), payload);
-
-    assertEq(
-      gasTank.balanceOf(address(this)),
-      0,
-      "GasTank balance should be 0"
-    );
-    assertEq(
-      gasTank.claimed(msgHash),
-      true,
-      "GasTank should not have claimed the message"
-    );
-    assertEq(
-      address(this).balance,
-      totalCost,
-      "GasTank should not have claimed the root message"
-    );
-  }
+        assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0");
+        assertEq(gasTank.claimed(msgHash), true, "GasTank should not have claimed the message");
+        assertEq(address(this).balance, totalCost, "GasTank should not have claimed the root message");
+    }
 }
