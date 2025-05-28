@@ -28,13 +28,7 @@ interface IProposalValidator is ISemver {
         mapping(address => bool) delegateApprovals;
         uint256 remainingApprovalsRequired;
     }
-
-    struct ImmutableProposalTypeData {
-        address[] targets;
-        uint256[] values;
-        string[] signatures;
-    }
-
+    
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
         MaintenanceUpgrade,
@@ -130,7 +124,6 @@ interface IProposalValidator is ISemver {
         uint256 _duration,
         uint256 _votingCycleDistributionLimit
     ) external;
-
     
     function initialize(
         address _owner,
@@ -141,8 +134,7 @@ interface IProposalValidator is ISemver {
         uint256 _votingCycleDistributionLimit,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals,
-        ImmutableProposalTypeData[] memory _immutableProposalTypeDatas
+        uint256[] memory _requiredApprovals
     ) external;
 
     function renounceOwnership() external;
@@ -152,8 +144,6 @@ interface IProposalValidator is ISemver {
     function transferOwnership(address newOwner) external;
 
     function minimumVotingPower() external view returns (uint256);
-
-    function votingCycleBlock() external view returns (uint256);
 
     function distributionThreshold() external view returns (uint256);
 
@@ -168,14 +158,14 @@ interface IProposalValidator is ISemver {
     function initVersion() external view returns (uint8);
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
-
+    
     function proposalRequiredApprovals(ProposalType) external view returns (uint256);
-
+    
     function votingCycles(uint256) external view returns (
-        uint256 startingBlock,
-        uint256 duration,
+        uint256 startingBlock, 
+        uint256 duration, 
         uint256 votingCycleDistributionLimit
     );
-
+    
     function __constructor__(bytes32 _attestationSchemaUid, address _approvalVotingModule, IOptimismGovernor _governor, IGovernanceToken _votingToken) external;
 }

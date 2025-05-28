@@ -181,28 +181,6 @@
         "internalType": "uint256[]",
         "name": "_requiredApprovals",
         "type": "uint256[]"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address[]",
-            "name": "targets",
-            "type": "address[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "values",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "string[]",
-            "name": "signatures",
-            "type": "string[]"
-          }
-        ],
-        "internalType": "struct ProposalValidator.ImmutableProposalTypeData[]",
-        "name": "_immutableProposalTypeDatas",
-        "type": "tuple[]"
       }
     ],
     "name": "initialize",
@@ -480,19 +458,6 @@
       }
     ],
     "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "votingCycleBlock",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
