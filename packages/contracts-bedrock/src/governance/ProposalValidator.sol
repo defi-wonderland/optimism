@@ -48,10 +48,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Data structure for storing proposal information.
+    /// @notice Struct for storing proposal information.
     /// @param proposer The address that submitted the proposal.
     /// @param proposalType Type of the proposal from the ProposalType enum.
-    /// @param proposalTypeConfigurator Configuration value specific to the proposal type.
+    /// @param proposalTypeConfigurator The voting module the proposal must use.
     /// @param inVoting Whether the proposal has been moved to the voting phase.
     /// @param delegateApprovals Mapping of delegate addresses to their approval status.
     /// @param remainingApprovalsRequired Number of approvals still needed before voting.
@@ -64,15 +64,16 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 remainingApprovalsRequired;
     }
 
-    /// @notice Data structure for storing proposal type configuration.
-    /// @param requiredApprovals Number of delegate approvals required for this proposal type.
-    /// @param proposalTypeConfigurator Configuration value specific to the proposal type.
+    /// @notice Struct for storing explicit data for each proposal type.
+    /// @param requiredApprovals The number of approvals each proposal 
+    /// type requires in order to be able to move for voting.
+    /// @param proposalTypeConfigurator The voting module each proposal type must use.
     struct ProposalTypeData {
         uint256 requiredApprovals;
         uint8 proposalTypeConfigurator;
     }
 
-    /// @notice Data structure for storing voting cycle data.
+    /// @notice Struct for storing voting cycle data.
     /// @param startingBlock The block number of the starting block of the voting cycle.
     /// @param duration The duration of the voting cycle.
     /// @param votingCycleDistributionLimit The max amount of tokens that can be distributed in a proposal.
