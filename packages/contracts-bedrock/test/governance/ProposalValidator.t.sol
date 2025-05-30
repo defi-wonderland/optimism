@@ -86,7 +86,7 @@ contract ProposalValidator_Init is CommonTest {
         uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit
     );
     event DistributionThresholdSet(uint256 newDistributionThreshold);
-    event ProposalTypeApprovalThresholdSet(ProposalValidator.ProposalType proposalType, uint256 newApprovalThreshold);
+    event ProposalTypeDataSet(ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator);
 
     /// @notice Helper function to setup a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
@@ -589,9 +589,9 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
             proposalTypeConfigurator: newConfigurator
         });
 
-        // Expect the ProposalTypeApprovalThresholdSet event to be emitted
+        // Expect the ProposalTypeDataSet event to be emitted
         vm.expectEmit(address(validator));
-        emit ProposalTypeApprovalThresholdSet(proposalType, newThreshold);
+        emit ProposalTypeDataSet(proposalType, newThreshold, newConfigurator);
 
         vm.prank(owner);
         validator.setProposalTypeData(proposalType, newData);

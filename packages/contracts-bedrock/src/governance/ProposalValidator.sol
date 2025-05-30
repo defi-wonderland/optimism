@@ -155,10 +155,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param newDistributionThreshold The new distribution threshold.
     event DistributionThresholdSet(uint256 newDistributionThreshold);
 
-    /// @notice Emitted when the number of approvals required for a proposal type is set.
+    /// @notice Emitted when the proposal type data is set.
     /// @param proposalType The type of proposal.
-    /// @param newApprovalThreshold The new approval threshold.
-    event ProposalTypeApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
+    /// @param requiredApprovals The required number of approvals.
+    /// @param proposalTypeConfigurator The proposal type configurator.
+    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator);
 
     /// @notice The schema UID for attestations in the Ethereum Attestation Service.
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
@@ -513,6 +514,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalTypeData The data for the proposal type.
     function _setProposalTypeData(ProposalType _proposalType, ProposalTypeData memory _proposalTypeData) private {
         proposalTypesData[_proposalType] = _proposalTypeData;
-        emit ProposalTypeApprovalThresholdSet(_proposalType, _proposalTypeData.requiredApprovals);
+        emit ProposalTypeDataSet(_proposalType, _proposalTypeData.requiredApprovals, _proposalTypeData.proposalTypeConfigurator);
     }
 }
