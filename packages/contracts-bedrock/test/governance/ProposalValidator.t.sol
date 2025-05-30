@@ -146,18 +146,8 @@ contract ProposalValidator_Init is CommonTest {
         return (proposalTypes, proposalTypesData);
     }
 
-    /// @dev Sets up the test suite.
-    function setUp() public virtual override {
-        super.setUp();
-        owner = governanceToken.owner();
-        rando = makeAddr("rando");
-        governor = IOptimismGovernor(makeAddr("governor"));
-
-        vm.prank(owner);
-        ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
-        );
-
+    /// @notice Initializes the validator
+    function _initializeValidator() internal virtual {
         (
             ProposalValidator.ProposalType[] memory proposalTypes,
             ProposalValidator.ProposalTypeData[] memory proposalTypesData
@@ -185,6 +175,21 @@ contract ProposalValidator_Init is CommonTest {
                 )
             )
         );
+    }
+
+    /// @dev Sets up the test suite.
+    function setUp() public virtual override {
+        super.setUp();
+        owner = governanceToken.owner();
+        rando = makeAddr("rando");
+        governor = IOptimismGovernor(makeAddr("governor"));
+
+        vm.prank(owner);
+        ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
+            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
+        );
+
+        _initializeValidator();
 
         topDelegate_A = _makeTopDelegate("topDelegate_A");
         topDelegate_B = _makeTopDelegate("topDelegate_B");
@@ -674,5 +679,98 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
+    }
+}
+
+/// @title ProposalValidator_Initialize_Test
+/// @notice Tests for the initialize function
+contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
+    /// @dev Override to create validator proxy without initialization for testing
+    function _initializeValidator() internal override {
+        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
+        validator = ProposalValidatorForTest(address(new Proxy(owner)));
+        // Initialize will be tested manually
+    }
+
+    function testInitializeSucceeds() public {
+        (
+            ProposalValidator.ProposalType[] memory proposalTypes,
+            ProposalValidator.ProposalTypeData[] memory proposalTypesData
+        ) = _getProposalTypesRequiredApprovals();
+
+        vm.prank(owner);
+        IProxy(payable(address(validator))).upgradeToAndCall(
+            address(impl),
+            abi.encodeCall(
+                impl.initialize,
+                (
+                    owner,
+                    MINIMUM_VOTING_POWER,
+                    CYCLE_NUMBER,
+                    START_BLOCK,
+                    DURATION,
+                    DISTRIBUTION_LIMIT,
+                    DISTRIBUTION_THRESHOLD,
+                    proposalTypes,
+                    proposalTypesData
+                )
+            )
+        );
+
+        // Verify initialization was successful
+        assertEq(validator.minimumVotingPower(), MINIMUM_VOTING_POWER);
+        assertEq(validator.distributionThreshold(), DISTRIBUTION_THRESHOLD);
+        assertEq(validator.owner(), owner);
+
+        // Verify voting cycle data
+        (uint256 startBlock, uint256 duration, uint256 distributionLimit) = validator.votingCycles(CYCLE_NUMBER);
+        assertEq(startBlock, START_BLOCK);
+        assertEq(duration, DURATION);
+        assertEq(distributionLimit, DISTRIBUTION_LIMIT);
+
+        // Verify proposal type data
+        for (uint256 i = 0; i < proposalTypes.length; i++) {
+            (uint256 requiredApprovals, uint8 proposalTypeConfigurator) = validator.proposalTypesData(proposalTypes[i]);
+            assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
+            assertEq(proposalTypeConfigurator, 0);
+        }
+    }
+
+    function testInitializeMismatchedArrayLengthsReverts() public {
+        ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](3);
+        proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgrade;
+        proposalTypes[2] = ProposalValidator.ProposalType.CouncilMemberElections;
+
+        // Create mismatched array with different length
+        ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](2);
+        proposalTypesData[0] = ProposalValidator.ProposalTypeData({
+            requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+            proposalTypeConfigurator: 0
+        });
+        proposalTypesData[1] = ProposalValidator.ProposalTypeData({
+            requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+            proposalTypeConfigurator: 0
+        });
+
+        vm.prank(owner);
+        vm.expectRevert("Proxy: delegatecall to new implementation contract failed");
+        IProxy(payable(address(validator))).upgradeToAndCall(
+            address(impl),
+            abi.encodeCall(
+                impl.initialize,
+                (
+                    owner,
+                    MINIMUM_VOTING_POWER,
+                    CYCLE_NUMBER,
+                    START_BLOCK,
+                    DURATION,
+                    DISTRIBUTION_LIMIT,
+                    DISTRIBUTION_THRESHOLD,
+                    proposalTypes,
+                    proposalTypesData
+                )
+            )
+        );
     }
 }

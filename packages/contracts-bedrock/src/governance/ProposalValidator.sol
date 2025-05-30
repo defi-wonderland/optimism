@@ -44,6 +44,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when a proposal does not exist.
     error ProposalValidator_ProposalDoesNotExist();
 
+    /// @notice Thrown when the length of the proposal types and proposal types data arrays do not match.
+    error ProposalValidator_ProposalTypesDataLengthMismatch();
+
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -229,6 +232,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         external
         reinitializer(initVersion())
     {
+        if (_proposalTypes.length != _proposalTypesData.length) {
+            revert ProposalValidator_ProposalTypesDataLengthMismatch();
+        }
+
         _setMinimumVotingPower(_minimumVotingPower);
         _setVotingCycleData(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
         _setDistributionThreshold(_distributionThreshold);
