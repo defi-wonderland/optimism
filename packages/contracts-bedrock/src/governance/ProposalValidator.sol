@@ -66,7 +66,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Struct for storing explicit data for each proposal type.
-    /// @param requiredApprovals The number of approvals each proposal 
+    /// @param requiredApprovals The number of approvals each proposal
     /// type requires in order to be able to move for voting.
     /// @param proposalTypeConfigurator The voting module each proposal type must use.
     struct ProposalTypeData {
@@ -511,6 +511,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalTypeData The data for the proposal type.
     function _setProposalTypeData(ProposalType _proposalType, ProposalTypeData memory _proposalTypeData) private {
         proposalTypesData[_proposalType] = _proposalTypeData;
-        emit ProposalTypeDataSet(_proposalType, _proposalTypeData.requiredApprovals, _proposalTypeData.proposalTypeConfigurator);
+        emit ProposalTypeDataSet(
+            _proposalType, _proposalTypeData.requiredApprovals, _proposalTypeData.proposalTypeConfigurator
+        );
     }
 }

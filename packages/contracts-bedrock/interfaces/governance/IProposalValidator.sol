@@ -16,6 +16,7 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_ProposalDoesNotExist();
     error ProposalValidator_VotingCycleAlreadySet();
+    error ProposalValidator_ProposalTypesDataLengthMismatch();
     error ReinitializableBase_ZeroInitVersion();
 
     struct ProposalData {
@@ -66,7 +67,7 @@ interface IProposalValidator is ISemver {
 
     event DistributionThresholdSet(uint256 newDistributionThreshold);
 
-    event ProposalTypeApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
+    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator);
     
     event VotingCycleDataSet(
         uint256 cycleNumber, 

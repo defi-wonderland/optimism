@@ -86,7 +86,9 @@ contract ProposalValidator_Init is CommonTest {
         uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit
     );
     event DistributionThresholdSet(uint256 newDistributionThreshold);
-    event ProposalTypeDataSet(ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator);
+    event ProposalTypeDataSet(
+        ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator
+    );
 
     /// @notice Helper function to setup a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
@@ -692,7 +694,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         // Initialize will be tested manually
     }
 
-    function testInitializeSucceeds() public {
+    function test_initialize_succeeds() public {
         (
             ProposalValidator.ProposalType[] memory proposalTypes,
             ProposalValidator.ProposalTypeData[] memory proposalTypesData
@@ -736,7 +738,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         }
     }
 
-    function testInitializeMismatchedArrayLengthsReverts() public {
+    function test_initialize_mismatchedArrayLengths_reverts() public {
         ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](3);
         proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         proposalTypes[1] = ProposalValidator.ProposalType.MaintenanceUpgrade;

@@ -619,11 +619,17 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "newApprovalThreshold",
+        "name": "requiredApprovals",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "proposalTypeConfigurator",
+        "type": "uint8"
       }
     ],
-    "name": "ProposalTypeApprovalThresholdSet",
+    "name": "ProposalTypeDataSet",
     "type": "event"
   },
   {
@@ -685,6 +691,11 @@
   {
     "inputs": [],
     "name": "ProposalValidator_ProposalDoesNotExist",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProposalValidator_ProposalTypesDataLengthMismatch",
     "type": "error"
   },
   {
