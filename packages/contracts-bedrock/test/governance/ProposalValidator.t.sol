@@ -109,7 +109,7 @@ contract ProposalValidator_Init is CommonTest {
         validator.approveProposal(_proposalHash);
     }
 
-    function _getProposalTypesRequiredApprovals()
+    function _getProposalTypesAndData()
         internal
         pure
         returns (ProposalValidator.ProposalType[] memory, ProposalValidator.ProposalTypeData[] memory)
@@ -151,7 +151,7 @@ contract ProposalValidator_Init is CommonTest {
         (
             ProposalValidator.ProposalType[] memory proposalTypes,
             ProposalValidator.ProposalTypeData[] memory proposalTypesData
-        ) = _getProposalTypesRequiredApprovals();
+        ) = _getProposalTypesAndData();
 
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
 
@@ -696,7 +696,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         (
             ProposalValidator.ProposalType[] memory proposalTypes,
             ProposalValidator.ProposalTypeData[] memory proposalTypesData
-        ) = _getProposalTypesRequiredApprovals();
+        ) = _getProposalTypesAndData();
 
         vm.prank(owner);
         IProxy(payable(address(validator))).upgradeToAndCall(
