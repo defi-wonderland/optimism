@@ -575,7 +575,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
 
     function testFuzz_setProposalTypeData_succeeds(
         uint8 proposalTypeValue,
-        uint256 newThreshold,
+        uint256 newRequiredApprovals,
         uint8 newConfigurator
     )
         public
@@ -585,19 +585,19 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         ProposalValidator.ProposalTypeData memory newData = ProposalValidator.ProposalTypeData({
-            requiredApprovals: newThreshold,
+            requiredApprovals: newRequiredApprovals,
             proposalTypeConfigurator: newConfigurator
         });
 
         // Expect the ProposalTypeDataSet event to be emitted
         vm.expectEmit(address(validator));
-        emit ProposalTypeDataSet(proposalType, newThreshold, newConfigurator);
+        emit ProposalTypeDataSet(proposalType, newRequiredApprovals, newConfigurator);
 
         vm.prank(owner);
         validator.setProposalTypeData(proposalType, newData);
 
         (uint256 requiredApprovals, uint8 proposalTypeConfigurator) = validator.proposalTypesData(proposalType);
-        assertEq(requiredApprovals, newThreshold);
+        assertEq(requiredApprovals, newRequiredApprovals);
         assertEq(proposalTypeConfigurator, newConfigurator);
     }
 
