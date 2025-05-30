@@ -54,17 +54,15 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Struct for storing proposal information.
     /// @param proposer The address that submitted the proposal.
     /// @param proposalType Type of the proposal from the ProposalType enum.
-    /// @param proposalTypeConfigurator The voting module the proposal must use.
     /// @param inVoting Whether the proposal has been moved to the voting phase.
     /// @param delegateApprovals Mapping of delegate addresses to their approval status.
-    /// @param remainingApprovalsRequired Number of approvals still needed before voting.
+    /// @param approvalCount Number of approvals received so far.
     struct ProposalData {
         address proposer;
         ProposalType proposalType;
-        uint8 proposalTypeConfigurator;
         bool inVoting;
         mapping(address => bool) delegateApprovals;
-        uint256 remainingApprovalsRequired;
+        uint256 approvalCount;
     }
 
     /// @notice Struct for storing explicit data for each proposal type.
@@ -280,9 +278,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
-        proposal.proposalTypeConfigurator = proposalTypeData.proposalTypeConfigurator;
         proposal.inVoting = false;
-        proposal.remainingApprovalsRequired = proposalTypeData.requiredApprovals;
 
         emit ProposalSubmitted(
             proposalHash_,
@@ -310,7 +306,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         proposal.delegateApprovals[msg.sender] = true;
-        proposal.remainingApprovalsRequired--; // Expected overflow when all approvals are granted
+        proposal.approvalCount++;
 
         emit ProposalApproved(_proposalHash, msg.sender);
     }
@@ -339,7 +335,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_ProposalDoesNotExist();
         }
 
-        if (proposal.remainingApprovalsRequired > 0) {
+        ProposalTypeData memory proposalTypeData = proposalTypesData[proposal.proposalType];
+        if (proposal.approvalCount < proposalTypeData.requiredApprovals) {
             revert ProposalValidator_InsufficientApprovals();
         }
 
@@ -350,7 +347,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.inVoting = true;
 
         governorProposalId_ =
-            GOVERNOR.propose(_targets, _values, _calldatas, _description, proposal.proposalTypeConfigurator);
+            GOVERNOR.propose(_targets, _values, _calldatas, _description, proposalTypeData.proposalTypeConfigurator);
 
         emit ProposalMovedToVote(_proposalHash, msg.sender);
     }

@@ -21,10 +21,9 @@ interface IProposalValidator is ISemver {
     struct ProposalData {
         address proposer;
         ProposalType proposalType;
-        uint8 proposalTypeConfigurator;
         bool inVoting;
         mapping(address => bool) delegateApprovals;
-        uint256 remainingApprovalsRequired;
+        uint256 approvalCount;
     }
 
     struct ProposalTypeData {
