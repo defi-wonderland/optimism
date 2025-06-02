@@ -69,8 +69,6 @@ interface IProposalValidator is ISemver {
 
     event DistributionThresholdSet(uint256 newDistributionThreshold);
 
-    event ProposalTypeApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
-
     event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator);
     
     event VotingCycleDataSet(

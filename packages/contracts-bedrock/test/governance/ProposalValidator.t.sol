@@ -12,7 +12,6 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 // Contracts
 import { ProposalValidator } from "src/governance/ProposalValidator.sol";
 import { Proxy } from "src/universal/Proxy.sol";
-import { ApprovalVotingModule } from "src/governance/ApprovalVotingModule.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -765,7 +764,7 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
 contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
     /// @dev Override to create validator proxy without initialization for testing
     function _initializeValidator() internal override {
-        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
+        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, approvalVotingModule, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
         // Initialize will be tested manually
     }

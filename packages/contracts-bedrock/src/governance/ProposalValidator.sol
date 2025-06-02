@@ -75,7 +75,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Struct for storing explicit data for each proposal type.
-    /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for voting.
+    /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for
+    /// voting.
     /// @param proposalTypeConfigurator The voting module each proposal type must use.
     struct ProposalTypeData {
         uint256 requiredApprovals;
@@ -285,7 +286,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _calldatas Function data for proposal calls
     /// @param _description Description of the proposal
     /// @param _proposalType Type of the proposal
-    /// @param _proposalTypeConfigurator Configuration value specific to the proposal type
     /// @param _attestationUid The UID of the attestation proving eligibility
     /// @return proposalHash_ The hash of the submitted proposal
     function submitProposal(
@@ -362,9 +362,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
-        proposal.proposalTypeConfigurator = _proposalTypeConfigurator;
         proposal.inVoting = false;
-        proposal.remainingApprovalsRequired = 4; // TODO: Review remaining approvals required
 
         emit FundingProposalSubmitted(
             proposalHash_, _msgSender(), _to, _amount, _description, _proposalType, _proposalTypeConfigurator
