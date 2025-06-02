@@ -66,7 +66,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Struct for storing explicit data for each proposal type.
-    /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for voting.
+    /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for
+    /// voting.
     /// @param proposalTypeConfigurator The voting module each proposal type must use.
     struct ProposalTypeData {
         uint256 requiredApprovals;
@@ -467,17 +468,20 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Calculate `proposalId` hashing similarly to `hashProposal` but based on `module` and `proposalData`.
-    /// @param module The address of the voting module to use for this proposal.
-    /// @param proposalData The proposal data to pass to the voting module.
-    /// @param descriptionHash The hash of the proposal description.
+    /// @param _module The address of the voting module to use for this proposal.
+    /// @param _proposalData The proposal data to pass to the voting module.
+    /// @param _descriptionHash The hash of the proposal description.
     /// @return The hash of the proposal.
-    function hashProposalWithModule(address module, bytes memory proposalData, bytes32 descriptionHash)
-        public
+    function _hashProposalWithModule(
+        address _module,
+        bytes memory _proposalData,
+        bytes32 _descriptionHash
+    )
+        internal
         view
-        virtual
         returns (bytes32)
     {
-        return keccak256(abi.encode(address(this), module, proposalData, descriptionHash));
+        return keccak256(abi.encode(address(this), _module, _proposalData, _descriptionHash));
     }
 
     /// @notice Private function to set the minimum voting power and emit event.
