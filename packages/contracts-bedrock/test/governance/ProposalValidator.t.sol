@@ -411,9 +411,7 @@ contract ProposalValidator_MoveToVote_Test is ProposalValidator_Init {
     function test_moveToVote_succeeds() public {
         _mockAndExpect(
             address(governor),
-            abi.encodeCall(
-                IOptimismGovernor.propose, (targets, values, calldatas, description, proposalVotingModule)
-            ),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, proposalVotingModule)),
             abi.encode(1)
         );
 
@@ -471,9 +469,7 @@ contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
 
         _mockAndExpect(
             address(governor),
-            abi.encodeCall(
-                IOptimismGovernor.propose, (targets, values, calldatas, description, proposalVotingModule)
-            ),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, proposalVotingModule)),
             abi.encode(1)
         );
 
@@ -663,9 +659,7 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         // Mock the governor call
         _mockAndExpect(
             address(governor),
-            abi.encodeCall(
-                IOptimismGovernor.propose, (targets, values, calldatas, description, proposalVotingModule)
-            ),
+            abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description, proposalVotingModule)),
             abi.encode(1)
         );
 

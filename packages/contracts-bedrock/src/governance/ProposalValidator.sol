@@ -66,7 +66,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Struct for storing explicit data for each proposal type.
-    /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for voting.
+    /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for
+    /// voting.
     /// @param proposalVotingModule The voting module each proposal type must use.
     struct ProposalTypeData {
         uint256 requiredApprovals;
