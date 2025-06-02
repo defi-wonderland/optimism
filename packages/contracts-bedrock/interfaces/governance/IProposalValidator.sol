@@ -18,15 +18,20 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_VotingCycleAlreadySet();
     error ProposalValidator_InvalidFundingProposalType();
     error ProposalValidator_ExceedsDistributionThreshold();
+    error ProposalValidator_ProposalTypesDataLengthMismatch();
     error ReinitializableBase_ZeroInitVersion();
 
     struct ProposalData {
         address proposer;
         ProposalType proposalType;
-        uint8 proposalTypeConfigurator;
         bool inVoting;
         mapping(address => bool) delegateApprovals;
-        uint256 remainingApprovalsRequired;
+        uint256 approvalCount;
+    }
+
+    struct ProposalTypeData {
+        uint256 requiredApprovals;
+        uint8 proposalTypeConfigurator;
     }
     
     enum ProposalType {
@@ -66,6 +71,8 @@ interface IProposalValidator is ISemver {
 
     event ProposalTypeApprovalThresholdSet(ProposalType proposalType, uint256 newApprovalThreshold);
 
+    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalTypeConfigurator);
+    
     event VotingCycleDataSet(
         uint256 cycleNumber,
         uint256 startBlock,
@@ -91,7 +98,6 @@ interface IProposalValidator is ISemver {
         bytes[] memory _calldatas,
         string memory _description,
         ProposalType _proposalType,
-        uint8 _proposalTypeConfigurator,
         bytes32 _attestationUid
     ) external returns (bytes32 proposalHash_);
 
@@ -115,9 +121,12 @@ interface IProposalValidator is ISemver {
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
     function setDistributionThreshold(uint256 _distributionThreshold) external;
-
-    function setProposalTypeApprovalThreshold(ProposalType _proposalType, uint256 _requiredApprovals) external;
-
+    
+    function setProposalTypeData(
+        ProposalType _proposalType,
+        ProposalTypeData memory _proposalTypeData
+    ) external;
+    
     function setVotingCycleData(
         uint256 _cycleNumber,
         uint256 _startBlock,
@@ -134,7 +143,7 @@ interface IProposalValidator is ISemver {
         uint256 _votingCycleDistributionLimit,
         uint256 _distributionThreshold,
         ProposalType[] memory _proposalTypes,
-        uint256[] memory _requiredApprovals
+        ProposalTypeData[] memory _proposalTypesData
     ) external;
 
     function renounceOwnership() external;
@@ -159,7 +168,7 @@ interface IProposalValidator is ISemver {
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
     
-    function proposalRequiredApprovals(ProposalType) external view returns (uint256);
+    function proposalTypesData(ProposalType) external view returns (uint256 requiredApprovals, uint8 proposalTypeConfigurator);
     
     function votingCycles(uint256) external view returns (
         uint256 startingBlock, 
