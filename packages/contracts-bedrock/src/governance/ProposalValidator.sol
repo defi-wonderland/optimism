@@ -156,7 +156,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Emitted when the proposal type data is set.
     /// @param proposalType The type of proposal.
     /// @param requiredApprovals The required number of approvals.
-    /// @param proposalVotingModule The proposal type configurator.
+    /// @param proposalVotingModule The proposal voting module.
     event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule);
 
     /// @notice The schema UID for attestations in the Ethereum Attestation Service.
