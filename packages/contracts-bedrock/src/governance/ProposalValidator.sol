@@ -466,6 +466,20 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         return keccak256(abi.encode(_targets, _values, _calldatas, _description));
     }
 
+    /// @notice Calculate `proposalId` hashing similarly to `hashProposal` but based on `module` and `proposalData`.
+    /// @param module The address of the voting module to use for this proposal.
+    /// @param proposalData The proposal data to pass to the voting module.
+    /// @param descriptionHash The hash of the proposal description.
+    /// @return The hash of the proposal.
+    function hashProposalWithModule(address module, bytes memory proposalData, bytes32 descriptionHash)
+        public
+        view
+        virtual
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(address(this), module, proposalData, descriptionHash));
+    }
+
     /// @notice Private function to set the minimum voting power and emit event.
     /// @param _minimumVotingPower The new minimum voting power threshold.
     function _setMinimumVotingPower(uint256 _minimumVotingPower) private {
