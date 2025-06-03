@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 import { Vm, VmSafe } from "forge-std/Vm.sol";
-import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { Identifier } from "src/L2/CrossL2Inbox.sol";
 import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
@@ -79,6 +79,7 @@ contract SendMessage is Script {
 
 // forge script test/supersim/GasTank.t.sol:RelayMessage --broadcast -vvvvv
 contract RelayMessage is Script {
+    /// forge-config: default.isolate = true
     function run() public {
         bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
             _destination: 902,
@@ -89,17 +90,53 @@ contract RelayMessage is Script {
             _message: "Hello, world!"
         });
 
-        Identifier memory id = Identifier(0x5FbDB2315678afecb367f032d93F642f64180aa3, 11, 0, 1748956945, 901);
+        Identifier memory id = Identifier(0x5FbDB2315678afecb367f032d93F642f64180aa3, 17, 0, 1748964872, 901);
 
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, 902, MESSAGE_SENDER, 0), // topics
-            abi.encode(MESSAGE_SENDER, "Hello, world!", abi.encode(0, messagePayloadHash)) // data
+            abi.encode(MESSAGE_SENDER, "Hello, world!", abi.encode(1, messagePayloadHash)) // data
         );
+
+        CrossL2Inbox crossL2Inbox = CrossL2Inbox(0x4200000000000000000000000000000000000022);
+
+        bytes32 _messageHash = 0x84b307dc05cf0fe6a756cf78a142e8cdbd55950dd6138da98e817b4aae394cca;
+
+        bytes32 slot_ = calculateChecksum(id, _messageHash);
+        bytes32[] memory slots = new bytes32[](1);
+        slots[0] = slot_;
+        VmSafe.AccessListItem[] memory accessList = new VmSafe.AccessListItem[](1);
+        accessList[0] = VmSafe.AccessListItem({ target: address(crossL2Inbox), storageKeys: slots });
 
         vm.createSelectFork(DESTINATION_CHAIN_RPC_URL);
         vm.startBroadcast(RELAYER_PRIVATE_KEY);
+        vm.accessList(accessList);
         L2ToL2CrossDomainMessenger(MESSENGER).relayMessage(id, sentMessage);
         vm.stopBroadcast();
+    }
+
+    function calculateChecksum(Identifier memory _id, bytes32 _msgHash) internal pure returns (bytes32 checksum_) {
+        bytes32 _MSB_MASK = bytes32(~uint256(0xff << 248));
+        bytes32 _TYPE_3_MASK = bytes32(uint256(0x03 << 248));
+
+        // Hash the origin address and message hash together
+        bytes32 logHash = keccak256(abi.encodePacked(_id.origin, _msgHash));
+
+        // Downsize the identifier fields to match the needed type for the custom checksum calculation.
+        uint64 blockNumber = uint64(_id.blockNumber);
+        uint64 timestamp = uint64(_id.timestamp);
+        uint32 logIndex = uint32(_id.logIndex);
+
+        // Pack identifier fields with a left zero padding (uint96(0))
+        bytes32 idPacked = bytes32(abi.encodePacked(uint96(0), blockNumber, timestamp, logIndex));
+
+        // Hash the logHash with the packed identifier data
+        bytes32 idLogHash = keccak256(abi.encodePacked(logHash, idPacked));
+
+        // Create the final hash by combining idLogHash with chainId
+        bytes32 bareChecksum = keccak256(abi.encodePacked(idLogHash, _id.chainId));
+
+        // Apply bit masking to create the final checksum
+        checksum_ = (bareChecksum & _MSB_MASK) | _TYPE_3_MASK;
     }
 }
 

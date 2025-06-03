@@ -9,7 +9,7 @@ import { TransientReentrancyAware } from "src/libraries/TransientContext.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { CrossL2Inbox, Identifier } from "src/L2/CrossL2Inbox.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
@@ -281,7 +281,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         // Ensure the log came from the messenger.
 
         // Signal that this is a cross chain call that needs to have the identifier validated
-        ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
+        CrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
 
         // Decode the payload
         DecodedPayload memory decodedPayload = _decodeSentMessagePayload(_sentMessage);
