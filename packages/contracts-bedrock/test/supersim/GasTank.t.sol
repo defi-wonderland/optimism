@@ -19,6 +19,9 @@ string constant DESTINATION_CHAIN_RPC_URL = "http://127.0.0.1:9546";
 uint256 constant ORIGIN_CHAIN_ID = 901;
 uint256 constant DESTINATION_CHAIN_ID = 902;
 
+address constant MESSENGER = 0x5FbDB2315678afecb367f032d93F642f64180aa3;
+address constant GAS_TANK = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
+
 // Private Keys Addresses
 uint256 constant DEPLOYER_PRIVATE_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 address constant DEPLOYER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -58,14 +61,13 @@ contract SendMessage is Script {
 
         // Send a message from the message sender to the destination chain
         vm.recordLogs();
-        bytes32 messageHash = L2ToL2CrossDomainMessenger(0x5FbDB2315678afecb367f032d93F642f64180aa3).sendMessage(
-            DESTINATION_CHAIN_ID, MESSAGE_SENDER, "Hello, world!"
-        );
+        bytes32 messageHash =
+            L2ToL2CrossDomainMessenger(MESSENGER).sendMessage(DESTINATION_CHAIN_ID, MESSAGE_SENDER, "Hello, world!");
         vm.getRecordedLogs();
 
         // Deposit funds to the gas tank and flag the message
-        GasTank(0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512).deposit{ value: 0.01 ether }(MESSAGE_SENDER);
-        GasTank(0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512).flag(messageHash);
+        GasTank(GAS_TANK).deposit{ value: 0.01 ether }(MESSAGE_SENDER);
+        GasTank(GAS_TANK).flag(messageHash);
 
         // Log Block Number  and Timestamp
         console.log("Block Number:", vm.getBlockNumber());
@@ -83,7 +85,7 @@ contract RelayMessage is Script {
             _source: 901,
             _nonce: 0,
             _sender: MESSAGE_SENDER,
-            _target: 0x5FbDB2315678afecb367f032d93F642f64180aa3,
+            _target: MESSAGE_SENDER,
             _message: "Hello, world!"
         });
 
@@ -96,7 +98,7 @@ contract RelayMessage is Script {
 
         vm.createSelectFork(DESTINATION_CHAIN_RPC_URL);
         vm.startBroadcast(RELAYER_PRIVATE_KEY);
-        L2ToL2CrossDomainMessenger(0x5FbDB2315678afecb367f032d93F642f64180aa3).relayMessage(id, sentMessage);
+        L2ToL2CrossDomainMessenger(MESSENGER).relayMessage(id, sentMessage);
         vm.stopBroadcast();
     }
 }
