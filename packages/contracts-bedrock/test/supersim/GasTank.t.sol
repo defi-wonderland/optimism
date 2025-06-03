@@ -7,6 +7,7 @@ import { console } from "forge-std/console.sol";
 import { Vm, VmSafe } from "forge-std/Vm.sol";
 import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { CrossL2Inbox } from "src/L2/CrossL2Inbox.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 
 // Contracts
 import { GasTank } from "./contracts/GasTank.sol";
@@ -77,10 +78,16 @@ contract SendMessage is Script {
 // forge script test/supersim/GasTank.t.sol:RelayMessage --broadcast -vvvvv
 contract RelayMessage is Script {
     function run() public {
-        bytes32 messagePayloadHash =
-            keccak256(abi.encode(901, 0, MESSAGE_SENDER, 0x5FbDB2315678afecb367f032d93F642f64180aa3, "Hello, world!"));
+        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: 902,
+            _source: 901,
+            _nonce: 0,
+            _sender: MESSAGE_SENDER,
+            _target: 0x5FbDB2315678afecb367f032d93F642f64180aa3,
+            _message: "Hello, world!"
+        });
 
-        Identifier memory id = Identifier(0x5FbDB2315678afecb367f032d93F642f64180aa3, 0, 0, 0, 901);
+        Identifier memory id = Identifier(0x5FbDB2315678afecb367f032d93F642f64180aa3, 11, 0, 1748956945, 901);
 
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, 901, MESSAGE_SENDER, 0), // topics
