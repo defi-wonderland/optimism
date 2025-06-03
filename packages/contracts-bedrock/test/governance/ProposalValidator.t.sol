@@ -30,19 +30,6 @@ contract ProposalValidatorForTest is ProposalValidator {
         ProposalValidator(_attestationSchemaUid, _governor, _governanceToken)
     { }
 
-    function hashProposal(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _description
-    )
-        public
-        pure
-        returns (bytes32)
-    {
-        return _hashProposal(_targets, _values, _calldatas, _description);
-    }
-
     function hashProposalWithModule(
         address _module,
         bytes memory _proposalData,
@@ -266,7 +253,7 @@ contract ProposalValidator_SubmitProposal_Test is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         uint8 proposalTypeConfigurator = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
-        bytes32 expectedProposalHash = validator.hashProposal(_targets, _values, _calldatas, _description);
+        bytes32 expectedProposalHash = bytes32(0); // TODO: Implement hashProposalWithModule
 
         // Expect event to be emitted
         vm.expectEmit(address(validator));

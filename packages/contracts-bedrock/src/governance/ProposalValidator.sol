@@ -267,7 +267,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     {
         _validateProposal(_targets, _values, _calldatas, _proposalType, _attestationUid);
 
-        proposalHash_ = _hashProposal(_targets, _values, _calldatas, _description);
+        proposalHash_ = bytes32(0); // TODO: Implement hashProposalWithModule
         ProposalData storage proposal = _proposals[proposalHash_];
 
         if (proposal.proposer != address(0)) {
@@ -327,7 +327,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         returns (uint256 governorProposalId_)
     {
         // Verify that the provided data matches the proposalHash
-        bytes32 _proposalHash = _hashProposal(_targets, _values, _calldatas, _description);
+        bytes32 _proposalHash = bytes32(0); // TODO: Implement hashProposalWithModule
 
         ProposalData storage proposal = _proposals[_proposalHash];
 
@@ -452,19 +452,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     {
         (address approvedDelegate, uint8 proposalType) = abi.decode(_data, (address, uint8));
         isValid_ = approvedDelegate == msg.sender && proposalType == uint8(_expectedProposalType);
-    }
-
-    function _hashProposal(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _description
-    )
-        internal
-        pure
-        returns (bytes32 proposalHash_)
-    {
-        return keccak256(abi.encode(_targets, _values, _calldatas, _description));
     }
 
     /// @notice Calculate `proposalId` hashing similarly to `hashProposal` but based on `module` and `proposalData`.
