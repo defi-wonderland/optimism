@@ -42,6 +42,18 @@ contract ProposalValidatorForTest is ProposalValidator {
     {
         return _hashProposal(_targets, _values, _calldatas, _description);
     }
+
+    function hashProposalWithModule(
+        address _module,
+        bytes memory _proposalData,
+        bytes32 _descriptionHash
+    )
+        public
+        view
+        returns (bytes32)
+    {
+        return _hashProposalWithModule(_module, _proposalData, _descriptionHash);
+    }
 }
 
 /// @title ProposalValidator_Init
@@ -681,6 +693,42 @@ contract ProposalValidator_Integration_Test is ProposalValidator_Init {
         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(owner);
         validator.moveToVote(targets, values, calldatas, description);
+    }
+}
+
+/// @title ProposalValidator_HashProposalWithModule_Test
+/// @notice Tests for the hashProposalWithModule function
+contract ProposalValidator_HashProposalWithModule_Test is ProposalValidator_Init {
+    function test_hashProposalWithModule_succeeds() public {
+        address testModule = makeAddr("testModule");
+        bytes memory testProposalData = abi.encode("test", "proposal", "data");
+        bytes32 testDescriptionHash = keccak256("test description");
+
+        bytes32 hash = validator.hashProposalWithModule(testModule, testProposalData, testDescriptionHash);
+        assertTrue(hash != bytes32(0));
+    }
+
+    function test_hashProposalWithModule_consistentHash_succeeds() public {
+        address testModule = makeAddr("testModule");
+        bytes memory testProposalData = abi.encode("test data");
+        bytes32 testDescriptionHash = keccak256("description");
+
+        bytes32 hash1 = validator.hashProposalWithModule(testModule, testProposalData, testDescriptionHash);
+        bytes32 hash2 = validator.hashProposalWithModule(testModule, testProposalData, testDescriptionHash);
+
+        assertEq(hash1, hash2);
+    }
+
+    function test_hashProposalWithModule_differentInputs_succeeds() public {
+        address module1 = makeAddr("module1");
+        address module2 = makeAddr("module2");
+        bytes memory data = abi.encode("data");
+        bytes32 descHash = keccak256("desc");
+
+        bytes32 hash1 = validator.hashProposalWithModule(module1, data, descHash);
+        bytes32 hash2 = validator.hashProposalWithModule(module2, data, descHash);
+
+        assertTrue(hash1 != hash2);
     }
 }
 
