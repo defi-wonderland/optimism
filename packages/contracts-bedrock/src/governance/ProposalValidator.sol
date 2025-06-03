@@ -114,7 +114,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param calldatas Function data for proposal calls.
     /// @param description Description of the proposal.
     /// @param proposalType Type of the proposal.
-    /// @param proposalVotingModule Configuration value specific to the proposal type.
+    /// @param proposalVotingModule Voting module specific to the proposal type.
     event ProposalSubmitted(
         bytes32 indexed proposalHash,
         address indexed proposer,
