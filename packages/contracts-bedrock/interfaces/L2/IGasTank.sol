@@ -11,7 +11,7 @@ interface IGasTank {
     uint256 amount;
   }
   // Events
-  event Flagged(bytes32 rootMessageHash);
+  event Flagged(bytes32 rootMessageHash, address indexed gasProvider);
   event Claimed(bytes32 msgHash, address relayer, uint256 amount);
   event Deposit(address depositor, uint256 amount);
   event RelayedMessageGasReceipt(

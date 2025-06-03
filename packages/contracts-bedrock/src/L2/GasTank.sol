@@ -64,7 +64,7 @@ contract GasTank is IGasTank {
     // Flag a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
     function flag(bytes32 rootMessageHash) external {
         flaggedMessages[msg.sender][rootMessageHash] = true;
-        emit Flagged(rootMessageHash);
+        emit Flagged(rootMessageHash, msg.sender);
     }
 
     // Claim repayment for a relayed message
