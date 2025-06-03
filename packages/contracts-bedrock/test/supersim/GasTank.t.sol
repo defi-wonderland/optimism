@@ -92,7 +92,7 @@ contract RelayMessage is Script {
         Identifier memory id = Identifier(0x5FbDB2315678afecb367f032d93F642f64180aa3, 11, 0, 1748956945, 901);
 
         bytes memory sentMessage = abi.encodePacked(
-            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, 901, MESSAGE_SENDER, 0), // topics
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, 902, MESSAGE_SENDER, 0), // topics
             abi.encode(MESSAGE_SENDER, "Hello, world!", abi.encode(0, messagePayloadHash)) // data
         );
 
