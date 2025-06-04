@@ -241,7 +241,7 @@ contract GasTankTest is Test {
         );
 
         vm.expectEmit(address(gasTank));
-        emit IGasTank.Claimed(msgHash, address(this), totalCost);
+        emit IGasTank.Claimed(msgHash, address(this), address(this), rootMsgHash, totalCost);
         gasTank.claim(id, address(this), payload);
 
         assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0");
