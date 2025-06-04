@@ -101,7 +101,7 @@ contract GasTank is IGasTank {
         // Send the cost repayment back to the relayer
         new SafeSend{ value: cost }(payable(relayer));
 
-        emit Claimed(msgHash, relayer, cost);
+        emit Claimed(msgHash, relayer, gasProvider, rootMsgHash, cost);
     }
 
     // Decode the payload of the RelayedMessageGasReceipt event
