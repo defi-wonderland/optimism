@@ -65,6 +65,32 @@ contract SuperchainTokenBridge {
         external
         returns (bytes32 msgHash_)
     {
+        return _sendERC20(_token, _to, _amount, address(0), _chainId);
+    }
+
+    function sendERC20WithEntrypoint(
+        address _token,
+        address _to,
+        uint256 _amount,
+        address _entrypoint,
+        uint256 _chainId
+    )
+        external
+        returns (bytes32 msgHash_)
+    {
+        return _sendERC20(_token, _to, _amount, _entrypoint, _chainId);
+    }
+
+    function _sendERC20(
+        address _token,
+        address _to,
+        uint256 _amount,
+        address _entrypoint,
+        uint256 _chainId
+    )
+        internal
+        returns (bytes32 msgHash_)
+    {
         if (_to == address(0)) revert ZeroAddress();
 
         if (!IERC165(_token).supportsInterface(type(IERC7802).interfaceId)) revert InvalidERC7802();
@@ -72,7 +98,9 @@ contract SuperchainTokenBridge {
         ISuperchainERC20(_token).crosschainBurn(msg.sender, _amount);
 
         bytes memory message = abi.encodeCall(this.relayERC20, (_token, msg.sender, _to, _amount));
-        msgHash_ = IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_chainId, address(this), message);
+        msgHash_ = IL2ToL2CrossDomainMessenger(MESSENGER).sendMessageWithEntrypoint(
+            _chainId, address(this), _entrypoint, message
+        );
 
         emit SendERC20(_token, msg.sender, _to, _amount, _chainId);
     }

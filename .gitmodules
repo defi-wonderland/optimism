@@ -32,3 +32,9 @@
 [submodule "packages/contracts-bedrock/lib/superchain-registry"]
 	path = packages/contracts-bedrock/lib/superchain-registry
 	url = https://github.com/ethereum-optimism/superchain-registry
+[submodule "packages/contracts-bedrock/lib/v3-periphery"]
+	path = packages/contracts-bedrock/lib/v3-periphery
+	url = https://github.com/Uniswap/v3-periphery
+[submodule "packages/contracts-bedrock/lib/v3-core"]
+	path = packages/contracts-bedrock/lib/v3-core
+	url = https://github.com/uniswap/v3-core

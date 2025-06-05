@@ -107,6 +107,15 @@ interface IL2ToL2CrossDomainMessenger {
         external
         returns (bytes32 messageHash_);
 
+    function sendMessageWithEntrypoint(
+        uint256 _destination,
+        address _target,
+        address _entrypoint,
+        bytes calldata _message
+    )
+        external
+        returns (bytes32 messageHash_);
+
     /// @notice Re-emits a previously sent message event for old messages that haven't been
     ///         relayed yet, allowing offchain infrastructure to pick them up and relay them.
     /// @dev    Emitting a message that has already been relayed will have no effect, as it is only
