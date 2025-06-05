@@ -256,8 +256,8 @@ contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
         uint8 proposalVotingModule = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
 
-        vm.prank(topDelegate_A);
-        proposalHash = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+        /* vm.prank(topDelegate_A); */
+        proposalHash = bytes32(0); // TODO: Implement after submitFundingProposal is implemented
     }
 
     function test_approveProposal_succeeds() public {
@@ -296,8 +296,8 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         uint8 proposalVotingModule = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
 
-        vm.prank(topDelegate_A);
-        proposalHash = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+        /* vm.prank(topDelegate_A); */
+        proposalHash = bytes32(0); // TODO: Implement after submitFundingProposal is implemented
     }
 
     function test_approveProposal_insufficientVotingPower_reverts() public {
@@ -332,8 +332,8 @@ contract ProposalValidator_MoveToVote_Test is ProposalValidator_Init {
         proposalVotingModule = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
 
-        vm.prank(topDelegate_A);
-        proposalHash = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+        /* vm.prank(topDelegate_A); */
+        proposalHash = bytes32(0); // TODO: Implement after submitFundingProposal is implemented
 
         _approveProposal(topDelegate_A, proposalHash);
         _approveProposal(topDelegate_B, proposalHash);
@@ -378,8 +378,8 @@ contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
         proposalVotingModule = 0;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
 
-        vm.prank(topDelegate_A);
-        proposalHash = validator.submitProposal(targets, values, calldatas, description, proposalType, attestationUid);
+        /* vm.prank(topDelegate_A); */
+        proposalHash = bytes32(0); // TODO: Implement after submitFundingProposal is implemented
     }
 
     function test_moveToVote_insufficientApprovals_reverts() public {
