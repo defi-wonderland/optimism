@@ -8,7 +8,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
 /// @title GasTank
-/// @notice Allows users to deposit gas funds to compensate relayers for executing cross chain transactions
+/// @notice Allows users to deposit native tokens to compensate relayers for executing cross chain transactions
 contract GasTank is IGasTank {
     /// @notice The maximum amount of funds that can be deposited into the gas tank
     uint256 public constant MAX_DEPOSIT = 0.01 ether;
@@ -47,7 +47,7 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Initiates a withdrawal of funds from the gas tank
-    /// @param amount The amount of gas funds to withdraw
+    /// @param amount The amount of funds to withdraw
     function initiateWithdrawal(uint256 amount) external {
         // Ensure the caller has enough balance
         if (balanceOf[msg.sender] < amount) revert InsufficientBalance();
@@ -127,11 +127,11 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Decodes the payload of the RelayedMessageGasReceipt event
-    /// @param payload The payload of the RelayedMessageGasReceipt event
-    /// @return msgHash The hash of the message
+    /// @param payload The payload of the event
+    /// @return msgHash The hash of the relayed message
     /// @return rootMsgHash The hash of the root message
     /// @return relayer The address of the relayer
-    /// @return relayCost The cost of the relay
+    /// @return relayCost The amount of native tokens expended on the relay
     function decodeGasReceiptPayload(bytes calldata payload)
         public
         pure
