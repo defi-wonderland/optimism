@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
-import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IL2ToL2CrossDomainMessenger, Identifier as RelayID } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { ICrossL2Inbox, Identifier as InboxID } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
+import { Hashing } from "src/libraries/Hashing.sol";
 
 /// @title GasTank
 /// @notice Allows users to deposit native tokens to compensate relayers for executing cross chain transactions
@@ -18,6 +19,9 @@ contract GasTank is IGasTank {
 
     /// @notice The gas cost of claiming a receipt
     uint256 public constant CLAIM_OVERHEAD = 100_000;
+
+    /// @notice The gas overhead for the gas receipt event
+    uint256 public constant GAS_RECEIPT_EVENT_OVERHEAD = 28772;
 
     /// @notice The cross domain messenger
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
@@ -87,11 +91,29 @@ contract GasTank is IGasTank {
         emit Flagged(rootMessageHash, msg.sender);
     }
 
+    function relayMessage(RelayID[] calldata _id, bytes[] calldata _sentMessage) public {
+        uint256 length = _id.length;
+
+        if (length != _sentMessage.length) revert InvalidLength();
+
+        for (uint256 i; i < length; i++) {
+            uint256 initialGas = gasleft();
+
+            (bytes32 messageHash, bytes32 rootMessageHash) = _getMessageData(_id[i].chainId, _sentMessage[i]);
+
+            // Relay the message
+            MESSENGER.relayMessage(_id[i], _sentMessage[i]);
+
+            uint256 gasUsed = (initialGas - gasleft()) + GAS_RECEIPT_EVENT_OVERHEAD;
+            emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, _cost(gasUsed));
+        }
+    }
+
     /// @notice Claims repayment for a relayed message
     /// @param id The identifier of the message
     /// @param gasProvider The address of the gas provider
     /// @param payload The payload of the message
-    function claim(Identifier calldata id, address gasProvider, bytes calldata payload) external {
+    function claim(InboxID calldata id, address gasProvider, bytes calldata payload) external {
         // Ensure the origin is the messenger
         if (id.origin != address(MESSENGER)) revert InvalidOrigin();
 
@@ -142,5 +164,39 @@ contract GasTank is IGasTank {
 
         // Decode Data
         relayCost = abi.decode(payload[128:], (uint256));
+    }
+
+    /// @notice Calculates the cost of a message relay.
+    function _cost(uint256 _gasUsed) internal view returns (uint256) {
+        return block.basefee * _gasUsed;
+    }
+
+    function _getMessageData(
+        uint256 _source,
+        bytes calldata _sentMessage
+    )
+        internal
+        pure
+        returns (bytes32 messageHash, bytes32 rootMessageHash)
+    {
+        // Decode Topics
+        (uint256 destination, address target, uint256 nonce) =
+            abi.decode(_sentMessage[32:128], (uint256, address, uint256));
+
+        // Decode Data
+        (address sender, bytes memory message, bytes memory originContext) =
+            abi.decode(_sentMessage[128:], (address, bytes, bytes));
+
+        // Get the current message hash
+        messageHash = Hashing.hashL2toL2CrossDomainMessage(
+            Hashing.hashL2toL2CrossDomainMessagePayload(destination, _source, nonce, sender, target, message),
+            originContext
+        );
+
+        // Recover the root message payload hash
+        (, bytes32 contextMessagePayloadHash) = abi.decode(originContext, (uint8, bytes32));
+
+        // Get the root message hash
+        rootMessageHash = Hashing.hashL2toL2CrossDomainMessage(contextMessagePayloadHash, originContext);
     }
 }

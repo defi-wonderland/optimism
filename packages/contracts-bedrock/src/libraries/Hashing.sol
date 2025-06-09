@@ -132,7 +132,7 @@ library Hashing {
     /// @param _target Address of the contract or wallet that the message is targeting on the destination chain.
     /// @param _message The message payload to be relayed to the target on the destination chain.
     /// @return Hash of the encoded message parameters, used to uniquely identify the message.
-    function hashL2toL2CrossDomainMessage(
+    function hashL2toL2CrossDomainMessagePayload(
         uint256 _destination,
         uint256 _source,
         uint256 _nonce,
@@ -145,6 +145,21 @@ library Hashing {
         returns (bytes32)
     {
         return keccak256(abi.encode(_destination, _source, _nonce, _sender, _target, _message));
+    }
+
+    /// @notice Hashes a cross domain message with an origin context.
+    /// @param _messagePayloadHash Hash of the message payload.
+    /// @param _originContext Origin context of the message.
+    /// @return Hashed cross domain message.
+    function hashL2toL2CrossDomainMessage(
+        bytes32 _messagePayloadHash,
+        bytes memory _originContext
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(_messagePayloadHash, _originContext));
     }
 
     /// @notice Hashes a Super Root proof into a Super Root.
