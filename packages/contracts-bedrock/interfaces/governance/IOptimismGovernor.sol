@@ -17,4 +17,6 @@ interface IOptimismGovernor {
         string memory description,
         uint8 proposalType
     ) external returns (uint256 proposalId);
+
+    function timelock() external view returns (address);
 }

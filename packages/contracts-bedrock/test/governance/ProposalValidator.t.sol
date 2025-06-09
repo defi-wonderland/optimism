@@ -86,7 +86,7 @@ contract ProposalValidator_Init is CommonTest {
     );
     event DistributionThresholdSet(uint256 newDistributionThreshold);
     event ProposalTypeDataSet(
-        ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule
+        ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, address proposalVotingModule
     );
 
     /// @notice Helper function to setup a mock and expect a call to it.
@@ -125,23 +125,23 @@ contract ProposalValidator_Init is CommonTest {
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](5);
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
         proposalTypesData[2] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
         proposalTypesData[4] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
 
         return (proposalTypes, proposalTypesData);
@@ -507,7 +507,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
     function testFuzz_setProposalTypeData_succeeds(
         uint8 proposalTypeValue,
         uint256 newRequiredApprovals,
-        uint8 newConfigurator
+        address newConfigurator
     )
         public
     {
@@ -527,14 +527,14 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         vm.prank(owner);
         validator.setProposalTypeData(proposalType, newData);
 
-        (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalType);
+        (uint256 requiredApprovals, address proposalVotingModule) = validator.proposalTypesData(proposalType);
         assertEq(requiredApprovals, newRequiredApprovals);
         assertEq(proposalVotingModule, newConfigurator);
     }
 
     function test_setProposalTypeData_notOwner_reverts() public {
         ProposalValidator.ProposalTypeData memory newData =
-            ProposalValidator.ProposalTypeData({ requiredApprovals: 4, proposalVotingModule: 0 });
+            ProposalValidator.ProposalTypeData({ requiredApprovals: 4, proposalVotingModule: address(0) });
 
         vm.prank(rando);
         vm.expectRevert("Ownable: caller is not the owner");
@@ -626,9 +626,9 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
 
         // Verify proposal type data
         for (uint256 i = 0; i < proposalTypes.length; i++) {
-            (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
+            (uint256 requiredApprovals, address proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
             assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
-            assertEq(proposalVotingModule, 0);
+            assertEq(proposalVotingModule, address(0));
         }
     }
 
@@ -642,11 +642,11 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](2);
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: address(0)
         });
 
         vm.prank(owner);

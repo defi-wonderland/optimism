@@ -398,7 +398,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.inVoting = true;
 
         governorProposalId_ =
-            GOVERNOR.propose(_targets, _values, _calldatas, _description, proposalTypeData.proposalVotingModule);
+            GOVERNOR.propose(_targets, _values, _calldatas, _description, uint8(proposal.proposalType));
 
         emit ProposalMovedToVote(_proposalHash, msg.sender);
     }
