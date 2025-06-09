@@ -12,7 +12,11 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
+
+// Modules
+import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
 
 /// @custom:proxied true
 /// @title ProposalValidator
@@ -47,6 +51,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the length of the proposal types and proposal types data arrays do not match.
     error ProposalValidator_ProposalTypesDataLengthMismatch();
 
+    /// @notice Thrown when the proposal type is not valid for funding proposals.
+    error ProposalValidator_InvalidFundingProposalType();
+
+    /// @notice Thrown when the requested amount exceeds the distribution threshold.
+    error ProposalValidator_ExceedsDistributionThreshold();
+
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -71,7 +81,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param proposalVotingModule The voting module each proposal type must use.
     struct ProposalTypeData {
         uint256 requiredApprovals;
-        uint8 proposalVotingModule;
+        address proposalVotingModule;
     }
 
     /// @notice Struct for storing voting cycle data.
@@ -106,6 +116,18 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Emitted when a new proposal is submitted.
+    /// @param proposalHash The hash of the submitted proposal.
+    /// @param proposer The address that submitted the proposal.
+    /// @param description Description of the proposal.
+    /// @param proposalType Type of the proposal.
+    event ProposalSubmitted(
+        bytes32 indexed proposalHash,
+        address indexed proposer,
+        string description,
+        ProposalType proposalType
+    );
+
     /// @notice Emitted when a delegate approves a proposal.
     /// @param proposalHash The hash of the approved proposal.
     /// @param approver The address of the delegate who approved the proposal.
@@ -137,7 +159,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param proposalType The type of proposal.
     /// @param requiredApprovals The required number of approvals.
     /// @param proposalVotingModule The proposal voting module.
-    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule);
+    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, address proposalVotingModule);
+
+    /// @notice Emitted with ProposalSubmitted event.
+    /// @param proposalHash The hash of the submitted proposal.
+    /// @param encodedVotingModuleData The encoded voting module data.
+    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
 
     /// @notice The schema UID for attestations in the Ethereum Attestation Service.
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
@@ -225,6 +252,95 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         __Ownable_init();
         transferOwnership(_owner);
+    }
+
+    /// @notice Submits a GovernanceFund or CouncilBudget proposal type that transfers OP tokens for approval and voting.
+    /// @param _criteriaValue Since the passing criteria type is always "Threshold", this value will be the percentage that will be used to calculate the fraction of the votable supply that the proposal will need in votes in order to pass.
+    /// @param _optionsDescriptions The strings of the different options that can be voted.
+    /// @param _optionsRecipients An address for each option to transfer funds to in case the option passes the voting.
+    /// @param _optionsAmounts The amount to transfer for each option in case the option passes the voting.
+    /// @param _description Description of the proposal.
+    /// @param _proposalType The type of proposal (must be GovernanceFund or CouncilBudget).
+    /// @return proposalHash_ The hash of the submitted proposal.
+    function submitFundingProposal(
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        address[] memory _optionsRecipients,
+        uint256[] memory _optionsAmounts,
+        string memory _description,
+        ProposalType _proposalType
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
+            revert ProposalValidator_InvalidFundingProposalType();
+        }
+
+        uint256 optionsLength = _optionsDescriptions.length;
+        if (optionsLength != _optionsRecipients.length || optionsLength != _optionsAmounts.length) {
+            revert ProposalValidator_ProposalTypesDataLengthMismatch();
+        }
+
+        for (uint256 i = 0; i < optionsLength; i++) {
+            if (_optionsAmounts[i] > distributionThreshold) {
+                revert ProposalValidator_ExceedsDistributionThreshold();
+            }
+        }
+
+        ProposalOption[] memory options = new ProposalOption[](optionsLength);
+        
+        for (uint256 i = 0; i < optionsLength; i++) {
+            address[] memory targets = new address[](1);
+            uint256[] memory values = new uint256[](1);
+            bytes[] memory calldatas = new bytes[](1);
+
+            targets[0] = Predeploys.GOVERNANCE_TOKEN;
+            calldatas[0] = abi.encodeCall(IERC20.transfer, (_optionsRecipients[i], _optionsAmounts[i]));
+
+            options[i] = ProposalOption({
+                budgetTokensSpent: _optionsAmounts[i],
+                targets: targets,
+                values: values,
+                calldatas: calldatas,
+                description: _optionsDescriptions[i]
+            });
+        }
+
+        // Calculate total budget needed for all options
+        uint256 totalBudget = 0;
+        for (uint256 i = 0; i < optionsLength; i++) {
+            totalBudget += _optionsAmounts[i];
+        }
+
+        ProposalSettings memory settings = ProposalSettings({
+            maxApprovals: uint8(optionsLength),
+            criteria: uint8(PassingCriteria.Threshold),
+            budgetToken: Predeploys.GOVERNANCE_TOKEN,
+            criteriaValue: _criteriaValue,
+            budgetAmount: uint128(totalBudget)
+        });
+
+        bytes memory proposalVotingModuleData = abi.encode(options, settings);
+        
+        proposalHash_ = _hashProposalWithModule(
+            proposalTypesData[_proposalType].proposalVotingModule,
+            proposalVotingModuleData,
+            keccak256(bytes(_description))
+        );
+
+        ProposalData storage proposal = _proposals[proposalHash_];
+
+        if (proposal.proposer != address(0)) {
+            revert ProposalValidator_ProposalAlreadySubmitted();
+        }
+
+        proposal.proposer = msg.sender;
+        proposal.proposalType = _proposalType;
+        proposal.inVoting = false;
+
+        emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
+        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
     /// @notice Approve a proposal (only callable by delegates with sufficient voting power)
