@@ -8,6 +8,7 @@ import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas/IEAS.sol";
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Contracts
 import { ProposalValidator } from "src/governance/ProposalValidator.sol";
@@ -15,6 +16,9 @@ import { Proxy } from "src/universal/Proxy.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Modules
+import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
@@ -71,12 +75,8 @@ contract ProposalValidator_Init is CommonTest {
     event ProposalSubmitted(
         bytes32 indexed proposalHash,
         address indexed proposer,
-        address[] targets,
-        uint256[] values,
-        bytes[] calldatas,
         string description,
-        ProposalValidator.ProposalType proposalType,
-        uint8 proposalVotingModule
+        ProposalValidator.ProposalType proposalType
     );
     event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
     event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
@@ -575,6 +575,384 @@ contract ProposalValidator_HashProposalWithModule_Test is ProposalValidator_Init
         bytes32 hash2 = validator.hashProposalWithModule(module2, data, descHash);
 
         assertTrue(hash1 != hash2);
+    }
+}
+
+/// @title ProposalValidator_SubmitFundingProposal_Test
+/// @notice Happy path tests for submitFundingProposal function
+contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init {
+    address mockApprovalVotingModule;
+    uint128 criteriaValue;
+    string[] optionsDescriptions;
+    address[] optionsRecipients;
+    uint256[] optionsAmounts;
+    string description;
+
+    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
+
+    function setUp() public override {
+        super.setUp();
+
+        mockApprovalVotingModule = makeAddr("approvalVotingModule");
+        
+        vm.prank(owner);
+        validator.setProposalTypeData(
+            ProposalValidator.ProposalType.GovernanceFund,
+            ProposalValidator.ProposalTypeData({
+                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+                proposalVotingModule: mockApprovalVotingModule
+            })
+        );
+
+        vm.prank(owner);
+        validator.setProposalTypeData(
+            ProposalValidator.ProposalType.CouncilBudget,
+            ProposalValidator.ProposalTypeData({
+                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+                proposalVotingModule: mockApprovalVotingModule
+            })
+        );
+
+        criteriaValue = 1000 ether; // 1000 tokens needed for option to pass
+        optionsDescriptions = new string[](2);
+        optionsDescriptions[0] = "Option A: Fund development";
+        optionsDescriptions[1] = "Option B: Fund marketing";
+        
+        optionsRecipients = new address[](2);
+        optionsRecipients[0] = makeAddr("recipient1");
+        optionsRecipients[1] = makeAddr("recipient2");
+        
+        optionsAmounts = new uint256[](2);
+        optionsAmounts[0] = 1000 ether;
+        optionsAmounts[1] = 500 ether;
+        
+        description = "Test funding proposal";
+    }
+
+    function test_submitFundingProposal_governanceFund_succeeds() public {
+        // Calculate expected proposal hash
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            mockApprovalVotingModule,
+            _constructExpectedVotingModuleData(),
+            keccak256(bytes(description))
+        );
+
+        // Expect ProposalSubmitted event
+        vm.expectEmit(address(validator));
+        emit ProposalSubmitted(expectedHash, rando, description, ProposalValidator.ProposalType.GovernanceFund);
+
+        // Expect ProposalVotingModuleData event  
+        vm.expectEmit(address(validator));
+        emit ProposalVotingModuleData(expectedHash, _constructExpectedVotingModuleData());
+
+        vm.prank(rando);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+
+        assertEq(proposalHash, expectedHash);
+    }
+
+    function _constructExpectedVotingModuleData() internal view returns (bytes memory) {
+        // Construct ProposalOption array
+        ProposalOption[] memory options = new ProposalOption[](2);
+        
+        for (uint256 i = 0; i < 2; i++) {
+            address[] memory targets = new address[](1);
+            uint256[] memory values = new uint256[](1);
+            bytes[] memory calldatas = new bytes[](1);
+
+            targets[0] = Predeploys.GOVERNANCE_TOKEN;
+            calldatas[0] = abi.encodeCall(IERC20.transfer, (optionsRecipients[i], optionsAmounts[i]));
+
+            options[i] = ProposalOption({
+                budgetTokensSpent: optionsAmounts[i],
+                targets: targets,
+                values: values,
+                calldatas: calldatas,
+                description: optionsDescriptions[i]
+            });
+        }
+
+        // Construct ProposalSettings
+        uint256 totalBudget = optionsAmounts[0] + optionsAmounts[1];
+        ProposalSettings memory settings = ProposalSettings({
+            maxApprovals: uint8(optionsAmounts.length),
+            criteria: uint8(PassingCriteria.Threshold),
+            budgetToken: Predeploys.GOVERNANCE_TOKEN,
+            criteriaValue: criteriaValue,
+            budgetAmount: uint128(totalBudget)
+        });
+
+        return abi.encode(options, settings);
+    }
+
+    function test_submitFundingProposal_councilBudget_succeeds() public {
+        // Calculate expected proposal hash
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            mockApprovalVotingModule,
+            _constructExpectedVotingModuleData(),
+            keccak256(bytes(description))
+        );
+
+        // Expect ProposalSubmitted event
+        vm.expectEmit(address(validator));
+        emit ProposalSubmitted(expectedHash, rando, description, ProposalValidator.ProposalType.CouncilBudget);
+
+        // Expect ProposalVotingModuleData event  
+        vm.expectEmit(address(validator));
+        emit ProposalVotingModuleData(expectedHash, _constructExpectedVotingModuleData());
+
+        vm.prank(rando);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.CouncilBudget
+        );
+
+        assertEq(proposalHash, expectedHash);
+    }
+
+    function test_submitFundingProposal_singleOption_succeeds() public {
+        string[] memory singleDescription = new string[](1);
+        singleDescription[0] = "Single option";
+        
+        address[] memory singleRecipient = new address[](1);
+        singleRecipient[0] = makeAddr("singleRecipient");
+        
+        uint256[] memory singleAmount = new uint256[](1);
+        singleAmount[0] = 100 ether;
+
+        vm.prank(rando);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            criteriaValue,
+            singleDescription,
+            singleRecipient,
+            singleAmount,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+
+        assertTrue(proposalHash != bytes32(0));
+    }
+
+    function test_submitFundingProposal_maximumThreshold_succeeds() public {
+        // Use amounts at the distribution threshold
+        optionsAmounts[0] = DISTRIBUTION_THRESHOLD;
+        optionsAmounts[1] = DISTRIBUTION_THRESHOLD;
+
+        vm.prank(rando);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+
+        assertTrue(proposalHash != bytes32(0));
+    }
+
+    function test_submitFundingProposal_zeroAmount_succeeds() public {
+        optionsAmounts[0] = 0;
+        optionsAmounts[1] = 100 ether;
+
+        vm.prank(rando);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+
+        assertTrue(proposalHash != bytes32(0));
+    }
+}
+
+/// @title ProposalValidator_SubmitFundingProposal_TestFail
+/// @notice Sad path tests for submitFundingProposal function
+contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_Init {
+    address mockApprovalVotingModule;
+    uint128 criteriaValue;
+    string[] optionsDescriptions;
+    address[] optionsRecipients;
+    uint256[] optionsAmounts;
+    string description;
+
+    function setUp() public override {
+        super.setUp();
+
+        mockApprovalVotingModule = makeAddr("approvalVotingModule");
+        
+        // Set GovernanceFund to use the approval voting module
+        vm.prank(owner);
+        validator.setProposalTypeData(
+            ProposalValidator.ProposalType.GovernanceFund,
+            ProposalValidator.ProposalTypeData({
+                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+                proposalVotingModule: mockApprovalVotingModule
+            })
+        );
+
+        criteriaValue = 50;
+        optionsDescriptions = new string[](2);
+        optionsDescriptions[0] = "Option A";
+        optionsDescriptions[1] = "Option B";
+        
+        optionsRecipients = new address[](2);
+        optionsRecipients[0] = makeAddr("recipient1");
+        optionsRecipients[1] = makeAddr("recipient2");
+        
+        optionsAmounts = new uint256[](2);
+        optionsAmounts[0] = 1000 ether;
+        optionsAmounts[1] = 500 ether;
+        
+        description = "Test funding proposal";
+    }
+
+    function test_submitFundingProposal_invalidProposalType_reverts() public {
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade
+        );
+    }
+
+    function test_submitFundingProposal_mismatchedDescriptionsLength_reverts() public {
+        string[] memory mismatchedDescriptions = new string[](1);
+        mismatchedDescriptions[0] = "Only one description";
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            mismatchedDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_mismatchedRecipientsLength_reverts() public {
+        address[] memory mismatchedRecipients = new address[](1);
+        mismatchedRecipients[0] = makeAddr("onlyOne");
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            mismatchedRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_mismatchedAmountsLength_reverts() public {
+        uint256[] memory mismatchedAmounts = new uint256[](1);
+        mismatchedAmounts[0] = 100 ether;
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            mismatchedAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_exceedsDistributionThreshold_reverts() public {
+        optionsAmounts[0] = DISTRIBUTION_THRESHOLD + 1;
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_duplicateProposal_reverts() public {
+        // Submit first proposal
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+
+        // Attempt to submit identical proposal
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_multipleAmountsExceedThreshold_reverts() public {
+        optionsAmounts[1] = DISTRIBUTION_THRESHOLD + 1;
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 excessAmount) public {
+        vm.assume(excessAmount > DISTRIBUTION_THRESHOLD);
+        vm.assume(excessAmount <= type(uint256).max);
+        
+        optionsAmounts[0] = excessAmount;
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
     }
 }
 
