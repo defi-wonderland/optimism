@@ -594,7 +594,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         super.setUp();
 
         mockApprovalVotingModule = makeAddr("approvalVotingModule");
-        
+
         vm.prank(owner);
         validator.setProposalTypeData(
             ProposalValidator.ProposalType.GovernanceFund,
@@ -617,31 +617,29 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         optionsDescriptions = new string[](2);
         optionsDescriptions[0] = "Option A: Fund development";
         optionsDescriptions[1] = "Option B: Fund marketing";
-        
+
         optionsRecipients = new address[](2);
         optionsRecipients[0] = makeAddr("recipient1");
         optionsRecipients[1] = makeAddr("recipient2");
-        
+
         optionsAmounts = new uint256[](2);
         optionsAmounts[0] = 1000 ether;
         optionsAmounts[1] = 500 ether;
-        
+
         description = "Test funding proposal";
     }
 
     function test_submitFundingProposal_governanceFund_succeeds() public {
         // Calculate expected proposal hash
         bytes32 expectedHash = validator.hashProposalWithModule(
-            mockApprovalVotingModule,
-            _constructExpectedVotingModuleData(),
-            keccak256(bytes(description))
+            mockApprovalVotingModule, _constructExpectedVotingModuleData(), keccak256(bytes(description))
         );
 
         // Expect ProposalSubmitted event
         vm.expectEmit(address(validator));
         emit ProposalSubmitted(expectedHash, rando, description, ProposalValidator.ProposalType.GovernanceFund);
 
-        // Expect ProposalVotingModuleData event  
+        // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
         emit ProposalVotingModuleData(expectedHash, _constructExpectedVotingModuleData());
 
@@ -661,7 +659,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function _constructExpectedVotingModuleData() internal view returns (bytes memory) {
         // Construct ProposalOption array
         ProposalOption[] memory options = new ProposalOption[](2);
-        
+
         for (uint256 i = 0; i < 2; i++) {
             address[] memory targets = new address[](1);
             uint256[] memory values = new uint256[](1);
@@ -695,16 +693,14 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function test_submitFundingProposal_councilBudget_succeeds() public {
         // Calculate expected proposal hash
         bytes32 expectedHash = validator.hashProposalWithModule(
-            mockApprovalVotingModule,
-            _constructExpectedVotingModuleData(),
-            keccak256(bytes(description))
+            mockApprovalVotingModule, _constructExpectedVotingModuleData(), keccak256(bytes(description))
         );
 
         // Expect ProposalSubmitted event
         vm.expectEmit(address(validator));
         emit ProposalSubmitted(expectedHash, rando, description, ProposalValidator.ProposalType.CouncilBudget);
 
-        // Expect ProposalVotingModuleData event  
+        // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
         emit ProposalVotingModuleData(expectedHash, _constructExpectedVotingModuleData());
 
@@ -724,10 +720,10 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function test_submitFundingProposal_singleOption_succeeds() public {
         string[] memory singleDescription = new string[](1);
         singleDescription[0] = "Single option";
-        
+
         address[] memory singleRecipient = new address[](1);
         singleRecipient[0] = makeAddr("singleRecipient");
-        
+
         uint256[] memory singleAmount = new uint256[](1);
         singleAmount[0] = 100 ether;
 
@@ -794,7 +790,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         super.setUp();
 
         mockApprovalVotingModule = makeAddr("approvalVotingModule");
-        
+
         // Set GovernanceFund to use the approval voting module
         vm.prank(owner);
         validator.setProposalTypeData(
@@ -809,15 +805,15 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         optionsDescriptions = new string[](2);
         optionsDescriptions[0] = "Option A";
         optionsDescriptions[1] = "Option B";
-        
+
         optionsRecipients = new address[](2);
         optionsRecipients[0] = makeAddr("recipient1");
         optionsRecipients[1] = makeAddr("recipient2");
-        
+
         optionsAmounts = new uint256[](2);
         optionsAmounts[0] = 1000 ether;
         optionsAmounts[1] = 500 ether;
-        
+
         description = "Test funding proposal";
     }
 
@@ -940,7 +936,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 excessAmount) public {
         vm.assume(excessAmount > DISTRIBUTION_THRESHOLD);
         vm.assume(excessAmount <= type(uint256).max);
-        
+
         optionsAmounts[0] = excessAmount;
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);

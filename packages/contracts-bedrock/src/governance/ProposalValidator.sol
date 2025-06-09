@@ -122,10 +122,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param description Description of the proposal.
     /// @param proposalType Type of the proposal.
     event ProposalSubmitted(
-        bytes32 indexed proposalHash,
-        address indexed proposer,
-        string description,
-        ProposalType proposalType
+        bytes32 indexed proposalHash, address indexed proposer, string description, ProposalType proposalType
     );
 
     /// @notice Emitted when a delegate approves a proposal.
@@ -254,8 +251,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         transferOwnership(_owner);
     }
 
-    /// @notice Submits a GovernanceFund or CouncilBudget proposal type that transfers OP tokens for approval and voting.
-    /// @param _criteriaValue Since the passing criteria type is always "Threshold", this value will be the percentage that will be used to calculate the fraction of the votable supply that the proposal will need in votes in order to pass.
+    /// @notice Submits a GovernanceFund or CouncilBudget proposal type that transfers OP tokens for approval and
+    /// voting.
+    /// @param _criteriaValue Since the passing criteria type is always "Threshold", this value will be the percentage
+    /// that will be used to calculate the fraction of the votable supply that the proposal will need in votes in order
+    /// to pass.
     /// @param _optionsDescriptions The strings of the different options that can be voted.
     /// @param _optionsRecipients An address for each option to transfer funds to in case the option passes the voting.
     /// @param _optionsAmounts The amount to transfer for each option in case the option passes the voting.
@@ -289,7 +289,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         ProposalOption[] memory options = new ProposalOption[](optionsLength);
-        
+
         for (uint256 i = 0; i < optionsLength; i++) {
             address[] memory targets = new address[](1);
             uint256[] memory values = new uint256[](1);
@@ -322,7 +322,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         });
 
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
-        
+
         proposalHash_ = _hashProposalWithModule(
             proposalTypesData[_proposalType].proposalVotingModule,
             proposalVotingModuleData,
