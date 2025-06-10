@@ -114,8 +114,8 @@ contract GasTank is IGasTank {
     /// @param gasProvider The address of the gas provider
     /// @param payload The payload of the message
     function claim(InboxID calldata id, address gasProvider, bytes calldata payload) external {
-        // Ensure the origin is the messenger
-        if (id.origin != address(MESSENGER)) revert InvalidOrigin();
+        // Ensure the origin is a gas tank deployed with the same address on the destination chain
+        if (id.origin != address(this)) revert InvalidOrigin();
 
         // Decode the receipt
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();

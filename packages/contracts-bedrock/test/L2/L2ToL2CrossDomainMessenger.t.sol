@@ -979,7 +979,7 @@ contract L2ToL2CrossDomainMessengerTest is Test {
         /* 4. claim chain B on A */
         vm.chainId(A);
 
-        id = InboxID(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, ID_BLOCK_NUMBER, logIndex++, ID_TIMESTAMP, B);
+        id = InboxID(address(gasTank), ID_BLOCK_NUMBER, logIndex++, ID_TIMESTAMP, B);
         bytes32 relayMessageOnBHash = keccak256(abi.encodePacked(messagePayloadHash, originContext));
 
         assertEq(rootMessageHash, relayMessageOnBHash, "3");
