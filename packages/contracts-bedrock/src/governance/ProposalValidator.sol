@@ -273,15 +273,18 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         external
         returns (bytes32 proposalHash_)
     {
+        // Only funding proposal types can use this function
         if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
             revert ProposalValidator_InvalidFundingProposalType();
         }
 
+        // Validate input arrays have matching lengths
         uint256 optionsLength = _optionsDescriptions.length;
         if (optionsLength != _optionsRecipients.length || optionsLength != _optionsAmounts.length) {
             revert ProposalValidator_ProposalTypesDataLengthMismatch();
         }
 
+        // Check each option amount against distribution threshold
         for (uint256 i = 0; i < optionsLength; i++) {
             if (_optionsAmounts[i] > distributionThreshold) {
                 revert ProposalValidator_ExceedsDistributionThreshold();
@@ -290,6 +293,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         ProposalOption[] memory options = new ProposalOption[](optionsLength);
 
+        // Build proposal options with governance token transfer calls
         for (uint256 i = 0; i < optionsLength; i++) {
             address[] memory targets = new address[](1);
             uint256[] memory values = new uint256[](1);
@@ -313,6 +317,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             totalBudget += _optionsAmounts[i];
         }
 
+        // Configure approval voting settings
         ProposalSettings memory settings = ProposalSettings({
             maxApprovals: uint8(optionsLength),
             criteria: uint8(PassingCriteria.Threshold),
@@ -323,6 +328,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
+        // Generate unique proposal hash
         proposalHash_ = _hashProposalWithModule(
             proposalTypesData[_proposalType].proposalVotingModule,
             proposalVotingModuleData,
@@ -331,10 +337,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         ProposalData storage proposal = _proposals[proposalHash_];
 
+        // Prevent duplicate proposals with same hash
         if (proposal.proposer != address(0)) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
+        // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
         proposal.inVoting = false;
