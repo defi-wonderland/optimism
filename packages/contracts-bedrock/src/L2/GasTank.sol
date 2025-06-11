@@ -91,6 +91,9 @@ contract GasTank is IGasTank {
         emit Flagged(originMsgHash, msg.sender);
     }
 
+    /// @notice Relays a message to the destination chain
+    /// @param _id The identifier of the `SentMessage` event
+    /// @param _sentMessage The `SentMessage` payload to relay
     function relayMessage(Identifier[] calldata _id, bytes[] calldata _sentMessage) public {
         uint256 length = _id.length;
 
@@ -112,7 +115,7 @@ contract GasTank is IGasTank {
     /// @notice Claims repayment for a relayed message
     /// @param id The identifier of the message
     /// @param gasProvider The address of the gas provider
-    /// @param payload The payload of the message
+    /// @param payload The payload of the `RelayedMessageGasReceipt` event
     function claim(Identifier calldata id, address gasProvider, bytes calldata payload) external {
         // Ensure the origin is a gas tank deployed with the same address on the destination chain
         if (id.origin != address(this)) revert InvalidOrigin();
@@ -166,11 +169,18 @@ contract GasTank is IGasTank {
         relayCost = abi.decode(payload[128:], (uint256));
     }
 
-    /// @notice Calculates the cost of a message relay.
+    /// @notice Calculates the cost of a message relay
+    /// @param _gasUsed The amount of gas used to relay the message
+    /// @return The cost of the message relay
     function _cost(uint256 _gasUsed) internal view returns (uint256) {
         return block.basefee * _gasUsed;
     }
 
+    /// @notice Decodes the payload of the `SentMessage` event
+    /// @param _source The source chain ID
+    /// @param _sentMessage The `SentMessage` payload
+    /// @return msgHash The hash of the relayed message
+    /// @return originMsgHash The hash of the origin message
     function _getMessageData(
         uint256 _source,
         bytes calldata _sentMessage
