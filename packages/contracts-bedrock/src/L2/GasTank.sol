@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { IL2ToL2CrossDomainMessenger, Identifier as RelayID } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
-import { ICrossL2Inbox, Identifier as InboxID } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
@@ -91,7 +91,7 @@ contract GasTank is IGasTank {
         emit Flagged(rootMessageHash, msg.sender);
     }
 
-    function relayMessage(RelayID[] calldata _id, bytes[] calldata _sentMessage) public {
+    function relayMessage(Identifier[] calldata _id, bytes[] calldata _sentMessage) public {
         uint256 length = _id.length;
 
         if (length != _sentMessage.length) revert InvalidLength();
@@ -113,7 +113,7 @@ contract GasTank is IGasTank {
     /// @param id The identifier of the message
     /// @param gasProvider The address of the gas provider
     /// @param payload The payload of the message
-    function claim(InboxID calldata id, address gasProvider, bytes calldata payload) external {
+    function claim(Identifier calldata id, address gasProvider, bytes calldata payload) external {
         // Ensure the origin is a gas tank deployed with the same address on the destination chain
         if (id.origin != address(this)) revert InvalidOrigin();
 

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { Identifier } from "./ICrossL2Inbox.sol";
-import { IL2ToL2CrossDomainMessenger, Identifier as RelayID } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
 interface IGasTank {
     // Structs
@@ -55,7 +55,7 @@ interface IGasTank {
     function initiateWithdrawal(uint256 amount) external;
     function finalizeWithdrawal(address to) external;
     function flag(bytes32 rootMessageHash) external;
-    function relayMessage(RelayID[] calldata _id, bytes[] calldata _sentMessage) external;
+    function relayMessage(Identifier[] calldata _id, bytes[] calldata _sentMessage) external;
     function claim(Identifier calldata id, address gasProvider, bytes calldata payload) external;
     function decodeGasReceiptPayload(bytes calldata payload)
         external
