@@ -100,38 +100,32 @@ contract GasTank is IGasTank {
     /// @notice Relays a message to the destination chain
     /// @param _id The identifier of the message
     /// @param _sentMessage The sent message event payload
-    function relayMessage(Identifier[] calldata _id, bytes[] calldata _sentMessage) public {
-        uint256 batchLength = _id.length;
+    function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) public {
+        uint256 initialGas = gasleft();
 
-        if (batchLength != _sentMessage.length) revert InvalidLength();
+        bytes32 originMessageHash = _getMessageHash(_id.chainId, _sentMessage);
 
-        for (uint256 i; i < batchLength; i++) {
-            uint256 initialGas = gasleft();
+        // Cache the Messenger nonce
+        (uint240 nonceBefore,) = MESSENGER.messageNonce().decodeVersionedNonce();
 
-            bytes32 originMessageHash = _getMessageHash(_id[i].chainId, _sentMessage[i]);
+        // Relay the message
+        MESSENGER.relayMessage(_id, _sentMessage);
 
-            // Cache the Messenger nonce
-            (uint240 nonceBefore,) = MESSENGER.messageNonce().decodeVersionedNonce();
+        // Get the difference between the initial nonce and the final nonce
+        (uint240 nonceAfter,) = MESSENGER.messageNonce().decodeVersionedNonce();
+        uint256 nonceDelta = nonceAfter - nonceBefore;
 
-            // Relay the message
-            MESSENGER.relayMessage(_id[i], _sentMessage[i]);
+        bytes32[] memory destinationMessageHashes = new bytes32[](nonceDelta);
 
-            // Get the difference between the initial nonce and the final nonce
-            (uint240 nonceAfter,) = MESSENGER.messageNonce().decodeVersionedNonce();
-            uint256 nonceDelta = nonceAfter - nonceBefore;
-
-            bytes32[] memory destinationMessageHashes = new bytes32[](nonceDelta);
-
-            for (uint256 j; j < nonceDelta; j++) {
-                destinationMessageHashes[j] = MESSENGER.sentMessages(nonceBefore + j);
-            }
-
-            // Get the gas used
-            uint256 gasUsed = (initialGas - gasleft()) + GAS_RECEIPT_EVENT_OVERHEAD;
-
-            // Emit the event with the relationship between the origin message and the destination messages
-            emit RelayedMessageGasReceipt(originMessageHash, msg.sender, _cost(gasUsed), destinationMessageHashes);
+        for (uint256 j; j < nonceDelta; j++) {
+            destinationMessageHashes[j] = MESSENGER.sentMessages(nonceBefore + j);
         }
+
+        // Get the gas used
+        uint256 gasUsed = (initialGas - gasleft()) + GAS_RECEIPT_EVENT_OVERHEAD;
+
+        // Emit the event with the relationship between the origin message and the destination messages
+        emit RelayedMessageGasReceipt(originMessageHash, msg.sender, _cost(gasUsed), destinationMessageHashes);
     }
 
     /// @notice Claims repayment for a relayed message
