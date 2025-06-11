@@ -31,7 +31,7 @@ interface IGasTank {
     error MaxDepositExceeded();
     error InvalidOrigin();
     error InvalidPayload();
-    error InvalidRootMessage();
+    error InvalidOriginMessage();
     error InsufficientBalance();
     error AlreadyClaimed();
     error InvalidPayer();

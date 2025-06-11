@@ -34,7 +34,7 @@ contract GasTank is IGasTank {
     mapping(address gasProvider => Withdrawal) public withdrawals;
 
     /// @notice The claimed messages
-    mapping(bytes32 rootMsgHash => bool claimed) public claimed;
+    mapping(bytes32 originMsgHash => bool claimed) public claimed;
 
     /// @notice The flagged messages for relaying
     mapping(address gasProvider => mapping(bytes32 msgHash => bool flagged)) public flaggedMessages;
@@ -85,7 +85,7 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Flags a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
-    /// @param originMsgHash The hash of the root message
+    /// @param originMsgHash The hash of the origin message
     function flag(bytes32 originMsgHash) external {
         flaggedMessages[msg.sender][originMsgHash] = true;
         emit Flagged(originMsgHash, msg.sender);
@@ -119,10 +119,10 @@ contract GasTank is IGasTank {
 
         // Decode the receipt
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
-        (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost) = decodeGasReceiptPayload(payload);
+        (bytes32 msgHash, bytes32 originMsgHash, address relayer, uint256 relayCost) = decodeGasReceiptPayload(payload);
 
         // Ensure the message is flagged for relaying
-        if (!flaggedMessages[gasProvider][rootMsgHash]) revert InvalidPayer();
+        if (!flaggedMessages[gasProvider][originMsgHash]) revert InvalidPayer();
 
         // Ensure unclaimed
         if (claimed[msgHash]) revert AlreadyClaimed();
@@ -133,7 +133,7 @@ contract GasTank is IGasTank {
         if (balanceOf[gasProvider] < cost) revert InsufficientBalance();
 
         // Ensure the original outbound message was sent from this chain
-        if (!MESSENGER.sentMessages(rootMsgHash)) revert InvalidRootMessage();
+        if (!MESSENGER.sentMessages(originMsgHash)) revert InvalidOriginMessage();
 
         // Validate the message
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(id, keccak256(payload));
@@ -145,22 +145,22 @@ contract GasTank is IGasTank {
         // Send the cost repayment back to the relayer
         new SafeSend{ value: cost }(payable(relayer));
 
-        emit Claimed(msgHash, relayer, gasProvider, rootMsgHash, cost);
+        emit Claimed(msgHash, relayer, gasProvider, originMsgHash, cost);
     }
 
     /// @notice Decodes the payload of the RelayedMessageGasReceipt event
     /// @param payload The payload of the event
     /// @return msgHash The hash of the relayed message
-    /// @return rootMsgHash The hash of the root message
+    /// @return originMsgHash The hash of the origin message
     /// @return relayer The address of the relayer
     /// @return relayCost The amount of native tokens expended on the relay
     function decodeGasReceiptPayload(bytes calldata payload)
         public
         pure
-        returns (bytes32 msgHash, bytes32 rootMsgHash, address relayer, uint256 relayCost)
+        returns (bytes32 msgHash, bytes32 originMsgHash, address relayer, uint256 relayCost)
     {
         // Decode Topics
-        (msgHash, rootMsgHash, relayer) = abi.decode(payload[32:128], (bytes32, bytes32, address));
+        (msgHash, originMsgHash, relayer) = abi.decode(payload[32:128], (bytes32, bytes32, address));
 
         // Decode Data
         relayCost = abi.decode(payload[128:], (uint256));
@@ -193,10 +193,10 @@ contract GasTank is IGasTank {
             originContext
         );
 
-        // Recover the root message payload hash
+        // Recover the origin message payload hash
         (, bytes32 contextMessagePayloadHash) = abi.decode(originContext, (uint8, bytes32));
 
-        // Get the root message hash
+        // Get the origin message hash
         originMsgHash = Hashing.hashL2toL2CrossDomainMessage(contextMessagePayloadHash, originContext);
     }
 }
