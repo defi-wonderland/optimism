@@ -38,19 +38,19 @@ error ReentrantCall();
 /// @notice Thrown when the provided message parameters do not match any hash of a previously sent message.
 error InvalidMessage();
 
-/// @notice Decoded payload of a SentMessage event.
-/// @param destination Chain ID of the destination chain.
-/// @param target Target contract or wallet address.
+/// @notice Decoded data of a SentMessage event.
+/// @param dstChain Chain ID of the destination chain.
+/// @param dstAddress Target contract or wallet address.
 /// @param nonce Nonce associated with the message sent
-/// @param sender Address initiating this message call
-/// @param message Message payload to call target with.
-/// @param originContext Context of the message
-struct DecodedPayload {
-    uint256 destination;
-    address target;
+/// @param srcSender Address initiating this message call
+/// @param dstCallData Data to call target with.
+/// @param originContext Context of the original message
+struct SentMessagePayload {
+    uint256 dstChain;
+    address dstAddress;
     uint256 nonce;
-    address sender;
-    bytes message;
+    address srcSender;
+    bytes dstCallData;
     bytes originContext;
 }
 
@@ -81,8 +81,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Second storage slot for the context of the current cross domain message.
     ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.context.messagePayloadHash")) - 1)
-    bytes32 internal constant ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT =
-        0x1599376b7dd96feafb3dee69530b7c0f4ac6e0447ea06adb0f7c431e59c5547c;
+    bytes32 internal constant ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT =  // TODO: rename ORIGIN_CONTENT_HASH_SLOT
+     0x1599376b7dd96feafb3dee69530b7c0f4ac6e0447ea06adb0f7c431e59c5547c;
 
     /// @notice Current message version identifier.
     uint16 public constant messageVersion = uint16(0);
@@ -105,29 +105,36 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     mapping(bytes32 => bool) public sentMessages;
 
     /// @notice Emitted whenever a message is sent to a destination
-    /// @param destination  Chain ID of the destination chain.
-    /// @param target       Target contract or wallet address.
-    /// @param messageNonce Nonce associated with the message sent
-    /// @param sender       Address initiating this message call
-    /// @param message      Message payload to call target with.
-    /// @param originContext Context of the message
+    /// @param dstChain      Chain ID of the destination chain.
+    /// @param dstAddress    Target contract or wallet address.
+    /// @param nonce         Nonce associated with the message sent
+    /// @param srcSender     Address initiating this message call
+    /// @param dstCallData   Data to call target with.
+    /// @param originContext   Context of the message
     event SentMessage(
-        uint256 indexed destination,
-        address indexed target,
-        uint256 indexed messageNonce,
-        address sender,
-        bytes message,
+        uint256 indexed dstChain,
+        address indexed dstAddress,
+        uint256 indexed nonce,
+        address srcSender,
+        bytes dstCallData,
         bytes originContext
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
-    /// @param source       Chain ID of the source chain.
-    /// @param messageNonce Nonce associated with the messsage sent
-    /// @param messageHash  Hash of the message that was relayed.
+    /// @param srcChain Chain ID of the source chain.
+    /// @param nonce    Nonce associated with the messsage sent
+    /// @param payloadHash  Hash of the message payload that was relayed.
     /// @param returnDataHash Hash of the return data from the message that was relayed.
     event RelayedMessage(
-        uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash, bytes32 returnDataHash
+        uint256 indexed srcChain, uint256 indexed nonce, bytes32 indexed payloadHash, bytes32 returnDataHash
     );
+
+    /// @notice Emitted whenever a message is successfully relayed on this chain.
+    /// @param msgHash Hash of the message that was relayed.
+    /// @param rootMsgHash Hash of the root message that was relayed.
+    /// @param relayer Address of the relayer that relayed the message.
+    /// @param cost Cost of the message relay.
+    event RelayedMessageGasReceipt(bytes32 indexed msgHash, bytes32 indexed rootMsgHash, address relayer, uint256 cost);
 
     /// @notice Retrieves the sender of the current cross domain message. If not entered, reverts.
     /// @return sender_ Address of the sender of the current cross domain message.
@@ -138,10 +145,10 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     }
 
     /// @notice Retrieves the source of the current cross domain message. If not entered, reverts.
-    /// @return source_ Chain ID of the source of the current cross domain message.
-    function crossDomainMessageSource() external view onlyEntered returns (uint256 source_) {
+    /// @return srcChain_ Chain ID of the source of the current cross domain message.
+    function crossDomainMessageSource() external view onlyEntered returns (uint256 srcChain_) {
         assembly {
-            source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
+            srcChain_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
         }
     }
 
@@ -152,71 +159,73 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     }
 
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
-    /// @return sender_ Address of the sender of the current cross domain message.
-    /// @return source_ Chain ID of the source of the current cross domain message.
+    /// @return srcSender_ Address of the sender of the current cross domain message.
+    /// @return srcChain_ Chain ID of the source of the current cross domain message.
     /// @return originContext_ Origin context of the current cross domain message. Leaving as bytes instead of the fixed
     ///                        struct for flexibility.
     function crossDomainMessageContext()
         external
         view
         onlyEntered
-        returns (address sender_, uint256 source_, bytes memory originContext_)
+        returns (address srcSender_, uint256 srcChain_, bytes memory originContext_)
     {
         uint8 encodingVersion;
-        bytes32 messagePayloadHash;
+        bytes32 payloadHash;
         assembly {
-            sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
-            source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
+            srcSender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
+            srcChain_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
             encodingVersion := tload(ORIGIN_CONTEXT_VERSION_SLOT)
-            messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT)
+            payloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT)
         }
 
-        originContext_ = abi.encode(encodingVersion, messagePayloadHash);
+        originContext_ = abi.encode(encodingVersion, payloadHash);
     }
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
     ///         then the message will be unrelayable and any ETH sent will be permanently locked. The same will occur
     ///         if the target on the other chain is considered unsafe (see the _isUnsafeTarget() function).
-    /// @param _destination Chain ID of the destination chain.
-    /// @param _target      Target contract or wallet address.
-    /// @param _message     Message payload to call target with.
-    /// @return messageHash_ The hash of the message being sent, used to track whether the message
+    /// @param _dstChain    Chain ID of the destination chain.
+    /// @param _dstAddress      Target contract or wallet address.
+    /// @param _dstCallData     Message payload to call target with.
+    /// @return payloadHash_ The hash of the message payload being sent, used to track whether the message
     ///                      has successfully been relayed.
-    function sendMessage(
-        uint256 _destination,
-        address _target,
-        bytes calldata _message
+    function sendMessage( // Note: this is basically a solidity "call()" with chain id added
+        uint256 _dstChain,
+        address _dstAddress,
+        bytes calldata _dstCallData
     )
         external
-        returns (bytes32 messageHash_)
+        returns (bytes32 payloadHash_)
     {
-        if (_destination == block.chainid) revert MessageDestinationSameChain();
-        if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
+        if (_dstChain == block.chainid) revert MessageDestinationSameChain();
 
         uint256 nonce = messageNonce();
-        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessagePayload({
-            _destination: _destination,
+
+        // TODO: rename hashL2toL2CrossDomainMessagePayload to hashL2toL2CrossDomainMessageContent
+        bytes32 contentHash_ = Hashing.hashL2toL2CrossDomainMessagePayload({ // TODO: rename the args
+            _destination: _dstChain, // TODO: put these args in the same order as the log
             _source: block.chainid,
             _nonce: nonce,
             _sender: msg.sender,
-            _target: _target,
-            _message: _message
+            _target: _dstAddress,
+            _message: _dstCallData
         });
 
+        // TODO refactor encodingVersion into _crossDomainMessageOriginContext with parse (or 3rd) function
         bytes memory originContext = _crossDomainMessageOriginContext();
         (uint8 encodingVersion,) = _parseOriginContext(originContext);
 
+        // When 0 (empty originContext) means this is the first message sent
         if (encodingVersion == 0) {
-            originContext = abi.encode(ORIGIN_CONTEXT_ENCODING_VERSION, messagePayloadHash);
+            originContext = abi.encode(ORIGIN_CONTEXT_ENCODING_VERSION, contentHash_);
         }
 
-        // new "top-level" cross domain call (messageHash_ == outbound message)
-        messageHash_ = Hashing.hashL2toL2CrossDomainMessage(messagePayloadHash, originContext);
+        payloadHash_ = keccak256(abi.encodePacked(contentHash_, originContext));
 
-        sentMessages[messageHash_] = true;
+        sentMessages[payloadHash_] = true;
         msgNonce++;
 
-        emit SentMessage(_destination, _target, nonce, msg.sender, _message, originContext);
+        emit SentMessage(_dstChain, _dstAddress, nonce, msg.sender, _dstCallData, originContext);
     }
 
     /// @notice Re-emits a previously sent message event for old messages that haven't been
@@ -229,7 +238,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _target Target contract or wallet address.
     /// @param _message Message payload to call target with.
     /// @param _originContext Origin context of the message.
-    /// @return messageHash_ The hash of the message being re-sent.
+    /// @return payloadHash_ The hash of the message being re-sent.
     function resendMessage(
         uint256 _destination,
         uint256 _nonce,
@@ -239,9 +248,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         bytes calldata _originContext
     )
         external
-        returns (bytes32 messageHash_)
+        returns (bytes32 payloadHash_)
     {
-        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessagePayload({
+        bytes32 contentHash_ = Hashing.hashL2toL2CrossDomainMessagePayload({
             _destination: _destination,
             _source: block.chainid,
             _nonce: _nonce,
@@ -250,9 +259,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _message: _message
         });
 
-        messageHash_ = Hashing.hashL2toL2CrossDomainMessage(messagePayloadHash, _originContext);
+        payloadHash_ = keccak256(abi.encodePacked(contentHash_, _originContext));
 
-        if (!sentMessages[messageHash_]) revert InvalidMessage();
+        if (!sentMessages[payloadHash_]) revert InvalidMessage();
 
         emit SentMessage(_destination, _target, _nonce, _sender, _message, _originContext);
     }
@@ -261,11 +270,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     ///         via cross chain call from the other messenger OR if the message was already received once and is
     ///         currently being replayed.
     /// @param _id          Identifier of the SentMessage event to be relayed
-    /// @param _sentMessage Payload of the `SentMessage` event
+    /// @param _sentMessagePayload Payload of the `SentMessage` event
     /// @return returnData_ Return data from the target contract call.
     function relayMessage(
         Identifier calldata _id,
-        bytes calldata _sentMessage
+        bytes calldata _sentMessagePayload
     )
         external
         payable
@@ -278,35 +287,35 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         // Signal that this is a cross chain call that needs to have the identifier validated
-        ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
+        ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessagePayload));
 
         // Decode the payload
-        DecodedPayload memory decodedPayload = _decodeSentMessagePayload(_sentMessage);
+        SentMessagePayload memory decodedPayload = _decodeSentMessagePayload(_sentMessagePayload);
 
         // Assert invariants on the message
-        if (decodedPayload.destination != block.chainid) revert MessageDestinationNotRelayChain();
+        if (decodedPayload.dstChain != block.chainid) revert MessageDestinationNotRelayChain();
 
-        uint256 source = _id.chainId;
-        bytes32 messagePayloadHash = Hashing.hashL2toL2CrossDomainMessagePayload({
-            _destination: decodedPayload.destination,
-            _source: source,
+        uint256 srcChain = _id.chainId;
+        bytes32 contentHash_ = Hashing.hashL2toL2CrossDomainMessagePayload({
+            _destination: decodedPayload.dstChain,
+            _source: srcChain,
             _nonce: decodedPayload.nonce,
-            _sender: decodedPayload.sender,
-            _target: decodedPayload.target,
-            _message: decodedPayload.message
+            _sender: decodedPayload.srcSender,
+            _target: decodedPayload.dstAddress,
+            _message: decodedPayload.dstCallData
         });
 
-        bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage(messagePayloadHash, decodedPayload.originContext);
+        bytes32 payloadHash_ = keccak256(abi.encodePacked(contentHash_, decodedPayload.originContext));
 
-        if (successfulMessages[messageHash]) {
+        if (successfulMessages[payloadHash_]) {
             revert MessageAlreadyRelayed();
         }
 
-        successfulMessages[messageHash] = true;
-        _storeMessageMetadata(source, decodedPayload.sender, decodedPayload.originContext);
+        successfulMessages[payloadHash_] = true;
+        _storeMessageMetadata(srcChain, decodedPayload.srcSender, decodedPayload.originContext);
 
         bool success;
-        (success, returnData_) = decodedPayload.target.call{ value: msg.value }(decodedPayload.message);
+        (success, returnData_) = decodedPayload.dstAddress.call{ value: msg.value }(decodedPayload.dstCallData);
 
         if (!success) {
             assembly {
@@ -314,7 +323,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             }
         }
 
-        emit RelayedMessage(source, decodedPayload.nonce, messageHash, keccak256(returnData_));
+        emit RelayedMessage(srcChain, decodedPayload.nonce, payloadHash_, keccak256(returnData_));
 
         _storeMessageMetadata(0, address(0), "");
     }
@@ -329,13 +338,13 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Stores message data such as sender and source in transient storage.
     /// @param _source Chain ID of the source chain.
     /// @param _sender Address of the sender of the message.
+    /// @param _originContext Origin context of the message.
     function _storeMessageMetadata(uint256 _source, address _sender, bytes memory _originContext) internal {
         uint8 encodingVersion;
-        bytes32 messagePayloadHash;
-
+        bytes32 originContentHash;
         if (_originContext.length != 0) {
             // Decode the origin context
-            (encodingVersion, messagePayloadHash) = _parseOriginContext(_originContext);
+            (encodingVersion, originContentHash) = _parseOriginContext(_originContext);
         }
 
         // Store the message metadata
@@ -343,7 +352,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             tstore(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT, _source)
             tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
             tstore(ORIGIN_CONTEXT_VERSION_SLOT, encodingVersion)
-            tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT, messagePayloadHash)
+            tstore(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT, originContentHash)
         }
     }
 
@@ -351,22 +360,22 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     function _parseOriginContext(bytes memory _originContext)
         internal
         pure
-        returns (uint8 encodingVersion_, bytes32 messagePayloadHash_)
+        returns (uint8 encodingVersion_, bytes32 originContentHash_)
     {
-        (encodingVersion_, messagePayloadHash_) = abi.decode(_originContext, (uint8, bytes32));
+        (encodingVersion_, originContentHash_) = abi.decode(_originContext, (uint8, bytes32));
     }
 
     /// @notice Retrieves the context of the current cross domain message. If not entered, reverts.
     /// @return originContext_ Origin context of the current cross domain message.
     function _crossDomainMessageOriginContext() internal view returns (bytes memory originContext_) {
         uint8 encodingVersion;
-        bytes32 messagePayloadHash;
+        bytes32 originContentHash;
         assembly {
             encodingVersion := tload(ORIGIN_CONTEXT_VERSION_SLOT)
-            messagePayloadHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT)
+            originContentHash := tload(ORIGIN_CONTEXT_MESSAGE_PAYLOAD_HASH_SLOT)
         }
 
-        originContext_ = abi.encode(encodingVersion, messagePayloadHash);
+        originContext_ = abi.encode(encodingVersion, originContentHash);
     }
 
     /// @notice Decodes the payload of a SentMessage event.
@@ -380,26 +389,27 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     function _decodeSentMessagePayload(bytes calldata _payload)
         internal
         pure
-        returns (DecodedPayload memory decodedPayload_)
+        returns (SentMessagePayload memory decodedPayload_)
     {
         // Validate Selector (also reverts if LOG0 with no topics)
         bytes32 selector = abi.decode(_payload[:32], (bytes32));
         if (selector != SentMessage.selector) revert EventPayloadNotSentMessage();
 
         // Topics
-        (uint256 destination, address target, uint256 nonce) = abi.decode(_payload[32:128], (uint256, address, uint256));
+        (uint256 dstChain_, address dstAddress_, uint256 nonce_) =
+            abi.decode(_payload[32:128], (uint256, address, uint256));
 
         // Data
-        (address sender, bytes memory message, bytes memory originContext) =
+        (address srcSender_, bytes memory dstCallData_, bytes memory originContext_) =
             abi.decode(_payload[128:], (address, bytes, bytes));
 
-        decodedPayload_ = DecodedPayload({
-            destination: destination,
-            target: target,
-            nonce: nonce,
-            sender: sender,
-            message: message,
-            originContext: originContext
+        decodedPayload_ = SentMessagePayload({
+            dstChain: dstChain_,
+            dstAddress: dstAddress_,
+            nonce: nonce_,
+            srcSender: srcSender_,
+            dstCallData: dstCallData_,
+            originContext: originContext_
         });
     }
 }
