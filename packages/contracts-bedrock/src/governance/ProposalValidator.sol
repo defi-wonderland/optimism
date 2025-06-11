@@ -253,9 +253,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice Submits a GovernanceFund or CouncilBudget proposal type that transfers OP tokens for approval and
     /// voting.
-    /// @param _criteriaValue Since the passing criteria type is always "Threshold", this value will be the percentage
-    /// that will be used to calculate the fraction of the votable supply that the proposal will need in votes in order
-    /// to pass.
+    /// @dev For UI integration: Frontend interfaces should present this as a percentage input to users (e.g., "25%"),
+    /// then convert to the absolute vote count by calculating: (percentage / 100) * total_votable_supply.
+    /// Direct contract callers must provide the absolute number of votes required for passage.
+    /// @param _criteriaValue The absolute number of votes required for the proposal to pass. This represents the
+    /// threshold that must be met or exceeded for any option to be considered successful.
     /// @param _optionsDescriptions The strings of the different options that can be voted.
     /// @param _optionsRecipients An address for each option to transfer funds to in case the option passes the voting.
     /// @param _optionsAmounts The amount to transfer for each option in case the option passes the voting.
