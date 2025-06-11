@@ -134,7 +134,8 @@ contract SuperchainTokenBridge_SendERC20_Test is SuperchainTokenBridge_TestInit 
         _mockAndExpect(
             Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
             abi.encodeCall(
-                IL2ToL2CrossDomainMessenger.sendMessage, (_chainId, address(superchainTokenBridge), _message)
+                IL2ToL2CrossDomainMessenger.sendMessageWithEntrypoint,
+                (_chainId, address(superchainTokenBridge), address(0), _message)
             ),
             abi.encode(_msgHash)
         );

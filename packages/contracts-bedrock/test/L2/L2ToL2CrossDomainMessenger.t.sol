@@ -20,7 +20,8 @@ import {
     MessageTargetL2ToL2CrossDomainMessenger,
     MessageAlreadyRelayed,
     ReentrantCall,
-    InvalidMessage
+    InvalidMessage,
+    MessageEntrypointNotCaller
 } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 
 // Interfaces
@@ -810,5 +811,105 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
         vm.expectRevert(_revertData);
         hoax(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _value);
         l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
+    }
+
+    /// @notice Tests that the `relayMessage` function reverts when the entrypoint is not the caller.
+    function testFuzz_relayMessage_entrypointNotCaller_reverts(
+        uint256 _source,
+        uint256 _nonce,
+        address _sender,
+        address _target,
+        address _entrypoint,
+        bytes calldata _message,
+        uint256 _value
+    )
+        external
+    {
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
+        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+
+        vm.assume(_entrypoint != address(this));
+
+        // Ensure that the target call is payable if value is sent
+        if (_value > 0) assumePayable(_target);
+
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger or the
+        // foundry VM
+        vm.assume(
+            _target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER
+                && _target != foundryVMAddress
+        );
+
+        Identifier memory id = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, 1, 1, 1, _source);
+
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
+            abi.encode(_sender, _entrypoint, _message) // data
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+
+        vm.expectRevert(MessageEntrypointNotCaller.selector);
+        l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
+    }
+
+    /// @notice Tests the `relayMessage` function returns the expected return data from the call to
+    ///         the target contract when the entrypoint is the caller.
+    function testFuzz_relayMessage_returnData_whenEntrypointIsCaller_succeeds(
+        uint256 _source,
+        uint256 _nonce,
+        address _sender,
+        uint256 _value,
+        uint64 _blockNum,
+        uint32 _logIndex,
+        uint64 _time,
+        address _target,
+        address _entrypoint,
+        bytes memory _mockedReturnData
+    )
+        public
+    {
+        // Ensure the target is not CrossL2Inbox or L2ToL2CrossDomainMessenger or the foundry VM
+        vm.assume(
+            _target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER
+                && _target != foundryVMAddress
+        );
+
+        assumeNotForgeAddress(_target);
+
+        // ensure the target has 0 balance to avoid an overflow
+        vm.deal(_target, 0);
+
+        // Declare a random call to be made over the target
+        bytes memory message = abi.encodePacked("randomCall()");
+
+        // Construct the message
+        Identifier memory id =
+            Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
+            abi.encode(_sender, _entrypoint, message) // data
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(message))),
+            returnData: ""
+        });
+
+        // Mock the random call over the target with the expected return data
+        vm.mockCall({ callee: _target, data: message, returnData: _mockedReturnData });
+
+        hoax(_entrypoint, _value);
+        bytes memory returnData = l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
+
+        // Check that the return data is the mocked one
+        assertEq(returnData, _mockedReturnData);
     }
 }
