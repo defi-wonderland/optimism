@@ -26,6 +26,16 @@ interface ISuperchainTokenBridge is ISemver {
         external
         returns (bytes32 msgHash_);
 
+    function sendERC20WithEntrypoint(
+        address _token,
+        address _to,
+        uint256 _amount,
+        address _entrypoint,
+        uint256 _chainId
+    )
+        external
+        returns (bytes32 msgHash_);
+
     function relayERC20(address _token, address _from, address _to, uint256 _amount) external;
 
     function __constructor__() external;
