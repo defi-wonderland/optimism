@@ -16,7 +16,7 @@ import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol
 /// @notice Integration test that checks that the `ExecutingMessage` event is emitted on crosschain mints.
 contract ExecutingMessageEmittedTest is CommonTest {
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
+        0xb6b27857168ee0136e68e746bb12d3abcd605fd8a719100d88901127632100e3;
 
     event ExecutingMessage(bytes32 indexed msgHash, Identifier id);
 
@@ -84,7 +84,7 @@ contract ExecutingMessageEmittedTest is CommonTest {
         bytes memory message = abi.encodeCall(ISuperchainTokenBridge.relayERC20, (_token, _sender, _to, _amount));
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(SENT_MESSAGE_EVENT_SELECTOR, block.chainid, SUPERCHAIN_TOKEN_BRIDGE, _nonce), // topics
-            abi.encode(_sender, message) // data
+            abi.encode(_sender, address(0), message) // data
         );
 
         // Mock `crossDomainMessageContext` call for it to succeed
