@@ -251,7 +251,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
 
         // Assert that if the message has a an entrypoint defined, it is being relayed from that address
-        if (entrypoint != address(0) && sender != entrypoint) revert MessageEntrypointNotCaller();
+        if (entrypoint != address(0) && msg.sender != entrypoint) revert MessageEntrypointNotCaller();
 
         uint256 source = _id.chainId;
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
