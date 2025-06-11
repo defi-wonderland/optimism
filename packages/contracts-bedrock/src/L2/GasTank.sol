@@ -85,10 +85,10 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Flags a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
-    /// @param rootMessageHash The hash of the root message
-    function flag(bytes32 rootMessageHash) external {
-        flaggedMessages[msg.sender][rootMessageHash] = true;
-        emit Flagged(rootMessageHash, msg.sender);
+    /// @param originMsgHash The hash of the root message
+    function flag(bytes32 originMsgHash) external {
+        flaggedMessages[msg.sender][originMsgHash] = true;
+        emit Flagged(originMsgHash, msg.sender);
     }
 
     function relayMessage(Identifier[] calldata _id, bytes[] calldata _sentMessage) public {
@@ -99,13 +99,13 @@ contract GasTank is IGasTank {
         for (uint256 i; i < length; i++) {
             uint256 initialGas = gasleft();
 
-            (bytes32 messageHash, bytes32 rootMessageHash) = _getMessageData(_id[i].chainId, _sentMessage[i]);
+            (bytes32 msgHash, bytes32 originMsgHash) = _getMessageData(_id[i].chainId, _sentMessage[i]);
 
             // Relay the message
             MESSENGER.relayMessage(_id[i], _sentMessage[i]);
 
             uint256 gasUsed = (initialGas - gasleft()) + GAS_RECEIPT_EVENT_OVERHEAD;
-            emit RelayedMessageGasReceipt(messageHash, rootMessageHash, msg.sender, _cost(gasUsed));
+            emit RelayedMessageGasReceipt(msgHash, originMsgHash, msg.sender, _cost(gasUsed));
         }
     }
 
@@ -177,7 +177,7 @@ contract GasTank is IGasTank {
     )
         internal
         pure
-        returns (bytes32 messageHash, bytes32 rootMessageHash)
+        returns (bytes32 msgHash, bytes32 originMsgHash)
     {
         // Decode Topics
         (uint256 destination, address target, uint256 nonce) =
@@ -188,7 +188,7 @@ contract GasTank is IGasTank {
             abi.decode(_sentMessage[128:], (address, bytes, bytes));
 
         // Get the current message hash
-        messageHash = Hashing.hashL2toL2CrossDomainMessage(
+        msgHash = Hashing.hashL2toL2CrossDomainMessage(
             Hashing.hashL2toL2CrossDomainMessagePayload(destination, _source, nonce, sender, target, message),
             originContext
         );
@@ -197,6 +197,6 @@ contract GasTank is IGasTank {
         (, bytes32 contextMessagePayloadHash) = abi.decode(originContext, (uint8, bytes32));
 
         // Get the root message hash
-        rootMessageHash = Hashing.hashL2toL2CrossDomainMessage(contextMessagePayloadHash, originContext);
+        originMsgHash = Hashing.hashL2toL2CrossDomainMessage(contextMessagePayloadHash, originContext);
     }
 }
