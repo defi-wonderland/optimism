@@ -191,17 +191,17 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "msgNonce",
+        "type": "uint256"
       }
     ],
     "name": "sentMessages",
     "outputs": [
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
+        "internalType": "bytes32",
+        "name": "messageHash",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
