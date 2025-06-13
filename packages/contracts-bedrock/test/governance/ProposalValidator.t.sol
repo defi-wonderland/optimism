@@ -149,6 +149,51 @@ contract ProposalValidator_Init is CommonTest {
         return (proposalTypes, proposalTypesData);
     }
 
+
+    function _constructVotingModuleData(
+        string[] memory descriptions,
+        address[] memory recipients,
+        uint256[] memory amounts,
+        uint128 criteriaValue
+    ) internal pure returns (bytes memory) {
+        // Construct ProposalOption array
+        ProposalOption[] memory options = new ProposalOption[](descriptions.length);
+
+        for (uint256 i = 0; i < descriptions.length; i++) {
+            address[] memory targets = new address[](1);
+            uint256[] memory values = new uint256[](1);
+            bytes[] memory calldatas = new bytes[](1);
+
+            targets[0] = Predeploys.GOVERNANCE_TOKEN;
+            calldatas[0] = abi.encodeCall(IERC20.transfer, (recipients[i], amounts[i]));
+
+            options[i] = ProposalOption({
+                budgetTokensSpent: amounts[i],
+                targets: targets,
+                values: values,
+                calldatas: calldatas,
+                description: descriptions[i]
+            });
+        }
+
+        // Calculate total budget
+        uint256 totalBudget = 0;
+        for (uint256 i = 0; i < amounts.length; i++) {
+            totalBudget += amounts[i];
+        }
+
+        // Construct ProposalSettings
+        ProposalSettings memory settings = ProposalSettings({
+            maxApprovals: uint8(descriptions.length),
+            criteria: uint8(PassingCriteria.Threshold),
+            budgetToken: Predeploys.GOVERNANCE_TOKEN,
+            criteriaValue: criteriaValue,
+            budgetAmount: uint128(totalBudget)
+        });
+
+        return abi.encode(options, settings);
+    }
+
     /// @notice Helper function to setup proposal types configurator mocks
     function _setupProposalTypesConfiguratorMocks() internal {
         // Mock calls for different proposal type IDs
@@ -656,8 +701,16 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
     function test_submitFundingProposal_governanceFund_succeeds() public {
         // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), _constructExpectedVotingModuleData(), keccak256(bytes(description))
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
         );
 
         // Expect ProposalSubmitted event
@@ -666,7 +719,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
         // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
-        emit ProposalVotingModuleData(expectedHash, _constructExpectedVotingModuleData());
+        emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
         vm.prank(rando);
         bytes32 proposalHash = validator.submitFundingProposal(
@@ -681,44 +734,20 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         assertEq(proposalHash, expectedHash);
     }
 
-    function _constructExpectedVotingModuleData() internal view returns (bytes memory) {
-        // Construct ProposalOption array
-        ProposalOption[] memory options = new ProposalOption[](2);
 
-        for (uint256 i = 0; i < 2; i++) {
-            address[] memory targets = new address[](1);
-            uint256[] memory values = new uint256[](1);
-            bytes[] memory calldatas = new bytes[](1);
-
-            targets[0] = Predeploys.GOVERNANCE_TOKEN;
-            calldatas[0] = abi.encodeCall(IERC20.transfer, (optionsRecipients[i], optionsAmounts[i]));
-
-            options[i] = ProposalOption({
-                budgetTokensSpent: optionsAmounts[i],
-                targets: targets,
-                values: values,
-                calldatas: calldatas,
-                description: optionsDescriptions[i]
-            });
-        }
-
-        // Construct ProposalSettings
-        uint256 totalBudget = optionsAmounts[0] + optionsAmounts[1];
-        ProposalSettings memory settings = ProposalSettings({
-            maxApprovals: uint8(optionsAmounts.length),
-            criteria: uint8(PassingCriteria.Threshold),
-            budgetToken: Predeploys.GOVERNANCE_TOKEN,
-            criteriaValue: criteriaValue,
-            budgetAmount: uint128(totalBudget)
-        });
-
-        return abi.encode(options, settings);
-    }
 
     function test_submitFundingProposal_councilBudget_succeeds() public {
         // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), _constructExpectedVotingModuleData(), keccak256(bytes(description))
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
         );
 
         // Expect ProposalSubmitted event
@@ -727,7 +756,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
         // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
-        emit ProposalVotingModuleData(expectedHash, _constructExpectedVotingModuleData());
+        emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
         vm.prank(rando);
         bytes32 proposalHash = validator.submitFundingProposal(
@@ -752,6 +781,19 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         uint256[] memory singleAmount = new uint256[](1);
         singleAmount[0] = 100 ether;
 
+        // Calculate expected proposal hash
+        bytes memory singleOptionData = _constructVotingModuleData(singleDescription, singleRecipient, singleAmount, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), singleOptionData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 0 for the expected proposal hash
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
+        );
+
         vm.prank(rando);
         bytes32 proposalHash = validator.submitFundingProposal(
             criteriaValue,
@@ -770,6 +812,19 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         optionsAmounts[0] = DISTRIBUTION_THRESHOLD;
         optionsAmounts[1] = DISTRIBUTION_THRESHOLD;
 
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 0 for the expected proposal hash
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
+        );
+
         vm.prank(rando);
         bytes32 proposalHash = validator.submitFundingProposal(
             criteriaValue,
@@ -787,6 +842,19 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         optionsAmounts[0] = 0;
         optionsAmounts[1] = 100 ether;
 
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 0 for the expected proposal hash
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
+        );
+
         vm.prank(rando);
         bytes32 proposalHash = validator.submitFundingProposal(
             criteriaValue,
@@ -798,6 +866,92 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         );
 
         assertTrue(proposalHash != bytes32(0));
+    }
+
+    function test_submitFundingProposal_duplicateProposal_reverts() public {
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 1, indicating proposal already exists in governor
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(1)
+        );
+
+        // Attempt to submit identical proposal
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_multipleAmountsExceedThreshold_reverts() public {
+        optionsAmounts[1] = DISTRIBUTION_THRESHOLD + 1;
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 excessAmount) public {
+        vm.assume(excessAmount > DISTRIBUTION_THRESHOLD);
+        vm.assume(excessAmount <= type(uint256).max);
+
+        optionsAmounts[0] = excessAmount;
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_proposalExistsInGovernor_reverts() public {
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(1000) // Non-zero indicates proposal exists
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
     }
 }
 
@@ -916,6 +1070,19 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     }
 
     function test_submitFundingProposal_duplicateProposal_reverts() public {
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return 0 for first submission
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
+        );
+
         // Submit first proposal
         vm.prank(rando);
         validator.submitFundingProposal(
@@ -962,6 +1129,32 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         optionsAmounts[0] = excessAmount;
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(rando);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            description,
+            ProposalValidator.ProposalType.GovernanceFund
+        );
+    }
+
+    function test_submitFundingProposal_proposalExistsInGovernor_reverts() public {
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+        );
+
+        // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(1000) // Non-zero indicates proposal exists
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(rando);
         validator.submitFundingProposal(
             criteriaValue,

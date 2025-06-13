@@ -362,6 +362,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
+        // Check if proposal already exists in OptimismGovernor
+        if (GOVERNOR.proposalSnapshot(uint256(proposalHash_)) != 0) {
+            revert ProposalValidator_ProposalAlreadySubmitted();
+        }
+
         // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
@@ -512,7 +517,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         view
         returns (bytes32)
     {
-        return keccak256(abi.encode(address(this), _module, _proposalData, _descriptionHash));
+        return keccak256(abi.encode(address(GOVERNOR), _module, _proposalData, _descriptionHash));
     }
 
     /// @notice Private function to set the minimum voting power and emit event.
