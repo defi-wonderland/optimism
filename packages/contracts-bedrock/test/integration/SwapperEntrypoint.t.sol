@@ -18,7 +18,7 @@ contract SwapperEntrypoint_Integration is CommonTest {
         0x4b534e06ff84af86c38cff4661012bc48ae22820da618db82225f68ea533565b;
 
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0xb6b27857168ee0136e68e746bb12d3abcd605fd8a719100d88901127632100e3;
+        0x65f7fa83885abdbef9cab58474f555aa731b64afad093d9fbe25c446e18115f0;
 
     SwapperEntrypoint internal swapperEntrypoint;
 
@@ -73,7 +73,7 @@ contract SwapperEntrypoint_Integration is CommonTest {
             ),
             abi.encode(
                 tokenSender, // sender of the message
-                address(swapperEntrypoint), // entrypoint address
+                keccak256(abi.encodePacked(address(swapperEntrypoint))), // entrypoint address
                 abi.encodeCall(
                     ISuperchainTokenBridge.relayERC20, (tokenIn, tokenSender, address(swapperEntrypoint), _amountIn)
                 )

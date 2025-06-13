@@ -26,6 +26,7 @@ import {
 
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { ICrossMessageBundler } from "interfaces/L2/ICrossMessageBundler.sol";
 
 /// @title L2ToL2CrossDomainMessengerWithModifiableTransientStorage
 /// @notice L2ToL2CrossDomainMessenger contract with methods to modify the transient storage.
@@ -195,7 +196,7 @@ contract L2ToL2CrossDomainMessenger_SendMessage_Test is L2ToL2CrossDomainMesseng
         assertEq(
             msgHash,
             Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, address(this), _target, address(0), _message
+                _destination, block.chainid, messageNonce, address(this), _target, bytes32(0), _message
             )
         );
 
@@ -298,7 +299,7 @@ contract L2ToL2CrossDomainMessenger_ResendMessage_Test is L2ToL2CrossDomainMesse
     {
         // Get the message hash and ensure it has not been sent yet
         bytes32 msgHash = Hashing.hashL2toL2CrossDomainMessage(
-            _destination, block.chainid, _nonce, _sender, _target, address(0), _message
+            _destination, block.chainid, _nonce, _sender, _target, bytes32(0), _message
         );
         vm.assume(l2ToL2CrossDomainMessenger.sentMessages(msgHash) == false);
 
@@ -306,7 +307,7 @@ contract L2ToL2CrossDomainMessenger_ResendMessage_Test is L2ToL2CrossDomainMesse
         vm.expectRevert(InvalidMessage.selector);
 
         // Call the resendMessage function
-        l2ToL2CrossDomainMessenger.resendMessage(_destination, _nonce, _sender, _target, address(0), _message);
+        l2ToL2CrossDomainMessenger.resendMessage(_destination, _nonce, _sender, _target, bytes32(0), _message);
     }
 
     /// @notice Tests that `resendMessage` succeeds and emits the same SentMessage event as the one
@@ -337,7 +338,7 @@ contract L2ToL2CrossDomainMessenger_ResendMessage_Test is L2ToL2CrossDomainMesse
         assertEq(
             msgHash,
             Hashing.hashL2toL2CrossDomainMessage(
-                _destination, block.chainid, messageNonce, _sender, _target, address(0), _message
+                _destination, block.chainid, messageNonce, _sender, _target, bytes32(0), _message
             )
         );
 
@@ -360,7 +361,7 @@ contract L2ToL2CrossDomainMessenger_ResendMessage_Test is L2ToL2CrossDomainMesse
 
         // Call the `resendMessage` function
         bytes32 resendMsgHash =
-            l2ToL2CrossDomainMessenger.resendMessage(_destination, messageNonce, _sender, _target, address(0), _message);
+            l2ToL2CrossDomainMessenger.resendMessage(_destination, messageNonce, _sender, _target, bytes32(0), _message);
 
         // Check that the event was emitted with the correct parameters
         logs = vm.getRecordedLogs();
@@ -893,7 +894,7 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
             Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _blockNum, _logIndex, _time, _source);
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
-            abi.encode(_sender, _entrypoint, message) // data
+            abi.encode(_sender, keccak256(abi.encodePacked(_entrypoint)), message) // data
         );
 
         // Ensure the CrossL2Inbox validates this message
@@ -911,5 +912,76 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
 
         // Check that the return data is the mocked one
         assertEq(returnData, _mockedReturnData);
+    }
+}
+
+/// @title MessageBundler
+/// @notice A bundler that recursively creates bundles and checks its depth.
+contract MessageBundler is ICrossMessageBundler {
+    address internal foundryVMAddress = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+    Vm vm = Vm(foundryVMAddress);
+
+    function onCreateBundle(bytes calldata _context) external {
+        (uint256 expectedDepth, uint256 maxDepth) = abi.decode(_context, (uint256, uint256));
+
+        assert(
+            expectedDepth == L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth()
+        );
+
+        // We will use address(uint160(expectedDepth)) as the entrypoint for an individual message
+        bytes32 entrypointHash =
+            L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleEntrypoint();
+
+        address messageEntrypoint = address(uint160(expectedDepth));
+
+        bytes32 expectedEntrypointHash = keccak256(abi.encodePacked(entrypointHash, messageEntrypoint));
+
+        uint256 nonce = L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageNonce();
+
+        vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        emit L2ToL2CrossDomainMessenger.SentMessage(
+            1, // destination chain
+            address(this), // target
+            nonce, // nonce
+            address(this), // sender
+            expectedEntrypointHash, // entrypoint hash
+            "" // message
+        );
+
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessageWithEntrypoint(
+            1, // destination chain
+            address(this), // target
+            messageEntrypoint, // entrypoint
+            "" // message
+        );
+
+        if (expectedDepth < maxDepth) {
+            L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).createBundle(
+                address(this), abi.encode(expectedDepth + 1, maxDepth)
+            );
+        }
+    }
+
+    function assertBundleDepth(uint256 _maxDepth) external {
+        assert(L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth() == 0);
+
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).createBundle(
+            address(this), abi.encode(1, _maxDepth)
+        );
+
+        // Check that the bundle depth has been restored to 0
+        assert(L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth() == 0);
+    }
+}
+
+/// @title L2ToL2CrossDomainMessenger_CreateBundle_Test
+/// @notice Tests the `createBundle` function.
+contract L2ToL2CrossDomainMessenger_CreateBundle_Test is L2ToL2CrossDomainMessenger_TestInit {
+    MessageBundler internal messageBundler = new MessageBundler();
+
+    function testFuzz_createEntrypoint_maintainsBundleDepth(uint256 _maxDepth) external {
+        _maxDepth = bound(_maxDepth, 3, 10);
+
+        messageBundler.assertBundleDepth(_maxDepth);
     }
 }
