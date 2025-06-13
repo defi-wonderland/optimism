@@ -57,6 +57,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the requested amount exceeds the distribution threshold.
     error ProposalValidator_ExceedsDistributionThreshold();
 
+    /// @notice Thrown when the options length is invalid (zero or exceeds uint8 max).
+    error ProposalValidator_InvalidOptionsLength();
+
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -284,6 +287,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 optionsLength = _optionsDescriptions.length;
         if (optionsLength != _optionsRecipients.length || optionsLength != _optionsAmounts.length) {
             revert ProposalValidator_ProposalTypesDataLengthMismatch();
+        }
+
+        // Validate options length bounds
+        if (optionsLength == 0 || optionsLength > type(uint8).max) {
+            revert ProposalValidator_InvalidOptionsLength();
         }
 
         // Check each option amount against distribution threshold
