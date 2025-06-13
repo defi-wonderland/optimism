@@ -10,6 +10,7 @@ import { TransientReentrancyAware } from "src/libraries/TransientContext.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { ICrossMessageBundler } from "interfaces/L2/ICrossMessageBundler.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
@@ -64,10 +65,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     bytes32 internal constant CROSS_DOMAIN_MESSAGE_ENTRYPOINT_SLOT =
         0x4f785a87c3805277007014d2b9bc19a6bf5d719f15bbf276e96c0e164571d512;
 
+    /// @notice Storage slot for the current entrypoint depth.
+    ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.entrypointDepth")) - 1)
+    bytes32 internal constant ENTRYPOINT_DEPTH_SLOT = 0x9f81af2e5421aeedf35d1553557543a8dfc18543a8386a619c17fce34086b462;
+
     /// @notice Event selector for the SentMessage event. Will be removed in favor of reading
     //          the `selector` property directly once crytic/slithe/#2566 is fixed.
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0xb6b27857168ee0136e68e746bb12d3abcd605fd8a719100d88901127632100e3;
+        0x65f7fa83885abdbef9cab58474f555aa731b64afad093d9fbe25c446e18115f0;
 
     /// @notice Current message version identifier.
     uint16 public constant messageVersion = uint16(0);
@@ -94,14 +99,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param target       Target contract or wallet address.
     /// @param messageNonce Nonce associated with the message sent
     /// @param sender       Address initiating this message call
-    /// @param entrypoint   Entrypoint address of the message.
+    /// @param entrypointHash The hash composed from the bundle's and message's entrypoint.
     /// @param message      Message payload to call target with.
     event SentMessage(
         uint256 indexed destination,
         address indexed target,
         uint256 indexed messageNonce,
         address sender,
-        address entrypoint,
+        bytes32 entrypointHash,
         bytes message
     );
 
@@ -137,6 +142,59 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         assembly {
             sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
             source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
+        }
+    }
+
+    /// @notice Retrieves the recursive depth of the message bundle being created.
+    /// @return depth_ The depth of the bundle.
+    function messageBundleDepth() external view returns (uint256 depth_) {
+        assembly {
+            depth_ := tload(ENTRYPOINT_DEPTH_SLOT)
+        }
+    }
+
+    /// @notice Retrieves the entrypoint hash of the current message bundle.
+    /// @return entrypointHash_ The entrypoint hash of the current message bundle.
+    function messageBundleEntrypoint() external view returns (bytes32 entrypointHash_) {
+        assembly {
+            let depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            // TODO: Should we revert if depth is 0?
+            entrypointHash_ := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+        }
+    }
+
+    /// @notice Creates a bundle of messages.
+    /// @param _entrypoint The entrypoint address of the bundle.
+    /// @param _context The context of the bundle.
+    function createBundle(address _entrypoint, bytes calldata _context) external {
+        // TODO: Should we check for the caller supporting the ICrossMessageBundler interface before?
+
+        uint256 depth;
+        bytes32 entrypointHash;
+
+        assembly {
+            depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+
+            let newDepth := add(depth, 1)
+            tstore(ENTRYPOINT_DEPTH_SLOT, newDepth)
+
+            // Calculate new entrypoint hash
+            let memPtr := mload(0x40)
+            mstore(memPtr, entrypointHash)
+            mstore(add(memPtr, 0x20), shl(96, _entrypoint))
+
+            let newEntrypointHash := keccak256(memPtr, 52)
+
+            // Store the new entrypoint hash at the incremented depth slot
+            tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
+        }
+
+        ICrossMessageBundler(msg.sender).onCreateBundle(_context);
+
+        assembly {
+            // Restore the original depth
+            tstore(ENTRYPOINT_DEPTH_SLOT, depth)
         }
     }
 
@@ -192,14 +250,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _sender Address that sent the message
     /// @param _target Target contract or wallet address.
     /// @param _message Message payload to call target with.
-    /// @param _entrypoint Address of the entrypoint contract on the destination chain or address(0) if there is none.
+    /// @param _entrypointHash The hash composed from the bundle's and message's entrypoint.
     /// @return messageHash_ The hash of the message being re-sent.
     function resendMessage(
         uint256 _destination,
         uint256 _nonce,
         address _sender,
         address _target,
-        address _entrypoint,
+        bytes32 _entrypointHash,
         bytes calldata _message
     )
         external
@@ -211,13 +269,13 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: _nonce,
             _sender: _sender,
             _target: _target,
-            _entrypoint: _entrypoint,
+            _entrypointHash: _entrypointHash,
             _message: _message
         });
 
         if (!sentMessages[messageHash_]) revert InvalidMessage();
 
-        emit SentMessage(_destination, _target, _nonce, _sender, _entrypoint, _message);
+        emit SentMessage(_destination, _target, _nonce, _sender, _entrypointHash, _message);
     }
 
     /// @notice Relays a message that was sent by the other L2ToL2CrossDomainMessenger contract. Can only be executed
@@ -244,14 +302,23 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
 
         // Decode the payload
-        (uint256 destination, address target, uint256 nonce, address sender, address entrypoint, bytes memory message) =
-            _decodeSentMessagePayload(_sentMessage);
+        (
+            uint256 destination,
+            address target,
+            uint256 nonce,
+            address sender,
+            bytes32 entrypointHash,
+            bytes memory message
+        ) = _decodeSentMessagePayload(_sentMessage);
 
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
 
         // Assert that if the message has a an entrypoint defined, it is being relayed from that address
-        if (entrypoint != address(0) && msg.sender != entrypoint) revert MessageEntrypointNotCaller();
+        // TODO: Implement the correct check for hashing the entrypoint and messageEntrypoint if it's a bundle
+        if (entrypointHash != bytes32(0) && keccak256(abi.encodePacked(msg.sender)) != entrypointHash) {
+            revert MessageEntrypointNotCaller();
+        }
 
         uint256 source = _id.chainId;
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -260,7 +327,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: sender,
             _target: target,
-            _entrypoint: entrypoint,
+            _entrypointHash: entrypointHash,
             _message: message
         });
 
@@ -313,8 +380,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @return target_         Target contract of the message.
     /// @return nonce_          Nonce associated with the messsage sent.
     /// @return sender_         Address initiating this message call.
-    /// @return entrypoint_     Address of the entrypoint contract on the destination chain or address(0) if there is
-    /// none.
+    /// @return entrypointHash_ The hash composed from the bundle's and message's entrypoint.
     /// @return message_        Message payload to call target with.
     function _decodeSentMessagePayload(bytes calldata _payload)
         internal
@@ -324,7 +390,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             address target_,
             uint256 nonce_,
             address sender_,
-            address entrypoint_,
+            bytes32 entrypointHash_,
             bytes memory message_
         )
     {
@@ -336,7 +402,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         (destination_, target_, nonce_) = abi.decode(_payload[32:128], (uint256, address, uint256));
 
         // Data
-        (sender_, entrypoint_, message_) = abi.decode(_payload[128:], (address, address, bytes));
+        (sender_, entrypointHash_, message_) = abi.decode(_payload[128:], (address, bytes32, bytes));
     }
 
     /// @notice Sends a message to a target address on a destination chain.Add commentMore actions
@@ -358,6 +424,24 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         internal
         returns (bytes32 messageHash_)
     {
+        uint256 depth;
+        bytes32 entrypointHash;
+        bytes32 messageEntrypointHash;
+
+        assembly {
+            depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+        }
+
+        if (depth > 0) {
+            // We are in a bundle
+            messageEntrypointHash =
+                _entrypoint == address(0) ? entrypointHash : keccak256(abi.encodePacked(entrypointHash, _entrypoint));
+        } else {
+            // We are in a standalone message
+            messageEntrypointHash = _entrypoint == address(0) ? bytes32(0) : keccak256(abi.encodePacked(_entrypoint));
+        }
+
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
@@ -368,13 +452,13 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: msg.sender,
             _target: _target,
-            _entrypoint: _entrypoint,
+            _entrypointHash: messageEntrypointHash,
             _message: _message
         });
 
         sentMessages[messageHash_] = true;
         msgNonce++;
 
-        emit SentMessage(_destination, _target, nonce, msg.sender, _entrypoint, _message);
+        emit SentMessage(_destination, _target, nonce, msg.sender, messageEntrypointHash, _message);
     }
 }
