@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {IGovernanceToken} from './IGovernanceToken.sol';
 import {IOptimismGovernor} from './IOptimismGovernor.sol';
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IProposalTypesConfigurator } from './IProposalTypesConfigurator.sol';
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
@@ -20,6 +21,7 @@ interface IProposalValidator is ISemver {
     error ReinitializableBase_ZeroInitVersion();
     error ProposalValidator_InvalidFundingProposalType();
     error ProposalValidator_ExceedsDistributionThreshold();
+    error ProposalValidator_InvalidOptionsLength();
 
     struct ProposalData {
         address proposer;
@@ -31,7 +33,7 @@ interface IProposalValidator is ISemver {
 
     struct ProposalTypeData {
         uint256 requiredApprovals;
-        address proposalVotingModule;
+        uint8 proposalVotingModule;
     }
     
     enum ProposalType {
@@ -61,7 +63,7 @@ interface IProposalValidator is ISemver {
     event ProposalTypeDataSet(
         ProposalType proposalType,
         uint256 requiredApprovals,
-        address proposalVotingModule
+        uint8 proposalVotingModule
     );
 
     event ProposalVotingModuleData(
@@ -97,7 +99,7 @@ interface IProposalValidator is ISemver {
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
     function setDistributionThreshold(uint256 _distributionThreshold) external;
-    
+
     function setProposalTypeData(
         ProposalType _proposalType,
         ProposalTypeData memory _proposalTypeData
@@ -118,9 +120,10 @@ interface IProposalValidator is ISemver {
         string memory _description,
         ProposalType _proposalType
     ) external returns (bytes32 proposalHash_);
-    
+
     function initialize(
         address _owner,
+        IProposalTypesConfigurator _proposalTypesConfigurator,
         uint256 _minimumVotingPower,
         uint256 _cycleNumber,
         uint256 _startBlock,
@@ -150,9 +153,11 @@ interface IProposalValidator is ISemver {
     function initVersion() external view returns (uint8);
 
     function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+
+    function proposalTypesConfigurator() external view returns (IProposalTypesConfigurator);
     
-    function proposalTypesData(ProposalType) external view returns (uint256 requiredApprovals, address proposalVotingModule);
-    
+    function proposalTypesData(ProposalType) external view returns (uint256 requiredApprovals, uint8 proposalVotingModule);
+
     function votingCycles(uint256) external view returns (
         uint256 startingBlock, 
         uint256 duration, 

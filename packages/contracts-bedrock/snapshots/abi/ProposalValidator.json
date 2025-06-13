@@ -125,6 +125,11 @@
         "type": "address"
       },
       {
+        "internalType": "contract IProposalTypesConfigurator",
+        "name": "_proposalTypesConfigurator",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
         "name": "_minimumVotingPower",
         "type": "uint256"
@@ -167,9 +172,9 @@
             "type": "uint256"
           },
           {
-            "internalType": "address",
+            "internalType": "uint8",
             "name": "proposalVotingModule",
-            "type": "address"
+            "type": "uint8"
           }
         ],
         "internalType": "struct ProposalValidator.ProposalTypeData[]",
@@ -243,6 +248,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "proposalTypesConfigurator",
+    "outputs": [
+      {
+        "internalType": "contract IProposalTypesConfigurator",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "enum ProposalValidator.ProposalType",
@@ -258,9 +276,9 @@
         "type": "uint256"
       },
       {
-        "internalType": "address",
+        "internalType": "uint8",
         "name": "proposalVotingModule",
-        "type": "address"
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -314,9 +332,9 @@
             "type": "uint256"
           },
           {
-            "internalType": "address",
+            "internalType": "uint8",
             "name": "proposalVotingModule",
-            "type": "address"
+            "type": "uint8"
           }
         ],
         "internalType": "struct ProposalValidator.ProposalTypeData",
@@ -600,9 +618,9 @@
       },
       {
         "indexed": false,
-        "internalType": "address",
+        "internalType": "uint8",
         "name": "proposalVotingModule",
-        "type": "address"
+        "type": "uint8"
       }
     ],
     "name": "ProposalTypeDataSet",
@@ -681,6 +699,11 @@
   {
     "inputs": [],
     "name": "ProposalValidator_InvalidFundingProposalType",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ProposalValidator_InvalidOptionsLength",
     "type": "error"
   },
   {

@@ -346,14 +346,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
         // Get the module address from the configurator
-        address votingModule = proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
+        address votingModule =
+            proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
 
         // Generate unique proposal hash
-        proposalHash_ = _hashProposalWithModule(
-            votingModule,
-            proposalVotingModuleData,
-            keccak256(bytes(_description))
-        );
+        proposalHash_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
 
         ProposalData storage proposal = _proposals[proposalHash_];
 

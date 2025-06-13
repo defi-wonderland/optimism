@@ -149,13 +149,16 @@ contract ProposalValidator_Init is CommonTest {
         return (proposalTypes, proposalTypesData);
     }
 
-
     function _constructVotingModuleData(
         string[] memory descriptions,
         address[] memory recipients,
         uint256[] memory amounts,
         uint128 criteriaValue
-    ) internal pure returns (bytes memory) {
+    )
+        internal
+        pure
+        returns (bytes memory)
+    {
         // Construct ProposalOption array
         ProposalOption[] memory options = new ProposalOption[](descriptions.length);
 
@@ -199,17 +202,19 @@ contract ProposalValidator_Init is CommonTest {
         // Mock calls for different proposal type IDs
         for (uint8 i = 0; i < 5; i++) {
             address moduleAddress = (i == 3 || i == 4) ? makeAddr("approvalVotingModule") : address(0);
-            
+
             vm.mockCall(
                 address(proposalTypesConfigurator),
                 abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (i)),
-                abi.encode(IProposalTypesConfigurator.ProposalType({
-                    quorum: 100,
-                    approvalThreshold: 100,
-                    name: "Test Proposal Type",
-                    description: "Test Description", 
-                    module: moduleAddress
-                }))
+                abi.encode(
+                    IProposalTypesConfigurator.ProposalType({
+                        quorum: 100,
+                        approvalThreshold: 100,
+                        name: "Test Proposal Type",
+                        description: "Test Description",
+                        module: moduleAddress
+                    })
+                )
             );
         }
     }
@@ -223,10 +228,10 @@ contract ProposalValidator_Init is CommonTest {
 
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
-        
+
         // Setup mocks
         _setupProposalTypesConfiguratorMocks();
-        
+
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
@@ -701,7 +706,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
     function test_submitFundingProposal_governanceFund_succeeds() public {
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -734,11 +740,10 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         assertEq(proposalHash, expectedHash);
     }
 
-
-
     function test_submitFundingProposal_councilBudget_succeeds() public {
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -782,7 +787,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         singleAmount[0] = 100 ether;
 
         // Calculate expected proposal hash
-        bytes memory singleOptionData = _constructVotingModuleData(singleDescription, singleRecipient, singleAmount, criteriaValue);
+        bytes memory singleOptionData =
+            _constructVotingModuleData(singleDescription, singleRecipient, singleAmount, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), singleOptionData, keccak256(bytes(description))
         );
@@ -813,7 +819,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         optionsAmounts[1] = DISTRIBUTION_THRESHOLD;
 
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -843,7 +850,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         optionsAmounts[1] = 100 ether;
 
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -870,7 +878,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
     function test_submitFundingProposal_duplicateProposal_reverts() public {
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -930,7 +939,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
     function test_submitFundingProposal_proposalExistsInGovernor_reverts() public {
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -1071,7 +1081,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
     function test_submitFundingProposal_duplicateProposal_reverts() public {
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -1142,7 +1153,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
     function test_submitFundingProposal_proposalExistsInGovernor_reverts() public {
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
         );
@@ -1217,10 +1229,10 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
     function _initializeValidator() internal override {
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
-        
+
         // Setup mocks
         _setupProposalTypesConfiguratorMocks();
-        
+
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
         // Initialize will be tested manually
