@@ -78,7 +78,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Mapping of message nonces to message hashes. Note that a message will only be present in this
     ///         mapping if it has been sent from this chain to a destination chain.
-    mapping(uint256 msgNonce => bytes32 messageHash) public sentMessages;
+    mapping(uint256 => bytes32) public sentMessages;
 
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
