@@ -5,6 +5,7 @@ pragma solidity 0.8.15;
 import { IProposalValidator } from "interfaces/governance/IProposalValidator.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
+import { IProposalTypesConfigurator } from "interfaces/governance/IProposalTypesConfigurator.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas/IEAS.sol";
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
@@ -69,6 +70,7 @@ contract ProposalValidator_Init is CommonTest {
     ProposalValidatorForTest public validator;
     ProposalValidatorForTest public impl;
     IOptimismGovernor public governor;
+    IProposalTypesConfigurator public proposalTypesConfigurator;
     bytes32 public ATTESTATION_SCHEMA_UID;
     bytes32 public proposalHash;
 
@@ -86,7 +88,7 @@ contract ProposalValidator_Init is CommonTest {
     );
     event DistributionThresholdSet(uint256 newDistributionThreshold);
     event ProposalTypeDataSet(
-        ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, address proposalVotingModule
+        ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule
     );
 
     /// @notice Helper function to setup a mock and expect a call to it.
@@ -125,26 +127,46 @@ contract ProposalValidator_Init is CommonTest {
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](5);
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 0
         });
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 1
         });
         proposalTypesData[2] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 2
         });
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 3
         });
         proposalTypesData[4] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 4
         });
 
         return (proposalTypes, proposalTypesData);
+    }
+
+    /// @notice Helper function to setup proposal types configurator mocks
+    function _setupProposalTypesConfiguratorMocks() internal {
+        // Mock calls for different proposal type IDs
+        for (uint8 i = 0; i < 5; i++) {
+            address moduleAddress = (i == 3 || i == 4) ? makeAddr("approvalVotingModule") : address(0);
+            
+            vm.mockCall(
+                address(proposalTypesConfigurator),
+                abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (i)),
+                abi.encode(IProposalTypesConfigurator.ProposalType({
+                    quorum: 100,
+                    approvalThreshold: 100,
+                    name: "Test Proposal Type",
+                    description: "Test Description", 
+                    module: moduleAddress
+                }))
+            );
+        }
     }
 
     /// @notice Initializes the validator
@@ -154,8 +176,13 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ProposalTypeData[] memory proposalTypesData
         ) = _getProposalTypesAndData();
 
+        // Create mock addresses
+        proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
+        
+        // Setup mocks
+        _setupProposalTypesConfiguratorMocks();
+        
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
-
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
         vm.prank(owner);
@@ -165,6 +192,7 @@ contract ProposalValidator_Init is CommonTest {
                 impl.initialize,
                 (
                     owner,
+                    proposalTypesConfigurator,
                     MINIMUM_VOTING_POWER,
                     CYCLE_NUMBER,
                     START_BLOCK,
@@ -507,7 +535,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
     function testFuzz_setProposalTypeData_succeeds(
         uint8 proposalTypeValue,
         uint256 newRequiredApprovals,
-        address newConfigurator
+        uint8 newProposalTypeId
     )
         public
     {
@@ -517,24 +545,24 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
 
         ProposalValidator.ProposalTypeData memory newData = ProposalValidator.ProposalTypeData({
             requiredApprovals: newRequiredApprovals,
-            proposalVotingModule: newConfigurator
+            proposalVotingModule: newProposalTypeId
         });
 
         // Expect the ProposalTypeDataSet event to be emitted
         vm.expectEmit(address(validator));
-        emit ProposalTypeDataSet(proposalType, newRequiredApprovals, newConfigurator);
+        emit ProposalTypeDataSet(proposalType, newRequiredApprovals, newProposalTypeId);
 
         vm.prank(owner);
         validator.setProposalTypeData(proposalType, newData);
 
-        (uint256 requiredApprovals, address proposalVotingModule) = validator.proposalTypesData(proposalType);
+        (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalType);
         assertEq(requiredApprovals, newRequiredApprovals);
-        assertEq(proposalVotingModule, newConfigurator);
+        assertEq(proposalVotingModule, newProposalTypeId);
     }
 
     function test_setProposalTypeData_notOwner_reverts() public {
         ProposalValidator.ProposalTypeData memory newData =
-            ProposalValidator.ProposalTypeData({ requiredApprovals: 4, proposalVotingModule: address(0) });
+            ProposalValidator.ProposalTypeData({ requiredApprovals: 4, proposalVotingModule: 0 });
 
         vm.prank(rando);
         vm.expectRevert("Ownable: caller is not the owner");
@@ -581,7 +609,6 @@ contract ProposalValidator_HashProposalWithModule_Test is ProposalValidator_Init
 /// @title ProposalValidator_SubmitFundingProposal_Test
 /// @notice Happy path tests for submitFundingProposal function
 contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init {
-    address mockApprovalVotingModule;
     uint128 criteriaValue;
     string[] optionsDescriptions;
     address[] optionsRecipients;
@@ -593,14 +620,12 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function setUp() public override {
         super.setUp();
 
-        mockApprovalVotingModule = makeAddr("approvalVotingModule");
-
         vm.prank(owner);
         validator.setProposalTypeData(
             ProposalValidator.ProposalType.GovernanceFund,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: mockApprovalVotingModule
+                proposalVotingModule: 3
             })
         );
 
@@ -609,7 +634,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
             ProposalValidator.ProposalType.CouncilBudget,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: mockApprovalVotingModule
+                proposalVotingModule: 4
             })
         );
 
@@ -632,7 +657,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function test_submitFundingProposal_governanceFund_succeeds() public {
         // Calculate expected proposal hash
         bytes32 expectedHash = validator.hashProposalWithModule(
-            mockApprovalVotingModule, _constructExpectedVotingModuleData(), keccak256(bytes(description))
+            makeAddr("approvalVotingModule"), _constructExpectedVotingModuleData(), keccak256(bytes(description))
         );
 
         // Expect ProposalSubmitted event
@@ -693,7 +718,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function test_submitFundingProposal_councilBudget_succeeds() public {
         // Calculate expected proposal hash
         bytes32 expectedHash = validator.hashProposalWithModule(
-            mockApprovalVotingModule, _constructExpectedVotingModuleData(), keccak256(bytes(description))
+            makeAddr("approvalVotingModule"), _constructExpectedVotingModuleData(), keccak256(bytes(description))
         );
 
         // Expect ProposalSubmitted event
@@ -779,7 +804,6 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 /// @title ProposalValidator_SubmitFundingProposal_TestFail
 /// @notice Sad path tests for submitFundingProposal function
 contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_Init {
-    address mockApprovalVotingModule;
     uint128 criteriaValue;
     string[] optionsDescriptions;
     address[] optionsRecipients;
@@ -789,15 +813,13 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function setUp() public override {
         super.setUp();
 
-        mockApprovalVotingModule = makeAddr("approvalVotingModule");
-
         // Set GovernanceFund to use the approval voting module
         vm.prank(owner);
         validator.setProposalTypeData(
             ProposalValidator.ProposalType.GovernanceFund,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: mockApprovalVotingModule
+                proposalVotingModule: 3
             })
         );
 
@@ -957,6 +979,12 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
     /// @dev Override to create validator proxy without initialization for testing
     function _initializeValidator() internal override {
+        // Create mock addresses
+        proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
+        
+        // Setup mocks
+        _setupProposalTypesConfiguratorMocks();
+        
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
         // Initialize will be tested manually
@@ -975,6 +1003,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                 impl.initialize,
                 (
                     owner,
+                    proposalTypesConfigurator,
                     MINIMUM_VOTING_POWER,
                     CYCLE_NUMBER,
                     START_BLOCK,
@@ -1000,9 +1029,9 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
 
         // Verify proposal type data
         for (uint256 i = 0; i < proposalTypes.length; i++) {
-            (uint256 requiredApprovals, address proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
+            (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
             assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
-            assertEq(proposalVotingModule, address(0));
+            assertEq(proposalVotingModule, uint8(i));
         }
     }
 
@@ -1016,11 +1045,11 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](2);
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 0
         });
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: address(0)
+            proposalVotingModule: 1
         });
 
         vm.prank(owner);
@@ -1031,6 +1060,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                 impl.initialize,
                 (
                     owner,
+                    proposalTypesConfigurator,
                     MINIMUM_VOTING_POWER,
                     CYCLE_NUMBER,
                     START_BLOCK,

@@ -11,6 +11,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
+import { IProposalTypesConfigurator } from "interfaces/governance/IProposalTypesConfigurator.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -81,10 +82,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Struct for storing explicit data for each proposal type.
     /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for
     /// voting.
-    /// @param proposalVotingModule The voting module each proposal type must use.
+    /// @param proposalVotingModule The proposal type ID used to get the voting module from the configurator.
     struct ProposalTypeData {
         uint256 requiredApprovals;
-        address proposalVotingModule;
+        uint8 proposalVotingModule;
     }
 
     /// @notice Struct for storing voting cycle data.
@@ -158,8 +159,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Emitted when the proposal type data is set.
     /// @param proposalType The type of proposal.
     /// @param requiredApprovals The required number of approvals.
-    /// @param proposalVotingModule The proposal voting module.
-    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, address proposalVotingModule);
+    /// @param proposalVotingModule The proposal type ID.
+    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule);
 
     /// @notice Emitted with ProposalSubmitted event.
     /// @param proposalHash The hash of the submitted proposal.
@@ -175,6 +176,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice The token used to determine voting power.
     IGovernanceToken public immutable VOTING_TOKEN;
+
+    /// @notice The proposal types configurator contract.
+    IProposalTypesConfigurator public proposalTypesConfigurator;
 
     /// @notice The minimum voting power required for a delegate to approve proposals.
     uint256 public minimumVotingPower;
@@ -216,6 +220,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice Initializes the ProposalValidator contract.
     /// @param _owner The address that will own the contract.
+    /// @param _proposalTypesConfigurator The proposal types configurator contract address.
     /// @param _minimumVotingPower The minimum voting power required for a delegate to approve proposals.
     /// @param _cycleNumber The number of the current voting cycle.
     /// @param _startBlock The block number of the starting block of the voting cycle.
@@ -226,6 +231,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalTypesData Array of proposal type data corresponding to the proposal types.
     function initialize(
         address _owner,
+        IProposalTypesConfigurator _proposalTypesConfigurator,
         uint256 _minimumVotingPower,
         uint256 _cycleNumber,
         uint256 _startBlock,
@@ -242,6 +248,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_ProposalTypesDataLengthMismatch();
         }
 
+        proposalTypesConfigurator = _proposalTypesConfigurator;
         _setMinimumVotingPower(_minimumVotingPower);
         _setVotingCycleData(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
         _setDistributionThreshold(_distributionThreshold);
@@ -338,9 +345,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
+        // Get the module address from the configurator
+        address votingModule = proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
+
         // Generate unique proposal hash
         proposalHash_ = _hashProposalWithModule(
-            proposalTypesData[_proposalType].proposalVotingModule,
+            votingModule,
             proposalVotingModuleData,
             keccak256(bytes(_description))
         );
