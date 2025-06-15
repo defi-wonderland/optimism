@@ -25,7 +25,6 @@ interface IGasTank {
     error MaxDepositExceeded();
     error InvalidOrigin();
     error InvalidPayload();
-    error InvalidRootMessage();
     error InsufficientBalance();
     error AlreadyClaimed();
     error InvalidPayer();
@@ -49,7 +48,7 @@ interface IGasTank {
     function initiateWithdrawal(uint256 amount) external;
     function finalizeWithdrawal(address to) external;
     function flag(bytes32 originMessageHash) external;
-    function relayMessage(Identifier[] calldata _id, bytes[] calldata _sentMessage) external;
+    function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) external;
     function claim(Identifier calldata id, address gasProvider, bytes calldata payload) external;
     function decodeGasReceiptPayload(bytes calldata payload)
         external

@@ -26,9 +26,6 @@ contract GasTank is IGasTank {
     /// @notice The gas cost of claiming a receipt
     uint256 public constant CLAIM_OVERHEAD = 100_000;
 
-    /// @notice The gas overhead for the gas receipt event
-    uint256 public constant GAS_RECEIPT_EVENT_OVERHEAD = 28772;
-
     /// @notice The cross domain messenger
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -122,7 +119,7 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        uint256 gasUsed = (initialGas - gasleft()) + GAS_RECEIPT_EVENT_OVERHEAD;
+        uint256 gasUsed = (initialGas - gasleft()) + _gasReceiptEventOverhead(destinationMessageHashes.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
         emit RelayedMessageGasReceipt(originMessageHash, msg.sender, _cost(gasUsed), destinationMessageHashes);
@@ -167,7 +164,7 @@ contract GasTank is IGasTank {
         claimed[originMessageHash] = true;
 
         // Send the cost repayment back to the relayer
-        new SafeSend{ value: cost }(payable(relayer));
+        new SafeSend{ value: cost }(payable(relayer));  // TODO How much gas cost? 2300?
 
         emit Claimed(originMessageHash, relayer, gasProvider, cost);
     }
@@ -221,5 +218,8 @@ contract GasTank is IGasTank {
 
         // Get the current message hash
         messageHash = Hashing.hashL2toL2CrossDomainMessage(destination, _source, nonce, sender, target, message);
+    }
+    function _gasReceiptEventOverhead(uint256 numHashes) internal returns(uint256) {
+        return 3_000 + 300 * numHashes;
     }
 }
