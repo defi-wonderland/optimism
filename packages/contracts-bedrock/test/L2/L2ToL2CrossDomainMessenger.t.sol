@@ -27,6 +27,7 @@ import {
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { ICrossMessageBundler } from "interfaces/L2/ICrossMessageBundler.sol";
+import { IBundleRelayer } from "interfaces/L2/IBundleRelayer.sol";
 
 /// @title L2ToL2CrossDomainMessengerWithModifiableTransientStorage
 /// @notice L2ToL2CrossDomainMessenger contract with methods to modify the transient storage.
@@ -72,7 +73,7 @@ contract L2ToL2CrossDomainMessenger_TestInit is Test {
     L2ToL2CrossDomainMessengerWithModifiableTransientStorage l2ToL2CrossDomainMessenger;
 
     /// @notice Sets up the test suite.
-    function setUp() public {
+    function setUp() public virtual {
         // Deploy the L2ToL2CrossDomainMessenger contract
         vm.etch(
             Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
@@ -845,7 +846,7 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
 
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, _target, _nonce), // topics
-            abi.encode(_sender, _entrypoint, _message) // data
+            abi.encode(_sender, keccak256(abi.encodePacked(_entrypoint)), _message) // data
         );
 
         // Ensure the CrossL2Inbox validates this message
@@ -983,5 +984,150 @@ contract L2ToL2CrossDomainMessenger_CreateBundle_Test is L2ToL2CrossDomainMessen
         _maxDepth = bound(_maxDepth, 3, 10);
 
         messageBundler.assertBundleDepth(_maxDepth);
+    }
+}
+
+/// @title L2ToL2CrossDomainMessenger_RelayBundle_Test
+/// @notice Tests that relaying a bundle with only a level of depth and no message entrypoint succeeds.
+contract L2ToL2CrossDomainMessenger_RelayBundle_Test is L2ToL2CrossDomainMessenger_TestInit {
+    bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
+        0x65f7fa83885abdbef9cab58474f555aa731b64afad093d9fbe25c446e18115f0;
+
+    SimpleBundleRelayer internal simpleBundleRelayer;
+    BundleRelayerWithEntrypoint internal bundleRelayerWithEntrypoint;
+    SimpleEntrypoint internal simpleEntrypoint;
+
+    function setUp() public override {
+        super.setUp();
+        simpleBundleRelayer = new SimpleBundleRelayer();
+        bundleRelayerWithEntrypoint = new BundleRelayerWithEntrypoint();
+        simpleEntrypoint = new SimpleEntrypoint();
+    }
+
+    function test_relayBundle_simple_succeeds(address _target, bytes memory _targetMessage) external {
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
+        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        assumeNotForgeAddress(_target);
+
+        // Avoid reverts for extcode size check
+        vm.etch(_target, "0x0000000000000000000000000000000000000001");
+
+        Identifier memory id = Identifier({
+            chainId: block.chainid,
+            origin: Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            blockNumber: 1,
+            logIndex: 1,
+            timestamp: 1
+        });
+
+        // Calculate the hash of simple relayer for a level of depth equal to 1
+        bytes32 entrypointHash = keccak256(abi.encodePacked(bytes32(0), address(simpleBundleRelayer)));
+
+        bytes memory sentMessage = abi.encodePacked(
+            SENT_MESSAGE_EVENT_SELECTOR,
+            abi.encode(block.chainid, _target, 1),
+            abi.encode(address(this), entrypointHash, _targetMessage)
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+        vm.expectCall(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            abi.encodeCall(L2ToL2CrossDomainMessenger.relayMessage, (id, sentMessage))
+        );
+
+        vm.mockCall({ callee: _target, data: _targetMessage, returnData: abi.encode(1) });
+        vm.expectCall({ callee: _target, data: _targetMessage });
+
+        simpleBundleRelayer.relayBundle(abi.encode(id, sentMessage));
+    }
+
+    function test_relayBundle_withEntrypoint_succeeds(address _target, bytes memory _targetMessage) external {
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
+        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        assumeNotForgeAddress(_target);
+
+        // Avoid reverts for extcode size check
+        vm.etch(_target, "0x1000000000000000000000000000000000000001");
+
+        Identifier memory id = Identifier({
+            chainId: block.chainid,
+            origin: Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            blockNumber: 1,
+            logIndex: 1,
+            timestamp: 1
+        });
+
+        // Calculate the hash of simple relayer for a level of depth equal to 1
+        bytes32 entrypointHash = keccak256(abi.encodePacked(bytes32(0), address(bundleRelayerWithEntrypoint)));
+
+        bytes memory sentMessage = abi.encodePacked(
+            SENT_MESSAGE_EVENT_SELECTOR,
+            abi.encode(block.chainid, _target, 1),
+            abi.encode(
+                address(this), keccak256(abi.encodePacked(entrypointHash, address(simpleEntrypoint))), _targetMessage
+            )
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+        vm.expectCall(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            abi.encodeCall(L2ToL2CrossDomainMessenger.relayMessage, (id, sentMessage))
+        );
+
+        vm.mockCall({ callee: _target, data: _targetMessage, returnData: abi.encode(1) });
+        vm.expectCall({ callee: _target, data: _targetMessage });
+
+        bundleRelayerWithEntrypoint.relayBundle(
+            abi.encode(address(simpleEntrypoint), abi.encodeCall(SimpleEntrypoint.relayMessage, (id, sentMessage)))
+        );
+    }
+}
+
+/// @title SimpleBundleRelayer
+/// @notice A contract that relays a bundle with a single message and no message entrypoint.
+contract SimpleBundleRelayer is IBundleRelayer {
+    function onRelayBundle(bytes calldata _context) external override {
+        (Identifier memory id, bytes memory message) = abi.decode(_context, (Identifier, bytes));
+
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(id, message);
+    }
+
+    function relayBundle(bytes calldata _context) external {
+        // Create a bundle
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayBundle(_context);
+    }
+}
+
+/// @title BundleRelayerWithEntrypoint
+/// @notice A contract that relays a bundle with a single message and a message entrypoint by calling the message
+/// entrypoint.
+contract BundleRelayerWithEntrypoint is IBundleRelayer {
+    function onRelayBundle(bytes calldata _context) external override {
+        (address entrypoint, bytes memory entrypointCalldata) = abi.decode(_context, (address, bytes));
+
+        (bool success,) = entrypoint.call(entrypointCalldata);
+
+        require(success, "Failed to call entrypoint");
+    }
+
+    function relayBundle(bytes calldata _context) external {
+        // Create a bundle
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayBundle(_context);
+    }
+}
+
+contract SimpleEntrypoint {
+    function relayMessage(Identifier memory _id, bytes memory _message) external {
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _message);
     }
 }

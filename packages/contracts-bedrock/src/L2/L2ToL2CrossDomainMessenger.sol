@@ -11,6 +11,7 @@ import { TransientReentrancyAware } from "src/libraries/TransientContext.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { ICrossMessageBundler } from "interfaces/L2/ICrossMessageBundler.sol";
+import { IBundleRelayer } from "interfaces/L2/IBundleRelayer.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
@@ -168,7 +169,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _context The context of the bundle.
     function createBundle(address _entrypoint, bytes calldata _context) external {
         // TODO: Should we check for the caller supporting the ICrossMessageBundler interface before?
-
         uint256 depth;
         bytes32 entrypointHash;
 
@@ -191,6 +191,35 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
 
         ICrossMessageBundler(msg.sender).onCreateBundle(_context);
+
+        assembly {
+            // Restore the original depth
+            tstore(ENTRYPOINT_DEPTH_SLOT, depth)
+        }
+    }
+
+    /// @notice Relays a bundle of messages.
+    /// @param _context The context of the bundle.
+    function relayBundle(bytes calldata _context) external {
+        uint256 depth;
+        bytes32 entrypointHash;
+
+        assembly {
+            depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+
+            let newDepth := add(depth, 1)
+            tstore(ENTRYPOINT_DEPTH_SLOT, newDepth)
+
+            let memPtr := mload(0x40)
+            mstore(memPtr, entrypointHash)
+            mstore(add(memPtr, 0x20), shl(96, caller()))
+
+            let newEntrypointHash := keccak256(memPtr, 52)
+            tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
+        }
+
+        IBundleRelayer(msg.sender).onRelayBundle(_context);
 
         assembly {
             // Restore the original depth
@@ -314,11 +343,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
 
-        // Assert that if the message has a an entrypoint defined, it is being relayed from that address
-        // TODO: Implement the correct check for hashing the entrypoint and messageEntrypoint if it's a bundle
-        if (entrypointHash != bytes32(0) && keccak256(abi.encodePacked(msg.sender)) != entrypointHash) {
-            revert MessageEntrypointNotCaller();
-        }
+        _validateEntrypoint(entrypointHash);
 
         uint256 source = _id.chainId;
         bytes32 messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -350,6 +375,42 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         emit RelayedMessage(source, nonce, messageHash, keccak256(returnData_));
 
         _storeMessageMetadata(0, address(0));
+    }
+
+    event EntrypointHash(
+        bytes32 senderHash, bytes32 calculatedEntrypointHash, bytes32 bundleHash, bytes32 entrypointHashInMessage
+    );
+
+    /// @notice Checks that the message entrypoint hash corresponds with the caller's hash.
+    ///         Takes into account whether the message is in a bundle or not.
+    /// @param _messageEntrypointHash The hash of the entrypoint of the message.
+    function _validateEntrypoint(bytes32 _messageEntrypointHash) internal {
+        uint256 depth;
+        bytes32 storedRelayerHash;
+
+        assembly {
+            depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            storedRelayerHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+        }
+
+        bytes32 senderHash = keccak256(abi.encodePacked(msg.sender));
+        bool isValidEntrypoint = depth > 0
+            ? keccak256(abi.encodePacked(storedRelayerHash, msg.sender)) == _messageEntrypointHash // There was a message
+                // entrypoint in the bundle
+                || _messageEntrypointHash == storedRelayerHash // There was no entrypoint in the bundle
+            : _messageEntrypointHash == bytes32(0) // There was no entrypoint in the single message (no bundle)
+                || _messageEntrypointHash == senderHash; // There was an entrypoint in the single message (no bundle)
+
+        emit EntrypointHash(
+            senderHash,
+            keccak256(abi.encodePacked(storedRelayerHash, msg.sender)),
+            storedRelayerHash,
+            _messageEntrypointHash
+        );
+
+        if (!isValidEntrypoint) {
+            revert MessageEntrypointNotCaller();
+        }
     }
 
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
