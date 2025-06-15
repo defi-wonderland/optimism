@@ -24,7 +24,7 @@ contract GasTank is IGasTank {
     uint256 public constant WITHDRAWAL_DELAY = 7 days;
 
     /// @notice The gas cost of claiming a receipt
-    uint256 public constant CLAIM_OVERHEAD = 100_000;
+    uint256 public constant CLAIM_OVERHEAD = 125_000;
 
     /// @notice The gas overhead for the gas receipt event
     uint256 public constant GAS_RECEIPT_EVENT_OVERHEAD = 28772;
@@ -136,6 +136,9 @@ contract GasTank is IGasTank {
         // Ensure the origin is a gas tank deployed with the same address on the destination chain
         if (id.origin != address(this)) revert InvalidOrigin();
 
+        // Validate the message
+        ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(id, keccak256(payload));
+
         // Decode the receipt
         if (bytes32(payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
         (bytes32 originMessageHash, address relayer, uint256 relayCost, bytes32[] memory destinationMessageHashes) =
@@ -149,18 +152,17 @@ contract GasTank is IGasTank {
         // Ensure unclaimed
         if (claimed[originMessageHash]) revert AlreadyClaimed();
 
-        // Compute total cost (adding the overhead of this claim)
-        uint256 claimCost = CLAIM_OVERHEAD * block.basefee;
-        uint256 cost = relayCost + claimCost;
-        if (balanceOf[gasProvider] < cost) revert InsufficientBalance();
-
-        // Validate the message
-        ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(id, keccak256(payload));
-
         // Flag destination messages
+        uint256 gasBeforeFlagging = gasleft();
         for (uint256 i; i < destinationMessageHashes.length; i++) {
             flaggedMessages[gasProvider][destinationMessageHashes[i]] = true;
         }
+        uint256 gasUsedForFlagging = (gasBeforeFlagging - gasleft());
+
+        // Compute total cost (adding the overhead of this claim)
+        uint256 claimCost = _cost(gasUsedForFlagging + CLAIM_OVERHEAD);
+        uint256 cost = relayCost + claimCost;
+        if (balanceOf[gasProvider] < cost) revert InsufficientBalance();
 
         // Update the balance and mark the claim
         balanceOf[gasProvider] -= cost;
