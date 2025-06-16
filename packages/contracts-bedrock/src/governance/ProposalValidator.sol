@@ -310,7 +310,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             budgetToken: address(0), // No budget token for elections
             criteriaValue: _criteriaValue,
             budgetAmount: 0 // No budget amount for elections
-        });
+         });
 
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
@@ -320,11 +320,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         ).module;
 
         // Generate unique proposal hash
-        proposalHash_ = _hashProposalWithModule(
-            votingModule, 
-            proposalVotingModuleData, 
-            keccak256(bytes(_proposalDescription))
-        );
+        proposalHash_ =
+            _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
 
         ProposalData storage proposal = _proposals[proposalHash_];
 

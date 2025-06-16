@@ -1393,7 +1393,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         optionDescriptions[4] = "Eve for Council";
 
         proposalDescription = "Council Member Elections Q4 2024";
-        
+
         // Create attestation for the proposer
         attestationUid = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
     }
@@ -1414,7 +1414,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
 
         // Expect ProposalSubmitted event
         vm.expectEmit(address(validator));
-        emit ProposalSubmitted(expectedHash, topDelegate_A, proposalDescription, ProposalValidator.ProposalType.CouncilMemberElections);
+        emit ProposalSubmitted(
+            expectedHash, topDelegate_A, proposalDescription, ProposalValidator.ProposalType.CouncilMemberElections
+        );
 
         // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
@@ -1422,10 +1424,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
 
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
 
         assertEq(proposalHash, expectedHash);
@@ -1435,7 +1434,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         string[] memory singleOption = new string[](1);
         singleOption[0] = "Single Council Candidate";
 
-        bytes32 singleAttestation = _createAttestation(topDelegate_B, ProposalValidator.ProposalType.CouncilMemberElections);
+        bytes32 singleAttestation =
+            _createAttestation(topDelegate_B, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(singleOption, 1);
@@ -1451,12 +1451,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         );
 
         vm.prank(topDelegate_B);
-        bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
-            1,
-            singleOption,
-            proposalDescription,
-            singleAttestation
-        );
+        bytes32 proposalHash =
+            validator.submitCouncilMemberElectionsProposal(1, singleOption, proposalDescription, singleAttestation);
 
         assertTrue(proposalHash != bytes32(0));
     }
@@ -1469,10 +1465,12 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
             maxOptionDescriptions[i] = string(abi.encodePacked("Candidate ", i));
         }
 
-        bytes32 maxAttestation = _createAttestation(topDelegate_C, ProposalValidator.ProposalType.CouncilMemberElections);
+        bytes32 maxAttestation =
+            _createAttestation(topDelegate_C, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(maxOptionDescriptions, uint128(maxOptions));
+        bytes memory votingModuleData =
+            _constructCouncilElectionVotingModuleData(maxOptionDescriptions, uint128(maxOptions));
         bytes32 expectedHash = validator.hashProposalWithModule(
             makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(proposalDescription))
         );
@@ -1486,10 +1484,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
 
         vm.prank(topDelegate_C);
         bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
-            uint128(maxOptions),
-            maxOptionDescriptions,
-            proposalDescription,
-            maxAttestation
+            uint128(maxOptions), maxOptionDescriptions, proposalDescription, maxAttestation
         );
 
         assertTrue(proposalHash != bytes32(0));
@@ -1534,22 +1529,16 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            invalidAttestation
+            criteriaValue, optionDescriptions, proposalDescription, invalidAttestation
         );
     }
 
     function test_submitCouncilMemberElectionsProposal_wrongProposer_reverts() public {
         // Try to submit with different address than attested
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
-        vm.prank(topDelegate_B);  // Different from attested topDelegate_A
+        vm.prank(topDelegate_B); // Different from attested topDelegate_A
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
     }
 
@@ -1558,12 +1547,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(topDelegate_A);
-        validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            emptyOptions,
-            proposalDescription,
-            attestationUid
-        );
+        validator.submitCouncilMemberElectionsProposal(criteriaValue, emptyOptions, proposalDescription, attestationUid);
     }
 
     function test_submitCouncilMemberElectionsProposal_tooManyOptions_reverts() public {
@@ -1577,10 +1561,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            tooManyDescriptions,
-            proposalDescription,
-            attestationUid
+            criteriaValue, tooManyDescriptions, proposalDescription, attestationUid
         );
     }
 
@@ -1601,23 +1582,18 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         // Submit first proposal
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
 
         // Create new attestation for second attempt
-        bytes32 secondAttestation = _createAttestation(topDelegate_B, ProposalValidator.ProposalType.CouncilMemberElections);
+        bytes32 secondAttestation =
+            _createAttestation(topDelegate_B, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Attempt to submit identical proposal should revert
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(topDelegate_B);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            secondAttestation
+            criteriaValue, optionDescriptions, proposalDescription, secondAttestation
         );
     }
 
@@ -1638,10 +1614,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
     }
 
@@ -1665,10 +1638,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue,
-            optionDescriptions,
-            proposalDescription,
-            invalidAttestation
+            criteriaValue, optionDescriptions, proposalDescription, invalidAttestation
         );
     }
 }
