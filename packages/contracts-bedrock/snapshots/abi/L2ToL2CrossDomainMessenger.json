@@ -1,5 +1,23 @@
 [
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_entrypoint",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_context",
+        "type": "bytes"
+      }
+    ],
+    "name": "createBundle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "crossDomainMessageContext",
     "outputs": [
@@ -45,6 +63,32 @@
   },
   {
     "inputs": [],
+    "name": "messageBundleDepth",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "depth_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "messageBundleEntrypoint",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "entrypointHash_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "messageNonce",
     "outputs": [
       {
@@ -67,6 +111,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "_context",
+        "type": "bytes"
+      }
+    ],
+    "name": "relayBundle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -143,6 +200,11 @@
         "type": "address"
       },
       {
+        "internalType": "bytes32",
+        "name": "_entrypointHash",
+        "type": "bytes32"
+      },
+      {
         "internalType": "bytes",
         "name": "_message",
         "type": "bytes"
@@ -178,6 +240,40 @@
       }
     ],
     "name": "sendMessage",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "messageHash_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_destination",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_target",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_entrypoint",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_message",
+        "type": "bytes"
+      }
+    ],
+    "name": "sendMessageWithEntrypoint",
     "outputs": [
       {
         "internalType": "bytes32",
@@ -299,6 +395,12 @@
       },
       {
         "indexed": false,
+        "internalType": "bytes32",
+        "name": "entrypointHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
         "internalType": "bytes",
         "name": "message",
         "type": "bytes"
@@ -335,6 +437,11 @@
   {
     "inputs": [],
     "name": "MessageDestinationSameChain",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MessageEntrypointNotCaller",
     "type": "error"
   },
   {

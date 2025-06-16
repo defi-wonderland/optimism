@@ -62,6 +62,45 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_entrypoint",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_chainId",
+        "type": "uint256"
+      }
+    ],
+    "name": "sendERC20WithEntrypoint",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "msgHash_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "version",
     "outputs": [
