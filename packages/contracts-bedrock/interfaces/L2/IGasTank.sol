@@ -35,7 +35,6 @@ interface IGasTank {
     // Constants
     function MAX_DEPOSIT() external pure returns (uint256);
     function WITHDRAWAL_DELAY() external pure returns (uint256);
-    function CLAIM_OVERHEAD() external pure returns (uint256);
     function MESSENGER() external pure returns (IL2ToL2CrossDomainMessenger);
 
     // State Variables
@@ -55,4 +54,5 @@ interface IGasTank {
         external
         pure
         returns (bytes32 originMsgHash, address relayer, uint256 relayCost, bytes32[] calldata destinationMessageHashes);
+    function claimOverhead(uint256 numHashes) external view returns (uint256);
 }

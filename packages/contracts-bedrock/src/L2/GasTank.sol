@@ -23,9 +23,6 @@ contract GasTank is IGasTank {
     /// @notice The delay before a withdrawal can be finalized
     uint256 public constant WITHDRAWAL_DELAY = 7 days;
 
-    /// @notice The gas cost of claiming a receipt
-    uint256 public constant CLAIM_OVERHEAD = 125_000;
-
     /// @notice The gas overhead for the gas receipt event
     uint256 public constant GAS_RECEIPT_EVENT_OVERHEAD = 28772;
 
@@ -152,15 +149,16 @@ contract GasTank is IGasTank {
         // Ensure unclaimed
         if (claimed[originMessageHash]) revert AlreadyClaimed();
 
+        // Cache destination message hashes length
+        uint256 destinationMessageHashesLength = destinationMessageHashes.length;
+
         // Flag destination messages
-        uint256 gasBeforeFlagging = gasleft();
-        for (uint256 i; i < destinationMessageHashes.length; i++) {
+        for (uint256 i; i < destinationMessageHashesLength; i++) {
             flaggedMessages[gasProvider][destinationMessageHashes[i]] = true;
         }
-        uint256 gasUsedForFlagging = (gasBeforeFlagging - gasleft());
 
         // Compute total cost (adding the overhead of this claim)
-        uint256 claimCost = _cost(gasUsedForFlagging + CLAIM_OVERHEAD);
+        uint256 claimCost = claimOverhead(destinationMessageHashesLength);
         uint256 cost = relayCost + claimCost;
         if (balanceOf[gasProvider] < cost) revert InsufficientBalance();
 
@@ -195,6 +193,11 @@ contract GasTank is IGasTank {
 
         // Decode Data
         destinationMessageHashes = abi.decode(payload[128:], (bytes32[]));
+    }
+
+    /// @notice Calculates the overhead of a claim
+    function claimOverhead(uint256 numHashes) public view returns (uint256) {
+        return (125_000 + numHashes * 23_000) * block.basefee;
     }
 
     /// @notice Calculates the cost of a message relay.
