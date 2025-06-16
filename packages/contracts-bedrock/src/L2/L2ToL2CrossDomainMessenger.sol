@@ -377,14 +377,10 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0));
     }
 
-    event EntrypointHash(
-        bytes32 senderHash, bytes32 calculatedEntrypointHash, bytes32 bundleHash, bytes32 entrypointHashInMessage
-    );
-
     /// @notice Checks that the message entrypoint hash corresponds with the caller's hash.
     ///         Takes into account whether the message is in a bundle or not.
     /// @param _messageEntrypointHash The hash of the entrypoint of the message.
-    function _validateEntrypoint(bytes32 _messageEntrypointHash) internal {
+    function _validateEntrypoint(bytes32 _messageEntrypointHash) internal view {
         uint256 depth;
         bytes32 storedRelayerHash;
 
@@ -400,13 +396,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
                 || _messageEntrypointHash == storedRelayerHash // There was no entrypoint in the bundle
             : _messageEntrypointHash == bytes32(0) // There was no entrypoint in the single message (no bundle)
                 || _messageEntrypointHash == senderHash; // There was an entrypoint in the single message (no bundle)
-
-        emit EntrypointHash(
-            senderHash,
-            keccak256(abi.encodePacked(storedRelayerHash, msg.sender)),
-            storedRelayerHash,
-            _messageEntrypointHash
-        );
 
         if (!isValidEntrypoint) {
             revert MessageEntrypointNotCaller();
