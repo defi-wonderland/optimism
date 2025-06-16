@@ -261,6 +261,91 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         transferOwnership(_owner);
     }
 
+    /// @notice Submits a Council Member Elections proposal for approval and voting.
+    /// @param _criteriaValue Since the passing criteria type is "TopChoices" this number represents the amount
+    /// of top choices that can pass the voting.
+    /// @param _optionDescriptions The strings of the different options that can be voted.
+    /// @param _proposalDescription Description of the proposal.
+    /// @param _attestationUid The UID of the attestation for the approved proposer.
+    /// @return proposalHash_ The hash of the submitted proposal.
+    function submitCouncilMemberElectionsProposal(
+        uint128 _criteriaValue,
+        string[] memory _optionDescriptions,
+        string memory _proposalDescription,
+        bytes32 _attestationUid
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        // Validate EAS attestation - must be called by owner-approved address
+        _validateAttestation(_attestationUid, ProposalType.CouncilMemberElections);
+
+        // Validate options length bounds
+        uint256 optionsLength = _optionDescriptions.length;
+        if (optionsLength == 0 || optionsLength > type(uint8).max) {
+            revert ProposalValidator_InvalidOptionsLength();
+        }
+
+        ProposalOption[] memory options = new ProposalOption[](optionsLength);
+
+        // Build proposal options without any execution calls (elections don't execute operations)
+        for (uint256 i = 0; i < optionsLength; i++) {
+            address[] memory targets = new address[](0);
+            uint256[] memory values = new uint256[](0);
+            bytes[] memory calldatas = new bytes[](0);
+
+            options[i] = ProposalOption({
+                budgetTokensSpent: 0, // No tokens spent for elections
+                targets: targets,
+                values: values,
+                calldatas: calldatas,
+                description: _optionDescriptions[i]
+            });
+        }
+
+        // Configure approval voting settings with TopChoices criteria
+        ProposalSettings memory settings = ProposalSettings({
+            maxApprovals: uint8(optionsLength),
+            criteria: uint8(PassingCriteria.TopChoices),
+            budgetToken: address(0), // No budget token for elections
+            criteriaValue: _criteriaValue,
+            budgetAmount: 0 // No budget amount for elections
+        });
+
+        bytes memory proposalVotingModuleData = abi.encode(options, settings);
+
+        // Get the module address from the configurator
+        address votingModule = proposalTypesConfigurator.proposalTypes(
+            proposalTypesData[ProposalType.CouncilMemberElections].proposalVotingModule
+        ).module;
+
+        // Generate unique proposal hash
+        proposalHash_ = _hashProposalWithModule(
+            votingModule, 
+            proposalVotingModuleData, 
+            keccak256(bytes(_proposalDescription))
+        );
+
+        ProposalData storage proposal = _proposals[proposalHash_];
+
+        // Prevent duplicate proposals with same hash
+        if (proposal.proposer != address(0)) {
+            revert ProposalValidator_ProposalAlreadySubmitted();
+        }
+
+        // Check if proposal already exists in OptimismGovernor
+        if (GOVERNOR.proposalSnapshot(uint256(proposalHash_)) != 0) {
+            revert ProposalValidator_ProposalAlreadySubmitted();
+        }
+
+        // Store proposal metadata
+        proposal.proposer = msg.sender;
+        proposal.proposalType = ProposalType.CouncilMemberElections;
+
+        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, ProposalType.CouncilMemberElections);
+        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
+    }
+
     /// @notice Submits a GovernanceFund or CouncilBudget proposal type that transfers OP tokens for approval and
     /// voting.
     /// @dev For UI integration: Frontend interfaces should present this as a percentage input to users (e.g., "25%"),
@@ -367,7 +452,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
-        proposal.inVoting = false;
 
         emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
