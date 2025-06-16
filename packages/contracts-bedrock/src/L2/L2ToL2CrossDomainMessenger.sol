@@ -186,38 +186,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeEntrypointDepth(depth);
     }
 
-    /// @notice Retrieves the current depth and entrypoint hash while calculating and storing new values for the next
-    /// depth.
-    /// @return depth The current depth.
-    /// @return entrypointHash The entrypoint hash for the current depth.
-    function _getAndUpdateDepthAndEntrypoint(address _entrypoint)
-        internal
-        returns (uint256 depth, bytes32 entrypointHash)
-    {
-        assembly {
-            depth := tload(ENTRYPOINT_DEPTH_SLOT)
-            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
-
-            let newDepth := add(depth, 1)
-            tstore(ENTRYPOINT_DEPTH_SLOT, newDepth)
-
-            let memPtr := mload(0x40)
-            mstore(memPtr, entrypointHash)
-            mstore(add(memPtr, 0x20), shl(96, _entrypoint))
-
-            let newEntrypointHash := keccak256(memPtr, 52)
-            tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
-        }
-    }
-
-    /// @notice Stores the entrypoint depth in storage.
-    /// @param _depth The depth to store.
-    function _storeEntrypointDepth(uint256 _depth) internal {
-        assembly {
-            tstore(ENTRYPOINT_DEPTH_SLOT, _depth)
-        }
-    }
-
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
     ///         then the message will be unrelayable and any ETH sent will be permanently locked. The same will occur
     ///         if the target on the other chain is considered unsafe (see the _isUnsafeTarget() function).
@@ -368,31 +336,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         _storeMessageMetadata(0, address(0));
     }
 
-    /// @notice Checks that the message entrypoint hash corresponds with the caller's hash.
-    ///         Takes into account whether the message is in a bundle or not.
-    /// @param _messageEntrypointHash The hash of the entrypoint of the message.
-    function _validateEntrypoint(bytes32 _messageEntrypointHash) internal view {
-        uint256 depth;
-        bytes32 storedRelayerHash;
-
-        assembly {
-            depth := tload(ENTRYPOINT_DEPTH_SLOT)
-            storedRelayerHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
-        }
-
-        bytes32 senderHash = keccak256(abi.encodePacked(msg.sender));
-        bool isValidEntrypoint = depth > 0
-            ? keccak256(abi.encodePacked(storedRelayerHash, msg.sender)) == _messageEntrypointHash // There was a message
-                // entrypoint in the bundle
-                || _messageEntrypointHash == storedRelayerHash // There was no entrypoint in the bundle
-            : _messageEntrypointHash == bytes32(0) // There was no entrypoint in the single message (no bundle)
-                || _messageEntrypointHash == senderHash; // There was an entrypoint in the single message (no bundle)
-
-        if (!isValidEntrypoint) {
-            revert MessageEntrypointNotCaller();
-        }
-    }
-
     /// @notice Retrieves the next message nonce. Message version will be added to the upper two bytes of the message
     ///         nonce. Message version allows us to treat messages as having different structures.
     /// @return Nonce of the next message to be sent, with added message version.
@@ -501,5 +444,62 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         msgNonce++;
 
         emit SentMessage(_destination, _target, nonce, msg.sender, messageEntrypointHash, _message);
+    }
+
+    /// @notice Checks that the message entrypoint hash corresponds with the caller's hash.
+    ///         Takes into account whether the message is in a bundle or not.
+    /// @param _messageEntrypointHash The hash of the entrypoint of the message.
+    function _validateEntrypoint(bytes32 _messageEntrypointHash) internal view {
+        uint256 depth;
+        bytes32 storedRelayerHash;
+
+        assembly {
+            depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            storedRelayerHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+        }
+
+        bytes32 senderHash = keccak256(abi.encodePacked(msg.sender));
+        bool isValidEntrypoint = depth > 0
+            ? keccak256(abi.encodePacked(storedRelayerHash, msg.sender)) == _messageEntrypointHash // There was a message
+                // entrypoint in the bundle
+                || _messageEntrypointHash == storedRelayerHash // There was no entrypoint in the bundle
+            : _messageEntrypointHash == bytes32(0) // There was no entrypoint in the single message (no bundle)
+                || _messageEntrypointHash == senderHash; // There was an entrypoint in the single message (no bundle)
+
+        if (!isValidEntrypoint) {
+            revert MessageEntrypointNotCaller();
+        }
+    }
+
+    /// @notice Retrieves the current depth and entrypoint hash while calculating and storing new values for the next
+    /// depth.
+    /// @return depth The current depth.
+    /// @return entrypointHash The entrypoint hash for the current depth.
+    function _getAndUpdateDepthAndEntrypoint(address _entrypoint)
+        internal
+        returns (uint256 depth, bytes32 entrypointHash)
+    {
+        assembly {
+            depth := tload(ENTRYPOINT_DEPTH_SLOT)
+            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
+
+            let newDepth := add(depth, 1)
+            tstore(ENTRYPOINT_DEPTH_SLOT, newDepth)
+
+            let memPtr := mload(0x40)
+            mstore(memPtr, entrypointHash)
+            mstore(add(memPtr, 0x20), shl(96, _entrypoint))
+
+            let newEntrypointHash := keccak256(memPtr, 52)
+            tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
+        }
+    }
+
+    /// @notice Stores the entrypoint depth in storage.
+    /// @param _depth The depth to store.
+    function _storeEntrypointDepth(uint256 _depth) internal {
+        assembly {
+            tstore(ENTRYPOINT_DEPTH_SLOT, _depth)
+        }
     }
 }
