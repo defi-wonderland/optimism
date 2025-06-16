@@ -155,8 +155,7 @@ contract GasTank is IGasTank {
         }
 
         // Compute total cost (adding the overhead of this claim)
-        uint256 claimCost = claimOverhead(destinationMessageHashesLength);
-        uint256 cost = relayCost + claimCost;
+        uint256 cost = relayCost + claimOverhead(destinationMessageHashesLength);
         if (balanceOf[gasProvider] < cost) revert InsufficientBalance();
 
         // Update the balance and mark the claim
@@ -202,8 +201,8 @@ contract GasTank is IGasTank {
     /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
     /// @param numHashes the number of destination hashes relayed
     /// @return the gas cost to emit the event
-    function _gasReceiptEventOverhead(uint256 numHashes) internal view returns(uint256) {
-        return _cost(3_000 + 300 * numHashes);
+    function _gasReceiptEventOverhead(uint256 numHashes) internal view returns (uint256) {
+        return _cost(3_000 + numHashes * 300);
     }
 
     /// @notice Calculates the cost of gas used in wei
