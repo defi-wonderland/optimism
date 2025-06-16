@@ -116,10 +116,10 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        uint256 gasUsed = (initialGas - gasleft()) + _gasReceiptEventOverhead(destinationMessageHashes.length);
+        uint256 gasCost = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(destinationMessageHashes.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
-        emit RelayedMessageGasReceipt(originMessageHash, msg.sender, _cost(gasUsed), destinationMessageHashes);
+        emit RelayedMessageGasReceipt(originMessageHash, msg.sender, gasCost, destinationMessageHashes);
     }
 
     /// @notice Claims repayment for a relayed message
@@ -193,15 +193,20 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Calculates the overhead of a claim
+    /// @param numHashes the number of destination hashes relayed
+    /// @return the gas cost to emit the event
     function claimOverhead(uint256 numHashes) public view returns (uint256) {
-        return (125_000 + numHashes * 23_000) * block.basefee;
+        return _cost(125_000 + numHashes * 23_000);
     }
 
-    function _gasReceiptEventOverhead(uint256 numHashes) internal returns(uint256) {
-        return 3_000 + 300 * numHashes;
+    /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
+    /// @param numHashes the number of destination hashes relayed
+    /// @return the gas cost to emit the event
+    function _gasReceiptEventOverhead(uint256 numHashes) internal view returns(uint256) {
+        return _cost(3_000 + 300 * numHashes);
     }
 
-    /// @notice Calculates the cost of a message relay.
+    /// @notice Calculates the cost of gas used in wei
     function _cost(uint256 _gasUsed) internal view returns (uint256) {
         return block.basefee * _gasUsed;
     }
