@@ -148,7 +148,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Retrieves the recursive depth of the message bundle being created.
     /// @return depth_ The depth of the bundle.
-    function messageBundleDepth() external view returns (uint256 depth_) {
+    function messageBundleDepth() public view returns (uint256 depth_) {
         assembly {
             depth_ := tload(ENTRYPOINT_DEPTH_SLOT)
         }
@@ -156,7 +156,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
     /// @notice Retrieves the entrypoint hash of the current message bundle.
     /// @return entrypointHash_ The entrypoint hash of the current message bundle.
-    function messageBundleEntrypoint() external view returns (bytes32 entrypointHash_) {
+    function messageBundleEntrypoint() public view returns (bytes32 entrypointHash_) {
         assembly {
             let depth := tload(ENTRYPOINT_DEPTH_SLOT)
             // TODO: Should we revert if depth is 0?
@@ -169,7 +169,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _context The context of the bundle.
     function createBundle(address _entrypoint, bytes calldata _context) external {
         // TODO: Should we check for the caller supporting the ICrossMessageBundler interface before?
-        (uint256 depth,) = _getAndUpdateDepthAndEntrypoint(_entrypoint);
+        uint256 depth = messageBundleDepth();
+        bytes32 entrypointHash = messageBundleEntrypoint();
+
+        _storeEntrypointDepth(depth + 1);
+        _storeEntrypointHash(depth + 1, keccak256(abi.encodePacked(entrypointHash, _entrypoint)));
 
         ICrossMessageBundler(msg.sender).onCreateBundle(_context);
 
@@ -179,7 +183,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Relays a bundle of messages.
     /// @param _context The context of the bundle.
     function relayBundle(bytes calldata _context) external {
-        (uint256 depth,) = _getAndUpdateDepthAndEntrypoint(msg.sender);
+        uint256 depth = messageBundleDepth();
+        bytes32 entrypointHash = messageBundleEntrypoint();
+
+        _storeEntrypointDepth(depth + 1);
+        _storeEntrypointHash(depth + 1, keccak256(abi.encodePacked(entrypointHash, msg.sender)));
 
         IBundleRelayer(msg.sender).onRelayBundle(_context);
 
@@ -471,35 +479,20 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         }
     }
 
-    /// @notice Retrieves the current depth and entrypoint hash while calculating and storing new values for the next
-    /// depth.
-    /// @return depth The current depth.
-    /// @return entrypointHash The entrypoint hash for the current depth.
-    function _getAndUpdateDepthAndEntrypoint(address _entrypoint)
-        internal
-        returns (uint256 depth, bytes32 entrypointHash)
-    {
-        assembly {
-            depth := tload(ENTRYPOINT_DEPTH_SLOT)
-            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
-
-            let newDepth := add(depth, 1)
-            tstore(ENTRYPOINT_DEPTH_SLOT, newDepth)
-
-            let memPtr := mload(0x40)
-            mstore(memPtr, entrypointHash)
-            mstore(add(memPtr, 0x20), shl(96, _entrypoint))
-
-            let newEntrypointHash := keccak256(memPtr, 52)
-            tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
-        }
-    }
-
     /// @notice Stores the entrypoint depth in storage.
     /// @param _depth The depth to store.
     function _storeEntrypointDepth(uint256 _depth) internal {
         assembly {
             tstore(ENTRYPOINT_DEPTH_SLOT, _depth)
+        }
+    }
+
+    /// @notice Stores the entrypoint hash for a given depth.
+    /// @param _depth The depth to store the entrypoint hash for.
+    /// @param _entrypointHash The entrypoint hash to store.
+    function _storeEntrypointHash(uint256 _depth, bytes32 _entrypointHash) internal {
+        assembly {
+            tstore(add(ENTRYPOINT_DEPTH_SLOT, _depth), _entrypointHash)
         }
     }
 }
