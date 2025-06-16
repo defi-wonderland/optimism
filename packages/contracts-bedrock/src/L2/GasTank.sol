@@ -23,9 +23,6 @@ contract GasTank is IGasTank {
     /// @notice The delay before a withdrawal can be finalized
     uint256 public constant WITHDRAWAL_DELAY = 7 days;
 
-    /// @notice The gas overhead for the gas receipt event
-    uint256 public constant GAS_RECEIPT_EVENT_OVERHEAD = 28772;
-
     /// @notice The cross domain messenger
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -119,10 +116,10 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        uint256 gasUsed = (initialGas - gasleft()) + GAS_RECEIPT_EVENT_OVERHEAD;
+        uint256 gasCost = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(destinationMessageHashes.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
-        emit RelayedMessageGasReceipt(originMessageHash, msg.sender, _cost(gasUsed), destinationMessageHashes);
+        emit RelayedMessageGasReceipt(originMessageHash, msg.sender, gasCost, destinationMessageHashes);
     }
 
     /// @notice Claims repayment for a relayed message
@@ -196,11 +193,20 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Calculates the overhead of a claim
+    /// @param numHashes the number of destination hashes relayed
+    /// @return the gas cost to emit the event
     function claimOverhead(uint256 numHashes) public view returns (uint256) {
-        return (125_000 + numHashes * 23_000) * block.basefee;
+        return _cost(125_000 + numHashes * 23_000);
     }
 
-    /// @notice Calculates the cost of a message relay.
+    /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
+    /// @param numHashes the number of destination hashes relayed
+    /// @return the gas cost to emit the event
+    function _gasReceiptEventOverhead(uint256 numHashes) internal view returns(uint256) {
+        return _cost(3_000 + 300 * numHashes);
+    }
+
+    /// @notice Calculates the cost of gas used in wei
     function _cost(uint256 _gasUsed) internal view returns (uint256) {
         return block.basefee * _gasUsed;
     }
