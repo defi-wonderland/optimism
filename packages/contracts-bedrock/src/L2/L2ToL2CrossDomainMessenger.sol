@@ -169,41 +169,31 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _context The context of the bundle.
     function createBundle(address _entrypoint, bytes calldata _context) external {
         // TODO: Should we check for the caller supporting the ICrossMessageBundler interface before?
-        uint256 depth;
-        bytes32 entrypointHash;
-
-        assembly {
-            depth := tload(ENTRYPOINT_DEPTH_SLOT)
-            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
-
-            let newDepth := add(depth, 1)
-            tstore(ENTRYPOINT_DEPTH_SLOT, newDepth)
-
-            // Calculate new entrypoint hash
-            let memPtr := mload(0x40)
-            mstore(memPtr, entrypointHash)
-            mstore(add(memPtr, 0x20), shl(96, _entrypoint))
-
-            let newEntrypointHash := keccak256(memPtr, 52)
-
-            // Store the new entrypoint hash at the incremented depth slot
-            tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
-        }
+        (uint256 depth,) = _getAndUpdateDepthAndEntrypoint(_entrypoint);
 
         ICrossMessageBundler(msg.sender).onCreateBundle(_context);
 
-        assembly {
-            // Restore the original depth
-            tstore(ENTRYPOINT_DEPTH_SLOT, depth)
-        }
+        _storeEntrypointDepth(depth);
     }
 
     /// @notice Relays a bundle of messages.
     /// @param _context The context of the bundle.
     function relayBundle(bytes calldata _context) external {
-        uint256 depth;
-        bytes32 entrypointHash;
+        (uint256 depth,) = _getAndUpdateDepthAndEntrypoint(msg.sender);
 
+        IBundleRelayer(msg.sender).onRelayBundle(_context);
+
+        _storeEntrypointDepth(depth);
+    }
+
+    /// @notice Retrieves the current depth and entrypoint hash while calculating and storing new values for the next
+    /// depth.
+    /// @return depth The current depth.
+    /// @return entrypointHash The entrypoint hash for the current depth.
+    function _getAndUpdateDepthAndEntrypoint(address _entrypoint)
+        internal
+        returns (uint256 depth, bytes32 entrypointHash)
+    {
         assembly {
             depth := tload(ENTRYPOINT_DEPTH_SLOT)
             entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
@@ -213,17 +203,18 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
             let memPtr := mload(0x40)
             mstore(memPtr, entrypointHash)
-            mstore(add(memPtr, 0x20), shl(96, caller()))
+            mstore(add(memPtr, 0x20), shl(96, _entrypoint))
 
             let newEntrypointHash := keccak256(memPtr, 52)
             tstore(add(ENTRYPOINT_DEPTH_SLOT, newDepth), newEntrypointHash)
         }
+    }
 
-        IBundleRelayer(msg.sender).onRelayBundle(_context);
-
+    /// @notice Stores the entrypoint depth in storage.
+    /// @param _depth The depth to store.
+    function _storeEntrypointDepth(uint256 _depth) internal {
         assembly {
-            // Restore the original depth
-            tstore(ENTRYPOINT_DEPTH_SLOT, depth)
+            tstore(ENTRYPOINT_DEPTH_SLOT, _depth)
         }
     }
 
