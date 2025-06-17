@@ -12,7 +12,7 @@ interface IGasTank {
     }
 
     // Events
-    event Flagged(bytes32 indexed originMsgHash, address indexed gasProvider);
+    event AuthorizedClaim(address indexed gasProvider, bytes32 indexed messageHash);
     event Claimed(bytes32 indexed originMsgHash, address indexed relayer, address indexed gasProvider, uint256 amount);
     event Deposit(address indexed depositor, uint256 amount);
     event RelayedMessageGasReceipt(
@@ -27,7 +27,7 @@ interface IGasTank {
     error InvalidPayload();
     error InsufficientBalance();
     error AlreadyClaimed();
-    error InvalidPayer();
+    error MessageNotAuthorized();
     error WithdrawPending();
     error InvalidLength();
 
@@ -46,7 +46,7 @@ interface IGasTank {
     function deposit(address _to) external payable;
     function initiateWithdrawal(uint256 _amount) external;
     function finalizeWithdrawal(address _to) external;
-    function flag(bytes32 _messageHash) external;
+    function authorizeClaim(bytes32 _messageHash) external;
     function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) external;
     function claim(Identifier calldata _id, address _gasProvider, bytes calldata _payload) external;
     function decodeGasReceiptPayload(bytes calldata _payload)
