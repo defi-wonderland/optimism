@@ -75,11 +75,12 @@ contract GasTank is IGasTank {
         emit WithdrawalFinalized(msg.sender, _to, amount);
     }
 
-    /// @notice Flags a message into the gas tank so the relayer is aware of it, and can claim the funds after relaying
+    /// @notice Authorizes a message to be claimed by the relayer
     /// @param _messageHash The hash of the message to flag
-    function flag(bytes32 _messageHash) external {
+    function authorizeClaim(bytes32 _messageHash) external {
         flaggedMessages[msg.sender][_messageHash] = true;
-        emit Flagged(_messageHash, msg.sender);
+
+        emit AuthorizedClaim(msg.sender, _messageHash);
     }
 
     /// @notice Relays a message to the destination chain
@@ -121,36 +122,29 @@ contract GasTank is IGasTank {
         // Validate the message
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_payload));
 
-        // Decode the receipt
-        if (bytes32(_payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
         (bytes32 originMessageHash, address relayer, uint256 relayCost, bytes32[] memory destinationMessageHashes) =
             decodeGasReceiptPayload(_payload);
 
-        // Ensure the message is flagged for relaying
-        if (!flaggedMessages[_gasProvider][originMessageHash]) {
-            revert InvalidPayer();
-        }
+        if (!flaggedMessages[_gasProvider][originMessageHash]) revert MessageNotAuthorized();
 
-        // Ensure unclaimed
         if (claimed[originMessageHash]) revert AlreadyClaimed();
 
-        // Cache destination message hashes length
         uint256 destinationMessageHashesLength = destinationMessageHashes.length;
 
-        // Flag destination messages
+        // Authorize nested messages by the same gas provider
         for (uint256 i; i < destinationMessageHashesLength; i++) {
             flaggedMessages[_gasProvider][destinationMessageHashes[i]] = true;
         }
 
         // Compute total cost (adding the overhead of this claim)
         uint256 cost = relayCost + claimOverhead(destinationMessageHashesLength);
+
         if (balanceOf[_gasProvider] < cost) revert InsufficientBalance();
 
-        // Update the balance and mark the claim
         balanceOf[_gasProvider] -= cost;
+
         claimed[originMessageHash] = true;
 
-        // Send the cost repayment back to the relayer
         new SafeSend{ value: cost }(payable(relayer));
 
         emit Claimed(originMessageHash, relayer, _gasProvider, cost);
@@ -172,6 +166,8 @@ contract GasTank is IGasTank {
             bytes32[] memory destinationMessageHashes_
         )
     {
+        if (bytes32(_payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
+
         // Decode Topics
         (originMessageHash_, relayer_, relayCost_) = abi.decode(_payload[32:128], (bytes32, address, uint256));
 
