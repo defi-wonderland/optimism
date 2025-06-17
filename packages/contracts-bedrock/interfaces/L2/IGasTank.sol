@@ -40,7 +40,7 @@ interface IGasTank {
     function balanceOf(address) external view returns (uint256);
     function withdrawals(address) external view returns (uint256 timestamp, uint256 amount);
     function claimed(bytes32) external view returns (bool);
-    function flaggedMessages(address, bytes32) external view returns (bool);
+    function authorizedMessages(address, bytes32) external view returns (bool);
 
     // Functions
     function deposit(address _to) external payable;

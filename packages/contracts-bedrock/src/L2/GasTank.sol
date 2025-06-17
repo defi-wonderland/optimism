@@ -33,8 +33,8 @@ contract GasTank is IGasTank {
     /// @notice The current withdrawal of each gas provider
     mapping(address gasProvider => Withdrawal) public withdrawals;
 
-    /// @notice The flagged messages for relaying
-    mapping(address gasProvider => mapping(bytes32 msgHash => bool flagged)) public flaggedMessages;
+    /// @notice The authorized messages for claiming
+    mapping(address gasProvider => mapping(bytes32 msgHash => bool authorized)) public authorizedMessages;
 
     /// @notice The claimed messages
     mapping(bytes32 rootMsgHash => bool claimed) public claimed;
@@ -76,9 +76,9 @@ contract GasTank is IGasTank {
     }
 
     /// @notice Authorizes a message to be claimed by the relayer
-    /// @param _messageHash The hash of the message to flag
+    /// @param _messageHash The hash of the message to authorize
     function authorizeClaim(bytes32 _messageHash) external {
-        flaggedMessages[msg.sender][_messageHash] = true;
+        authorizedMessages[msg.sender][_messageHash] = true;
 
         emit AuthorizedClaim(msg.sender, _messageHash);
     }
@@ -125,7 +125,7 @@ contract GasTank is IGasTank {
         (bytes32 originMessageHash, address relayer, uint256 relayCost, bytes32[] memory destinationMessageHashes) =
             decodeGasReceiptPayload(_payload);
 
-        if (!flaggedMessages[_gasProvider][originMessageHash]) revert MessageNotAuthorized();
+        if (!authorizedMessages[_gasProvider][originMessageHash]) revert MessageNotAuthorized();
 
         if (claimed[originMessageHash]) revert AlreadyClaimed();
 
@@ -133,7 +133,7 @@ contract GasTank is IGasTank {
 
         // Authorize nested messages by the same gas provider
         for (uint256 i; i < destinationMessageHashesLength; i++) {
-            flaggedMessages[_gasProvider][destinationMessageHashes[i]] = true;
+            authorizedMessages[_gasProvider][destinationMessageHashes[i]] = true;
         }
 
         // Compute total cost (adding the overhead of this claim)
