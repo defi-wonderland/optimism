@@ -77,6 +77,7 @@ contract GasTankTest is Test {
 
     // TODO consider balance vs withdrawalAmount logic
     function testFuzz_finalizeWithdrawal_succeeds(uint256 withdrawalAmount, address to, uint256 balance) external {
+        vm.deal(address(gasTank), withdrawalAmount);
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
             block.timestamp
         );
