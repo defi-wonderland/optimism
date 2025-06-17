@@ -75,26 +75,105 @@ contract GasTankTest is Test {
         gasTank.finalizeWithdrawal(address(this));
     }
 
-    // TODO consider balance vs _withdrawalAmount logic
     function testFuzz_finalizeWithdrawal_succeeds(uint256 _withdrawalAmount, address _to, uint256 balance) external {
+        uint256 withdrawableAmount = balance < _withdrawalAmount ? balance : _withdrawalAmount;
+        vm.deal(address(gasTank), withdrawableAmount);
+
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
             block.timestamp
         );
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(1).checked_write(
             _withdrawalAmount
         );
-        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(
-            _withdrawalAmount
-        );
-
+        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(balance);
         vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
         vm.expectEmit(address(gasTank));
-        emit IGasTank.WithdrawalFinalized(address(this), _to, _withdrawalAmount);
+        emit IGasTank.WithdrawalFinalized(address(this), _to, withdrawableAmount);
         gasTank.finalizeWithdrawal(_to);
 
-        assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0 after finalizing the withdrawal");
-        assertEq(_to.balance, _withdrawalAmount, "Address should have received the withdrawn amount");
+        (uint256 timestamp, uint256 amount) = gasTank.withdrawals(address(this));
+        assertEq(timestamp, 0, "GasTank should have deleted the withdrawal timestamp");
+        assertEq(amount, 0, "GasTank should have deleted the withdrawal amount");
+        assertEq(
+            gasTank.balanceOf(address(this)),
+            balance - withdrawableAmount,
+            "GasTank balance should be 0 after finalizing the withdrawal"
+        );
+        assertEq(_to.balance, withdrawableAmount, "Address should have received the withdrawn amount");
+    }
+
+    function testFuzz_authorizeClaim_succeeds(bytes32 _messageHash) external {
+        vm.expectEmit(address(gasTank));
+        emit IGasTank.AuthorizedClaim(address(this), _messageHash);
+        gasTank.authorizeClaim(_messageHash);
+
+        assertTrue(gasTank.flaggedMessages(address(this), _messageHash), "GasTank should have flagged the message");
+    }
+
+    // TODO make test with a nested message
+    function testFuzz_relayMessage_succeeds(uint256 _baseFee) external {
+        // Prepare a dummy identifier and message
+        Identifier memory id;
+        id.chainId = 10;
+        id.origin = address(gasTank);
+        uint256 dstChainId = 11;
+        uint256 srcChainId = 10;
+        uint256 nonce = 1;
+        address target = address(1);
+
+        bytes memory dstCallData = abi.encodeWithSignature("doSomething()");
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(
+                IL2ToL2CrossDomainMessenger.SentMessage.selector,
+                dstChainId, // destination
+                target, // target
+                nonce // nonce
+            ),
+            abi.encode(
+                address(this), // sender
+                dstCallData // dstCallData
+            )
+        );
+
+        bytes32 originMessageHash = Hashing.hashL2toL2CrossDomainMessage(
+            dstChainId, // destChain
+            srcChainId, // srcChain
+            nonce, // nonce
+            address(this), // sender
+            target, // target
+            dstCallData
+        );
+
+        // Call relayMessage
+        vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
+        bytes[] memory mocks = new bytes[](2);
+        mocks[0] = abi.encode(uint240(1), uint240(1)); // nonceBefore, version
+        mocks[1] = abi.encode(uint240(1), uint240(1)); // nonceAfter, version
+        vm.mockCalls(
+            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"), mocks
+        );
+        vm.expectCall(
+            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
+            abi.encodeWithSignature("relayMessage((address,uint256,uint256,uint256,uint256),bytes)")
+        );
+        vm.mockCall(
+            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
+            abi.encodeWithSignature("relayMessage((address,uint256,uint256,uint256,uint256),bytes)"),
+            abi.encode("")
+        );
+        vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
+
+        bytes32[] memory destinationMessageHashes = new bytes32[](0);
+        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * _baseFee; // real: 7184
+        // console.log("Predicted gasCost", gasCost);
+        // 3850
+        // 34070-31553 = 2517 (event gas usage)
+
+        vm.expectEmit(address(gasTank));
+        emit IGasTank.RelayedMessageGasReceipt(originMessageHash, address(this), gasCost, destinationMessageHashes);
+        vm.fee(_baseFee);
+        gasTank.relayMessage(id, sentMessage);
     }
 
     function testFuzz_claim_invalidOrigin_reverts(address _origin) external {
@@ -251,6 +330,7 @@ contract GasTankTest is Test {
     }
 
     function testFuzz_claim_succeeds(
+        address _relayer,
         uint256 _baseFee,
         uint256 _relayCost,
         bytes32 _msgHash,
@@ -258,29 +338,28 @@ contract GasTankTest is Test {
     )
         external
     {
-        // vm.assume(msgHash != originMsgHash);
+        vm.assume(_relayer != address(this));
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-        uint256 maxBaseFee = (maxDeposit / 100_000) - 1;
+        uint256 maxBaseFee = (maxDeposit / 1_000_000) - 1;
         _baseFee = bound(_baseFee, 1, maxBaseFee);
+        vm.fee(_baseFee);
+
         uint256 claimCost = gasTank.claimOverhead(1);
         _relayCost = bound(_relayCost, 1, (maxDeposit - claimCost));
 
-        vm.fee(_baseFee);
-
-        uint256 totalCost = claimCost + _relayCost;
-        vm.deal(address(this), totalCost);
-        gasTank.deposit{ value: totalCost }(address(this));
+        uint256 totalCost = claimCost + _relayCost; // Must be under 0.1 ether
+        vm.deal(address(gasTank), totalCost);
+        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(totalCost);
 
         Identifier memory id;
         id.origin = address(gasTank);
-
         bytes32[] memory destinationMessageHashes = new bytes32[](1);
         destinationMessageHashes[0] = _msgHash;
         bytes memory payload = abi.encodePacked(
             abi.encode(
                 IGasTank.RelayedMessageGasReceipt.selector, // log selector
                 _originMsgHash,
-                address(this), // Relayer
+                _relayer,
                 _relayCost
             ),
             abi.encode(
@@ -291,6 +370,7 @@ contract GasTankTest is Test {
         stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
             _originMsgHash
         ).checked_write(true);
+        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(totalCost);
 
         // vm.expectCall?
         vm.mockCall(
@@ -312,76 +392,11 @@ contract GasTankTest is Test {
         );
 
         vm.expectEmit(address(gasTank));
-        emit IGasTank.Claimed(_originMsgHash, address(this), address(this), totalCost);
+        emit IGasTank.Claimed(_originMsgHash, _relayer, address(this), totalCost);
         gasTank.claim(id, address(this), payload);
 
         assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0");
         assertTrue(gasTank.claimed(_originMsgHash), "GasTank should have claimed the root message");
-        assertEq(address(this).balance, totalCost, "GasTank should have compensated relayer");
-    }
-
-    // TODO make test with a nested message
-    function testFuzz_relayMessage_succeeds(uint256 _baseFee) external {
-        // Prepare a dummy identifier and message
-        Identifier memory id;
-        id.chainId = 10;
-        id.origin = address(gasTank);
-        uint256 dstChainId = 11;
-        uint256 srcChainId = 10;
-        uint256 nonce = 1;
-        address target = address(1);
-
-        bytes memory dstCallData = abi.encodeWithSignature("doSomething()");
-        bytes memory sentMessage = abi.encodePacked(
-            abi.encode(
-                IL2ToL2CrossDomainMessenger.SentMessage.selector,
-                dstChainId, // destination
-                target, // target
-                nonce // nonce
-            ),
-            abi.encode(
-                address(this), // sender
-                dstCallData // dstCallData
-            )
-        );
-
-        bytes32 originMessageHash = Hashing.hashL2toL2CrossDomainMessage(
-            dstChainId, // destChain
-            srcChainId, // srcChain
-            nonce, // nonce
-            address(this), // sender
-            target, // target
-            dstCallData
-        );
-
-        // Call relayMessage
-        vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
-        bytes[] memory mocks = new bytes[](2);
-        mocks[0] = abi.encode(uint240(1), uint240(1)); // nonceBefore, version
-        mocks[1] = abi.encode(uint240(1), uint240(1)); // nonceAfter, version
-        vm.mockCalls(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"), mocks
-        );
-        vm.expectCall(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("relayMessage((address,uint256,uint256,uint256,uint256),bytes)")
-        );
-        vm.mockCall(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("relayMessage((address,uint256,uint256,uint256,uint256),bytes)"),
-            abi.encode("")
-        );
-        vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
-
-        bytes32[] memory destinationMessageHashes = new bytes32[](0);
-        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * _baseFee; // real: 7184
-        console.log("Predicted gasCost", gasCost);
-        // 3850
-        // 34070-31553 = 2517 (event gas usage)
-
-        vm.expectEmit(address(gasTank));
-        emit IGasTank.RelayedMessageGasReceipt(originMessageHash, address(this), gasCost, destinationMessageHashes);
-        vm.fee(_baseFee);
-        gasTank.relayMessage(id, sentMessage);
+        assertEq(_relayer.balance, totalCost, "GasTank should have compensated relayer");
     }
 }
