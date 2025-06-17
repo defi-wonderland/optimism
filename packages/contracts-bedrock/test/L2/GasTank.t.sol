@@ -32,85 +32,84 @@ contract GasTankTest is Test {
         gasTank = new GasTank();
     }
 
-    function testFuzz_deposit_maxDepositExceeded_reverts(uint256 depositAmount) external {
+    function testFuzz_deposit_maxDepositExceeded_reverts(uint256 _depositAmount) external {
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-        depositAmount = bound(depositAmount, maxDeposit + 1, type(uint256).max);
+        _depositAmount = bound(_depositAmount, maxDeposit + 1, type(uint256).max);
 
-        vm.deal(address(this), depositAmount);
+        vm.deal(address(this), _depositAmount);
         vm.expectRevert(IGasTank.MaxDepositExceeded.selector);
-        gasTank.deposit{ value: depositAmount }(address(this));
+        gasTank.deposit{ value: _depositAmount }(address(this));
     }
 
-    function testFuzz_deposit_succeeds(uint256 depositAmount) external {
+    function testFuzz_deposit_succeeds(uint256 _depositAmount) external {
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-        depositAmount = bound(depositAmount, 1, maxDeposit);
+        _depositAmount = bound(_depositAmount, 1, maxDeposit);
 
-        vm.deal(address(this), depositAmount);
+        vm.deal(address(this), _depositAmount);
         vm.expectEmit(address(gasTank));
-        emit IGasTank.Deposit(address(this), depositAmount);
-        gasTank.deposit{ value: depositAmount }(address(this));
+        emit IGasTank.Deposit(address(this), _depositAmount);
+        gasTank.deposit{ value: _depositAmount }(address(this));
 
-        assertEq(gasTank.balanceOf(address(this)), depositAmount, "GasTank balance should match the deposited amount");
+        assertEq(gasTank.balanceOf(address(this)), _depositAmount, "GasTank balance should match the deposited amount");
     }
 
-    function testFuzz_initiateWithdrawal_succeeds(uint256 withdrawalAmount) external {
+    function testFuzz_initiateWithdrawal_succeeds(uint256 _withdrawalAmount) external {
         vm.expectEmit(address(gasTank));
-        emit IGasTank.WithdrawalInitiated(address(this), withdrawalAmount);
-        gasTank.initiateWithdrawal(withdrawalAmount);
+        emit IGasTank.WithdrawalInitiated(address(this), _withdrawalAmount);
+        gasTank.initiateWithdrawal(_withdrawalAmount);
 
         (uint256 timestamp, uint256 amount) = gasTank.withdrawals(address(this));
-        assertEq(amount, withdrawalAmount, "GasTank should have recorded the pending withdrawal");
+        assertEq(amount, _withdrawalAmount, "GasTank should have recorded the pending withdrawal");
         assertTrue(timestamp == block.timestamp, "GasTank should have recorded the withdrawal timestamp");
     }
 
-    function testFuzz_finalizeWithdrawal_withdrawPending_reverts(uint256 withdrawalAmount) external {
+    function testFuzz_finalizeWithdrawal_withdrawPending_reverts(uint256 _withdrawalAmount) external {
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
             block.timestamp
         );
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(1).checked_write(
-            withdrawalAmount
+            _withdrawalAmount
         );
 
         vm.expectRevert(IGasTank.WithdrawPending.selector);
         gasTank.finalizeWithdrawal(address(this));
     }
 
-    // TODO consider balance vs withdrawalAmount logic
-    function testFuzz_finalizeWithdrawal_succeeds(uint256 withdrawalAmount, address to, uint256 balance) external {
-        vm.deal(address(gasTank), withdrawalAmount);
+    // TODO consider balance vs _withdrawalAmount logic
+    function testFuzz_finalizeWithdrawal_succeeds(uint256 _withdrawalAmount, address _to, uint256 balance) external {
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
             block.timestamp
         );
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(1).checked_write(
-            withdrawalAmount
+            _withdrawalAmount
         );
         stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(
-            withdrawalAmount
+            _withdrawalAmount
         );
 
         vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
         vm.expectEmit(address(gasTank));
-        emit IGasTank.WithdrawalFinalized(address(this), to, withdrawalAmount);
-        gasTank.finalizeWithdrawal(to);
+        emit IGasTank.WithdrawalFinalized(address(this), _to, _withdrawalAmount);
+        gasTank.finalizeWithdrawal(_to);
 
         assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0 after finalizing the withdrawal");
-        assertEq(to.balance, withdrawalAmount, "Address should have received the withdrawn amount");
+        assertEq(_to.balance, _withdrawalAmount, "Address should have received the withdrawn amount");
     }
 
-    function testFuzz_claim_invalidOrigin_reverts(address origin) external {
-        vm.assume(origin != address(gasTank));
+    function testFuzz_claim_invalidOrigin_reverts(address _origin) external {
+        vm.assume(_origin != address(gasTank));
 
         Identifier memory id;
-        id.origin = origin;
+        id.origin = _origin;
 
         vm.expectRevert(IGasTank.InvalidOrigin.selector);
         gasTank.claim(id, address(this), "payload");
     }
 
-    function testFuzz_claim_invalidPayload_reverts(bytes calldata payload) external {
-        vm.assume(payload.length >= 32);
-        vm.assume(bytes32(payload[:32]) != IGasTank.RelayedMessageGasReceipt.selector);
+    function testFuzz_claim_invalidPayload_reverts(bytes calldata _payload) external {
+        vm.assume(_payload.length >= 32);
+        vm.assume(bytes32(_payload[:32]) != IGasTank.RelayedMessageGasReceipt.selector);
 
         Identifier memory id;
         id.origin = address(gasTank);
@@ -118,22 +117,22 @@ contract GasTankTest is Test {
         vm.expectCall(
             address(Predeploys.CROSS_L2_INBOX),
             abi.encodeWithSignature(
-                "validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(payload)
+                "validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(_payload)
             )
         );
         vm.mockCall(
             address(Predeploys.CROSS_L2_INBOX),
             abi.encodeWithSignature(
-                "validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(payload)
+                "validateMessage((address,uint256,uint256,uint256,uint256),bytes32)", id, keccak256(_payload)
             ),
             abi.encode(true)
         );
 
         vm.expectRevert(IGasTank.InvalidPayload.selector);
-        gasTank.claim(id, address(this), payload);
+        gasTank.claim(id, address(this), _payload);
     }
 
-    function testFuzz_claim_messageNotAuthorized_reverts(address gasProvider) external {
+    function testFuzz_claim_messageNotAuthorized_reverts(address _gasProvider) external {
         Identifier memory id;
         id.origin = address(gasTank);
 
@@ -159,19 +158,19 @@ contract GasTankTest is Test {
         );
 
         vm.expectRevert(IGasTank.MessageNotAuthorized.selector);
-        gasTank.claim(id, gasProvider, payload);
+        gasTank.claim(id, _gasProvider, payload);
     }
 
-    function testFuzz_claim_alreadyClaimed_reverts(bytes32 msgHash, bytes32 originMsgHash) external {
+    function testFuzz_claim_alreadyClaimed_reverts(bytes32 _msgHash, bytes32 _originMsgHash) external {
         Identifier memory id;
         id.origin = address(gasTank);
 
         bytes32[] memory destinationMessageHashes = new bytes32[](1);
-        destinationMessageHashes[0] = msgHash;
+        destinationMessageHashes[0] = _msgHash;
         bytes memory payload = abi.encodePacked(
             abi.encode(
                 IGasTank.RelayedMessageGasReceipt.selector, // selector
-                originMsgHash, // OriginMsgHash
+                _originMsgHash, // OriginMsgHash
                 address(this), // Relayer
                 0 // RelayCost
             ),
@@ -179,10 +178,10 @@ contract GasTankTest is Test {
         );
 
         stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
-            originMsgHash
+            _originMsgHash
         ).checked_write(true);
 
-        stdstore.target(address(gasTank)).sig("claimed(bytes32)").with_key(originMsgHash).checked_write(true);
+        stdstore.target(address(gasTank)).sig("claimed(bytes32)").with_key(_originMsgHash).checked_write(true);
 
         vm.expectCall(
             address(Predeploys.CROSS_L2_INBOX),
@@ -203,24 +202,24 @@ contract GasTankTest is Test {
     }
 
     function testFuzz_claim_insufficientBalance_reverts(
-        uint256 basefee,
-        bytes32 msgHash,
-        bytes32 originMsgHash
+        uint256 _basefee,
+        bytes32 _msgHash,
+        bytes32 _originMsgHash
     )
         external
     {
-        basefee = bound(basefee, 1, type(uint256).max / 1_000_000);
-        vm.fee(basefee);
+        _basefee = bound(_basefee, 1, type(uint256).max / 1_000_000);
+        vm.fee(_basefee);
 
         Identifier memory id;
         id.origin = address(gasTank);
 
         bytes32[] memory destinationMessageHashes = new bytes32[](1);
-        destinationMessageHashes[0] = msgHash;
+        destinationMessageHashes[0] = _msgHash;
         bytes memory payload = abi.encodePacked(
             abi.encode(
                 IGasTank.RelayedMessageGasReceipt.selector, // log selector
-                originMsgHash,
+                _originMsgHash,
                 address(this), // Relayer
                 1 //relayCost
             ),
@@ -230,7 +229,7 @@ contract GasTankTest is Test {
         );
 
         stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
-            originMsgHash
+            _originMsgHash
         ).checked_write(true);
 
         vm.expectCall(
@@ -252,23 +251,23 @@ contract GasTankTest is Test {
     }
 
     function testFuzz_claim_succeeds(
-        uint256 baseFee,
-        uint256 relayCost,
-        bytes32 msgHash,
-        bytes32 originMsgHash
+        uint256 _baseFee,
+        uint256 _relayCost,
+        bytes32 _msgHash,
+        bytes32 _originMsgHash
     )
         external
     {
         // vm.assume(msgHash != originMsgHash);
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
         uint256 maxBaseFee = (maxDeposit / 100_000) - 1;
-        baseFee = bound(baseFee, 1, maxBaseFee);
-        vm.fee(baseFee);
+        _baseFee = bound(_baseFee, 1, maxBaseFee);
         uint256 claimCost = gasTank.claimOverhead(1);
-        vm.assume(claimCost < maxDeposit);
-        relayCost = bound(relayCost, 1, (maxDeposit - claimCost));
+        _relayCost = bound(_relayCost, 1, (maxDeposit - claimCost));
 
-        uint256 totalCost = claimCost + relayCost;
+        vm.fee(_baseFee);
+
+        uint256 totalCost = claimCost + _relayCost;
         vm.deal(address(this), totalCost);
         gasTank.deposit{ value: totalCost }(address(this));
 
@@ -276,13 +275,13 @@ contract GasTankTest is Test {
         id.origin = address(gasTank);
 
         bytes32[] memory destinationMessageHashes = new bytes32[](1);
-        destinationMessageHashes[0] = msgHash;
+        destinationMessageHashes[0] = _msgHash;
         bytes memory payload = abi.encodePacked(
             abi.encode(
                 IGasTank.RelayedMessageGasReceipt.selector, // log selector
-                originMsgHash,
+                _originMsgHash,
                 address(this), // Relayer
-                relayCost
+                _relayCost
             ),
             abi.encode(
                 destinationMessageHashes // destinationMessageHashes
@@ -290,12 +289,12 @@ contract GasTankTest is Test {
         );
 
         stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
-            originMsgHash
+            _originMsgHash
         ).checked_write(true);
 
         // vm.expectCall?
         vm.mockCall(
-            address(MESSENGER), abi.encodeWithSignature("sentMessages(bytes32)", originMsgHash), abi.encode(true)
+            address(MESSENGER), abi.encodeWithSignature("sentMessages(bytes32)", _originMsgHash), abi.encode(true)
         );
 
         vm.expectCall(
@@ -313,16 +312,16 @@ contract GasTankTest is Test {
         );
 
         vm.expectEmit(address(gasTank));
-        emit IGasTank.Claimed(originMsgHash, address(this), address(this), totalCost);
+        emit IGasTank.Claimed(_originMsgHash, address(this), address(this), totalCost);
         gasTank.claim(id, address(this), payload);
 
         assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0");
-        assertTrue(gasTank.claimed(originMsgHash), "GasTank should have claimed the root message");
+        assertTrue(gasTank.claimed(_originMsgHash), "GasTank should have claimed the root message");
         assertEq(address(this).balance, totalCost, "GasTank should have compensated relayer");
     }
 
     // TODO make test with a nested message
-    function testFuzz_relayMessage_succeeds() public {
+    function testFuzz_relayMessage_succeeds(uint256 _baseFee) external {
         // Prepare a dummy identifier and message
         Identifier memory id;
         id.chainId = 10;
@@ -375,14 +374,14 @@ contract GasTankTest is Test {
         vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
 
         bytes32[] memory destinationMessageHashes = new bytes32[](0);
-        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * 1; // real: 7184
+        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * _baseFee; // real: 7184
         console.log("Predicted gasCost", gasCost);
         // 3850
         // 34070-31553 = 2517 (event gas usage)
 
         vm.expectEmit(address(gasTank));
         emit IGasTank.RelayedMessageGasReceipt(originMessageHash, address(this), gasCost, destinationMessageHashes);
-        vm.fee(1);
+        vm.fee(_baseFee);
         gasTank.relayMessage(id, sentMessage);
     }
 }
