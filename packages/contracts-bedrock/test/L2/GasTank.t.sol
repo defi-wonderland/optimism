@@ -20,6 +20,7 @@ import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMes
 
 import { GasTank } from "src/L2/GasTank.sol";
 
+// TODO change parameter names to start with underscore
 contract GasTankTest is Test {
     using stdStorage for StdStorage;
 
@@ -31,7 +32,7 @@ contract GasTankTest is Test {
         gasTank = new GasTank();
     }
 
-    function testDeposit_Exceeded(uint256 depositAmount) external {
+    function testFuzz_deposit_maxDepositExceeded_reverts(uint256 depositAmount) external {
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
         depositAmount = bound(depositAmount, maxDeposit + 1, type(uint256).max);
 
@@ -40,7 +41,7 @@ contract GasTankTest is Test {
         gasTank.deposit{ value: depositAmount }(address(this));
     }
 
-    function testDeposit(uint256 depositAmount) external {
+    function testFuzz_deposit_succeeds(uint256 depositAmount) external {
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
         depositAmount = bound(depositAmount, 1, maxDeposit);
 
@@ -52,20 +53,7 @@ contract GasTankTest is Test {
         assertEq(gasTank.balanceOf(address(this)), depositAmount, "GasTank balance should match the deposited amount");
     }
 
-    function testIntiateWithdrawal_InsufficientBalance(uint256 withdrawalAmount) external {
-        vm.assume(withdrawalAmount > 0);
-
-        vm.expectRevert(IGasTank.InsufficientBalance.selector);
-        gasTank.initiateWithdrawal(withdrawalAmount);
-    }
-
-    function testIntiateWithdrawal(uint256 withdrawalAmount) external {
-        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-        withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
-
-        vm.deal(address(this), withdrawalAmount);
-        gasTank.deposit{ value: withdrawalAmount }(address(this));
-
+    function testFuzz_initiateWithdrawal_succeeds(uint256 withdrawalAmount) external {
         vm.expectEmit(address(gasTank));
         emit IGasTank.WithdrawalInitiated(address(this), withdrawalAmount);
         gasTank.initiateWithdrawal(withdrawalAmount);
@@ -75,26 +63,43 @@ contract GasTankTest is Test {
         assertTrue(timestamp == block.timestamp, "GasTank should have recorded the withdrawal timestamp");
     }
 
-    function testFinalizeWithdrawal_PendingWithdrawal(uint256 withdrawalAmount) external {
-        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-        withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
-        vm.deal(address(this), withdrawalAmount);
-        gasTank.deposit{ value: withdrawalAmount }(address(this));
-
-        gasTank.initiateWithdrawal(withdrawalAmount);
+    function testFuzz_finalizeWithdrawal_withdrawPending_reverts(uint256 withdrawalAmount) external {
+        stdstore
+            .target(address(gasTank))
+            .sig("withdrawals(address)")
+            .with_key(address(this))
+            .depth(0)
+            .checked_write(block.timestamp);
+        stdstore
+            .target(address(gasTank))
+            .sig("withdrawals(address)")
+            .with_key(address(this))
+            .depth(1)
+            .checked_write(withdrawalAmount);
 
         vm.expectRevert(IGasTank.WithdrawPending.selector);
         gasTank.finalizeWithdrawal(address(this));
     }
 
-    function testFinalizeWithdrawal(uint256 withdrawalAmount, address to) external {
-        uint256 maxDeposit = gasTank.MAX_DEPOSIT();
-        withdrawalAmount = bound(withdrawalAmount, 1, maxDeposit);
-
-        vm.deal(address(this), withdrawalAmount);
-        gasTank.deposit{ value: withdrawalAmount }(address(this));
-
-        gasTank.initiateWithdrawal(withdrawalAmount);
+    // TODO consider balance vs withdrawalAmount logic
+    function testFuzz_finalizeWithdrawal_succeeds(uint256 withdrawalAmount, address to, uint256 balance) external {
+        stdstore
+            .target(address(gasTank))
+            .sig("withdrawals(address)")
+            .with_key(address(this))
+            .depth(0)
+            .checked_write(block.timestamp);
+        stdstore
+            .target(address(gasTank))
+            .sig("withdrawals(address)")
+            .with_key(address(this))
+            .depth(1)
+            .checked_write(withdrawalAmount);
+        stdstore
+            .target(address(gasTank))
+            .sig("balanceOf(address)")
+            .with_key(address(this))
+            .checked_write(withdrawalAmount);
 
         vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
@@ -106,7 +111,7 @@ contract GasTankTest is Test {
         assertEq(to.balance, withdrawalAmount, "Address should have received the withdrawn amount");
     }
 
-    function testClaim_InvalidOrigin(address origin) external {
+    function testFuzz_claim_invalidOrigin_reverts(address origin) external {
         vm.assume(origin != address(gasTank));
 
         Identifier memory id;
@@ -116,7 +121,7 @@ contract GasTankTest is Test {
         gasTank.claim(id, address(this), "payload");
     }
 
-    function testClaim_InvalidPayload(bytes calldata payload) external {
+    function testFuzz_claim_invalidPayload_reverts(bytes calldata payload) external {
         vm.assume(payload.length >= 32);
         vm.assume(bytes32(payload[:32]) != IGasTank.RelayedMessageGasReceipt.selector);
 
@@ -141,7 +146,7 @@ contract GasTankTest is Test {
         gasTank.claim(id, address(this), payload);
     }
 
-    function testClaim_InvalidPayer(address gasProvider) external {
+    function testFuzz_claim_messageNotAuthorized_reverts(address gasProvider) external {
         Identifier memory id;
         id.origin = address(gasTank);
 
@@ -170,7 +175,7 @@ contract GasTankTest is Test {
         gasTank.claim(id, gasProvider, payload);
     }
 
-    function testClaim_AlreadyClaimed(bytes32 msgHash, bytes32 originMsgHash) external {
+    function testFuzz_claim_alreadyClaimed_reverts(bytes32 msgHash, bytes32 originMsgHash) external {
         Identifier memory id;
         id.origin = address(gasTank);
 
@@ -213,7 +218,7 @@ contract GasTankTest is Test {
         gasTank.claim(id, address(this), payload);
     }
 
-    function testClaim_InsufficientBalance(uint256 basefee, bytes32 msgHash, bytes32 originMsgHash) external {
+    function testFuzz_claim_insufficientBalance_reverts(uint256 basefee, bytes32 msgHash, bytes32 originMsgHash) external {
         basefee = bound(basefee, 1, type(uint256).max / 1_000_000);
         vm.fee(basefee);
 
@@ -257,7 +262,7 @@ contract GasTankTest is Test {
         gasTank.claim(id, address(this), payload);
     }
 
-    function testClaim_Success(uint256 baseFee, uint256 relayCost, bytes32 msgHash, bytes32 originMsgHash) external {
+    function testFuzz_claim_succeeds(uint256 baseFee, uint256 relayCost, bytes32 msgHash, bytes32 originMsgHash) external {
         // vm.assume(msgHash != originMsgHash);
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
         uint256 maxBaseFee = (maxDeposit / 100_000) - 1;
@@ -319,7 +324,7 @@ contract GasTankTest is Test {
     }
 
     // TODO make test with a nested message
-    function testRelayMessage_Success() public {
+    function testFuzz_relayMessage_succeeds() public {
         // Prepare a dummy identifier and message
         Identifier memory id;
         id.chainId = 10;
