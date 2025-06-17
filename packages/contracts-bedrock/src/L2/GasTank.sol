@@ -53,13 +53,10 @@ contract GasTank is IGasTank {
     /// @notice Initiates a withdrawal of funds from the gas tank
     /// @param _amount The amount of funds to initiate a withdrawal for
     function initiateWithdrawal(uint256 _amount) external {
-        // Ensure the caller has enough balance
         if (balanceOf[msg.sender] < _amount) revert InsufficientBalance();
 
-        // Record the pending withdrawal
         withdrawals[msg.sender] = Withdrawal({ timestamp: block.timestamp, amount: _amount });
 
-        // Emit an event for the withdrawal initiation
         emit WithdrawalInitiated(msg.sender, _amount);
     }
 
@@ -68,17 +65,13 @@ contract GasTank is IGasTank {
     function finalizeWithdrawal(address _to) external {
         Withdrawal memory withdrawal = withdrawals[msg.sender];
 
-        // Ensure the withdraw is not pending
         if (block.timestamp < withdrawal.timestamp + WITHDRAWAL_DELAY) revert WithdrawPending();
 
-        // Update the balance
         uint256 amount = balanceOf[msg.sender] < withdrawal.amount ? balanceOf[msg.sender] : withdrawal.amount;
         balanceOf[msg.sender] -= amount;
 
-        // Clear the pending withdrawal
         delete withdrawals[msg.sender];
 
-        // Send the funds to the recipient
         new SafeSend{ value: amount }(payable(_to));
 
         emit WithdrawalFinalized(msg.sender, _to, amount);
@@ -97,29 +90,26 @@ contract GasTank is IGasTank {
     function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) external {
         uint256 initialGas = gasleft();
 
-        bytes32 originMessageHash = _getMessageHash(_id.chainId, _sentMessage);
+        bytes32 messageHash = _getMessageHash(_id.chainId, _sentMessage);
 
-        // Cache the Messenger nonce
-        (uint240 nonceBefore,) = MESSENGER.messageNonce().decodeVersionedNonce();
+        uint240 nonceBefore = _getMessengerNonce();
 
-        // Relay the message
         MESSENGER.relayMessage(_id, _sentMessage);
 
-        // Get the difference between the initial nonce and the final nonce
-        (uint240 nonceAfter,) = MESSENGER.messageNonce().decodeVersionedNonce();
-        uint256 nonceDelta = nonceAfter - nonceBefore;
+        // Get the amount of nested messages by getting the nonce increment
+        uint256 nonceDelta = _getMessengerNonce() - nonceBefore;
 
-        bytes32[] memory destinationMessageHashes = new bytes32[](nonceDelta);
+        bytes32[] memory nestedMessageHashes = new bytes32[](nonceDelta);
 
-        for (uint256 j; j < nonceDelta; j++) {
-            destinationMessageHashes[j] = MESSENGER.sentMessages(nonceBefore + j);
+        for (uint256 i; i < nonceDelta; i++) {
+            nestedMessageHashes[i] = MESSENGER.sentMessages(nonceBefore + i);
         }
 
         // Get the gas used
-        uint256 gasCost = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(destinationMessageHashes.length);
+        uint256 gasCost = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(nestedMessageHashes.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
-        emit RelayedMessageGasReceipt(originMessageHash, msg.sender, gasCost, destinationMessageHashes);
+        emit RelayedMessageGasReceipt(messageHash, msg.sender, gasCost, nestedMessageHashes);
     }
 
     /// @notice Claims repayment for a relayed message
@@ -233,5 +223,11 @@ contract GasTank is IGasTank {
 
         // Get the current message hash
         messageHash_ = Hashing.hashL2toL2CrossDomainMessage(destination, _source, nonce, sender, target, message);
+    }
+
+    /// @notice Gets the current nonce of the messenger
+    /// @return nonce_ The current nonce
+    function _getMessengerNonce() internal view returns (uint240 nonce_) {
+        (nonce_,) = MESSENGER.messageNonce().decodeVersionedNonce();
     }
 }
