@@ -416,15 +416,10 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         internal
         returns (bytes32 messageHash_)
     {
-        uint256 depth;
-        bytes32 entrypointHash;
+        uint256 depth = messageBundleDepth();
+        bytes32 entrypointHash = messageBundleEntrypoint();
+
         bytes32 messageEntrypointHash;
-
-        assembly {
-            depth := tload(ENTRYPOINT_DEPTH_SLOT)
-            entrypointHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
-        }
-
         if (depth > 0) {
             // We are in a bundle
             messageEntrypointHash =
@@ -458,21 +453,19 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     ///         Takes into account whether the message is in a bundle or not.
     /// @param _messageEntrypointHash The hash of the entrypoint of the message.
     function _validateEntrypoint(bytes32 _messageEntrypointHash) internal view {
-        uint256 depth;
-        bytes32 storedRelayerHash;
-
-        assembly {
-            depth := tload(ENTRYPOINT_DEPTH_SLOT)
-            storedRelayerHash := tload(add(ENTRYPOINT_DEPTH_SLOT, depth))
-        }
+        uint256 depth = messageBundleDepth();
+        bytes32 storedRelayerHash = messageBundleEntrypoint();
 
         bytes32 senderHash = keccak256(abi.encodePacked(msg.sender));
-        bool isValidEntrypoint = depth > 0
-            ? keccak256(abi.encodePacked(storedRelayerHash, msg.sender)) == _messageEntrypointHash // There was a message
-                // entrypoint in the bundle
-                || _messageEntrypointHash == storedRelayerHash // There was no entrypoint in the bundle
-            : _messageEntrypointHash == bytes32(0) // There was no entrypoint in the single message (no bundle)
-                || _messageEntrypointHash == senderHash; // There was an entrypoint in the single message (no bundle)
+        bool isValidEntrypoint;
+        if (depth > 0) {
+            // This message is part of a bundle
+            isValidEntrypoint = _messageEntrypointHash == keccak256(abi.encodePacked(storedRelayerHash, msg.sender))
+                || _messageEntrypointHash == storedRelayerHash;
+        } else {
+            // This is a standalone message
+            isValidEntrypoint = _messageEntrypointHash == bytes32(0) || _messageEntrypointHash == senderHash;
+        }
 
         if (!isValidEntrypoint) {
             revert MessageEntrypointNotCaller();
