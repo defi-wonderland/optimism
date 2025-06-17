@@ -33,14 +33,24 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when the provided message parameters do not match any hash of a previously sent message.
     error InvalidMessage();
 
+    /// @notice Thrown when attempting to relay a message that has an entrypoint defined but is not being relayed from
+    ///         that address.
+    error MessageEntrypointNotCaller();
+
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
-    /// @param messageNonce Nonce associated with the messsage sent
+    /// @param messageNonce Nonce associated with the message sent
     /// @param sender       Address initiating this message call
+    /// @param entrypointHash The hash composed from the bundle's and message's entrypoint.
     /// @param message      Message payload to call target with.
     event SentMessage(
-        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message
+        uint256 indexed destination,
+        address indexed target,
+        uint256 indexed messageNonce,
+        address sender,
+        bytes32 entrypointHash,
+        bytes message
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
@@ -84,6 +94,14 @@ interface IL2ToL2CrossDomainMessenger {
     /// @return source_ Chain ID of the source of the current cross domain message.
     function crossDomainMessageContext() external view returns (address sender_, uint256 source_);
 
+    /// @notice Retrieves the recursive depth of the message bundle being created.
+    /// @return depth_ The depth of the bundle.
+    function messageBundleDepth() external view returns (uint256 depth_);
+
+    /// @notice Retrieves the entrypoint hash of the current message bundle.
+    /// @return entrypointHash_ The entrypoint hash of the current message bundle.
+    function messageBundleEntrypoint() external view returns (bytes32 entrypointHash_);
+
     /// @notice Sends a message to some target address on a destination chain. Note that if the call
     ///         always reverts, then the message will be unrelayable, and any ETH sent will be
     ///         permanently locked. The same will occur if the target on the other chain is
@@ -118,6 +136,7 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param _nonce Nonce of the message sent
     /// @param _sender Address that sent the message
     /// @param _target Target contract or wallet address.
+    /// @param _entrypointHash The hash composed from the bundle's and message's entrypoint.
     /// @param _message Message payload to call target with.
     /// @return messageHash_ The hash of the message being re-sent.
     function resendMessage(
@@ -125,6 +144,7 @@ interface IL2ToL2CrossDomainMessenger {
         uint256 _nonce,
         address _sender,
         address _target,
+        bytes32 _entrypointHash,
         bytes calldata _message
     )
         external
@@ -143,6 +163,15 @@ interface IL2ToL2CrossDomainMessenger {
         external
         payable
         returns (bytes memory returnData_);
+
+    /// @notice Creates a bundle of messages.
+    /// @param _entrypoint The entrypoint address of the bundle.
+    /// @param _context The context of the bundle.
+    function createBundle(address _entrypoint, bytes calldata _context) external;
+
+    /// @notice Relays a bundle of messages.
+    /// @param _context The context of the bundle.
+    function relayBundle(bytes calldata _context) external;
 
     function messageVersion() external view returns (uint16);
 

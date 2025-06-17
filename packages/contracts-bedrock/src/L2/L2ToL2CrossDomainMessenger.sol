@@ -245,8 +245,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _nonce Nonce of the message sent
     /// @param _sender Address that sent the message
     /// @param _target Target contract or wallet address.
-    /// @param _message Message payload to call target with.
     /// @param _entrypointHash The hash composed from the bundle's and message's entrypoint.
+    /// @param _message Message payload to call target with.
     /// @return messageHash_ The hash of the message being re-sent.
     function resendMessage(
         uint256 _destination,
