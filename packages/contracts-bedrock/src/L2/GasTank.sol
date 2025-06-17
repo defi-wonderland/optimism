@@ -53,8 +53,6 @@ contract GasTank is IGasTank {
     /// @notice Initiates a withdrawal of funds from the gas tank
     /// @param _amount The amount of funds to initiate a withdrawal for
     function initiateWithdrawal(uint256 _amount) external {
-        if (balanceOf[msg.sender] < _amount) revert InsufficientBalance();
-
         withdrawals[msg.sender] = Withdrawal({ timestamp: block.timestamp, amount: _amount });
 
         emit WithdrawalInitiated(msg.sender, _amount);
