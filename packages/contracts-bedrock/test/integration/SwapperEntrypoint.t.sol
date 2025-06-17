@@ -5,7 +5,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { SwapperEntrypoint } from "test/mocks/SwapperEntrypoint.sol";
 import { ISwapRouter } from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
