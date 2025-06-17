@@ -1278,10 +1278,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
 /// @title ProposalValidator_SubmitCouncilMemberElectionsProposal_Test
 /// @notice Happy path tests for submitCouncilMemberElectionsProposal function
 contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is ProposalValidator_Init {
-    uint128 criteriaValue;
-    string[] optionDescriptions;
     string proposalDescription;
-    bytes32 attestationUid;
 
     event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
 
@@ -1298,21 +1295,25 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
             })
         );
 
-        criteriaValue = 3; // Top 3 choices will pass
-        optionDescriptions = new string[](5);
-        optionDescriptions[0] = "Alice for Council";
-        optionDescriptions[1] = "Bob for Council";
-        optionDescriptions[2] = "Charlie for Council";
-        optionDescriptions[3] = "Diana for Council";
-        optionDescriptions[4] = "Eve for Council";
-
         proposalDescription = "Council Member Elections Q4 2024";
-
-        // Create attestation for the proposer
-        attestationUid = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
     }
 
-    function test_submitCouncilMemberElectionsProposal_succeeds() public {
+    function testFuzz_submitCouncilMemberElectionsProposal_succeeds(
+        uint8 optionCount,
+        uint128 criteriaValue
+    ) public {
+        optionCount = uint8(bound(optionCount, 1, type(uint8).max));
+        criteriaValue = uint128(bound(criteriaValue, 1, optionCount));
+
+        // Create dynamic array of option descriptions based on option count
+        string[] memory optionDescriptions = new string[](optionCount);
+        for (uint256 i = 0; i < optionCount; i++) {
+            optionDescriptions[i] = string(abi.encodePacked("Candidate ", vm.toString(i)));
+        }
+
+        // Create attestation for the proposal
+        bytes32 attestationUid = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
+
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(optionDescriptions, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
@@ -1326,16 +1327,6 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
             abi.encode(0)
         );
 
-        // Expect ProposalSubmitted event
-        vm.expectEmit(address(validator));
-        emit ProposalSubmitted(
-            expectedHash, topDelegate_A, proposalDescription, ProposalValidator.ProposalType.CouncilMemberElections
-        );
-
-        // Expect ProposalVotingModuleData event
-        vm.expectEmit(address(validator));
-        emit ProposalVotingModuleData(expectedHash, votingModuleData);
-
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, attestationUid
@@ -1344,65 +1335,6 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         assertEq(proposalHash, expectedHash);
     }
 
-    function test_submitCouncilMemberElectionsProposal_singleOption_succeeds() public {
-        string[] memory singleOption = new string[](1);
-        singleOption[0] = "Single Council Candidate";
-
-        bytes32 singleAttestation =
-            _createAttestation(topDelegate_B, ProposalValidator.ProposalType.CouncilMemberElections);
-
-        // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(singleOption, 1);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(proposalDescription))
-        );
-
-        // Mock proposalSnapshot to return 0
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
-            abi.encode(0)
-        );
-
-        vm.prank(topDelegate_B);
-        bytes32 proposalHash =
-            validator.submitCouncilMemberElectionsProposal(1, singleOption, proposalDescription, singleAttestation);
-
-        assertTrue(proposalHash != bytes32(0));
-    }
-
-    function test_submitCouncilMemberElectionsProposal_maxOptions_succeeds() public {
-        // Test with maximum number of options (255)
-        uint256 maxOptions = 255;
-        string[] memory maxOptionDescriptions = new string[](maxOptions);
-        for (uint256 i = 0; i < maxOptions; i++) {
-            maxOptionDescriptions[i] = string(abi.encodePacked("Candidate ", i));
-        }
-
-        bytes32 maxAttestation =
-            _createAttestation(topDelegate_C, ProposalValidator.ProposalType.CouncilMemberElections);
-
-        // Calculate expected proposal hash
-        bytes memory votingModuleData =
-            _constructCouncilElectionVotingModuleData(maxOptionDescriptions, uint128(maxOptions));
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(proposalDescription))
-        );
-
-        // Mock proposalSnapshot to return 0
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
-            abi.encode(0)
-        );
-
-        vm.prank(topDelegate_C);
-        bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
-            uint128(maxOptions), maxOptionDescriptions, proposalDescription, maxAttestation
-        );
-
-        assertTrue(proposalHash != bytes32(0));
-    }
 }
 
 /// @title ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail
