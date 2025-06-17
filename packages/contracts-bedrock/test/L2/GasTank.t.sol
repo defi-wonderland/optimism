@@ -324,14 +324,18 @@ contract GasTankTest is Test {
         Identifier memory id;
         id.chainId = 10;
         id.origin = address(gasTank);
+        uint256 dstChainId = 11;
+        uint256 srcChainId = 10;
+        uint256 nonce = 1;
+        address target = address(1);
 
         bytes memory dstCallData = abi.encodeWithSignature("doSomething()");
         bytes memory sentMessage = abi.encodePacked(
             abi.encode(
                 IL2ToL2CrossDomainMessenger.SentMessage.selector,
-                uint256(11), // destination
-                address(1), // target
-                uint256(10) // nonce
+                dstChainId, // destination
+                target, // target
+                nonce // nonce
             ),
             abi.encode(
                 address(this), // sender
@@ -339,12 +343,12 @@ contract GasTankTest is Test {
             )
         );
         bytes32 originMessageHash = Hashing.hashL2toL2CrossDomainMessage(
-            id.chainId, // destChain
-            1, // srcChain
-            1, // nonce
-            id.origin, // sender
-            address(this),  // target
-            sentMessage
+            dstChainId, // destChain
+            srcChainId, // srcChain
+            nonce, // nonce
+            address(this),  // sender
+            target, // target
+            dstCallData
         );
 
         // Call relayMessage
@@ -353,7 +357,7 @@ contract GasTankTest is Test {
             abi.encodeWithSignature("messageNonce()")
         );
         bytes[] memory mocks = new bytes[](2);
-        mocks[0] = abi.encode(uint240(1), uint240(1));
+        mocks[0] = abi.encode(uint240(1), uint240(1));  // nonceBefore, version
         mocks[1] = abi.encode(uint240(2), uint240(1));
         vm.mockCalls(
             address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
@@ -386,11 +390,10 @@ contract GasTankTest is Test {
 
         bytes32[] memory destinationMessageHashes = new bytes32[](1);
         destinationMessageHashes[0] = destinationHash;
-        uint256 gasCost = 8049;//((3_000 + 1 * 300) + (4463)) * block.basefee;
-        // console.log("gasCost", gasCost);
+        uint256 gasCost = 8005; // ((3_000 + 1 * 300) + (4369)) * block.basefee;
+
         vm.expectEmit(address(gasTank));
         emit IGasTank.RelayedMessageGasReceipt(originMessageHash, address(this), gasCost, destinationMessageHashes);
-        console.logBytes32(originMessageHash);
         gasTank.relayMessage(id, sentMessage);
     }
 }
