@@ -64,18 +64,12 @@ contract GasTankTest is Test {
     }
 
     function testFuzz_finalizeWithdrawal_withdrawPending_reverts(uint256 withdrawalAmount) external {
-        stdstore
-            .target(address(gasTank))
-            .sig("withdrawals(address)")
-            .with_key(address(this))
-            .depth(0)
-            .checked_write(block.timestamp);
-        stdstore
-            .target(address(gasTank))
-            .sig("withdrawals(address)")
-            .with_key(address(this))
-            .depth(1)
-            .checked_write(withdrawalAmount);
+        stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
+            block.timestamp
+        );
+        stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(1).checked_write(
+            withdrawalAmount
+        );
 
         vm.expectRevert(IGasTank.WithdrawPending.selector);
         gasTank.finalizeWithdrawal(address(this));
@@ -83,23 +77,15 @@ contract GasTankTest is Test {
 
     // TODO consider balance vs withdrawalAmount logic
     function testFuzz_finalizeWithdrawal_succeeds(uint256 withdrawalAmount, address to, uint256 balance) external {
-        stdstore
-            .target(address(gasTank))
-            .sig("withdrawals(address)")
-            .with_key(address(this))
-            .depth(0)
-            .checked_write(block.timestamp);
-        stdstore
-            .target(address(gasTank))
-            .sig("withdrawals(address)")
-            .with_key(address(this))
-            .depth(1)
-            .checked_write(withdrawalAmount);
-        stdstore
-            .target(address(gasTank))
-            .sig("balanceOf(address)")
-            .with_key(address(this))
-            .checked_write(withdrawalAmount);
+        stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
+            block.timestamp
+        );
+        stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(1).checked_write(
+            withdrawalAmount
+        );
+        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(
+            withdrawalAmount
+        );
 
         vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
@@ -181,17 +167,14 @@ contract GasTankTest is Test {
 
         bytes32[] memory destinationMessageHashes = new bytes32[](1);
         destinationMessageHashes[0] = msgHash;
-        bytes memory payload =
-        abi.encodePacked(
+        bytes memory payload = abi.encodePacked(
             abi.encode(
-                IGasTank.RelayedMessageGasReceipt.selector,  // selector
-                originMsgHash,  // OriginMsgHash
-                address(this),  // Relayer
-                0  // RelayCost
+                IGasTank.RelayedMessageGasReceipt.selector, // selector
+                originMsgHash, // OriginMsgHash
+                address(this), // Relayer
+                0 // RelayCost
             ),
-            abi.encode(
-                destinationMessageHashes
-            )
+            abi.encode(destinationMessageHashes)
         );
 
         stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
@@ -218,7 +201,13 @@ contract GasTankTest is Test {
         gasTank.claim(id, address(this), payload);
     }
 
-    function testFuzz_claim_insufficientBalance_reverts(uint256 basefee, bytes32 msgHash, bytes32 originMsgHash) external {
+    function testFuzz_claim_insufficientBalance_reverts(
+        uint256 basefee,
+        bytes32 msgHash,
+        bytes32 originMsgHash
+    )
+        external
+    {
         basefee = bound(basefee, 1, type(uint256).max / 1_000_000);
         vm.fee(basefee);
 
@@ -229,13 +218,13 @@ contract GasTankTest is Test {
         destinationMessageHashes[0] = msgHash;
         bytes memory payload = abi.encodePacked(
             abi.encode(
-                IGasTank.RelayedMessageGasReceipt.selector,  // log selector
+                IGasTank.RelayedMessageGasReceipt.selector, // log selector
                 originMsgHash,
-                address(this),  // Relayer
+                address(this), // Relayer
                 1 //relayCost
             ),
             abi.encode(
-                destinationMessageHashes  // destinationMessageHashes
+                destinationMessageHashes // destinationMessageHashes
             )
         );
 
@@ -257,20 +246,26 @@ contract GasTankTest is Test {
             abi.encode(true)
         );
 
-
         vm.expectRevert(IGasTank.InsufficientBalance.selector);
         gasTank.claim(id, address(this), payload);
     }
 
-    function testFuzz_claim_succeeds(uint256 baseFee, uint256 relayCost, bytes32 msgHash, bytes32 originMsgHash) external {
+    function testFuzz_claim_succeeds(
+        uint256 baseFee,
+        uint256 relayCost,
+        bytes32 msgHash,
+        bytes32 originMsgHash
+    )
+        external
+    {
         // vm.assume(msgHash != originMsgHash);
         uint256 maxDeposit = gasTank.MAX_DEPOSIT();
         uint256 maxBaseFee = (maxDeposit / 100_000) - 1;
         baseFee = bound(baseFee, 1, maxBaseFee);
-        uint256 claimCost = gasTank.claimOverhead(1);
-        relayCost = bound(relayCost, 1, (maxDeposit - claimCost));
-
         vm.fee(baseFee);
+        uint256 claimCost = gasTank.claimOverhead(1);
+        vm.assume(claimCost < maxDeposit);
+        relayCost = bound(relayCost, 1, (maxDeposit - claimCost));
 
         uint256 totalCost = claimCost + relayCost;
         vm.deal(address(this), totalCost);
@@ -283,13 +278,13 @@ contract GasTankTest is Test {
         destinationMessageHashes[0] = msgHash;
         bytes memory payload = abi.encodePacked(
             abi.encode(
-                IGasTank.RelayedMessageGasReceipt.selector,  // log selector
+                IGasTank.RelayedMessageGasReceipt.selector, // log selector
                 originMsgHash,
-                address(this),  // Relayer
+                address(this), // Relayer
                 relayCost
             ),
             abi.encode(
-                destinationMessageHashes  // destinationMessageHashes
+                destinationMessageHashes // destinationMessageHashes
             )
         );
 
@@ -298,7 +293,9 @@ contract GasTankTest is Test {
         ).checked_write(true);
 
         // vm.expectCall?
-        vm.mockCall(address(MESSENGER), abi.encodeWithSignature("sentMessages(bytes32)", originMsgHash), abi.encode(true));
+        vm.mockCall(
+            address(MESSENGER), abi.encodeWithSignature("sentMessages(bytes32)", originMsgHash), abi.encode(true)
+        );
 
         vm.expectCall(
             address(Predeploys.CROSS_L2_INBOX),
@@ -344,7 +341,7 @@ contract GasTankTest is Test {
             ),
             abi.encode(
                 address(this), // sender
-                dstCallData  // dstCallData
+                dstCallData // dstCallData
             )
         );
 
@@ -352,23 +349,18 @@ contract GasTankTest is Test {
             dstChainId, // destChain
             srcChainId, // srcChain
             nonce, // nonce
-            address(this),  // sender
+            address(this), // sender
             target, // target
             dstCallData
         );
 
         // Call relayMessage
-        vm.expectCall(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("messageNonce()")
-        );
+        vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
         bytes[] memory mocks = new bytes[](2);
-        mocks[0] = abi.encode(uint240(1), uint240(1));  // nonceBefore, version
-        mocks[1] = abi.encode(uint240(1), uint240(1));  // nonceAfter, version
+        mocks[0] = abi.encode(uint240(1), uint240(1)); // nonceBefore, version
+        mocks[1] = abi.encode(uint240(1), uint240(1)); // nonceAfter, version
         vm.mockCalls(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("messageNonce()"),
-            mocks
+            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"), mocks
         );
         vm.expectCall(
             address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
@@ -379,13 +371,10 @@ contract GasTankTest is Test {
             abi.encodeWithSignature("relayMessage((address,uint256,uint256,uint256,uint256),bytes)"),
             abi.encode("")
         );
-        vm.expectCall(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("messageNonce()")
-        );
+        vm.expectCall(address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER), abi.encodeWithSignature("messageNonce()"));
 
         bytes32[] memory destinationMessageHashes = new bytes32[](0);
-        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * 1;  // real: 7184
+        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * 1; // real: 7184
         console.log("Predicted gasCost", gasCost);
         // 3850
         // 34070-31553 = 2517 (event gas usage)
