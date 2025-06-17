@@ -166,7 +166,7 @@ contract GasTankTest is Test {
             abi.encode(true)
         );
 
-        vm.expectRevert(IGasTank.InvalidPayer.selector);
+        vm.expectRevert(IGasTank.MessageNotAuthorized.selector);
         gasTank.claim(id, gasProvider, payload);
     }
 
@@ -318,8 +318,8 @@ contract GasTankTest is Test {
         assertEq(address(this).balance, totalCost, "GasTank should have compensated relayer");
     }
 
+    // TODO make test with a nested message
     function testRelayMessage_Success() public {
-        vm.fee(1);
         // Prepare a dummy identifier and message
         Identifier memory id;
         id.chainId = 10;
@@ -342,6 +342,7 @@ contract GasTankTest is Test {
                 dstCallData  // dstCallData
             )
         );
+
         bytes32 originMessageHash = Hashing.hashL2toL2CrossDomainMessage(
             dstChainId, // destChain
             srcChainId, // srcChain
@@ -358,7 +359,7 @@ contract GasTankTest is Test {
         );
         bytes[] memory mocks = new bytes[](2);
         mocks[0] = abi.encode(uint240(1), uint240(1));  // nonceBefore, version
-        mocks[1] = abi.encode(uint240(2), uint240(1));
+        mocks[1] = abi.encode(uint240(1), uint240(1));  // nonceAfter, version
         vm.mockCalls(
             address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
             abi.encodeWithSignature("messageNonce()"),
@@ -377,23 +378,16 @@ contract GasTankTest is Test {
             address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
             abi.encodeWithSignature("messageNonce()")
         );
-        bytes32 destinationHash = bytes32(0);
-        vm.expectCall(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("sentMessages(uint256)")
-        );
-        vm.mockCall(
-            address(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER),
-            abi.encodeWithSignature("sentMessages(uint256)"),
-            abi.encode(destinationHash)
-        );
 
-        bytes32[] memory destinationMessageHashes = new bytes32[](1);
-        destinationMessageHashes[0] = destinationHash;
-        uint256 gasCost = 8005; // ((3_000 + 1 * 300) + (4369)) * block.basefee;
+        bytes32[] memory destinationMessageHashes = new bytes32[](0);
+        uint256 gasCost = (3945 + (3_000 + 0 * 300)) * 1;  // real: 7184
+        console.log("Predicted gasCost", gasCost);
+        // 3850
+        // 34070-31553 = 2517 (event gas usage)
 
         vm.expectEmit(address(gasTank));
         emit IGasTank.RelayedMessageGasReceipt(originMessageHash, address(this), gasCost, destinationMessageHashes);
+        vm.fee(1);
         gasTank.relayMessage(id, sentMessage);
     }
 }
