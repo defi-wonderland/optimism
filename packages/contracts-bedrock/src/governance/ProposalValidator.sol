@@ -61,6 +61,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the options length is invalid (zero or exceeds uint8 max).
     error ProposalValidator_InvalidOptionsLength();
 
+    /// @notice Thrown when the criteria value is invalid for council elections (must be less than options length).
+    error ProposalValidator_InvalidCriteriaValue();
+
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -284,6 +287,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 optionsLength = _optionDescriptions.length;
         if (optionsLength == 0 || optionsLength > type(uint8).max) {
             revert ProposalValidator_InvalidOptionsLength();
+        }
+
+        // Validate criteria value is less than options length for TopChoices
+        if (_criteriaValue >= optionsLength) {
+            revert ProposalValidator_InvalidCriteriaValue();
         }
 
         ProposalOption[] memory options = new ProposalOption[](optionsLength);

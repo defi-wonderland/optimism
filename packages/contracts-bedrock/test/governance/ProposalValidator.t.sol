@@ -1302,8 +1302,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         uint8 optionCount,
         uint128 criteriaValue
     ) public {
-        optionCount = uint8(bound(optionCount, 1, type(uint8).max));
-        criteriaValue = uint128(bound(criteriaValue, 1, optionCount));
+        optionCount = uint8(bound(optionCount, 2, type(uint8).max)); // Minimum 2 options to have valid criteria < optionCount
+        criteriaValue = uint128(bound(criteriaValue, 1, optionCount - 1)); // Must be less than optionCount
 
         // Create dynamic array of option descriptions based on option count
         string[] memory optionDescriptions = new string[](optionCount);
@@ -1485,6 +1485,28 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, invalidAttestation
+        );
+    }
+
+    function test_submitCouncilMemberElectionsProposal_criteriaValueEqualsOptionsLength_reverts() public {
+        // Set criteria value equal to options length (should be less than)
+        uint128 invalidCriteriaValue = uint128(optionDescriptions.length);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidCriteriaValue.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid
+        );
+    }
+
+    function testFuzz_submitCouncilMemberElectionsProposal_criteriaValueExceedsOptionsLength_reverts(uint128 invalidCriteriaValue) public {
+        // Bound invalidCriteriaValue to be greater than options length
+        invalidCriteriaValue = uint128(bound(invalidCriteriaValue, optionDescriptions.length + 1, type(uint128).max));
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidCriteriaValue.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
     }
 }
