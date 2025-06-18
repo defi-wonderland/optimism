@@ -1470,16 +1470,6 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
-    function test_submitCouncilMemberElectionsProposal_criteriaValueEqualsOptionsLength_reverts() public {
-        // Set criteria value equal to options length (should be less than)
-        uint128 invalidCriteriaValue = uint128(optionDescriptions.length);
-
-        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidCriteriaValue.selector);
-        vm.prank(topDelegate_A);
-        validator.submitCouncilMemberElectionsProposal(
-            invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid
-        );
-    }
 
     function testFuzz_submitCouncilMemberElectionsProposal_criteriaValueExceedsOptionsLength_reverts(uint128 invalidCriteriaValue) public {
         // Bound invalidCriteriaValue to be greater than options length

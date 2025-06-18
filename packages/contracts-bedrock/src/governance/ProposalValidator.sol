@@ -61,7 +61,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the options length is invalid (zero or exceeds uint8 max).
     error ProposalValidator_InvalidOptionsLength();
 
-    /// @notice Thrown when the criteria value is invalid for council elections (must be less than options length).
+    /// @notice Thrown when the criteria value is invalid for council elections (must not exceed options length).
     error ProposalValidator_InvalidCriteriaValue();
 
     /*//////////////////////////////////////////////////////////////
@@ -289,8 +289,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidOptionsLength();
         }
 
-        // Validate criteria value is less than options length for TopChoices
-        if (_criteriaValue >= optionsLength) {
+        // Validate criteria value doesn't exceed options length for TopChoices
+        if (_criteriaValue > optionsLength) {
             revert ProposalValidator_InvalidCriteriaValue();
         }
 
