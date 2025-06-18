@@ -31,7 +31,7 @@ import (
 	w3eth "github.com/lmittmann/w3/module/eth"
 )
 
-func WithSuperRoots(l1ChainID eth.ChainID, l1ELID stack.L1ELNodeID, l2CLID stack.L2CLNodeID, supervisorID stack.SupervisorID) stack.Option[*Orchestrator] {
+func WithSuperRoots(l1ChainID eth.ChainID, l1ELID stack.L1ELNodeID, l2CLID stack.L2CLNodeID, supervisorID stack.SupervisorID, primaryL2 eth.ChainID) stack.Option[*Orchestrator] {
 	return stack.FnOption[*Orchestrator]{
 		FinallyFn: func(o *Orchestrator) {
 			t := o.P()
@@ -76,14 +76,15 @@ func WithSuperRoots(l1ChainID eth.ChainID, l1ELID stack.L1ELNodeID, l2CLID stack
 				})
 			}
 
-			opcmABI, err := bindings.OPContractsManagerMetaData.GetAbi()
-			o.P().Require().NoError(err, "invalid OPCM ABI")
-			chainOps := devkeys.ChainOperatorKeys(l1ChainID.ToBig())
-			proposer, err := o.keys.Address(chainOps(devkeys.ProposerRole))
+			// Use primaryL2 to determine which challenger / proposer roles to promote to the shared permissioned fdg
+			permissionedChainOps := devkeys.ChainOperatorKeys(primaryL2.ToBig())
+			proposer, err := o.keys.Address(permissionedChainOps(devkeys.ProposerRole))
 			o.P().Require().NoError(err, "must have configured proposer")
-			challenger, err := o.keys.Address(chainOps(devkeys.ChallengerRole))
+			challenger, err := o.keys.Address(permissionedChainOps(devkeys.ChallengerRole))
 			o.P().Require().NoError(err, "must have configured challenger")
 
+			opcmABI, err := bindings.OPContractsManagerMetaData.GetAbi()
+			o.P().Require().NoError(err, "invalid OPCM ABI")
 			opcmAddr := o.wb.output.ImplementationsDeployment.OpcmImpl
 			contract := batching.NewBoundContract(opcmABI, opcmAddr)
 			migrateInput := bindings.OPContractsManagerInteropMigratorMigrateInput{
@@ -107,6 +108,7 @@ func WithSuperRoots(l1ChainID eth.ChainID, l1ELID stack.L1ELNodeID, l2CLID stack
 			migrateCallData, err := migrateCall.Pack()
 			require.NoError(err)
 
+			chainOps := devkeys.ChainOperatorKeys(l1ChainID.ToBig())
 			l1PAOKey, err := o.keys.Secret(chainOps(devkeys.L1ProxyAdminOwnerRole))
 			require.NoError(err, "must have configured L1 proxy admin owner private key")
 			transactOpts, err := bind.NewKeyedTransactorWithChainID(l1PAOKey, l1ChainID.ToBig())
@@ -121,20 +123,16 @@ func WithSuperRoots(l1ChainID eth.ChainID, l1ELID stack.L1ELNodeID, l2CLID stack
 
 			oldDisputeGameFactories := make(map[eth.ChainID]common.Address)
 			for i, opChainConfig := range opChainConfigs {
-				chainOpsForL2 := devkeys.ChainOperatorKeys(l2ChainIDs[i].ToBig())
-				l1PAOKeyForL2, err := o.keys.Secret(chainOpsForL2(devkeys.L1ProxyAdminOwnerRole))
-				require.NoError(err, "must have configured L1 proxy admin owner private key")
-
 				var portal common.Address
 				require.NoError(
 					w3Client.Call(
 						w3eth.CallFunc(opChainConfig.SystemConfigProxy, optimismPortalFn).Returns(&portal),
 					))
 				portalProxyAdmin := getProxyAdmin(t, w3Client, portal)
-				transferOwnership(t, l1PAOKeyForL2, client, portalProxyAdmin, delegateCallProxy)
+				transferOwnership(t, l1PAOKey, client, portalProxyAdmin, delegateCallProxy)
 
 				dgf := getDisputeGameFactory(t, w3Client, portal)
-				transferOwnership(t, l1PAOKeyForL2, client, dgf, delegateCallProxy)
+				transferOwnership(t, l1PAOKey, client, dgf, delegateCallProxy)
 				oldDisputeGameFactories[l2ChainIDs[i]] = dgf
 			}
 

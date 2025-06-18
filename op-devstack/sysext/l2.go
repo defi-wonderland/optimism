@@ -2,6 +2,7 @@ package sysext
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/devnet-sdk/descriptors"
@@ -48,6 +49,7 @@ func (o *Orchestrator) hydrateL2(net *descriptors.L2Chain, system stack.Extensib
 	for _, node := range net.Nodes {
 		o.hydrateL2ELCL(&node, l2)
 		o.hydrateConductors(&node, l2)
+		o.hydrateFlashblocksBuilderIfPresent(&node, l2)
 	}
 	o.hydrateBatcherMaybe(net, l2)
 	o.hydrateProposerMaybe(net, l2)
@@ -94,8 +96,7 @@ func (o *Orchestrator) hydrateL2ELCL(node *descriptors.Node, l2Net stack.Extensi
 	clService, ok := node.Services[CLServiceName]
 	require.True(ok, "need L2 CL service for chain", l2ID)
 
-	// it's an RPC, but 'http' in kurtosis descriptor
-	clClient := o.rpcClient(l2Net.T(), clService, HTTPProtocol, "/")
+	clClient := o.rpcClient(l2Net.T(), clService, RPCProtocol, "/")
 	l2CL := shim.NewL2CLNode(shim.L2CLNodeConfig{
 		ID:           stack.NewL2CLNodeID(clService.Name, l2ID.ChainID()),
 		CommonConfig: shim.NewCommonConfig(l2Net.T()),
@@ -115,10 +116,19 @@ func (o *Orchestrator) hydrateConductors(node *descriptors.Node, l2Net stack.Ext
 		return
 	}
 
-	endpoint, _, err := o.findProtocolService(conductorService, HTTPProtocol)
+	endpoint, header, err := o.findProtocolService(conductorService, RPCProtocol)
 	require.NoError(err, "failed to find RPC service for conductor")
 
-	conductorClient, err := rpc.DialContext(l2Net.T().Ctx(), endpoint)
+	opts := make([]rpc.ClientOption, 0)
+
+	if o.env.Env.ReverseProxyURL != "" && len(header) > 0 && !o.useDirectCnx {
+		opts = append(opts,
+			rpc.WithHeaders(header),
+			rpc.WithHTTPClient(&http.Client{
+				Transport: hostAwareRoundTripper(header),
+			}))
+	}
+	conductorClient, err := rpc.DialOptions(l2Net.T().Ctx(), endpoint, opts...)
 	require.NoError(err, "failed to dial conductor endpoint")
 	l2Net.T().Cleanup(func() { conductorClient.Close() })
 
@@ -129,6 +139,36 @@ func (o *Orchestrator) hydrateConductors(node *descriptors.Node, l2Net stack.Ext
 	})
 
 	l2Net.AddConductor(conductor)
+}
+
+func (o *Orchestrator) hydrateFlashblocksBuilderIfPresent(node *descriptors.Node, l2Net stack.ExtensibleL2Network) {
+	require := l2Net.T().Require()
+	l2ID := l2Net.ID()
+
+	rbuilderService, ok := node.Services[RBuilderServiceName]
+	if !ok {
+		l2Net.Logger().Debug("L2 net node is missing the flashblocksBuilder service", "node", node.Name, "l2", l2ID)
+		return
+	}
+
+	associatedConductorService, ok := node.Services[ConductorServiceName]
+	require.True(ok, "L2 rbuilder service must have an associated conductor service", l2ID)
+
+	flashblocksWsUrl, _, err := o.findProtocolService(rbuilderService, WebsocketFlashblocksProtocol)
+	require.NoError(err, "failed to find websocket service for rbuilder")
+
+	flashblocksBuilder := shim.NewFlashblocksBuilderNode(shim.FlashblocksBuilderNodeConfig{
+		ID: stack.NewFlashblocksBuilderID(rbuilderService.Name, l2ID.ChainID()),
+		ELNodeConfig: shim.ELNodeConfig{
+			CommonConfig: shim.NewCommonConfig(l2Net.T()),
+			Client:       o.rpcClient(l2Net.T(), rbuilderService, RPCProtocol, "/"),
+			ChainID:      l2ID.ChainID(),
+		},
+		ConductorID:      stack.ConductorID(associatedConductorService.Name),
+		FlashblocksWsUrl: flashblocksWsUrl,
+	})
+
+	l2Net.AddFlashblocksBuilder(flashblocksBuilder)
 }
 
 func (o *Orchestrator) hydrateL2ProxydMaybe(net *descriptors.L2Chain, l2Net stack.ExtensibleL2Network) {
@@ -211,7 +251,7 @@ func (o *Orchestrator) hydrateChallengerMaybe(net *descriptors.L2Chain, l2Net st
 	for _, instance := range challengerService {
 		l2Net.AddL2Challenger(shim.NewL2Challenger(shim.L2ChallengerConfig{
 			CommonConfig: shim.NewCommonConfig(l2Net.T()),
-			ID:           stack.L2ChallengerID(instance.Name),
+			ID:           stack.NewL2ChallengerID(instance.Name, l2ID.ChainID()),
 		}))
 	}
 }
