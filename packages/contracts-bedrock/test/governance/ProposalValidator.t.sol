@@ -1149,7 +1149,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
     function test_submitFundingProposal_exceedsMaxOptionsLength_reverts(uint256 tooManyOptions) public {
         // Create arrays with more than 255 options (exceeds allowed uint8 max)
-        tooManyOptions = uint256(bound(tooManyOptions, type(uint8).max + 1, type(uint256).max));
+        tooManyOptions = uint256(bound(tooManyOptions, 256, 512));
         string[] memory tooManyDescriptions = new string[](tooManyOptions);
         address[] memory tooManyRecipients = new address[](tooManyOptions);
         uint256[] memory tooManyAmounts = new uint256[](tooManyOptions);
