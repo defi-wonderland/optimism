@@ -301,17 +301,15 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidOptionsLength();
         }
 
-        // Check each option amount against distribution threshold
+        ProposalOption[] memory options = new ProposalOption[](optionsLength);
+        uint256 totalBudget = 0;
+
+        // Check amounts, build options, and calculate total budget in single loop
         for (uint256 i = 0; i < optionsLength; i++) {
             if (_optionsAmounts[i] > distributionThreshold) {
                 revert ProposalValidator_ExceedsDistributionThreshold();
             }
-        }
 
-        ProposalOption[] memory options = new ProposalOption[](optionsLength);
-
-        // Build proposal options with governance token transfer calls
-        for (uint256 i = 0; i < optionsLength; i++) {
             address[] memory targets = new address[](1);
             uint256[] memory values = new uint256[](1);
             bytes[] memory calldatas = new bytes[](1);
@@ -326,11 +324,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 calldatas: calldatas,
                 description: _optionsDescriptions[i]
             });
-        }
 
-        // Calculate total budget needed for all options
-        uint256 totalBudget = 0;
-        for (uint256 i = 0; i < optionsLength; i++) {
             totalBudget += _optionsAmounts[i];
         }
 
