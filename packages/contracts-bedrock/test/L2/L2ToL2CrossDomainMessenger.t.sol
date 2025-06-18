@@ -1091,6 +1091,91 @@ contract L2ToL2CrossDomainMessenger_RelayBundle_Test is L2ToL2CrossDomainMesseng
             abi.encode(address(simpleEntrypoint), abi.encodeCall(SimpleEntrypoint.relayMessage, (id, sentMessage)))
         );
     }
+
+    /// @notice Tests that relaying a bundle with multiple depths and message specific entrypoints succeeds.
+    function test_relayBundle_multipleDepth_succeeds(uint256 _targetsAmount, bytes memory _targetMessage) external {
+        _targetsAmount = bound(_targetsAmount, 2, 10);
+
+        // Message targets
+        address[] memory targets = new address[](_targetsAmount);
+
+        // Addresses that are supposed to call the entrypoint
+        address[] memory recursiveBundleRelayers = new address[](_targetsAmount);
+
+        for (uint256 i = 0; i < _targetsAmount; i++) {
+            targets[i] = makeAddr(string(abi.encodePacked("target ", i)));
+            vm.etch(targets[i], "0x1000000000000000000000000000000000000001");
+            recursiveBundleRelayers[i] = address(new RecursiveBundleRelayerWithEntrypoint());
+        }
+
+        bytes32[] memory entrypointHashes = _calculateBundleEntrypointHash(1, bytes32(0), recursiveBundleRelayers);
+
+        Identifier[] memory ids = new Identifier[](_targetsAmount);
+        bytes[] memory sentMessages = new bytes[](_targetsAmount);
+
+        for (uint256 i = 0; i < _targetsAmount; i++) {
+            ids[i] = Identifier({
+                chainId: block.chainid,
+                origin: Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+                blockNumber: i + 1,
+                logIndex: 1,
+                timestamp: 1
+            });
+
+            // Calculate the hash of simple relayer for a level of depth equal to 1
+            bytes32 entrypointHash = keccak256(abi.encodePacked(entrypointHashes[i], address(simpleEntrypoint)));
+
+            sentMessages[i] = abi.encodePacked(
+                SENT_MESSAGE_EVENT_SELECTOR,
+                abi.encode(block.chainid, targets[i], 1),
+                abi.encode(address(this), entrypointHash, _targetMessage)
+            );
+
+            // Ensure the CrossL2Inbox validates this message
+            vm.mockCall({
+                callee: Predeploys.CROSS_L2_INBOX,
+                data: abi.encodeCall(ICrossL2Inbox.validateMessage, (ids[i], keccak256(sentMessages[i]))),
+                returnData: ""
+            });
+            vm.expectCall(
+                Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+                abi.encodeCall(L2ToL2CrossDomainMessenger.relayMessage, (ids[i], sentMessages[i]))
+            );
+
+            vm.mockCall({ callee: targets[i], data: _targetMessage, returnData: abi.encode(1) });
+            vm.expectCall({ callee: targets[i], data: _targetMessage });
+        }
+
+        // Kickstart the bundle relaying by calling the first bundle relayer
+        RecursiveBundleRelayerWithEntrypoint(recursiveBundleRelayers[0]).relayBundle(
+            abi.encode(recursiveBundleRelayers, address(simpleEntrypoint), ids, sentMessages)
+        );
+    }
+
+    /// @notice Recursively calculates the bundle entrypoint hash for a given parent hash and bundle entrypoint address.
+    function _calculateBundleEntrypointHash(
+        uint256 _depth,
+        bytes32 _parentHash,
+        address[] memory _bundleEntrypoints
+    )
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        require(_depth <= _bundleEntrypoints.length, "Depth exceeds bundle entrypoints length");
+
+        bytes32 entrypointHash = keccak256(abi.encodePacked(_parentHash, _bundleEntrypoints[_depth - 1]));
+
+        if (_depth == _bundleEntrypoints.length) {
+            bytes32[] memory entrypointHashes = new bytes32[](_bundleEntrypoints.length);
+            entrypointHashes[_depth - 1] = entrypointHash;
+            return entrypointHashes;
+        }
+
+        bytes32[] memory returnedHashes = _calculateBundleEntrypointHash(_depth + 1, entrypointHash, _bundleEntrypoints);
+        returnedHashes[_depth - 1] = entrypointHash;
+        return returnedHashes;
+    }
 }
 
 /// @title SimpleBundleRelayer
@@ -1110,7 +1195,7 @@ contract SimpleBundleRelayer is IBundleRelayer {
 
 /// @title BundleRelayerWithEntrypoint
 /// @notice A contract that relays a bundle with a single message and a message entrypoint by calling the message
-/// entrypoint.
+///         entrypoint.
 contract BundleRelayerWithEntrypoint is IBundleRelayer {
     function onRelayBundle(bytes calldata _context) external override {
         (address entrypoint, bytes memory entrypointCalldata) = abi.decode(_context, (address, bytes));
@@ -1126,6 +1211,44 @@ contract BundleRelayerWithEntrypoint is IBundleRelayer {
     }
 }
 
+/// @title RecursiveBundleRelayerWithEntrypoint
+/// @notice A contract that relays a bundle with a single message and a message entrypoint by calling the message
+///         entrypoint.
+contract RecursiveBundleRelayerWithEntrypoint is IBundleRelayer {
+    function onRelayBundle(bytes calldata _context) external override {
+        (
+            address[] memory bundleRelyayEntrypoints,
+            address entrypoint,
+            Identifier[] memory ids,
+            bytes[] memory sentMessages
+        ) = abi.decode(_context, (address[], address, Identifier[], bytes[]));
+
+        uint256 currentDepth =
+            L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth();
+
+        bytes memory entrypointCalldata =
+            abi.encodeCall(SimpleEntrypoint.relayMessage, (ids[currentDepth - 1], sentMessages[currentDepth - 1]));
+
+        (bool success,) = entrypoint.call(entrypointCalldata);
+
+        require(success, "Failed to call entrypoint");
+
+        if (currentDepth < bundleRelyayEntrypoints.length) {
+            RecursiveBundleRelayerWithEntrypoint(bundleRelyayEntrypoints[currentDepth]).relayBundle(
+                abi.encode(bundleRelyayEntrypoints, entrypoint, ids, sentMessages)
+            );
+        }
+    }
+
+    function relayBundle(bytes calldata _context) external {
+        // Create a bundle
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayBundle(_context);
+    }
+}
+
+/// @title SimpleEntrypoint
+/// @notice A simple contract that acts as a message entrypoint. Doesn't perform any checks on the message being
+///         relayed or the caller.
 contract SimpleEntrypoint {
     function relayMessage(Identifier memory _id, bytes memory _message) external {
         L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(_id, _message);
