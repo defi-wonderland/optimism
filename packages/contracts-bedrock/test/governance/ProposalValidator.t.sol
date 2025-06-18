@@ -1458,9 +1458,11 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
-    function test_submitCouncilMemberElectionsProposal_unapprovedProposer_reverts() public {
+    function testFuzz_submitCouncilMemberElectionsProposal_unapprovedProposer_reverts(address fuzzedAttester) public {
+        vm.assume(fuzzedAttester != owner); // Ensure it's not the approved owner
+
         // Create attestation but don't use proper owner as attester
-        vm.prank(rando); // Not the owner
+        vm.prank(fuzzedAttester); // Not the owner
         bytes32 invalidAttestation = IEAS(Predeploys.EAS).attest(
             AttestationRequest({
                 schema: ATTESTATION_SCHEMA_UID,
