@@ -1368,14 +1368,13 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         attestationUid = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
     }
 
-    function test_submitCouncilMemberElectionsProposal_invalidAttestation_reverts() public {
-        // Create attestation for wrong proposal type
-        bytes32 invalidAttestation = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.GovernanceFund);
+    function testFuzz_submitCouncilMemberElectionsProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid) public {
+        vm.assume(fuzzedAttestationUid != attestationUid); // Ensure it's different from valid attestation
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, invalidAttestation
+            criteriaValue, optionDescriptions, proposalDescription, fuzzedAttestationUid
         );
     }
 
