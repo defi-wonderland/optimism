@@ -1378,10 +1378,12 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
-    function test_submitCouncilMemberElectionsProposal_wrongProposer_reverts() public {
+    function testFuzz_submitCouncilMemberElectionsProposal_wrongProposer_reverts(address fuzzedProposer) public {
+        vm.assume(fuzzedProposer != topDelegate_A); // Ensure it's different from attested proposer
+
         // Try to submit with different address than attested
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
-        vm.prank(topDelegate_B); // Different from attested topDelegate_A
+        vm.prank(fuzzedProposer); // Different from attested topDelegate_A
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
