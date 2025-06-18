@@ -579,6 +579,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _expectedProposalType The expected proposal type from the attestation.
     function _validateAttestation(bytes32 _attestationUid, ProposalType _expectedProposalType) internal view {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
+
+        // Check if attestation exists, equivalent to calling EAS.isAttestationValid(_attestationUid)
+        if (attestation.uid == bytes32(0)) {
+            revert ProposalValidator_InvalidAttestation();
+        }
+
         (address approvedDelegate, uint8 proposalType) = abi.decode(attestation.data, (address, uint8));
 
         if (
