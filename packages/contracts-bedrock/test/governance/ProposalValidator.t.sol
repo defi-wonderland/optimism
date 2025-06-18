@@ -1147,19 +1147,12 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
     }
 
-    function test_submitFundingProposal_exceedsMaxOptionsLength_reverts() public {
-        // Create arrays with 256 options (exceeds uint8 max of 255)
-        uint256 tooManyOptions = 256;
+    function test_submitFundingProposal_exceedsMaxOptionsLength_reverts(uint256 tooManyOptions) public {
+        // Create arrays with more than 255 options (exceeds allowed uint8 max)
+        tooManyOptions = uint256(bound(tooManyOptions, type(uint8).max + 1, type(uint256).max));
         string[] memory tooManyDescriptions = new string[](tooManyOptions);
         address[] memory tooManyRecipients = new address[](tooManyOptions);
         uint256[] memory tooManyAmounts = new uint256[](tooManyOptions);
-
-        // Fill arrays with valid data
-        for (uint256 i = 0; i < tooManyOptions; i++) {
-            tooManyDescriptions[i] = string(abi.encodePacked("Option ", i));
-            tooManyRecipients[i] = makeAddr(string(abi.encodePacked("recipient", i)));
-            tooManyAmounts[i] = 1 ether;
-        }
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(rando);
