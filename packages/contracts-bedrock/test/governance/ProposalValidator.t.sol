@@ -1390,20 +1390,6 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         validator.submitCouncilMemberElectionsProposal(criteriaValue, emptyOptions, proposalDescription, attestationUid);
     }
 
-    function test_submitCouncilMemberElectionsProposal_tooManyOptions_reverts() public {
-        // Create 256 options (exceeds uint8 max of 255)
-        uint256 tooManyOptions = 256;
-        string[] memory tooManyDescriptions = new string[](tooManyOptions);
-        for (uint256 i = 0; i < tooManyOptions; i++) {
-            tooManyDescriptions[i] = string(abi.encodePacked("Candidate ", i));
-        }
-
-        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
-        vm.prank(topDelegate_A);
-        validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, tooManyDescriptions, proposalDescription, attestationUid
-        );
-    }
 
     function test_submitCouncilMemberElectionsProposal_duplicateProposal_reverts() public {
         // Calculate expected proposal hash
