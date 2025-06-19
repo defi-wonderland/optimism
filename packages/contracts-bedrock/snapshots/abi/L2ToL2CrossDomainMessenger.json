@@ -143,6 +143,23 @@
         "type": "address"
       },
       {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "hookPayload",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct HookData",
+        "name": "_relayHook",
+        "type": "tuple"
+      },
+      {
         "internalType": "bytes",
         "name": "_message",
         "type": "bytes"
@@ -192,16 +209,79 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_destination",
         "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_target",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "hookPayload",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct HookData",
+        "name": "_sendHook",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "hookPayload",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct HookData",
+        "name": "_relayHook",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_message",
+        "type": "bytes"
+      }
+    ],
+    "name": "sendMessageWithHooks",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "messageHash_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "name": "sentMessages",
     "outputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "bool",
         "name": "",
-        "type": "bytes32"
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -299,6 +379,12 @@
       },
       {
         "indexed": false,
+        "internalType": "bytes32",
+        "name": "relayHookHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
         "internalType": "bytes",
         "name": "message",
         "type": "bytes"
@@ -310,6 +396,22 @@
   {
     "inputs": [],
     "name": "EventPayloadNotSentMessage",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "hook",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "returnData",
+        "type": "bytes"
+      }
+    ],
+    "name": "HookCallFailed",
     "type": "error"
   },
   {

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { HookData } from "interfaces/L2/IMessageHooks.sol";
+
 struct Identifier {
     address origin;
     uint256 blockNumber;
@@ -39,14 +41,18 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when the provided message parameters do not match any hash of a previously sent message.
     error InvalidMessage();
 
+    /// @notice Thrown when a hook call fails.
+    error HookCallFailed(address hook, bytes returnData);
+
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
     /// @param messageNonce Nonce associated with the messsage sent
     /// @param sender       Address initiating this message call
+    /// @param relayHookHash Hash of the relay hook data
     /// @param message      Message payload to call target with.
     event SentMessage(
-        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message
+        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes32 relayHookHash, bytes message
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
@@ -72,9 +78,9 @@ interface IL2ToL2CrossDomainMessenger {
     /// @return Nonce of the next message to be sent, with added message version.
     function messageNonce() external view returns (uint256);
 
-    /// @notice Mapping of message nonces to message hashes. Note that a message will only be present in this
+    /// @notice Mapping of message hashes to boolean sent values. Note that a message will only be present in this
     ///         mapping if it has been sent from this chain to a destination chain.
-    function sentMessages(uint256) external view returns (bytes32);
+    function sentMessages(bytes32) external view returns (bool);
 
     /// @notice Retrieves the sender of the current cross domain message.
     /// @return sender_ Address of the sender of the current cross domain message.
@@ -106,6 +112,24 @@ interface IL2ToL2CrossDomainMessenger {
         external
         returns (bytes32 messageHash_);
 
+    /// @notice Sends a message to some target address on a destination chain with hooks for send and relay callbacks.
+    /// @param _destination Chain ID of the destination chain.
+    /// @param _target      Target contract or wallet address.
+    /// @param _sendHook    Hook data for send callback (executed immediately on source chain).
+    /// @param _relayHook   Hook data for relay callback (encoded in message, executed on destination chain).
+    /// @param _message     Message payload to call target with.
+    /// @return messageHash_ The hash of the message being sent, used to track whether the message has successfully been
+    /// relayed.
+    function sendMessageWithHooks(
+        uint256 _destination,
+        address _target,
+        HookData calldata _sendHook,
+        HookData calldata _relayHook,
+        bytes calldata _message
+    )
+        external
+        returns (bytes32 messageHash_);
+
     /// @notice Re-emits a previously sent message event for old messages that haven't been
     ///         relayed yet, allowing offchain infrastructure to pick them up and relay them.
     /// @dev    Emitting a message that has already been relayed will have no effect, as it is only
@@ -114,6 +138,7 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param _nonce Nonce of the message sent
     /// @param _sender Address that sent the message
     /// @param _target Target contract or wallet address.
+    /// @param _relayHook Relay hook data that was originally sent with the message.
     /// @param _message Message payload to call target with.
     /// @return messageHash_ The hash of the message being re-sent.
     function resendMessage(
@@ -121,6 +146,7 @@ interface IL2ToL2CrossDomainMessenger {
         uint256 _nonce,
         address _sender,
         address _target,
+        HookData calldata _relayHook,
         bytes calldata _message
     )
         external

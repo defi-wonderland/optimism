@@ -10,6 +10,7 @@ import { TransientReentrancyAware } from "src/libraries/TransientContext.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
+import { HookData, IMessageSentHook, IMessageRelayedHook } from "interfaces/L2/IMessageHooks.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
@@ -38,6 +39,9 @@ error ReentrantCall();
 /// @notice Thrown when the provided message parameters do not match any hash of a previously sent message.
 error InvalidMessage();
 
+/// @notice Thrown when a hook call fails.
+error HookCallFailed(address hook, bytes returnData);
+
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
 /// @title L2ToL2CrossDomainMessenger
@@ -58,14 +62,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Event selector for the SentMessage event. Will be removed in favor of reading
     //          the `selector` property directly once crytic/slithe/#2566 is fixed.
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320;
+        0x65f7fa83885abdbef9cab58474f555aa731b64afad093d9fbe25c446e18115f0;
 
     /// @notice Current message version identifier.
     uint16 public constant messageVersion = uint16(0);
 
     /// @notice Semantic version.
-    /// @custom:semver 1.3.0
-    string public constant version = "1.3.0";
+    /// @custom:semver 1.2.0
+    string public constant version = "1.2.0";
 
     /// @notice Mapping of message hashes to boolean receipt values. Note that a message will only be present in this
     ///         mapping if it has successfully been relayed on this chain, and can therefore not be relayed again.
@@ -76,18 +80,24 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     ///         message.
     uint240 internal msgNonce;
 
-    /// @notice Mapping of message nonces to message hashes. Note that a message will only be present in this
+    /// @notice Mapping of message hashes to boolean sent values. Note that a message will only be present in this
     ///         mapping if it has been sent from this chain to a destination chain.
-    mapping(uint256 => bytes32) public sentMessages;
+    mapping(bytes32 => bool) public sentMessages;
 
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
     /// @param messageNonce Nonce associated with the message sent
     /// @param sender       Address initiating this message call
+    /// @param relayHookHash Hash of the relay hook data
     /// @param message      Message payload to call target with.
     event SentMessage(
-        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message
+        uint256 indexed destination,
+        address indexed target,
+        uint256 indexed messageNonce,
+        address sender,
+        bytes32 relayHookHash,
+        bytes message
     );
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
@@ -141,23 +151,29 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         external
         returns (bytes32 messageHash_)
     {
-        if (_destination == block.chainid) revert MessageDestinationSameChain();
-        if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
+        HookData memory emptyHook;
+        return _sendMessage(_destination, _target, emptyHook, emptyHook, _message);
+    }
 
-        uint256 nonce = messageNonce();
-        messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
-            _destination: _destination,
-            _source: block.chainid,
-            _nonce: nonce,
-            _sender: msg.sender,
-            _target: _target,
-            _message: _message
-        });
-
-        sentMessages[nonce] = messageHash_;
-        msgNonce++;
-
-        emit SentMessage(_destination, _target, nonce, msg.sender, _message);
+    /// @notice Sends a message to some target address on a destination chain with hooks for send and relay callbacks.
+    /// @param _destination Chain ID of the destination chain.
+    /// @param _target      Target contract or wallet address.
+    /// @param _sendHook    Hook data for send callback (executed immediately on source chain).
+    /// @param _relayHook   Hook data for relay callback (encoded in message, executed on destination chain).
+    /// @param _message     Message payload to call target with.
+    /// @return messageHash_ The hash of the message being sent, used to track whether the message has successfully been
+    /// relayed.
+    function sendMessageWithHooks(
+        uint256 _destination,
+        address _target,
+        HookData calldata _sendHook,
+        HookData calldata _relayHook,
+        bytes calldata _message
+    )
+        external
+        returns (bytes32 messageHash_)
+    {
+        return _sendMessage(_destination, _target, _sendHook, _relayHook, _message);
     }
 
     /// @notice Re-emits a previously sent message event for old messages that haven't been
@@ -168,6 +184,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _nonce Nonce of the message sent
     /// @param _sender Address that sent the message
     /// @param _target Target contract or wallet address.
+    /// @param _relayHook Relay hook data that was originally sent with the message.
     /// @param _message Message payload to call target with.
     /// @return messageHash_ The hash of the message being re-sent.
     function resendMessage(
@@ -175,24 +192,34 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         uint256 _nonce,
         address _sender,
         address _target,
+        HookData calldata _relayHook,
         bytes calldata _message
     )
         external
         returns (bytes32 messageHash_)
     {
+        bytes32 relayHookHash = _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook));
+
         messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
             _source: block.chainid,
             _nonce: _nonce,
             _sender: _sender,
             _target: _target,
+            _hookHash: relayHookHash,
             _message: _message
         });
 
-        if (sentMessages[_nonce] != messageHash_) revert InvalidMessage();
+        if (!sentMessages[messageHash_]) revert InvalidMessage();
 
-        emit SentMessage(_destination, _target, _nonce, _sender, _message);
+        // Reconstruct the event data in the same format as _sendMessage
+        bytes memory eventData = abi.encode(_sender, relayHookHash, _message, _relayHook);
+
+        emit SentMessage(_destination, _target, _nonce, _sender, relayHookHash, eventData);
     }
+
+    // NOTE tbh I'm not sure we can change the relayMessage func signature -- we need to keep the same signature as the
+    // original cross domain messenger
 
     /// @notice Relays a message that was sent by the other L2ToL2CrossDomainMessenger contract. Can only be executed
     ///         via cross chain call from the other messenger OR if the message was already received once and is
@@ -218,8 +245,15 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
 
         // Decode the payload
-        (uint256 destination, address target, uint256 nonce, address sender, bytes memory message) =
-            _decodeSentMessagePayload(_sentMessage);
+        (
+            uint256 destination,
+            address target,
+            uint256 nonce,
+            address sender,
+            bytes32 relayHookHash,
+            bytes memory message,
+            HookData memory relayHook
+        ) = _decodeSentMessagePayload(_sentMessage);
 
         // Assert invariants on the message
         if (destination != block.chainid) revert MessageDestinationNotRelayChain();
@@ -231,6 +265,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: sender,
             _target: target,
+            _hookHash: relayHookHash,
             _message: message
         });
 
@@ -248,6 +283,11 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             assembly {
                 revert(add(32, returnData_), mload(returnData_))
             }
+        }
+
+        // Execute relay hook if provided
+        if (relayHook.hook != address(0)) {
+            _executeRelayHook(relayHook, _sentMessage);
         }
 
         emit RelayedMessage(source, nonce, messageHash, keccak256(returnData_));
@@ -276,18 +316,28 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @dev    The payload format is as follows:
     ///         encodePacked(
     ///               encode(event selector, destination, target, nonce),
-    ///               encode(sender, message)
+    ///               encode(sender, relayHookHash, message, relayHookData)
     ///         )
     /// @param _payload         Payload of the SentMessage event.
     /// @return destination_    Destination chain ID.
     /// @return target_         Target contract of the message.
     /// @return nonce_          Nonce associated with the messsage sent.
     /// @return sender_         Address initiating this message call.
+    /// @return relayHookHash_  Hash of the relay hook data.
     /// @return message_        Message payload to call target with.
+    /// @return relayHook_      Relay hook data.
     function _decodeSentMessagePayload(bytes calldata _payload)
         internal
         pure
-        returns (uint256 destination_, address target_, uint256 nonce_, address sender_, bytes memory message_)
+        returns (
+            uint256 destination_,
+            address target_,
+            uint256 nonce_,
+            address sender_,
+            bytes32 relayHookHash_,
+            bytes memory message_,
+            HookData memory relayHook_
+        )
     {
         // Validate Selector (also reverts if LOG0 with no topics)
         bytes32 selector = abi.decode(_payload[:32], (bytes32));
@@ -297,6 +347,84 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         (destination_, target_, nonce_) = abi.decode(_payload[32:128], (uint256, address, uint256));
 
         // Data
-        (sender_, message_) = abi.decode(_payload[128:], (address, bytes));
+        (sender_, relayHookHash_, message_, relayHook_) =
+            abi.decode(_payload[128:], (address, bytes32, bytes, HookData));
+    }
+
+    /// @notice Sends a message to a target address on a destination chain.
+    /// @param _destination Chain ID of the destination chain.
+    /// @param _target      Target contract or wallet address.
+    /// @param _sendHook    Hook data for send callback (executed immediately on source chain).
+    /// @param _relayHook   Hook data for relay callback (encoded in message, executed on destination chain).
+    /// @param _message     Message payload to call target with.
+    /// @return messageHash_ The hash of the message being sent, used to track whether the message has successfully been
+    /// relayed.
+    function _sendMessage(
+        uint256 _destination,
+        address _target,
+        HookData memory _sendHook,
+        HookData memory _relayHook,
+        bytes calldata _message
+    )
+        internal
+        returns (bytes32 messageHash_)
+    {
+        if (_destination == block.chainid) revert MessageDestinationSameChain();
+        if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
+
+        uint256 nonce = messageNonce();
+        messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
+            _destination: _destination,
+            _source: block.chainid,
+            _nonce: nonce,
+            _sender: msg.sender,
+            _target: _target,
+            //NOTE is this how we encode structs??
+            _hookHash: _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook)),
+            _message: _message
+        });
+
+        sentMessages[messageHash_] = true;
+        msgNonce++;
+
+        bytes32 relayHookHash = _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook));
+
+        // The event data includes both the message and the relay hook data for cross-chain transmission
+        bytes memory eventData = abi.encode(msg.sender, relayHookHash, _message, _relayHook);
+
+        // Execute send hook if provided
+        if (_sendHook.hook != address(0)) {
+            _executeSendHook(_sendHook, eventData);
+        }
+
+        emit SentMessage(_destination, _target, nonce, msg.sender, relayHookHash, eventData);
+    }
+
+    /// @notice Executes the send hook callback.
+    /// @param _hookData Hook data containing address and payload.
+    /// @param _eventData Encoded event data from the message send.
+    function _executeSendHook(HookData memory _hookData, bytes memory _eventData) internal {
+        (bool success, bytes memory returnData) = _hookData.hook.call(
+            abi.encodeWithSelector(IMessageSentHook.onMessageSent.selector, _eventData, _hookData.hookPayload)
+        );
+
+        if (!success) {
+            revert HookCallFailed(_hookData.hook, returnData);
+        }
+    }
+
+    /// @notice Executes the relay hook callback.
+    /// @param _hookData Hook data containing address and payload.
+    /// @param _sentMessageData The complete sent message payload.
+    function _executeRelayHook(HookData memory _hookData, bytes calldata _sentMessageData) internal {
+        (bool success, bytes memory returnData) = _hookData.hook.call(
+            abi.encodeWithSelector(
+                IMessageRelayedHook.onMessageRelayed.selector, _sentMessageData, _hookData.hookPayload
+            )
+        );
+
+        if (!success) {
+            revert HookCallFailed(_hookData.hook, returnData);
+        }
     }
 }
