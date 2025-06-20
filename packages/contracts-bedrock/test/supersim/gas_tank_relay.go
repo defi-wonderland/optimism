@@ -75,7 +75,7 @@ func gasTankRelay() {
 
 	// === Step 2: Authorize Claim on Gas Tank ===
 	fmt.Println("\n=== Step 2: Authorizing claim on GasTank ===")
-	authCalldata, err := gasTankABI.Pack("authorizeClaim", messageHash[:])
+	authCalldata, err := gasTankABI.Pack("authorizeClaim", messageHash)
 	if err != nil {
 		log.Fatalf("Failed to pack authorizeClaim ABI: %v", err)
 	}
@@ -231,9 +231,9 @@ func gasTankRelay() {
 	// === Step 7: Find RelayedMessageGasReceipt log on Chain 902 ===
 	fmt.Println("\n=== Step 7: Finding RelayedMessageGasReceipt log ===")
 	var receiptLog *types.Log
-	for i := 0; i < len(relayTx.Logs); i++ {
-		if relayTx.Logs[i].Address == gasTank && len(relayTx.Logs[i].Topics) > 0 && relayTx.Logs[i].Topics[0] == relayedMessageGasReceiptTopic {
-			receiptLog = relayTx.Logs[i]
+	for _, logEntry := range relayTx.Logs {
+		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
+			receiptLog = logEntry
 			break
 		}
 	}
@@ -241,79 +241,7 @@ func gasTankRelay() {
 		log.Fatalf("Could not find RelayedMessageGasReceipt event in logs of relay transaction")
 	}
 	fmt.Println("Found RelayedMessageGasReceipt event log.")
-
-	// === Step 8: Prepare for claim on Chain 901 ===
-	fmt.Println("\n=== Step 8: Preparing for claim on Chain 901 ===")
-	// a. Construct the Identifier for the receipt log
-	receiptBlock, err := client902.BlockByHash(context.Background(), relayTx.BlockHash)
-	if err != nil {
-		log.Fatalf("Failed to get block for receipt: %v", err)
-	}
-	claimIdentifier := Identifier{
-		Origin:      gasTank,
-		BlockNumber: relayTx.BlockNumber,
-		LogIndex:    big.NewInt(int64(receiptLog.Index)),
-		Timestamp:   new(big.Int).SetUint64(receiptBlock.Time()),
-		ChainID:     big.NewInt(902),
-	}
-	fmt.Printf("Constructed Claim Identifier: %+v\n", claimIdentifier)
-
-	// b. Reconstruct the payload for the claim.
-	// The payload is the ABI encoding of the event selector, indexed topics, and non-indexed data.
-	// We get the non-indexed data from the log's Data field.
-	unpackedData, err := gasTankABI.Events["RelayedMessageGasReceipt"].Inputs.Unpack(receiptLog.Data)
-	if err != nil {
-		log.Fatalf("Failed to unpack RelayedMessageGasReceipt data: %v", err)
-	}
-	destinationMessageHashes := unpackedData[0].([][32]byte)
-
-	// The indexed fields are already available in the log's Topics.
-	originMessageHash := common.BytesToHash(receiptLog.Topics[1].Bytes())
-	relayer := common.BytesToAddress(receiptLog.Topics[2].Bytes())
-	relayCost := new(big.Int).SetBytes(receiptLog.Topics[3].Bytes())
-
-	// Re-encode everything into a single payload for the 'claim' function's cross-chain validation.
-	bytes32ArrType, err1 := abi.NewType("bytes32[]", "", nil)
-	bytes32Type, err2 := abi.NewType("bytes32", "", nil)
-	addressType, err3 := abi.NewType("address", "", nil)
-	uint256Type, err4 := abi.NewType("uint256", "", nil)
-	if err1 != nil || err2 != nil || err3 != nil || err4 != nil {
-		log.Fatalf("Failed to create ABI types: %v, %v, %v, %v", err1, err2, err3, err4)
-	}
-
-	encodedClaimTopics, err := abi.Arguments{{Type: bytes32Type}, {Type: addressType}, {Type: uint256Type}}.Pack(originMessageHash, relayer, relayCost)
-	if err != nil {
-		log.Fatalf("Failed to pack claim topics: %v", err)
-	}
-	encodedClaimData, err := abi.Arguments{{Type: bytes32ArrType}}.Pack(destinationMessageHashes)
-	if err != nil {
-		log.Fatalf("Failed to pack claim data: %v", err)
-	}
-
-	claimPayload := append(relayedMessageGasReceiptTopic.Bytes(), encodedClaimTopics...)
-	claimPayload = append(claimPayload, encodedClaimData...)
-	fmt.Printf("Constructed Claim Payload: %x\n", claimPayload)
-
-	// === Step 9: Get Access List for Claim on Chain 901 ===
-	fmt.Println("\n=== Step 9: Getting Access List for Claim on Chain 901 ===")
-	claimAccessList, err := getAccessList(claimIdentifier, claimPayload)
-	if err != nil {
-		log.Fatalf("Failed to get access list for claim: %v", err)
-	}
-	fmt.Printf("Got Access List for claim with %d elements\n", len(*claimAccessList))
-
-	// === Step 10: Execute Claim on Chain 901 ===
-	fmt.Println("\n=== Step 10: Executing Claim on GasTank on Chain 901 ===")
-	claimCalldata, err := gasTankABI.Pack("claim", claimIdentifier, fromAddress, claimPayload)
-	if err != nil {
-		log.Fatalf("Failed to pack claim ABI: %v", err)
-	}
-	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTank, big.NewInt(0), claimCalldata, *claimAccessList)
-	if err != nil {
-		log.Fatalf("Claim transaction failed: %v", err)
-	}
-	fmt.Printf("Claim transaction successful: %s\n", claimTx.TxHash.Hex())
-	fmt.Println("\n\n✅✅✅ Full GasTank cycle complete! ✅✅✅")
+	fmt.Println("\n\n✅✅✅ GasTank relay portion complete! Claim logic removed. ✅✅✅")
 }
 
 func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
