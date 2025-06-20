@@ -196,7 +196,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     mapping(ProposalType => ProposalTypeData) public proposalTypesData;
 
     /// @notice Mapping of proposal hash to their corresponding proposal data.
-    mapping(bytes32 => ProposalData) private _proposals;
+    mapping(bytes32 => ProposalData) internal _proposals;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1

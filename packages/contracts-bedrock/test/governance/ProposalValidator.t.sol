@@ -49,6 +49,35 @@ contract ProposalValidatorForTest is ProposalValidator {
     {
         return _hashProposalWithModule(_module, _proposalData, _descriptionHash);
     }
+
+    /// @notice Exposes proposal data for testing
+    function getProposalData(bytes32 _proposalHash) 
+        public 
+        view 
+        returns (
+            address proposer,
+            ProposalType proposalType,
+            bool inVoting,
+            uint256 approvalCount
+        ) 
+    {
+        ProposalData storage proposal = _proposals[_proposalHash];
+        return (
+            proposal.proposer,
+            proposal.proposalType,
+            proposal.inVoting,
+            proposal.approvalCount
+        );
+    }
+
+    /// @notice Check if a delegate has approved a proposal
+    function hasDelegateApproved(bytes32 _proposalHash, address _delegate) 
+        public 
+        view 
+        returns (bool) 
+    {
+        return _proposals[_proposalHash].delegateApprovals[_delegate];
+    }
 }
 
 /// @title ProposalValidator_Init
@@ -1352,14 +1381,30 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
             abi.encode(0)
         );
 
+        // Expect ProposalSubmitted event
+        vm.expectEmit(address(validator));
+        emit ProposalSubmitted(expectedHash, topDelegate_A, proposalDescription, ProposalValidator.ProposalType.CouncilMemberElections);
+
+        // Expect ProposalVotingModuleData event
+        vm.expectEmit(address(validator));
+        emit ProposalVotingModuleData(expectedHash, votingModuleData);
+
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
 
         assertEq(proposalHash, expectedHash);
-    }
 
+        // Verify proposal data was stored correctly
+        (address proposer, ProposalValidator.ProposalType proposalType, bool inVoting, uint256 approvalCount) = 
+            validator.getProposalData(proposalHash);
+
+        assertEq(proposer, topDelegate_A, "Proposer should be topDelegate_A");
+        assertEq(uint8(proposalType), uint8(ProposalValidator.ProposalType.CouncilMemberElections), "Proposal type should be CouncilMemberElections");
+        assertFalse(inVoting, "Proposal should not be in voting yet");
+        assertEq(approvalCount, 0, "Approval count should be 0");
+    }
 }
 
 /// @title ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail
