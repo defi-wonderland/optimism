@@ -8,6 +8,9 @@ src = 'src'
 out = 'forge-artifacts'
 script = 'scripts'
 build_info_path = 'artifacts/build-info'
+libs = ['../../node_modules', 'lib']
+test = 'test'
+cache_path = 'forge-cache'
 
 optimizer = true
 optimizer_runs = 999999
@@ -62,6 +65,7 @@ fs_permissions = [
   { access='read', path='./test/fixtures' },
   { access='read', path='./lib/superchain-registry/superchain/configs/' },
   { access='read', path='./lib/superchain-registry/validation/standard/' },
+  { access='read-write', path='./test/supersim/' },
 ]
 
 # 5159 error code is selfdestruct error code

@@ -5,13 +5,11 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"math/big"
-	"strings"
-	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -19,46 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-// Identifier matches the ICrossL2Inbox.Identifier struct
-type Identifier struct {
-	Origin      common.Address `json:"origin"`
-	BlockNumber *big.Int       `json:"blockNumber"`
-	LogIndex    uint32         `json:"logIndex"`
-	Timestamp   uint64         `json:"timestamp"`
-	ChainID     *big.Int       `json:"chainId"`
-}
-
-// GetAccessListForIdentifierRequest mirrors the structure for the admin RPC call
-type GetAccessListForIdentifierRequest struct {
-	Identifier
-	Payload string `json:"payload"`
-}
-
-// AccessList is part of the response
-type AccessList struct {
-	Address     common.Address `json:"address"`
-	StorageKeys []common.Hash  `json:"storageKeys"`
-}
-
-// GetAccessListResponse mirrors the structure of the admin RPC response
-type GetAccessListResponse struct {
-	AccessList types.AccessList `json:"accessList"`
-}
-
-var (
-	// Contract Addresses
-	l2TokenAddr                = common.HexToAddress("0x420beeF000000000000000000000000000000001")
-	superchainTokenBridgeAddr  = common.HexToAddress("0x4200000000000000000000000000000000000028")
-	l2CrossDomainMessengerAddr = common.HexToAddress("0x4200000000000000000000000000000000000023")
-
-	// ABIs
-	tokenABI, _      = abi.JSON(strings.NewReader(`[{"inputs":[{"internalType":"address","name":"_to","type":"address"},{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"nonpayable","type":"function"}]`))
-	bridgeABI, _     = abi.JSON(strings.NewReader(`[{"inputs":[{"internalType":"address","name":"_token","type":"address"},{"internalType":"address","name":"_to","type":"address"},{"internalType":"uint256","name":"_amount","type":"uint256"},{"internalType":"uint256","name":"_chainId","type":"uint256"}],"name":"sendERC20","outputs":[],"stateMutability":"nonpayable","type":"function"}]`))
-	messengerABI, _  = abi.JSON(strings.NewReader(`[{"inputs":[{"components":[{"internalType":"address","name":"origin","type":"address"},{"internalType":"uint256","name":"blockNumber","type":"uint256"},{"internalType":"uint256","name":"logIndex","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"chainId","type":"uint256"}],"internalType":"struct ICrossL2Inbox.Identifier","name":"_id","type":"tuple"},{"internalType":"bytes","name":"_sentMessage","type":"bytes"}],"name":"relayMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
-	sentMessageTopic = crypto.Keccak256Hash([]byte("SentMessage(uint256,address,uint256,address,bytes)"))
-)
-
-func main() {
+func tokenRelay() {
 	fmt.Println("Starting end-to-end manual relay script...")
 
 	// === Setup Clients and Signer ===
@@ -84,7 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to pack mint ABI: %v", err)
 	}
-	mintTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &l2TokenAddr, mintCalldata)
+	mintTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &l2TokenAddr, big.NewInt(0), mintCalldata)
 	if err != nil {
 		log.Fatalf("Mint transaction failed: %v", err)
 	}
@@ -97,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to pack sendERC20 ABI: %v", err)
 	}
-	sendTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &superchainTokenBridgeAddr, sendCalldata)
+	sendTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &superchainTokenBridgeAddr, big.NewInt(0), sendCalldata)
 	if err != nil {
 		log.Fatalf("Send ERC20 transaction failed: %v", err)
 	}
@@ -121,9 +80,9 @@ func main() {
 
 	// === Step 4: Retrieve block info for the log ===
 	fmt.Println("\n=== Step 4: Retrieving block info ===")
-	block, err := client901.BlockByNumber(context.Background(), new(big.Int).SetUint64(sentMessageLog.BlockNumber))
+	block, err := client901.BlockByHash(context.Background(), sendTx.BlockHash)
 	if err != nil {
-		log.Fatalf("Failed to retrieve block: %v", err)
+		log.Fatalf("failed to get block by hash: %v", err)
 	}
 	timestamp := block.Time()
 	fmt.Printf("Block number: %d, Timestamp: %d\n", sentMessageLog.BlockNumber, timestamp)
@@ -133,8 +92,8 @@ func main() {
 	identifier := Identifier{
 		Origin:      l2CrossDomainMessengerAddr,
 		BlockNumber: new(big.Int).SetUint64(sentMessageLog.BlockNumber),
-		LogIndex:    uint32(sentMessageLog.Index),
-		Timestamp:   timestamp,
+		LogIndex:    big.NewInt(int64(sentMessageLog.Index)),
+		Timestamp:   new(big.Int).SetUint64(timestamp),
 		ChainID:     big.NewInt(901),
 	}
 	var payload []byte
@@ -143,6 +102,7 @@ func main() {
 	}
 	payload = append(payload, sentMessageLog.Data...)
 	fmt.Printf("Constructed Identifier: %+v\n", identifier)
+	fmt.Printf("Successfully retrieved sent message payload: %s\n", hex.EncodeToString(payload))
 
 	// === Step 6: Get the access list via admin RPC ===
 	fmt.Println("\n=== Step 6: Retrieving access list from supersim ===")
@@ -162,98 +122,17 @@ func main() {
 	accessList := result.AccessList
 	fmt.Printf("Successfully retrieved access list with %d entries\n", len(accessList))
 
-	// === Step 7: Relay the message on Chain 902 ===
-	fmt.Println("\n=== Step 7: Relaying the message on Chain 902 ===")
-
-	// The ABI packer is strict about types. We need to pass the identifier
-	// with types that match the Solidity ABI (e.g., uint256 -> *big.Int).
-	abiCompatibleIdentifier := struct {
-		Origin      common.Address
-		BlockNumber *big.Int
-		LogIndex    *big.Int
-		Timestamp   *big.Int
-		ChainId     *big.Int
-	}{
-		Origin:      identifier.Origin,
-		BlockNumber: identifier.BlockNumber,
-		LogIndex:    new(big.Int).SetUint64(uint64(identifier.LogIndex)),
-		Timestamp:   new(big.Int).SetUint64(identifier.Timestamp),
-		ChainId:     identifier.ChainID,
-	}
-
-	relayCalldata, err := messengerABI.Pack("relayMessage", abiCompatibleIdentifier, payload)
+	// === Step 7: Relay the message on L2 ===
+	fmt.Println("\n=== Step 7: Relaying message on L2 ===")
+	relayCalldata, err := relayMessengerABI.Pack("relayMessage", identifier, payload)
 	if err != nil {
 		log.Fatalf("Failed to pack relayMessage ABI: %v", err)
 	}
-	relayTx, err := sendAndWaitForTransaction(client902, destChainID, privateKey, &l2CrossDomainMessengerAddr, relayCalldata, accessList)
+
+	relayTx, err := sendAndWaitForTransaction(client902, destChainID, privateKey, &l2CrossDomainMessengerAddr, big.NewInt(0), relayCalldata, accessList)
 	if err != nil {
 		log.Fatalf("Relay transaction failed: %v", err)
 	}
-	fmt.Printf("Relay transaction successful: %s\n", relayTx.TxHash.Hex())
+	fmt.Printf("Successfully relayed message on L2. Transaction hash: %s\n", relayTx.TxHash.Hex())
 	fmt.Println("\n✅ Manual relay complete!")
-}
-
-// sendAndWaitForTransaction is a helper to build, sign, send, and wait for a transaction
-func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *ecdsa.PrivateKey, to *common.Address, data []byte, accessList ...types.AccessList) (*types.Receipt, error) {
-	fromAddress := crypto.PubkeyToAddress(*pk.Public().(*ecdsa.PublicKey))
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get nonce: %w", err)
-	}
-	gasTipCap, err := client.SuggestGasTipCap(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get gas tip cap: %w", err)
-	}
-	latestBlock, err := client.BlockByNumber(context.Background(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get latest block: %w", err)
-	}
-	gasFeeCap := new(big.Int).Add(gasTipCap, new(big.Int).Mul(latestBlock.BaseFee(), big.NewInt(2)))
-
-	txData := &types.DynamicFeeTx{
-		ChainID:   chainID,
-		Nonce:     nonce,
-		GasFeeCap: gasFeeCap,
-		GasTipCap: gasTipCap,
-		To:        to,
-		Value:     big.NewInt(0),
-		Data:      data,
-		Gas:       2000000,
-	}
-	if len(accessList) > 0 {
-		txData.AccessList = accessList[0]
-	}
-
-	tx := types.NewTx(txData)
-	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), pk)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign transaction: %w", err)
-	}
-
-	err = client.SendTransaction(context.Background(), signedTx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send transaction: %w", err)
-	}
-
-	var receipt *types.Receipt
-	for i := 0; i < 5; i++ { // Retry 5 times
-		receipt, err = client.TransactionReceipt(context.Background(), signedTx.Hash())
-		if err == nil && receipt != nil {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get transaction receipt after retries: %w", err)
-	}
-	if receipt == nil {
-		return nil, fmt.Errorf("failed to get transaction receipt: not found after retries")
-	}
-
-	if receipt.Status == 0 {
-		return nil, fmt.Errorf("transaction failed (status 0), hash: %s", signedTx.Hash().Hex())
-	}
-
-	return receipt, nil
 }
