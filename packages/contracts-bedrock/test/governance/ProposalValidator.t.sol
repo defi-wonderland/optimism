@@ -71,6 +71,7 @@ contract ProposalValidator_Init is CommonTest {
     address topDelegate_B;
     address topDelegate_C;
     address topDelegate_D;
+    address approvalVotingModule;
 
     ProposalValidatorForTest public validator;
     ProposalValidatorForTest public impl;
@@ -277,7 +278,7 @@ contract ProposalValidator_Init is CommonTest {
     function _setupProposalTypesConfiguratorMocks() internal {
         // Mock calls for different proposal type IDs
         for (uint8 i = 0; i < 5; i++) {
-            address moduleAddress = (i == 2 || i == 3 || i == 4) ? makeAddr("approvalVotingModule") : address(0);
+            address moduleAddress = (i == 2 || i == 3 || i == 4) ? approvalVotingModule : address(0);
 
             vm.mockCall(
                 address(proposalTypesConfigurator),
@@ -338,6 +339,7 @@ contract ProposalValidator_Init is CommonTest {
         owner = governanceToken.owner();
         rando = makeAddr("rando");
         governor = IOptimismGovernor(makeAddr("governor"));
+        approvalVotingModule = makeAddr("approvalVotingModule");
 
         vm.prank(owner);
         ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
@@ -785,7 +787,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
@@ -821,7 +823,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
@@ -866,7 +868,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory singleOptionData =
             _constructVotingModuleData(singleDescription, singleRecipient, singleAmount, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), singleOptionData, keccak256(bytes(description))
+            approvalVotingModule, singleOptionData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for the expected proposal hash
@@ -898,7 +900,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for the expected proposal hash
@@ -929,7 +931,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for the expected proposal hash
@@ -1074,7 +1076,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for first submission
@@ -1146,7 +1148,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
@@ -1340,7 +1342,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(optionDescriptions, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(proposalDescription))
+            approvalVotingModule, votingModuleData, keccak256(bytes(proposalDescription))
         );
 
         // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
@@ -1417,7 +1419,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(optionDescriptions, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(proposalDescription))
+            approvalVotingModule, votingModuleData, keccak256(bytes(proposalDescription))
         );
 
         // Mock proposalSnapshot to return 0 for first submission
@@ -1449,7 +1451,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(optionDescriptions, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(proposalDescription))
+            approvalVotingModule, votingModuleData, keccak256(bytes(proposalDescription))
         );
 
         // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
