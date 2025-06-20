@@ -11,6 +11,9 @@ import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+// Testing utilities
+import { stdStorage, StdStorage } from "forge-std/Test.sol";
+
 // Contracts
 import { ProposalValidator } from "src/governance/ProposalValidator.sol";
 import { Proxy } from "src/universal/Proxy.sol";
@@ -51,6 +54,8 @@ contract ProposalValidatorForTest is ProposalValidator {
 /// @title ProposalValidator_Init
 /// @notice Setup contract for ProposalValidator tests
 contract ProposalValidator_Init is CommonTest {
+    using stdStorage for StdStorage;
+
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
     uint256 public constant CYCLE_NUMBER = 1;
     uint256 public constant START_BLOCK = 1000000;
@@ -110,6 +115,39 @@ contract ProposalValidator_Init is CommonTest {
     function _approveProposal(address _delegate, bytes32 _proposalHash) internal {
         vm.prank(_delegate);
         validator.approveProposal(_proposalHash);
+    }
+
+    /// @notice Helper function to set proposal type data using StdStorage.
+    function _setProposalTypeData(
+        ProposalValidator.ProposalType _proposalType,
+        ProposalValidator.ProposalTypeData memory _data
+    ) internal {
+        // Set requiredApprovals (depth 0)
+        stdstore
+            .target(address(validator))
+            .sig("proposalTypesData(uint8)")
+            .with_key(uint256(_proposalType))
+            .depth(0)
+            .checked_write(_data.requiredApprovals);
+        
+        // Set proposalVotingModule (depth 1)
+        stdstore
+            .target(address(validator))
+            .sig("proposalTypesData(uint8)")
+            .with_key(uint256(_proposalType))
+            .depth(1)
+            .checked_write(_data.proposalVotingModule);
+    }
+
+    /// @notice Helper function to set CouncilMemberElections proposal type data.
+    function _setCouncilMemberElectionsProposalType() internal {
+        _setProposalTypeData(
+            ProposalValidator.ProposalType.CouncilMemberElections,
+            ProposalValidator.ProposalTypeData({
+                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+                proposalVotingModule: 2
+            })
+        );
     }
 
     function _getProposalTypesAndData()
@@ -1278,15 +1316,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
     function setUp() public override {
         super.setUp();
 
-        // Set CouncilMemberElections to use the approval voting module
-        vm.prank(owner);
-        validator.setProposalTypeData(
-            ProposalValidator.ProposalType.CouncilMemberElections,
-            ProposalValidator.ProposalTypeData({
-                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 2
-            })
-        );
+        _setCouncilMemberElectionsProposalType();
 
         proposalDescription = "Council Member Elections Q4 2024";
     }
@@ -1341,15 +1371,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
     function setUp() public override {
         super.setUp();
 
-        // Set CouncilMemberElections to use the approval voting module
-        vm.prank(owner);
-        validator.setProposalTypeData(
-            ProposalValidator.ProposalType.CouncilMemberElections,
-            ProposalValidator.ProposalTypeData({
-                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 2
-            })
-        );
+        _setCouncilMemberElectionsProposalType();
 
         criteriaValue = 2;
         optionDescriptions = new string[](3);
