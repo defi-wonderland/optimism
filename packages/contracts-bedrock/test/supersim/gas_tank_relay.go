@@ -212,6 +212,15 @@ func gasTankRelay() {
 		}
 	}
 
+	// Calculate checksum on-chain for debug
+	msgHashRelay := crypto.Keccak256Hash(sentMessagePayload)
+	checksumCalldataRelay, _ := crossL2InboxABI.Pack("calculateChecksum", identifier, msgHashRelay)
+	checksumBytesRelay, err := client902.CallContract(context.Background(), ethereum.CallMsg{To: &crossL2InboxAddr, Data: checksumCalldataRelay}, nil)
+	if err != nil {
+		log.Fatalf("Failed to call calculateChecksum for relay: %v", err)
+	}
+	fmt.Printf(">>> Calculated Checksum for Relay (Step 5): %x\n", checksumBytesRelay)
+
 	// === Step 6: Relay the message via GasTank on Chain 902 ===
 	fmt.Println("\n=== Step 6: Relaying message via GasTank on Chain 902 ===")
 	relayCalldata, err := gasTankABI.Pack("relayMessage", identifier, sentMessagePayload)
@@ -287,8 +296,9 @@ func gasTankRelay() {
 		log.Fatalf("Failed to pack data for claim payload: %v", err)
 	}
 
-	// The final payload is: packed "topics" + packed "data" (NO selector)
-	claimPayload := append(packedTopics, packedData...)
+	// The final payload is: selector + packed "topics" + packed "data"
+	claimPayload := append(relayedMessageGasReceiptTopic.Bytes(), packedTopics...)
+	claimPayload = append(claimPayload, packedData...)
 
 	fmt.Printf("Constructed claimPayload for claim tx: %x\n", claimPayload)
 
@@ -305,6 +315,15 @@ func gasTankRelay() {
 			fmt.Printf("    - Key[%d]: %s\n", j, key.Hex())
 		}
 	}
+
+	// Calculate checksum on-chain for debug
+	msgHashClaim := crypto.Keccak256Hash(claimPayload)
+	checksumCalldataClaim, _ := crossL2InboxABI.Pack("calculateChecksum", identifier, msgHashClaim)
+	checksumBytesClaim, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &crossL2InboxAddr, Data: checksumCalldataClaim}, nil)
+	if err != nil {
+		log.Fatalf("Failed to call calculateChecksum for claim: %v", err)
+	}
+	fmt.Printf(">>> Calculated Checksum for Claim (Step 8): %x\n", checksumBytesClaim)
 
 	// === Step 8.5: Debug Balance vs Cost ===
 	fmt.Println("\n=== Step 8.5: Debugging Balance vs Cost ===")
@@ -348,8 +367,6 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack claim for GasTank: %v", err)
 	}
-
-	log.Fatalf("DEBUG: Aborting before sending tx. Calldata for claim: %x", claimCalldata)
 
 	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTank, big.NewInt(0), claimCalldata, *claimAccessList)
 	if err != nil {
