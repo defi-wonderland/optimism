@@ -22,12 +22,18 @@ import (
 func gasTankRelay() {
 	fmt.Println("Starting GasTank end-to-end manual relay script...")
 
+	bytes32Type, _ := abi.NewType("bytes32", "", nil)
+	bytes32ArrayType, _ := abi.NewType("bytes32[]", "", nil)
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+	addressType, _ := abi.NewType("address", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+
 	// === Setup Clients and Signer ===
 	client901, err := ethclient.Dial("http://127.0.0.1:9545")
 	if err != nil {
 		log.Fatalf("Failed to connect to the source chain (901): %v", err)
 	}
-	_, err = ethclient.Dial("http://127.0.0.1:9546")
+	client902, err := ethclient.Dial("http://127.0.0.1:9546")
 	if err != nil {
 		log.Fatalf("Failed to connect to the destination chain (902): %v", err)
 	}
@@ -63,7 +69,7 @@ func gasTankRelay() {
 	}
 	var messageHash [32]byte
 	copy(messageHash[:], returnedData)
-	fmt.Printf("Got messageHash from simulation: %x\n", messageHash)
+	fmt.Printf("Got messageHash from simulation (Step 1): %x\n", messageHash)
 
 	// EXECUTE the actual transaction
 	fmt.Println("Executing the real transaction...")
@@ -172,18 +178,6 @@ func gasTankRelay() {
 	message := unpackedData[1].([]byte)
 
 	// Re-encode the data in the format expected by relayMessage's decoder
-	uint256Type, err := abi.NewType("uint256", "", nil)
-	if err != nil {
-		log.Fatalf("Failed to create uint256 type: %v", err)
-	}
-	addressType, err := abi.NewType("address", "", nil)
-	if err != nil {
-		log.Fatalf("Failed to create address type: %v", err)
-	}
-	bytesType, err := abi.NewType("bytes", "", nil)
-	if err != nil {
-		log.Fatalf("Failed to create bytes type: %v", err)
-	}
 
 	// Encode indexed topics
 	destination := new(big.Int).SetBytes(sentMessageLog.Topics[1].Bytes())
@@ -206,30 +200,33 @@ func gasTankRelay() {
 
 	// === Step 5: Get Access List from Chain 902 ===
 	fmt.Println("\n=== Step 5: Getting Access List from Chain 902 ===")
-	accessList, err := getAccessList(identifier, sentMessagePayload)
+	relayAccessList, err := getAccessList(identifier, sentMessagePayload)
 	if err != nil {
-		log.Fatalf("Failed to get access list: %v", err)
+		log.Fatalf("Failed to get access list for relay: %v", err)
 	}
-	fmt.Printf("Got Access List with %d elements\n", len(*accessList))
+	fmt.Printf("Got Access List for relay with %d elements\n", len(*relayAccessList))
+	for i, tuple := range *relayAccessList {
+		fmt.Printf("  - Relay AL [%d] Address: %s\n", i, tuple.Address.Hex())
+		for j, key := range tuple.StorageKeys {
+			fmt.Printf("    - Key[%d]: %s\n", j, key.Hex())
+		}
+	}
 
 	// === Step 6: Relay the message via GasTank on Chain 902 ===
 	fmt.Println("\n=== Step 6: Relaying message via GasTank on Chain 902 ===")
-	client902, err := ethclient.Dial("http://127.0.0.1:9546")
-	if err != nil {
-		log.Fatalf("Failed to connect to the destination chain (902): %v", err)
-	}
 	relayCalldata, err := gasTankABI.Pack("relayMessage", identifier, sentMessagePayload)
 	if err != nil {
 		log.Fatalf("Failed to pack relayMessage for GasTank: %v", err)
 	}
-	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), privateKey, &gasTank, big.NewInt(0), relayCalldata, *accessList)
+	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), privateKey, &gasTank, big.NewInt(0), relayCalldata, *relayAccessList)
 	if err != nil {
 		log.Fatalf("Relay message transaction failed: %v", err)
 	}
 	fmt.Printf("Relay message via GasTank successful: %s\n", relayTx.TxHash.Hex())
 
-	// === Step 7: Find RelayedMessageGasReceipt log on Chain 902 ===
-	fmt.Println("\n=== Step 7: Finding RelayedMessageGasReceipt log ===")
+	// === Step 7: Prepare data for claim on Chain 901 ===
+	fmt.Println("\n=== Step 7: Preparing data for claim on Chain 901 ===")
+	// a. Find the RelayedMessageGasReceipt log from the relay transaction
 	var receiptLog *types.Log
 	for _, logEntry := range relayTx.Logs {
 		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
@@ -241,7 +238,126 @@ func gasTankRelay() {
 		log.Fatalf("Could not find RelayedMessageGasReceipt event in logs of relay transaction")
 	}
 	fmt.Println("Found RelayedMessageGasReceipt event log.")
-	fmt.Println("\n\n✅✅✅ GasTank relay portion complete! Claim logic removed. ✅✅✅")
+
+	// b. Construct the Identifier
+	block, err = client902.BlockByHash(context.Background(), relayTx.BlockHash)
+	if err != nil {
+		log.Fatalf("Failed to get block from hash %s: %v", relayTx.BlockHash.Hex(), err)
+	}
+	identifier = Identifier{
+		Origin:      gasTank,
+		BlockNumber: relayTx.BlockNumber,
+		LogIndex:    big.NewInt(int64(receiptLog.Index)),
+		Timestamp:   new(big.Int).SetUint64(block.Time()),
+		ChainID:     big.NewInt(902),
+	}
+	fmt.Printf("Constructed Identifier: %+v\n", identifier)
+
+	// c. Reconstruct the relayedMessageGasReceipt payload
+	// We need to unpack the non-indexed fields from the log data
+	relayedMessageGasReceiptEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"gasCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
+	if err != nil {
+		log.Fatalf("Failed to create temporary event ABI: %v", err)
+	}
+
+	// 1. DECODE the event fields from the log
+	// Indexed fields are in Topics
+	originMessageHash := receiptLog.Topics[1]
+	relayer := common.BytesToAddress(receiptLog.Topics[2].Bytes())
+	// Non-indexed fields are in Data
+	unpackedData, err = relayedMessageGasReceiptEventABI.Events["RelayedMessageGasReceipt"].Inputs.Unpack(receiptLog.Data)
+	if err != nil {
+		log.Fatalf("failed to unpack RelayedMessageGasReceipt event data: %v", err)
+	}
+	relayCost := unpackedData[0].(*big.Int)
+	destinationMessageHashes := unpackedData[1].([][32]byte)
+
+	fmt.Printf("Decoded RelayedMessageGasReceipt: \n  OriginMessageHash (Step 7): %s\n  Relayer: %s\n  RelayCost: %s\n", originMessageHash.Hex(), relayer.Hex(), relayCost.String())
+
+	// 2. RECONSTRUCT the payload for the claim transaction as expected by decodeGasReceiptPayload
+
+	// We pack the fields that the function expects to decode from the first part of the payload
+	packedTopics, err := abi.Arguments{{Type: bytes32Type}, {Type: addressType}, {Type: uint256Type}}.Pack(originMessageHash, relayer, relayCost)
+	if err != nil {
+		log.Fatalf("Failed to pack topics for claim payload: %v", err)
+	}
+	// We pack the fields that the function expects to decode from the second part of the payload
+	packedData, err := abi.Arguments{{Type: bytes32ArrayType}}.Pack(destinationMessageHashes)
+	if err != nil {
+		log.Fatalf("Failed to pack data for claim payload: %v", err)
+	}
+
+	// The final payload is: packed "topics" + packed "data" (NO selector)
+	claimPayload := append(packedTopics, packedData...)
+
+	fmt.Printf("Constructed claimPayload for claim tx: %x\n", claimPayload)
+
+	// === Step 8: Get Access List for Claim on Chain 901 ===
+	fmt.Println("\n=== Step 8: Getting Access List for Claim on Chain 901 ===")
+	claimAccessList, err := getAccessList(identifier, claimPayload)
+	if err != nil {
+		log.Fatalf("Failed to get access list for claim: %v", err)
+	}
+	fmt.Printf("Got Access List for claim with %d elements\n", len(*claimAccessList))
+	for i, tuple := range *claimAccessList {
+		fmt.Printf("  - Claim AL [%d] Address: %s\n", i, tuple.Address.Hex())
+		for j, key := range tuple.StorageKeys {
+			fmt.Printf("    - Key[%d]: %s\n", j, key.Hex())
+		}
+	}
+
+	// === Step 8.5: Debug Balance vs Cost ===
+	fmt.Println("\n=== Step 8.5: Debugging Balance vs Cost ===")
+	// Get current balance on chain 901
+	balanceOfCalldata, err = gasTankABI.Pack("balanceOf", fromAddress)
+	if err != nil {
+		log.Fatalf("Failed to pack balanceOf for debug: %v", err)
+	}
+	balanceBytes, err = client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank, Data: balanceOfCalldata}, nil)
+	if err != nil {
+		log.Fatalf("Failed to call balanceOf for debug: %v", err)
+	}
+	currentBalanceOn901 := new(big.Int).SetBytes(balanceBytes)
+	fmt.Printf("Current balance of gas provider on 901: %s\n", currentBalanceOn901.String())
+
+	// Get claim overhead cost
+	claimOverheadCalldata, err := gasTankABI.Pack("claimOverhead", big.NewInt(int64(len(destinationMessageHashes))))
+	if err != nil {
+		log.Fatalf("Failed to pack claimOverhead for debug: %v", err)
+	}
+	claimOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank, Data: claimOverheadCalldata}, nil)
+	if err != nil {
+		log.Fatalf("Failed to call claimOverhead for debug: %v", err)
+	}
+	claimOverheadCost := new(big.Int).SetBytes(claimOverheadBytes)
+	fmt.Printf("Relay cost from event: %s\n", relayCost.String())
+	fmt.Printf("Calculated claimOverhead cost: %s\n", claimOverheadCost.String())
+
+	totalCost := new(big.Int).Add(relayCost, claimOverheadCost)
+	fmt.Printf("Total cost for claim: %s\n", totalCost.String())
+
+	if currentBalanceOn901.Cmp(totalCost) < 0 {
+		log.Fatalf("INSUFFICIENT BALANCE! Balance %s is less than total cost %s", currentBalanceOn901.String(), totalCost.String())
+	} else {
+		fmt.Println("Balance appears sufficient.")
+	}
+
+	// === Step 9: Claim the funds on Chain 901 ===
+	fmt.Println("\n=== Step 9: Claiming funds on Chain 901 ===")
+	claimCalldata, err := gasTankABI.Pack("claim", identifier, fromAddress, claimPayload)
+	if err != nil {
+		log.Fatalf("Failed to pack claim for GasTank: %v", err)
+	}
+
+	log.Fatalf("DEBUG: Aborting before sending tx. Calldata for claim: %x", claimCalldata)
+
+	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTank, big.NewInt(0), claimCalldata, *claimAccessList)
+	if err != nil {
+		log.Fatalf("Claim transaction failed: %v", err)
+	}
+	fmt.Printf("Claim transaction successful: %s\n", claimTx.TxHash.Hex())
+
+	fmt.Println("\n✅ GasTank relay and claim complete!")
 }
 
 func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
@@ -265,4 +381,13 @@ func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
 	}
 
 	return &result.AccessList, nil
+}
+
+func buildRelayedMessageGasReceiptPayload(logEntry *types.Log) []byte {
+	var payload []byte
+	for _, topic := range logEntry.Topics {
+		payload = append(payload, topic.Bytes()...)
+	}
+	payload = append(payload, logEntry.Data...)
+	return payload
 }
