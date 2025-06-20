@@ -86,7 +86,13 @@ contract GasTank is IGasTank {
     /// @notice Relays a message to the destination chain
     /// @param _id The identifier of the message
     /// @param _sentMessage The sent message event payload
-    function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) external {
+    function relayMessage(
+        Identifier calldata _id,
+        bytes calldata _sentMessage
+    )
+        external
+        returns (uint256 gasCost_, bytes32[] memory nestedMessageHashes_)
+    {
         uint256 initialGas = gasleft();
 
         bytes32 messageHash = _getMessageHash(_id.chainId, _sentMessage);
@@ -98,17 +104,17 @@ contract GasTank is IGasTank {
         // Get the amount of nested messages by getting the nonce increment
         uint256 nonceDelta = _getMessengerNonce() - nonceBefore;
 
-        bytes32[] memory nestedMessageHashes = new bytes32[](nonceDelta);
+        nestedMessageHashes_ = new bytes32[](nonceDelta);
 
         for (uint256 i; i < nonceDelta; i++) {
-            nestedMessageHashes[i] = MESSENGER.sentMessages(nonceBefore + (i + 1));
+            nestedMessageHashes_[i] = MESSENGER.sentMessages(nonceBefore + (i + 1));
         }
 
         // Get the gas used
-        uint256 gasCost = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(nestedMessageHashes.length);
+        gasCost_ = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(nestedMessageHashes_.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
-        emit RelayedMessageGasReceipt(messageHash, msg.sender, gasCost, nestedMessageHashes);
+        emit RelayedMessageGasReceipt(messageHash, msg.sender, gasCost_, nestedMessageHashes_);
     }
 
     /// @notice Claims repayment for a relayed message

@@ -47,7 +47,12 @@ interface IGasTank {
     function initiateWithdrawal(uint256 _amount) external;
     function finalizeWithdrawal(address _to) external;
     function authorizeClaim(bytes32 _messageHash) external;
-    function relayMessage(Identifier calldata _id, bytes calldata _sentMessage) external;
+    function relayMessage(
+        Identifier calldata _id,
+        bytes calldata _sentMessage
+    )
+        external
+        returns (uint256 gasCost_, bytes32[] memory nestedMessageHashes_);
     function claim(Identifier calldata _id, address _gasProvider, bytes calldata _payload) external;
     function decodeGasReceiptPayload(bytes calldata _payload)
         external
