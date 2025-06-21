@@ -175,10 +175,10 @@ contract GasTank is IGasTank {
         if (bytes32(_payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
 
         // Decode Topics
-        (originMessageHash_, relayer_, relayCost_) = abi.decode(_payload[32:128], (bytes32, address, uint256));
+        (originMessageHash_, relayer_) = abi.decode(_payload[32:96], (bytes32, address));
 
         // Decode Data
-        destinationMessageHashes_ = abi.decode(_payload[128:], (bytes32[]));
+        (relayCost_, destinationMessageHashes_) = abi.decode(_payload[96:], (uint256, bytes32[]));
     }
 
     /// @notice Calculates the overhead of a claim
