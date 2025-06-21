@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -114,23 +115,36 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 		return nil, fmt.Errorf("failed to send transaction: %w", err)
 	}
 
-	var receipt *types.Receipt
-	for i := 0; i < 5; i++ { // Retry 5 times
-		receipt, err = client.TransactionReceipt(context.Background(), signedTx.Hash())
-		if err == nil && receipt != nil {
-			break
+	receipt, err := bind.WaitMined(context.Background(), client, signedTx)
+	if err != nil {
+		// If WaitMined returns a receipt, it means the transaction was mined but reverted.
+		// We can use the receipt to get more information.
+		if receipt != nil {
+			// Proceed to the status check below.
+		} else {
+			return nil, fmt.Errorf("failed to wait for transaction to be mined: %w", err)
 		}
-		time.Sleep(1 * time.Second)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to get transaction receipt after retries: %w", err)
-	}
-	if receipt == nil {
-		return nil, fmt.Errorf("failed to get transaction receipt, receipt is nil")
-	}
 	if receipt.Status == 0 {
-		return nil, fmt.Errorf("transaction failed, status 0")
+		// Transaction failed, try to get the revert reason by re-executing the transaction as a call.
+		fromAddress := crypto.PubkeyToAddress(*pk.Public().(*ecdsa.PublicKey))
+		callMsg := ethereum.CallMsg{
+			From:  fromAddress,
+			To:    to,
+			Value: value,
+			Data:  data,
+		}
+
+		// Re-execute the transaction call at the block it failed in to get the revert reason.
+		_, callErr := client.CallContract(context.Background(), callMsg, receipt.BlockNumber)
+
+		// The error from CallContract should contain the revert reason.
+		if callErr != nil {
+			return nil, fmt.Errorf("transaction failed with status 0. Revert reason: %v", callErr)
+		}
+
+		return nil, fmt.Errorf("transaction failed with status 0 (revert reason not found)")
 	}
 
 	return receipt, nil

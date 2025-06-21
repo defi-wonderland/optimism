@@ -285,20 +285,20 @@ func gasTankRelay() {
 
 	// 2. RECONSTRUCT the payload for the claim transaction as expected by decodeGasReceiptPayload
 
-	// We pack the fields that the function expects to decode from the first part of the payload
-	packedTopics, err := abi.Arguments{{Type: bytes32Type}, {Type: addressType}, {Type: uint256Type}}.Pack(originMessageHash, relayer, relayCost)
+	// Group 1 for _payload[32:128], containing fields decoded from topics
+	packedGroup1, err := abi.Arguments{{Type: bytes32Type}, {Type: addressType}}.Pack(originMessageHash, relayer)
 	if err != nil {
-		log.Fatalf("Failed to pack topics for claim payload: %v", err)
+		log.Fatalf("Failed to pack group 1 for claim payload: %v", err)
 	}
-	// We pack the fields that the function expects to decode from the second part of the payload
-	packedData, err := abi.Arguments{{Type: bytes32ArrayType}}.Pack(destinationMessageHashes)
+	// Group 2 for _payload[128:], containing fields decoded from data
+	packedGroup2, err := abi.Arguments{{Type: uint256Type}, {Type: bytes32ArrayType}}.Pack(relayCost, destinationMessageHashes)
 	if err != nil {
-		log.Fatalf("Failed to pack data for claim payload: %v", err)
+		log.Fatalf("Failed to pack group 2 for claim payload: %v", err)
 	}
 
-	// The final payload is: selector + packed "topics" + packed "data"
-	claimPayload := append(relayedMessageGasReceiptTopic.Bytes(), packedTopics...)
-	claimPayload = append(claimPayload, packedData...)
+	// The final payload is: selector + group1 + group2
+	claimPayload := append(relayedMessageGasReceiptTopic.Bytes(), packedGroup1...)
+	claimPayload = append(claimPayload, packedGroup2...)
 
 	fmt.Printf("Constructed claimPayload for claim tx: %x\n", claimPayload)
 
