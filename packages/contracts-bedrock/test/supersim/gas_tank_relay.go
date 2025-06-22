@@ -5,9 +5,11 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
@@ -44,11 +46,28 @@ func gasTankRelay() {
 	fromAddress := crypto.PubkeyToAddress(*privateKey.Public().(*ecdsa.PublicKey))
 	fmt.Printf("Using address: %s\n", fromAddress.Hex())
 
-	// === Step 1: Get messageHash via eth_call and then send the transaction ===
+	// === Read MessageSender Address ===
+	messageSenderAddress, err := getContractAddress("messagesender-902.json")
+	if err != nil {
+		log.Fatalf("Failed to get MessageSender address: %v", err)
+	}
+	fmt.Printf("Using MessageSender address: %s\n", messageSenderAddress.Hex())
+
+	// === Step 1: Sending cross-chain message from 901 to 902 ===
 	fmt.Println("\n=== Step 1: Sending cross-chain message from 901 to 902 ===")
 	destChainID := big.NewInt(902)
-	messagePayload := []byte{}
-	sendCalldata, err := gasTankMessengerABI.Pack("sendMessage", destChainID, fromAddress, messagePayload)
+
+	// Encode the call to MessageSender.sendMessages(901)
+	messageSenderABI, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"sendMessages","inputs":[{"name":"_destinationChainId","type":"uint256"}]}]`))
+	if err != nil {
+		log.Fatalf("Failed to parse MessageSender ABI: %v", err)
+	}
+	messagePayload, err := messageSenderABI.Pack("sendMessages", big.NewInt(901))
+	if err != nil {
+		log.Fatalf("Failed to pack sendMessages calldata: %v", err)
+	}
+
+	sendCalldata, err := gasTankMessengerABI.Pack("sendMessage", destChainID, messageSenderAddress, messagePayload)
 	if err != nil {
 		log.Fatalf("Failed to pack sendMessage ABI: %v", err)
 	}
@@ -420,6 +439,8 @@ func gasTankRelay() {
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
 	fmt.Printf("Actual claim transaction cost: %s wei\n", actualClaimCost.String())
 
+	fmt.Printf("Total script cost (deposit not included): %s wei\n", new(big.Int).Add(actualRelayCost, actualClaimCost).String())
+
 	// Find and decode the cost from the Claimed event
 	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"cost","type":"uint256"}],"anonymous":false}]`))
 	if err != nil {
@@ -480,4 +501,19 @@ func buildRelayedMessageGasReceiptPayload(logEntry *types.Log) []byte {
 	}
 	payload = append(payload, logEntry.Data...)
 	return payload
+}
+
+// Helper to read contract address from a file
+func getContractAddress(filename string) (common.Address, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to read %s: %w", filename, err)
+	}
+	var deploymentInfo struct {
+		Address string `json:"address"`
+	}
+	if err := json.Unmarshal(data, &deploymentInfo); err != nil {
+		return common.Address{}, fmt.Errorf("failed to parse JSON from %s: %w", filename, err)
+	}
+	return common.HexToAddress(deploymentInfo.Address), nil
 }
