@@ -233,9 +233,34 @@ func gasTankRelay() {
 	}
 	fmt.Printf("Relay message via GasTank successful: %s\n", relayTx.TxHash.Hex())
 
-	// Calculate and print the actual cost
+	// --- Detailed Cost Analysis for Relay ---
+	fmt.Printf("Actual relay gas used: %d gas units\n", relayTx.GasUsed)
 	actualRelayCost := new(big.Int).Mul(new(big.Int).SetUint64(relayTx.GasUsed), relayTx.EffectiveGasPrice)
 	fmt.Printf("Actual relay transaction cost: %s wei\n", actualRelayCost.String())
+
+	// Find and decode the cost from the event log
+	var receiptLogForCost *types.Log
+	for _, logEntry := range relayTx.Logs {
+		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
+			receiptLogForCost = logEntry
+			break
+		}
+	}
+	if receiptLogForCost != nil {
+		relayedMessageGasReceiptEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"gasCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
+		if err != nil {
+			log.Fatalf("Failed to create temporary event ABI for relay cost: %v", err)
+		}
+		unpackedData, err := relayedMessageGasReceiptEventABI.Events["RelayedMessageGasReceipt"].Inputs.Unpack(receiptLogForCost.Data)
+		if err != nil {
+			log.Fatalf("failed to unpack RelayedMessageGasReceipt event data for relay cost: %v", err)
+		}
+		eventRelayCost := unpackedData[0].(*big.Int)
+		fmt.Printf("Relay cost from event (estimated by contract): %s wei\n", eventRelayCost.String())
+	} else {
+		fmt.Println("Could not find RelayedMessageGasReceipt event to log event cost.")
+	}
+	// --- End Cost Analysis ---
 
 	// === Step 7: Prepare data for claim on Chain 901 ===
 	fmt.Println("\n=== Step 7: Preparing data for claim on Chain 901 ===")
@@ -378,9 +403,37 @@ func gasTankRelay() {
 	}
 	fmt.Printf("Claim transaction successful: %s\n", claimTx.TxHash.Hex())
 
-	// Calculate and print the actual cost
-	actualCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
-	fmt.Printf("Actual claim transaction cost: %s wei\n", actualCost.String())
+	// --- Detailed Cost Analysis for Claim ---
+	fmt.Printf("Actual claim gas used: %d gas units\n", claimTx.GasUsed)
+	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
+	fmt.Printf("Actual claim transaction cost: %s wei\n", actualClaimCost.String())
+
+	// Find and decode the cost from the Claimed event
+	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"cost","type":"uint256"}],"anonymous":false}]`))
+	if err != nil {
+		log.Fatalf("Failed to create temporary event ABI for Claimed event: %v", err)
+	}
+	claimedTopic := claimedEventABI.Events["Claimed"].ID
+
+	var claimedLog *types.Log
+	for _, logEntry := range claimTx.Logs {
+		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == claimedTopic {
+			claimedLog = logEntry
+			break
+		}
+	}
+
+	if claimedLog != nil {
+		unpackedData, err := claimedEventABI.Events["Claimed"].Inputs.Unpack(claimedLog.Data)
+		if err != nil {
+			log.Fatalf("failed to unpack Claimed event data: %v", err)
+		}
+		eventClaimCost := unpackedData[0].(*big.Int)
+		fmt.Printf("Claim cost from event (estimated by contract): %s wei\n", eventClaimCost.String())
+	} else {
+		fmt.Println("Could not find Claimed event to log event cost.")
+	}
+	// --- End Cost Analysis ---
 
 	fmt.Println("\n✅ GasTank relay and claim complete!")
 }
