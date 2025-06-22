@@ -234,6 +234,12 @@ func gasTankRelay() {
 	fmt.Printf("Relay message via GasTank successful: %s\n", relayTx.TxHash.Hex())
 
 	// --- Detailed Cost Analysis for Relay ---
+	relayBlock, err := client902.HeaderByNumber(context.Background(), relayTx.BlockNumber)
+	if err != nil {
+		log.Printf("Warning: could not get relay block header to show basefee: %v", err)
+	} else {
+		fmt.Printf("Relay tx block basefee: %s wei\n", relayBlock.BaseFee.String())
+	}
 	fmt.Printf("Actual relay gas used: %d gas units\n", relayTx.GasUsed)
 	actualRelayCost := new(big.Int).Mul(new(big.Int).SetUint64(relayTx.GasUsed), relayTx.EffectiveGasPrice)
 	fmt.Printf("Actual relay transaction cost: %s wei\n", actualRelayCost.String())
@@ -404,6 +410,12 @@ func gasTankRelay() {
 	fmt.Printf("Claim transaction successful: %s\n", claimTx.TxHash.Hex())
 
 	// --- Detailed Cost Analysis for Claim ---
+	claimBlock, err := client901.HeaderByNumber(context.Background(), claimTx.BlockNumber)
+	if err != nil {
+		log.Printf("Warning: could not get claim block header to show basefee: %v", err)
+	} else {
+		fmt.Printf("Claim tx block basefee: %s wei\n", claimBlock.BaseFee.String())
+	}
 	fmt.Printf("Actual claim gas used: %d gas units\n", claimTx.GasUsed)
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
 	fmt.Printf("Actual claim transaction cost: %s wei\n", actualClaimCost.String())
