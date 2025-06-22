@@ -80,10 +80,15 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
+	// Get gas fee data
 	gasTipCap, err := client.SuggestGasTipCap(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get gas tip cap: %w", err)
+		return nil, fmt.Errorf("failed to suggest gas tip cap: %w", err)
 	}
+	// For this test, we want to align with the contract's cost calculation, which only uses basefee.
+	// By setting the tip to 0, we ensure the relayer is only paying the base network fee.
+	gasTipCap = big.NewInt(0)
+
 	latestBlock, err := client.BlockByNumber(context.Background(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest block: %w", err)
