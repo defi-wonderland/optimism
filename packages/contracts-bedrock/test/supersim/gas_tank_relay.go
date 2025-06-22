@@ -46,6 +46,13 @@ func gasTankRelay() {
 	fromAddress := crypto.PubkeyToAddress(*privateKey.Public().(*ecdsa.PublicKey))
 	fmt.Printf("Using address: %s\n", fromAddress.Hex())
 
+	// === Read GasTank Address ===
+	gasTankAddress, err := getContractAddress("gastank-901.json")
+	if err != nil {
+		log.Fatalf("Failed to get GasTank address: %v", err)
+	}
+	fmt.Printf("Using GasTank address: %s\n", gasTankAddress.Hex())
+
 	// === Read MessageSender Address ===
 	messageSenderAddress, err := getContractAddress("messagesender-902.json")
 	if err != nil {
@@ -58,11 +65,11 @@ func gasTankRelay() {
 	destChainID := big.NewInt(902)
 
 	// Encode the call to MessageSender.sendMessages(901)
-	messageSenderABI, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"sendMessages","inputs":[{"name":"_destinationChainId","type":"uint256"}]}]`))
+	messageSenderABI, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"sendMessages","inputs":[{"name":"_destinationChainId","type":"uint256"},{"name":"_numMessages","type":"uint256"}]}]`))
 	if err != nil {
 		log.Fatalf("Failed to parse MessageSender ABI: %v", err)
 	}
-	messagePayload, err := messageSenderABI.Pack("sendMessages", big.NewInt(901))
+	messagePayload, err := messageSenderABI.Pack("sendMessages", big.NewInt(901), big.NewInt(5))
 	if err != nil {
 		log.Fatalf("Failed to pack sendMessages calldata: %v", err)
 	}
@@ -104,7 +111,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack authorizeClaim ABI: %v", err)
 	}
-	authTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTank, big.NewInt(0), authCalldata)
+	authTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTankAddress, big.NewInt(0), authCalldata)
 	if err != nil {
 		log.Fatalf("Authorize claim transaction failed: %v", err)
 	}
@@ -118,7 +125,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack MAX_DEPOSIT ABI: %v", err)
 	}
-	maxDepositBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank, Data: maxDepositCalldata}, nil)
+	maxDepositBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: maxDepositCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call MAX_DEPOSIT: %v", err)
 	}
@@ -130,7 +137,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack balanceOf ABI: %v", err)
 	}
-	balanceBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank, Data: balanceOfCalldata}, nil)
+	balanceBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: balanceOfCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call balanceOf: %v", err)
 	}
@@ -147,7 +154,7 @@ func gasTankRelay() {
 		if err != nil {
 			log.Fatalf("Failed to pack deposit ABI: %v", err)
 		}
-		depositTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTank, amountToDeposit, depositCalldata)
+		depositTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTankAddress, amountToDeposit, depositCalldata)
 		if err != nil {
 			log.Fatalf("Deposit transaction failed: %v", err)
 		}
@@ -246,7 +253,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack relayMessage for GasTank: %v", err)
 	}
-	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), privateKey, &gasTank, big.NewInt(0), relayCalldata, *relayAccessList)
+	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), privateKey, &gasTankAddress, big.NewInt(0), relayCalldata, *relayAccessList)
 	if err != nil {
 		log.Fatalf("Relay message transaction failed: %v", err)
 	}
@@ -266,7 +273,7 @@ func gasTankRelay() {
 	// Find and decode the cost from the event log
 	var receiptLogForCost *types.Log
 	for _, logEntry := range relayTx.Logs {
-		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
+		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
 			receiptLogForCost = logEntry
 			break
 		}
@@ -292,7 +299,7 @@ func gasTankRelay() {
 	// a. Find the RelayedMessageGasReceipt log from the relay transaction
 	var receiptLog *types.Log
 	for _, logEntry := range relayTx.Logs {
-		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
+		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
 			receiptLog = logEntry
 			break
 		}
@@ -308,7 +315,7 @@ func gasTankRelay() {
 		log.Fatalf("Failed to get block from hash %s: %v", relayTx.BlockHash.Hex(), err)
 	}
 	identifier = Identifier{
-		Origin:      gasTank,
+		Origin:      gasTankAddress,
 		BlockNumber: relayTx.BlockNumber,
 		LogIndex:    big.NewInt(int64(receiptLog.Index)),
 		Timestamp:   new(big.Int).SetUint64(block.Time()),
@@ -386,7 +393,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack balanceOf for debug: %v", err)
 	}
-	balanceBytes, err = client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank, Data: balanceOfCalldata}, nil)
+	balanceBytes, err = client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: balanceOfCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call balanceOf for debug: %v", err)
 	}
@@ -398,7 +405,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to pack claimOverhead for debug: %v", err)
 	}
-	claimOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank, Data: claimOverheadCalldata}, nil)
+	claimOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: claimOverheadCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call claimOverhead for debug: %v", err)
 	}
@@ -422,7 +429,7 @@ func gasTankRelay() {
 		log.Fatalf("Failed to pack claim for GasTank: %v", err)
 	}
 
-	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTank, big.NewInt(0), claimCalldata, *claimAccessList)
+	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTankAddress, big.NewInt(0), claimCalldata, *claimAccessList)
 	if err != nil {
 		log.Fatalf("Claim transaction failed: %v", err)
 	}
@@ -450,7 +457,7 @@ func gasTankRelay() {
 
 	var claimedLog *types.Log
 	for _, logEntry := range claimTx.Logs {
-		if logEntry.Address == gasTank && len(logEntry.Topics) > 0 && logEntry.Topics[0] == claimedTopic {
+		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == claimedTopic {
 			claimedLog = logEntry
 			break
 		}

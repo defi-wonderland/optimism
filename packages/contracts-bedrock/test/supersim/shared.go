@@ -48,7 +48,6 @@ var (
 	l2TokenAddr                = common.HexToAddress("0x420beeF000000000000000000000000000000001")
 	superchainTokenBridgeAddr  = common.HexToAddress("0x4200000000000000000000000000000000000028")
 	l2CrossDomainMessengerAddr = common.HexToAddress("0x4200000000000000000000000000000000000023")
-	gasTank                    = common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3")
 	crossL2InboxAddr           = common.HexToAddress("0x4200000000000000000000000000000000000022")
 
 	// ABIs
