@@ -192,7 +192,7 @@ contract GasTank is IGasTank {
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The gas cost to emit the event in wei
     function _gasReceiptEventOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
-        overhead_ = _cost(3_000 + _numHashes * 300);
+        overhead_ = _cost(35_000 + _numHashes * 300);
     }
 
     /// @notice Calculates the cost of gas used in wei

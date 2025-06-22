@@ -10,6 +10,8 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
@@ -20,6 +22,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 )
+
+type SupersimContracts struct {
+	GasTank901       string `json:"gasTank901"`
+	GasTank902       string `json:"gasTank902"`
+	MessageSender902 string `json:"messageSender902"`
+}
 
 func gasTankRelay(numNestedMessages int64) {
 	fmt.Println("Starting GasTank end-to-end manual relay script...")
@@ -55,19 +63,29 @@ func gasTankRelay(numNestedMessages int64) {
 	relayerAddress := crypto.PubkeyToAddress(*relayerPrivateKey.Public().(*ecdsa.PublicKey))
 	fmt.Printf("Using Relayer address (Account 1):      %s\n", relayerAddress.Hex())
 
-	// === Read GasTank Address ===
-	gasTankAddress, err := getContractAddress("gastank-901.json")
-	if err != nil {
-		log.Fatalf("Failed to get GasTank address: %v", err)
-	}
-	fmt.Printf("Using GasTank address: %s\n", gasTankAddress.Hex())
+	// === Read Deployed Contract Addresses ===
+	// Get the path of the currently running file
+	_, b, _, _ := runtime.Caller(0)
+	basepath := filepath.Dir(b)
+	contractsFilePath := filepath.Join(basepath, "supersim-contracts.json")
 
-	// === Read MessageSender Address ===
-	messageSenderAddress, err := getContractAddress("messagesender-902.json")
+	contractsFile, err := os.ReadFile(contractsFilePath)
 	if err != nil {
-		log.Fatalf("Failed to get MessageSender address: %v", err)
+		log.Fatalf("Failed to read supersim-contracts.json file. Please run `forge script test/supersim/SetupSupersim.s.sol --broadcast` first. Error: %v", err)
 	}
-	fmt.Printf("Using MessageSender address: %s\n", messageSenderAddress.Hex())
+
+	var contracts SupersimContracts
+	if err := json.Unmarshal(contractsFile, &contracts); err != nil {
+		log.Fatalf("Failed to parse supersim-contracts.json: %v", err)
+	}
+
+	gasTank901Address := common.HexToAddress(contracts.GasTank901)
+	gasTank902Address := common.HexToAddress(contracts.GasTank902)
+	messageSenderAddress := common.HexToAddress(contracts.MessageSender902)
+
+	fmt.Printf("Using GasTank (901) address:         %s\n", gasTank901Address.Hex())
+	fmt.Printf("Using GasTank (902) address:         %s\n", gasTank902Address.Hex())
+	fmt.Printf("Using MessageSender (902) address:   %s\n", messageSenderAddress.Hex())
 
 	// === Step 1: Sending cross-chain message from 901 to 902 ===
 	fmt.Println("\n=== Step 1: Sending cross-chain message from 901 to 902 (as Gas Provider) ===")
@@ -120,7 +138,7 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to pack authorizeClaim ABI: %v", err)
 	}
-	authTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &gasTankAddress, big.NewInt(0), authCalldata)
+	authTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &gasTank901Address, big.NewInt(0), authCalldata)
 	if err != nil {
 		log.Fatalf("Authorize claim transaction failed: %v", err)
 	}
@@ -134,7 +152,7 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to pack MAX_DEPOSIT ABI: %v", err)
 	}
-	maxDepositBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: maxDepositCalldata}, nil)
+	maxDepositBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: maxDepositCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call MAX_DEPOSIT: %v", err)
 	}
@@ -146,7 +164,7 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to pack balanceOf ABI: %v", err)
 	}
-	balanceBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: balanceOfCalldata}, nil)
+	balanceBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: balanceOfCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call balanceOf: %v", err)
 	}
@@ -163,7 +181,7 @@ func gasTankRelay(numNestedMessages int64) {
 		if err != nil {
 			log.Fatalf("Failed to pack deposit ABI: %v", err)
 		}
-		depositTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &gasTankAddress, amountToDeposit, depositCalldata)
+		depositTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &gasTank901Address, amountToDeposit, depositCalldata)
 		if err != nil {
 			log.Fatalf("Deposit transaction failed: %v", err)
 		}
@@ -262,7 +280,7 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to pack relayMessage for GasTank: %v", err)
 	}
-	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), relayerPrivateKey, &gasTankAddress, big.NewInt(0), relayCalldata, *relayAccessList)
+	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), relayerPrivateKey, &gasTank902Address, big.NewInt(0), relayCalldata, *relayAccessList)
 	if err != nil {
 		log.Fatalf("Relay message transaction failed: %v", err)
 	}
@@ -278,7 +296,7 @@ func gasTankRelay(numNestedMessages int64) {
 	var eventRelayCost *big.Int
 	var receiptLogForCost *types.Log
 	for _, logEntry := range relayTx.Logs {
-		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
+		if logEntry.Address == gasTank902Address && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
 			receiptLogForCost = logEntry
 			break
 		}
@@ -303,7 +321,7 @@ func gasTankRelay(numNestedMessages int64) {
 	// a. Find the RelayedMessageGasReceipt log from the relay transaction
 	var receiptLog *types.Log
 	for _, logEntry := range relayTx.Logs {
-		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
+		if logEntry.Address == gasTank902Address && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
 			receiptLog = logEntry
 			break
 		}
@@ -319,7 +337,7 @@ func gasTankRelay(numNestedMessages int64) {
 		log.Fatalf("Failed to get block from hash %s: %v", relayTx.BlockHash.Hex(), err)
 	}
 	identifier = Identifier{
-		Origin:      gasTankAddress,
+		Origin:      gasTank902Address,
 		BlockNumber: relayTx.BlockNumber,
 		LogIndex:    big.NewInt(int64(receiptLog.Index)),
 		Timestamp:   new(big.Int).SetUint64(block.Time()),
@@ -401,7 +419,7 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to pack balanceOf for debug: %v", err)
 	}
-	balanceBytes, err = client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: balanceOfCalldata}, nil)
+	balanceBytes, err = client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: balanceOfCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call balanceOf for debug: %v", err)
 	}
@@ -413,7 +431,7 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to pack claimOverhead for debug: %v", err)
 	}
-	claimOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: claimOverheadCalldata}, nil)
+	claimOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: claimOverheadCalldata}, nil)
 	if err != nil {
 		log.Fatalf("Failed to call claimOverhead for debug: %v", err)
 	}
@@ -433,7 +451,7 @@ func gasTankRelay(numNestedMessages int64) {
 		log.Fatalf("Failed to pack claim for GasTank: %v", err)
 	}
 
-	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), relayerPrivateKey, &gasTankAddress, big.NewInt(0), claimCalldata, *claimAccessList)
+	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), relayerPrivateKey, &gasTank901Address, big.NewInt(0), claimCalldata, *claimAccessList)
 	if err != nil {
 		log.Fatalf("Claim transaction failed: %v", err)
 	}
@@ -455,7 +473,7 @@ func gasTankRelay(numNestedMessages int64) {
 
 	var claimedLog *types.Log
 	for _, logEntry := range claimTx.Logs {
-		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == claimedTopic {
+		if logEntry.Address == gasTank901Address && len(logEntry.Topics) > 0 && logEntry.Topics[0] == claimedTopic {
 			claimedLog = logEntry
 			break
 		}
