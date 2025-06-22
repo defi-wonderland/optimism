@@ -9,7 +9,6 @@ This guide describes how to run a manual L2-to-L2 message relay test using the `
   ```bash
   supersim --interop.l2tol2cdm.override "./packages/contracts-bedrock/forge-artifacts/L2ToL2CrossDomainMessenger.sol/L2ToL2CrossDomainMessenger.json"
   ```
-  _Note: The artifacts must be built first, so you may need to run the deployment scripts from Step 1 once before this command works correctly._
 
 ## Setup and Execution Steps
 
@@ -22,13 +21,7 @@ In a new terminal, navigate to the `packages/contracts-bedrock` directory and ru
 cd packages/contracts-bedrock
 
 # Deploy GasTank on Chain A (ChainID 901)
-forge script test/supersim/DeployGasTank.s.sol:DeployGasTank --rpc-url http://127.0.0.1:9545 --broadcast
-
-# Deploy GasTank on Chain B (ChainID 902)
-forge script test/supersim/DeployGasTank.s.sol:DeployGasTank --rpc-url http://127.0.0.1:9546 --broadcast
-
-# Deploy MessageSender on Chain B (ChainID 902)
-forge script test/supersim/DeployMessageSender.s.sol:DeployMessageSender --rpc-url http://127.0.0.1:9546 --broadcast
+forge script test/supersim/SetupSupersim.s.sol:SetupSupersim --broadcast
 ```
 
 ### 2. Run the Test Script
