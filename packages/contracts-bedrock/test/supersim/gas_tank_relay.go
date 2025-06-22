@@ -39,12 +39,21 @@ func gasTankRelay(numNestedMessages int64) {
 	if err != nil {
 		log.Fatalf("Failed to connect to the destination chain (902): %v", err)
 	}
-	privateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+	// This will be the gas provider, funding the operation.
+	gasProviderPrivateKey, err := crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
 	if err != nil {
-		log.Fatalf("Failed to load private key: %v", err)
+		log.Fatalf("Failed to load gas provider private key: %v", err)
 	}
-	fromAddress := crypto.PubkeyToAddress(*privateKey.Public().(*ecdsa.PublicKey))
-	fmt.Printf("Using address: %s\n", fromAddress.Hex())
+	gasProviderAddress := crypto.PubkeyToAddress(*gasProviderPrivateKey.Public().(*ecdsa.PublicKey))
+	fmt.Printf("Using Gas Provider address (Account 0): %s\n", gasProviderAddress.Hex())
+
+	// This will be the relayer, executing the cross-chain part.
+	relayerPrivateKey, err := crypto.HexToECDSA("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
+	if err != nil {
+		log.Fatalf("Failed to load relayer private key: %v", err)
+	}
+	relayerAddress := crypto.PubkeyToAddress(*relayerPrivateKey.Public().(*ecdsa.PublicKey))
+	fmt.Printf("Using Relayer address (Account 1):      %s\n", relayerAddress.Hex())
 
 	// === Read GasTank Address ===
 	gasTankAddress, err := getContractAddress("gastank-901.json")
@@ -61,7 +70,7 @@ func gasTankRelay(numNestedMessages int64) {
 	fmt.Printf("Using MessageSender address: %s\n", messageSenderAddress.Hex())
 
 	// === Step 1: Sending cross-chain message from 901 to 902 ===
-	fmt.Println("\n=== Step 1: Sending cross-chain message from 901 to 902 ===")
+	fmt.Println("\n=== Step 1: Sending cross-chain message from 901 to 902 (as Gas Provider) ===")
 	destChainID := big.NewInt(902)
 
 	// Encode the call to MessageSender.sendMessages(901)
@@ -82,7 +91,7 @@ func gasTankRelay(numNestedMessages int64) {
 	// SIMULATE the transaction with eth_call to get the return value
 	fmt.Println("Simulating transaction to get return value (messageHash)...")
 	returnedData, err := client901.CallContract(context.Background(), ethereum.CallMsg{
-		From: fromAddress,
+		From: gasProviderAddress,
 		To:   &l2CrossDomainMessengerAddr,
 		Data: sendCalldata,
 	}, nil)
@@ -99,26 +108,26 @@ func gasTankRelay(numNestedMessages int64) {
 
 	// EXECUTE the actual transaction
 	fmt.Println("Executing the real transaction...")
-	sendTxReceipt, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &l2CrossDomainMessengerAddr, big.NewInt(0), sendCalldata)
+	sendTxReceipt, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &l2CrossDomainMessengerAddr, big.NewInt(0), sendCalldata)
 	if err != nil {
 		log.Fatalf("Send message transaction failed: %v", err)
 	}
 	fmt.Printf("Real transaction successful: %s\n", sendTxReceipt.TxHash.Hex())
 
 	// === Step 2: Authorize Claim on Gas Tank ===
-	fmt.Println("\n=== Step 2: Authorizing claim on GasTank ===")
+	fmt.Println("\n=== Step 2: Authorizing claim on GasTank (as Gas Provider) ===")
 	authCalldata, err := gasTankABI.Pack("authorizeClaim", messageHash)
 	if err != nil {
 		log.Fatalf("Failed to pack authorizeClaim ABI: %v", err)
 	}
-	authTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTankAddress, big.NewInt(0), authCalldata)
+	authTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &gasTankAddress, big.NewInt(0), authCalldata)
 	if err != nil {
 		log.Fatalf("Authorize claim transaction failed: %v", err)
 	}
 	fmt.Printf("Authorize claim transaction successful: %s\n", authTx.TxHash.Hex())
 
 	// === Step 3: Deposit to Gas Tank on Chain 901 (if needed) ===
-	fmt.Println("\n=== Step 3: Checking balance and depositing to GasTank on Chain 901 ===")
+	fmt.Println("\n=== Step 3: Checking balance and depositing to GasTank on Chain 901 (as Gas Provider) ===")
 
 	// Get MAX_DEPOSIT from the contract
 	maxDepositCalldata, err := gasTankABI.Pack("MAX_DEPOSIT")
@@ -133,7 +142,7 @@ func gasTankRelay(numNestedMessages int64) {
 	fmt.Printf("MAX_DEPOSIT is: %s\n", maxDeposit.String())
 
 	// Get current balance
-	balanceOfCalldata, err := gasTankABI.Pack("balanceOf", fromAddress)
+	balanceOfCalldata, err := gasTankABI.Pack("balanceOf", gasProviderAddress)
 	if err != nil {
 		log.Fatalf("Failed to pack balanceOf ABI: %v", err)
 	}
@@ -150,11 +159,11 @@ func gasTankRelay(numNestedMessages int64) {
 		amountToDeposit := new(big.Int).Sub(maxDeposit, currentBalance)
 		fmt.Printf("Depositing %s to reach max balance...\n", amountToDeposit.String())
 
-		depositCalldata, err := gasTankABI.Pack("deposit", fromAddress)
+		depositCalldata, err := gasTankABI.Pack("deposit", gasProviderAddress)
 		if err != nil {
 			log.Fatalf("Failed to pack deposit ABI: %v", err)
 		}
-		depositTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTankAddress, amountToDeposit, depositCalldata)
+		depositTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), gasProviderPrivateKey, &gasTankAddress, amountToDeposit, depositCalldata)
 		if err != nil {
 			log.Fatalf("Deposit transaction failed: %v", err)
 		}
@@ -248,29 +257,25 @@ func gasTankRelay(numNestedMessages int64) {
 	fmt.Printf(">>> Calculated Checksum for Relay (Step 5): %x\n", checksumBytesRelay)
 
 	// === Step 6: Relay the message via GasTank on Chain 902 ===
-	fmt.Println("\n=== Step 6: Relaying message via GasTank on Chain 902 ===")
+	fmt.Println("\n=== Step 6: Relaying message via GasTank on Chain 902 (as Relayer) ===")
 	relayCalldata, err := gasTankABI.Pack("relayMessage", identifier, sentMessagePayload)
 	if err != nil {
 		log.Fatalf("Failed to pack relayMessage for GasTank: %v", err)
 	}
-	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), privateKey, &gasTankAddress, big.NewInt(0), relayCalldata, *relayAccessList)
+	relayTx, err := sendAndWaitForTransaction(client902, big.NewInt(902), relayerPrivateKey, &gasTankAddress, big.NewInt(0), relayCalldata, *relayAccessList)
 	if err != nil {
 		log.Fatalf("Relay message transaction failed: %v", err)
 	}
 	fmt.Printf("Relay message via GasTank successful: %s\n", relayTx.TxHash.Hex())
 
-	// --- Detailed Cost Analysis for Relay ---
+	// Capture relay cost details for final analysis
 	relayBlock, err := client902.HeaderByNumber(context.Background(), relayTx.BlockNumber)
 	if err != nil {
-		log.Printf("Warning: could not get relay block header to show basefee: %v", err)
-	} else {
-		fmt.Printf("Relay tx block basefee: %s wei\n", relayBlock.BaseFee.String())
+		log.Printf("Warning: could not get relay block header for final analysis: %v", err)
 	}
-	fmt.Printf("Actual relay gas used: %d gas units\n", relayTx.GasUsed)
 	actualRelayCost := new(big.Int).Mul(new(big.Int).SetUint64(relayTx.GasUsed), relayTx.EffectiveGasPrice)
-	fmt.Printf("Actual relay transaction cost: %s wei\n", actualRelayCost.String())
 
-	// Find and decode the cost from the event log
+	var eventRelayCost *big.Int
 	var receiptLogForCost *types.Log
 	for _, logEntry := range relayTx.Logs {
 		if logEntry.Address == gasTankAddress && len(logEntry.Topics) > 0 && logEntry.Topics[0] == relayedMessageGasReceiptTopic {
@@ -287,12 +292,11 @@ func gasTankRelay(numNestedMessages int64) {
 		if err != nil {
 			log.Fatalf("failed to unpack RelayedMessageGasReceipt event data for relay cost: %v", err)
 		}
-		eventRelayCost := unpackedData[0].(*big.Int)
-		fmt.Printf("Relay cost from event (estimated by contract): %s wei\n", eventRelayCost.String())
+		eventRelayCost = unpackedData[0].(*big.Int)
 	} else {
-		fmt.Println("Could not find RelayedMessageGasReceipt event to log event cost.")
+		// This is critical for the rest of the script.
+		log.Fatal("Could not find RelayedMessageGasReceipt event to get relay cost from event.")
 	}
-	// --- End Cost Analysis ---
 
 	// === Step 7: Prepare data for claim on Chain 901 ===
 	fmt.Println("\n=== Step 7: Preparing data for claim on Chain 901 ===")
@@ -333,7 +337,7 @@ func gasTankRelay(numNestedMessages int64) {
 	// 1. DECODE the event fields from the log
 	// Indexed fields are in Topics
 	originMessageHash := receiptLog.Topics[1]
-	relayer := common.BytesToAddress(receiptLog.Topics[2].Bytes())
+	relayerFromEvent := common.BytesToAddress(receiptLog.Topics[2].Bytes())
 	// Non-indexed fields are in Data
 	unpackedData, err = relayedMessageGasReceiptEventABI.Events["RelayedMessageGasReceipt"].Inputs.Unpack(receiptLog.Data)
 	if err != nil {
@@ -342,12 +346,16 @@ func gasTankRelay(numNestedMessages int64) {
 	relayCost := unpackedData[0].(*big.Int)
 	destinationMessageHashes := unpackedData[1].([][32]byte)
 
-	fmt.Printf("Decoded RelayedMessageGasReceipt: \n  OriginMessageHash (Step 7): %s\n  Relayer: %s\n  RelayCost: %s\n", originMessageHash.Hex(), relayer.Hex(), relayCost.String())
+	if relayerFromEvent != relayerAddress {
+		log.Fatalf("Relayer from event (%s) does not match expected relayer address (%s)", relayerFromEvent.Hex(), relayerAddress.Hex())
+	}
+
+	fmt.Printf("Decoded RelayedMessageGasReceipt: \n  OriginMessageHash (Step 7): %s\n  Relayer: %s\n  RelayCost: %s\n", originMessageHash.Hex(), relayerFromEvent.Hex(), relayCost.String())
 
 	// 2. RECONSTRUCT the payload for the claim transaction as expected by decodeGasReceiptPayload
 
 	// Group 1 for _payload[32:128], containing fields decoded from topics
-	packedGroup1, err := abi.Arguments{{Type: bytes32Type}, {Type: addressType}}.Pack(originMessageHash, relayer)
+	packedGroup1, err := abi.Arguments{{Type: bytes32Type}, {Type: addressType}}.Pack(originMessageHash, relayerFromEvent)
 	if err != nil {
 		log.Fatalf("Failed to pack group 1 for claim payload: %v", err)
 	}
@@ -386,10 +394,10 @@ func gasTankRelay(numNestedMessages int64) {
 	}
 	fmt.Printf(">>> Calculated Checksum for Claim (Step 8): %x\n", checksumBytesClaim)
 
-	// === Step 8.5: Debug Balance vs Cost ===
-	fmt.Println("\n=== Step 8.5: Debugging Balance vs Cost ===")
+	// === Step 9: Claim the funds on Chain 901 ===
+	fmt.Println("\n=== Step 9: Claiming funds on Chain 901 (as Relayer) ===")
 	// Get current balance on chain 901
-	balanceOfCalldata, err = gasTankABI.Pack("balanceOf", fromAddress)
+	balanceOfCalldata, err = gasTankABI.Pack("balanceOf", gasProviderAddress)
 	if err != nil {
 		log.Fatalf("Failed to pack balanceOf for debug: %v", err)
 	}
@@ -410,11 +418,9 @@ func gasTankRelay(numNestedMessages int64) {
 		log.Fatalf("Failed to call claimOverhead for debug: %v", err)
 	}
 	claimOverheadCost := new(big.Int).SetBytes(claimOverheadBytes)
-	fmt.Printf("Relay cost from event: %s\n", relayCost.String())
-	fmt.Printf("Calculated claimOverhead cost: %s\n", claimOverheadCost.String())
 
 	totalCost := new(big.Int).Add(relayCost, claimOverheadCost)
-	fmt.Printf("Total cost for claim: %s\n", totalCost.String())
+	fmt.Printf("Required balance for claim (Relay Cost from event + Claim Overhead): %s\n", totalCost.String())
 
 	if currentBalanceOn901.Cmp(totalCost) < 0 {
 		log.Fatalf("INSUFFICIENT BALANCE! Balance %s is less than total cost %s", currentBalanceOn901.String(), totalCost.String())
@@ -422,33 +428,25 @@ func gasTankRelay(numNestedMessages int64) {
 		fmt.Println("Balance appears sufficient.")
 	}
 
-	// === Step 9: Claim the funds on Chain 901 ===
-	fmt.Println("\n=== Step 9: Claiming funds on Chain 901 ===")
-	claimCalldata, err := gasTankABI.Pack("claim", identifier, fromAddress, claimPayload)
+	claimCalldata, err := gasTankABI.Pack("claim", identifier, gasProviderAddress, claimPayload)
 	if err != nil {
 		log.Fatalf("Failed to pack claim for GasTank: %v", err)
 	}
 
-	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), privateKey, &gasTankAddress, big.NewInt(0), claimCalldata, *claimAccessList)
+	claimTx, err := sendAndWaitForTransaction(client901, big.NewInt(901), relayerPrivateKey, &gasTankAddress, big.NewInt(0), claimCalldata, *claimAccessList)
 	if err != nil {
 		log.Fatalf("Claim transaction failed: %v", err)
 	}
 	fmt.Printf("Claim transaction successful: %s\n", claimTx.TxHash.Hex())
 
-	// --- Detailed Cost Analysis for Claim ---
+	// Capture claim cost details for final analysis
 	claimBlock, err := client901.HeaderByNumber(context.Background(), claimTx.BlockNumber)
 	if err != nil {
-		log.Printf("Warning: could not get claim block header to show basefee: %v", err)
-	} else {
-		fmt.Printf("Claim tx block basefee: %s wei\n", claimBlock.BaseFee.String())
+		log.Printf("Warning: could not get claim block header for final analysis: %v", err)
 	}
-	fmt.Printf("Actual claim gas used: %d gas units\n", claimTx.GasUsed)
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
-	fmt.Printf("Actual claim transaction cost: %s wei\n", actualClaimCost.String())
 
-	fmt.Printf("Total script cost (deposit not included): %s wei\n", new(big.Int).Add(actualRelayCost, actualClaimCost).String())
-
-	// Find and decode the cost from the Claimed event
+	// Find and decode the total reimbursement from the Claimed event
 	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"cost","type":"uint256"}],"anonymous":false}]`))
 	if err != nil {
 		log.Fatalf("Failed to create temporary event ABI for Claimed event: %v", err)
@@ -468,12 +466,48 @@ func gasTankRelay(numNestedMessages int64) {
 		if err != nil {
 			log.Fatalf("failed to unpack Claimed event data: %v", err)
 		}
-		eventClaimCost := unpackedData[0].(*big.Int)
-		fmt.Printf("Claim cost from event (estimated by contract): %s wei\n", eventClaimCost.String())
+		totalReimbursementFromEvent := unpackedData[0].(*big.Int)
+
+		fmt.Println("\n--- Relayer Profit/Loss Analysis ---")
+
+		// --- Relay TX Details ---
+		fmt.Println("\n[Relay Transaction on Chain 902]")
+		if relayBlock != nil {
+			fmt.Printf("  - Block Base Fee:       %s wei\n", relayBlock.BaseFee.String())
+		}
+		fmt.Printf("  - Gas Used:             %d units\n", relayTx.GasUsed)
+		fmt.Printf("  - Actual Cost:          %s wei\n", actualRelayCost.String())
+		if eventRelayCost != nil {
+			fmt.Printf("  - Cost declared in event:  %s wei\n", eventRelayCost.String())
+		}
+
+		// --- Claim TX Details ---
+		fmt.Println("\n[Claim Transaction on Chain 901]")
+		if claimBlock != nil {
+			fmt.Printf("  - Block Base Fee:       %s wei\n", claimBlock.BaseFee.String())
+		}
+		fmt.Printf("  - Gas Used:             %d units\n", claimTx.GasUsed)
+		fmt.Printf("  - Actual Cost:          %s wei\n", actualClaimCost.String())
+		fmt.Printf("  - Overhead estimated:   %s wei\n", claimOverheadCost.String())
+
+		// --- Summary ---
+		fmt.Println("\n[Summary]")
+		totalActualCost := new(big.Int).Add(actualRelayCost, actualClaimCost)
+		fmt.Printf("Total Actual Cost for Relayer (Relay + Claim): %s wei\n", totalActualCost.String())
+		fmt.Printf("Total Reimbursement from GasTank:               %s wei\n", totalReimbursementFromEvent.String())
+
+		profit := new(big.Int).Sub(totalReimbursementFromEvent, totalActualCost)
+
+		if profit.Sign() < 0 {
+			// Using a red color for the warning
+			fmt.Printf("\033[31m>>>>> WARNING: RELAYER INCURRED A LOSS of %s wei <<<<<\033[0m\n", new(big.Int).Abs(profit).String())
+		} else {
+			fmt.Printf("Relayer Profit:                                 %s wei\n", profit.String())
+		}
+
 	} else {
-		fmt.Println("Could not find Claimed event to log event cost.")
+		fmt.Println("Could not find Claimed event to log final analysis.")
 	}
-	// --- End Cost Analysis ---
 
 	fmt.Println("\n✅ GasTank relay and claim complete!")
 }
