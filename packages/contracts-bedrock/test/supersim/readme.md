@@ -40,7 +40,7 @@ Once the contracts are deployed, navigate to the test script directory from your
 cd test/supersim
 
 # Run the test
-go run . gastank
+go run . gastank --numNestedMessages 5
 ```
 
 If everything is correct, the script will run to completion and display the message `✅ GasTank relay and claim complete!`.

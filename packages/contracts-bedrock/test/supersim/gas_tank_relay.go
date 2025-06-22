@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-func gasTankRelay() {
+func gasTankRelay(numNestedMessages int64) {
 	fmt.Println("Starting GasTank end-to-end manual relay script...")
 
 	bytes32Type, _ := abi.NewType("bytes32", "", nil)
@@ -69,7 +69,7 @@ func gasTankRelay() {
 	if err != nil {
 		log.Fatalf("Failed to parse MessageSender ABI: %v", err)
 	}
-	messagePayload, err := messageSenderABI.Pack("sendMessages", big.NewInt(901), big.NewInt(5))
+	messagePayload, err := messageSenderABI.Pack("sendMessages", big.NewInt(901), big.NewInt(numNestedMessages))
 	if err != nil {
 		log.Fatalf("Failed to pack sendMessages calldata: %v", err)
 	}

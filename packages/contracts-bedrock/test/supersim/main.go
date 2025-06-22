@@ -1,27 +1,30 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run . <relay_type>")
-		fmt.Println("relay_type can be 'token' or 'gastank'")
+		fmt.Println("Usage: go run . <script_name>")
+		fmt.Println("Available scripts: relay, gastank")
 		os.Exit(1)
 	}
 
-	relayType := os.Args[1]
+	gastankCmd := flag.NewFlagSet("gastank", flag.ExitOnError)
+	numNestedMessages := gastankCmd.Int64("numNestedMessages", 5, "Number of nested messages to send.")
 
-	switch relayType {
-	case "token":
+	script := os.Args[1]
+	switch script {
+	case "relay":
 		tokenRelay()
 	case "gastank":
-		gasTankRelay()
+		gastankCmd.Parse(os.Args[2:])
+		gasTankRelay(*numNestedMessages)
 	default:
-		fmt.Printf("Unknown relay type: %s\n", relayType)
-		fmt.Println("Please use 'token' or 'gastank'")
+		fmt.Printf("Unknown script: %s\n", script)
 		os.Exit(1)
 	}
 }
