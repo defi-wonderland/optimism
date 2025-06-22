@@ -233,6 +233,10 @@ func gasTankRelay() {
 	}
 	fmt.Printf("Relay message via GasTank successful: %s\n", relayTx.TxHash.Hex())
 
+	// Calculate and print the actual cost
+	actualRelayCost := new(big.Int).Mul(new(big.Int).SetUint64(relayTx.GasUsed), relayTx.EffectiveGasPrice)
+	fmt.Printf("Actual relay transaction cost: %s wei\n", actualRelayCost.String())
+
 	// === Step 7: Prepare data for claim on Chain 901 ===
 	fmt.Println("\n=== Step 7: Preparing data for claim on Chain 901 ===")
 	// a. Find the RelayedMessageGasReceipt log from the relay transaction
@@ -373,6 +377,10 @@ func gasTankRelay() {
 		log.Fatalf("Claim transaction failed: %v", err)
 	}
 	fmt.Printf("Claim transaction successful: %s\n", claimTx.TxHash.Hex())
+
+	// Calculate and print the actual cost
+	actualCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
+	fmt.Printf("Actual claim transaction cost: %s wei\n", actualCost.String())
 
 	fmt.Println("\n✅ GasTank relay and claim complete!")
 }
