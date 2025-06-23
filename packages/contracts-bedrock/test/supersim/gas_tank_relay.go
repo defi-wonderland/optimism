@@ -428,7 +428,7 @@ func gasTankRelay(numNestedMessages int64) {
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
 
 	// Find and decode the total reimbursement from the Claimed event
-	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"claimCost","type":"uint256"}],"anonymous":false}]`))
+	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"claimer","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"claimCost","type":"uint256"}],"anonymous":false}]`))
 	if err != nil {
 		log.Fatalf("Failed to create temporary event ABI for Claimed event: %v", err)
 	}
@@ -447,7 +447,7 @@ func gasTankRelay(numNestedMessages int64) {
 		if err != nil {
 			log.Fatalf("failed to unpack Claimed event data: %v", err)
 		}
-		claimCostFromEvent := unpackedData[1].(*big.Int)
+		claimCostFromEvent := unpackedData[2].(*big.Int)
 
 		fmt.Println("\n--- Relayer Profit/Loss Analysis ---")
 
