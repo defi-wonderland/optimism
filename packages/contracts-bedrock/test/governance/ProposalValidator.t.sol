@@ -94,6 +94,7 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
+    uint8 public constant FUNDING_PROPOSALS_VOTING_MODULE = 3;
 
     address owner;
     address rando;
@@ -176,7 +177,7 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ProposalType.CouncilMemberElections,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 2
+                proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
             })
         );
     }
@@ -187,7 +188,7 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ProposalType.GovernanceFund,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 3
+                proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
             })
         );
     }
@@ -198,7 +199,7 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ProposalType.CouncilBudget,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 4
+                proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
             })
         );
     }
@@ -236,11 +237,11 @@ contract ProposalValidator_Init is CommonTest {
         });
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 3
+            proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
         });
         proposalTypesData[4] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 4
+            proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
         });
 
         return (proposalTypes, proposalTypesData);
@@ -336,7 +337,7 @@ contract ProposalValidator_Init is CommonTest {
     function _setupProposalTypesConfiguratorMocks() internal {
         // Mock calls for different proposal type IDs
         for (uint8 i = 0; i < 5; i++) {
-            address moduleAddress = (i == 2 || i == 3 || i == 4) ? approvalVotingModule : address(0);
+            address moduleAddress = (i == 2 || i == FUNDING_PROPOSALS_VOTING_MODULE) ? approvalVotingModule : address(0);
 
             vm.mockCall(
                 address(proposalTypesConfigurator),
