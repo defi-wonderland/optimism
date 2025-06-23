@@ -849,7 +849,12 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         description = "Test funding proposal";
     }
 
-    function test_submitFundingProposal_invalidProposalType_reverts() public {
+    function testFuzz_submitFundingProposal_invalidProposalType_reverts(uint8 proposalTypeValue) public {
+        // Bound to proposal types that are NOT funding proposals (0, 1, 2)
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 2));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
         vm.prank(rando);
         validator.submitFundingProposal(
@@ -858,52 +863,82 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             optionsRecipients,
             optionsAmounts,
             description,
-            ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade
+            proposalType
         );
     }
 
-    function test_submitFundingProposal_mismatchedDescriptionsLength_reverts() public {
-        string[] memory mismatchedDescriptions = new string[](1);
-        mismatchedDescriptions[0] = "Only one description";
+    function testFuzz_submitFundingProposal_mismatchedDescriptionsLength_reverts(
+        uint8 matchingLength,
+        uint8 mismatchedLength
+    ) public {
+        // Bound lengths to reasonable values (1-50) and ensure they're different
+        matchingLength = uint8(bound(matchingLength, 1, 50));
+        mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
+        vm.assume(matchingLength != mismatchedLength);
+
+        // Create arrays - recipients and amounts match, descriptions are different
+        string[] memory mismatchedDescriptions = new string[](mismatchedLength);
+        address[] memory matchingRecipients = new address[](matchingLength);
+        uint256[] memory matchingAmounts = new uint256[](matchingLength);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
         vm.prank(rando);
         validator.submitFundingProposal(
             criteriaValue,
             mismatchedDescriptions,
-            optionsRecipients,
-            optionsAmounts,
+            matchingRecipients,
+            matchingAmounts,
             description,
             ProposalValidator.ProposalType.GovernanceFund
         );
     }
 
-    function test_submitFundingProposal_mismatchedRecipientsLength_reverts() public {
-        address[] memory mismatchedRecipients = new address[](1);
-        mismatchedRecipients[0] = makeAddr("onlyOne");
+    function testFuzz_submitFundingProposal_mismatchedRecipientsLength_reverts(
+        uint8 matchingLength,
+        uint8 mismatchedLength
+    ) public {
+        // Bound lengths to reasonable values (1-50) and ensure they're different
+        matchingLength = uint8(bound(matchingLength, 1, 50));
+        mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
+        vm.assume(matchingLength != mismatchedLength);
+
+        // Create arrays - descriptions and amounts match, recipients are different
+        string[] memory matchingDescriptions = new string[](matchingLength);
+        address[] memory mismatchedRecipients = new address[](mismatchedLength);
+        uint256[] memory matchingAmounts = new uint256[](matchingLength);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
         vm.prank(rando);
         validator.submitFundingProposal(
             criteriaValue,
-            optionsDescriptions,
+            matchingDescriptions,
             mismatchedRecipients,
-            optionsAmounts,
+            matchingAmounts,
             description,
             ProposalValidator.ProposalType.GovernanceFund
         );
     }
 
-    function test_submitFundingProposal_mismatchedAmountsLength_reverts() public {
-        uint256[] memory mismatchedAmounts = new uint256[](1);
-        mismatchedAmounts[0] = 100 ether;
+    function testFuzz_submitFundingProposal_mismatchedAmountsLength_reverts(
+        uint8 matchingLength,
+        uint8 mismatchedLength
+    ) public {
+        // Bound lengths to reasonable values (1-50) and ensure they're different
+        matchingLength = uint8(bound(matchingLength, 1, 50));
+        mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
+        vm.assume(matchingLength != mismatchedLength);
+
+        // Create arrays - descriptions and recipients match, amounts are different
+        string[] memory matchingDescriptions = new string[](matchingLength);
+        address[] memory matchingRecipients = new address[](matchingLength);
+        uint256[] memory mismatchedAmounts = new uint256[](mismatchedLength);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
         vm.prank(rando);
         validator.submitFundingProposal(
             criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
+            matchingDescriptions,
+            matchingRecipients,
             mismatchedAmounts,
             description,
             ProposalValidator.ProposalType.GovernanceFund
@@ -1047,13 +1082,6 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         string[] memory tooManyDescriptions = new string[](tooManyOptions);
         address[] memory tooManyRecipients = new address[](tooManyOptions);
         uint256[] memory tooManyAmounts = new uint256[](tooManyOptions);
-
-        // Fill arrays with valid data
-        for (uint256 i = 0; i < tooManyOptions; i++) {
-            tooManyDescriptions[i] = string(abi.encodePacked("Option ", i));
-            tooManyRecipients[i] = makeAddr(string(abi.encodePacked("recipient", i)));
-            tooManyAmounts[i] = 1 ether;
-        }
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(rando);
