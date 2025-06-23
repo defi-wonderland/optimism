@@ -71,6 +71,7 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
+    uint8 public constant FUNDING_PROPOSALS_VOTING_MODULE = 3;
 
     address owner;
     address rando;
@@ -129,15 +130,21 @@ contract ProposalValidator_Init is CommonTest {
     function _setProposalTypeData(
         ProposalValidator.ProposalType _proposalType,
         ProposalValidator.ProposalTypeData memory _data
-    )
-        internal
-    {
+    ) internal {
         // Set requiredApprovals (depth 0)
-        stdstore.target(address(validator)).sig("proposalTypesData(uint8)").with_key(uint256(_proposalType)).depth(0)
+        stdstore
+            .target(address(validator))
+            .sig("proposalTypesData(uint8)")
+            .with_key(uint256(_proposalType))
+            .depth(0)
             .checked_write(_data.requiredApprovals);
-
+        
         // Set proposalVotingModule (depth 1)
-        stdstore.target(address(validator)).sig("proposalTypesData(uint8)").with_key(uint256(_proposalType)).depth(1)
+        stdstore
+            .target(address(validator))
+            .sig("proposalTypesData(uint8)")
+            .with_key(uint256(_proposalType))
+            .depth(1)
             .checked_write(_data.proposalVotingModule);
     }
 
@@ -147,7 +154,7 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ProposalType.GovernanceFund,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 3
+                proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
             })
         );
     }
@@ -158,7 +165,7 @@ contract ProposalValidator_Init is CommonTest {
             ProposalValidator.ProposalType.CouncilBudget,
             ProposalValidator.ProposalTypeData({
                 requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 4
+                proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
             })
         );
     }
@@ -196,11 +203,11 @@ contract ProposalValidator_Init is CommonTest {
         });
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 3
+            proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
         });
         proposalTypesData[4] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 4
+            proposalVotingModule: FUNDING_PROPOSALS_VOTING_MODULE
         });
 
         return (proposalTypes, proposalTypesData);
@@ -258,7 +265,7 @@ contract ProposalValidator_Init is CommonTest {
     function _setupProposalTypesConfiguratorMocks() internal {
         // Mock calls for different proposal type IDs
         for (uint8 i = 0; i < 5; i++) {
-            address moduleAddress = (i == 3 || i == 4) ? approvalVotingModule : address(0);
+            address moduleAddress = (i == 2 || i == FUNDING_PROPOSALS_VOTING_MODULE) ? approvalVotingModule : address(0);
 
             vm.mockCall(
                 address(proposalTypesConfigurator),
@@ -956,8 +963,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash =
-            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
+        );
 
         // Mock proposalSnapshot to return 0 for first submission
         _mockAndExpect(
@@ -994,8 +1002,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash =
-            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
+        );
 
         // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
         _mockAndExpect(
@@ -1033,9 +1042,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
     }
 
-    function test_submitFundingProposal_exceedsMaxOptionsLength_reverts() public {
-        // Create arrays with 256 options (exceeds uint8 max of 255)
-        uint256 tooManyOptions = 256;
+    function test_submitFundingProposal_exceedsMaxOptionsLength_reverts(uint256 tooManyOptions) public {
+        // Create arrays with more than 255 options (exceeds allowed uint8 max)
+        tooManyOptions = uint256(bound(tooManyOptions, 256, 512));
         string[] memory tooManyDescriptions = new string[](tooManyOptions);
         address[] memory tooManyRecipients = new address[](tooManyOptions);
         uint256[] memory tooManyAmounts = new uint256[](tooManyOptions);
