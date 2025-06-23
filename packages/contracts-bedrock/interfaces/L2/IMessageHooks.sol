@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
 /// @notice Hook data structure for message lifecycle callbacks
 struct HookData {
     address hook;        // Hook contract address
@@ -10,7 +12,7 @@ struct HookData {
 /// @title IMessageSentHook
 /// @notice Interface for contracts that want to be notified when a message is sent
 /// @dev Implementations MUST check that msg.sender is the L2ToL2CrossDomainMessenger
-interface IMessageSentHook {
+interface IMessageSentHook is IERC165 {
     /// @notice Called when a message is sent via L2ToL2CrossDomainMessenger
     /// @dev Hook implementations should verify msg.sender == L2ToL2CrossDomainMessenger
     ///      eventData can be decoded to extract message context if needed
@@ -26,7 +28,7 @@ interface IMessageSentHook {
 /// @title IMessageRelayedHook
 /// @notice Interface for contracts that want to be notified when a message is relayed
 /// @dev Implementations MUST check that msg.sender is the L2ToL2CrossDomainMessenger
-interface IMessageRelayedHook {
+interface IMessageRelayedHook is IERC165 {
     /// @notice Called when a message is successfully relayed via L2ToL2CrossDomainMessenger
     /// @dev Hook implementations should verify msg.sender == L2ToL2CrossDomainMessenger
     ///      sentMessageData can be decoded to extract full message context if needed

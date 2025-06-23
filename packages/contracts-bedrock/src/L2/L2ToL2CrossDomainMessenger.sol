@@ -11,6 +11,7 @@ import { TransientReentrancyAware } from "src/libraries/TransientContext.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { HookData, IMessageSentHook, IMessageRelayedHook } from "interfaces/L2/IMessageHooks.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
@@ -41,6 +42,9 @@ error InvalidMessage();
 
 /// @notice Thrown when a hook call fails.
 error HookCallFailed(address hook, bytes returnData);
+
+/// @notice Thrown when a hook address doesn't implement the required interface.
+error InvalidHookInterface(address hook, bytes4 interfaceId);
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
@@ -400,6 +404,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _hookData Hook data containing address and payload.
     /// @param _eventData Encoded event data from the message send.
     function _executeSendHook(HookData memory _hookData, bytes memory _eventData) internal {
+        // Verify the hook implements the required interface
+        bytes4 interfaceId = type(IMessageSentHook).interfaceId;
+        if (!IERC165(_hookData.hook).supportsInterface(interfaceId)) {
+            revert InvalidHookInterface(_hookData.hook, interfaceId);
+        }
+
         (bool success, bytes memory returnData) = _hookData.hook.call(
             abi.encodeWithSelector(IMessageSentHook.onMessageSent.selector, _eventData, _hookData.hookPayload)
         );
@@ -413,6 +423,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param _hookData Hook data containing address and payload.
     /// @param _sentMessageData The complete sent message payload.
     function _executeRelayHook(HookData memory _hookData, bytes calldata _sentMessageData) internal {
+        // Verify the hook implements the required interface
+        bytes4 interfaceId = type(IMessageRelayedHook).interfaceId;
+        if (!IERC165(_hookData.hook).supportsInterface(interfaceId)) {
+            revert InvalidHookInterface(_hookData.hook, interfaceId);
+        }
+
         (bool success, bytes memory returnData) = _hookData.hook.call(
             abi.encodeWithSelector(
                 IMessageRelayedHook.onMessageRelayed.selector, _sentMessageData, _hookData.hookPayload

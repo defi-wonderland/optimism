@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { IMessageSentHook, IMessageRelayedHook } from "interfaces/L2/IMessageHooks.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /// @title MockSendHook
 /// @notice Mock contract for testing send hooks
@@ -28,6 +29,11 @@ contract MockSendHook is IMessageSentHook {
             }
         }
         emit OnMessageSentCalled(eventData, hookPayload);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IMessageSentHook).interfaceId || 
+               interfaceId == type(IERC165).interfaceId;
     }
 }
 
@@ -55,5 +61,10 @@ contract MockRelayHook is IMessageRelayedHook {
             }
         }
         emit OnMessageRelayedCalled(sentMessageData, hookPayload);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IMessageRelayedHook).interfaceId || 
+               interfaceId == type(IERC165).interfaceId;
     }
 } 
