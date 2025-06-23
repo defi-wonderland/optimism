@@ -22,6 +22,7 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InvalidFundingProposalType();
     error ProposalValidator_ExceedsDistributionThreshold();
     error ProposalValidator_InvalidOptionsLength();
+    error ProposalValidator_InvalidCriteriaValue();
 
     struct ProposalData {
         address proposer;

@@ -52,31 +52,17 @@ contract ProposalValidatorForTest is ProposalValidator {
     }
 
     /// @notice Exposes proposal data for testing
-    function getProposalData(bytes32 _proposalHash) 
-        public 
-        view 
-        returns (
-            address proposer_,
-            ProposalType proposalType_,
-            bool inVoting_,
-            uint256 approvalCount_
-        ) 
+    function getProposalData(bytes32 _proposalHash)
+        public
+        view
+        returns (address proposer_, ProposalType proposalType_, bool inVoting_, uint256 approvalCount_)
     {
         ProposalData storage proposal = _proposals[_proposalHash];
-        return (
-            proposal.proposer,
-            proposal.proposalType,
-            proposal.inVoting,
-            proposal.approvalCount
-        );
+        return (proposal.proposer, proposal.proposalType, proposal.inVoting, proposal.approvalCount);
     }
 
     /// @notice Check if a delegate has approved a proposal
-    function hasDelegateApproved(bytes32 _proposalHash, address _delegate) 
-        public 
-        view 
-        returns (bool hasApproved_) 
-    {
+    function hasDelegateApproved(bytes32 _proposalHash, address _delegate) public view returns (bool hasApproved_) {
         return _proposals[_proposalHash].delegateApprovals[_delegate];
     }
 }
@@ -153,21 +139,15 @@ contract ProposalValidator_Init is CommonTest {
     function _setProposalTypeData(
         ProposalValidator.ProposalType _proposalType,
         ProposalValidator.ProposalTypeData memory _data
-    ) internal {
+    )
+        internal
+    {
         // Set requiredApprovals (depth 0)
-        stdstore
-            .target(address(validator))
-            .sig("proposalTypesData(uint8)")
-            .with_key(uint256(_proposalType))
-            .depth(0)
+        stdstore.target(address(validator)).sig("proposalTypesData(uint8)").with_key(uint256(_proposalType)).depth(0)
             .checked_write(_data.requiredApprovals);
-        
+
         // Set proposalVotingModule (depth 1)
-        stdstore
-            .target(address(validator))
-            .sig("proposalTypesData(uint8)")
-            .with_key(uint256(_proposalType))
-            .depth(1)
+        stdstore.target(address(validator)).sig("proposalTypesData(uint8)").with_key(uint256(_proposalType)).depth(1)
             .checked_write(_data.proposalVotingModule);
     }
 
@@ -209,21 +189,20 @@ contract ProposalValidator_Init is CommonTest {
         _setGovernanceFundProposalType();
         _setCouncilBudgetProposalType();
     }
-
     /// @notice Helper to create minimal valid arrays for funding proposal error tests
-    function _createMinimalFundingArrays() internal pure returns (
-        string[] memory descriptions,
-        address[] memory recipients, 
-        uint256[] memory amounts
-    ) {
-        descriptions = new string[](1);
-        descriptions[0] = "Option A";
-        
-        recipients = new address[](1);
-        recipients[0] = address(0x1);
-        
-        amounts = new uint256[](1);
-        amounts[0] = 100 ether;
+    function _createMinimalFundingArrays()
+        internal
+        pure
+        returns (string[] memory descriptions_, address[] memory recipients_, uint256[] memory amounts_)
+    {
+        descriptions_ = new string[](1);
+        descriptions_[0] = "Option A";
+
+        recipients_ = new address[](1);
+        recipients_[0] = address(0x1);
+
+        amounts_ = new uint256[](1);
+        amounts_[0] = 100 ether;
     }
 
     function _getProposalTypesAndData()
@@ -918,7 +897,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 2));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
-        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) = _createMinimalFundingArrays();
+        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
+            _createMinimalFundingArrays();
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
         vm.prank(user);
@@ -1277,11 +1257,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         proposalDescription = "Council Member Elections Q4 2024";
     }
 
-    function testFuzz_submitCouncilMemberElectionsProposal_succeeds(
-        uint8 optionCount,
-        uint128 criteriaValue
-    ) public {
-        optionCount = uint8(bound(optionCount, 2, type(uint8).max)); // Minimum 2 options to have valid criteria < optionCount
+    function testFuzz_submitCouncilMemberElectionsProposal_succeeds(uint8 optionCount, uint128 criteriaValue) public {
+        optionCount = uint8(bound(optionCount, 2, type(uint8).max)); // Minimum 2 options to have valid criteria <
+            // optionCount
         criteriaValue = uint128(bound(criteriaValue, 1, optionCount - 1)); // Must be less than optionCount
 
         // Create dynamic array of option descriptions based on option count
@@ -1291,7 +1269,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         }
 
         // Create attestation for the proposal
-        bytes32 attestationUid = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
+        bytes32 attestationUid =
+            _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructCouncilElectionVotingModuleData(optionDescriptions, criteriaValue);
@@ -1308,7 +1287,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
 
         // Expect ProposalSubmitted event
         vm.expectEmit(address(validator));
-        emit ProposalSubmitted(expectedHash, topDelegate_A, proposalDescription, ProposalValidator.ProposalType.CouncilMemberElections);
+        emit ProposalSubmitted(
+            expectedHash, topDelegate_A, proposalDescription, ProposalValidator.ProposalType.CouncilMemberElections
+        );
 
         // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
@@ -1322,11 +1303,15 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         assertEq(proposalHash, expectedHash);
 
         // Verify proposal data was stored correctly
-        (address proposer, ProposalValidator.ProposalType proposalType, bool inVoting, uint256 approvalCount) = 
+        (address proposer, ProposalValidator.ProposalType proposalType, bool inVoting, uint256 approvalCount) =
             validator.getProposalData(proposalHash);
 
         assertEq(proposer, topDelegate_A, "Proposer should be topDelegate_A");
-        assertEq(uint8(proposalType), uint8(ProposalValidator.ProposalType.CouncilMemberElections), "Proposal type should be CouncilMemberElections");
+        assertEq(
+            uint8(proposalType),
+            uint8(ProposalValidator.ProposalType.CouncilMemberElections),
+            "Proposal type should be CouncilMemberElections"
+        );
         assertFalse(inVoting, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
     }
@@ -1355,7 +1340,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         attestationUid = _createAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
     }
 
-    function testFuzz_submitCouncilMemberElectionsProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid) public {
+    function testFuzz_submitCouncilMemberElectionsProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid)
+        public
+    {
         vm.assume(fuzzedAttestationUid != attestationUid); // Ensure it's different from valid attestation
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -1383,7 +1370,6 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(criteriaValue, emptyOptions, proposalDescription, attestationUid);
     }
-
 
     function test_submitCouncilMemberElectionsProposal_duplicateProposal_reverts() public {
         // Calculate expected proposal hash
@@ -1464,8 +1450,11 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
-
-    function testFuzz_submitCouncilMemberElectionsProposal_criteriaValueExceedsOptionsLength_reverts(uint128 invalidCriteriaValue) public {
+    function testFuzz_submitCouncilMemberElectionsProposal_criteriaValueExceedsOptionsLength_reverts(
+        uint128 invalidCriteriaValue
+    )
+        public
+    {
         // Bound invalidCriteriaValue to be greater than options length
         invalidCriteriaValue = uint128(bound(invalidCriteriaValue, optionDescriptions.length + 1, type(uint128).max));
 

@@ -451,7 +451,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
-        
+
         emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
