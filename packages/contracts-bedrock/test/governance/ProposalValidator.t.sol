@@ -1029,7 +1029,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(
         uint256 excessAmount,
         uint8 proposalTypeValue
-    ) public {
+    )
+        public
+    {
         // Bound excess amount to be greater than DISTRIBUTION_THRESHOLD
         excessAmount = bound(excessAmount, DISTRIBUTION_THRESHOLD + 1, type(uint128).max);
 
@@ -1038,18 +1040,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Create arrays with excessive amount
-        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) = _createMinimalFundingArrays();
+        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
+            _createMinimalFundingArrays();
         amounts[0] = excessAmount;
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE,
-            descriptions,
-            recipients,
-            amounts,
-            description,
-            proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
         );
     }
 
@@ -1057,15 +1055,15 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
         proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
-        
-        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) = _createMinimalFundingArrays();
-        
+
+        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
+            _createMinimalFundingArrays();
+
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(descriptions, recipients, amounts, FUNDING_CRITERIA_VALUE);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
+        bytes32 expectedHash =
+            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
         // Mock proposalSnapshot to return 0 for first submission
         _mockAndExpect(
@@ -1077,24 +1075,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Submit first proposal
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE,
-            descriptions,
-            recipients,
-            amounts,
-            description,
-            proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
         );
 
         // Attempt to submit identical proposal
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE,
-            descriptions,
-            recipients,
-            amounts,
-            description,
-            proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
         );
     }
 
@@ -1102,15 +1090,15 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
         proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
-        
-        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) = _createMinimalFundingArrays();
-        
+
+        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
+            _createMinimalFundingArrays();
+
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(descriptions, recipients, amounts, FUNDING_CRITERIA_VALUE);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
+        bytes32 expectedHash =
+            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
         // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
         _mockAndExpect(
@@ -1122,12 +1110,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE,
-            descriptions,
-            recipients,
-            amounts,
-            description,
-            proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
         );
     }
 
@@ -1142,19 +1125,16 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE,
-            emptyDescriptions,
-            emptyRecipients,
-            emptyAmounts,
-            description,
-            proposalType
+            FUNDING_CRITERIA_VALUE, emptyDescriptions, emptyRecipients, emptyAmounts, description, proposalType
         );
     }
 
     function testFuzz_submitFundingProposal_exceedsMaxOptionsLength_reverts(
         uint256 tooManyOptions,
         uint8 proposalTypeValue
-    ) public {
+    )
+        public
+    {
         // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
         proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
@@ -1167,12 +1147,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE,
-            tooManyDescriptions,
-            tooManyRecipients,
-            tooManyAmounts,
-            description,
-            proposalType
+            FUNDING_CRITERIA_VALUE, tooManyDescriptions, tooManyRecipients, tooManyAmounts, description, proposalType
         );
     }
 }
@@ -1234,10 +1209,12 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         for (uint256 i = 0; i < proposalTypes.length; i++) {
             (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
             assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
-            
+
             // Both GovernanceFund and CouncilBudget use FUNDING_PROPOSALS_VOTING_MODULE
-            if (proposalTypes[i] == ProposalValidator.ProposalType.GovernanceFund || 
-                proposalTypes[i] == ProposalValidator.ProposalType.CouncilBudget) {
+            if (
+                proposalTypes[i] == ProposalValidator.ProposalType.GovernanceFund
+                    || proposalTypes[i] == ProposalValidator.ProposalType.CouncilBudget
+            ) {
                 assertEq(proposalVotingModule, FUNDING_PROPOSALS_VOTING_MODULE);
             } else {
                 assertEq(proposalVotingModule, uint8(i));
