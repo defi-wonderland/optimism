@@ -740,20 +740,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
         _setFundingProposalTypes();
 
-        criteriaValue = 1000 ether; // 1000 tokens needed for option to pass
-        optionsDescriptions = new string[](2);
-        optionsDescriptions[0] = "Option A: Fund development";
-        optionsDescriptions[1] = "Option B: Fund marketing";
-
-        optionsRecipients = new address[](2);
-        optionsRecipients[0] = makeAddr("recipient1");
-        optionsRecipients[1] = makeAddr("recipient2");
-
-        optionsAmounts = new uint256[](2);
-        optionsAmounts[0] = 1000 ether;
-        optionsAmounts[1] = 500 ether;
-
-        description = "Test funding proposal";
+        criteriaValue = 1000 ether;
     }
 
     function testFuzz_submitFundingProposal_succeeds(
