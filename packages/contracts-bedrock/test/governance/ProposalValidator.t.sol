@@ -896,8 +896,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function setUp() public override {
         super.setUp();
 
-        // Set GovernanceFund to use the approval voting module
-        _setGovernanceFundProposalType();
+        // Set both funding proposal types to use the approval voting module
+        _setFundingProposalTypes();
 
         criteriaValue = 50;
         optionsDescriptions = new string[](2);
@@ -930,7 +930,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
     function testFuzz_submitFundingProposal_mismatchedDescriptionsLength_reverts(
         uint8 matchingLength,
-        uint8 mismatchedLength
+        uint8 mismatchedLength,
+        uint8 proposalTypeValue
     )
         public
     {
@@ -938,6 +939,10 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         matchingLength = uint8(bound(matchingLength, 1, 50));
         mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
         vm.assume(matchingLength != mismatchedLength);
+
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Create arrays - recipients and amounts match, descriptions are different
         string[] memory mismatchedDescriptions = new string[](mismatchedLength);
@@ -952,13 +957,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             matchingRecipients,
             matchingAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
     function testFuzz_submitFundingProposal_mismatchedRecipientsLength_reverts(
         uint8 matchingLength,
-        uint8 mismatchedLength
+        uint8 mismatchedLength,
+        uint8 proposalTypeValue
     )
         public
     {
@@ -966,6 +972,10 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         matchingLength = uint8(bound(matchingLength, 1, 50));
         mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
         vm.assume(matchingLength != mismatchedLength);
+
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Create arrays - descriptions and amounts match, recipients are different
         string[] memory matchingDescriptions = new string[](matchingLength);
@@ -980,13 +990,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             mismatchedRecipients,
             matchingAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
     function testFuzz_submitFundingProposal_mismatchedAmountsLength_reverts(
         uint8 matchingLength,
-        uint8 mismatchedLength
+        uint8 mismatchedLength,
+        uint8 proposalTypeValue
     )
         public
     {
@@ -994,6 +1005,10 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         matchingLength = uint8(bound(matchingLength, 1, 50));
         mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
         vm.assume(matchingLength != mismatchedLength);
+
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Create arrays - descriptions and recipients match, amounts are different
         string[] memory matchingDescriptions = new string[](matchingLength);
@@ -1008,13 +1023,20 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             matchingRecipients,
             mismatchedAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
-    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 excessAmount) public {
+    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(
+        uint256 excessAmount,
+        uint8 proposalTypeValue
+    ) public {
         // Bound excess amount to be greater than DISTRIBUTION_THRESHOLD
         excessAmount = bound(excessAmount, DISTRIBUTION_THRESHOLD + 1, type(uint128).max);
+
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Set first option to exceed the threshold
         optionsAmounts[0] = excessAmount;
@@ -1027,11 +1049,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             optionsRecipients,
             optionsAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
-    function test_submitFundingProposal_duplicateProposal_reverts() public {
+    function testFuzz_submitFundingProposal_duplicateProposal_reverts(uint8 proposalTypeValue) public {
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
@@ -1054,7 +1079,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             optionsRecipients,
             optionsAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
 
         // Attempt to submit identical proposal
@@ -1066,11 +1091,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             optionsRecipients,
             optionsAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
-    function test_submitFundingProposal_proposalExistsInGovernor_reverts() public {
+    function testFuzz_submitFundingProposal_proposalExistsInGovernor_reverts(uint8 proposalTypeValue) public {
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
@@ -1093,11 +1121,14 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             optionsRecipients,
             optionsAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
-    function test_submitFundingProposal_zeroOptionsLength_reverts() public {
+    function testFuzz_submitFundingProposal_zeroOptionsLength_reverts(uint8 proposalTypeValue) public {
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         string[] memory emptyDescriptions = new string[](0);
         address[] memory emptyRecipients = new address[](0);
         uint256[] memory emptyAmounts = new uint256[](0);
@@ -1110,11 +1141,17 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             emptyRecipients,
             emptyAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 
-    function test_submitFundingProposal_exceedsMaxOptionsLength_reverts(uint256 tooManyOptions) public {
+    function testFuzz_submitFundingProposal_exceedsMaxOptionsLength_reverts(
+        uint256 tooManyOptions,
+        uint8 proposalTypeValue
+    ) public {
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         // Create arrays with more than 255 options (exceeds allowed uint8 max)
         tooManyOptions = uint256(bound(tooManyOptions, 256, 512));
         string[] memory tooManyDescriptions = new string[](tooManyOptions);
@@ -1129,7 +1166,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             tooManyRecipients,
             tooManyAmounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
     }
 }
@@ -1191,7 +1228,14 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         for (uint256 i = 0; i < proposalTypes.length; i++) {
             (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
             assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
-            assertEq(proposalVotingModule, uint8(i));
+            
+            // Both GovernanceFund and CouncilBudget use FUNDING_PROPOSALS_VOTING_MODULE
+            if (proposalTypes[i] == ProposalValidator.ProposalType.GovernanceFund || 
+                proposalTypes[i] == ProposalValidator.ProposalType.CouncilBudget) {
+                assertEq(proposalVotingModule, FUNDING_PROPOSALS_VOTING_MODULE);
+            } else {
+                assertEq(proposalVotingModule, uint8(i));
+            }
         }
     }
 
