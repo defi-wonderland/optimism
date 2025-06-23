@@ -1,5 +1,35 @@
 [
   {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "hookPayload",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct HookData",
+        "name": "_bundleHook",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "_context",
+        "type": "bytes"
+      }
+    ],
+    "name": "createBundle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "crossDomainMessageContext",
     "outputs": [
@@ -45,6 +75,32 @@
   },
   {
     "inputs": [],
+    "name": "messageBundleDepth",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "depth_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "messageBundleHookHash",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "hookHash_",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "messageNonce",
     "outputs": [
       {
@@ -67,6 +123,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "_context",
+        "type": "bytes"
+      }
+    ],
+    "name": "relayBundle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -417,6 +486,22 @@
   {
     "inputs": [],
     "name": "IdOriginNotL2ToL2CrossDomainMessenger",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes4",
+        "name": "interfaceId",
+        "type": "bytes4"
+      }
+    ],
+    "name": "InvalidBundleInterface",
     "type": "error"
   },
   {

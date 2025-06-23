@@ -12,6 +12,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { HookData, IMessageSentHook, IMessageRelayedHook } from "interfaces/L2/IMessageHooks.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { ICrossMessageBundler } from "interfaces/L2/ICrossMessageBundler.sol";
+import { IBundleRelayer } from "interfaces/L2/IBundleRelayer.sol";
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
 error NotEntered();
@@ -46,6 +48,9 @@ error HookCallFailed(address hook, bytes returnData);
 /// @notice Thrown when a hook address doesn't implement the required interface.
 error InvalidHookInterface(address hook, bytes4 interfaceId);
 
+/// @notice Thrown when a bundle caller doesn't implement the required bundle interface.
+error InvalidBundleInterface(address caller, bytes4 interfaceId);
+
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
 /// @title L2ToL2CrossDomainMessenger
@@ -67,6 +72,10 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     //          the `selector` property directly once crytic/slithe/#2566 is fixed.
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
         0x65f7fa83885abdbef9cab58474f555aa731b64afad093d9fbe25c446e18115f0;
+
+    /// @notice Storage slot for the current hook depth.
+    ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.hookDepth")) - 1)
+    bytes32 internal constant HOOK_DEPTH_SLOT = 0xf6989a284a27e850631decf73868e3a844dc17faceeb6c777cc0eafd0673bf35;
 
     /// @notice Current message version identifier.
     uint16 public constant messageVersion = uint16(0);
@@ -137,6 +146,77 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             sender_ := tload(CROSS_DOMAIN_MESSAGE_SENDER_SLOT)
             source_ := tload(CROSS_DOMAIN_MESSAGE_SOURCE_SLOT)
         }
+    }
+
+    /// @notice Retrieves the recursive depth of the message bundle being created.
+    /// @return depth_ The depth of the bundle.
+    function messageBundleDepth() public view returns (uint256 depth_) {
+        assembly {
+            depth_ := tload(HOOK_DEPTH_SLOT)
+        }
+    }
+
+    /// @notice Retrieves the hook hash of the current message bundle.
+    /// @return hookHash_ The hook hash of the current message bundle.
+    function messageBundleHookHash() public view returns (bytes32 hookHash_) {
+        assembly {
+            let depth := tload(HOOK_DEPTH_SLOT)
+            // TODO: Should we revert if depth is 0?
+            hookHash_ := tload(add(HOOK_DEPTH_SLOT, depth))
+        }
+    }
+
+    /// @notice Creates a bundle of messages.
+    /// @param _bundleHook The hook data for the bundle creation callback.
+    /// @param _context The context of the bundle.
+    function createBundle(HookData calldata _bundleHook, bytes calldata _context) external {
+        // Validate the hook implements the required interface
+        bytes4 interfaceId = type(ICrossMessageBundler).interfaceId; //TODO we can store this in a constant
+        if (!IERC165(msg.sender).supportsInterface(interfaceId)) {
+            revert InvalidBundleInterface(msg.sender, interfaceId);
+        }
+
+        uint256 depth = messageBundleDepth();
+        bytes32 currentHookHash = messageBundleHookHash();
+
+        // Increment depth and update hook hash chain
+        _storeHookDepth(depth + 1);
+
+        // Create new hook hash by chaining current hash with bundle hook data
+        bytes32 newHookHash = _bundleHook.hook == address(0)
+            ? currentHookHash
+            : keccak256(abi.encodePacked(currentHookHash, keccak256(abi.encode(_bundleHook))));
+
+        _storeHookHash(depth + 1, newHookHash);
+
+        // Execute the bundle creation callback
+        ICrossMessageBundler(msg.sender).onCreateBundle(_context);
+
+        // Restore depth
+        _storeHookDepth(depth);
+    }
+
+    /// @notice Relays a bundle of messages.
+    /// @param _context The context of the bundle.
+    function relayBundle(bytes calldata _context) external {
+        // Validate the caller implements the required interface
+        bytes4 interfaceId = type(IBundleRelayer).interfaceId;
+        if (!IERC165(msg.sender).supportsInterface(interfaceId)) {
+            revert InvalidBundleInterface(msg.sender, interfaceId);
+        }
+
+        uint256 depth = messageBundleDepth();
+        bytes32 currentHookHash = messageBundleHookHash();
+
+        // Increment depth and update hook hash chain with the relayer's address
+        _storeHookDepth(depth + 1);
+        _storeHookHash(depth + 1, keccak256(abi.encodePacked(currentHookHash, msg.sender)));
+
+        // Execute the bundle relay callback - the relayer handles calling relayMessage on individual messages
+        IBundleRelayer(msg.sender).onRelayBundle(_context);
+
+        // Restore depth
+        _storeHookDepth(depth);
     }
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call always reverts,
@@ -437,6 +517,23 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
 
         if (!success) {
             revert HookCallFailed(_hookData.hook, returnData);
+        }
+    }
+
+    /// @notice Stores the hook depth in storage.
+    /// @param _depth The depth to store.
+    function _storeHookDepth(uint256 _depth) internal {
+        assembly {
+            tstore(HOOK_DEPTH_SLOT, _depth)
+        }
+    }
+
+    /// @notice Stores the hook hash for a given depth.
+    /// @param _depth The depth to store the hook hash for.
+    /// @param _hookHash The hook hash to store.
+    function _storeHookHash(uint256 _depth, bytes32 _hookHash) internal {
+        assembly {
+            tstore(add(HOOK_DEPTH_SLOT, _depth), _hookHash)
         }
     }
 }

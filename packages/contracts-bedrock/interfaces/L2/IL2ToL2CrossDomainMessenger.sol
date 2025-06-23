@@ -47,6 +47,9 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when a hook address doesn't implement the required interface.
     error InvalidHookInterface(address hook, bytes4 interfaceId);
 
+    /// @notice Thrown when a bundle caller doesn't implement the required bundle interface.
+    error InvalidBundleInterface(address caller, bytes4 interfaceId);
+
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
@@ -97,6 +100,23 @@ interface IL2ToL2CrossDomainMessenger {
     /// @return sender_ Address of the sender of the current cross domain message.
     /// @return source_ Chain ID of the source of the current cross domain message.
     function crossDomainMessageContext() external view returns (address sender_, uint256 source_);
+
+    /// @notice Retrieves the bundle depth of the current cross domain message.
+    /// @return depth_ Depth of the bundle.
+    function messageBundleDepth() external view returns (uint256 depth_);
+
+    /// @notice Retrieves the bundle hook hash of the current cross domain message.
+    /// @return hookHash_ Hash of the bundle hook.
+    function messageBundleHookHash() external view returns (bytes32 hookHash_);
+
+    /// @notice Creates a bundle with the given hook and context.
+    /// @param _bundleHook The hook data for the bundle.
+    /// @param _context The context of the bundle.
+    function createBundle(HookData calldata _bundleHook, bytes calldata _context) external;
+
+    /// @notice Relays a bundle with the given context.
+    /// @param _context The context of the bundle.
+    function relayBundle(bytes calldata _context) external;
 
     /// @notice Sends a message to some target address on a destination chain. Note that if the call
     ///         always reverts, then the message will be unrelayable, and any ETH sent will be
