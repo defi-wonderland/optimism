@@ -47,6 +47,20 @@ contract ProposalValidatorForTest is ProposalValidator {
     {
         return _hashProposalWithModule(_module, _proposalData, _descriptionHash);
     }
+
+    function getProposalData(bytes32 _proposalHash)
+        public
+        view
+        returns (
+            address proposer,
+            ProposalType proposalType,
+            bool inVoting,
+            uint256 approvalCount
+        )
+    {
+        ProposalData storage proposal = _proposals[_proposalHash];
+        return (proposal.proposer, proposal.proposalType, proposal.inVoting, proposal.approvalCount);
+    }
 }
 
 /// @title ProposalValidator_Init
@@ -801,6 +815,15 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         );
 
         assertEq(proposalHash, expectedHash);
+
+        // Verify proposal data was stored correctly
+        (address proposer, ProposalValidator.ProposalType storedProposalType, bool inVoting, uint256 approvalCount) = 
+            validator.getProposalData(proposalHash);
+
+        assertEq(proposer, rando, "Proposer should be rando");
+        assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
+        assertFalse(inVoting, "Proposal should not be in voting yet");
+        assertEq(approvalCount, 0, "Approval count should be 0");
     }
 
 }
