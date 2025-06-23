@@ -10,11 +10,9 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 func tokenRelay() {
@@ -106,21 +104,11 @@ func tokenRelay() {
 
 	// === Step 6: Get the access list via admin RPC ===
 	fmt.Println("\n=== Step 6: Retrieving access list from supersim ===")
-	rpcClient, err := rpc.Dial("http://localhost:8420")
-	if err != nil {
-		log.Fatalf("Failed to connect to supersim admin RPC: %v", err)
-	}
-	req := GetAccessListForIdentifierRequest{
-		Identifier: identifier,
-		Payload:    "0x" + common.Bytes2Hex(payload),
-	}
-	var result GetAccessListResponse
-	err = rpcClient.CallContext(context.Background(), &result, "admin_getAccessListForIdentifier", req)
+	accessList, err := getAccessList(identifier, payload)
 	if err != nil {
 		log.Fatalf("Failed to get access list: %v", err)
 	}
-	accessList := result.AccessList
-	fmt.Printf("Successfully retrieved access list with %d entries\n", len(accessList))
+	fmt.Printf("Successfully retrieved access list with %d entries\n", len(*accessList))
 
 	// === Step 7: Relay the message on L2 ===
 	fmt.Println("\n=== Step 7: Relaying message on L2 ===")
@@ -129,7 +117,7 @@ func tokenRelay() {
 		log.Fatalf("Failed to pack relayMessage ABI: %v", err)
 	}
 
-	relayTx, err := sendAndWaitForTransaction(client902, destChainID, privateKey, &l2CrossDomainMessengerAddr, big.NewInt(0), relayCalldata, accessList)
+	relayTx, err := sendAndWaitForTransaction(client902, destChainID, privateKey, &l2CrossDomainMessengerAddr, big.NewInt(0), relayCalldata, *accessList)
 	if err != nil {
 		log.Fatalf("Relay transaction failed: %v", err)
 	}

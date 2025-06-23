@@ -19,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 type SupersimContracts struct {
@@ -480,29 +479,6 @@ func gasTankRelay(numNestedMessages int64) {
 	}
 
 	fmt.Println("\n✅ GasTank relay and claim complete!")
-}
-
-func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
-	// As pointed out, we should use an admin RPC client, similar to relay.go
-	// The relay.go script connects to port 8420 for the supersim admin rpc.
-	rpcClient, err := rpc.Dial("http://localhost:8420")
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to supersim admin RPC: %w", err)
-	}
-	defer rpcClient.Close()
-
-	req := GetAccessListForIdentifierRequest{
-		Identifier: id,
-		Payload:    "0x" + common.Bytes2Hex(payload),
-	}
-
-	var result GetAccessListResponse
-	err = rpcClient.CallContext(context.Background(), &result, "admin_getAccessListForIdentifier", req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get access list via admin_getAccessListForIdentifier: %w", err)
-	}
-
-	return &result.AccessList, nil
 }
 
 func getCurrentGasProviderBalance(client *ethclient.Client, address common.Address, gasTankAddress common.Address) (*big.Int, error) {
