@@ -1,6 +1,6 @@
 # Supersim End-to-End Test
 
-This guide describes how to run a manual L2-to-L2 message relay test using the `GasTank` and `MessageSender` contracts.
+This guide describes how to run a manual L2-to-L2 message relay test using the `GasTank` and `MessageSender` contracts. Inspired by [this](https://supersim.pages.dev/guides/interop/cast#cast-commands-to-relay-interop-messages) guide.
 
 ## Prerequisites
 
