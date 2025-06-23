@@ -143,18 +143,19 @@ contract GasTank is IGasTank {
             authorizedMessages[_gasProvider][destinationMessageHashes[i]] = true;
         }
 
-        // Compute total cost (adding the overhead of this claim)
-        uint256 cost = relayCost + claimOverhead(destinationMessageHashesLength);
+        if (balanceOf[_gasProvider] < relayCost) revert InsufficientBalance();
 
-        if (balanceOf[_gasProvider] < cost) revert InsufficientBalance();
+        balanceOf[_gasProvider] -= relayCost;
 
-        balanceOf[_gasProvider] -= cost;
+        uint256 claimCost = _min(balanceOf[_gasProvider], claimOverhead(destinationMessageHashesLength));
 
         claimed[originMessageHash] = true;
 
-        new SafeSend{ value: cost }(payable(relayer));
+        new SafeSend{ value: relayCost }(payable(relayer));
 
-        emit Claimed(originMessageHash, relayer, _gasProvider, cost);
+        new SafeSend{ value: claimCost }(payable(msg.sender));
+
+        emit Claimed(originMessageHash, relayer, _gasProvider, relayCost, claimCost);
     }
 
     /// @notice Decodes the payload of the RelayedMessageGasReceipt event
