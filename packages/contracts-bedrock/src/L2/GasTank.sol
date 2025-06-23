@@ -65,7 +65,8 @@ contract GasTank is IGasTank {
 
         if (block.timestamp < withdrawal.timestamp + WITHDRAWAL_DELAY) revert WithdrawPending();
 
-        uint256 amount = balanceOf[msg.sender] < withdrawal.amount ? balanceOf[msg.sender] : withdrawal.amount;
+        uint256 amount = _min(balanceOf[msg.sender], withdrawal.amount);
+
         balanceOf[msg.sender] -= amount;
 
         delete withdrawals[msg.sender];
@@ -142,18 +143,19 @@ contract GasTank is IGasTank {
             authorizedMessages[_gasProvider][destinationMessageHashes[i]] = true;
         }
 
-        // Compute total cost (adding the overhead of this claim)
-        uint256 cost = relayCost + claimOverhead(destinationMessageHashesLength);
+        if (balanceOf[_gasProvider] < relayCost) revert InsufficientBalance();
 
-        if (balanceOf[_gasProvider] < cost) revert InsufficientBalance();
+        balanceOf[_gasProvider] -= relayCost;
 
-        balanceOf[_gasProvider] -= cost;
+        uint256 claimCost = _min(balanceOf[_gasProvider], claimOverhead(destinationMessageHashesLength));
 
         claimed[originMessageHash] = true;
 
-        new SafeSend{ value: cost }(payable(relayer));
+        new SafeSend{ value: relayCost }(payable(relayer));
 
-        emit Claimed(originMessageHash, relayer, _gasProvider, cost);
+        new SafeSend{ value: claimCost }(payable(msg.sender));
+
+        emit Claimed(originMessageHash, relayer, _gasProvider, relayCost, claimCost);
     }
 
     /// @notice Decodes the payload of the RelayedMessageGasReceipt event
@@ -203,6 +205,14 @@ contract GasTank is IGasTank {
     /// @return cost_ The cost in wei
     function _cost(uint256 _gasUsed) internal view returns (uint256 cost_) {
         cost_ = block.basefee * _gasUsed;
+    }
+
+    /// @notice Calculates the minimum of two values
+    /// @param _a The first value
+    /// @param _b The second value
+    /// @return min_ The minimum of the two values
+    function _min(uint256 _a, uint256 _b) internal pure returns (uint256 min_) {
+        min_ = _a < _b ? _a : _b;
     }
 
     /// @notice Calculates the hash of a message
