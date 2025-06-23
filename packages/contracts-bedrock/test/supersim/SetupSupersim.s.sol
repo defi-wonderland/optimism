@@ -6,14 +6,8 @@ import { GasTank } from "src/L2/GasTank.sol";
 import { MessageSender } from "./MessageSender.sol";
 import "forge-std/console.sol";
 
-// To deploy on OPChainA (ChainID 901), run from packages/contracts-bedrock:
-// forge script test/supersim/DeployGasTank.s.sol:DeployGasTank --broadcast
-
-// To deploy on OPChainB (ChainID 902), run from packages/contracts-bedrock:
-// forge script test/supersim/DeployGasTank.s.sol:DeployGasTank--broadcast
-
-// To deploy on OPChainB (ChainID 902), run from packages/contracts-bedrock:
-// forge script test/supersim/DeployMessageSender.s.sol:DeployMessageSender--broadcast
+// To deploy every contract on both chains, run from packages/contracts-bedrock:
+// forge script test/supersim/SetupSupersim.s.sol:SetupSupersim --broadcast
 
 contract SetupSupersim is Script {
     uint256 constant ORIGIN_CHAIN_ID = 901;

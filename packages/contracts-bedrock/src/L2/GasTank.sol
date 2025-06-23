@@ -192,7 +192,10 @@ contract GasTank is IGasTank {
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The gas cost to emit the event in wei
     function _gasReceiptEventOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
-        overhead_ = _cost(35_000 + _numHashes * 300);
+        // The memory expansion cost is quadratic.
+        // See: https://www.evm.codes/about#memoryexpansion
+        uint256 memoryExpansionGas = (3 * _numHashes) + (_numHashes * _numHashes) / 512;
+        overhead_ = _cost(35_000 + memoryExpansionGas);
     }
 
     /// @notice Calculates the cost of gas used in wei
