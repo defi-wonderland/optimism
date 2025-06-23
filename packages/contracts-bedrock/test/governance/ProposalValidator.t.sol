@@ -22,6 +22,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
 
 // Testing utilities
+import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 /// @title ProposalValidatorForTest
@@ -51,6 +52,7 @@ contract ProposalValidatorForTest is ProposalValidator {
 /// @title ProposalValidator_Init
 /// @notice Setup contract for ProposalValidator tests
 contract ProposalValidator_Init is CommonTest {
+    using stdStorage for StdStorage;
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
     uint256 public constant CYCLE_NUMBER = 1;
     uint256 public constant START_BLOCK = 1000000;
@@ -66,6 +68,7 @@ contract ProposalValidator_Init is CommonTest {
     address topDelegate_B;
     address topDelegate_C;
     address topDelegate_D;
+    address approvalVotingModule;
 
     ProposalValidatorForTest public validator;
     ProposalValidatorForTest public impl;
@@ -110,6 +113,56 @@ contract ProposalValidator_Init is CommonTest {
     function _approveProposal(address _delegate, bytes32 _proposalHash) internal {
         vm.prank(_delegate);
         validator.approveProposal(_proposalHash);
+    }
+
+    /// @notice Helper function to set proposal type data using StdStorage.
+    function _setProposalTypeData(
+        ProposalValidator.ProposalType _proposalType,
+        ProposalValidator.ProposalTypeData memory _data
+    ) internal {
+        // Set requiredApprovals (depth 0)
+        stdstore
+            .target(address(validator))
+            .sig("proposalTypesData(uint8)")
+            .with_key(uint256(_proposalType))
+            .depth(0)
+            .checked_write(_data.requiredApprovals);
+        
+        // Set proposalVotingModule (depth 1)
+        stdstore
+            .target(address(validator))
+            .sig("proposalTypesData(uint8)")
+            .with_key(uint256(_proposalType))
+            .depth(1)
+            .checked_write(_data.proposalVotingModule);
+    }
+
+    /// @notice Helper function to set GovernanceFund proposal type data.
+    function _setGovernanceFundProposalType() internal {
+        _setProposalTypeData(
+            ProposalValidator.ProposalType.GovernanceFund,
+            ProposalValidator.ProposalTypeData({
+                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+                proposalVotingModule: 3
+            })
+        );
+    }
+
+    /// @notice Helper function to set CouncilBudget proposal type data.
+    function _setCouncilBudgetProposalType() internal {
+        _setProposalTypeData(
+            ProposalValidator.ProposalType.CouncilBudget,
+            ProposalValidator.ProposalTypeData({
+                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+                proposalVotingModule: 4
+            })
+        );
+    }
+
+    /// @notice Helper function to set both funding proposal types.
+    function _setFundingProposalTypes() internal {
+        _setGovernanceFundProposalType();
+        _setCouncilBudgetProposalType();
     }
 
     function _getProposalTypesAndData()
@@ -201,7 +254,7 @@ contract ProposalValidator_Init is CommonTest {
     function _setupProposalTypesConfiguratorMocks() internal {
         // Mock calls for different proposal type IDs
         for (uint8 i = 0; i < 5; i++) {
-            address moduleAddress = (i == 3 || i == 4) ? makeAddr("approvalVotingModule") : address(0);
+            address moduleAddress = (i == 3 || i == 4) ? approvalVotingModule : address(0);
 
             vm.mockCall(
                 address(proposalTypesConfigurator),
@@ -262,6 +315,7 @@ contract ProposalValidator_Init is CommonTest {
         owner = governanceToken.owner();
         rando = makeAddr("rando");
         governor = IOptimismGovernor(makeAddr("governor"));
+        approvalVotingModule = makeAddr("approvalVotingModule");
 
         vm.prank(owner);
         ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
@@ -670,23 +724,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function setUp() public override {
         super.setUp();
 
-        vm.prank(owner);
-        validator.setProposalTypeData(
-            ProposalValidator.ProposalType.GovernanceFund,
-            ProposalValidator.ProposalTypeData({
-                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 3
-            })
-        );
-
-        vm.prank(owner);
-        validator.setProposalTypeData(
-            ProposalValidator.ProposalType.CouncilBudget,
-            ProposalValidator.ProposalTypeData({
-                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 4
-            })
-        );
+        _setFundingProposalTypes();
 
         criteriaValue = 1000 ether; // 1000 tokens needed for option to pass
         optionsDescriptions = new string[](2);
@@ -709,7 +747,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
@@ -745,7 +783,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
@@ -790,7 +828,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory singleOptionData =
             _constructVotingModuleData(singleDescription, singleRecipient, singleAmount, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), singleOptionData, keccak256(bytes(description))
+            approvalVotingModule, singleOptionData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for the expected proposal hash
@@ -822,7 +860,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for the expected proposal hash
@@ -853,7 +891,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for the expected proposal hash
@@ -892,14 +930,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         super.setUp();
 
         // Set GovernanceFund to use the approval voting module
-        vm.prank(owner);
-        validator.setProposalTypeData(
-            ProposalValidator.ProposalType.GovernanceFund,
-            ProposalValidator.ProposalTypeData({
-                requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-                proposalVotingModule: 3
-            })
-        );
+        _setGovernanceFundProposalType();
 
         criteriaValue = 50;
         optionsDescriptions = new string[](2);
@@ -998,7 +1029,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return 0 for first submission
@@ -1070,7 +1101,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
-            makeAddr("approvalVotingModule"), votingModuleData, keccak256(bytes(description))
+            approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
 
         // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
