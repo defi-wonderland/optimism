@@ -160,15 +160,10 @@ func gasTankRelay(numNestedMessages int64) {
 	fmt.Printf("MAX_DEPOSIT is: %s\n", maxDeposit.String())
 
 	// Get current balance
-	balanceOfCalldata, err := gasTankABI.Pack("balanceOf", gasProviderAddress)
+	currentBalance, err := getCurrentGasProviderBalance(client901, gasProviderAddress, gasTank901Address)
 	if err != nil {
-		log.Fatalf("Failed to pack balanceOf ABI: %v", err)
+		log.Fatalf("Failed to get current balance: %v", err)
 	}
-	balanceBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: balanceOfCalldata}, nil)
-	if err != nil {
-		log.Fatalf("Failed to call balanceOf: %v", err)
-	}
-	currentBalance := new(big.Int).SetBytes(balanceBytes)
 	fmt.Printf("Current balance is: %s\n", currentBalance.String())
 
 	if currentBalance.Cmp(maxDeposit) >= 0 {
@@ -494,6 +489,14 @@ func gasTankRelay(numNestedMessages int64) {
 			fmt.Printf("Claimer Profit:               %s wei\n", profit.String())
 		}
 
+		// Compare Gas Provider Balance before and after the claim
+		fmt.Printf("Gas Provider Expected Balance: %s\n", (new(big.Int).Sub(maxDeposit, new(big.Int).Add(claimCostFromEvent, eventRelayCost))).String())
+		gasProviderBalance, err := getCurrentGasProviderBalance(client901, gasProviderAddress, gasTank901Address)
+		if err != nil {
+			log.Fatalf("Failed to get current balance: %v", err)
+		}
+		fmt.Printf("Gas Provider Actual Balance: %s\n", gasProviderBalance.String())
+
 	} else {
 		fmt.Println("Could not find Claimed event to log final analysis.")
 	}
@@ -524,26 +527,16 @@ func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
 	return &result.AccessList, nil
 }
 
-func buildRelayedMessageGasReceiptPayload(logEntry *types.Log) []byte {
-	var payload []byte
-	for _, topic := range logEntry.Topics {
-		payload = append(payload, topic.Bytes()...)
-	}
-	payload = append(payload, logEntry.Data...)
-	return payload
-}
-
-// Helper to read contract address from a file
-func getContractAddress(filename string) (common.Address, error) {
-	data, err := os.ReadFile(filename)
+func getCurrentGasProviderBalance(client *ethclient.Client, address common.Address, gasTankAddress common.Address) (*big.Int, error) {
+	// Get current balance
+	balanceOfCalldata, err := gasTankABI.Pack("balanceOf", address)
 	if err != nil {
-		return common.Address{}, fmt.Errorf("failed to read %s: %w", filename, err)
+		return nil, fmt.Errorf("failed to pack balanceOf ABI: %w", err)
 	}
-	var deploymentInfo struct {
-		Address string `json:"address"`
+	balanceBytes, err := client.CallContract(context.Background(), ethereum.CallMsg{To: &gasTankAddress, Data: balanceOfCalldata}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call balanceOf: %w", err)
 	}
-	if err := json.Unmarshal(data, &deploymentInfo); err != nil {
-		return common.Address{}, fmt.Errorf("failed to parse JSON from %s: %w", filename, err)
-	}
-	return common.HexToAddress(deploymentInfo.Address), nil
+	currentBalance := new(big.Int).SetBytes(balanceBytes)
+	return currentBalance, nil
 }
