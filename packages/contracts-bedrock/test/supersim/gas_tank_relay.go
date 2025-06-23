@@ -412,40 +412,8 @@ func gasTankRelay(numNestedMessages int64) {
 	}
 	fmt.Printf(">>> Calculated Checksum for Claim (Step 8): %x\n", checksumBytesClaim)
 
-	// === Step 9: Claim the funds on Chain 901 ===
+	// === Step 9: Claiming funds on Chain 901 (as Relayer) ===
 	fmt.Println("\n=== Step 9: Claiming funds on Chain 901 (as Relayer) ===")
-	// Get current balance on chain 901
-	balanceOfCalldata, err = gasTankABI.Pack("balanceOf", gasProviderAddress)
-	if err != nil {
-		log.Fatalf("Failed to pack balanceOf for debug: %v", err)
-	}
-	balanceBytes, err = client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: balanceOfCalldata}, nil)
-	if err != nil {
-		log.Fatalf("Failed to call balanceOf for debug: %v", err)
-	}
-	currentBalanceOn901 := new(big.Int).SetBytes(balanceBytes)
-	fmt.Printf("Current balance of gas provider on 901: %s\n", currentBalanceOn901.String())
-
-	// Get claim overhead cost
-	claimOverheadCalldata, err := gasTankABI.Pack("claimOverhead", big.NewInt(int64(len(destinationMessageHashes))))
-	if err != nil {
-		log.Fatalf("Failed to pack claimOverhead for debug: %v", err)
-	}
-	claimOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: claimOverheadCalldata}, nil)
-	if err != nil {
-		log.Fatalf("Failed to call claimOverhead for debug: %v", err)
-	}
-	claimOverheadCost := new(big.Int).SetBytes(claimOverheadBytes)
-
-	totalCost := new(big.Int).Add(relayCost, claimOverheadCost)
-	fmt.Printf("Required balance for claim (Relay Cost from event + Claim Overhead): %s\n", totalCost.String())
-
-	if currentBalanceOn901.Cmp(totalCost) < 0 {
-		log.Fatalf("INSUFFICIENT BALANCE! Balance %s is less than total cost %s", currentBalanceOn901.String(), totalCost.String())
-	} else {
-		fmt.Println("Balance appears sufficient.")
-	}
-
 	claimCalldata, err := gasTankABI.Pack("claim", identifier, gasProviderAddress, claimPayload)
 	if err != nil {
 		log.Fatalf("Failed to pack claim for GasTank: %v", err)
@@ -463,6 +431,20 @@ func gasTankRelay(numNestedMessages int64) {
 		log.Printf("Warning: could not get claim block header for final analysis: %v", err)
 	}
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
+
+	// Calculate the "actual" overhead using the basefee from the block where the claim was executed
+	claimOverheadCalldata, err := gasTankABI.Pack("claimOverhead", big.NewInt(int64(len(destinationMessageHashes))))
+	if err != nil {
+		log.Fatalf("Failed to pack claimOverhead for final analysis: %v", err)
+	}
+	actualOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{
+		To:   &gasTank901Address,
+		Data: claimOverheadCalldata,
+	}, claimTx.BlockNumber)
+	if err != nil {
+		log.Fatalf("Failed to call claimOverhead for final analysis: %v", err)
+	}
+	actualOverheadCost := new(big.Int).SetBytes(actualOverheadBytes)
 
 	// Find and decode the total reimbursement from the Claimed event
 	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"cost","type":"uint256"}],"anonymous":false}]`))
@@ -506,7 +488,7 @@ func gasTankRelay(numNestedMessages int64) {
 		}
 		fmt.Printf("  - Gas Used:             %d units\n", claimTx.GasUsed)
 		fmt.Printf("  - Actual Cost:          %s wei\n", actualClaimCost.String())
-		fmt.Printf("  - Overhead estimated:   %s wei\n", claimOverheadCost.String())
+		fmt.Printf("  - Actual Overhead:      %s wei\n", actualOverheadCost.String())
 
 		// --- Summary ---
 		fmt.Println("\n[Summary]")
