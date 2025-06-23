@@ -742,10 +742,35 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         description = "Test funding proposal";
     }
 
-    function test_submitFundingProposal_governanceFund_succeeds() public {
+    function testFuzz_submitFundingProposal_succeeds(
+        uint8 proposalTypeValue,
+        uint8 optionCount,
+        uint256 amount
+    ) public {
+        // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
+        // Bound option count between 1 and 50 for reasonable test execution
+        optionCount = uint8(bound(optionCount, 1, 50));
+
+        // Bound amount from 0 to DISTRIBUTION_THRESHOLD (inclusive)
+        amount = bound(amount, 0, DISTRIBUTION_THRESHOLD);
+
+        // Create arrays based on option count
+        string[] memory descriptions = new string[](optionCount);
+        address[] memory recipients = new address[](optionCount);
+        uint256[] memory amounts = new uint256[](optionCount);
+
+        for (uint256 i = 0; i < optionCount; i++) {
+            descriptions[i] = string(abi.encodePacked("Option ", vm.toString(i)));
+            recipients[i] = makeAddr(string(abi.encodePacked("recipient", vm.toString(i))));
+            amounts[i] = amount; // Use the same bounded amount for all options
+        }
+
         // Calculate expected proposal hash
         bytes memory votingModuleData =
-            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+            _constructVotingModuleData(descriptions, recipients, amounts, criteriaValue);
         bytes32 expectedHash = validator.hashProposalWithModule(
             approvalVotingModule, votingModuleData, keccak256(bytes(description))
         );
@@ -759,7 +784,7 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
         // Expect ProposalSubmitted event
         vm.expectEmit(address(validator));
-        emit ProposalSubmitted(expectedHash, rando, description, ProposalValidator.ProposalType.GovernanceFund);
+        emit ProposalSubmitted(expectedHash, rando, description, proposalType);
 
         // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
@@ -768,152 +793,15 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         vm.prank(rando);
         bytes32 proposalHash = validator.submitFundingProposal(
             criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
+            descriptions,
+            recipients,
+            amounts,
             description,
-            ProposalValidator.ProposalType.GovernanceFund
+            proposalType
         );
 
         assertEq(proposalHash, expectedHash);
     }
-
-    function test_submitFundingProposal_councilBudget_succeeds() public {
-        // Calculate expected proposal hash
-        bytes memory votingModuleData =
-            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
-
-        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
-            abi.encode(0)
-        );
-
-        // Expect ProposalSubmitted event
-        vm.expectEmit(address(validator));
-        emit ProposalSubmitted(expectedHash, rando, description, ProposalValidator.ProposalType.CouncilBudget);
-
-        // Expect ProposalVotingModuleData event
-        vm.expectEmit(address(validator));
-        emit ProposalVotingModuleData(expectedHash, votingModuleData);
-
-        vm.prank(rando);
-        bytes32 proposalHash = validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            description,
-            ProposalValidator.ProposalType.CouncilBudget
-        );
-
-        assertEq(proposalHash, expectedHash);
-    }
-
-    function test_submitFundingProposal_singleOption_succeeds() public {
-        string[] memory singleDescription = new string[](1);
-        singleDescription[0] = "Single option";
-
-        address[] memory singleRecipient = new address[](1);
-        singleRecipient[0] = makeAddr("singleRecipient");
-
-        uint256[] memory singleAmount = new uint256[](1);
-        singleAmount[0] = 100 ether;
-
-        // Calculate expected proposal hash
-        bytes memory singleOptionData =
-            _constructVotingModuleData(singleDescription, singleRecipient, singleAmount, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, singleOptionData, keccak256(bytes(description))
-        );
-
-        // Mock proposalSnapshot to return 0 for the expected proposal hash
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
-            abi.encode(0)
-        );
-
-        vm.prank(rando);
-        bytes32 proposalHash = validator.submitFundingProposal(
-            criteriaValue,
-            singleDescription,
-            singleRecipient,
-            singleAmount,
-            description,
-            ProposalValidator.ProposalType.GovernanceFund
-        );
-
-        assertTrue(proposalHash != bytes32(0));
-    }
-
-    function test_submitFundingProposal_maximumThreshold_succeeds() public {
-        // Use amounts at the distribution threshold
-        optionsAmounts[0] = DISTRIBUTION_THRESHOLD;
-        optionsAmounts[1] = DISTRIBUTION_THRESHOLD;
-
-        // Calculate expected proposal hash
-        bytes memory votingModuleData =
-            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
-
-        // Mock proposalSnapshot to return 0 for the expected proposal hash
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
-            abi.encode(0)
-        );
-
-        vm.prank(rando);
-        bytes32 proposalHash = validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            description,
-            ProposalValidator.ProposalType.GovernanceFund
-        );
-
-        assertTrue(proposalHash != bytes32(0));
-    }
-
-    function test_submitFundingProposal_zeroAmount_succeeds() public {
-        optionsAmounts[0] = 0;
-        optionsAmounts[1] = 100 ether;
-
-        // Calculate expected proposal hash
-        bytes memory votingModuleData =
-            _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
-
-        // Mock proposalSnapshot to return 0 for the expected proposal hash
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
-            abi.encode(0)
-        );
-
-        vm.prank(rando);
-        bytes32 proposalHash = validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            description,
-            ProposalValidator.ProposalType.GovernanceFund
-        );
-
-        assertTrue(proposalHash != bytes32(0));
-    }
-
 
 }
 
