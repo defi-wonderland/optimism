@@ -65,7 +65,8 @@ contract GasTank is IGasTank {
 
         if (block.timestamp < withdrawal.timestamp + WITHDRAWAL_DELAY) revert WithdrawPending();
 
-        uint256 amount = balanceOf[msg.sender] < withdrawal.amount ? balanceOf[msg.sender] : withdrawal.amount;
+        uint256 amount = _min(balanceOf[msg.sender], withdrawal.amount);
+
         balanceOf[msg.sender] -= amount;
 
         delete withdrawals[msg.sender];
@@ -200,6 +201,14 @@ contract GasTank is IGasTank {
     /// @return cost_ The cost in wei
     function _cost(uint256 _gasUsed) internal view returns (uint256 cost_) {
         cost_ = block.basefee * _gasUsed;
+    }
+
+    /// @notice Calculates the minimum of two values
+    /// @param _a The first value
+    /// @param _b The second value
+    /// @return min_ The minimum of the two values
+    function _min(uint256 _a, uint256 _b) internal pure returns (uint256 min_) {
+        min_ = _a < _b ? _a : _b;
     }
 
     /// @notice Calculates the hash of a message
