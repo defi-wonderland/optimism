@@ -112,7 +112,7 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        gasCost_ = _cost(initialGas - gasleft()) + _gasReceiptEventOverhead(nestedMessageHashes_.length);
+        gasCost_ = _cost(initialGas - gasleft()) + _relayOverhead(nestedMessageHashes_.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
         emit RelayedMessageGasReceipt(messageHash, msg.sender, gasCost_, nestedMessageHashes_);
@@ -187,14 +187,17 @@ contract GasTank is IGasTank {
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The overhead cost of the claim transaction in wei
     function claimOverhead(uint256 _numHashes) public view returns (uint256 overhead_) {
-        overhead_ = _cost(125_000 + _numHashes * 23_000);
+        overhead_ = _cost(152_000 + _numHashes * 23_000);
     }
 
     /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The gas cost to emit the event in wei
-    function _gasReceiptEventOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
-        overhead_ = _cost(3_000 + _numHashes * 300);
+    function _relayOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
+        // The memory expansion cost is quadratic.
+        // See: https://www.evm.codes/about#memoryexpansion
+        uint256 memoryExpansionGas = (420 * _numHashes) + (_numHashes * _numHashes) / 512;
+        overhead_ = _cost(35_000 + memoryExpansionGas);
     }
 
     /// @notice Calculates the cost of gas used in wei
