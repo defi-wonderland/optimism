@@ -945,8 +945,12 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
     }
 
-    function test_submitFundingProposal_exceedsDistributionThreshold_reverts() public {
-        optionsAmounts[0] = DISTRIBUTION_THRESHOLD + 1;
+    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 excessAmount) public {
+        // Bound excess amount to be greater than DISTRIBUTION_THRESHOLD
+        excessAmount = bound(excessAmount, DISTRIBUTION_THRESHOLD + 1, type(uint128).max);
+
+        // Set first option to exceed the threshold
+        optionsAmounts[0] = excessAmount;
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
         vm.prank(rando);
