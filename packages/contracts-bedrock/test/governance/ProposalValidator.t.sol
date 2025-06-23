@@ -759,8 +759,11 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function testFuzz_submitFundingProposal_succeeds(
         uint8 proposalTypeValue,
         uint8 optionCount,
-        uint256 amount
+        uint256 amount,
+        address proposer
     ) public {
+        // Assume proposer is not zero address
+        vm.assume(proposer != address(0));
         // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
         proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
@@ -798,13 +801,13 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
 
         // Expect ProposalSubmitted event
         vm.expectEmit(address(validator));
-        emit ProposalSubmitted(expectedHash, rando, description, proposalType);
+        emit ProposalSubmitted(expectedHash, proposer, description, proposalType);
 
         // Expect ProposalVotingModuleData event
         vm.expectEmit(address(validator));
         emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
-        vm.prank(rando);
+        vm.prank(proposer);
         bytes32 proposalHash = validator.submitFundingProposal(
             criteriaValue,
             descriptions,
@@ -817,10 +820,10 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         assertEq(proposalHash, expectedHash);
 
         // Verify proposal data was stored correctly
-        (address proposer, ProposalValidator.ProposalType storedProposalType, bool inVoting, uint256 approvalCount) = 
+        (address storedProposer, ProposalValidator.ProposalType storedProposalType, bool inVoting, uint256 approvalCount) = 
             validator.getProposalData(proposalHash);
 
-        assertEq(proposer, rando, "Proposer should be rando");
+        assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
         assertFalse(inVoting, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
