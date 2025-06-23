@@ -5,7 +5,14 @@ This guide describes how to run a manual L2-to-L2 message relay test using the `
 ## Prerequisites
 
 - `foundry` and `go` must be installed.
-- A local `supersim` instance must be running. From the `optimism` repository root, start it with the following command. This ensures `supersim` uses the correct compiled contract artifacts.
+- A local `supersim` instance must be running. From the `optimism` repository root, start it with the following command.
+
+  ```bash
+  supersim
+  ```
+
+  If you are modifing the L2toL2CrossDomainMessenger contract, you will need to override the contract artifact with the following command. This ensures `supersim` uses the correct compiled contract artifacts.
+
   ```bash
   supersim --interop.l2tol2cdm.override "./packages/contracts-bedrock/forge-artifacts/L2ToL2CrossDomainMessenger.sol/L2ToL2CrossDomainMessenger.json"
   ```
