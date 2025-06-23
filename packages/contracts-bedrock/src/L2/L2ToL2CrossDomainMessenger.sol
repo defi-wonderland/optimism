@@ -373,6 +373,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         if (_destination == block.chainid) revert MessageDestinationSameChain();
         if (_target == Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER) revert MessageTargetL2ToL2CrossDomainMessenger();
 
+        bytes32 relayHookHash = _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook));
+
         uint256 nonce = messageNonce();
         messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
@@ -380,14 +382,12 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: msg.sender,
             _target: _target,
-            _hookHash: _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook)),
+            _hookHash: relayHookHash,
             _message: _message
         });
 
         sentMessages[messageHash_] = true;
         msgNonce++;
-
-        bytes32 relayHookHash = _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook));
 
         // The event data includes both the message and the relay hook data for cross-chain transmission
         bytes memory eventData = abi.encode(msg.sender, relayHookHash, _message, _relayHook);
