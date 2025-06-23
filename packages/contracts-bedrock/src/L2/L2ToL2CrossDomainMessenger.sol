@@ -218,9 +218,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         emit SentMessage(_destination, _target, _nonce, _sender, relayHookHash, eventData);
     }
 
-    // NOTE tbh I'm not sure we can change the relayMessage func signature -- we need to keep the same signature as the
-    // original cross domain messenger
-
     /// @notice Relays a message that was sent by the other L2ToL2CrossDomainMessenger contract. Can only be executed
     ///         via cross chain call from the other messenger OR if the message was already received once and is
     ///         currently being replayed.
@@ -379,7 +376,6 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: msg.sender,
             _target: _target,
-            //NOTE is this how we encode structs??
             _hookHash: _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook)),
             _message: _message
         });
