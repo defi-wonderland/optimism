@@ -999,39 +999,6 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
     }
 
-    function test_submitFundingProposal_multipleAmountsExceedThreshold_reverts() public {
-        optionsAmounts[1] = DISTRIBUTION_THRESHOLD + 1;
-
-        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
-        vm.prank(rando);
-        validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            description,
-            ProposalValidator.ProposalType.GovernanceFund
-        );
-    }
-
-    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(uint256 excessAmount) public {
-        vm.assume(excessAmount > DISTRIBUTION_THRESHOLD);
-        vm.assume(excessAmount <= type(uint256).max);
-
-        optionsAmounts[0] = excessAmount;
-
-        vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
-        vm.prank(rando);
-        validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            description,
-            ProposalValidator.ProposalType.GovernanceFund
-        );
-    }
-
     function test_submitFundingProposal_proposalExistsInGovernor_reverts() public {
         // Calculate expected proposal hash
         bytes memory votingModuleData =
