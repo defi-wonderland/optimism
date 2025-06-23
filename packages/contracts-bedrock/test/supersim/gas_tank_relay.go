@@ -432,20 +432,6 @@ func gasTankRelay(numNestedMessages int64) {
 	}
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
 
-	// Calculate the "actual" overhead using the basefee from the block where the claim was executed
-	claimOverheadCalldata, err := gasTankABI.Pack("claimOverhead", big.NewInt(int64(len(destinationMessageHashes))))
-	if err != nil {
-		log.Fatalf("Failed to pack claimOverhead for final analysis: %v", err)
-	}
-	actualOverheadBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{
-		To:   &gasTank901Address,
-		Data: claimOverheadCalldata,
-	}, claimTx.BlockNumber)
-	if err != nil {
-		log.Fatalf("Failed to call claimOverhead for final analysis: %v", err)
-	}
-	actualOverheadCost := new(big.Int).SetBytes(actualOverheadBytes)
-
 	// Find and decode the total reimbursement from the Claimed event
 	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"claimCost","type":"uint256"}],"anonymous":false}]`))
 	if err != nil {
@@ -466,9 +452,7 @@ func gasTankRelay(numNestedMessages int64) {
 		if err != nil {
 			log.Fatalf("failed to unpack Claimed event data: %v", err)
 		}
-		relayCostFromEvent := unpackedData[0].(*big.Int)
 		claimCostFromEvent := unpackedData[1].(*big.Int)
-		totalReimbursementFromEvent := new(big.Int).Add(relayCostFromEvent, claimCostFromEvent)
 
 		fmt.Println("\n--- Relayer Profit/Loss Analysis ---")
 
@@ -483,6 +467,15 @@ func gasTankRelay(numNestedMessages int64) {
 			fmt.Printf("  - Cost declared in event:  %s wei\n", eventRelayCost.String())
 		}
 
+		profit := new(big.Int).Sub(eventRelayCost, actualRelayCost)
+
+		if profit.Sign() < 0 {
+			// Using a red color for the warning
+			fmt.Printf("\033[31m>>>>> WARNING: RELAYER INCURRED A LOSS of %s wei <<<<<\033[0m\n", new(big.Int).Abs(profit).String())
+		} else {
+			fmt.Printf("Relayer Profit:               %s wei\n", profit.String())
+		}
+
 		// --- Claim TX Details ---
 		fmt.Println("\n[Claim Transaction on Chain 901]")
 		if claimBlock != nil {
@@ -490,21 +483,15 @@ func gasTankRelay(numNestedMessages int64) {
 		}
 		fmt.Printf("  - Gas Used:             %d units\n", claimTx.GasUsed)
 		fmt.Printf("  - Actual Cost:          %s wei\n", actualClaimCost.String())
-		fmt.Printf("  - Actual Overhead:      %s wei\n", actualOverheadCost.String())
+		fmt.Printf("  - Actual Overhead:      %s wei\n", claimCostFromEvent.String())
 
-		// --- Summary ---
-		fmt.Println("\n[Summary]")
-		totalActualCost := new(big.Int).Add(actualRelayCost, actualClaimCost)
-		fmt.Printf("Total Actual Cost for Relayer (Relay + Claim): %s wei\n", totalActualCost.String())
-		fmt.Printf("Total Reimbursement from GasTank:               %s wei\n", totalReimbursementFromEvent.String())
-
-		profit := new(big.Int).Sub(totalReimbursementFromEvent, totalActualCost)
+		profit = new(big.Int).Sub(claimCostFromEvent, actualClaimCost)
 
 		if profit.Sign() < 0 {
 			// Using a red color for the warning
-			fmt.Printf("\033[31m>>>>> WARNING: RELAYER INCURRED A LOSS of %s wei <<<<<\033[0m\n", new(big.Int).Abs(profit).String())
+			fmt.Printf("\033[31m>>>>> WARNING: CLAIMER INCURRED A LOSS of %s wei <<<<<\033[0m\n", new(big.Int).Abs(profit).String())
 		} else {
-			fmt.Printf("Relayer Profit:                                 %s wei\n", profit.String())
+			fmt.Printf("Claimer Profit:               %s wei\n", profit.String())
 		}
 
 	} else {
