@@ -21,12 +21,13 @@ import {
     MessageAlreadyRelayed,
     ReentrantCall,
     InvalidMessage,
-    HookCallFailed
+    HookCallFailed,
+    InvalidHookInterface
 } from "src/L2/L2ToL2CrossDomainMessenger.sol";
 
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { HookData, IMessageRelayedHook } from "interfaces/L2/IMessageHooks.sol";
+import { HookData, IMessageRelayedHook, IMessageSentHook } from "interfaces/L2/IMessageHooks.sol";
 
 // Test mocks
 import { MockSendHook, MockRelayHook } from "test/mocks/MockHooks.sol";
@@ -231,12 +232,6 @@ contract L2ToL2CrossDomainMessenger_SendMessage_Test is L2ToL2CrossDomainMesseng
     )
         external
     {
-        // Ensure the destination is not the same as the source, otherwise the function will revert
-        vm.assume(_destination != block.chainid);
-
-        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
-        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-
         // Ensure that _value is greater than 0
         _value = bound(_value, 1, type(uint256).max);
 
@@ -303,12 +298,12 @@ contract L2ToL2CrossDomainMessenger_ResendMessage_Test is L2ToL2CrossDomainMesse
     {
         // Create empty hook data
         HookData memory emptyHook = HookData(address(0), "");
-        
+
         // Calculate expected message hash
         bytes32 expectedHash = Hashing.hashL2toL2CrossDomainMessage(
             _destination, block.chainid, _nonce, _sender, _target, bytes32(0), _message
         );
-        
+
         vm.assume(!l2ToL2CrossDomainMessenger.sentMessages(expectedHash));
 
         // Expect a revert with the InvalidMessage selector
@@ -345,7 +340,9 @@ contract L2ToL2CrossDomainMessenger_ResendMessage_Test is L2ToL2CrossDomainMesse
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessage(_destination, _target, _message);
         assertEq(
             msgHash,
-            Hashing.hashL2toL2CrossDomainMessage(_destination, block.chainid, messageNonce, _sender, _target, bytes32(0), _message)
+            Hashing.hashL2toL2CrossDomainMessage(
+                _destination, block.chainid, messageNonce, _sender, _target, bytes32(0), _message
+            )
         );
 
         // Check that the event was emitted with the correct parameters
@@ -484,7 +481,8 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
         address target = address(this);
         bytes memory message = abi.encodeCall(this.mockTarget, (_source, _sender));
 
-        bytes32 msgHash = Hashing.hashL2toL2CrossDomainMessage(block.chainid, _source, _nonce, _sender, target, bytes32(0), message);
+        bytes32 msgHash =
+            Hashing.hashL2toL2CrossDomainMessage(block.chainid, _source, _nonce, _sender, target, bytes32(0), message);
 
         // Look for correct emitted event
         vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
@@ -831,26 +829,35 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
     }
 }
 
-
+/// @title MockInvalidHook
+/// @notice Mock contract that implements ERC165 but returns false for hook interfaces
+contract MockInvalidHook {
+    /// @notice Implements ERC165 but only supports IERC165 interface
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == 0x01ffc9a7; // IERC165 interface ID
+    }
+}
 
 /// @title L2ToL2CrossDomainMessenger_SendMessageWithHooks_Test
 /// @notice Tests the `sendMessageWithHooks` function of the `L2ToL2CrossDomainMessenger` contract.
 contract L2ToL2CrossDomainMessenger_SendMessageWithHooks_Test is L2ToL2CrossDomainMessenger_TestInit {
     MockSendHook sendHook;
     MockRelayHook relayHook;
-    
+
     function setUp() public override {
         super.setUp();
         sendHook = new MockSendHook();
         relayHook = new MockRelayHook();
     }
-    
+
     /// @notice Tests that `sendMessageWithHooks` succeeds with both send and relay hooks
     function testFuzz_sendMessageWithHooks_withBothHooks_succeeds(
         uint256 _destination,
         address _target,
         bytes calldata _message
-    ) external {
+    )
+        external
+    {
         // Ensure the destination is not the same as the source
         vm.assume(_destination != block.chainid);
         // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
@@ -858,96 +865,131 @@ contract L2ToL2CrossDomainMessenger_SendMessageWithHooks_Test is L2ToL2CrossDoma
 
         HookData memory sendHookData = HookData(address(sendHook), "test");
         HookData memory relayHookData = HookData(address(relayHook), "test");
-        
+
         // Get nonce and call function
         uint256 messageNonce = l2ToL2CrossDomainMessenger.messageNonce();
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessageWithHooks(
             _destination, _target, sendHookData, relayHookData, _message
         );
-        
+
         // Verify hash calculation in separate step
         bytes32 relayHookHash = keccak256(abi.encode(relayHookData));
         bytes32 expectedHash = _calculateExpectedHash(_destination, messageNonce, _target, relayHookHash, _message);
-        
+
         assertEq(msgHash, expectedHash);
         assertTrue(l2ToL2CrossDomainMessenger.sentMessages(msgHash));
     }
-    
+
     function _calculateExpectedHash(
         uint256 destination,
         uint256 nonce,
         address target,
         bytes32 hookHash,
         bytes calldata message
-    ) internal view returns (bytes32) {
+    )
+        internal
+        view
+        returns (bytes32)
+    {
         return Hashing.hashL2toL2CrossDomainMessage(
             destination, block.chainid, nonce, address(this), target, hookHash, message
         );
     }
-    
+
     /// @notice Tests that `sendMessageWithHooks` succeeds with only send hook
     function testFuzz_sendMessageWithHooks_withSendHookOnly_succeeds(
         uint256 _destination,
         address _target,
         bytes calldata _message
-    ) external {
+    )
+        external
+    {
         vm.assume(_destination != block.chainid);
         vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
         HookData memory sendHookData = HookData(address(sendHook), "test payload");
         HookData memory emptyRelayHook = HookData(address(0), "");
-        
+
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessageWithHooks(
             _destination, _target, sendHookData, emptyRelayHook, _message
         );
-        
+
         // Check that the message hash has been stored
         assertTrue(l2ToL2CrossDomainMessenger.sentMessages(msgHash));
     }
-    
+
     /// @notice Tests that `sendMessageWithHooks` succeeds with only relay hook
     function testFuzz_sendMessageWithHooks_withRelayHookOnly_succeeds(
         uint256 _destination,
         address _target,
         bytes calldata _message
-    ) external {
+    )
+        external
+    {
         vm.assume(_destination != block.chainid);
         vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
         HookData memory emptySendHook = HookData(address(0), "");
         HookData memory relayHookData = HookData(address(relayHook), "test payload");
-        
+
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessageWithHooks(
             _destination, _target, emptySendHook, relayHookData, _message
         );
-        
+
         // Check that the message hash has been stored
         assertTrue(l2ToL2CrossDomainMessenger.sentMessages(msgHash));
     }
-    
+
     /// @notice Tests that `sendMessageWithHooks` reverts when send hook fails
     function testFuzz_sendMessageWithHooks_sendHookFails_reverts(
         uint256 _destination,
         address _target,
         bytes calldata _message,
         bytes calldata _revertData
-    ) external {
+    )
+        external
+    {
         vm.assume(_destination != block.chainid);
         vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         vm.assume(_revertData.length > 0);
 
         // Configure the send hook to revert
         sendHook.setShouldRevert(true, _revertData);
-        
+
         HookData memory sendHookData = HookData(address(sendHook), "");
         HookData memory emptyRelayHook = HookData(address(0), "");
-        
+
         // Expect a revert with the HookCallFailed selector
         vm.expectRevert(abi.encodeWithSelector(HookCallFailed.selector, address(sendHook), _revertData));
-        
-        l2ToL2CrossDomainMessenger.sendMessageWithHooks(
-            _destination, _target, sendHookData, emptyRelayHook, _message
+
+        l2ToL2CrossDomainMessenger.sendMessageWithHooks(_destination, _target, sendHookData, emptyRelayHook, _message);
+    }
+
+    /// @notice Tests that `sendMessageWithHooks` reverts when send hook doesn't implement proper interface
+    function testFuzz_sendMessageWithHooks_sendHookInterface_reverts(
+        uint256 _destination,
+        address _target,
+        bytes calldata _message
+    )
+        external
+    {
+        vm.assume(_destination != block.chainid);
+        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+
+        // Deploy a mock invalid hook that implements ERC165 but not IMessageSentHook
+        MockInvalidHook invalidSendHook = new MockInvalidHook();
+
+        HookData memory sendHookData = HookData(address(invalidSendHook), "test payload");
+        HookData memory emptyRelayHook = HookData(address(0), "");
+
+        // Expect a revert with the InvalidHookInterface selector
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidHookInterface.selector, address(invalidSendHook), type(IMessageSentHook).interfaceId
+            )
         );
+
+        l2ToL2CrossDomainMessenger.sendMessageWithHooks(_destination, _target, sendHookData, emptyRelayHook, _message);
     }
 }
 
@@ -955,19 +997,19 @@ contract L2ToL2CrossDomainMessenger_SendMessageWithHooks_Test is L2ToL2CrossDoma
 /// @notice Tests the `relayMessage` function with hooks functionality
 contract L2ToL2CrossDomainMessenger_RelayMessageWithHooks_Test is L2ToL2CrossDomainMessenger_TestInit {
     MockRelayHook relayHook;
-    
+
     function setUp() public override {
         super.setUp();
         relayHook = new MockRelayHook();
     }
-    
+
     /// @notice Mock target function for testing relay with hooks
     function mockTargetWithHooks(uint256 _source, address _sender) external payable {
         assertEq(l2ToL2CrossDomainMessenger.entered(), true);
         assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageSource(), _source);
         assertEq(l2ToL2CrossDomainMessenger.crossDomainMessageSender(), _sender);
     }
-    
+
     /// @notice Tests that `relayMessage` succeeds and executes relay hook
     function testFuzz_relayMessage_withRelayHook_succeeds(
         uint256 _source,
@@ -975,15 +1017,17 @@ contract L2ToL2CrossDomainMessenger_RelayMessageWithHooks_Test is L2ToL2CrossDom
         address _sender,
         uint256 _value,
         bytes calldata _relayHookPayload
-    ) external {
+    )
+        external
+    {
         vm.deal(address(this), 0);
 
         address target = address(this);
         bytes memory message = abi.encodeCall(this.mockTargetWithHooks, (_source, _sender));
-        
+
         HookData memory relayHookData = HookData(address(relayHook), _relayHookPayload);
         bytes32 relayHookHash = keccak256(abi.encode(relayHookData));
-        
+
         bytes32 msgHash = Hashing.hashL2toL2CrossDomainMessage(
             block.chainid, _source, _nonce, _sender, target, relayHookHash, message
         );
@@ -1008,7 +1052,7 @@ contract L2ToL2CrossDomainMessenger_RelayMessageWithHooks_Test is L2ToL2CrossDom
 
         // Expect the target contract to be called
         vm.expectCall({ callee: target, msgValue: _value, data: message });
-        
+
         // Expect the relay hook to be called with proper mock pattern
         vm.expectCall({
             callee: address(relayHook),
@@ -1022,23 +1066,25 @@ contract L2ToL2CrossDomainMessenger_RelayMessageWithHooks_Test is L2ToL2CrossDom
         // Check that successfulMessages mapping is updated
         assertTrue(l2ToL2CrossDomainMessenger.successfulMessages(msgHash));
     }
-    
+
     /// @notice Tests that `relayMessage` reverts when relay hook fails
     function testFuzz_relayMessage_relayHookFails_reverts(
         uint256 _source,
         uint256 _nonce,
         address _sender,
         bytes calldata _revertData
-    ) external {
+    )
+        external
+    {
         vm.assume(_revertData.length > 0);
         vm.deal(address(this), 0);
 
         // Configure the relay hook to revert
         relayHook.setShouldRevert(true, _revertData);
-        
+
         address target = address(this);
         bytes memory message = abi.encodeCall(this.mockTargetWithHooks, (_source, _sender));
-        
+
         HookData memory relayHookData = HookData(address(relayHook), "");
         bytes32 relayHookHash = keccak256(abi.encode(relayHookData));
 
@@ -1063,50 +1109,101 @@ contract L2ToL2CrossDomainMessenger_RelayMessageWithHooks_Test is L2ToL2CrossDom
         vm.prank(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
         l2ToL2CrossDomainMessenger.relayMessage(id, sentMessage);
     }
+
+    /// @notice Tests that `relayMessage` reverts when relay hook doesn't implement proper interface
+    function testFuzz_sendMessageWithHooks_relayHookInterface_reverts(
+        uint256 _source,
+        uint256 _nonce,
+        address _sender,
+        uint256 _value
+    )
+        external
+    {
+        vm.deal(address(this), 0);
+
+        // Deploy a mock invalid hook that implements ERC165 but not IMessageRelayedHook
+        MockInvalidHook invalidRelayHook = new MockInvalidHook();
+
+        address target = address(this);
+        bytes memory message = abi.encodeCall(this.mockTargetWithHooks, (_source, _sender));
+
+        HookData memory relayHookData = HookData(address(invalidRelayHook), "test payload");
+        bytes32 relayHookHash = keccak256(abi.encode(relayHookData));
+
+        // Construct and relay the message
+        Identifier memory id = Identifier(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, 1, 1, 1, _source);
+        bytes memory eventData = abi.encode(_sender, relayHookHash, message, relayHookData);
+        bytes memory sentMessage = abi.encodePacked(
+            abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, block.chainid, target, _nonce), // topics
+            eventData // data
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+
+        // Mock the target call to return empty data
+        vm.mockCall({ callee: target, msgValue: _value, data: message, returnData: "" });
+
+        // Expect a revert with the InvalidHookInterface selector
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidHookInterface.selector, address(invalidRelayHook), type(IMessageRelayedHook).interfaceId
+            )
+        );
+
+        hoax(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, _value);
+        l2ToL2CrossDomainMessenger.relayMessage{ value: _value }(id, sentMessage);
+    }
 }
 
 /// @title L2ToL2CrossDomainMessenger_ResendMessageWithHooks_Test
 /// @notice Tests the `resendMessage` function with hooks functionality
 contract L2ToL2CrossDomainMessenger_ResendMessageWithHooks_Test is L2ToL2CrossDomainMessenger_TestInit {
     MockRelayHook relayHook;
-    
+
     function setUp() public override {
         super.setUp();
         relayHook = new MockRelayHook();
     }
-    
+
     /// @notice Tests that `resendMessage` works with relay hooks
     function testFuzz_resendMessage_withRelayHook_succeeds(
         address _sender,
         uint256 _destination,
         address _target,
         bytes calldata _message
-    ) external {
+    )
+        external
+    {
         vm.assume(_destination != block.chainid);
         vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
         HookData memory relayHookData = HookData(address(relayHook), "test payload");
-        
+
         // First send a message with hooks
         uint256 messageNonce = l2ToL2CrossDomainMessenger.messageNonce();
-        
+
         vm.prank(_sender);
         bytes32 msgHash = l2ToL2CrossDomainMessenger.sendMessageWithHooks(
             _destination, _target, HookData(address(0), ""), relayHookData, _message
         );
-        
+
         // Verify message was sent
         assertTrue(l2ToL2CrossDomainMessenger.sentMessages(msgHash));
-        
+
         // Now resend the message
         vm.recordLogs();
         bytes32 resendMsgHash = l2ToL2CrossDomainMessenger.resendMessage(
             _destination, messageNonce, _sender, _target, relayHookData, _message
         );
-        
+
         // Check that the message hashes match
         assertEq(resendMsgHash, msgHash);
-        
+
         // Check that the event was emitted
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(logs.length, 1);

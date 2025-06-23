@@ -44,6 +44,9 @@ interface IL2ToL2CrossDomainMessenger {
     /// @notice Thrown when a hook call fails.
     error HookCallFailed(address hook, bytes returnData);
 
+    /// @notice Thrown when a hook address doesn't implement the required interface.
+    error InvalidHookInterface(address hook, bytes4 interfaceId);
+
     /// @notice Emitted whenever a message is sent to a destination
     /// @param destination  Chain ID of the destination chain.
     /// @param target       Target contract or wallet address.
