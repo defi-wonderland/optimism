@@ -74,7 +74,7 @@ contract ProposalValidator_Init is CommonTest {
     uint8 public constant FUNDING_PROPOSALS_VOTING_MODULE = 3;
 
     address owner;
-    address rando;
+    address user;
     address topDelegate_A;
     address topDelegate_B;
     address topDelegate_C;
@@ -340,7 +340,7 @@ contract ProposalValidator_Init is CommonTest {
     function setUp() public virtual override {
         super.setUp();
         owner = governanceToken.owner();
-        rando = makeAddr("rando");
+        user = makeAddr("user");
         governor = IOptimismGovernor(makeAddr("governor"));
         approvalVotingModule = makeAddr("approvalVotingModule");
 
@@ -461,7 +461,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 
     function test_approveProposal_insufficientVotingPower_reverts() public {
         vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientVotingPower.selector);
-        _approveProposal(rando, proposalHash);
+        _approveProposal(user, proposalHash);
     }
 
     function test_approveProposal_alreadyApproved_reverts() public {
@@ -581,7 +581,7 @@ contract ProposalValidator_Getters_Test is ProposalValidator_Init {
         bool canSignOff = validator.canSignOff(topDelegate_A);
         assertTrue(canSignOff);
 
-        bool cannotSignOff = validator.canSignOff(rando);
+        bool cannotSignOff = validator.canSignOff(user);
         assertFalse(cannotSignOff);
     }
 }
@@ -601,7 +601,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
     }
 
     function test_setMinimumVotingPower_notOwner_reverts() public {
-        vm.prank(rando);
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         validator.setMinimumVotingPower(10000 ether);
     }
@@ -632,7 +632,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
     }
 
     function test_setVotingCycleData_notOwner_reverts() public {
-        vm.prank(rando);
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         validator.setVotingCycleData(2, block.number, 100, 10000 ether);
     }
@@ -658,7 +658,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
     }
 
     function test_setDistributionThreshold_notOwner_reverts() public {
-        vm.prank(rando);
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         validator.setDistributionThreshold(10000 ether);
     }
@@ -695,7 +695,7 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         ProposalValidator.ProposalTypeData memory newData =
             ProposalValidator.ProposalTypeData({ requiredApprovals: 4, proposalVotingModule: 0 });
 
-        vm.prank(rando);
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         validator.setProposalTypeData(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, newData);
     }
@@ -849,7 +849,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) = _createMinimalFundingArrays();
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, "Test proposal", proposalType
         );
@@ -877,7 +877,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         uint256[] memory matchingAmounts = new uint256[](matchingLength);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             mismatchedDescriptions,
@@ -910,7 +910,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         uint256[] memory matchingAmounts = new uint256[](matchingLength);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             matchingDescriptions,
@@ -943,7 +943,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         uint256[] memory mismatchedAmounts = new uint256[](mismatchedLength);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalTypesDataLengthMismatch.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             matchingDescriptions,
@@ -970,7 +970,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         amounts[0] = excessAmount;
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             descriptions,
@@ -1003,7 +1003,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
 
         // Submit first proposal
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             descriptions,
@@ -1015,7 +1015,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         // Attempt to submit identical proposal
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             descriptions,
@@ -1048,7 +1048,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             descriptions,
@@ -1068,7 +1068,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         uint256[] memory emptyAmounts = new uint256[](0);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             emptyDescriptions,
@@ -1093,7 +1093,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         uint256[] memory tooManyAmounts = new uint256[](tooManyOptions);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
-        vm.prank(rando);
+        vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE,
             tooManyDescriptions,
