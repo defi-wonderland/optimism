@@ -51,12 +51,7 @@ contract ProposalValidatorForTest is ProposalValidator {
     function getProposalData(bytes32 _proposalHash)
         public
         view
-        returns (
-            address proposer,
-            ProposalType proposalType,
-            bool inVoting,
-            uint256 approvalCount
-        )
+        returns (address proposer_, ProposalType proposalType_, bool inVoting_, uint256 approvalCount_)
     {
         ProposalData storage proposal = _proposals[_proposalHash];
         return (proposal.proposer, proposal.proposalType, proposal.inVoting, proposal.approvalCount);
@@ -67,6 +62,7 @@ contract ProposalValidatorForTest is ProposalValidator {
 /// @notice Setup contract for ProposalValidator tests
 contract ProposalValidator_Init is CommonTest {
     using stdStorage for StdStorage;
+
     uint256 public constant TOP_DELEGATE_VOTING_POWER = 10000 ether; // 10k OP
     uint256 public constant CYCLE_NUMBER = 1;
     uint256 public constant START_BLOCK = 1000000;
@@ -133,21 +129,15 @@ contract ProposalValidator_Init is CommonTest {
     function _setProposalTypeData(
         ProposalValidator.ProposalType _proposalType,
         ProposalValidator.ProposalTypeData memory _data
-    ) internal {
+    )
+        internal
+    {
         // Set requiredApprovals (depth 0)
-        stdstore
-            .target(address(validator))
-            .sig("proposalTypesData(uint8)")
-            .with_key(uint256(_proposalType))
-            .depth(0)
+        stdstore.target(address(validator)).sig("proposalTypesData(uint8)").with_key(uint256(_proposalType)).depth(0)
             .checked_write(_data.requiredApprovals);
-        
+
         // Set proposalVotingModule (depth 1)
-        stdstore
-            .target(address(validator))
-            .sig("proposalTypesData(uint8)")
-            .with_key(uint256(_proposalType))
-            .depth(1)
+        stdstore.target(address(validator)).sig("proposalTypesData(uint8)").with_key(uint256(_proposalType)).depth(1)
             .checked_write(_data.proposalVotingModule);
     }
 
@@ -748,7 +738,9 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         uint8 optionCount,
         uint256 amount,
         address proposer
-    ) public {
+    )
+        public
+    {
         // Assume proposer is not zero address
         vm.assume(proposer != address(0));
         // Bound proposal type to only GovernanceFund (3) or CouncilBudget (4)
@@ -773,11 +765,9 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         }
 
         // Calculate expected proposal hash
-        bytes memory votingModuleData =
-            _constructVotingModuleData(descriptions, recipients, amounts, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
+        bytes memory votingModuleData = _constructVotingModuleData(descriptions, recipients, amounts, criteriaValue);
+        bytes32 expectedHash =
+            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
         // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
         _mockAndExpect(
@@ -795,27 +785,24 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
         vm.prank(proposer);
-        bytes32 proposalHash = validator.submitFundingProposal(
-            criteriaValue,
-            descriptions,
-            recipients,
-            amounts,
-            description,
-            proposalType
-        );
+        bytes32 proposalHash =
+            validator.submitFundingProposal(criteriaValue, descriptions, recipients, amounts, description, proposalType);
 
         assertEq(proposalHash, expectedHash);
 
         // Verify proposal data was stored correctly
-        (address storedProposer, ProposalValidator.ProposalType storedProposalType, bool inVoting, uint256 approvalCount) = 
-            validator.getProposalData(proposalHash);
+        (
+            address storedProposer,
+            ProposalValidator.ProposalType storedProposalType,
+            bool inVoting,
+            uint256 approvalCount
+        ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
         assertFalse(inVoting, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
     }
-
 }
 
 /// @title ProposalValidator_SubmitFundingProposal_TestFail
@@ -858,19 +845,16 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
         vm.prank(rando);
         validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            description,
-            proposalType
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, description, proposalType
         );
     }
 
     function testFuzz_submitFundingProposal_mismatchedDescriptionsLength_reverts(
         uint8 matchingLength,
         uint8 mismatchedLength
-    ) public {
+    )
+        public
+    {
         // Bound lengths to reasonable values (1-50) and ensure they're different
         matchingLength = uint8(bound(matchingLength, 1, 50));
         mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
@@ -896,7 +880,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function testFuzz_submitFundingProposal_mismatchedRecipientsLength_reverts(
         uint8 matchingLength,
         uint8 mismatchedLength
-    ) public {
+    )
+        public
+    {
         // Bound lengths to reasonable values (1-50) and ensure they're different
         matchingLength = uint8(bound(matchingLength, 1, 50));
         mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
@@ -922,7 +908,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function testFuzz_submitFundingProposal_mismatchedAmountsLength_reverts(
         uint8 matchingLength,
         uint8 mismatchedLength
-    ) public {
+    )
+        public
+    {
         // Bound lengths to reasonable values (1-50) and ensure they're different
         matchingLength = uint8(bound(matchingLength, 1, 50));
         mismatchedLength = uint8(bound(mismatchedLength, 1, 50));
@@ -968,9 +956,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
+        bytes32 expectedHash =
+            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
         // Mock proposalSnapshot to return 0 for first submission
         _mockAndExpect(
@@ -1007,9 +994,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Calculate expected proposal hash
         bytes memory votingModuleData =
             _constructVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
-        bytes32 expectedHash = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData, keccak256(bytes(description))
-        );
+        bytes32 expectedHash =
+            validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
         // Mock proposalSnapshot to return non-zero (proposal already exists in governor)
         _mockAndExpect(
