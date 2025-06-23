@@ -144,9 +144,7 @@ contract GasTank is IGasTank {
         }
 
         // Compute total cost (adding the overhead of this claim)
-        uint256 cost = relayCost + claimOverhead(destinationMessageHashesLength);
-
-        if (balanceOf[_gasProvider] < cost) revert InsufficientBalance();
+        uint256 cost = _min(balanceOf[_gasProvider], relayCost + claimOverhead(destinationMessageHashesLength));
 
         balanceOf[_gasProvider] -= cost;
 
