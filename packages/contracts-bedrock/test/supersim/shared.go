@@ -66,8 +66,11 @@ var (
 		{"type":"function","name":"relayMessage","inputs":[{"name":"_id","type":"tuple","components":[{"name":"origin","type":"address"},{"name":"blockNumber","type":"uint256"},{"name":"logIndex","type":"uint256"},{"name":"timestamp","type":"uint256"},{"name":"chainId","type":"uint256"}]},{"name":"_sentMessage","type":"bytes"}],"outputs":[],"stateMutability":"nonpayable"},
 		{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"destinationMessageHashes","type":"bytes32[]"}],"anonymous":false}
 	]`))
-
-	// Topics
+	messageSenderABI, _                 = abi.JSON(strings.NewReader(`[{"type":"function","name":"sendMessages","inputs":[{"name":"_destinationChainId","type":"uint256"},{"name":"_numMessages","type":"uint256"}]}]`))
+	sentMessageEventABI, _              = abi.JSON(strings.NewReader(`[{"type":"event","name":"SentMessage","inputs":[{"indexed":true,"name":"destination","type":"uint256"},{"indexed":true,"name":"target","type":"address"},{"indexed":true,"name":"messageNonce","type":"uint256"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"message","type":"bytes"}],"anonymous":false}]`))
+	relayedMessageGasReceiptEventABI, _ = abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"gasCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
+	claimedEventABI, _                  = abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"claimer","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"claimCost","type":"uint256"}],"anonymous":false}]`))
+	// Events Signatures
 	sentMessageTopic              = crypto.Keccak256Hash([]byte("SentMessage(uint256,address,uint256,address,bytes)"))
 	relayedMessageGasReceiptTopic = crypto.Keccak256Hash([]byte("RelayedMessageGasReceipt(bytes32,address,uint256,bytes32[])"))
 )

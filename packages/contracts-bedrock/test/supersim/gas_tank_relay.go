@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -92,10 +91,6 @@ func gasTankRelay(numNestedMessages int64) {
 	destChainID := big.NewInt(902)
 
 	// Encode the call to MessageSender.sendMessages(901)
-	messageSenderABI, err := abi.JSON(strings.NewReader(`[{"type":"function","name":"sendMessages","inputs":[{"name":"_destinationChainId","type":"uint256"},{"name":"_numMessages","type":"uint256"}]}]`))
-	if err != nil {
-		log.Fatalf("Failed to parse MessageSender ABI: %v", err)
-	}
 	messagePayload, err := messageSenderABI.Pack("sendMessages", big.NewInt(901), big.NewInt(numNestedMessages))
 	if err != nil {
 		log.Fatalf("Failed to pack sendMessages calldata: %v", err)
@@ -213,11 +208,6 @@ func gasTankRelay(numNestedMessages int64) {
 
 	// c. Reconstruct the sentMessage payload
 	// We need to unpack the non-indexed fields from the log data
-	sentMessageEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"SentMessage","inputs":[{"indexed":true,"name":"destination","type":"uint256"},{"indexed":true,"name":"target","type":"address"},{"indexed":true,"name":"messageNonce","type":"uint256"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"message","type":"bytes"}],"anonymous":false}]`))
-	if err != nil {
-		log.Fatalf("Failed to create temporary event ABI: %v", err)
-	}
-
 	unpackedData, err := sentMessageEventABI.Events["SentMessage"].Inputs.Unpack(sentMessageLog.Data)
 	if err != nil {
 		log.Fatalf("failed to unpack SentMessage event data: %v", err)
@@ -297,10 +287,6 @@ func gasTankRelay(numNestedMessages int64) {
 		}
 	}
 	if receiptLogForCost != nil {
-		relayedMessageGasReceiptEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"gasCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
-		if err != nil {
-			log.Fatalf("Failed to create temporary event ABI for relay cost: %v", err)
-		}
 		unpackedData, err := relayedMessageGasReceiptEventABI.Events["RelayedMessageGasReceipt"].Inputs.Unpack(receiptLogForCost.Data)
 		if err != nil {
 			log.Fatalf("failed to unpack RelayedMessageGasReceipt event data for relay cost: %v", err)
@@ -342,10 +328,6 @@ func gasTankRelay(numNestedMessages int64) {
 
 	// c. Reconstruct the relayedMessageGasReceipt payload
 	// We need to unpack the non-indexed fields from the log data
-	relayedMessageGasReceiptEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"gasCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
-	if err != nil {
-		log.Fatalf("Failed to create temporary event ABI: %v", err)
-	}
 
 	// 1. DECODE the event fields from the log
 	// Indexed fields are in Topics
@@ -428,10 +410,6 @@ func gasTankRelay(numNestedMessages int64) {
 	actualClaimCost := new(big.Int).Mul(new(big.Int).SetUint64(claimTx.GasUsed), claimTx.EffectiveGasPrice)
 
 	// Find and decode the total reimbursement from the Claimed event
-	claimedEventABI, err := abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"claimer","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"claimCost","type":"uint256"}],"anonymous":false}]`))
-	if err != nil {
-		log.Fatalf("Failed to create temporary event ABI for Claimed event: %v", err)
-	}
 	claimedTopic := claimedEventABI.Events["Claimed"].ID
 
 	var claimedLog *types.Log
