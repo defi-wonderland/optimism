@@ -8,9 +8,6 @@ src = 'src'
 out = 'forge-artifacts'
 script = 'scripts'
 build_info_path = 'artifacts/build-info'
-libs = ['../../node_modules', 'lib']
-test = 'test'
-cache_path = 'forge-cache'
 
 optimizer = true
 optimizer_runs = 999999
