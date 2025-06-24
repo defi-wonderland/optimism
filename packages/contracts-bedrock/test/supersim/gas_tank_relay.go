@@ -30,12 +30,6 @@ type SupersimContracts struct {
 func gasTankRelay(numNestedMessages int64) {
 	fmt.Println("Starting GasTank end-to-end manual relay script...")
 
-	bytes32Type, _ := abi.NewType("bytes32", "", nil)
-	bytes32ArrayType, _ := abi.NewType("bytes32[]", "", nil)
-	uint256Type, _ := abi.NewType("uint256", "", nil)
-	addressType, _ := abi.NewType("address", "", nil)
-	bytesType, _ := abi.NewType("bytes", "", nil)
-
 	// === Setup Clients and Signer ===
 	client901, err := ethclient.Dial("http://127.0.0.1:9545")
 	if err != nil {
@@ -95,7 +89,7 @@ func gasTankRelay(numNestedMessages int64) {
 		log.Fatalf("Failed to pack sendMessages calldata: %v", err)
 	}
 
-	sendCalldata, err := gasTankMessengerABI.Pack("sendMessage", destChainID, messageSenderAddress, messagePayload)
+	sendCalldata, err := crossDomainMessengerABI.Pack("sendMessage", destChainID, messageSenderAddress, messagePayload)
 	if err != nil {
 		log.Fatalf("Failed to pack sendMessage ABI: %v", err)
 	}
@@ -249,15 +243,6 @@ func gasTankRelay(numNestedMessages int64) {
 		}
 	}
 
-	// Calculate checksum on-chain for debug
-	msgHashRelay := crypto.Keccak256Hash(sentMessagePayload)
-	checksumCalldataRelay, _ := crossL2InboxABI.Pack("calculateChecksum", identifier, msgHashRelay)
-	checksumBytesRelay, err := client902.CallContract(context.Background(), ethereum.CallMsg{To: &crossL2InboxAddr, Data: checksumCalldataRelay}, nil)
-	if err != nil {
-		log.Fatalf("Failed to call calculateChecksum for relay: %v", err)
-	}
-	fmt.Printf(">>> Calculated Checksum for Relay (Step 5): %x\n", checksumBytesRelay)
-
 	// === Step 6: Relay the message via GasTank on Chain 902 ===
 	fmt.Println("\n=== Step 6: Relaying message via GasTank on Chain 902 (as Relayer) ===")
 	relayCalldata, err := gasTankABI.Pack("relayMessage", identifier, sentMessagePayload)
@@ -378,15 +363,6 @@ func gasTankRelay(numNestedMessages int64) {
 			fmt.Printf("    - Key[%d]: %s\n", j, key.Hex())
 		}
 	}
-
-	// Calculate checksum on-chain for debug
-	msgHashClaim := crypto.Keccak256Hash(claimPayload)
-	checksumCalldataClaim, _ := crossL2InboxABI.Pack("calculateChecksum", identifier, msgHashClaim)
-	checksumBytesClaim, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &crossL2InboxAddr, Data: checksumCalldataClaim}, nil)
-	if err != nil {
-		log.Fatalf("Failed to call calculateChecksum for claim: %v", err)
-	}
-	fmt.Printf(">>> Calculated Checksum for Claim (Step 8): %x\n", checksumBytesClaim)
 
 	// === Step 9: Claiming funds on Chain 901 (as Relayer) ===
 	fmt.Println("\n=== Step 9: Claiming funds on Chain 901 (as Relayer) ===")

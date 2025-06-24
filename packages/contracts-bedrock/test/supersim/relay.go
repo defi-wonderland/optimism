@@ -112,7 +112,7 @@ func tokenRelay() {
 
 	// === Step 7: Relay the message on L2 ===
 	fmt.Println("\n=== Step 7: Relaying message on L2 ===")
-	relayCalldata, err := relayMessengerABI.Pack("relayMessage", identifier, payload)
+	relayCalldata, err := crossDomainMessengerABI.Pack("relayMessage", identifier, payload)
 	if err != nil {
 		log.Fatalf("Failed to pack relayMessage ABI: %v", err)
 	}
