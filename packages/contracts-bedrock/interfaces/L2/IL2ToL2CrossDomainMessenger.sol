@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { HookData } from "interfaces/L2/IMessageHooks.sol";
-
 struct Identifier {
     address origin;
     uint256 blockNumber;
     uint256 logIndex;
     uint256 timestamp;
     uint256 chainId;
+}
+
+/// @notice Hook data structure for message lifecycle callbacks
+struct HookData {
+    address hook;        // Hook contract address
+    bytes hookPayload;   // Encoded call data for the hook
 }
 
 /// @title IL2ToL2CrossDomainMessenger
@@ -57,7 +61,7 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param sender       Address initiating this message call
     /// @param relayHook    Hook data for relay callback (encoded in message, executed on destination chain).
     /// @param message      Message payload to call target with.
-    event SentMessage(uint256 destination, address target, uint256 messageNonce, address sender, HookData relayHook, bytes message);
+    event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, HookData relayHook, bytes message);
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
     /// @param source       Chain ID of the source chain.

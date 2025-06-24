@@ -447,10 +447,22 @@
         "type": "address"
       },
       {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "hook",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "hookPayload",
+            "type": "bytes"
+          }
+        ],
         "indexed": false,
-        "internalType": "bytes32",
-        "name": "relayHookHash",
-        "type": "bytes32"
+        "internalType": "struct HookData",
+        "name": "relayHook",
+        "type": "tuple"
       },
       {
         "indexed": false,
