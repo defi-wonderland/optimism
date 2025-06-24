@@ -71,7 +71,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @notice Event selector for the SentMessage event. Will be removed in favor of reading
     //          the `selector` property directly once crytic/slithe/#2566 is fixed.
     bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
-        0x65f7fa83885abdbef9cab58474f555aa731b64afad093d9fbe25c446e18115f0;
+        0xe16f3099263391b1db572a00693ac93eb6162a43a8e94ba69199020bf0f84dc5;
 
     /// @notice Storage slot for the current hook depth.
     ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.hookDepth")) - 1)
@@ -102,14 +102,14 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @param target       Target contract or wallet address.
     /// @param messageNonce Nonce associated with the message sent
     /// @param sender       Address initiating this message call
-    /// @param relayHookHash Hash of the relay hook data
+    /// @param relayHook    Relay hook data to be executed on the destination chain
     /// @param message      Message payload to call target with.
     event SentMessage(
         uint256 indexed destination,
         address indexed target,
         uint256 indexed messageNonce,
         address sender,
-        bytes32 relayHookHash,
+        HookData relayHook,
         bytes message
     );
 
@@ -282,24 +282,19 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         external
         returns (bytes32 messageHash_)
     {
-        bytes32 relayHookHash = _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook));
-
         messageHash_ = Hashing.hashL2toL2CrossDomainMessage({
             _destination: _destination,
             _source: block.chainid,
             _nonce: _nonce,
             _sender: _sender,
             _target: _target,
-            _hookHash: relayHookHash,
-            _message: _message
+            _message: _message,
+            _relayHook: _relayHook
         });
 
         if (!sentMessages[messageHash_]) revert InvalidMessage();
 
-        // Reconstruct the event data in the same format as _sendMessage
-        bytes memory eventData = abi.encode(_sender, relayHookHash, _message, _relayHook);
-
-        emit SentMessage(_destination, _target, _nonce, _sender, relayHookHash, eventData);
+        emit SentMessage(_destination, _target, _nonce, _sender, _relayHook, _message);
     }
 
     /// @notice Relays a message that was sent by the other L2ToL2CrossDomainMessenger contract. Can only be executed
@@ -331,9 +326,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             address target,
             uint256 nonce,
             address sender,
-            bytes32 relayHookHash,
-            bytes memory message,
-            HookData memory relayHook
+            HookData memory relayHook,
+            bytes memory message
         ) = _decodeSentMessagePayload(_sentMessage);
 
         // Assert invariants on the message
@@ -346,8 +340,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: sender,
             _target: target,
-            _hookHash: relayHookHash,
-            _message: message
+            _message: message,
+            _relayHook: relayHook
         });
 
         if (successfulMessages[messageHash]) {
@@ -397,16 +391,15 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
     /// @dev    The payload format is as follows:
     ///         encodePacked(
     ///               encode(event selector, destination, target, nonce),
-    ///               encode(sender, relayHookHash, message, relayHookData)
+    ///               encode(sender, relayHook, message)
     ///         )
     /// @param _payload         Payload of the SentMessage event.
     /// @return destination_    Destination chain ID.
     /// @return target_         Target contract of the message.
     /// @return nonce_          Nonce associated with the messsage sent.
     /// @return sender_         Address initiating this message call.
-    /// @return relayHookHash_  Hash of the relay hook data.
-    /// @return message_        Message payload to call target with.
     /// @return relayHook_      Relay hook data.
+    /// @return message_        Message payload to call target with.
     function _decodeSentMessagePayload(bytes calldata _payload)
         internal
         pure
@@ -415,9 +408,8 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             address target_,
             uint256 nonce_,
             address sender_,
-            bytes32 relayHookHash_,
-            bytes memory message_,
-            HookData memory relayHook_
+            HookData memory relayHook_,
+            bytes memory message_
         )
     {
         // Validate Selector (also reverts if LOG0 with no topics)
@@ -428,8 +420,7 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
         (destination_, target_, nonce_) = abi.decode(_payload[32:128], (uint256, address, uint256));
 
         // Data
-        (sender_, relayHookHash_, message_, relayHook_) =
-            abi.decode(_payload[128:], (address, bytes32, bytes, HookData));
+        (sender_, relayHook_, message_) = abi.decode(_payload[128:], (address, HookData, bytes));
     }
 
     /// @notice Sends a message to a target address on a destination chain.
@@ -460,24 +451,20 @@ contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
             _nonce: nonce,
             _sender: msg.sender,
             _target: _target,
-            _hookHash: _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook)),
-            _message: _message
+            _message: _message,
+            _relayHook: _relayHook
         });
 
         sentMessages[messageHash_] = true;
         msgNonce++;
 
-        bytes32 relayHookHash = _relayHook.hook == address(0) ? bytes32(0) : keccak256(abi.encode(_relayHook));
-
-        // The event data includes both the message and the relay hook data for cross-chain transmission
-        bytes memory eventData = abi.encode(msg.sender, relayHookHash, _message, _relayHook);
-
         // Execute send hook if provided
         if (_sendHook.hook != address(0)) {
+            bytes memory eventData = abi.encode(msg.sender, _relayHook, _message);
             _executeSendHook(_sendHook, eventData);
         }
 
-        emit SentMessage(_destination, _target, nonce, msg.sender, relayHookHash, eventData);
+        emit SentMessage(_destination, _target, nonce, msg.sender, _relayHook, _message);
     }
 
     /// @notice Executes the send hook callback.
