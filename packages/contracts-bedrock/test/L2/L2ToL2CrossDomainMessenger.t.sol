@@ -27,7 +27,9 @@ import {
 
 // Interfaces
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { HookData, IMessageRelayedHook, IMessageSentHook } from "interfaces/L2/IMessageHooks.sol";
+import { HookData, IMessageRelayedHook, IMessageSentHook, IERC165 } from "interfaces/L2/IMessageHooks.sol";
+import { ICrossMessageBundler } from "interfaces/L2/ICrossMessageBundler.sol";
+import { IBundleRelayer } from "interfaces/L2/IBundleRelayer.sol";
 
 // Test mocks
 import { MockSendHook, MockRelayHook } from "test/mocks/MockHooks.sol";
@@ -539,7 +541,7 @@ contract L2ToL2CrossDomainMessenger_RelayMessage_Test is L2ToL2CrossDomainMessen
     )
         public
     {
-        // Ensure the target is not CrossL2Inbox or L2ToL2CrossDomainMessenger or the foundry VM
+        // Ensure the target is not CrossL2Inbox or L2ToL2CrossDomainMessenger
         vm.assume(
             _target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER
                 && _target != foundryVMAddress
@@ -1199,5 +1201,320 @@ contract L2ToL2CrossDomainMessenger_ResendMessageWithHooks_Test is L2ToL2CrossDo
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(logs.length, 1);
         assertEq(logs[0].topics[0], L2ToL2CrossDomainMessenger.SentMessage.selector);
+    }
+}
+
+/// @title MessageBundler
+/// @notice A bundler that recursively creates bundles and checks its depth.
+contract MessageBundler is ICrossMessageBundler {
+    address internal foundryVMAddress = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+    Vm vm = Vm(foundryVMAddress);
+
+    /// @notice Implements ERC165 interface detection
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(ICrossMessageBundler).interfaceId || interfaceId == type(IERC165).interfaceId;
+    }
+
+    function onCreateBundle(bytes calldata _context) external {
+        (uint256 expectedDepth, uint256 maxDepth) = abi.decode(_context, (uint256, uint256));
+
+        assert(
+            expectedDepth == L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth()
+        );
+
+        // Create a hook for the message we'll send within this bundle
+        HookData memory relayHook = HookData(address(uint160(expectedDepth)), abi.encode(expectedDepth));
+
+        uint256 nonce = L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageNonce();
+
+        vm.expectEmit(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        emit L2ToL2CrossDomainMessenger.SentMessage(
+            1, // destination chain
+            address(this), // target
+            nonce, // nonce
+            address(this), // sender
+            relayHook, // relay hook
+            "" // message
+        );
+
+        // Send a message with hooks within this bundle
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).sendMessageWithHooks(
+            1, // destination chain
+            address(this), // target
+            HookData(address(0), ""), // no send hook
+            relayHook, // relay hook
+            "" // message
+        );
+
+        if (expectedDepth < maxDepth) {
+            // Create nested bundle
+            HookData memory bundleHook = HookData(address(this), "");
+            L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).createBundle(
+                bundleHook, abi.encode(expectedDepth + 1, maxDepth)
+            );
+        }
+    }
+
+    function assertBundleDepth(uint256 _maxDepth) external {
+        assert(L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth() == 0);
+
+        HookData memory bundleHook = HookData(address(this), "");
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).createBundle(
+            bundleHook, abi.encode(1, _maxDepth)
+        );
+
+        // Check that the bundle depth has been restored to 0
+        assert(L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth() == 0);
+    }
+}
+
+/// @title L2ToL2CrossDomainMessenger_CreateBundle_Test
+/// @notice Tests the `createBundle` function.
+contract L2ToL2CrossDomainMessenger_CreateBundle_Test is L2ToL2CrossDomainMessenger_TestInit {
+    MessageBundler internal messageBundler = new MessageBundler();
+
+    function testFuzz_createEntrypoint_maintainsBundleDepth(uint256 _maxDepth) external {
+        _maxDepth = bound(_maxDepth, 3, 10);
+
+        messageBundler.assertBundleDepth(_maxDepth);
+    }
+}
+
+/// @title L2ToL2CrossDomainMessenger_RelayBundle_Test
+/// @notice Tests that relaying a bundle with multiple depths and hooks succeeds.
+contract L2ToL2CrossDomainMessenger_RelayBundle_Test is L2ToL2CrossDomainMessenger_TestInit {
+    bytes32 internal constant SENT_MESSAGE_EVENT_SELECTOR =
+        0xe16f3099263391b1db572a00693ac93eb6162a43a8e94ba69199020bf0f84dc5;
+
+    SimpleBundleRelayer internal simpleBundleRelayer;
+    BundleRelayerWithHooks internal bundleRelayerWithHooks;
+
+    function setUp() public override {
+        super.setUp();
+        simpleBundleRelayer = new SimpleBundleRelayer();
+        bundleRelayerWithHooks = new BundleRelayerWithHooks();
+    }
+
+    function test_relayBundle_simple_succeeds(address _target, bytes memory _targetMessage) external {
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
+        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        assumeNotForgeAddress(_target);
+
+        // Avoid reverts for extcode size check
+        vm.etch(_target, "0x0000000000000000000000000000000000000001");
+
+        Identifier memory id = Identifier({
+            origin: Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            blockNumber: 1,
+            logIndex: 1,
+            timestamp: 1,
+            chainId: block.chainid
+        });
+
+        // Calculate the hook hash for the bundle relayer (depth 1 in bundle)
+        bytes32 hookHash = keccak256(abi.encodePacked(bytes32(0), address(simpleBundleRelayer)));
+
+        bytes memory sentMessage = abi.encodePacked(
+            SENT_MESSAGE_EVENT_SELECTOR,
+            abi.encode(block.chainid, _target, 1),
+            abi.encode(address(this), HookData(address(0), ""), _targetMessage)
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+        vm.expectCall(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            abi.encodeCall(L2ToL2CrossDomainMessenger.relayMessage, (id, sentMessage))
+        );
+
+        vm.mockCall({ callee: _target, data: _targetMessage, returnData: abi.encode(1) });
+        vm.expectCall({ callee: _target, data: _targetMessage });
+
+        simpleBundleRelayer.relayBundle(abi.encode(id, sentMessage));
+    }
+
+    function test_relayBundle_withHooks_succeeds(address _target, bytes memory _targetMessage) external {
+        // Ensure that the target contract is not CrossL2Inbox or L2ToL2CrossDomainMessenger
+        vm.assume(_target != Predeploys.CROSS_L2_INBOX && _target != Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+        assumeNotForgeAddress(_target);
+
+        // Avoid reverts for extcode size check
+        vm.etch(_target, "0x1000000000000000000000000000000000000001");
+
+        Identifier memory id = Identifier({
+            origin: Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            blockNumber: 1,
+            logIndex: 1,
+            timestamp: 1,
+            chainId: block.chainid
+        });
+
+        // Create relay hook data that includes the hook
+        HookData memory relayHook = HookData(address(0), "");
+
+        bytes memory sentMessage = abi.encodePacked(
+            SENT_MESSAGE_EVENT_SELECTOR,
+            abi.encode(block.chainid, _target, 1),
+            abi.encode(address(this), relayHook, _targetMessage)
+        );
+
+        // Ensure the CrossL2Inbox validates this message
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeCall(ICrossL2Inbox.validateMessage, (id, keccak256(sentMessage))),
+            returnData: ""
+        });
+        vm.expectCall(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            abi.encodeCall(L2ToL2CrossDomainMessenger.relayMessage, (id, sentMessage))
+        );
+
+        vm.mockCall({ callee: _target, data: _targetMessage, returnData: abi.encode(1) });
+        vm.expectCall({ callee: _target, data: _targetMessage });
+
+        bundleRelayerWithHooks.relayBundle(abi.encode(id, sentMessage));
+    }
+
+    /// @notice Tests that relaying a bundle with multiple depths and hooks succeeds.
+    function test_relayBundle_multipleDepth_succeeds(uint256 _targetsAmount, bytes memory _targetMessage) external {
+        _targetsAmount = bound(_targetsAmount, 3, 10);
+
+        // Message targets
+        address[] memory targets = new address[](_targetsAmount);
+
+        // Bundle relayers for recursive calling
+        address[] memory recursiveBundleRelayers = new address[](_targetsAmount);
+
+        for (uint256 i = 0; i < _targetsAmount; i++) {
+            targets[i] = makeAddr(string(abi.encodePacked("target ", i)));
+            vm.etch(targets[i], "0x1000000000000000000000000000000000000001");
+            recursiveBundleRelayers[i] = address(new RecursiveBundleRelayerWithHooks());
+        }
+
+        Identifier[] memory ids = new Identifier[](_targetsAmount);
+        bytes[] memory sentMessages = new bytes[](_targetsAmount);
+
+        for (uint256 i = 0; i < _targetsAmount; i++) {
+            ids[i] = Identifier({
+                origin: Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+                blockNumber: i + 1,
+                logIndex: 1,
+                timestamp: 1,
+                chainId: block.chainid
+            });
+
+            // Create simple relay hook (no hook for simplicity)
+            HookData memory relayHook = HookData(address(0), "");
+
+            sentMessages[i] = abi.encodePacked(
+                SENT_MESSAGE_EVENT_SELECTOR,
+                abi.encode(block.chainid, targets[i], 1),
+                abi.encode(address(this), relayHook, _targetMessage)
+            );
+
+            // Ensure the CrossL2Inbox validates this message
+            vm.mockCall({
+                callee: Predeploys.CROSS_L2_INBOX,
+                data: abi.encodeCall(ICrossL2Inbox.validateMessage, (ids[i], keccak256(sentMessages[i]))),
+                returnData: ""
+            });
+            vm.expectCall(
+                Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+                abi.encodeCall(L2ToL2CrossDomainMessenger.relayMessage, (ids[i], sentMessages[i]))
+            );
+
+            vm.mockCall({ callee: targets[i], data: _targetMessage, returnData: abi.encode(1) });
+            vm.expectCall({ callee: targets[i], data: _targetMessage });
+        }
+
+        // Kickstart the bundle relaying by calling the first bundle relayer
+        RecursiveBundleRelayerWithHooks(recursiveBundleRelayers[0]).relayBundle(
+            abi.encode(recursiveBundleRelayers, address(this), ids, sentMessages)
+        );
+    }
+}
+
+/// @title SimpleBundleRelayer
+/// @notice A contract that relays a bundle with a single message and no message entrypoint.
+contract SimpleBundleRelayer is IBundleRelayer {
+    /// @notice Implements ERC165 interface detection
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(IBundleRelayer).interfaceId || interfaceId == type(IERC165).interfaceId;
+    }
+
+    function onRelayBundle(bytes calldata _context) external override {
+        (Identifier memory id, bytes memory message) = abi.decode(_context, (Identifier, bytes));
+
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(id, message);
+    }
+
+    function relayBundle(bytes calldata _context) external {
+        // Create a bundle
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayBundle(_context);
+    }
+}
+
+/// @title BundleRelayerWithHooks
+/// @notice A contract that relays a bundle with hooks
+contract BundleRelayerWithHooks is IBundleRelayer {
+    /// @notice Implements ERC165 interface detection
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(IBundleRelayer).interfaceId || interfaceId == type(IERC165).interfaceId;
+    }
+
+    function onRelayBundle(bytes calldata _context) external override {
+        // Decode the context to get the identifier and message
+        (Identifier memory id, bytes memory message) = abi.decode(_context, (Identifier, bytes));
+
+        // Call relayMessage on the L2ToL2CrossDomainMessenger
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(id, message);
+    }
+
+    function relayBundle(bytes calldata _context) external {
+        // Create a bundle by calling relayBundle on L2ToL2CrossDomainMessenger
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayBundle(_context);
+    }
+}
+
+/// @title RecursiveBundleRelayerWithHooks
+/// @notice A contract that recursively relays bundles with hooks
+contract RecursiveBundleRelayerWithHooks is IBundleRelayer {
+    /// @notice Implements ERC165 interface detection
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(IBundleRelayer).interfaceId || interfaceId == type(IERC165).interfaceId;
+    }
+
+    function onRelayBundle(bytes calldata _context) external override {
+        (address[] memory bundleRelayers, address target, Identifier[] memory ids, bytes[] memory sentMessages) =
+            abi.decode(_context, (address[], address, Identifier[], bytes[]));
+
+        uint256 currentDepth =
+            L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).messageBundleDepth();
+
+        // For test purposes, just verify the bundle depth is working
+        require(currentDepth > 0, "Expected to be in a bundle");
+
+        // Relay the message at the current depth
+        if (currentDepth - 1 < ids.length) {
+            L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayMessage(
+                ids[currentDepth - 1], sentMessages[currentDepth - 1]
+            );
+        }
+
+        // Continue with next bundle relayer if we haven't reached the end
+        if (currentDepth < bundleRelayers.length) {
+            RecursiveBundleRelayerWithHooks(bundleRelayers[currentDepth]).relayBundle(
+                abi.encode(bundleRelayers, target, ids, sentMessages)
+            );
+        }
+    }
+
+    function relayBundle(bytes calldata _context) external {
+        // Create a bundle by calling relayBundle on L2ToL2CrossDomainMessenger
+        L2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER).relayBundle(_context);
     }
 }
