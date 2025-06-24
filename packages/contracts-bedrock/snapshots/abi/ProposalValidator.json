@@ -726,6 +726,11 @@
   },
   {
     "inputs": [],
+    "name": "ProposalValidator_InvalidCriteriaValue",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ProposalValidator_InvalidFundingProposalType",
     "type": "error"
   },
