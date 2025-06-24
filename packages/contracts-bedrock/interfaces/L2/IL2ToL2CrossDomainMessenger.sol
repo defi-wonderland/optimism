@@ -52,11 +52,9 @@ interface IL2ToL2CrossDomainMessenger {
     /// @param target       Target contract or wallet address.
     /// @param messageNonce Nonce associated with the messsage sent
     /// @param sender       Address initiating this message call
-    /// @param relayHookHash Hash of the relay hook data
+    /// @param relayHook    Hook data for relay callback (encoded in message, executed on destination chain).
     /// @param message      Message payload to call target with.
-    event SentMessage(
-        uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes32 relayHookHash, bytes message
-    );
+    event SentMessage(uint256 destination, address target, uint256 messageNonce, address sender, HookData relayHook, bytes message);
 
     /// @notice Emitted whenever a message is successfully relayed on this chain.
     /// @param source       Chain ID of the source chain.
