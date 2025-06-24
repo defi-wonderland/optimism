@@ -903,7 +903,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, "Test proposal", proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
         );
     }
 
