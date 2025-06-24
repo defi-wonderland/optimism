@@ -167,9 +167,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param encodedVotingModuleData The encoded voting module data.
     event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
 
-    /// @notice The schema UID for attestations in the Ethereum Attestation Service.
+    /// @notice The schema UID for attestations in the Ethereum Attestation Service for submitting proposals.
     /// @dev Schema format: { approvedProposer: address, proposalType: uint8 }
-    bytes32 public immutable ATTESTATION_SCHEMA_UID;
+    bytes32 public immutable SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID;
+
+    /// @notice The schema UID for attestations in the Ethereum Attestation Service for checking if the caller
+    ///         is part of the top100 delegates.
+    bytes32 public immutable TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
 
     /// @notice The Optimism Governor contract that will handle the voting phase.
     IOptimismGovernor public immutable GOVERNOR;
@@ -202,17 +206,21 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Constructs the ProposalValidator contract.
-    /// @param _attestationSchemaUid The schema UID for attestations in EAS.
+    /// @param _submitProposalAttestationSchemaUid The schema UID for attestations in EAS for submitting proposals.
+    /// @param _topDelegatesAttestationSchemaUid The schema UID for attestations in EAS for checking if the caller
+    ///        is part of the top100 delegates.
     /// @param _governor The Optimism Governor contract address.
     /// @param _votingToken The token used to determine voting power.
     constructor(
-        bytes32 _attestationSchemaUid,
+        bytes32 _submitProposalAttestationSchemaUid,
+        bytes32 _topDelegatesAttestationSchemaUid,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken
     )
         ReinitializableBase(1)
     {
-        ATTESTATION_SCHEMA_UID = _attestationSchemaUid;
+        SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID = _submitProposalAttestationSchemaUid;
+        TOP_DELEGATES_ATTESTATION_SCHEMA_UID = _topDelegatesAttestationSchemaUid;
         GOVERNOR = _governor;
         VOTING_TOKEN = _votingToken;
         _disableInitializers();
@@ -386,6 +394,21 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         emit ProposalApproved(_proposalHash, msg.sender);
     }
 
+    /// @notice Approves a proposal before being moved for voting.
+    /// @dev This function should only be called by the top delegeates.
+    /// @param _proposalHash The hash of the proposal to approve
+    /// @param _attestationUid The UID of the attestation for the delegate to approve the proposal
+    function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external {
+
+
+        ProposalData storage proposal = _proposals[_proposalHash];
+        // check if the proposal exists
+        if (proposal.proposer == address(0)) {
+            revert ProposalValidator_ProposalDoesNotExist();
+        }
+
+    }
+
     /// @notice Move a proposal to voting phase after sufficient delegate approvals
     /// @param _targets Target addresses for proposal calls
     /// @param _values ETH values for proposal calls
@@ -487,7 +510,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         (address approvedDelegate, uint8 proposalType) = abi.decode(attestation.data, (address, uint8));
 
         if (
-            attestation.attester != owner() || attestation.schema != ATTESTATION_SCHEMA_UID
+            attestation.attester != owner() || attestation.schema != SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID
                 || approvedDelegate != msg.sender || proposalType != uint8(_expectedProposalType)
         ) {
             revert ProposalValidator_InvalidAttestation();

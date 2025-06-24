@@ -85,7 +85,7 @@ contract ProposalValidator_Init is CommonTest {
     ProposalValidatorForTest public impl;
     IOptimismGovernor public governor;
     IProposalTypesConfigurator public proposalTypesConfigurator;
-    bytes32 public ATTESTATION_SCHEMA_UID;
+    bytes32 public SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID;
     bytes32 public proposalHash;
 
     event ProposalSubmitted(
@@ -306,7 +306,7 @@ contract ProposalValidator_Init is CommonTest {
         // Setup mocks
         _setupProposalTypesConfiguratorMocks();
 
-        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
+        impl = new ProposalValidatorForTest(SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
         vm.prank(owner);
@@ -339,7 +339,7 @@ contract ProposalValidator_Init is CommonTest {
         approvalVotingModule = makeAddr("approvalVotingModule");
 
         vm.prank(owner);
-        ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
+        SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
             "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
         );
 
@@ -362,7 +362,7 @@ contract ProposalValidator_Init is CommonTest {
         vm.prank(owner);
         return IEAS(Predeploys.EAS).attest(
             AttestationRequest({
-                schema: ATTESTATION_SCHEMA_UID,
+                schema: SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
                     recipient: address(0),
                     expirationTime: 0,
@@ -1086,7 +1086,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         // Setup mocks
         _setupProposalTypesConfiguratorMocks();
 
-        impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
+        impl = new ProposalValidatorForTest(SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
         // Initialize will be tested manually
     }

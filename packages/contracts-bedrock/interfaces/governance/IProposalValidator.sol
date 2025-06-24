@@ -35,7 +35,7 @@ interface IProposalValidator is ISemver {
         uint256 requiredApprovals;
         uint8 proposalVotingModule;
     }
-    
+
     enum ProposalType {
         ProtocolOrGovernorUpgrade,
         MaintenanceUpgrade,
@@ -70,11 +70,11 @@ interface IProposalValidator is ISemver {
         bytes32 indexed proposalHash,
         bytes encodedVotingModuleData
     );
-    
+
     event VotingCycleDataSet(
-        uint256 cycleNumber, 
-        uint256 startBlock, 
-        uint256 duration, 
+        uint256 cycleNumber,
+        uint256 startBlock,
+        uint256 duration,
         uint256 votingCycleDistributionLimit
     );
 
@@ -84,7 +84,7 @@ interface IProposalValidator is ISemver {
         string description,
         ProposalType proposalType
     );
-    
+
     event Initialized(uint8 version);
 
     function approveProposal(bytes32 _proposalHash) external;
@@ -95,7 +95,7 @@ interface IProposalValidator is ISemver {
         bytes[] memory _calldatas,
         string memory _description
     ) external returns (uint256 governorProposalId_);
-    
+
     function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
     function setDistributionThreshold(uint256 _distributionThreshold) external;
@@ -104,7 +104,7 @@ interface IProposalValidator is ISemver {
         ProposalType _proposalType,
         ProposalTypeData memory _proposalTypeData
     ) external;
-    
+
     function setVotingCycleData(
         uint256 _cycleNumber,
         uint256 _startBlock,
@@ -133,11 +133,11 @@ interface IProposalValidator is ISemver {
         ProposalType[] memory _proposalTypes,
         ProposalTypeData[] memory _proposalTypesData
     ) external;
-    
+
     function renounceOwnership() external;
-    
+
     function canSignOff(address _delegate) external view returns (bool canSignOff_);
-    
+
     function transferOwnership(address newOwner) external;
 
     function minimumVotingPower() external view returns (uint256);
@@ -152,15 +152,15 @@ interface IProposalValidator is ISemver {
 
     function initVersion() external view returns (uint8);
 
-    function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+    function SUBMIT_PROPOSAL_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 
     function proposalTypesConfigurator() external view returns (IProposalTypesConfigurator);
-    
+
     function proposalTypesData(ProposalType) external view returns (uint256 requiredApprovals, uint8 proposalVotingModule);
 
     function votingCycles(uint256) external view returns (
-        uint256 startingBlock, 
-        uint256 duration, 
+        uint256 startingBlock,
+        uint256 duration,
         uint256 votingCycleDistributionLimit
     );
 
