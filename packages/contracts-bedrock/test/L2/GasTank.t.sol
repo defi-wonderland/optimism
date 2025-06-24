@@ -18,9 +18,6 @@ import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { ICrossL2Inbox, Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
-import { GasTank } from "src/L2/GasTank.sol";
-
-// TODO change parameter names to start with underscore
 contract GasTankTest is Test {
     using stdStorage for StdStorage;
 
@@ -75,8 +72,8 @@ contract GasTankTest is Test {
         gasTank.finalizeWithdrawal(address(this));
     }
 
-    function testFuzz_finalizeWithdrawal_succeeds(uint256 _withdrawalAmount, address _to, uint256 balance) external {
-        uint256 withdrawableAmount = balance < _withdrawalAmount ? balance : _withdrawalAmount;
+    function testFuzz_finalizeWithdrawal_succeeds(uint256 _withdrawalAmount, address _to, uint256 _balance) external {
+        uint256 withdrawableAmount = _balance < _withdrawalAmount ? _balance : _withdrawalAmount;
         vm.deal(address(gasTank), withdrawableAmount);
 
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(0).checked_write(
@@ -85,7 +82,7 @@ contract GasTankTest is Test {
         stdstore.target(address(gasTank)).sig("withdrawals(address)").with_key(address(this)).depth(1).checked_write(
             _withdrawalAmount
         );
-        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(balance);
+        stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(_balance);
         vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
         vm.expectEmit(address(gasTank));
@@ -97,7 +94,7 @@ contract GasTankTest is Test {
         assertEq(amount, 0, "GasTank should have deleted the withdrawal amount");
         assertEq(
             gasTank.balanceOf(address(this)),
-            balance - withdrawableAmount,
+            _balance - withdrawableAmount,
             "GasTank balance should be 0 after finalizing the withdrawal"
         );
         assertEq(_to.balance, withdrawableAmount, "Address should have received the withdrawn amount");
@@ -108,7 +105,7 @@ contract GasTankTest is Test {
         emit IGasTank.AuthorizedClaim(address(this), _messageHash);
         gasTank.authorizeClaim(_messageHash);
 
-        assertTrue(gasTank.flaggedMessages(address(this), _messageHash), "GasTank should have flagged the message");
+        assertTrue(gasTank.authorizedMessages(address(this), _messageHash), "GasTank should have flagged the message");
     }
 
     // TODO make test with a nested message
@@ -256,7 +253,7 @@ contract GasTankTest is Test {
             abi.encode(destinationMessageHashes)
         );
 
-        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+        stdstore.target(address(gasTank)).sig("authorizedMessages(address,bytes32)").with_key(address(this)).with_key(
             _originMsgHash
         ).checked_write(true);
 
@@ -307,7 +304,7 @@ contract GasTankTest is Test {
             )
         );
 
-        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+        stdstore.target(address(gasTank)).sig("authorizedMessages(address,bytes32)").with_key(address(this)).with_key(
             _originMsgHash
         ).checked_write(true);
 
@@ -344,7 +341,7 @@ contract GasTankTest is Test {
         _baseFee = bound(_baseFee, 1, maxBaseFee);
         vm.fee(_baseFee);
 
-        uint256 claimCost = gasTank.claimOverhead(1);
+        uint256 claimCost = gasTank.claimOverhead(1, _baseFee);
         _relayCost = bound(_relayCost, 1, (maxDeposit - claimCost));
 
         uint256 totalCost = claimCost + _relayCost; // Must be under 0.1 ether
@@ -367,7 +364,9 @@ contract GasTankTest is Test {
             )
         );
 
-        stdstore.target(address(gasTank)).sig("flaggedMessages(address,bytes32)").with_key(address(this)).with_key(
+        uint256 claimOverhead = gasTank.claimOverhead(1, _baseFee);
+
+        stdstore.target(address(gasTank)).sig("authorizedMessages(address,bytes32)").with_key(address(this)).with_key(
             _originMsgHash
         ).checked_write(true);
         stdstore.target(address(gasTank)).sig("balanceOf(address)").with_key(address(this)).checked_write(totalCost);
@@ -392,7 +391,7 @@ contract GasTankTest is Test {
         );
 
         vm.expectEmit(address(gasTank));
-        emit IGasTank.Claimed(_originMsgHash, _relayer, address(this), totalCost);
+        emit IGasTank.Claimed(_originMsgHash, _relayer, address(this), address(this), _relayCost, claimOverhead);
         gasTank.claim(id, address(this), payload);
 
         assertEq(gasTank.balanceOf(address(this)), 0, "GasTank balance should be 0");
