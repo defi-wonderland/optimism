@@ -1352,7 +1352,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
-    function testFuzz_submitCouncilMemberElectionsProposal_wrongProposer_reverts(address fuzzedProposer) public {
+    function testFuzz_submitCouncilMemberElectionsProposal_unattestedProposer_reverts(address fuzzedProposer) public {
         vm.assume(fuzzedProposer != topDelegate_A); // Ensure it's different from attested proposer
 
         // Try to submit with different address than attested
@@ -1424,7 +1424,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
-    function testFuzz_submitCouncilMemberElectionsProposal_unapprovedProposer_reverts(address fuzzedAttester) public {
+    function testFuzz_submitCouncilMemberElectionsProposal_attestationNotFromOwner_reverts(address fuzzedAttester) public {
         vm.assume(fuzzedAttester != owner); // Ensure it's not the approved owner
 
         // Create attestation but don't use proper owner as attester
