@@ -80,7 +80,8 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
-    uint8 public constant APPROVAL_VOTING_MODULE_ID = 3;
+    uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
+    uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2;
 
     address owner;
     address user;
@@ -89,6 +90,7 @@ contract ProposalValidator_Init is CommonTest {
     address topDelegate_C;
     address topDelegate_D;
     address approvalVotingModule;
+    address optimisticVotingModule;
 
     ProposalValidatorForTest public validator;
     ProposalValidatorForTest public impl;
@@ -329,25 +331,27 @@ contract ProposalValidator_Init is CommonTest {
     }
 
     /// @notice Helper function to setup proposal types configurator mocks
-    function _setupProposalTypesConfiguratorMocks() internal {
-        // Mock calls for different proposal type IDs
-        for (uint8 i = 0; i < 5; i++) {
-            address moduleAddress = (i == 2 || i == APPROVAL_VOTING_MODULE_ID) ? approvalVotingModule : address(0);
-
-            vm.mockCall(
-                address(proposalTypesConfigurator),
-                abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (i)),
-                abi.encode(
-                    IProposalTypesConfigurator.ProposalType({
-                        quorum: 100,
-                        approvalThreshold: 100,
-                        name: "Test Proposal Type",
-                        description: "Test Description",
-                        module: moduleAddress
-                    })
-                )
-            );
+    function _mockProposalTypesConfiguratorCall(uint8 _votingModuleId) internal {
+        address moduleAddress;
+        if (_votingModuleId == APPROVAL_VOTING_MODULE_ID) {
+            moduleAddress = approvalVotingModule;
+        } else if (_votingModuleId == OPTIMISTIC_VOTING_MODULE_ID) {
+            moduleAddress = optimisticVotingModule;
         }
+
+        _mockAndExpect(
+            address(proposalTypesConfigurator),
+            abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (_votingModuleId)),
+            abi.encode(
+                IProposalTypesConfigurator.ProposalType({
+                    quorum: 100,
+                    approvalThreshold: 100,
+                    name: "Test Proposal Type",
+                    description: "Test Description",
+                    module: moduleAddress
+                })
+            )
+        );
     }
 
     /// @notice Initializes the validator
@@ -359,9 +363,6 @@ contract ProposalValidator_Init is CommonTest {
 
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
-
-        // Setup mocks
-        _setupProposalTypesConfiguratorMocks();
 
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
@@ -394,6 +395,7 @@ contract ProposalValidator_Init is CommonTest {
         user = makeAddr("user");
         governor = IOptimismGovernor(makeAddr("governor"));
         approvalVotingModule = makeAddr("approvalVotingModule");
+        optimisticVotingModule = makeAddr("optimisticVotingModule");
 
         vm.prank(owner);
         ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
@@ -858,6 +860,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         vm.expectEmit(address(validator));
         emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
         vm.prank(proposer);
         bytes32 proposalHash =
             validator.submitFundingProposal(criteriaValue, descriptions, recipients, amounts, description, proposalType);
@@ -1052,6 +1056,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             abi.encode(0)
         );
 
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+        
         // Submit first proposal
         vm.prank(user);
         validator.submitFundingProposal(
@@ -1060,6 +1066,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         // Attempt to submit identical proposal
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+        
         vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
@@ -1088,6 +1097,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+        
         vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
@@ -1140,12 +1152,8 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
-        // Setup mocks
-        _setupProposalTypesConfiguratorMocks();
-
         impl = new ProposalValidatorForTest(ATTESTATION_SCHEMA_UID, governor, governanceToken);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
-        // Initialize will be tested manually
     }
 
     function test_initialize_succeeds() public {
@@ -1295,6 +1303,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         vm.expectEmit(address(validator));
         emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, attestationUid
@@ -1385,6 +1395,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
             abi.encode(0)
         );
 
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+        
         // Submit first proposal
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
@@ -1397,6 +1409,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
         // Attempt to submit identical proposal should revert
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+        
         vm.prank(topDelegate_B);
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, secondAttestation
@@ -1418,6 +1433,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
+        
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+        
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, attestationUid
