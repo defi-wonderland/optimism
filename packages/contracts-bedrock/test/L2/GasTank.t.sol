@@ -76,7 +76,7 @@ contract GasTankTest is Test {
 
     function testFuzz_finalizeWithdrawal_succeeds(uint256 _withdrawalAmount, address _to, uint256 _balance) external {
         // Assumptions
-        vm.assume(_to != address(this));
+        vm.assume(_to != address(this) && _to != address(gasTank));
 
         // Setting storage
         uint256 withdrawableAmount = _balance < _withdrawalAmount ? _balance : _withdrawalAmount;
@@ -91,6 +91,7 @@ contract GasTankTest is Test {
         vm.warp(block.timestamp + gasTank.WITHDRAWAL_DELAY());
 
         // Call finalizeWithdrawal
+        uint256 toBalanceBefore = _to.balance;
         vm.expectEmit(address(gasTank));
         emit IGasTank.WithdrawalFinalized(address(this), _to, withdrawableAmount);
         gasTank.finalizeWithdrawal(_to);
@@ -104,7 +105,9 @@ contract GasTankTest is Test {
             _balance - withdrawableAmount,
             "Depositor balance should be deducted after finalizing the withdrawal"
         );
-        assertEq(_to.balance, withdrawableAmount, "Address should have received the withdrawn amount");
+        assertEq(
+            _to.balance, toBalanceBefore + withdrawableAmount, "To address should have received the withdrawn amount"
+        );
     }
 
     function testFuzz_authorizeClaim_succeeds(bytes32 _messageHash) external {
