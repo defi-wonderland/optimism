@@ -12,7 +12,7 @@ interface IGasTank {
     }
 
     // Events
-    event AuthorizedClaim(address indexed gasProvider, bytes32 indexed messageHash);
+    event AuthorizedClaims(address indexed gasProvider, bytes32[] messageHashes);
     event Claimed(
         bytes32 indexed messageHash,
         address indexed relayer,
