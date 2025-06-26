@@ -34,10 +34,10 @@ contract GasTank is IGasTank {
     mapping(address gasProvider => Withdrawal) public withdrawals;
 
     /// @notice The authorized messages for claiming
-    mapping(address gasProvider => mapping(bytes32 msgHash => bool authorized)) public authorizedMessages;
+    mapping(address gasProvider => mapping(bytes32 messageHash => bool authorized)) public authorizedMessages;
 
     /// @notice The claimed messages
-    mapping(bytes32 rootMsgHash => bool claimed) public claimed;
+    mapping(bytes32 messageHash => bool claimed) public claimed;
 
     /// @notice Deposits funds into the gas tank, from which the relayer can claim the repayment after relaying
     /// @param _to The address to deposit the funds to
