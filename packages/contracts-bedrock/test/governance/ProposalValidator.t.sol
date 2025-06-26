@@ -192,6 +192,7 @@ contract ProposalValidator_Init is CommonTest {
         _setCouncilBudgetProposalType();
     }
     /// @notice Helper to create minimal valid arrays for funding proposal error tests
+
     function _createMinimalFundingArrays()
         internal
         pure
@@ -1057,7 +1058,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
 
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-        
+
         // Submit first proposal
         vm.prank(user);
         validator.submitFundingProposal(
@@ -1066,9 +1067,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         // Attempt to submit identical proposal
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-        
+
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-        
+
         vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
@@ -1097,9 +1098,9 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-        
+
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-        
+
         vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
@@ -1396,7 +1397,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
 
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-        
+
         // Submit first proposal
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
@@ -1409,9 +1410,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
         // Attempt to submit identical proposal should revert
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-        
+
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-        
+
         vm.prank(topDelegate_B);
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, secondAttestation
@@ -1433,16 +1434,18 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-        
+
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-        
+
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
     }
 
-    function testFuzz_submitCouncilMemberElectionsProposal_attestationNotFromOwner_reverts(address fuzzedAttester) public {
+    function testFuzz_submitCouncilMemberElectionsProposal_attestationNotFromOwner_reverts(address fuzzedAttester)
+        public
+    {
         vm.assume(fuzzedAttester != owner); // Ensure it's not the approved owner
 
         // Create attestation but don't use proper owner as attester
