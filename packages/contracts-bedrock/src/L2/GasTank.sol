@@ -92,7 +92,7 @@ contract GasTank is IGasTank {
         bytes calldata _sentMessage
     )
         external
-        returns (uint256 gasCost_, bytes32[] memory nestedMessageHashes_)
+        returns (uint256 relayCost_, bytes32[] memory nestedMessageHashes_)
     {
         uint256 initialGas = gasleft();
 
@@ -112,10 +112,10 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        gasCost_ = _cost(initialGas - gasleft()) + _relayOverhead(nestedMessageHashes_.length);
+        relayCost_ = _cost(initialGas - gasleft(), block.basefee) + _relayOverhead(nestedMessageHashes_.length);
 
         // Emit the event with the relationship between the origin message and the destination messages
-        emit RelayedMessageGasReceipt(messageHash, msg.sender, gasCost_, nestedMessageHashes_);
+        emit RelayedMessageGasReceipt(messageHash, msg.sender, relayCost_, nestedMessageHashes_);
     }
 
     /// @notice Claims repayment for a relayed message
@@ -129,67 +129,63 @@ contract GasTank is IGasTank {
         // Validate the message
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_payload));
 
-        (bytes32 originMessageHash, address relayer, uint256 relayCost, bytes32[] memory destinationMessageHashes) =
+        (bytes32 messageHash, address relayer, uint256 relayCost, bytes32[] memory nestedMessageHashes) =
             decodeGasReceiptPayload(_payload);
 
-        if (!authorizedMessages[_gasProvider][originMessageHash]) revert MessageNotAuthorized();
+        if (!authorizedMessages[_gasProvider][messageHash]) revert MessageNotAuthorized();
 
-        if (claimed[originMessageHash]) revert AlreadyClaimed();
+        if (claimed[messageHash]) revert AlreadyClaimed();
 
-        uint256 destinationMessageHashesLength = destinationMessageHashes.length;
+        uint256 nestedMessageHashesLength = nestedMessageHashes.length;
 
         // Authorize nested messages by the same gas provider
-        for (uint256 i; i < destinationMessageHashesLength; i++) {
-            authorizedMessages[_gasProvider][destinationMessageHashes[i]] = true;
+        for (uint256 i; i < nestedMessageHashesLength; i++) {
+            authorizedMessages[_gasProvider][nestedMessageHashes[i]] = true;
         }
 
         if (balanceOf[_gasProvider] < relayCost) revert InsufficientBalance();
 
         balanceOf[_gasProvider] -= relayCost;
 
-        uint256 claimCost = _min(balanceOf[_gasProvider], claimOverhead(destinationMessageHashesLength));
+        uint256 claimCost = _min(balanceOf[_gasProvider], claimOverhead(nestedMessageHashesLength, block.basefee));
 
         balanceOf[_gasProvider] -= claimCost;
 
-        claimed[originMessageHash] = true;
+        claimed[messageHash] = true;
 
         new SafeSend{ value: relayCost }(payable(relayer));
 
         new SafeSend{ value: claimCost }(payable(msg.sender));
 
-        emit Claimed(originMessageHash, relayer, _gasProvider, msg.sender, relayCost, claimCost);
+        emit Claimed(messageHash, relayer, _gasProvider, msg.sender, relayCost, claimCost);
     }
 
     /// @notice Decodes the payload of the RelayedMessageGasReceipt event
     /// @param _payload The payload of the event
-    /// @return originMessageHash_ The hash of the relayed message
+    /// @return messageHash_ The hash of the relayed message
     /// @return relayer_ The address of the relayer
     /// @return relayCost_ The amount of native tokens expended on the relay
-    /// @return destinationMessageHashes_ The hashes of the destination messages
+    /// @return nestedMessageHashes_ The hashes of the destination messages
     function decodeGasReceiptPayload(bytes calldata _payload)
         public
         pure
-        returns (
-            bytes32 originMessageHash_,
-            address relayer_,
-            uint256 relayCost_,
-            bytes32[] memory destinationMessageHashes_
-        )
+        returns (bytes32 messageHash_, address relayer_, uint256 relayCost_, bytes32[] memory nestedMessageHashes_)
     {
         if (bytes32(_payload[:32]) != RelayedMessageGasReceipt.selector) revert InvalidPayload();
 
         // Decode Topics
-        (originMessageHash_, relayer_) = abi.decode(_payload[32:96], (bytes32, address));
+        (messageHash_, relayer_) = abi.decode(_payload[32:96], (bytes32, address));
 
         // Decode Data
-        (relayCost_, destinationMessageHashes_) = abi.decode(_payload[96:], (uint256, bytes32[]));
+        (relayCost_, nestedMessageHashes_) = abi.decode(_payload[96:], (uint256, bytes32[]));
     }
 
     /// @notice Calculates the overhead of a claim
     /// @param _numHashes The number of destination hashes relayed
+    /// @param _baseFee The base fee of the block
     /// @return overhead_ The overhead cost of the claim transaction in wei
-    function claimOverhead(uint256 _numHashes) public view returns (uint256 overhead_) {
-        overhead_ = _cost(152_000 + _numHashes * 23_000);
+    function claimOverhead(uint256 _numHashes, uint256 _baseFee) public pure returns (uint256 overhead_) {
+        overhead_ = _cost(152_000 + _numHashes * 23_000, _baseFee);
     }
 
     /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
@@ -199,14 +195,15 @@ contract GasTank is IGasTank {
         // The memory expansion cost is quadratic.
         // See: https://www.evm.codes/about#memoryexpansion
         uint256 memoryExpansionGas = (420 * _numHashes) + (_numHashes * _numHashes) / 512;
-        overhead_ = _cost(35_000 + memoryExpansionGas);
+        overhead_ = _cost(35_000 + memoryExpansionGas, block.basefee);
     }
 
     /// @notice Calculates the cost of gas used in wei
     /// @param _gasUsed The amount of gas to calculate the cost for
+    /// @param _baseFee The base fee of the block
     /// @return cost_ The cost in wei
-    function _cost(uint256 _gasUsed) internal view returns (uint256 cost_) {
-        cost_ = block.basefee * _gasUsed;
+    function _cost(uint256 _gasUsed, uint256 _baseFee) internal pure returns (uint256 cost_) {
+        cost_ = _baseFee * _gasUsed;
     }
 
     /// @notice Calculates the minimum of two values
