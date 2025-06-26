@@ -197,8 +197,38 @@ contract GasTank is IGasTank {
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The gas cost to emit the event in wei
     function _relayOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
-        uint256 memoryExpansionGas = (418 * _numHashes) + ((_numHashes * _numHashes) >> 9);
-        overhead_ = _cost(34_245 + memoryExpansionGas, block.basefee);
+        // Hex
+        // uint256 memoryExpansionGas = (420 * _numHashes) + (_numHashes * _numHashes) / 512;
+        // overhead_ = _cost(35_000 + memoryExpansionGas);
+        // overhead_ = _cost(
+        //     35_000 // base + calldata + base log + buffer
+        //         + (420 * _numHashes) // log data w adj
+        //         + (_numHashes * _numHashes) / 512 // memory expansion
+        // );
+
+        // Hex Adjusted
+        // overhead_ = _cost(
+        //     35_000 // base + calldata + base log + buffer
+        //         + (400 * _numHashes) // log data w adj
+        //         + (_numHashes * _numHashes) / 512 // memory expansion
+        // );
+
+        // Hex 2
+        uint256 memoryExpansionGas = ((_numHashes * _numHashes) >> 9);
+        overhead_ = _cost(
+            34_245 // base + calldata + base log + buffer
+                + (418 * _numHashes) // log data w adj
+                + memoryExpansionGas // memory expansion
+        );
+
+        // Baseline
+        // uint256 extraWords = (_numHashes * 32 + 31) / 32;
+        // overhead_ = _cost(
+        //     28_744 // base + calldata + base log
+        //         // + initialGas - gasleft() // execution
+        //         + 256 * _numHashes // log data
+        //         + 3 * extraWords + (extraWords ** 2) / 512
+        // ); // memory expansion
     }
 
     /// @notice Calculates the cost of gas used in wei
