@@ -22,7 +22,11 @@ import { Proxy } from "src/universal/Proxy.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Modules
-import { ProposalSettings as ApprovalProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
+import {
+    ProposalSettings as ApprovalProposalSettings,
+    ProposalOption,
+    PassingCriteria
+} from "src/governance/ApprovalVotingModule.sol";
 import { ProposalSettings as OptimisticProposalSettings } from "src/governance/OptimisticModule.sol";
 import { VotingModule } from "src/governance/VotingModule.sol";
 
@@ -362,15 +366,9 @@ contract ProposalValidator_Init is CommonTest {
     }
 
     /// @notice Helper function to construct voting module data for upgrade proposals
-    function _constructOptimisticVotingModuleData(uint248 againstThreshold)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        OptimisticProposalSettings memory settings = OptimisticProposalSettings({
-            againstThreshold: againstThreshold,
-            isRelativeToVotableSupply: true
-        });
+    function _constructOptimisticVotingModuleData(uint248 againstThreshold) internal pure returns (bytes memory) {
+        OptimisticProposalSettings memory settings =
+            OptimisticProposalSettings({ againstThreshold: againstThreshold, isRelativeToVotableSupply: true });
 
         return abi.encode(settings);
     }
@@ -1555,7 +1553,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
     {
         // Assume proposer is not zero address
         vm.assume(proposer != address(0));
-        
+
         // Bound proposal type to only upgrade proposals (0 = ProtocolOrGovernorUpgrade, 1 = MaintenanceUpgrade)
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
@@ -1612,9 +1610,8 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         }
 
         vm.prank(proposer);
-        bytes32 proposalHash = validator.submitUpgradeProposal(
-            againstThreshold, proposalDescription, attestationUid, proposalType
-        );
+        bytes32 proposalHash =
+            validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
 
         assertEq(proposalHash, expectedHash);
 
@@ -1628,13 +1625,13 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
-        
+
         if (proposalType == ProposalValidator.ProposalType.MaintenanceUpgrade) {
             assertTrue(inVoting, "MaintenanceUpgrade should be in voting immediately");
         } else {
             assertFalse(inVoting, "ProtocolOrGovernorUpgrade should not be in voting yet");
         }
-        
+
         assertEq(approvalCount, 0, "Approval count should be 0");
     }
 }

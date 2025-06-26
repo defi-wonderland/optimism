@@ -17,7 +17,11 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 // Modules
-import { ProposalSettings as ApprovalProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
+import {
+    ProposalSettings as ApprovalProposalSettings,
+    ProposalOption,
+    PassingCriteria
+} from "src/governance/ApprovalVotingModule.sol";
 import { ProposalSettings as OptimisticProposalSettings } from "src/governance/OptimisticModule.sol";
 import { VotingModule } from "src/governance/VotingModule.sol";
 
