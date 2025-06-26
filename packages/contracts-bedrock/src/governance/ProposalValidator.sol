@@ -17,7 +17,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 // Modules
-import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
+import { ProposalSettings as ApprovalProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
 import { ProposalSettings as OptimisticProposalSettings } from "src/governance/OptimisticModule.sol";
 import { VotingModule } from "src/governance/VotingModule.sol";
 
@@ -398,7 +398,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Configure approval voting settings with TopChoices criteria
-        ProposalSettings memory settings = ProposalSettings({
+        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
             maxApprovals: uint8(optionsLength),
             criteria: uint8(PassingCriteria.TopChoices),
             budgetToken: address(0), // No budget token for elections
@@ -505,7 +505,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Configure approval voting settings
-        ProposalSettings memory settings = ProposalSettings({
+        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
             maxApprovals: uint8(optionsLength),
             criteria: uint8(PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,

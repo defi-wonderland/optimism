@@ -22,7 +22,7 @@ import { Proxy } from "src/universal/Proxy.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Modules
-import { ProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
+import { ProposalSettings as ApprovalProposalSettings, ProposalOption, PassingCriteria } from "src/governance/ApprovalVotingModule.sol";
 
 // Testing utilities
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
@@ -282,7 +282,7 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         // Construct ProposalSettings
-        ProposalSettings memory settings = ProposalSettings({
+        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
             maxApprovals: uint8(descriptions.length),
             criteria: uint8(PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,
@@ -320,7 +320,7 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         // Construct ProposalSettings with TopChoices criteria
-        ProposalSettings memory settings = ProposalSettings({
+        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
             maxApprovals: uint8(descriptions.length),
             criteria: uint8(PassingCriteria.TopChoices),
             budgetToken: address(0),
