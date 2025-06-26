@@ -3,13 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run . <script_name>")
-		fmt.Println("Available scripts: relay, gastank --numNestedMessages <number>")
+		fmt.Println("Available scripts: relay, gastank --numNestedMessages <number>, gasanalysis")
 		os.Exit(1)
 	}
 
@@ -22,7 +23,12 @@ func main() {
 		tokenRelay()
 	case "gastank":
 		gastankCmd.Parse(os.Args[2:])
-		gasTankRelay(*numNestedMessages)
+		_, _, err := gasTankRelay(*numNestedMessages, true)
+		if err != nil {
+			log.Fatalf("Gas tank relay failed: %v", err)
+		}
+	case "gasanalysis":
+		runGasAnalysis()
 	default:
 		fmt.Printf("Unknown script: %s\n", script)
 		os.Exit(1)
