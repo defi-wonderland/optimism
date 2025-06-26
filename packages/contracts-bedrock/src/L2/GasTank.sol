@@ -81,7 +81,10 @@ contract GasTank is IGasTank {
     function authorizeClaim(bytes32 _messageHash) external {
         authorizedMessages[msg.sender][_messageHash] = true;
 
-        emit AuthorizedClaim(msg.sender, _messageHash);
+        bytes32[] memory _messageHashes = new bytes32[](1);
+        _messageHashes[0] = _messageHash;
+
+        emit AuthorizedClaims(msg.sender, _messageHashes);
     }
 
     /// @notice Relays a message to the destination chain
@@ -142,6 +145,8 @@ contract GasTank is IGasTank {
         for (uint256 i; i < nestedMessageHashesLength; i++) {
             authorizedMessages[_gasProvider][nestedMessageHashes[i]] = true;
         }
+
+        if (nestedMessageHashesLength != 0) emit AuthorizedClaims(_gasProvider, nestedMessageHashes);
 
         if (balanceOf[_gasProvider] < relayCost) revert InsufficientBalance();
 
