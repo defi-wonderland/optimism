@@ -140,7 +140,7 @@ interface IProposalValidator is ISemver {
 
     function renounceOwnership() external;
 
-    function canSignOff(address _delegate) external view returns (bool canSignOff_);
+    function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_);
 
     function transferOwnership(address newOwner) external;
 

@@ -459,7 +459,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Approves a proposal before being moved for voting.
-    /// @dev This function should only be called by the top delegeates.
+    /// @dev This function should only be called by the top delegates.
     /// @param _proposalHash The hash of the proposal to approve
     /// @param _attestationUid The UID of the attestation for the delegate to approve the proposal
     function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external {
@@ -608,6 +608,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Validates the attestation data for a delegate that tries to approve a proposal.
+    /// @dev Only acceptes attestations that does NOT include partial delegation.
     /// @param _attestationUid The UID of the attestation to validate.
     function _validateTopDelegateAttestation(bytes32 _attestationUid) internal view {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
