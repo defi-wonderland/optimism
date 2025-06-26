@@ -476,7 +476,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // validate the attestation
-        _validateTopDelegateAttestation(_attestationUid);
+        _validateTopDelegateAttestation(_attestationUid, _msgSender());
 
         // store the approval
         proposal.delegateApprovals[_delegate] = true;
@@ -531,14 +531,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _attestationUid The UID of the attestation to check.
     /// @return canApprove_ True if the delegate can approve the proposal, false otherwise.
     function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_) {
-        Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
-
-        if (
-            attestation.schema == TOP_DELEGATES_ATTESTATION_SCHEMA_UID && attestation.revocationTime == 0
-                && attestation.recipient == _delegate
-        ) {
-            canApprove_ = true;
-        }
+        canApprove_ = _validateTopDelegateAttestation(_attestationUid, _delegate);
     }
 
     /// @notice Sets the data of a voting cycle.
@@ -610,7 +603,16 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Validates the attestation data for a delegate that tries to approve a proposal.
     /// @dev Only acceptes attestations that does NOT include partial delegation.
     /// @param _attestationUid The UID of the attestation to validate.
-    function _validateTopDelegateAttestation(bytes32 _attestationUid) internal view {
+    /// @param _delegate The delegate to validate the attestation for.
+    /// @return canApprove_ True if the attestation is valid, false otherwise.
+    function _validateTopDelegateAttestation(
+        bytes32 _attestationUid,
+        address _delegate
+    )
+        internal
+        view
+        returns (bool canApprove_)
+    {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
         (, bool _includePartialDelegation,) = abi.decode(attestation.data, (string, bool, string));
 
@@ -625,9 +627,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // check if the attestation includes partial delegation or the recipient is not the caller
-        if (_includePartialDelegation || attestation.recipient != _msgSender()) {
+        if (_includePartialDelegation || attestation.recipient != _delegate) {
             revert ProposalValidator_InvalidAttestation();
         }
+
+        canApprove_ = true;
     }
 
     /// @notice Calculate `proposalId` hashing similarly to `hashProposal` but based on `module` and `proposalData`.

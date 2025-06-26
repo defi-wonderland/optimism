@@ -156,6 +156,8 @@ interface IProposalValidator is ISemver {
 
     function APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 
+    function TOP_DELEGATES_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+
     function proposalTypesConfigurator() external view returns (IProposalTypesConfigurator);
 
     function proposalTypesData(ProposalType) external view returns (uint256 requiredApprovals, uint8 proposalVotingModule);
@@ -167,7 +169,8 @@ interface IProposalValidator is ISemver {
     );
 
     function __constructor__(
-        bytes32 _attestationSchemaUid,
+        bytes32 _approvedProposerAttestationSchemaUid,
+        bytes32 _topDelegatesAttestationSchemaUid,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken
     ) external;
