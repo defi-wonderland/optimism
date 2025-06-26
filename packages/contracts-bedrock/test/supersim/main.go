@@ -9,7 +9,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run . <script_name>")
-		fmt.Println("Available scripts: relay, gastank")
+		fmt.Println("Available scripts: relay, gastank --numNestedMessages <number>")
 		os.Exit(1)
 	}
 

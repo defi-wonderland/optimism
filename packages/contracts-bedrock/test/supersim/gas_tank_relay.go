@@ -406,14 +406,11 @@ func gasTankRelay(numNestedMessages int64) {
 
 		// --- Relay TX Details ---
 		fmt.Println("\n[Relay Transaction on Chain 902]")
-		if relayBlock != nil {
-			fmt.Printf("  - Block Base Fee:       %s wei\n", relayBlock.BaseFee.String())
-		}
+		fmt.Printf("  - Block Base Fee:       %s wei\n", relayBlock.BaseFee.String())
 		fmt.Printf("  - Gas Used:             %d units\n", relayTx.GasUsed)
+		fmt.Printf("  - Calculated Gas:       %s units\n", new(big.Int).Div(eventRelayCost, relayBlock.BaseFee).String())
 		fmt.Printf("  - Actual Cost:          %s wei\n", actualRelayCost.String())
-		if eventRelayCost != nil {
-			fmt.Printf("  - Cost declared in event:  %s wei\n", eventRelayCost.String())
-		}
+		fmt.Printf("  - Cost declared in event:  %s wei\n", eventRelayCost.String())
 
 		profit := new(big.Int).Sub(eventRelayCost, actualRelayCost)
 
@@ -426,10 +423,9 @@ func gasTankRelay(numNestedMessages int64) {
 
 		// --- Claim TX Details ---
 		fmt.Println("\n[Claim Transaction on Chain 901]")
-		if claimBlock != nil {
-			fmt.Printf("  - Block Base Fee:       %s wei\n", claimBlock.BaseFee.String())
-		}
+		fmt.Printf("  - Block Base Fee:       %s wei\n", claimBlock.BaseFee.String())
 		fmt.Printf("  - Gas Used:             %d units\n", claimTx.GasUsed)
+		fmt.Printf("  - Calculated Gas:       %s units\n", new(big.Int).Div(claimCostFromEvent, claimBlock.BaseFee).String())
 		fmt.Printf("  - Actual Cost:          %s wei\n", actualClaimCost.String())
 		fmt.Printf("  - Actual Overhead:      %s wei\n", claimCostFromEvent.String())
 

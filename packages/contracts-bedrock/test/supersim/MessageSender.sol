@@ -15,7 +15,7 @@ contract MessageSender {
     function sendMessages(uint256 _destinationChainId, uint256 _numMessages) external {
         bytes memory message = bytes("");
 
-        for (uint256 i = 0; i < _numMessages; i++) {
+        for (uint256 i; i < _numMessages; i++) {
             // Use block number and loop index for a pseudo-random target address
             address target = address(uint160(uint256(keccak256(abi.encodePacked(block.number, i)))));
             MESSENGER.sendMessage(_destinationChainId, target, message);
