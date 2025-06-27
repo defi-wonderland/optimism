@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -47,7 +48,9 @@ func logfIf(verbose bool, format string, a ...interface{}) {
 
 func runGasAnalysis() {
 	results := make(map[int]*GasDeltaResult)
-	for i := 0; i <= 60; i += 10 {
+	var keys []int
+
+	for i := 0; i <= 60; i++ {
 		logfIf(true, "\n--- Running for %d nested messages ---\n", i)
 		relayGasDelta, claimGasDelta, err := gasTankRelay(int64(i), false)
 		if err != nil {
@@ -58,6 +61,7 @@ func runGasAnalysis() {
 			Relay: relayGasDelta,
 			Claim: claimGasDelta,
 		}
+		keys = append(keys, i)
 	}
 
 	// Get the path of the currently running file
@@ -65,12 +69,26 @@ func runGasAnalysis() {
 	basepath := filepath.Dir(b)
 	filePath := filepath.Join(basepath, "gas_analysis.json")
 
-	file, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		log.Fatalf("Failed to marshal results to JSON: %v", err)
-	}
+	// Create ordered JSON manually to ensure numeric ordering
+	var jsonBuilder strings.Builder
+	jsonBuilder.WriteString("{\n")
 
-	err = os.WriteFile(filePath, file, 0644)
+	for idx, key := range keys {
+		result := results[key]
+		jsonBuilder.WriteString(fmt.Sprintf(`  "%d": {`, key))
+		jsonBuilder.WriteString(fmt.Sprintf(`
+    "relay": %s,
+    "claim": %s
+  }`, result.Relay.String(), result.Claim.String()))
+
+		if idx < len(keys)-1 {
+			jsonBuilder.WriteString(",")
+		}
+		jsonBuilder.WriteString("\n")
+	}
+	jsonBuilder.WriteString("}")
+
+	err := os.WriteFile(filePath, []byte(jsonBuilder.String()), 0644)
 	if err != nil {
 		log.Fatalf("Failed to write JSON to file: %v", err)
 	}
@@ -463,10 +481,8 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 		logIf(verbose, "\n[Relay Transaction on Chain 902]")
 		logfIf(verbose, "  - Gas Used:             %d units\n", relayTx.GasUsed)
 		logfIf(verbose, "  - Calculated Gas:       %s units\n", new(big.Int).Div(eventRelayCost, relayBlock.BaseFee).String())
-
 		relayGasDelta := new(big.Int).Sub(new(big.Int).Div(eventRelayCost, relayBlock.BaseFee), new(big.Int).SetUint64(relayTx.GasUsed))
-		logfIf(verbose, "  - Gas Delta:            %s units\n", relayGasDelta.String())
-
+		logfIf(verbose, "  - Relay Gas Delta:        %s units\n", relayGasDelta.String())
 		logfIf(verbose, "\n  - Block Base Fee:       %s wei\n", relayBlock.BaseFee.String())
 		logfIf(verbose, "  - Actual Cost:          %s wei\n", actualRelayCost.String())
 		logfIf(verbose, "  - Cost declared in event:  %s wei\n", eventRelayCost.String())
@@ -486,10 +502,8 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 		logIf(verbose, "\n[Claim Transaction on Chain 901]")
 		logfIf(verbose, "  - Gas Used:             %d units\n", claimTx.GasUsed)
 		logfIf(verbose, "  - Calculated Gas:       %s units\n", new(big.Int).Div(eventClaimCost, claimBlock.BaseFee).String())
-
 		claimGasDelta := new(big.Int).Sub(new(big.Int).Div(eventClaimCost, claimBlock.BaseFee), new(big.Int).SetUint64(claimTx.GasUsed))
-		logfIf(verbose, "  - Gas Delta:            %s units\n", claimGasDelta.String())
-
+		logfIf(verbose, "  - Claim Gas Delta:       %s units\n", claimGasDelta.String())
 		logfIf(verbose, "\n  - Block Base Fee:       %s wei\n", claimBlock.BaseFee.String())
 		logfIf(verbose, "  - Actual Cost:          %s wei\n", actualClaimCost.String())
 		logfIf(verbose, "  - Cost declared in event:      %s wei\n", eventClaimCost.String())
