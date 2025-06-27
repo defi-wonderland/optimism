@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { IL2ToL2CrossDomainMessenger, Identifier } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 
 // Libraries
 import { Encoding } from "src/libraries/Encoding.sol";
@@ -26,6 +27,9 @@ contract GasTank is IGasTank {
     /// @notice The cross domain messenger
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+
+    /// @notice The gas price oracle for L1 cost calculations
+    IGasPriceOracle public constant GAS_PRICE_ORACLE = IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE);
 
     /// @notice The balance of each gas provider
     mapping(address gasProvider => uint256 balance) public balanceOf;
@@ -115,7 +119,8 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        relayCost_ = _cost(initialGas - gasleft(), block.basefee) + _relayOverhead(nestedMessageHashes_.length);
+        relayCost_ = _cost(initialGas - gasleft(), block.basefee) + _relayOverhead(nestedMessageHashes_.length)
+            + _getCurrentTxL1Cost(msg.data);
 
         // Emit the event with the relationship between the origin message and the destination messages
         emit RelayedMessageGasReceipt(messageHash, msg.sender, relayCost_, nestedMessageHashes_);
@@ -152,7 +157,8 @@ contract GasTank is IGasTank {
 
         balanceOf[_gasProvider] -= relayCost;
 
-        uint256 claimCost = _min(balanceOf[_gasProvider], claimOverhead(nestedMessageHashesLength, block.basefee));
+        uint256 claimCost =
+            _min(balanceOf[_gasProvider], claimOverhead(nestedMessageHashesLength, block.basefee, msg.data));
 
         balanceOf[_gasProvider] -= claimCost;
 
@@ -188,8 +194,17 @@ contract GasTank is IGasTank {
     /// @notice Calculates the overhead of a claim
     /// @param _numHashes The number of destination hashes relayed
     /// @param _baseFee The base fee of the block
+    /// @param _data The data of the transaction
     /// @return overhead_ The overhead cost of the claim transaction in wei
-    function claimOverhead(uint256 _numHashes, uint256 _baseFee) public pure returns (uint256 overhead_) {
+    function claimOverhead(
+        uint256 _numHashes,
+        uint256 _baseFee,
+        bytes calldata _data
+    )
+        public
+        view
+        returns (uint256 overhead_)
+    {
         uint256 dynamicCost;
         uint256 fixedCost;
 
@@ -208,7 +223,8 @@ contract GasTank is IGasTank {
             dynamicCost += (_numHashes * _numHashes) >> 10; // Was >>12, now >>10 (4x more aggressive)
         }
 
-        overhead_ = _cost(fixedCost + dynamicCost, _baseFee);
+        // L2 cost + L1 data availability cost (L1 cost is per transaction, not per hash)
+        overhead_ = _cost(fixedCost + dynamicCost, _baseFee) + _getCurrentTxL1Cost(_data);
     }
 
     /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
@@ -218,6 +234,12 @@ contract GasTank is IGasTank {
         uint256 dynamicCost = 418 * _numHashes;
         uint256 fixedCost = 34_205;
         overhead_ = _cost(fixedCost + dynamicCost, block.basefee);
+    }
+
+    /// @notice Calculates the L1 data availability cost for the current transaction
+    /// @return l1Cost_ The L1 data availability cost in wei
+    function _getCurrentTxL1Cost(bytes calldata _data) internal view returns (uint256 l1Cost_) {
+        l1Cost_ = GAS_PRICE_ORACLE.getL1Fee(_data);
     }
 
     /// @notice Calculates the cost of gas used in wei

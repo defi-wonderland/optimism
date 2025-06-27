@@ -1,246 +1,202 @@
 {
   "0": {
-    "relay": 0,
-    "claim": 12
+    "relay": -97,
+    "claim": -145878
   },
   "1": {
-    "relay": -8,
-    "claim": 197
+    "relay": -105,
+    "claim": -131641
   },
   "2": {
-    "relay": -4,
-    "claim": 205
+    "relay": -101,
+    "claim": -162024
   },
   "3": {
-    "relay": 0,
-    "claim": 235
+    "relay": -97,
+    "claim": -173481
   },
   "4": {
-    "relay": 0,
-    "claim": 191
+    "relay": -93,
+    "claim": -184964
   },
   "5": {
-    "relay": -5,
-    "claim": 238
+    "relay": -89,
+    "claim": -196391
   },
   "6": {
-    "relay": -11,
-    "claim": 207
+    "relay": -85,
+    "claim": -207883
   },
   "7": {
-    "relay": -12,
-    "claim": 262
+    "relay": -81,
+    "claim": -219288
   },
   "8": {
-    "relay": -12,
-    "claim": 174
+    "relay": -77,
+    "claim": -230811
   },
   "9": {
-    "relay": -11,
-    "claim": 273
+    "relay": -73,
+    "claim": -241021
   },
   "10": {
-    "relay": -10,
-    "claim": 190
+    "relay": -69,
+    "claim": -254972
   },
   "11": {
-    "relay": -10,
-    "claim": 285
+    "relay": -65,
+    "claim": -265106
   },
   "12": {
-    "relay": -10,
-    "claim": 170
+    "relay": -61,
+    "claim": -276671
   },
   "13": {
-    "relay": -8,
-    "claim": 284
+    "relay": -57,
+    "claim": -288016
   },
   "14": {
-    "relay": -8,
-    "claim": 173
+    "relay": -53,
+    "claim": -299941
   },
   "15": {
-    "relay": -7,
-    "claim": 284
+    "relay": -49,
+    "claim": -310915
   },
   "16": {
-    "relay": -7,
-    "claim": 141
+    "relay": -45,
+    "claim": -322507
   },
   "17": {
-    "relay": -6,
-    "claim": 355
+    "relay": -41,
+    "claim": -333813
   },
   "18": {
-    "relay": -6,
-    "claim": 168
+    "relay": -40,
+    "claim": -345437
   },
   "19": {
-    "relay": -5,
-    "claim": 331
+    "relay": -40,
+    "claim": -357890
   },
   "20": {
-    "relay": 7,
-    "claim": 147
+    "relay": -39,
+    "claim": -368391
   },
   "21": {
-    "relay": 8,
-    "claim": 390
+    "relay": -38,
+    "claim": -379948
   },
   "22": {
-    "relay": 8,
-    "claim": 162
+    "relay": -38,
+    "claim": -391310
   },
   "23": {
-    "relay": 9,
-    "claim": 365
+    "relay": -37,
+    "claim": -402520
   },
   "24": {
-    "relay": 9,
-    "claim": 130
+    "relay": -36,
+    "claim": -414240
   },
   "25": {
-    "relay": 10,
-    "claim": 376
+    "relay": -36,
+    "claim": -425454
   },
   "26": {
-    "relay": 10,
-    "claim": 145
+    "relay": -36,
+    "claim": -437213
   },
   "27": {
-    "relay": 10,
-    "claim": 399
+    "relay": -35,
+    "claim": -448408
   },
   "28": {
-    "relay": 11,
-    "claim": 160
+    "relay": -34,
+    "claim": -460541
   },
   "29": {
-    "relay": 11,
-    "claim": 446
+    "relay": -34,
+    "claim": -471190
   },
   "30": {
-    "relay": 11,
-    "claim": 223
+    "relay": -46,
+    "claim": -483088
   },
   "31": {
-    "relay": 12,
-    "claim": 421
+    "relay": -46,
+    "claim": -494266
   },
   "32": {
-    "relay": 11,
-    "claim": 119
+    "relay": -45,
+    "claim": -505534
   },
   "33": {
-    "relay": 12,
-    "claim": 469
+    "relay": -45,
+    "claim": -517184
   },
   "34": {
-    "relay": 12,
-    "claim": 98
+    "relay": -44,
+    "claim": -527301
   },
   "35": {
-    "relay": 13,
-    "claim": 432
+    "relay": -44,
+    "claim": -540059
   },
   "36": {
-    "relay": 12,
-    "claim": 112
+    "relay": -43,
+    "claim": -552262
   },
   "37": {
-    "relay": 13,
-    "claim": 455
+    "relay": -43,
+    "claim": -562982
   },
   "38": {
-    "relay": 13,
-    "claim": 91
+    "relay": -42,
+    "claim": -574490
   },
   "39": {
-    "relay": 13,
-    "claim": 465
+    "relay": -42,
+    "claim": -585930
   },
   "40": {
-    "relay": 13,
-    "claim": 70
+    "relay": -42,
+    "claim": -597512
   },
   "41": {
-    "relay": 13,
-    "claim": 476
+    "relay": -42,
+    "claim": -608794
   },
   "42": {
-    "relay": 13,
-    "claim": 108
+    "relay": -41,
+    "claim": -620683
   },
   "43": {
-    "relay": 13,
-    "claim": 499
+    "relay": -41,
+    "claim": -631467
   },
   "44": {
-    "relay": 13,
-    "claim": 135
+    "relay": -41,
+    "claim": -643567
   },
   "45": {
-    "relay": 14,
-    "claim": 509
+    "relay": -41,
+    "claim": -654629
   },
   "46": {
-    "relay": 2,
-    "claim": 126
+    "relay": -41,
+    "claim": -666849
   },
   "47": {
-    "relay": 2,
-    "claim": 557
+    "relay": -41,
+    "claim": -677505
   },
   "48": {
-    "relay": 2,
-    "claim": 105
+    "relay": -41,
+    "claim": -689478
   },
   "49": {
-    "relay": 2,
-    "claim": 531
-  },
-  "50": {
-    "relay": 2,
-    "claim": 11
-  },
-  "51": {
-    "relay": 2,
-    "claim": 553
-  },
-  "52": {
-    "relay": 1,
-    "claim": 25
-  },
-  "53": {
-    "relay": 1,
-    "claim": 564
-  },
-  "54": {
-    "relay": 1,
-    "claim": -8
-  },
-  "55": {
-    "relay": 1,
-    "claim": 574
-  },
-  "56": {
-    "relay": 0,
-    "claim": 67
-  },
-  "57": {
-    "relay": 0,
-    "claim": 549
-  },
-  "58": {
-    "relay": 0,
-    "claim": 21
-  },
-  "59": {
-    "relay": -1,
-    "claim": 667
-  },
-  "60": {
-    "relay": -1,
-    "claim": 23
+    "relay": -41,
+    "claim": -700357
   }
 }
