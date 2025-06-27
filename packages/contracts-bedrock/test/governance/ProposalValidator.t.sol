@@ -86,6 +86,7 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
     uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
+    uint256 public constant OPTIMISTIC_MODULE_PERCENT_DIVISOR = 10_000;
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
     uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2;
 
@@ -1555,7 +1556,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.MaintenanceUpgrade;
 
         // Bound againstThreshold to valid range (1 to 10000 basis points)
-        againstThreshold = uint248(bound(againstThreshold, 1, 10000));
+        againstThreshold = uint248(bound(againstThreshold, 1, OPTIMISTIC_MODULE_PERCENT_DIVISOR));
 
         // Create attestation for the proposal
         bytes32 attestationUid = _createAttestation(proposer, proposalType);
@@ -1625,7 +1626,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         vm.assume(proposer != address(0));
 
         // Bound againstThreshold to valid range (1 to 10000 basis points)
-        againstThreshold = uint248(bound(againstThreshold, 1, 10000));
+        againstThreshold = uint248(bound(againstThreshold, 1, OPTIMISTIC_MODULE_PERCENT_DIVISOR));
 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
 
@@ -1737,8 +1738,8 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     }
 
     function testFuzz_submitUpgradeProposal_exceedsMaxAgainstThreshold_reverts(uint248 excessiveThreshold) public {
-        // Bound excessive threshold to be greater than 10000 basis points
-        excessiveThreshold = uint248(bound(excessiveThreshold, 10001, type(uint248).max));
+        // Bound excessive threshold to be greater than OPTIMISTIC_MODULE_PERCENT_DIVISOR
+        excessiveThreshold = uint248(bound(excessiveThreshold, OPTIMISTIC_MODULE_PERCENT_DIVISOR + 1, type(uint248).max));
 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
