@@ -190,9 +190,24 @@ contract GasTank is IGasTank {
     /// @param _baseFee The base fee of the block
     /// @return overhead_ The overhead cost of the claim transaction in wei
     function claimOverhead(uint256 _numHashes, uint256 _baseFee) public pure returns (uint256 overhead_) {
-        uint256 dynamicCost = _numHashes % 2 == 0 ? (23_347 * _numHashes) : (23_343 * _numHashes);
-        uint256 fixedCost = _numHashes == 0 ? 151_860 : 153_526;
-        fixedCost = _numHashes > 1 ? fixedCost - 19_800 : fixedCost;
+        uint256 dynamicCost;
+        uint256 fixedCost;
+
+        if (_numHashes == 0) {
+            fixedCost = 151_764; // Was 151_860, reduced by 96
+            dynamicCost = 0;
+        } else if (_numHashes == 1) {
+            fixedCost = 153_500; // for loop init + log
+            dynamicCost = 23_300;
+        } else {
+            // For 2+ hashes: reduced fixed cost to eliminate ~19k overestimation
+            fixedCost = 133_900; // Was 153_700, reduced by ~19_800
+            dynamicCost = _numHashes % 2 == 0 ? (23_340 * _numHashes) : (23_350 * _numHashes); // Increased odd case
+                // from 23_335 to 23_350
+            // Increased memory expansion coefficient to help with high hash counts
+            dynamicCost += (_numHashes * _numHashes) >> 10; // Was >>12, now >>10 (4x more aggressive)
+        }
+
         overhead_ = _cost(fixedCost + dynamicCost, _baseFee);
     }
 
@@ -200,7 +215,7 @@ contract GasTank is IGasTank {
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The gas cost to emit the event in wei
     function _relayOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
-        uint256 dynamicCost = 419 * _numHashes - _numHashes;
+        uint256 dynamicCost = 418 * _numHashes;
         uint256 fixedCost = 34_205;
         overhead_ = _cost(fixedCost + dynamicCost, block.basefee);
     }

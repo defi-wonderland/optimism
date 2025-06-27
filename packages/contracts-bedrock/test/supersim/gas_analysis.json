@@ -1,246 +1,246 @@
 {
   "0": {
-    "relay": 24,
-    "claim": -132
+    "relay": 0,
+    "claim": 12
   },
   "1": {
-    "relay": 4,
-    "claim": 29
+    "relay": -8,
+    "claim": 197
   },
   "2": {
-    "relay": 8,
-    "claim": 89
+    "relay": -4,
+    "claim": 205
   },
   "3": {
-    "relay": 12,
-    "claim": 60
+    "relay": 0,
+    "claim": 235
   },
   "4": {
-    "relay": 12,
-    "claim": 89
+    "relay": 0,
+    "claim": 191
   },
   "5": {
-    "relay": 7,
-    "claim": 61
+    "relay": -5,
+    "claim": 238
   },
   "6": {
-    "relay": 1,
-    "claim": 107
+    "relay": -11,
+    "claim": 207
   },
   "7": {
-    "relay": 0,
-    "claim": 71
+    "relay": -12,
+    "claim": 262
   },
   "8": {
-    "relay": 0,
-    "claim": 136
+    "relay": -12,
+    "claim": 174
   },
   "9": {
-    "relay": 1,
-    "claim": 80
+    "relay": -11,
+    "claim": 273
   },
   "10": {
-    "relay": 2,
-    "claim": 142
+    "relay": -10,
+    "claim": 190
   },
   "11": {
-    "relay": 2,
-    "claim": 90
+    "relay": -10,
+    "claim": 285
   },
   "12": {
-    "relay": 2,
-    "claim": 148
+    "relay": -10,
+    "claim": 170
   },
   "13": {
-    "relay": 4,
-    "claim": 75
+    "relay": -8,
+    "claim": 284
   },
   "14": {
-    "relay": 4,
-    "claim": 129
+    "relay": -8,
+    "claim": 173
   },
   "15": {
-    "relay": 5,
-    "claim": 73
+    "relay": -7,
+    "claim": 284
   },
   "16": {
-    "relay": 5,
-    "claim": 195
+    "relay": -7,
+    "claim": 141
   },
   "17": {
-    "relay": 6,
-    "claim": 94
+    "relay": -6,
+    "claim": 355
   },
   "18": {
-    "relay": 6,
-    "claim": 200
+    "relay": -6,
+    "claim": 168
   },
   "19": {
-    "relay": 7,
-    "claim": 128
+    "relay": -5,
+    "claim": 331
   },
   "20": {
     "relay": 7,
-    "claim": 193
+    "claim": 147
   },
   "21": {
     "relay": 8,
-    "claim": 77
+    "claim": 390
   },
   "22": {
     "relay": 8,
-    "claim": 198
+    "claim": 162
   },
   "23": {
     "relay": 9,
-    "claim": 62
+    "claim": 365
   },
   "24": {
     "relay": 9,
-    "claim": 216
+    "claim": 130
   },
   "25": {
     "relay": 10,
-    "claim": 71
+    "claim": 376
   },
   "26": {
     "relay": 10,
-    "claim": 245
+    "claim": 145
   },
   "27": {
     "relay": 10,
-    "claim": 152
+    "claim": 399
   },
   "28": {
     "relay": 11,
-    "claim": 202
+    "claim": 160
   },
   "29": {
     "relay": 11,
-    "claim": 89
+    "claim": 446
   },
   "30": {
     "relay": 11,
-    "claim": 243
+    "claim": 223
   },
   "31": {
     "relay": 12,
-    "claim": 122
+    "claim": 421
   },
   "32": {
     "relay": 11,
-    "claim": 236
+    "claim": 119
   },
   "33": {
     "relay": 12,
-    "claim": 107
+    "claim": 469
   },
   "34": {
     "relay": 12,
-    "claim": 313
+    "claim": 98
   },
   "35": {
     "relay": 13,
-    "claim": 116
+    "claim": 432
   },
   "36": {
     "relay": 12,
-    "claim": 269
+    "claim": 112
   },
   "37": {
     "relay": 13,
-    "claim": 125
+    "claim": 455
   },
   "38": {
     "relay": 13,
-    "claim": 250
+    "claim": 91
   },
   "39": {
     "relay": 13,
-    "claim": 73
+    "claim": 465
   },
   "40": {
     "relay": 13,
-    "claim": 315
+    "claim": 70
   },
   "41": {
     "relay": 13,
-    "claim": 142
+    "claim": 476
   },
   "42": {
     "relay": 13,
-    "claim": 319
+    "claim": 108
   },
   "43": {
     "relay": 13,
-    "claim": 91
+    "claim": 499
   },
   "44": {
     "relay": 13,
-    "claim": 312
+    "claim": 135
   },
   "45": {
     "relay": 14,
-    "claim": 87
+    "claim": 509
   },
   "46": {
-    "relay": 14,
-    "claim": 316
+    "relay": 2,
+    "claim": 126
   },
   "47": {
-    "relay": 14,
-    "claim": 132
+    "relay": 2,
+    "claim": 557
   },
   "48": {
-    "relay": 14,
-    "claim": 273
+    "relay": 2,
+    "claim": 105
   },
   "49": {
-    "relay": 14,
-    "claim": 92
+    "relay": 2,
+    "claim": 531
   },
   "50": {
     "relay": 2,
-    "claim": 361
+    "claim": 11
   },
   "51": {
     "relay": 2,
-    "claim": 100
+    "claim": 553
   },
   "52": {
     "relay": 1,
-    "claim": 269
+    "claim": 25
   },
   "53": {
     "relay": 1,
-    "claim": 61
+    "claim": 564
   },
   "54": {
     "relay": 1,
-    "claim": 298
+    "claim": -8
   },
   "55": {
     "relay": 1,
-    "claim": 69
+    "claim": 574
   },
   "56": {
     "relay": 0,
-    "claim": 326
+    "claim": 67
   },
   "57": {
     "relay": 0,
-    "claim": 137
+    "claim": 549
   },
   "58": {
     "relay": 0,
-    "claim": 318
+    "claim": 21
   },
   "59": {
     "relay": -1,
-    "claim": 85
+    "claim": 667
   },
   "60": {
     "relay": -1,
-    "claim": 346
+    "claim": 23
   }
 }

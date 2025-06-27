@@ -50,7 +50,7 @@ func runGasAnalysis() {
 	results := make(map[int]*GasDeltaResult)
 	var keys []int
 
-	for i := 0; i <= 60; i++ {
+	for i := 0; i <= 60; i += 1 {
 		logfIf(true, "\n--- Running for %d nested messages ---\n", i)
 		relayGasDelta, claimGasDelta, err := gasTankRelay(int64(i), false)
 		if err != nil {
