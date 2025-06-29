@@ -309,7 +309,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Create OptimisticModule ProposalSettings with required parameters
         OptimisticProposalSettings memory optimisticSettings = OptimisticProposalSettings({
             againstThreshold: _againstThreshold,
-            isRelativeToVotableSupply: true // MUST always be true per spec
+            isRelativeToVotableSupply: true // MUST always be true
          });
 
         // Optimistic proposals are signal-only, no execution targets/calldatas needed
