@@ -67,6 +67,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when an attestation is revoked.
     error ProposalValidator_AttestationRevoked();
 
+    /// @notice Thrown when an attestation has expired.
+    error ProposalValidator_AttestationExpired();
+
     /// @notice Thrown when an attestation schema is invalid.
     error ProposalValidator_InvalidAttestationSchema();
 
@@ -680,6 +683,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidAttestation();
         }
 
+        // Check if attestation has expired
+        if (attestation.expirationTime != 0 && block.timestamp >= attestation.expirationTime) {
+            revert ProposalValidator_AttestationExpired();
+        }
+
         (address approvedDelegate, uint8 proposalType) = abi.decode(attestation.data, (address, uint8));
 
         if (
@@ -714,6 +722,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // check if the attestation is revoked
         if (attestation.revocationTime != 0) {
             revert ProposalValidator_AttestationRevoked();
+        }
+
+        // check if the attestation has expired
+        if (attestation.expirationTime != 0 && block.timestamp >= attestation.expirationTime) {
+            revert ProposalValidator_AttestationExpired();
         }
 
         // check if the attestation includes partial delegation or the recipient is not the caller

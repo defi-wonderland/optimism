@@ -664,6 +664,34 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         validator.approveProposal(_proposalHash, topDelegateAttestation_A);
     }
 
+    function test_approveProposal_attestationExpired_reverts(bytes32 _proposalHash, uint8 proposalTypeValue) public {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        // set proposal data so that the proposal exists
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+
+        // create an expired attestation (expiration time in the past)
+        vm.prank(owner);
+        bytes32 expiredAttestationUid = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: topDelegate_A,
+                    expirationTime: block.timestamp - 1, // Expired 1 second ago
+                    revocable: true,
+                    refUID: bytes32(0),
+                    data: abi.encode("top100", false, "2000-01-01"),
+                    value: 0
+                })
+            })
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.approveProposal(_proposalHash, expiredAttestationUid);
+    }
+
     function test_approveProposal_invalidAttestationCaller_reverts(
         bytes32 _proposalHash,
         uint8 proposalTypeValue,
@@ -855,6 +883,27 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
         }
 
         assertEq(canApprove, false);
+    }
+
+    function test_canApproveProposal_expiredAttestation_reverts() public {
+        // Create an expired attestation (expiration time in the past)
+        vm.prank(owner);
+        bytes32 expiredAttestationUid = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: topDelegate_A,
+                    expirationTime: block.timestamp - 1, // Expired 1 second ago
+                    revocable: true,
+                    refUID: bytes32(0),
+                    data: abi.encode("top100", false, "2000-01-01"),
+                    value: 0
+                })
+            })
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_AttestationExpired.selector);
+        validator.canApproveProposal(expiredAttestationUid, topDelegate_A);
     }
 }
 
@@ -1675,6 +1724,30 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
+    function test_submitCouncilMemberElectionsProposal_attestationExpired_reverts() public {
+        // Create an expired attestation (expiration time in the past)
+        vm.prank(owner);
+        bytes32 expiredAttestation = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: address(0),
+                    expirationTime: block.timestamp - 1, // Expired 1 second ago
+                    revocable: false,
+                    refUID: bytes32(0),
+                    data: abi.encode(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections),
+                    value: 0
+                })
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, expiredAttestation
+        );
+    }
+
     function testFuzz_submitCouncilMemberElectionsProposal_criteriaValueExceedsOptionsLength_reverts(
         uint128 invalidCriteriaValue
     )
@@ -2017,5 +2090,30 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(againstThreshold, proposalDescription, invalidAttestation, proposalType);
+    }
+
+    function test_submitUpgradeProposal_attestationExpired_reverts() public {
+        uint248 againstThreshold = 5000;
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+
+        // Create an expired attestation (expiration time in the past)
+        vm.prank(owner);
+        bytes32 expiredAttestation = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: address(0),
+                    expirationTime: block.timestamp - 1, // Expired 1 second ago
+                    revocable: false,
+                    refUID: bytes32(0),
+                    data: abi.encode(topDelegate_A, proposalType),
+                    value: 0
+                })
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, expiredAttestation, proposalType);
     }
 }
