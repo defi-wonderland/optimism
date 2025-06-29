@@ -1997,7 +1997,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         vm.prank(fuzzedAttester); // Not the owner
         bytes32 invalidAttestation = IEAS(Predeploys.EAS).attest(
             AttestationRequest({
-                schema: ATTESTATION_SCHEMA_UID,
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
                     recipient: address(0),
                     expirationTime: 0,
