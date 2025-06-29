@@ -1099,7 +1099,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
     function testFuzz_submitFundingProposal_invalidProposalType_reverts(uint8 proposalTypeValue) public {
         // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
-        vm.assume(proposalTypeValue != 3 && proposalTypeValue != 4);
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 2));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
@@ -1849,7 +1849,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
     function testFuzz_submitUpgradeProposal_invalidProposalType_reverts(uint8 proposalTypeValue) public {
         // Valid upgrade proposal types are ProtocolOrGovernorUpgrade (0) and MaintenanceUpgrade (1)
-        vm.assume(proposalTypeValue != 0 && proposalTypeValue != 1);
+        proposalTypeValue = uint8(bound(proposalTypeValue, 2, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         uint248 againstThreshold = 5000; // 50%
