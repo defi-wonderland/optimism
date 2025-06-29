@@ -1717,7 +1717,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         againstThreshold = uint248(bound(againstThreshold, 1, OPTIMISTIC_MODULE_PERCENT_DIVISOR));
 
         // Create attestation for the proposal
-        bytes32 attestationUid = _createAttestation(proposer, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(proposer, proposalType);
 
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructOptimisticVotingModuleData(againstThreshold);
@@ -1789,7 +1789,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
 
         // Create attestation for the proposal
-        bytes32 attestationUid = _createAttestation(proposer, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(proposer, proposalType);
 
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructOptimisticVotingModuleData(againstThreshold);
@@ -1853,7 +1853,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         uint248 againstThreshold = 5000; // 50%
-        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidUpgradeProposalType.selector);
         vm.prank(topDelegate_A);
@@ -1863,7 +1863,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     function testFuzz_submitUpgradeProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid) public {
         uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        bytes32 validAttestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 validAttestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         vm.assume(fuzzedAttestationUid != validAttestationUid); // Ensure it's different from valid attestation
 
@@ -1877,7 +1877,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // Try to submit with different address than attested
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -1888,7 +1888,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     function test_submitUpgradeProposal_zeroAgainstThreshold_reverts() public {
         uint248 zeroThreshold = 0;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAgainstThreshold.selector);
         vm.prank(topDelegate_A);
@@ -1900,7 +1900,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         excessiveThreshold = uint248(bound(excessiveThreshold, OPTIMISTIC_MODULE_PERCENT_DIVISOR + 1, type(uint248).max));
 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAgainstThreshold.selector);
         vm.prank(topDelegate_A);
@@ -1913,7 +1913,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         uint248 againstThreshold = 5000;
-        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructOptimisticVotingModuleData(againstThreshold);
@@ -1947,7 +1947,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
 
         // Create new attestation for second attempt
-        bytes32 secondAttestation = _createAttestation(topDelegate_B, proposalType);
+        bytes32 secondAttestation = _createApprovedProposerAttestation(topDelegate_B, proposalType);
 
         // Attempt to submit identical proposal should revert
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
@@ -1964,7 +1964,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         uint248 againstThreshold = 5000;
-        bytes32 attestationUid = _createAttestation(topDelegate_A, proposalType);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // Calculate expected proposal hash
         bytes memory votingModuleData = _constructOptimisticVotingModuleData(againstThreshold);

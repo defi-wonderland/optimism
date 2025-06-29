@@ -85,20 +85,6 @@ interface IProposalValidator is ISemver {
         bytes encodedVotingModuleData
     );
 
-    event VotingCycleDataSet(
-        uint256 cycleNumber,
-        uint256 startBlock,
-        uint256 duration,
-        uint256 votingCycleDistributionLimit
-    );
-
-    event ProposalSubmitted(
-        bytes32 indexed proposalHash,
-        address indexed proposer,
-        string description,
-        ProposalType proposalType
-    );
-
     event Initialized(uint8 version);
 
     function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external;
@@ -165,11 +151,7 @@ interface IProposalValidator is ISemver {
 
     function transferOwnership(address newOwner) external;
 
-    function renounceOwnership() external;
-
     function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_);
-
-    function transferOwnership(address newOwner) external;
 
     function distributionThreshold() external view returns (uint256);
 

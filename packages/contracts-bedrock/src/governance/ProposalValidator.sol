@@ -301,7 +301,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Validate EAS attestation - must be called by owner-approved address
-        _validateAttestation(_attestationUid, _proposalType);
+        _validateApprovedProposerAttestation(_attestationUid, _proposalType);
 
         // Validate againstThreshold is non-zero and within bounds for percentage-based thresholds
         if (_againstThreshold == 0 || _againstThreshold > 10000) {
