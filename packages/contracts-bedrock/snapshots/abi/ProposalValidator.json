@@ -745,17 +745,17 @@
   },
   {
     "inputs": [],
+    "name": "ProposalValidator_InvalidAgainstThreshold",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ProposalValidator_InvalidAttestation",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "ProposalValidator_InvalidAttestationSchema",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ProposalValidator_InvalidCriteriaValue",
     "type": "error"
   },
   {

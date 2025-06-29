@@ -87,6 +87,8 @@ interface IProposalValidator is ISemver {
 
     event Initialized(uint8 version);
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external;
 
     function moveToVote(
@@ -146,8 +148,6 @@ interface IProposalValidator is ISemver {
     ) external;
 
     function renounceOwnership() external;
-
-    function canSignOff(address _delegate) external view returns (bool canSignOff_);
 
     function transferOwnership(address newOwner) external;
 

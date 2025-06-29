@@ -832,13 +832,13 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 /// @title ProposalValidator_CanApproveProposal_Test
 /// @notice Tests for the canApproveProposal function
 contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
-    function test_canApproveProposal_ReturnsTrue_succeeds() public {
+    function test_canApproveProposal_returnsTrue_succeeds() public {
         // Attestation already created in setUp
         bool canApprove = validator.canApproveProposal(topDelegateAttestation_A, topDelegate_A);
         assertTrue(canApprove);
     }
 
-    function test_canApproveProposal_ReturnsFalse_succeeds(bytes32 _attestationUid, address _delegate) public {
+    function test_canApproveProposal_returnsFalse_succeeds(bytes32 _attestationUid, address _delegate) public {
         // Ensure the attestation uid is not one of the top delegates
         vm.assume(
             _attestationUid != topDelegateAttestation_A && _attestationUid != topDelegateAttestation_B
@@ -1897,7 +1897,8 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
     function testFuzz_submitUpgradeProposal_exceedsMaxAgainstThreshold_reverts(uint248 excessiveThreshold) public {
         // Bound excessive threshold to be greater than OPTIMISTIC_MODULE_PERCENT_DIVISOR
-        excessiveThreshold = uint248(bound(excessiveThreshold, OPTIMISTIC_MODULE_PERCENT_DIVISOR + 1, type(uint248).max));
+        excessiveThreshold =
+            uint248(bound(excessiveThreshold, OPTIMISTIC_MODULE_PERCENT_DIVISOR + 1, type(uint248).max));
 
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
