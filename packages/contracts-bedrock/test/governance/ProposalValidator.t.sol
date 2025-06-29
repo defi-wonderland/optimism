@@ -278,15 +278,15 @@ contract ProposalValidator_Init is CommonTest {
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](5);
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: OPTIMISTIC_VOTING_MODULE_ID
         });
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 1
+            proposalVotingModule: OPTIMISTIC_VOTING_MODULE_ID
         });
         proposalTypesData[2] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 2
+            proposalVotingModule: APPROVAL_VOTING_MODULE_ID
         });
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
@@ -1399,14 +1399,18 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
             (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
             assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
 
-            // Both GovernanceFund and CouncilBudget use APPROVAL_VOTING_MODULE_ID
+            // Verify correct voting module ID for each proposal type
             if (
-                proposalTypes[i] == ProposalValidator.ProposalType.GovernanceFund
+                proposalTypes[i] == ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade
+                    || proposalTypes[i] == ProposalValidator.ProposalType.MaintenanceUpgrade
+            ) {
+                assertEq(proposalVotingModule, OPTIMISTIC_VOTING_MODULE_ID);
+            } else if (
+                proposalTypes[i] == ProposalValidator.ProposalType.CouncilMemberElections
+                    || proposalTypes[i] == ProposalValidator.ProposalType.GovernanceFund
                     || proposalTypes[i] == ProposalValidator.ProposalType.CouncilBudget
             ) {
                 assertEq(proposalVotingModule, APPROVAL_VOTING_MODULE_ID);
-            } else {
-                assertEq(proposalVotingModule, uint8(i));
             }
         }
     }
