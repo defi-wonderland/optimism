@@ -1744,15 +1744,15 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
             abi.encode(uint256(expectedHash))
         );
 
-        // For MaintenanceUpgrade, events are: ProposalMovedToVote, ProposalSubmitted, ProposalVotingModuleData
-        vm.expectEmit(address(validator));
-        emit ProposalMovedToVote(expectedHash, proposer);
-
+        // For MaintenanceUpgrade, events are: ProposalSubmitted, ProposalVotingModuleData, ProposalMovedToVote
         vm.expectEmit(address(validator));
         emit ProposalSubmitted(expectedHash, proposer, proposalDescription, proposalType);
 
         vm.expectEmit(address(validator));
         emit ProposalVotingModuleData(expectedHash, votingModuleData);
+
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(expectedHash, proposer);
 
         vm.prank(proposer);
         bytes32 proposalHash =

@@ -341,6 +341,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
 
+        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, _proposalType);
+        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
+
         // MaintenanceUpgrade proposals move directly to voting (atomic operation)
         if (_proposalType == ProposalType.MaintenanceUpgrade) {
             proposal.inVoting = true;
@@ -351,9 +354,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
             emit ProposalMovedToVote(proposalHash_, msg.sender);
         }
-
-        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, _proposalType);
-        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
     /// @notice Submits a Council Member Elections proposal for approval and voting.
