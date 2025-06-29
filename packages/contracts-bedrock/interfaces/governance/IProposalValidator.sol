@@ -13,15 +13,16 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
-    error ProposalValidator_InsufficientVotingPower();
     error ProposalValidator_InvalidAttestation();
-    error ProposalValidator_ProposalDoesNotExist();
     error ProposalValidator_VotingCycleAlreadySet();
+    error ProposalValidator_ProposalDoesNotExist();
     error ProposalValidator_ProposalTypesDataLengthMismatch();
     error ReinitializableBase_ZeroInitVersion();
     error ProposalValidator_InvalidFundingProposalType();
     error ProposalValidator_ExceedsDistributionThreshold();
     error ProposalValidator_InvalidOptionsLength();
+    error ProposalValidator_AttestationRevoked();
+    error ProposalValidator_InvalidAttestationSchema();
     error ProposalValidator_InvalidCriteriaValue();
     error ProposalValidator_InvalidUpgradeProposalType();
     error ProposalValidator_InvalidAgainstThreshold();
@@ -47,6 +48,13 @@ interface IProposalValidator is ISemver {
         CouncilBudget
     }
 
+    event ProposalSubmitted(
+        bytes32 indexed proposalHash,
+        address indexed proposer,
+        string description,
+        ProposalType proposalType
+    );
+
     event ProposalApproved(
         bytes32 indexed proposalHash,
         address indexed approver
@@ -57,9 +65,12 @@ interface IProposalValidator is ISemver {
         address indexed executor
     );
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    event MinimumVotingPowerSet(uint256 newMinimumVotingPower);
+    event VotingCycleDataSet(
+        uint256 cycleNumber,
+        uint256 startBlock,
+        uint256 duration,
+        uint256 votingCycleDistributionLimit
+    );
 
     event DistributionThresholdSet(uint256 newDistributionThreshold);
 
@@ -90,7 +101,7 @@ interface IProposalValidator is ISemver {
 
     event Initialized(uint8 version);
 
-    function approveProposal(bytes32 _proposalHash) external;
+    function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external;
 
     function moveToVote(
         address[] memory _targets,
@@ -98,8 +109,6 @@ interface IProposalValidator is ISemver {
         bytes[] memory _calldatas,
         string memory _description
     ) external returns (uint256 governorProposalId_);
-
-    function setMinimumVotingPower(uint256 _minimumVotingPower) external;
 
     function setDistributionThreshold(uint256 _distributionThreshold) external;
 
@@ -141,7 +150,6 @@ interface IProposalValidator is ISemver {
     function initialize(
         address _owner,
         IProposalTypesConfigurator _proposalTypesConfigurator,
-        uint256 _minimumVotingPower,
         uint256 _cycleNumber,
         uint256 _startBlock,
         uint256 _duration,
@@ -157,7 +165,11 @@ interface IProposalValidator is ISemver {
 
     function transferOwnership(address newOwner) external;
 
-    function minimumVotingPower() external view returns (uint256);
+    function renounceOwnership() external;
+
+    function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_);
+
+    function transferOwnership(address newOwner) external;
 
     function distributionThreshold() external view returns (uint256);
 
@@ -169,7 +181,9 @@ interface IProposalValidator is ISemver {
 
     function initVersion() external view returns (uint8);
 
-    function ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+    function APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+
+    function TOP_DELEGATES_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 
     function proposalTypesConfigurator() external view returns (IProposalTypesConfigurator);
 
@@ -182,7 +196,8 @@ interface IProposalValidator is ISemver {
     );
 
     function __constructor__(
-        bytes32 _attestationSchemaUid,
+        bytes32 _approvedProposerAttestationSchemaUid,
+        bytes32 _topDelegatesAttestationSchemaUid,
         IOptimismGovernor _governor,
         IGovernanceToken _votingToken
     ) external;
