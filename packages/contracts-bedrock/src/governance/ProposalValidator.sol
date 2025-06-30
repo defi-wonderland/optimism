@@ -688,6 +688,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidAttestation();
         }
 
+        // check if the attestation is revoked
+        if (attestation.revocationTime != 0) {
+            revert ProposalValidator_AttestationRevoked();
+        }
+
         (address approvedDelegate, uint8 proposalType) = abi.decode(attestation.data, (address, uint8));
 
         if (

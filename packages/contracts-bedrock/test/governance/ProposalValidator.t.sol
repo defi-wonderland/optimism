@@ -466,7 +466,7 @@ contract ProposalValidator_Init is CommonTest {
         // Create schemas
         vm.prank(owner);
         APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
+            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), true
         );
 
         vm.prank(owner);
@@ -846,16 +846,16 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
                 && _attestationUid != topDelegateAttestation_C && _attestationUid != topDelegateAttestation_D
         );
 
-        bool canApprove;
+        bool canApprove_;
         // Expect the invalid attestation error to be reverted
-        vm.expectRevert();
-        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result) {
-            canApprove = result;
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestationSchema.selector);
+        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result_) {
+            canApprove_ = result_;
         } catch {
-            canApprove = false;
+            canApprove_ = false;
         }
 
-        assertEq(canApprove, false);
+        assertEq(canApprove_, false);
     }
 }
 
@@ -1682,6 +1682,39 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
             invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid
         );
     }
+
+    function test_submitCouncilMemberElectionsProposal_attestationRevoked_reverts() public {
+        // Create valid attestation first (make it revocable)
+        vm.prank(owner);
+        bytes32 revocableAttestationUid = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: address(0),
+                    expirationTime: 0,
+                    revocable: true, // Make it revocable
+                    refUID: bytes32(0),
+                    data: abi.encode(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections),
+                    value: 0
+                })
+            })
+        );
+
+        // Revoke the attestation
+        vm.prank(owner);
+        IEAS(Predeploys.EAS).revoke(
+            RevocationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: RevocationRequestData({ uid: revocableAttestationUid, value: 0 })
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, revocableAttestationUid
+        );
+    }
 }
 
 /// @title ProposalValidator_SubmitUpgradeProposal_Test
@@ -2008,5 +2041,42 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(againstThreshold, proposalDescription, invalidAttestation, proposalType);
+    }
+
+    function testFuzz_submitUpgradeProposal_attestationRevoked_reverts(uint8 proposalTypeValue) public {
+        // Bound proposal type to only upgrade proposals (0 = ProtocolOrGovernorUpgrade, 1 = MaintenanceUpgrade)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
+        uint248 againstThreshold = 5000;
+
+        // Create valid attestation first (make it revocable)
+        vm.prank(owner);
+        bytes32 attestationUid = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: address(0),
+                    expirationTime: 0,
+                    revocable: true, // Make it revocable
+                    refUID: bytes32(0),
+                    data: abi.encode(topDelegate_A, proposalType),
+                    value: 0
+                })
+            })
+        );
+
+        // Revoke the attestation
+        vm.prank(owner);
+        IEAS(Predeploys.EAS).revoke(
+            RevocationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: RevocationRequestData({ uid: attestationUid, value: 0 })
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
     }
 }
