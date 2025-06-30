@@ -692,6 +692,27 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         validator.approveProposal(_proposalHash, expiredAttestationUid);
     }
 
+    function testFuzz_approveProposal_nonExistentAttestation_reverts(bytes32 nonExistentUid) public {
+        bytes32 proposalHash = keccak256("test");
+        
+        // Create a valid attestation to ensure we're not accidentally using it
+        bytes32 validAttestationUid = topDelegateAttestation_A;
+        vm.assume(nonExistentUid != validAttestationUid); // Ensure it's different from valid attestation
+        
+        // Set up a mock proposal so it exists
+        validator.setProposalData(
+            proposalHash,
+            topDelegate_A,
+            ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade,
+            false,
+            0
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        vm.prank(topDelegate_A);
+        validator.approveProposal(proposalHash, nonExistentUid);
+    }
+
     function test_approveProposal_invalidAttestationCaller_reverts(
         bytes32 _proposalHash,
         uint8 proposalTypeValue,
@@ -2115,5 +2136,57 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
         vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(againstThreshold, proposalDescription, expiredAttestation, proposalType);
+    }
+
+    function test_submitUpgradeProposal_attestationRevoked_reverts() public {
+        uint248 againstThreshold = 5000;
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+
+        // Create a revocable attestation
+        vm.prank(owner);
+        bytes32 revokedAttestation = IEAS(Predeploys.EAS).attest(
+            AttestationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: AttestationRequestData({
+                    recipient: address(0),
+                    expirationTime: 0,
+                    revocable: true, // Make it revocable
+                    refUID: bytes32(0),
+                    data: abi.encode(topDelegate_A, proposalType),
+                    value: 0
+                })
+            })
+        );
+
+        // Revoke the attestation
+        vm.prank(owner);
+        IEAS(Predeploys.EAS).revoke(
+            RevocationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: RevocationRequestData({uid: revokedAttestation, value: 0})
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, revokedAttestation, proposalType);
+    }
+
+    function testFuzz_submitUpgradeProposal_nonExistentAttestation_reverts(bytes32 nonExistentUid) public {
+        uint248 againstThreshold = 5000;
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        
+        // Create a valid attestation to ensure we're not accidentally using it
+        bytes32 validAttestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+        vm.assume(nonExistentUid != validAttestationUid); // Ensure it's different from valid attestation
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(
+            againstThreshold,
+            proposalDescription,
+            nonExistentUid,
+            proposalType
+        );
     }
 }
