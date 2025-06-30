@@ -394,22 +394,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidCriteriaValue();
         }
 
-        ProposalOption[] memory options = new ProposalOption[](optionsLength);
-
-        // Build proposal options without any execution calls (elections don't execute operations)
-        for (uint256 i = 0; i < optionsLength; i++) {
-            address[] memory targets = new address[](0);
-            uint256[] memory values = new uint256[](0);
-            bytes[] memory calldatas = new bytes[](0);
-
-            options[i] = ProposalOption({
-                budgetTokensSpent: 0, // No tokens spent for elections
-                targets: targets,
-                values: values,
-                calldatas: calldatas,
-                description: _optionDescriptions[i]
-            });
-        }
+        // Build proposal options (elections don't execute operations)
+        (ProposalOption[] memory options,) = _buildApprovalModuleOptions(_optionDescriptions, new address[](0), new uint256[](0));
 
         // Configure approval voting settings with TopChoices criteria
         ApprovalProposalSettings memory settings = ApprovalProposalSettings({
@@ -491,32 +477,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidOptionsLength();
         }
 
-        ProposalOption[] memory options = new ProposalOption[](optionsLength);
-        uint256 totalBudget = 0;
-
-        // Check amounts, build options, and calculate total budget in single loop
-        for (uint256 i = 0; i < optionsLength; i++) {
-            if (_optionsAmounts[i] > distributionThreshold) {
-                revert ProposalValidator_ExceedsDistributionThreshold();
-            }
-
-            address[] memory targets = new address[](1);
-            uint256[] memory values = new uint256[](1);
-            bytes[] memory calldatas = new bytes[](1);
-
-            targets[0] = Predeploys.GOVERNANCE_TOKEN;
-            calldatas[0] = abi.encodeCall(IERC20.transfer, (_optionsRecipients[i], _optionsAmounts[i]));
-
-            options[i] = ProposalOption({
-                budgetTokensSpent: _optionsAmounts[i],
-                targets: targets,
-                values: values,
-                calldatas: calldatas,
-                description: _optionsDescriptions[i]
-            });
-
-            totalBudget += _optionsAmounts[i];
-        }
+        // Build proposal options with funding execution data
+        (ProposalOption[] memory options, uint256 totalBudget) = _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
 
         // Configure approval voting settings
         ApprovalProposalSettings memory settings = ApprovalProposalSettings({
@@ -556,6 +518,65 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
+    /// @notice Internal function to build proposal options with optional execution data.
+    /// @param _optionDescriptions The strings of the different options that can be voted.
+    /// @param _recipients An address for each option to transfer funds to (empty for non-funding proposals).
+    /// @param _amounts The amount to transfer for each option (empty for non-funding proposals).
+    /// @return options_ The built proposal options.
+    /// @return totalBudget The total budget amount (sum of all amounts, 0 for non-funding proposals).
+    function _buildApprovalModuleOptions(
+        string[] memory _optionDescriptions,
+        address[] memory _recipients,
+        uint256[] memory _amounts
+    )
+        internal
+        view
+        returns (ProposalOption[] memory options_, uint256 totalBudget)
+    {
+        uint256 optionsLength = _optionDescriptions.length;
+        options_ = new ProposalOption[](optionsLength);
+        totalBudget = 0;
+
+        for (uint256 i = 0; i < optionsLength; i++) {
+            address[] memory targets;
+            uint256[] memory values;
+            bytes[] memory calldatas;
+            uint256 budgetTokensSpent;
+
+            // Check if this is a funding proposal (has recipients and amounts)
+            if (_recipients.length > 0 && _amounts.length > 0) {
+                // Validate amount doesn't exceed distribution threshold
+                if (_amounts[i] > distributionThreshold) {
+                    revert ProposalValidator_ExceedsDistributionThreshold();
+                }
+
+                targets = new address[](1);
+                values = new uint256[](1);
+                calldatas = new bytes[](1);
+
+                targets[0] = Predeploys.GOVERNANCE_TOKEN;
+                calldatas[0] = abi.encodeCall(IERC20.transfer, (_recipients[i], _amounts[i]));
+                budgetTokensSpent = _amounts[i];
+            } else {
+                // Non-funding proposals have no execution data
+                targets = new address[](0);
+                values = new uint256[](0);
+                calldatas = new bytes[](0);
+                budgetTokensSpent = 0;
+            }
+
+            options_[i] = ProposalOption({
+                budgetTokensSpent: budgetTokensSpent,
+                targets: targets,
+                values: values,
+                calldatas: calldatas,
+                description: _optionDescriptions[i]
+            });
+
+            totalBudget += _amounts[i];
+        }
+    }
+
     /// @notice Approves a proposal before being moved for voting.
     /// @dev This function should only be called by the top delegates.
     /// @param _proposalHash The hash of the proposal to approve
@@ -581,47 +602,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.approvalCount++;
 
         emit ProposalApproved(_proposalHash, _delegate);
-    }
-
-    /// @notice Move a proposal to voting phase after sufficient delegate approvals
-    /// @param _targets Target addresses for proposal calls
-    /// @param _values ETH values for proposal calls
-    /// @param _calldatas Function data for proposal calls
-    /// @param _description Description of the proposal
-    /// @return governorProposalId_ The proposal ID in the governor contract
-    function moveToVote(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _description
-    )
-        external
-        returns (uint256 governorProposalId_)
-    {
-        // Verify that the provided data matches the proposalHash
-        bytes32 _proposalHash = bytes32(0); // TODO: Implement hashProposalWithModule
-
-        ProposalData storage proposal = _proposals[_proposalHash];
-
-        if (proposal.proposer == address(0)) {
-            revert ProposalValidator_ProposalDoesNotExist();
-        }
-
-        ProposalTypeData memory proposalTypeData = proposalTypesData[proposal.proposalType];
-        if (proposal.approvalCount < proposalTypeData.requiredApprovals) {
-            revert ProposalValidator_InsufficientApprovals();
-        }
-
-        if (proposal.inVoting) {
-            revert ProposalValidator_ProposalAlreadySubmitted();
-        }
-
-        proposal.inVoting = true;
-
-        governorProposalId_ =
-            GOVERNOR.propose(_targets, _values, _calldatas, _description, uint8(proposal.proposalType));
-
-        emit ProposalMovedToVote(_proposalHash, msg.sender);
     }
 
     /// @notice Checks if a delegate can approve a proposal.
