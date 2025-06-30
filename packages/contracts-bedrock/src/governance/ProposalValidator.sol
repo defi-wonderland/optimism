@@ -135,6 +135,14 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /*//////////////////////////////////////////////////////////////
+                               CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice The divisor used for percentage calculations in optimistic voting modules.
+    /// @dev Represents 100% in basis points (10,000 = 100%).
+    uint256 public constant OPTIMISTIC_MODULE_PERCENT_DIVISOR = 10_000;
+
+    /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -304,7 +312,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         _validateApprovedProposerAttestation(_attestationUid, _proposalType);
 
         // Validate againstThreshold is non-zero and within bounds for percentage-based thresholds
-        if (_againstThreshold == 0 || _againstThreshold > 10000) {
+        if (_againstThreshold == 0 || _againstThreshold > OPTIMISTIC_MODULE_PERCENT_DIVISOR) {
             revert ProposalValidator_InvalidAgainstThreshold();
         }
 
