@@ -675,11 +675,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         if (_attestation.expirationTime != 0 && block.timestamp >= _attestation.expirationTime) {
             revert ProposalValidator_AttestationExpired();
         }
-
-        // Check if attestation is revoked
-        if (_attestation.revocationTime != 0) {
-            revert ProposalValidator_AttestationRevoked();
-        }
     }
 
     /// @notice Validates the attestation data for a proposal.
@@ -733,6 +728,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // check if the schema is correct
         if (attestation.schema != TOP_DELEGATES_ATTESTATION_SCHEMA_UID) {
             revert ProposalValidator_InvalidAttestationSchema();
+        }
+
+        // check if the attestation is revoked
+        if (attestation.revocationTime != 0) {
+            revert ProposalValidator_AttestationRevoked();
         }
 
         // check if the attestation includes partial delegation or the recipient is not the caller
