@@ -719,10 +719,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         returns (bool canApprove_)
     {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
-        
+
         // Perform common attestation checks
         _genericAttestationChecks(attestation);
-        
+
         (, bool _includePartialDelegation,) = abi.decode(attestation.data, (string, bool, string));
 
         // check if the schema is correct

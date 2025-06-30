@@ -697,18 +697,14 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 
     function testFuzz_approveProposal_nonExistentAttestation_reverts(bytes32 nonExistentUid) public {
         bytes32 proposalHash = keccak256("test");
-        
+
         // Create a valid attestation to ensure we're not accidentally using it
         bytes32 validAttestationUid = topDelegateAttestation_A;
         vm.assume(nonExistentUid != validAttestationUid); // Ensure it's different from valid attestation
-        
+
         // Set up a mock proposal so it exists
         validator.setProposalData(
-            proposalHash,
-            topDelegate_A,
-            ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade,
-            false,
-            0
+            proposalHash, topDelegate_A, ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, false, 0
         );
 
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -897,16 +893,16 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
                 && _attestationUid != topDelegateAttestation_C && _attestationUid != topDelegateAttestation_D
         );
 
-        bool canApprove;
+        bool canApprove_;
         // Expect the invalid attestation error to be reverted
-        vm.expectRevert();
-        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result) {
-            canApprove = result;
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result_) {
+            canApprove_ = result_;
         } catch {
-            canApprove = false;
+            canApprove_ = false;
         }
 
-        assertEq(canApprove, false);
+        assertEq(canApprove_, false);
     }
 
     function test_canApproveProposal_expiredAttestation_reverts() public {
@@ -2150,22 +2146,16 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         validator.submitUpgradeProposal(againstThreshold, proposalDescription, expiredAttestation, proposalType);
     }
 
-
     function testFuzz_submitUpgradeProposal_nonExistentAttestation_reverts(bytes32 nonExistentUid) public {
         uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-        
+
         // Create a valid attestation to ensure we're not accidentally using it
         bytes32 validAttestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
         vm.assume(nonExistentUid != validAttestationUid); // Ensure it's different from valid attestation
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(
-            againstThreshold,
-            proposalDescription,
-            nonExistentUid,
-            proposalType
-        );
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, nonExistentUid, proposalType);
     }
 }
