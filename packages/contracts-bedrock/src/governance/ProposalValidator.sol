@@ -663,6 +663,25 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         _setProposalTypeData(_proposalType, _proposalTypeData);
     }
 
+    /// @notice Performs common attestation validation checks.
+    /// @param _attestation The attestation data to validate.
+    function _genericAttestationChecks(Attestation memory _attestation) internal view {
+        // Check if attestation exists
+        if (_attestation.uid == bytes32(0)) {
+            revert ProposalValidator_InvalidAttestation();
+        }
+
+        // Check if attestation has expired
+        if (_attestation.expirationTime != 0 && block.timestamp >= _attestation.expirationTime) {
+            revert ProposalValidator_AttestationExpired();
+        }
+
+        // Check if attestation is revoked
+        if (_attestation.revocationTime != 0) {
+            revert ProposalValidator_AttestationRevoked();
+        }
+    }
+
     /// @notice Validates the attestation data for a proposal.
     /// @dev Checks that the attester is the owner, the schema is correct,
     ///      the sender is the approved delegate, and that the proposal type is correct.
@@ -678,15 +697,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
 
-        // Check if attestation exists, equivalent to calling EAS.isAttestationValid(_attestationUid)
-        if (attestation.uid == bytes32(0)) {
-            revert ProposalValidator_InvalidAttestation();
-        }
-
-        // Check if attestation has expired
-        if (attestation.expirationTime != 0 && block.timestamp >= attestation.expirationTime) {
-            revert ProposalValidator_AttestationExpired();
-        }
+        // Perform common attestation checks
+        _genericAttestationChecks(attestation);
 
         (address approvedDelegate, uint8 proposalType) = abi.decode(attestation.data, (address, uint8));
 
@@ -712,21 +724,15 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         returns (bool canApprove_)
     {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
+        
+        // Perform common attestation checks
+        _genericAttestationChecks(attestation);
+        
         (, bool _includePartialDelegation,) = abi.decode(attestation.data, (string, bool, string));
 
         // check if the schema is correct
         if (attestation.schema != TOP_DELEGATES_ATTESTATION_SCHEMA_UID) {
             revert ProposalValidator_InvalidAttestationSchema();
-        }
-
-        // check if the attestation is revoked
-        if (attestation.revocationTime != 0) {
-            revert ProposalValidator_AttestationRevoked();
-        }
-
-        // check if the attestation has expired
-        if (attestation.expirationTime != 0 && block.timestamp >= attestation.expirationTime) {
-            revert ProposalValidator_AttestationExpired();
         }
 
         // check if the attestation includes partial delegation or the recipient is not the caller
