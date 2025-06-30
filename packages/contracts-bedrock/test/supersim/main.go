@@ -10,7 +10,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run . <script_name>")
-		fmt.Println("Available scripts: relay, gastank --numNestedMessages <number>, gasanalysis")
+		fmt.Println("Available scripts: relay, gastank --numNestedMessages <number>, gasanalysis, foundry-relay")
 		os.Exit(1)
 	}
 
@@ -29,6 +29,8 @@ func main() {
 		}
 	case "gasanalysis":
 		runGasAnalysis()
+	case "foundry-relay":
+		runFoundryRelay()
 	default:
 		fmt.Printf("Unknown script: %s\n", script)
 		os.Exit(1)
