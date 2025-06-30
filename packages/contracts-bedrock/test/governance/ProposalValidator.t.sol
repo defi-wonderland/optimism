@@ -157,6 +157,7 @@ contract ProposalValidator_Init is CommonTest {
     event ProposalTypeDataSet(
         ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule
     );
+    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
 
     /// @notice Helper function to setup a mock and expect a call to it.
     function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
@@ -1001,8 +1002,6 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     uint256[] optionsAmounts;
     string description;
 
-    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
-
     function setUp() public override {
         super.setUp();
 
@@ -1455,8 +1454,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
 contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is ProposalValidator_Init {
     string proposalDescription;
 
-    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
-
     function setUp() public override {
         super.setUp();
 
@@ -1691,8 +1688,6 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 /// @notice Happy path tests for submitUpgradeProposal function
 contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init {
     string proposalDescription;
-
-    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
 
     function setUp() public override {
         super.setUp();
