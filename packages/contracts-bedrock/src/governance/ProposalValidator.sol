@@ -43,6 +43,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
     error ProposalValidator_ProposalAlreadySubmitted();
 
+    /// @notice Thrown when attempting to move a proposal to vote that is already in voting.
+    error ProposalValidator_ProposalAlreadyMovedToVote();
+
     /// @notice Thrown when an invalid attestation is provided for a proposal.
     error ProposalValidator_InvalidAttestation();
 
@@ -79,6 +82,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when an invalid proposal type is provided for upgrade proposals.
     error ProposalValidator_InvalidUpgradeProposalType();
 
+    /// @notice Thrown when the trying to move a proposal to vote outside of the accepted voting cycle.
+    error ProposalValidator_InvalidVotingCycle();
+
+    /// @notice Thrown when the proposalId returned by the Governor is not the same as the proposalHash.
+    error ProposalValidator_ProposalIdMismatch();
+
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
@@ -89,12 +98,14 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param inVoting Whether the proposal has been moved to the voting phase.
     /// @param delegateApprovals Mapping of delegate addresses to their approval status.
     /// @param approvalCount Number of approvals received so far.
+    /// @param votingCycle The voting cycle number the proposal is targetted for.
     struct ProposalData {
         address proposer;
         ProposalType proposalType;
         bool inVoting;
         mapping(address => bool) delegateApprovals;
         uint256 approvalCount;
+        uint256 votingCycle;
     }
 
     /// @notice Struct for storing explicit data for each proposal type.
@@ -110,10 +121,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param startingBlock The block number of the starting block of the voting cycle.
     /// @param duration The duration of the voting cycle.
     /// @param votingCycleDistributionLimit The max amount of tokens that can be distributed in a proposal.
+    /// @param movedToVoteTokenCount The total amount of tokens to possibly be distributed in the voting cycle.
     struct VotingCycleData {
         uint256 startingBlock;
         uint256 duration;
         uint256 votingCycleDistributionLimit;
+        uint256 movedToVoteTokenCount;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -188,6 +201,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param proposalHash The hash of the submitted proposal.
     /// @param encodedVotingModuleData The encoded voting module data.
     event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
+
+    event Test(string text);
 
     /// @notice The schema UID for attestations in the Ethereum Attestation Service for checking if the caller
     ///         is an approved proposer.
@@ -292,12 +307,14 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalDescription Description of the proposal.
     /// @param _attestationUid The UID of the attestation for the approved proposer.
     /// @param _proposalType The type of proposal (ProtocolOrGovernorUpgrade or MaintenanceUpgrade).
+    /// @param _votingCycle The voting cycle number the proposal is targetted for.
     /// @return proposalHash_ The hash of the submitted proposal.
     function submitUpgradeProposal(
         uint248 _againstThreshold,
         string memory _proposalDescription,
         bytes32 _attestationUid,
-        ProposalType _proposalType
+        ProposalType _proposalType,
+        uint256 _votingCycle
     )
         external
         returns (bytes32 proposalHash_)
@@ -348,6 +365,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
+        proposal.votingCycle = _votingCycle;
 
         emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
@@ -370,12 +388,14 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _optionDescriptions The strings of the different options that can be voted.
     /// @param _proposalDescription Description of the proposal.
     /// @param _attestationUid The UID of the attestation for the approved proposer.
+    /// @param _votingCycle The voting cycle number the proposal is targetted for.
     /// @return proposalHash_ The hash of the submitted proposal.
     function submitCouncilMemberElectionsProposal(
         uint128 _criteriaValue,
         string[] memory _optionDescriptions,
         string memory _proposalDescription,
-        bytes32 _attestationUid
+        bytes32 _attestationUid,
+        uint256 _votingCycle
     )
         external
         returns (bytes32 proposalHash_)
@@ -395,7 +415,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Build proposal options (elections don't execute operations)
-        (ProposalOption[] memory options,) = _buildApprovalModuleOptions(_optionDescriptions, new address[](0), new uint256[](0));
+        (ProposalOption[] memory options,) =
+            _buildApprovalModuleOptions(_optionDescriptions, new address[](0), new uint256[](0));
 
         // Configure approval voting settings with TopChoices criteria
         ApprovalProposalSettings memory settings = ApprovalProposalSettings({
@@ -432,6 +453,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = ProposalType.CouncilMemberElections;
+        proposal.votingCycle = _votingCycle;
 
         emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, ProposalType.CouncilMemberElections);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
@@ -449,6 +471,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _optionsAmounts The amount to transfer for each option in case the option passes the voting.
     /// @param _description Description of the proposal.
     /// @param _proposalType The type of proposal (must be GovernanceFund or CouncilBudget).
+    /// @param _votingCycle The voting cycle number the proposal is targetted for.
     /// @return proposalHash_ The hash of the submitted proposal.
     function submitFundingProposal(
         uint128 _criteriaValue,
@@ -456,7 +479,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         address[] memory _optionsRecipients,
         uint256[] memory _optionsAmounts,
         string memory _description,
-        ProposalType _proposalType
+        ProposalType _proposalType,
+        uint256 _votingCycle
     )
         external
         returns (bytes32 proposalHash_)
@@ -478,7 +502,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Build proposal options with funding execution data
-        (ProposalOption[] memory options, uint256 totalBudget) = _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
+        (ProposalOption[] memory options, uint256 totalBudget) =
+            _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
 
         // Configure approval voting settings
         ApprovalProposalSettings memory settings = ApprovalProposalSettings({
@@ -513,6 +538,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Store proposal metadata
         proposal.proposer = msg.sender;
         proposal.proposalType = _proposalType;
+        proposal.votingCycle = _votingCycle;
 
         emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
@@ -535,7 +561,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     {
         uint256 optionsLength = _optionDescriptions.length;
         options_ = new ProposalOption[](optionsLength);
-        totalBudget = 0;
 
         for (uint256 i = 0; i < optionsLength; i++) {
             address[] memory targets;
@@ -549,7 +574,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 if (_amounts[i] > distributionThreshold) {
                     revert ProposalValidator_ExceedsDistributionThreshold();
                 }
-
                 targets = new address[](1);
                 values = new uint256[](1);
                 calldatas = new bytes[](1);
@@ -557,6 +581,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 targets[0] = Predeploys.GOVERNANCE_TOKEN;
                 calldatas[0] = abi.encodeCall(IERC20.transfer, (_recipients[i], _amounts[i]));
                 budgetTokensSpent = _amounts[i];
+                totalBudget += _amounts[i];
             } else {
                 // Non-funding proposals have no execution data
                 targets = new address[](0);
@@ -572,8 +597,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 calldatas: calldatas,
                 description: _optionDescriptions[i]
             });
-
-            totalBudget += _amounts[i];
         }
     }
 
@@ -610,6 +633,235 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @return canApprove_ True if the delegate can approve the proposal, false otherwise.
     function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_) {
         canApprove_ = _validateTopDelegateAttestation(_attestationUid, _delegate);
+    }
+
+    /// @notice Moves a Protocol or Governor Upgrade proposal to vote by proposing it on the Governor.
+    /// @param _againstThreshold The threshold for the proposal to be against the total supply.
+    /// @param _proposalDescription Description of the proposal.
+    /// @return proposalHash_ The hash of the submitted proposal.
+    function moveToVoteProtocolOrGovernorUpgradeProposal(
+        uint248 _againstThreshold,
+        string memory _proposalDescription
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        // Configure optimistic proposal settings
+        OptimisticProposalSettings memory settings =
+            OptimisticProposalSettings({ againstThreshold: _againstThreshold, isRelativeToVotableSupply: true });
+
+        bytes memory proposalVotingModuleData = abi.encode(settings);
+
+        // Get the module address from the configurator
+        address votingModule = proposalTypesConfigurator.proposalTypes(
+            proposalTypesData[ProposalType.ProtocolOrGovernorUpgrade].proposalVotingModule
+        ).module;
+
+        // Generate unique proposal hash
+        proposalHash_ =
+            _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
+
+        ProposalData storage proposal = _proposals[proposalHash_];
+
+        // Proposal must exist and the proposer must be the caller
+        if (proposal.proposer != _msgSender() || proposal.proposalType != ProposalType.ProtocolOrGovernorUpgrade) {
+            revert ProposalValidator_ProposalDoesNotExist();
+        }
+
+        // Check if proposal is already in voting
+        if (proposal.inVoting) {
+            revert ProposalValidator_ProposalAlreadyMovedToVote();
+        }
+
+        proposal.inVoting = true;
+
+        // Propose with module on the Governor
+        uint256 proposalId = GOVERNOR.proposeWithModule(
+            VotingModule(votingModule),
+            proposalVotingModuleData,
+            _proposalDescription,
+            uint8(ProposalType.ProtocolOrGovernorUpgrade)
+        );
+
+        // Make sure the proposalId is the same as the proposalHash
+        if (proposalId != uint256(proposalHash_)) {
+            revert ProposalValidator_ProposalIdMismatch();
+        }
+
+        emit ProposalMovedToVote(proposalHash_, _msgSender());
+    }
+
+    /// @notice Moves a council member elections proposal to vote by proposing it on the Governor.
+    /// @param _criteriaValue The number of top choices that can pass the voting.
+    /// @param _optionsDescriptions The strings of the different options that can be voted.
+    /// @param _proposalDescription Description of the proposal.
+    /// @return proposalHash_ The hash of the submitted proposal.
+    function moveToVoteCouncilMemberElectionsProposal(
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        string memory _proposalDescription
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        // Configure approval module options
+        (ProposalOption[] memory options,) =
+            _buildApprovalModuleOptions(_optionsDescriptions, new address[](0), new uint256[](0));
+
+        // Configure approval module settings
+        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+            maxApprovals: uint8(_optionsDescriptions.length),
+            criteria: uint8(PassingCriteria.TopChoices),
+            budgetToken: address(0),
+            criteriaValue: _criteriaValue,
+            budgetAmount: 0
+        });
+
+        bytes memory proposalVotingModuleData = abi.encode(options, settings);
+
+        // Get the module address from the configurator
+        ProposalType proposalType = ProposalType.CouncilMemberElections;
+        address votingModule =
+            proposalTypesConfigurator.proposalTypes(proposalTypesData[proposalType].proposalVotingModule).module;
+
+        // Generate unique proposal hash
+        proposalHash_ =
+            _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
+
+        ProposalData storage proposal = _proposals[proposalHash_];
+
+        // Proposal must exist and the proposer must be the caller
+        if (proposal.proposer != _msgSender() || proposal.proposalType != proposalType) {
+            revert ProposalValidator_ProposalDoesNotExist();
+        }
+
+        // Check if proposal has enough approvals
+        if (proposal.approvalCount < proposalTypesData[proposalType].requiredApprovals) {
+            revert ProposalValidator_InsufficientApprovals();
+        }
+
+        // Check if proposal is already in voting
+        if (proposal.inVoting) {
+            revert ProposalValidator_ProposalAlreadyMovedToVote();
+        }
+
+        // Check if the voting cycle is valid
+        VotingCycleData memory votingCycleData = votingCycles[proposal.votingCycle];
+        // TODO: is +1 days correct?
+        if (votingCycleData.startingBlock > block.number || votingCycleData.startingBlock + 1 days < block.number) {
+            revert ProposalValidator_InvalidVotingCycle();
+        }
+
+        proposal.inVoting = true;
+
+        // Propose with module on the Governor
+        uint256 proposalId = GOVERNOR.proposeWithModule(
+            VotingModule(votingModule), proposalVotingModuleData, _proposalDescription, uint8(proposalType)
+        );
+
+        // Make sure the proposalId is the same as the proposalHash
+        if (proposalId != uint256(proposalHash_)) {
+            revert ProposalValidator_ProposalIdMismatch();
+        }
+
+        emit ProposalMovedToVote(proposalHash_, _msgSender());
+    }
+
+    /// @notice Moves a funding proposal to vote by proposing it on the Governor.
+    /// @dev For UI integration: Frontend interfaces should present this as a percentage input to users (e.g., "25%"),
+    /// then convert to the absolute vote count by calculating: (percentage / 100) * total_votable_supply.
+    /// Direct contract callers must provide the absolute number of votes required for passage.
+    /// @param _criteriaValue The absolute number of votes required for the proposal to pass. This represents the
+    /// threshold that must be met or exceeded for any option to be considered successful.
+    /// @param _optionsDescriptions The strings of the different options that can be voted.
+    /// @param _optionsRecipients An address for each option to transfer funds to in case the option passes the voting.
+    /// @param _optionsAmounts The amount to transfer for each option in case the option passes the voting.
+    /// @param _description Description of the proposal.
+    /// @param _proposalType The type of proposal (must be GovernanceFund or CouncilBudget).
+    /// @return proposalHash_ The hash of the submitted proposal.
+    function moveToVoteFundingProposal(
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        address[] memory _optionsRecipients,
+        uint256[] memory _optionsAmounts,
+        string memory _description,
+        ProposalType _proposalType
+    )
+        external
+        returns (bytes32 proposalHash_)
+    {
+        uint256 optionsLength = _optionsDescriptions.length;
+        // Only funding proposal types can use this function
+        if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
+            revert ProposalValidator_InvalidFundingProposalType();
+        }
+
+        // Configure approval module options
+        (ProposalOption[] memory options, uint256 totalBudget) =
+            _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
+
+        // Configure approval module settings
+        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+            maxApprovals: uint8(optionsLength),
+            criteria: uint8(PassingCriteria.Threshold),
+            budgetToken: Predeploys.GOVERNANCE_TOKEN,
+            criteriaValue: _criteriaValue,
+            budgetAmount: uint128(totalBudget)
+        });
+
+        bytes memory proposalVotingModuleData = abi.encode(options, settings);
+
+        // Get the module address from the configurator
+        address votingModule =
+            proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
+
+        // Generate unique proposal hash
+        proposalHash_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
+
+        ProposalData storage proposal = _proposals[proposalHash_];
+
+        // Proposal must exist
+        if (proposal.proposer == address(0) || proposal.proposalType != _proposalType) {
+            revert ProposalValidator_ProposalDoesNotExist();
+        }
+
+        // Check if proposal has enough approvals
+        if (proposal.approvalCount < proposalTypesData[_proposalType].requiredApprovals) {
+            revert ProposalValidator_InsufficientApprovals();
+        }
+
+        // Check if proposal is already in voting
+        if (proposal.inVoting) {
+            revert ProposalValidator_ProposalAlreadyMovedToVote();
+        }
+
+        // Check if proposal can be moved to vote
+        VotingCycleData memory votingCycleData = votingCycles[proposal.votingCycle];
+        // TODO: is +1 days correct?
+        if (votingCycleData.startingBlock > block.number || votingCycleData.startingBlock + 1 days < block.number) {
+            revert ProposalValidator_InvalidVotingCycle();
+        }
+
+        // Check if total budget is within the voting cycle distribution limit
+        if (votingCycleData.movedToVoteTokenCount + totalBudget > votingCycleData.votingCycleDistributionLimit) {
+            revert ProposalValidator_ExceedsDistributionThreshold();
+        }
+
+        // Move proposal to vote
+        proposal.inVoting = true;
+        votingCycles[proposal.votingCycle].movedToVoteTokenCount += totalBudget;
+
+        // Propose with module on the Governor
+        uint256 proposalId = GOVERNOR.proposeWithModule(
+            VotingModule(votingModule), proposalVotingModuleData, _description, uint8(_proposalType)
+        );
+
+        // Make sure the proposalId is the same as the proposalHash
+        if (proposalId != uint256(proposalHash_)) {
+            revert ProposalValidator_ProposalIdMismatch();
+        }
+
+        emit ProposalMovedToVote(proposalHash_, _msgSender());
     }
 
     /// @notice Sets the data of a voting cycle.
@@ -749,7 +1001,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         votingCycles[_cycleNumber] = VotingCycleData({
             startingBlock: _startBlock,
             duration: _duration,
-            votingCycleDistributionLimit: _votingCycleDistributionLimit
+            votingCycleDistributionLimit: _votingCycleDistributionLimit,
+            movedToVoteTokenCount: 0
         });
         emit VotingCycleDataSet(_cycleNumber, _startBlock, _duration, _votingCycleDistributionLimit);
     }

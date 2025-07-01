@@ -13,6 +13,7 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
+    error ProposalValidator_ProposalAlreadyMovedToVote();
     error ProposalValidator_InvalidAttestation();
     error ProposalValidator_VotingCycleAlreadySet();
     error ProposalValidator_ProposalDoesNotExist();
@@ -24,8 +25,10 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_AttestationRevoked();
     error ProposalValidator_InvalidAttestationSchema();
     error ProposalValidator_InvalidCriteriaValue();
-    error ProposalValidator_InvalidUpgradeProposalType();
     error ProposalValidator_InvalidAgainstThreshold();
+    error ProposalValidator_InvalidUpgradeProposalType();
+    error ProposalValidator_InvalidVotingCycle();
+    error ProposalValidator_ProposalIdMismatch();
 
     struct ProposalData {
         address proposer;
@@ -33,11 +36,19 @@ interface IProposalValidator is ISemver {
         bool inVoting;
         mapping(address => bool) delegateApprovals;
         uint256 approvalCount;
+        uint256 votingCycle;
     }
 
     struct ProposalTypeData {
         uint256 requiredApprovals;
         uint8 proposalVotingModule;
+    }
+
+    struct VotingCycleData {
+        uint256 startingBlock;
+        uint256 duration;
+        uint256 votingCycleDistributionLimit;
+        uint256 movedToVoteTokenCount;
     }
 
     enum ProposalType {
@@ -91,13 +102,6 @@ interface IProposalValidator is ISemver {
 
     function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external;
 
-    function moveToVote(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        string memory _description
-    ) external returns (uint256 governorProposalId_);
-
     function setDistributionThreshold(uint256 _distributionThreshold) external;
 
     function setProposalTypeData(
@@ -116,7 +120,8 @@ interface IProposalValidator is ISemver {
         uint128 _criteriaValue,
         string[] memory _optionDescriptions,
         string memory _proposalDescription,
-        bytes32 _attestationUid
+        bytes32 _attestationUid,
+        uint256 _votingCycle
     ) external returns (bytes32 proposalHash_);
 
     function submitFundingProposal(
@@ -125,13 +130,35 @@ interface IProposalValidator is ISemver {
         address[] memory _optionsRecipients,
         uint256[] memory _optionsAmounts,
         string memory _description,
-        ProposalType _proposalType
+        ProposalType _proposalType,
+        uint256 _votingCycle
     ) external returns (bytes32 proposalHash_);
 
     function submitUpgradeProposal(
         uint248 _againstThreshold,
         string memory _proposalDescription,
         bytes32 _attestationUid,
+        ProposalType _proposalType,
+        uint256 _votingCycle
+    ) external returns (bytes32 proposalHash_);
+
+    function moveToVoteProtocolOrGovernorUpgradeProposal(
+        uint248 _againstThreshold,
+        string memory _proposalDescription
+    ) external returns (bytes32 proposalHash_);
+
+    function moveToVoteCouncilMemberElectionsProposal(
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        string memory _proposalDescription
+    ) external returns (bytes32 proposalHash_);
+
+    function moveToVoteFundingProposal(
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        address[] memory _optionsRecipients,
+        uint256[] memory _optionsAmounts,
+        string memory _description,
         ProposalType _proposalType
     ) external returns (bytes32 proposalHash_);
 
@@ -174,7 +201,8 @@ interface IProposalValidator is ISemver {
     function votingCycles(uint256) external view returns (
         uint256 startingBlock,
         uint256 duration,
-        uint256 votingCycleDistributionLimit
+        uint256 votingCycleDistributionLimit,
+        uint256 movedToVoteTokenCount
     );
 
     function __constructor__(

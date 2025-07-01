@@ -73,10 +73,17 @@ contract ProposalValidatorForTest is ProposalValidator {
     function getProposalData(bytes32 _proposalHash)
         public
         view
-        returns (address proposer_, ProposalType proposalType_, bool inVoting_, uint256 approvalCount_)
+        returns (
+            address proposer_,
+            ProposalType proposalType_,
+            bool inVoting_,
+            uint256 approvalCount_,
+            uint256 votingCycle_
+        )
     {
         ProposalData storage proposal = _proposals[_proposalHash];
-        return (proposal.proposer, proposal.proposalType, proposal.inVoting, proposal.approvalCount);
+        return
+            (proposal.proposer, proposal.proposalType, proposal.inVoting, proposal.approvalCount, proposal.votingCycle);
     }
 
     function setProposalData(
@@ -571,7 +578,7 @@ contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
         // Check that the proposal data has been updated
         assertTrue(validator.hasDelegateApproved(_proposalHash, topDelegate_A));
 
-        (,,, uint256 approvalCount) = validator.getProposalData(_proposalHash);
+        (,,, uint256 approvalCount,) = validator.getProposalData(_proposalHash);
         assertEq(approvalCount, 1);
     }
 }
@@ -879,12 +886,17 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         vm.prank(owner);
         validator.setVotingCycleData(cycleNumber, startBlock, duration, distributionLimit);
 
-        (uint256 actualStartBlock, uint256 actualDuration, uint256 actualDistributionLimit) =
-            validator.votingCycles(cycleNumber);
+        (
+            uint256 actualStartBlock,
+            uint256 actualDuration,
+            uint256 actualDistributionLimit,
+            uint256 actualMovedToVoteTokenCount
+        ) = validator.votingCycles(cycleNumber);
 
         assertEq(actualStartBlock, startBlock);
         assertEq(actualDuration, duration);
         assertEq(actualDistributionLimit, distributionLimit);
+        assertEq(actualMovedToVoteTokenCount, 0);
     }
 
     function test_setVotingCycleData_notOwner_reverts() public {
@@ -1064,8 +1076,9 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
         vm.prank(proposer);
-        bytes32 proposalHash =
-            validator.submitFundingProposal(criteriaValue, descriptions, recipients, amounts, description, proposalType);
+        bytes32 proposalHash = validator.submitFundingProposal(
+            criteriaValue, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
+        );
 
         assertEq(proposalHash, expectedHash);
 
@@ -1074,13 +1087,15 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
             address storedProposer,
             ProposalValidator.ProposalType storedProposalType,
             bool inVoting,
-            uint256 approvalCount
+            uint256 approvalCount,
+            uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
         assertFalse(inVoting, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
+        assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
 }
 
@@ -1107,7 +1122,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
         );
     }
 
@@ -1140,7 +1155,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             matchingRecipients,
             matchingAmounts,
             description,
-            proposalType
+            proposalType,
+            CYCLE_NUMBER
         );
     }
 
@@ -1173,7 +1189,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             mismatchedRecipients,
             matchingAmounts,
             description,
-            proposalType
+            proposalType,
+            CYCLE_NUMBER
         );
     }
 
@@ -1206,7 +1223,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             matchingRecipients,
             mismatchedAmounts,
             description,
-            proposalType
+            proposalType,
+            CYCLE_NUMBER
         );
     }
 
@@ -1231,7 +1249,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
         );
     }
 
@@ -1261,7 +1279,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         // Submit first proposal
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
         );
 
         // Attempt to submit identical proposal
@@ -1271,7 +1289,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
         );
     }
 
@@ -1302,7 +1320,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
         );
     }
 
@@ -1317,7 +1335,13 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, emptyDescriptions, emptyRecipients, emptyAmounts, description, proposalType
+            FUNDING_CRITERIA_VALUE,
+            emptyDescriptions,
+            emptyRecipients,
+            emptyAmounts,
+            description,
+            proposalType,
+            CYCLE_NUMBER
         );
     }
 
@@ -1339,7 +1363,13 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(user);
         validator.submitFundingProposal(
-            FUNDING_CRITERIA_VALUE, tooManyDescriptions, tooManyRecipients, tooManyAmounts, description, proposalType
+            FUNDING_CRITERIA_VALUE,
+            tooManyDescriptions,
+            tooManyRecipients,
+            tooManyAmounts,
+            description,
+            proposalType,
+            CYCLE_NUMBER
         );
     }
 }
@@ -1388,10 +1418,12 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         assertEq(validator.owner(), owner);
 
         // Verify voting cycle data
-        (uint256 startBlock, uint256 duration, uint256 distributionLimit) = validator.votingCycles(CYCLE_NUMBER);
+        (uint256 startBlock, uint256 duration, uint256 distributionLimit, uint256 movedToVoteTokenCount) =
+            validator.votingCycles(CYCLE_NUMBER);
         assertEq(startBlock, START_BLOCK);
         assertEq(duration, DURATION);
         assertEq(distributionLimit, DISTRIBUTION_LIMIT);
+        assertEq(movedToVoteTokenCount, 0);
 
         // Verify proposal type data
         for (uint256 i = 0; i < proposalTypes.length; i++) {
@@ -1504,14 +1536,19 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
 
         vm.prank(topDelegate_A);
         bytes32 proposalHash = validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
 
         assertEq(proposalHash, expectedHash);
 
         // Verify proposal data was stored correctly
-        (address proposer, ProposalValidator.ProposalType proposalType, bool inVoting, uint256 approvalCount) =
-            validator.getProposalData(proposalHash);
+        (
+            address proposer,
+            ProposalValidator.ProposalType proposalType,
+            bool inVoting,
+            uint256 approvalCount,
+            uint256 votingCycle
+        ) = validator.getProposalData(proposalHash);
 
         assertEq(proposer, topDelegate_A, "Proposer should be topDelegate_A");
         assertEq(
@@ -1521,6 +1558,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         );
         assertFalse(inVoting, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
+        assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
 }
 
@@ -1556,7 +1594,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, fuzzedAttestationUid
+            criteriaValue, optionDescriptions, proposalDescription, fuzzedAttestationUid, CYCLE_NUMBER
         );
     }
 
@@ -1567,7 +1605,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(fuzzedProposer); // Different from attested topDelegate_A
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
     }
 
@@ -1576,7 +1614,9 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
         vm.prank(topDelegate_A);
-        validator.submitCouncilMemberElectionsProposal(criteriaValue, emptyOptions, proposalDescription, attestationUid);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, emptyOptions, proposalDescription, attestationUid, CYCLE_NUMBER
+        );
     }
 
     function test_submitCouncilMemberElectionsProposal_duplicateProposal_reverts() public {
@@ -1598,7 +1638,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         // Submit first proposal
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
 
         // Create new attestation for second attempt
@@ -1612,7 +1652,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
         vm.prank(topDelegate_B);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, secondAttestation
+            criteriaValue, optionDescriptions, proposalDescription, secondAttestation, CYCLE_NUMBER
         );
     }
 
@@ -1636,7 +1676,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, attestationUid
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
     }
 
@@ -1664,7 +1704,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, invalidAttestation
+            criteriaValue, optionDescriptions, proposalDescription, invalidAttestation, CYCLE_NUMBER
         );
     }
 
@@ -1679,7 +1719,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidCriteriaValue.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid
+            invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
     }
 }
@@ -1750,8 +1790,9 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         emit ProposalMovedToVote(expectedHash, proposer);
 
         vm.prank(proposer);
-        bytes32 proposalHash =
-            validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        bytes32 proposalHash = validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
 
         assertEq(proposalHash, expectedHash);
 
@@ -1760,13 +1801,15 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
             address storedProposer,
             ProposalValidator.ProposalType storedProposalType,
             bool inVoting,
-            uint256 approvalCount
+            uint256 approvalCount,
+            uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
         assertTrue(inVoting, "MaintenanceUpgrade should be in voting immediately");
         assertEq(approvalCount, 0, "Approval count should be 0");
+        assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
 
     function testFuzz_submitUpgradeProposal_protocolOrGovernorUpgrade_succeeds(
@@ -1809,8 +1852,9 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         emit ProposalVotingModuleData(expectedHash, votingModuleData);
 
         vm.prank(proposer);
-        bytes32 proposalHash =
-            validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        bytes32 proposalHash = validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
 
         assertEq(proposalHash, expectedHash);
 
@@ -1819,13 +1863,15 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
             address storedProposer,
             ProposalValidator.ProposalType storedProposalType,
             bool inVoting,
-            uint256 approvalCount
+            uint256 approvalCount,
+            uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
         assertFalse(inVoting, "ProtocolOrGovernorUpgrade should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
+        assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
 }
 
@@ -1852,7 +1898,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidUpgradeProposalType.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
     }
 
     function testFuzz_submitUpgradeProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid) public {
@@ -1864,7 +1912,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, fuzzedAttestationUid, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, fuzzedAttestationUid, proposalType, CYCLE_NUMBER
+        );
     }
 
     function testFuzz_submitUpgradeProposal_unattestedProposer_reverts(address fuzzedProposer) public {
@@ -1877,7 +1927,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         // Try to submit with different address than attested
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(fuzzedProposer); // Different from attested topDelegate_A
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
     }
 
     function test_submitUpgradeProposal_zeroAgainstThreshold_reverts() public {
@@ -1887,7 +1939,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAgainstThreshold.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(zeroThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(zeroThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER);
     }
 
     function testFuzz_submitUpgradeProposal_exceedsMaxAgainstThreshold_reverts(uint248 excessiveThreshold) public {
@@ -1900,7 +1952,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAgainstThreshold.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(excessiveThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(
+            excessiveThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
     }
 
     function testFuzz_submitUpgradeProposal_duplicateProposal_reverts(uint8 proposalTypeValue) public {
@@ -1940,7 +1994,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         // Submit first proposal
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
 
         // Create new attestation for second attempt
         bytes32 secondAttestation = _createApprovedProposerAttestation(topDelegate_B, proposalType);
@@ -1951,7 +2007,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
         vm.prank(topDelegate_B);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, secondAttestation, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, secondAttestation, proposalType, CYCLE_NUMBER
+        );
     }
 
     function testFuzz_submitUpgradeProposal_proposalExistsInGovernor_reverts(uint8 proposalTypeValue) public {
@@ -1980,7 +2038,9 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
     }
 
     function testFuzz_submitUpgradeProposal_attestationNotFromOwner_reverts(address fuzzedAttester) public {
@@ -2007,6 +2067,8 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, invalidAttestation, proposalType);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, invalidAttestation, proposalType, CYCLE_NUMBER
+        );
     }
 }
