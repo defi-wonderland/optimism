@@ -229,6 +229,27 @@ contract GasTank is IGasTank {
         //         + 256 * _numHashes // log data
         //         + 3 * extraWords + (extraWords ** 2) / 512
         // ); // memory expansion
+
+        // // With memory expansion term
+        // uint256 dataBytes = 96 + 32 * _numHashes;
+        // uint256 prevBytes;
+        // assembly {
+        //     prevBytes := mload(0x40)
+        // }
+        // uint256 prevWords = prevBytes >> 5; // /32
+        // uint256 newWords = (prevBytes + dataBytes + 31) >> 5; // ceil((prev+data)/32)
+        // uint256 gMem = 3 * (newWords - prevWords) // linear component
+        //     + ((newWords * newWords) - (prevWords * prevWords)) >> 9; // quadratic (/512)
+
+        // uint256 gLog = 1500 // 1500 = 375 + 3*375 (LOG3)
+        //     + 13 * dataBytes // 8 (per-byte cost for the data payload)
+        //     + gMem; // memory expansion
+
+        // overhead_ = _cost(
+        //     182_200 // base tx + buffer (35k, 50k, 150k, 350k, 200k, 190k, 180k, 185k, 183k, )
+        //         + gLog,
+        //     block.basefee
+        // );
     }
 
     /// @notice Calculates the cost of gas used in wei
