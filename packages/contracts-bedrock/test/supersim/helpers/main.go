@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
 	"os"
 	"strconv"
+	"strings"
 
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -35,7 +39,7 @@ type BuildIdentifierResult struct {
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run . <script_name>")
-		fmt.Println("Available scripts: build_id, get_access_list")
+		fmt.Println("Available scripts: build_id, get_access_list, relay_message")
 		os.Exit(1)
 	}
 
@@ -46,7 +50,7 @@ func main() {
 	case "get_access_list":
 		getAccessList()
 	case "relay_message":
-		// relayMessage()
+		relayMessage()
 	default:
 		fmt.Printf("Unknown script: %s\n", script)
 		os.Exit(1)
@@ -263,26 +267,6 @@ type AccessListResult struct {
 	AccessList []AccessListItem `json:"accessList"`
 }
 
-// AdminRPCRequest represents the request to admin_getAccessListForIdentifier
-type AdminRPCRequest struct {
-	JSONRPC string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	ID      int         `json:"id"`
-}
-
-// AdminRPCResponse represents the response from admin_getAccessListForIdentifier
-type AdminRPCResponse struct {
-	JSONRPC string `json:"jsonrpc"`
-	ID      int    `json:"id"`
-	Result  struct {
-		AccessList []struct {
-			Address     string   `json:"address"`
-			StorageKeys []string `json:"storageKeys"`
-		} `json:"accessList"`
-	} `json:"result"`
-}
-
 // Builds access list using the message identifier and payload
 func getAccessList() {
 	if len(os.Args) < 9 {
@@ -363,4 +347,203 @@ func _getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
 	}
 
 	return &result.AccessList, nil
+}
+
+func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *ecdsa.PrivateKey, to *common.Address, value *big.Int, data []byte, accessList types.AccessList) (*types.Receipt, error) {
+	fromAddress := crypto.PubkeyToAddress(*pk.Public().(*ecdsa.PublicKey))
+	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nonce: %w", err)
+	}
+
+	latestBlock, err := client.BlockByNumber(context.Background(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest block: %w", err)
+	}
+
+	txData := &types.DynamicFeeTx{
+		ChainID:    chainID,
+		Nonce:      nonce,
+		GasFeeCap:  new(big.Int).Mul(latestBlock.BaseFee(), big.NewInt(2)),
+		GasTipCap:  big.NewInt(0),
+		To:         to,
+		Value:      value,
+		Data:       data,
+		Gas:        2000000,
+		AccessList: accessList,
+	}
+
+	tx := types.NewTx(txData)
+	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), pk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign transaction: %w", err)
+	}
+
+	if err = client.SendTransaction(context.Background(), signedTx); err != nil {
+		return nil, fmt.Errorf("failed to send transaction: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(context.Background(), client, signedTx)
+	if err != nil && receipt == nil {
+		return nil, fmt.Errorf("failed to wait for transaction to be mined: %w", err)
+	}
+
+	if receipt.Status == 0 {
+		callMsg := ethereum.CallMsg{
+			From:  fromAddress,
+			To:    to,
+			Value: value,
+			Data:  data,
+		}
+		_, callErr := client.CallContract(context.Background(), callMsg, receipt.BlockNumber)
+		if callErr != nil {
+			return nil, fmt.Errorf("transaction failed with status 0. Revert reason: %v", callErr)
+		}
+		return nil, fmt.Errorf("transaction failed with status 0 (revert reason not found)")
+	}
+
+	return receipt, nil
+}
+
+// getTransactionReceipt fetches the transaction receipt and extracts events
+func getTransactionReceipt(client *ethclient.Client, txHash common.Hash, targetAddr common.Address) ([]EventData, error) {
+	receipt, err := client.TransactionReceipt(context.Background(), txHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transaction receipt: %w", err)
+	}
+
+	var events []EventData
+	for _, log := range receipt.Logs {
+		// Only include events from the target address
+		if log.Address == targetAddr {
+			event := EventData{
+				Address:  log.Address.Hex(),
+				Topics:   make([]string, len(log.Topics)),
+				Data:     "0x" + common.Bytes2Hex(log.Data),
+				LogIndex: int(log.Index),
+			}
+
+			// Convert topics to hex strings
+			for i, topic := range log.Topics {
+				event.Topics[i] = topic.Hex()
+			}
+
+			events = append(events, event)
+		}
+	}
+
+	return events, nil
+}
+
+// EventData represents an event emitted during the transaction
+type EventData struct {
+	Address  string   `json:"address"`
+	Topics   []string `json:"topics"`
+	Data     string   `json:"data"`
+	LogIndex int      `json:"logIndex"`
+}
+
+// RelayResult represents the result of the relay operation
+type RelayResult struct {
+	Success    bool        `json:"success"`
+	Result     string      `json:"result"` // hex-encoded bytes
+	Events     []EventData `json:"events"`
+	EventCount int         `json:"eventCount"`
+	Error      string      `json:"error,omitempty"`
+}
+
+// Relay message using the identifier and payload
+func relayMessage() {
+	if len(os.Args) < 6 {
+		log.Fatalf("Usage: %s relay_message <target> <destination_chain_id> <private_key> <relay_calldata> <access_list_json>", os.Args[0])
+	}
+
+	// Parse command line arguments
+	target := os.Args[2]
+	destinationChainID := os.Args[3]
+	privateKeyHex := os.Args[4]
+	relayCalldataHex := os.Args[5]
+	accessListJSON := os.Args[6]
+
+	// Parse relay calldata from hex
+	relayCalldata := common.FromHex(relayCalldataHex)
+
+	// Parse access list from JSON array format
+	var accessListArray []struct {
+		Address     string   `json:"address"`
+		StorageKeys []string `json:"storageKeys"`
+	}
+	if err := json.Unmarshal([]byte(accessListJSON), &accessListArray); err != nil {
+		log.Fatalf("Failed to parse access list JSON: %v", err)
+	}
+
+	// Convert access list to types.AccessList
+	accessList := make(types.AccessList, len(accessListArray))
+	for i, item := range accessListArray {
+		accessList[i] = types.AccessTuple{
+			Address:     common.HexToAddress(item.Address),
+			StorageKeys: make([]common.Hash, len(item.StorageKeys)),
+		}
+		for j, key := range item.StorageKeys {
+			accessList[i].StorageKeys[j] = common.HexToHash(key)
+		}
+	}
+
+	// Load private key
+	privateKeyHex = strings.TrimPrefix(privateKeyHex, "0x")
+	privateKey, err := crypto.HexToECDSA(privateKeyHex)
+	if err != nil {
+		log.Fatalf("Failed to load private key: %v", err)
+	}
+
+	// Parse destination chain ID
+	destChainID, _ := new(big.Int).SetString(destinationChainID, 10)
+
+	// Connect to destination chain
+	client, err := ethclient.Dial("http://127.0.0.1:9546")
+	if err != nil {
+		log.Fatalf("Failed to connect to destination chain: %v", err)
+	}
+
+	// Relay the message
+	result := _relayMessage(client, destChainID, privateKey, target, relayCalldata, &accessList)
+
+	// Output result as JSON
+	jsonResult, err := json.Marshal(result)
+	if err != nil {
+		log.Fatalf("Failed to marshal result: %v", err)
+	}
+
+	fmt.Println(string(jsonResult))
+}
+
+func _relayMessage(client *ethclient.Client, chainID *big.Int, privateKey *ecdsa.PrivateKey, target string, relayCalldata []byte, accessList *types.AccessList) RelayResult {
+	targetAddr := common.HexToAddress(target)
+
+	// Send transaction
+	receipt, err := sendAndWaitForTransaction(client, chainID, privateKey, &targetAddr, big.NewInt(0), relayCalldata, *accessList)
+	if err != nil {
+		return RelayResult{Success: false, Error: fmt.Sprintf("Relay transaction failed: %v", err)}
+	}
+
+	// Check if transaction was successful
+	if receipt.Status == 0 {
+		return RelayResult{Success: false, Error: "Transaction reverted"}
+	}
+
+	// Get events from the transaction receipt
+	events, err := getTransactionReceipt(client, receipt.TxHash, targetAddr)
+	if err != nil {
+		// Log the error but don't fail the relay
+		fmt.Printf("Warning: Failed to get transaction receipt: %v\n", err)
+		events = []EventData{}
+	}
+
+	// Return the transaction hash as the result along with events
+	return RelayResult{
+		Success:    true,
+		Result:     "0x" + common.Bytes2Hex(receipt.TxHash.Bytes()),
+		Events:     events,
+		EventCount: len(events),
+	}
 }

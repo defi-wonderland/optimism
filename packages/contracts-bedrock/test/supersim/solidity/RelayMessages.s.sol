@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 import { Vm, VmSafe } from "forge-std/Vm.sol";
-import { GasTank } from "src/L2/GasTank.sol";
+import { GasTank, IGasTank } from "src/L2/GasTank.sol";
 import { MessageSender } from "test/supersim/MessageSender.sol";
 import { IL2ToL2CrossDomainMessenger, Identifier } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -38,6 +38,13 @@ contract RelayMessages is Script {
         bytes message;
     }
 
+    struct EventData {
+        address from;
+        uint256 logIndex;
+        bytes data;
+        bytes32[] topics;
+    }
+
     function setUp() public {
         forkIdOrigin = vm.createFork(vm.rpcUrl("http://127.0.0.1:9545"));
         forkIdDest = vm.createFork(vm.rpcUrl("http://127.0.0.1:9546"));
@@ -56,6 +63,7 @@ contract RelayMessages is Script {
         setUp();
 
         // Step 0: Message sent data
+        // nonce not included for simplicity
         SentMessageData memory sentMessageData = SentMessageData({
             destination: DESTINATION_CHAIN_ID,
             target: messageSender902,
@@ -68,6 +76,24 @@ contract RelayMessages is Script {
 
         // Step 2: Get access list
         VmSafe.AccessListItem[] memory accessList = _getAccessList(identifier, payload);
+
+        bytes memory relayCalldata = abi.encodeCall(GasTank.relayMessage, (identifier, payload));
+
+        // Step 3: Relay message
+        bytes memory result = _relayMessage(address(gasTank902), relayCalldata, accessList, DESTINATION_CHAIN_ID);
+
+        // Step 4: Parse and decode events
+        EventData[] memory events = _parseRelayEvents(result);
+
+        (uint256 relayCost, bytes32[] memory nestedMessageHashes) = abi.decode(events[0].data, (uint256, bytes32[]));
+        console.log("Relay cost:", relayCost);
+        console.log("Nested message hashes count:", nestedMessageHashes.length);
+        for (uint256 i = 0; i < nestedMessageHashes.length; i++) {
+            console.log("Nested message hash", i, ":", vm.toString(nestedMessageHashes[i]));
+        }
+
+        // Step 5: Checks on the destination chain
+        // TO-DO
     }
 
     function _buildIdentifierAndPayload(SentMessageData memory sentMessageData)
@@ -157,6 +183,120 @@ contract RelayMessages is Script {
             for (uint256 i = 0; i < accessList_[0].storageKeys.length; i++) {
                 console.log("Keys: ", i, vm.toString(accessList_[0].storageKeys[i]));
             }
+        }
+    }
+
+    /**
+     * Relays message to the target contract
+     * @param target The target contract address
+     * @param relayCalldata The calldata to relay (identifier and payload)
+     * @param accessList The access list for the relay
+     */
+    function _relayMessage(
+        address target,
+        bytes memory relayCalldata,
+        VmSafe.AccessListItem[] memory accessList,
+        uint256 destinationChainId
+    )
+        internal
+        returns (bytes memory result)
+    {
+        // Convert access list to JSON
+        string memory accessListJSON = _accessListToJSON(accessList);
+
+        // Use Go function to relay message
+        string[] memory cmds = new string[](9);
+        cmds[0] = "go";
+        cmds[1] = "run";
+        cmds[2] = "test/supersim/helpers/main.go";
+        cmds[3] = "relay_message";
+        cmds[4] = vm.toString(target);
+        cmds[5] = vm.toString(destinationChainId);
+        cmds[6] = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"; // RELAYER_PRIVATE_KEY
+        cmds[7] = vm.toString(relayCalldata);
+        cmds[8] = accessListJSON;
+
+        result = vm.ffi(cmds);
+    }
+
+    /**
+     * Converts access list to JSON format for Go function
+     * @param accessList The access list to convert
+     */
+    function _accessListToJSON(VmSafe.AccessListItem[] memory accessList) internal pure returns (string memory json_) {
+        string memory json = "[";
+
+        for (uint256 i = 0; i < accessList.length; i++) {
+            if (i > 0) {
+                json = string.concat(json, ",");
+            }
+
+            json = string.concat(json, '{"address":"', vm.toString(accessList[i].target), '","storageKeys":[');
+
+            for (uint256 j = 0; j < accessList[i].storageKeys.length; j++) {
+                if (j > 0) {
+                    json = string.concat(json, ",");
+                }
+                json = string.concat(json, '"', vm.toString(accessList[i].storageKeys[j]), '"');
+            }
+
+            json = string.concat(json, "]}");
+        }
+
+        json = string.concat(json, "]");
+        json_ = json;
+    }
+
+    /**
+     * Parses and decodes events from the relay result
+     * @param result The JSON result from the relay operation
+     */
+    function _parseRelayEvents(bytes memory result) internal pure returns (EventData[] memory events) {
+        string memory jsonResult = string(result);
+
+        // Check if relay was successful
+        bool success = vm.parseJsonBool(jsonResult, ".success");
+        require(success, "Relay failed");
+
+        // Get event count
+        uint256 eventCount = vm.parseJsonUint(jsonResult, ".eventCount");
+        console.log("Found", eventCount, "events");
+
+        // Allocate the events array
+        events = new EventData[](eventCount);
+
+        // Parse each event
+        for (uint256 i = 0; i < eventCount; i++) {
+            string memory base = string.concat(".events[", vm.toString(i), "]");
+
+            address eventAddress = vm.parseJsonAddress(jsonResult, string.concat(base, ".address"));
+            uint256 logIndex = vm.parseJsonUint(jsonResult, string.concat(base, ".logIndex"));
+            bytes memory _eventData = vm.parseJsonBytes(jsonResult, string.concat(base, ".data"));
+            console.log("Event data:", vm.toString(_eventData));
+            // First, count the number of topics
+            uint256 topicCount = 0;
+            while (true) {
+                try vm.parseJsonString(jsonResult, string.concat(base, ".topics[", vm.toString(topicCount), "]"))
+                returns (string memory) {
+                    topicCount++;
+                } catch {
+                    break; // No more topics
+                }
+            }
+
+            // Now create the array with the correct size
+            bytes32[] memory _topics = new bytes32[](topicCount);
+
+            // Parse all topics and store them
+            console.log("Parsing topics:");
+            for (uint256 j = 0; j < topicCount; j++) {
+                bytes32 topic = vm.parseJsonBytes32(jsonResult, string.concat(base, ".topics[", vm.toString(j), "]"));
+                console.log("  Topic", j, ":", vm.toString(topic));
+                _topics[j] = topic;
+            }
+            console.log("Total topics found:", topicCount);
+
+            events[i] = EventData({ from: eventAddress, logIndex: logIndex, data: _eventData, topics: _topics });
         }
     }
 }
