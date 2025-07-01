@@ -286,15 +286,15 @@ contract ProposalValidator_Init is CommonTest {
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](5);
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 0
+            proposalVotingModule: OPTIMISTIC_VOTING_MODULE_ID
         });
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 1
+            proposalVotingModule: OPTIMISTIC_VOTING_MODULE_ID
         });
         proposalTypesData[2] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            proposalVotingModule: 2
+            proposalVotingModule: APPROVAL_VOTING_MODULE_ID
         });
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
@@ -1430,14 +1430,16 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
             (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
             assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
 
-            // Both GovernanceFund and CouncilBudget use APPROVAL_VOTING_MODULE_ID
+            // GovernanceFund, CouncilBudget, and CouncilMemberElections use APPROVAL_VOTING_MODULE_ID
             if (
                 proposalTypes[i] == ProposalValidator.ProposalType.GovernanceFund
                     || proposalTypes[i] == ProposalValidator.ProposalType.CouncilBudget
+                    || proposalTypes[i] == ProposalValidator.ProposalType.CouncilMemberElections
             ) {
                 assertEq(proposalVotingModule, APPROVAL_VOTING_MODULE_ID);
             } else {
-                assertEq(proposalVotingModule, uint8(i));
+                // ProtocolOrGovernorUpgrade and MaintenanceUpgrade use OPTIMISTIC_VOTING_MODULE_ID
+                assertEq(proposalVotingModule, OPTIMISTIC_VOTING_MODULE_ID);
             }
         }
     }
