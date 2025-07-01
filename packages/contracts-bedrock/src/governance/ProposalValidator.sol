@@ -717,7 +717,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         returns (bool canApprove_)
     {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
-        (, bool _includePartialDelegation,) = abi.decode(attestation.data, (string, bool, string));
 
         // Check if attestation exists, equivalent to calling EAS.isAttestationValid(_attestationUid)
         if (attestation.uid == bytes32(0)) {
@@ -733,6 +732,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         if (attestation.revocationTime != 0) {
             revert ProposalValidator_AttestationRevoked();
         }
+
+        (, bool _includePartialDelegation,) = abi.decode(attestation.data, (string, bool, string));
 
         // check if the attestation includes partial delegation or the recipient is not the caller
         if (_includePartialDelegation || attestation.recipient != _delegate) {
