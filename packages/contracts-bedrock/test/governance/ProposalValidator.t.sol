@@ -498,7 +498,7 @@ contract ProposalValidator_Init is CommonTest {
                 data: AttestationRequestData({
                     recipient: address(0),
                     expirationTime: 0,
-                    revocable: false,
+                    revocable: true,
                     refUID: bytes32(0),
                     data: abi.encode(_delegate, _proposalType),
                     value: 0
@@ -889,19 +889,7 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
     function test_canApproveProposal_attestationRevoked_reverts() public {
         // Create valid attestation first (make it revocable)
         vm.prank(owner);
-        bytes32 revocableAttestationUid = IEAS(Predeploys.EAS).attest(
-            AttestationRequest({
-                schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
-                data: AttestationRequestData({
-                    recipient: topDelegate_A,
-                    expirationTime: 0,
-                    revocable: true, // Make it revocable
-                    refUID: bytes32(0),
-                    data: abi.encode("top100", false, "2000-01-01"),
-                    value: 0
-                })
-            })
-        );
+        bytes32 revocableAttestationUid = _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Revoke the attestation
         vm.prank(owner);
@@ -1757,19 +1745,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
     function test_submitCouncilMemberElectionsProposal_attestationRevoked_reverts() public {
         // Create valid attestation first (make it revocable)
         vm.prank(owner);
-        bytes32 revocableAttestationUid = IEAS(Predeploys.EAS).attest(
-            AttestationRequest({
-                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-                data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
-                    revocable: true, // Make it revocable
-                    refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections),
-                    value: 0
-                })
-            })
-        );
+        bytes32 revocableAttestationUid = _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Revoke the attestation
         vm.prank(owner);
@@ -2123,19 +2099,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         // Create valid attestation first (make it revocable)
         vm.prank(owner);
-        bytes32 attestationUid = IEAS(Predeploys.EAS).attest(
-            AttestationRequest({
-                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-                data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
-                    revocable: true, // Make it revocable
-                    refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, proposalType),
-                    value: 0
-                })
-            })
-        );
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // Revoke the attestation
         vm.prank(owner);
