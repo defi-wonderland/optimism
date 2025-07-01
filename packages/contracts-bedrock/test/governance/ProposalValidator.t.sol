@@ -1713,7 +1713,8 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 
     function test_submitCouncilMemberElectionsProposal_attestationRevoked_reverts() public {
         // Create valid attestation first (make it revocable)
-        bytes32 revocableAttestationUid = _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
+        bytes32 revocableAttestationUid =
+            _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
 
         // Revoke the attestation
         vm.prank(owner);
