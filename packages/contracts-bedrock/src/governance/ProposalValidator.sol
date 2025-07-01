@@ -89,6 +89,53 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     error ProposalValidator_ProposalIdMismatch();
 
     /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when a new proposal is submitted.
+    /// @param proposalHash The hash of the submitted proposal.
+    /// @param proposer The address that submitted the proposal.
+    /// @param description Description of the proposal.
+    /// @param proposalType Type of the proposal.
+    event ProposalSubmitted(
+        bytes32 indexed proposalHash, address indexed proposer, string description, ProposalType proposalType
+    );
+
+    /// @notice Emitted when a delegate approves a proposal.
+    /// @param proposalHash The hash of the approved proposal.
+    /// @param approver The address of the delegate who approved the proposal.
+    event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
+
+    /// @notice Emitted when a proposal is moved to the voting phase in the governor contract.
+    /// @param proposalHash The hash of the proposal moved to vote.
+    /// @param executor The address that executed the move to vote.
+    event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
+
+    /// @notice Emitted when the voting cycle data is set.
+    /// @param cycleNumber The number of the voting cycle.
+    /// @param startBlock The block number of the starting block of the voting cycle.
+    /// @param duration The duration of the voting cycle.
+    /// @param votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
+    event VotingCycleDataSet(
+        uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit
+    );
+
+    /// @notice Emitted when the distribution threshold is set.
+    /// @param newDistributionThreshold The new distribution threshold.
+    event DistributionThresholdSet(uint256 newDistributionThreshold);
+
+    /// @notice Emitted when the proposal type data is set.
+    /// @param proposalType The type of proposal.
+    /// @param requiredApprovals The required number of approvals.
+    /// @param proposalVotingModule The proposal type ID.
+    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule);
+
+    /// @notice Emitted with ProposalSubmitted event.
+    /// @param proposalHash The hash of the submitted proposal.
+    /// @param encodedVotingModuleData The encoded voting module data.
+    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
+
+    /*//////////////////////////////////////////////////////////////
                                  STRUCTS
     //////////////////////////////////////////////////////////////*/
 
@@ -156,53 +203,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     uint256 public constant OPTIMISTIC_MODULE_PERCENT_DIVISOR = 10_000;
 
     /*//////////////////////////////////////////////////////////////
-                                 EVENTS
+                                 STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Emitted when a new proposal is submitted.
-    /// @param proposalHash The hash of the submitted proposal.
-    /// @param proposer The address that submitted the proposal.
-    /// @param description Description of the proposal.
-    /// @param proposalType Type of the proposal.
-    event ProposalSubmitted(
-        bytes32 indexed proposalHash, address indexed proposer, string description, ProposalType proposalType
-    );
-
-    /// @notice Emitted when a delegate approves a proposal.
-    /// @param proposalHash The hash of the approved proposal.
-    /// @param approver The address of the delegate who approved the proposal.
-    event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
-
-    /// @notice Emitted when a proposal is moved to the voting phase in the governor contract.
-    /// @param proposalHash The hash of the proposal moved to vote.
-    /// @param executor The address that executed the move to vote.
-    event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
-
-    /// @notice Emitted when the voting cycle data is set.
-    /// @param cycleNumber The number of the voting cycle.
-    /// @param startBlock The block number of the starting block of the voting cycle.
-    /// @param duration The duration of the voting cycle.
-    /// @param votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    event VotingCycleDataSet(
-        uint256 cycleNumber, uint256 startBlock, uint256 duration, uint256 votingCycleDistributionLimit
-    );
-
-    /// @notice Emitted when the distribution threshold is set.
-    /// @param newDistributionThreshold The new distribution threshold.
-    event DistributionThresholdSet(uint256 newDistributionThreshold);
-
-    /// @notice Emitted when the proposal type data is set.
-    /// @param proposalType The type of proposal.
-    /// @param requiredApprovals The required number of approvals.
-    /// @param proposalVotingModule The proposal type ID.
-    event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule);
-
-    /// @notice Emitted with ProposalSubmitted event.
-    /// @param proposalHash The hash of the submitted proposal.
-    /// @param encodedVotingModuleData The encoded voting module data.
-    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
-
-    event Test(string text);
 
     /// @notice The schema UID for attestations in the Ethereum Attestation Service for checking if the caller
     ///         is an approved proposer.
@@ -542,62 +544,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
-    }
-
-    /// @notice Internal function to build proposal options with optional execution data.
-    /// @param _optionDescriptions The strings of the different options that can be voted.
-    /// @param _recipients An address for each option to transfer funds to (empty for non-funding proposals).
-    /// @param _amounts The amount to transfer for each option (empty for non-funding proposals).
-    /// @return options_ The built proposal options.
-    /// @return totalBudget The total budget amount (sum of all amounts, 0 for non-funding proposals).
-    function _buildApprovalModuleOptions(
-        string[] memory _optionDescriptions,
-        address[] memory _recipients,
-        uint256[] memory _amounts
-    )
-        internal
-        view
-        returns (ProposalOption[] memory options_, uint256 totalBudget)
-    {
-        uint256 optionsLength = _optionDescriptions.length;
-        options_ = new ProposalOption[](optionsLength);
-
-        for (uint256 i = 0; i < optionsLength; i++) {
-            address[] memory targets;
-            uint256[] memory values;
-            bytes[] memory calldatas;
-            uint256 budgetTokensSpent;
-
-            // Check if this is a funding proposal (has recipients and amounts)
-            if (_recipients.length > 0 && _amounts.length > 0) {
-                // Validate amount doesn't exceed distribution threshold
-                if (_amounts[i] > distributionThreshold) {
-                    revert ProposalValidator_ExceedsDistributionThreshold();
-                }
-                targets = new address[](1);
-                values = new uint256[](1);
-                calldatas = new bytes[](1);
-
-                targets[0] = Predeploys.GOVERNANCE_TOKEN;
-                calldatas[0] = abi.encodeCall(IERC20.transfer, (_recipients[i], _amounts[i]));
-                budgetTokensSpent = _amounts[i];
-                totalBudget += _amounts[i];
-            } else {
-                // Non-funding proposals have no execution data
-                targets = new address[](0);
-                values = new uint256[](0);
-                calldatas = new bytes[](0);
-                budgetTokensSpent = 0;
-            }
-
-            options_[i] = ProposalOption({
-                budgetTokensSpent: budgetTokensSpent,
-                targets: targets,
-                values: values,
-                calldatas: calldatas,
-                description: _optionDescriptions[i]
-            });
-        }
     }
 
     /// @notice Approves a proposal before being moved for voting.
@@ -962,6 +908,62 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         canApprove_ = true;
+    }
+
+    /// @notice Internal function to build proposal options with optional execution data.
+    /// @param _optionDescriptions The strings of the different options that can be voted.
+    /// @param _recipients An address for each option to transfer funds to (empty for non-funding proposals).
+    /// @param _amounts The amount to transfer for each option (empty for non-funding proposals).
+    /// @return options_ The built proposal options.
+    /// @return totalBudget The total budget amount (sum of all amounts, 0 for non-funding proposals).
+    function _buildApprovalModuleOptions(
+        string[] memory _optionDescriptions,
+        address[] memory _recipients,
+        uint256[] memory _amounts
+    )
+        internal
+        view
+        returns (ProposalOption[] memory options_, uint256 totalBudget)
+    {
+        uint256 optionsLength = _optionDescriptions.length;
+        options_ = new ProposalOption[](optionsLength);
+
+        for (uint256 i = 0; i < optionsLength; i++) {
+            address[] memory targets;
+            uint256[] memory values;
+            bytes[] memory calldatas;
+            uint256 budgetTokensSpent;
+
+            // Check if this is a funding proposal (has recipients and amounts)
+            if (_recipients.length > 0 && _amounts.length > 0) {
+                // Validate amount doesn't exceed distribution threshold
+                if (_amounts[i] > distributionThreshold) {
+                    revert ProposalValidator_ExceedsDistributionThreshold();
+                }
+                targets = new address[](1);
+                values = new uint256[](1);
+                calldatas = new bytes[](1);
+
+                targets[0] = Predeploys.GOVERNANCE_TOKEN;
+                calldatas[0] = abi.encodeCall(IERC20.transfer, (_recipients[i], _amounts[i]));
+                budgetTokensSpent = _amounts[i];
+                totalBudget += _amounts[i];
+            } else {
+                // Non-funding proposals have no execution data
+                targets = new address[](0);
+                values = new uint256[](0);
+                calldatas = new bytes[](0);
+                budgetTokensSpent = 0;
+            }
+
+            options_[i] = ProposalOption({
+                budgetTokensSpent: budgetTokensSpent,
+                targets: targets,
+                values: values,
+                calldatas: calldatas,
+                description: _optionDescriptions[i]
+            });
+        }
     }
 
     /// @notice Calculate `proposalId` hashing similarly to `hashProposal` but based on `module` and `proposalData`.

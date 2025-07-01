@@ -10,6 +10,7 @@ import { IProposalTypesConfigurator } from './IProposalTypesConfigurator.sol';
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
 interface IProposalValidator is ISemver {
+    error ReinitializableBase_ZeroInitVersion();
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
@@ -18,7 +19,6 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_VotingCycleAlreadySet();
     error ProposalValidator_ProposalDoesNotExist();
     error ProposalValidator_ProposalTypesDataLengthMismatch();
-    error ReinitializableBase_ZeroInitVersion();
     error ProposalValidator_InvalidFundingProposalType();
     error ProposalValidator_ExceedsDistributionThreshold();
     error ProposalValidator_InvalidOptionsLength();
@@ -29,35 +29,6 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InvalidUpgradeProposalType();
     error ProposalValidator_InvalidVotingCycle();
     error ProposalValidator_ProposalIdMismatch();
-
-    struct ProposalData {
-        address proposer;
-        ProposalType proposalType;
-        bool inVoting;
-        mapping(address => bool) delegateApprovals;
-        uint256 approvalCount;
-        uint256 votingCycle;
-    }
-
-    struct ProposalTypeData {
-        uint256 requiredApprovals;
-        uint8 proposalVotingModule;
-    }
-
-    struct VotingCycleData {
-        uint256 startingBlock;
-        uint256 duration;
-        uint256 votingCycleDistributionLimit;
-        uint256 movedToVoteTokenCount;
-    }
-
-    enum ProposalType {
-        ProtocolOrGovernorUpgrade,
-        MaintenanceUpgrade,
-        CouncilMemberElections,
-        GovernanceFund,
-        CouncilBudget
-    }
 
     event ProposalSubmitted(
         bytes32 indexed proposalHash,
@@ -100,21 +71,42 @@ interface IProposalValidator is ISemver {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-    function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external;
+    struct ProposalData {
+        address proposer;
+        ProposalType proposalType;
+        bool inVoting;
+        mapping(address => bool) delegateApprovals;
+        uint256 approvalCount;
+        uint256 votingCycle;
+    }
 
-    function setDistributionThreshold(uint256 _distributionThreshold) external;
+    struct ProposalTypeData {
+        uint256 requiredApprovals;
+        uint8 proposalVotingModule;
+    }
 
-    function setProposalTypeData(
+    struct VotingCycleData {
+        uint256 startingBlock;
+        uint256 duration;
+        uint256 votingCycleDistributionLimit;
+        uint256 movedToVoteTokenCount;
+    }
+
+    enum ProposalType {
+        ProtocolOrGovernorUpgrade,
+        MaintenanceUpgrade,
+        CouncilMemberElections,
+        GovernanceFund,
+        CouncilBudget
+    }
+
+    function submitUpgradeProposal(
+        uint248 _againstThreshold,
+        string memory _proposalDescription,
+        bytes32 _attestationUid,
         ProposalType _proposalType,
-        ProposalTypeData memory _proposalTypeData
-    ) external;
-
-    function setVotingCycleData(
-        uint256 _cycleNumber,
-        uint256 _startBlock,
-        uint256 _duration,
-        uint256 _votingCycleDistributionLimit
-    ) external;
+        uint256 _votingCycle
+    ) external returns (bytes32 proposalHash_);
 
     function submitCouncilMemberElectionsProposal(
         uint128 _criteriaValue,
@@ -134,13 +126,9 @@ interface IProposalValidator is ISemver {
         uint256 _votingCycle
     ) external returns (bytes32 proposalHash_);
 
-    function submitUpgradeProposal(
-        uint248 _againstThreshold,
-        string memory _proposalDescription,
-        bytes32 _attestationUid,
-        ProposalType _proposalType,
-        uint256 _votingCycle
-    ) external returns (bytes32 proposalHash_);
+    function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external;
+
+    function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_);
 
     function moveToVoteProtocolOrGovernorUpgradeProposal(
         uint248 _againstThreshold,
@@ -162,6 +150,20 @@ interface IProposalValidator is ISemver {
         ProposalType _proposalType
     ) external returns (bytes32 proposalHash_);
 
+    function setVotingCycleData(
+        uint256 _cycleNumber,
+        uint256 _startBlock,
+        uint256 _duration,
+        uint256 _votingCycleDistributionLimit
+    ) external;
+
+    function setDistributionThreshold(uint256 _distributionThreshold) external;
+
+    function setProposalTypeData(
+        ProposalType _proposalType,
+        ProposalTypeData memory _proposalTypeData
+    ) external;
+
     function initialize(
         address _owner,
         IProposalTypesConfigurator _proposalTypesConfigurator,
@@ -178,8 +180,6 @@ interface IProposalValidator is ISemver {
 
     function transferOwnership(address newOwner) external;
 
-    function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_);
-
     function distributionThreshold() external view returns (uint256);
 
     function VOTING_TOKEN() external view returns (IGovernanceToken);
@@ -193,6 +193,8 @@ interface IProposalValidator is ISemver {
     function APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 
     function TOP_DELEGATES_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
+
+    function OPTIMISTIC_MODULE_PERCENT_DIVISOR() external view returns (uint256);
 
     function proposalTypesConfigurator() external view returns (IProposalTypesConfigurator);
 
