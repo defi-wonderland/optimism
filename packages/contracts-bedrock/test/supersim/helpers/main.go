@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // Identifier matches the ICrossL2Inbox.Identifier struct
@@ -42,7 +44,7 @@ func main() {
 	case "build_id":
 		getMessageIdentifier()
 	case "get_access_list":
-		// getAccessList()
+		getAccessList()
 	case "relay_message":
 		// relayMessage()
 	default:
@@ -235,4 +237,130 @@ func getMessageIdentifier() {
 	}
 
 	fmt.Println(string(jsonResult))
+}
+
+// GetAccessListForIdentifierRequest mirrors the structure for the admin RPC call
+type GetAccessListForIdentifierRequest struct {
+	Identifier
+	Payload string `json:"payload"`
+}
+
+// GetAccessListResponse mirrors the structure of the admin RPC response
+type GetAccessListResponse struct {
+	AccessList types.AccessList `json:"accessList"`
+}
+
+// AccessListItem represents a single access list item for output
+type AccessListItem struct {
+	Address           common.Address `json:"address"`
+	StorageKeys       []common.Hash  `json:"storageKeys"`
+	StorageKeysLength int            `json:"storageKeysLength"`
+}
+
+// AccessListResult represents the final output structure
+type AccessListResult struct {
+	Length     uint64           `json:"length"`
+	AccessList []AccessListItem `json:"accessList"`
+}
+
+// AdminRPCRequest represents the request to admin_getAccessListForIdentifier
+type AdminRPCRequest struct {
+	JSONRPC string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+	ID      int         `json:"id"`
+}
+
+// AdminRPCResponse represents the response from admin_getAccessListForIdentifier
+type AdminRPCResponse struct {
+	JSONRPC string `json:"jsonrpc"`
+	ID      int    `json:"id"`
+	Result  struct {
+		AccessList []struct {
+			Address     string   `json:"address"`
+			StorageKeys []string `json:"storageKeys"`
+		} `json:"accessList"`
+	} `json:"result"`
+}
+
+// Builds access list using the message identifier and payload
+func getAccessList() {
+	if len(os.Args) < 9 {
+		log.Fatalf("Usage: %s <origin> <blockNumber> <logIndex> <timestamp> <chainId> <payload> <destination_chain_id>", os.Args[0])
+	}
+
+	// Parse command line arguments
+	origin := os.Args[2]
+	blockNumber := os.Args[3]
+	logIndex := os.Args[4]
+	timestamp := os.Args[5]
+	chainId := os.Args[6]
+	payload := os.Args[7]
+	// destinationChainID := os.Args[8] // Not used in this implementation
+
+	// Create identifier from command line arguments
+	blockNum, _ := new(big.Int).SetString(blockNumber, 10)
+	logIdx, _ := new(big.Int).SetString(logIndex, 10)
+	ts, _ := new(big.Int).SetString(timestamp, 10)
+	cid, _ := new(big.Int).SetString(chainId, 10)
+
+	identifier := Identifier{
+		Origin:      common.HexToAddress(origin),
+		BlockNumber: blockNum,
+		LogIndex:    logIdx,
+		Timestamp:   ts,
+		ChainID:     cid,
+	}
+
+	// Convert payload string to bytes
+	payloadBytes := common.FromHex(payload)
+
+	// Get access list using the shared function
+	accessList, err := _getAccessList(identifier, payloadBytes)
+	if err != nil {
+		log.Fatalf("Failed to get access list: %v", err)
+	}
+
+	// Convert to our result format
+	result := AccessListResult{
+		Length:     uint64(len(*accessList)),
+		AccessList: make([]AccessListItem, len(*accessList)),
+	}
+
+	for i, item := range *accessList {
+		result.AccessList[i] = AccessListItem{
+			Address:           item.Address,
+			StorageKeys:       item.StorageKeys,
+			StorageKeysLength: len(item.StorageKeys),
+		}
+	}
+
+	jsonResult, err := json.Marshal(result)
+	if err != nil {
+		log.Fatalf("Failed to marshal result: %v", err)
+	}
+
+	fmt.Println(string(jsonResult))
+}
+
+func _getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
+	// Connect to the SuperSim admin RPC
+	rpcClient, err := rpc.Dial("http://localhost:8420")
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to supersim admin RPC: %w", err)
+	}
+	defer rpcClient.Close()
+
+	req := GetAccessListForIdentifierRequest{
+		Identifier: id,
+		Payload:    "0x" + common.Bytes2Hex(payload),
+	}
+
+	var result GetAccessListResponse
+	err = rpcClient.CallContext(context.Background(), &result, "admin_getAccessListForIdentifier", req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access list via admin_getAccessListForIdentifier: %w", err)
+	}
+
+	return &result.AccessList, nil
 }

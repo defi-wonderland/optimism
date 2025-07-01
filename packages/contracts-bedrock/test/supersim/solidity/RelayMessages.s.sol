@@ -65,6 +65,9 @@ contract RelayMessages is Script {
 
         // Step 1: Build identifier and payload from the sent message
         (Identifier memory identifier, bytes memory payload) = _buildIdentifierAndPayload(sentMessageData);
+
+        // Step 2: Get access list
+        VmSafe.AccessListItem[] memory accessList = _getAccessList(identifier, payload);
     }
 
     function _buildIdentifierAndPayload(SentMessageData memory sentMessageData)
@@ -85,8 +88,7 @@ contract RelayMessages is Script {
         bytes memory result = vm.ffi(cmds);
         string memory jsonResult = string(result);
 
-        // Debug print for the FFI result
-        require(bytes(jsonResult).length > 0, " returned empty result");
+        require(bytes(jsonResult).length > 0, "build_id returned empty result");
 
         // Parse the result from Go function
         identifier_.origin = vm.parseJsonAddress(jsonResult, ".identifier.origin");
@@ -101,5 +103,60 @@ contract RelayMessages is Script {
         console.log("Block number:", identifier_.blockNumber);
         console.log("Log index:", identifier_.logIndex);
         console.log("Payload length:", payload_.length);
+    }
+
+    function _getAccessList(
+        Identifier memory identifier,
+        bytes memory payload
+    )
+        internal
+        returns (VmSafe.AccessListItem[] memory accessList_)
+    {
+        // Use Go function to get access list
+        string[] memory cmds = new string[](11);
+        cmds[0] = "go";
+        cmds[1] = "run";
+        cmds[2] = "test/supersim/helpers/main.go";
+        cmds[3] = "get_access_list";
+        cmds[4] = vm.toString(identifier.origin);
+        cmds[5] = vm.toString(identifier.blockNumber);
+        cmds[6] = vm.toString(identifier.logIndex);
+        cmds[7] = vm.toString(identifier.timestamp);
+        cmds[8] = vm.toString(identifier.chainId);
+        cmds[9] = vm.toString(payload);
+        cmds[10] = "902"; // destination chain ID
+
+        bytes memory result = vm.ffi(cmds);
+        string memory jsonResult = string(result);
+
+        require(bytes(jsonResult).length > 0, "get_access_list returned empty result");
+
+        // Parse the access list from Go function
+        uint256 accessListLength = vm.parseJsonUint(jsonResult, ".length");
+        accessList_ = new VmSafe.AccessListItem[](accessListLength);
+
+        for (uint256 i = 0; i < accessListLength; i++) {
+            string memory base = string.concat(".accessList[", vm.toString(i), "]");
+            address target = vm.parseJsonAddress(jsonResult, string.concat(base, ".address"));
+
+            uint256 storageKeysLength = vm.parseJsonUint(jsonResult, string.concat(base, ".storageKeysLength"));
+            bytes32[] memory storageKeys = new bytes32[](storageKeysLength);
+
+            for (uint256 j = 0; j < storageKeysLength; j++) {
+                storageKeys[j] =
+                    vm.parseJsonBytes32(jsonResult, string.concat(base, ".storageKeys[", vm.toString(j), "]"));
+            }
+
+            accessList_[i] = VmSafe.AccessListItem({ target: target, storageKeys: storageKeys });
+        }
+
+        console.log("Got access list with", accessListLength, "entries");
+        console.log("Keys length: ", accessList_[0].storageKeys.length);
+        if (accessListLength > 0) {
+            console.log("Access list 0 target:", accessList_[0].target);
+            for (uint256 i = 0; i < accessList_[0].storageKeys.length; i++) {
+                console.log("Keys: ", i, vm.toString(accessList_[0].storageKeys[i]));
+            }
+        }
     }
 }
