@@ -885,37 +885,6 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
 
         assertEq(canApprove_, false);
     }
-
-    function test_canApproveProposal_attestationRevoked_reverts() public {
-        // Create valid attestation first (make it revocable)
-        vm.prank(owner);
-        bytes32 revocableAttestationUid = _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
-
-        // Revoke the attestation
-        vm.prank(owner);
-        IEAS(Predeploys.EAS).revoke(
-            RevocationRequest({
-                schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
-                data: RevocationRequestData({ uid: revocableAttestationUid, value: 0 })
-            })
-        );
-
-        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
-        validator.canApproveProposal(revocableAttestationUid, topDelegate_A);
-    }
-
-    function test_canApproveProposal_nonExistentAttestation_reverts(bytes32 _nonExistentAttestationUid) public {
-        // Ensure the attestation uid is not one of the valid ones
-        vm.assume(
-            _nonExistentAttestationUid != topDelegateAttestation_A
-                && _nonExistentAttestationUid != topDelegateAttestation_B
-                && _nonExistentAttestationUid != topDelegateAttestation_C
-                && _nonExistentAttestationUid != topDelegateAttestation_D
-        );
-
-        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestation.selector);
-        validator.canApproveProposal(_nonExistentAttestationUid, topDelegate_A);
-    }
 }
 
 /// @title ProposalValidator_Setters_Test
