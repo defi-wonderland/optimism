@@ -874,16 +874,16 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
                 && _attestationUid != topDelegateAttestation_C && _attestationUid != topDelegateAttestation_D
         );
 
-        bool canApprove_;
+        bool canApprove;
         // Expect the invalid attestation error to be reverted
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestationSchema.selector);
         try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result_) {
-            canApprove_ = result_;
+            canApprove = result_;
         } catch {
-            canApprove_ = false;
+            canApprove = false;
         }
 
-        assertEq(canApprove_, false);
+        assertEq(canApprove, false);
     }
 }
 
