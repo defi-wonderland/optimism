@@ -27,5 +27,13 @@ func runFoundryRelay() {
 
 	// Step 2: Run Relay script to relay the message and claim funds
 	fmt.Println("\n=== Step 2: Relaying message and testing end state ===")
-	// TODO: Implement foundry relay
+	cmd = exec.Command("forge", "script", "solidity/RelayMessages.s.sol:RelayMessages", "--broadcast")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Relay script failed: %v", err)
+	}
+
+	fmt.Println("\n✅ Relay flow completed successfully!")
 }
