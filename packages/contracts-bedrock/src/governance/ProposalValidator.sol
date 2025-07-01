@@ -693,8 +693,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Check if the voting cycle is valid
         VotingCycleData memory votingCycleData = votingCycles[proposal.votingCycle];
-        // TODO: is +1 days correct?
-        if (votingCycleData.startingBlock > block.number || votingCycleData.startingBlock + 1 days < block.number) {
+        // TODO: is + duration correct?
+        if (
+            votingCycleData.startingBlock > block.number
+                || votingCycleData.startingBlock + votingCycleData.duration < block.number
+        ) {
             revert ProposalValidator_InvalidVotingCycle();
         }
 
@@ -783,8 +786,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Check if proposal can be moved to vote
         VotingCycleData memory votingCycleData = votingCycles[proposal.votingCycle];
-        // TODO: is +1 days correct?
-        if (votingCycleData.startingBlock > block.number || votingCycleData.startingBlock + 1 days < block.number) {
+        // TODO: is + duration correct?
+        if (
+            votingCycleData.startingBlock > block.number
+                || votingCycleData.startingBlock + votingCycleData.duration < block.number
+        ) {
             revert ProposalValidator_InvalidVotingCycle();
         }
 

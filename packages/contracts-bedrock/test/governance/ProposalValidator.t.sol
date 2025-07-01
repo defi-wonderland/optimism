@@ -119,9 +119,9 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant CYCLE_NUMBER = 1;
     uint256 public constant START_BLOCK = 1000000;
     uint256 public constant DURATION = 100;
-    uint256 public constant DISTRIBUTION_LIMIT = 10000 ether;
+    uint256 public constant DISTRIBUTION_LIMIT = 20000 ether;
     uint256 public constant DISTRIBUTION_THRESHOLD = 10000 ether;
-    uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 4;
+    uint256 public constant PROPOSAL_REQUIRED_APPROVALS = 1;
     uint256 public constant MINIMUM_VOTING_POWER = 10000 ether;
     uint256 public constant OPTIMISTIC_MODULE_PERCENT_DIVISOR = 10_000;
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
@@ -137,6 +137,9 @@ contract ProposalValidator_Init is CommonTest {
     bytes32 topDelegateAttestation_B;
     bytes32 topDelegateAttestation_C;
     bytes32 topDelegateAttestation_D;
+    address approvedProposer = makeAddr("approvedProposer");
+    bytes32 approvedProposerUpgradeAttestationUid;
+    bytes32 approvedProposerCouncilMemberElectionsAttestationUid;
     address approvalVotingModule;
     address optimisticVotingModule;
 
@@ -308,7 +311,7 @@ contract ProposalValidator_Init is CommonTest {
         return (proposalTypes, proposalTypesData);
     }
 
-    function _constructVotingModuleData(
+    function _constructFundingVotingModuleData(
         string[] memory descriptions,
         address[] memory recipients,
         uint256[] memory amounts,
@@ -402,6 +405,127 @@ contract ProposalValidator_Init is CommonTest {
         return abi.encode(settings);
     }
 
+    /// @notice Helper function to create a proposal for move to vote
+    function _createUpgradeProposalForMoveToVote(
+        address proposer,
+        bytes32 attestationUid,
+        uint248 againstThreshold,
+        string memory proposalDescription
+    )
+        internal
+        returns (bytes32 proposalHash_, bytes memory votingModuleData_)
+    {
+        // Calculate expected proposal hash
+        votingModuleData_ = _constructOptimisticVotingModuleData(againstThreshold);
+        proposalHash_ = validator.hashProposalWithModule(
+            optimisticVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
+        );
+
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
+
+        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash_))),
+            abi.encode(0)
+        );
+
+        // create proposal
+        vm.prank(proposer);
+        validator.submitUpgradeProposal(
+            againstThreshold,
+            proposalDescription,
+            attestationUid,
+            ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade,
+            CYCLE_NUMBER
+        );
+
+        // approve proposal
+        vm.prank(topDelegate_A);
+        validator.approveProposal(proposalHash_, topDelegateAttestation_A);
+    }
+
+    /// @notice Helper function to create a proposal for move to vote for council elections
+    function _createCouncilElectionProposalForMoveToVote(
+        address proposer,
+        bytes32 attestationUid,
+        uint128 criteriaValue,
+        string[] memory optionsDescriptions,
+        string memory proposalDescription
+    )
+        internal
+        returns (bytes32 proposalHash_, bytes memory votingModuleData_)
+    {
+        votingModuleData_ = _constructCouncilElectionVotingModuleData(optionsDescriptions, criteriaValue);
+        proposalHash_ = validator.hashProposalWithModule(
+            approvalVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
+        );
+
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash_))),
+            abi.encode(0)
+        );
+
+        // create proposal
+        vm.prank(proposer);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionsDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
+        );
+
+        // approve proposal
+        vm.prank(topDelegate_A);
+        validator.approveProposal(proposalHash_, topDelegateAttestation_A);
+    }
+
+    /// @notice Helper function to create a proposal for move to vote for a funding proposal type
+    function _createFundingProposalForMoveToVote(
+        address proposer,
+        uint128 criteriaValue,
+        string[] memory optionsDescriptions,
+        address[] memory optionsRecipients,
+        uint256[] memory optionsAmounts,
+        string memory proposalDescription,
+        ProposalValidator.ProposalType proposalType
+    )
+        internal
+        returns (bytes32 proposalHash_, bytes memory votingModuleData_)
+    {
+        votingModuleData_ =
+            _constructFundingVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+        proposalHash_ = validator.hashProposalWithModule(
+            approvalVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
+        );
+
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash_))),
+            abi.encode(0)
+        );
+
+        // create proposal
+        vm.prank(proposer);
+        validator.submitFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            proposalDescription,
+            proposalType,
+            CYCLE_NUMBER
+        );
+
+        // approve proposal
+        vm.prank(topDelegate_A);
+        validator.approveProposal(proposalHash_, topDelegateAttestation_A);
+    }
+
     /// @notice Helper function to setup proposal types configurator mocks
     function _mockProposalTypesConfiguratorCall(uint8 _votingModuleId) internal {
         address moduleAddress;
@@ -488,6 +612,13 @@ contract ProposalValidator_Init is CommonTest {
         topDelegateAttestation_B = _createTopDelegateAttestation(topDelegate_B);
         topDelegateAttestation_C = _createTopDelegateAttestation(topDelegate_C);
         topDelegateAttestation_D = _createTopDelegateAttestation(topDelegate_D);
+
+        // Create approved proposer attestations
+        approvedProposerUpgradeAttestationUid = _createApprovedProposerAttestation(
+            approvedProposer, ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade
+        );
+        approvedProposerCouncilMemberElectionsAttestationUid =
+            _createApprovedProposerAttestation(approvedProposer, ProposalValidator.ProposalType.CouncilMemberElections);
     }
 
     /// @notice Helper to create a valid attestation for an approved proposer
@@ -530,26 +661,6 @@ contract ProposalValidator_Init is CommonTest {
                 })
             })
         );
-    }
-
-    /// @notice Helper to create a standard proposal setup
-    function _createProposalSetup()
-        internal
-        view
-        returns (
-            address[] memory targets_,
-            uint256[] memory values_,
-            bytes[] memory calldatas_,
-            string memory description_
-        )
-    {
-        targets_ = new address[](1);
-        targets_[0] = address(0);
-        values_ = new uint256[](1);
-        values_[0] = 0;
-        calldatas_ = new bytes[](1);
-        calldatas_[0] = bytes("");
-        description_ = "Test proposal";
     }
 }
 
@@ -733,109 +844,729 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
     }
 }
 
-// /// @title ProposalValidator_MoveToVote_Test
-// /// @notice Happy path tests for moveToVote function
-// contract ProposalValidator_MoveToVote_Test is ProposalValidator_Init {
-//     address[] targets;
-//     uint256[] values;
-//     bytes[] calldatas;
-//     string description;
-//     ProposalValidator.ProposalType proposalType;
-//     uint8 proposalVotingModule;
+contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_Test is ProposalValidator_Init {
+    uint248 againstThreshold = 5000; // 50%
+    string proposalDescription = "Test proposal";
+    ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+    bytes votingModuleData;
+    bytes32 expectedHash;
 
-//     function setUp() public override {
-//         super.setUp();
+    function setUp() public override {
+        super.setUp();
 
-//         (targets, values, calldatas, description) = _createProposalSetup();
+        (expectedHash, votingModuleData) = _createUpgradeProposalForMoveToVote(
+            approvedProposer, approvedProposerUpgradeAttestationUid, againstThreshold, proposalDescription
+        );
+    }
 
-//         proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-//         proposalVotingModule = 0;
-//         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_succeeds() public {
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-//         /* vm.prank(topDelegate_A); */
-//         proposalHash = bytes32(0); // TODO: Implement after submitFundingProposal is implemented
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (VotingModule(optimisticVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(uint256(expectedHash))
+        );
 
-//         _approveProposal(topDelegate_A, proposalHash);
-//         _approveProposal(topDelegate_B, proposalHash);
-//         _approveProposal(topDelegate_C, proposalHash);
-//         _approveProposal(topDelegate_D, proposalHash);
-//     }
+        // Expect the ProposalMovedToVote event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(expectedHash, approvedProposer);
 
-//     function test_moveToVote_succeeds() public {
-//         _mockAndExpect(
-//             address(governor),
-//             abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description,
-// proposalVotingModule)),
-//             abi.encode(1)
-//         );
+        // Move to vote
+        vm.prank(approvedProposer);
+        validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
 
-//         // Expect the ProposalMovedToVote event to be emitted
-//         vm.expectEmit(address(validator));
-//         emit ProposalMovedToVote(proposalHash, owner);
+        // Check that the proposal is in voting
+        (,, bool inVoting,,) = validator.getProposalData(expectedHash);
+        assertTrue(inVoting, "Proposal should be in voting");
+    }
+}
 
-//         vm.prank(owner);
-//         uint256 governorProposalId = validator.moveToVote(targets, values, calldatas, description);
+contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail is ProposalValidator_Init {
+    uint248 againstThreshold = 5000; // 50%
+    string proposalDescription = "Test proposal";
+    ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+    bytes votingModuleData;
+    bytes32 expectedHash;
 
-//         assertEq(governorProposalId, 1);
-//     }
-// }
+    function setUp() public override {
+        super.setUp();
 
-// /// @title ProposalValidator_MoveToVote_TestFail
-// /// @notice Sad path tests for moveToVote function
-// contract ProposalValidator_MoveToVote_TestFail is ProposalValidator_Init {
-//     address[] targets;
-//     uint256[] values;
-//     bytes[] calldatas;
-//     string description;
-//     ProposalValidator.ProposalType proposalType;
-//     uint8 proposalVotingModule;
+        (expectedHash, votingModuleData) = _createUpgradeProposalForMoveToVote(
+            approvedProposer, approvedProposerUpgradeAttestationUid, againstThreshold, proposalDescription
+        );
+    }
 
-//     function setUp() public override {
-//         super.setUp();
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalDoesNotExist_wrongCaller_reverts(address _caller)
+        public
+    {
+        vm.assume(_caller != approvedProposer);
 
-//         (targets, values, calldatas, description) = _createProposalSetup();
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-//         proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
-//         proposalVotingModule = 0;
-//         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.prank(_caller);
+        validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
+    }
 
-//         /* vm.prank(topDelegate_A); */
-//         proposalHash = bytes32(0); // TODO: Implement after submitFundingProposal is implemented
-//     }
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalDoesNotExist_wrongProposalType_reverts(
+        uint248 _againstThreshold
+    )
+        public
+    {
+        // This will generate a different proposal hash which will make the proposal type wrong
+        vm.assume(_againstThreshold != againstThreshold);
 
-//     function test_moveToVote_insufficientApprovals_reverts() public {
-//         // Only approve with 3 delegates (need 4)
-//         _approveProposal(topDelegate_A, proposalHash);
-//         _approveProposal(topDelegate_B, proposalHash);
-//         _approveProposal(topDelegate_C, proposalHash);
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-//         vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientApprovals.selector);
-//         vm.prank(owner);
-//         validator.moveToVote(targets, values, calldatas, description);
-//     }
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteProtocolOrGovernorUpgradeProposal(_againstThreshold, proposalDescription);
+    }
 
-//     function test_moveToVote_alreadyProposed_reverts() public {
-//         // Approve with all 4 delegates
-//         _approveProposal(topDelegate_A, proposalHash);
-//         _approveProposal(topDelegate_B, proposalHash);
-//         _approveProposal(topDelegate_C, proposalHash);
-//         _approveProposal(topDelegate_D, proposalHash);
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalAlreadyMovedToVote_reverts() public {
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-//         _mockAndExpect(
-//             address(governor),
-//             abi.encodeCall(IOptimismGovernor.propose, (targets, values, calldatas, description,
-// proposalVotingModule)),
-//             abi.encode(1)
-//         );
+        // Set proposal data inVoting to true
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 0);
 
-//         vm.prank(owner);
-//         validator.moveToVote(targets, values, calldatas, description);
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
+    }
 
-//         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
-//         vm.prank(owner);
-//         validator.moveToVote(targets, values, calldatas, description);
-//     }
-// }
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalIdMismatch_reverts(bytes32 _randomHash) public {
+        vm.assume(_randomHash != expectedHash);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
+
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (VotingModule(optimisticVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(uint256(_randomHash))
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalIdMismatch.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
+    }
+}
+
+contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_Test is ProposalValidator_Init {
+    ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.CouncilMemberElections;
+    uint128 criteriaValue = 1;
+    bytes32 expectedHash;
+    bytes votingModuleData;
+    string proposalDescription = "Test proposal";
+    string[] optionsDescriptions = new string[](2);
+
+    function setUp() public override {
+        super.setUp();
+
+        // Create a proposal for move to vote with 1 top choice and 2 options
+        optionsDescriptions[0] = "Option 1";
+        optionsDescriptions[1] = "Option 2";
+        (expectedHash, votingModuleData) = _createCouncilElectionProposalForMoveToVote(
+            approvedProposer,
+            approvedProposerCouncilMemberElectionsAttestationUid,
+            criteriaValue,
+            optionsDescriptions,
+            proposalDescription
+        );
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_succeeds() public {
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (VotingModule(approvalVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(uint256(expectedHash))
+        );
+
+        // Expect the ProposalMovedToVote event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(expectedHash, approvedProposer);
+
+        // Move to vote
+        vm.roll(START_BLOCK + 1);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
+
+        // Check that the proposal is in voting
+        (,, bool inVoting,,) = validator.getProposalData(expectedHash);
+        assertTrue(inVoting, "Proposal should be in voting");
+    }
+}
+
+contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is ProposalValidator_Init {
+    ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.CouncilMemberElections;
+    uint128 criteriaValue = 1;
+    string proposalDescription = "Test proposal";
+    string[] optionsDescriptions = new string[](2);
+    bytes32 expectedHash;
+    bytes votingModuleData;
+
+    function setUp() public override {
+        super.setUp();
+
+        // Create a proposal for move to vote with 1 top choice and 2 options
+        optionsDescriptions[0] = "Option 1";
+        optionsDescriptions[1] = "Option 2";
+        (expectedHash, votingModuleData) = _createCouncilElectionProposalForMoveToVote(
+            approvedProposer,
+            approvedProposerCouncilMemberElectionsAttestationUid,
+            criteriaValue,
+            optionsDescriptions,
+            proposalDescription
+        );
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_proposalDoesNotExist_wrongCaller_reverts(address _caller)
+        public
+    {
+        vm.assume(_caller != approvedProposer);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.prank(_caller);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_proposalDoesNotExist_wrongProposalType_reverts() public {
+        // This will generate a different proposal hash which will make the proposal type wrong
+        uint128 _criteriaValue = 2; // we use 2 since it is the max based on the created proposal in setUp
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(_criteriaValue, optionsDescriptions, proposalDescription);
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_insufficientApprovals_reverts() public {
+        // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, false, 0);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientApprovals.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_proposalAlreadyMovedToVote_reverts() public {
+        // Set proposal data inVoting to true
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 2);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_invalidVotingCycle_reverts() public {
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
+        vm.roll(block.number + 101);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
+    }
+
+    function test_moveToVoteCouncilMemberElectionsProposal_proposalIdMismatch_reverts(bytes32 _randomHash) public {
+        vm.assume(_randomHash != expectedHash);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (VotingModule(approvalVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(uint256(_randomHash))
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalIdMismatch.selector);
+        vm.roll(START_BLOCK + 1);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
+    }
+}
+
+contract ProposalValidator_MoveToVoteFundingProposal_Test is ProposalValidator_Init {
+    ProposalValidator.ProposalType governanceFundProposalType = ProposalValidator.ProposalType.GovernanceFund;
+    ProposalValidator.ProposalType councilBudgetProposalType = ProposalValidator.ProposalType.CouncilBudget;
+    uint128 criteriaValue = 1;
+    string governanceFundProposalDescription = "Test governance fund proposal";
+    string councilBudgetProposalDescription = "Test council budget proposal";
+    string[] optionsDescriptions = new string[](2);
+    address[] optionsRecipients = new address[](2);
+    uint256[] optionsAmounts = new uint256[](2);
+    bytes32 expectedGovernanceFundHash;
+    bytes32 expectedCouncilBudgetHash;
+    bytes governanceFundVotingModuleData;
+    bytes councilBudgetVotingModuleData;
+
+    function setUp() public override {
+        super.setUp();
+
+        // Create option descriptions for the proposals
+        optionsDescriptions[0] = "Option 1";
+        optionsDescriptions[1] = "Option 2";
+
+        // Create option recipients for the proposals
+        optionsRecipients[0] = makeAddr("optionRecipient1");
+        optionsRecipients[1] = makeAddr("optionRecipient2");
+
+        // Create option amounts for the proposals
+        optionsAmounts[0] = 100 ether;
+        optionsAmounts[1] = 200 ether;
+
+        // Create one proposal for each type
+        (expectedGovernanceFundHash, governanceFundVotingModuleData) = _createFundingProposalForMoveToVote(
+            approvedProposer,
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            governanceFundProposalDescription,
+            governanceFundProposalType
+        );
+        (expectedCouncilBudgetHash, councilBudgetVotingModuleData) = _createFundingProposalForMoveToVote(
+            approvedProposer,
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            councilBudgetProposalDescription,
+            councilBudgetProposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_governanceFund_succeeds() public {
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (
+                    VotingModule(approvalVotingModule),
+                    governanceFundVotingModuleData,
+                    governanceFundProposalDescription,
+                    uint8(governanceFundProposalType)
+                )
+            ),
+            abi.encode(uint256(expectedGovernanceFundHash))
+        );
+
+        // Expect the ProposalMovedToVote event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(expectedGovernanceFundHash, approvedProposer);
+
+        // Move to vote
+        vm.roll(START_BLOCK + 1);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            governanceFundProposalDescription,
+            governanceFundProposalType
+        );
+
+        // Check that the proposal is in voting
+        (,, bool inVoting,,) = validator.getProposalData(expectedGovernanceFundHash);
+        assertTrue(inVoting, "Proposal should be in voting");
+    }
+
+    function test_moveToVoteFundingProposal_councilBudget_succeeds() public {
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (
+                    VotingModule(approvalVotingModule),
+                    councilBudgetVotingModuleData,
+                    councilBudgetProposalDescription,
+                    uint8(councilBudgetProposalType)
+                )
+            ),
+            abi.encode(uint256(expectedCouncilBudgetHash))
+        );
+
+        // Expect the ProposalMovedToVote event to be emitted
+        vm.expectEmit(address(validator));
+        emit ProposalMovedToVote(expectedCouncilBudgetHash, approvedProposer);
+
+        // Move to vote
+        vm.roll(START_BLOCK + 1);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            councilBudgetProposalDescription,
+            councilBudgetProposalType
+        );
+    }
+}
+
+contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidator_Init {
+    ProposalValidator.ProposalType governanceFundProposalType = ProposalValidator.ProposalType.GovernanceFund;
+    ProposalValidator.ProposalType councilBudgetProposalType = ProposalValidator.ProposalType.CouncilBudget;
+    uint128 criteriaValue = 1;
+    string governanceFundProposalDescription = "Test governance fund proposal";
+    string councilBudgetProposalDescription = "Test council budget proposal";
+    string[] optionsDescriptions;
+    address[] optionsRecipients;
+    uint256[] optionsAmounts;
+    bytes32 governanceFundExpectedHash;
+    bytes32 councilBudgetExpectedHash;
+    bytes governanceFundVotingModuleData;
+    bytes councilBudgetVotingModuleData;
+
+    function setUp() public override {
+        super.setUp();
+
+        (optionsDescriptions, optionsRecipients, optionsAmounts) = _createMinimalFundingArrays();
+        (governanceFundExpectedHash, governanceFundVotingModuleData) = _createFundingProposalForMoveToVote(
+            approvedProposer,
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            governanceFundProposalDescription,
+            governanceFundProposalType
+        );
+        (councilBudgetExpectedHash, councilBudgetVotingModuleData) = _createFundingProposalForMoveToVote(
+            approvedProposer,
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            councilBudgetProposalDescription,
+            councilBudgetProposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_invalidFundingProposalType_reverts(
+        uint8 _proposalTypeValue,
+        string memory _proposalDescription
+    )
+        public
+    {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 0, 2));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidFundingProposalType.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, _proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_proposalDoesNotExist_reverts(
+        uint8 _proposalTypeValue,
+        uint128 _criteriaValue
+    )
+        public
+    {
+        // Ensure the criteria value is not the same as the one in setUp so when calculating the proposal hash it will
+        // not find the proposal
+        vm.assume(_criteriaValue != criteriaValue);
+
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            _criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_proposalDoesNotExist_wrongProposalType_reverts(
+        uint8 _wrongProposalTypeValue,
+        uint8 _validProposalTypeValue
+    )
+        public
+    {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _wrongProposalTypeValue = uint8(bound(_wrongProposalTypeValue, 0, 2));
+        ProposalValidator.ProposalType wrongProposalType = ProposalValidator.ProposalType(_wrongProposalTypeValue);
+
+        _validProposalTypeValue = uint8(bound(_validProposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType validProposalType = ProposalValidator.ProposalType(_validProposalTypeValue);
+
+        string memory proposalDescription;
+        if (validProposalType == governanceFundProposalType) {
+            // Set proposal data proposal type to a different value
+            validator.setProposalData(governanceFundExpectedHash, approvedProposer, wrongProposalType, false, 0);
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            // Set proposal data proposal type to a different value
+            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, wrongProposalType, false, 0);
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue,
+            optionsDescriptions,
+            optionsRecipients,
+            optionsAmounts,
+            proposalDescription,
+            validProposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_insufficientApprovals_reverts(uint8 _proposalTypeValue) public {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
+            validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, false, 0);
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
+            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, false, 0);
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientApprovals.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_proposalAlreadyMovedToVote_reverts(uint8 _proposalTypeValue) public {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            // Set proposal data inVoting to true
+            validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, true, 1);
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            // Set proposal data inVoting to true
+            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, true, 1);
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_invalidVotingCycle_reverts(uint8 _proposalTypeValue) public {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
+        vm.roll(START_BLOCK + 101);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_buildApprovalModuleOptions_exceedsDistributionThreshold_reverts(
+        uint8 _proposalTypeValue
+    )
+        public
+    {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Set the first option amount to exceed the distribution threshold
+        optionsAmounts[0] = DISTRIBUTION_THRESHOLD + 1;
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_exceedsDistributionThreshold_reverts(uint8 _proposalTypeValue) public {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        string[] memory _optionsDescriptions = new string[](3);
+        address[] memory _optionsRecipients = new address[](3);
+        uint256[] memory _optionsAmounts = new uint256[](3);
+
+        _optionsDescriptions[0] = "Option 1";
+        _optionsDescriptions[1] = "Option 2";
+        _optionsDescriptions[2] = "Option 3";
+
+        _optionsRecipients[0] = makeAddr("optionRecipient1");
+        _optionsRecipients[1] = makeAddr("optionRecipient2");
+        _optionsRecipients[2] = makeAddr("optionRecipient3");
+
+        _optionsAmounts[0] = DISTRIBUTION_THRESHOLD - 1;
+        _optionsAmounts[1] = DISTRIBUTION_THRESHOLD - 1;
+        _optionsAmounts[2] = DISTRIBUTION_THRESHOLD - 1;
+
+        _createFundingProposalForMoveToVote(
+            approvedProposer,
+            criteriaValue,
+            _optionsDescriptions,
+            _optionsRecipients,
+            _optionsAmounts,
+            proposalDescription,
+            proposalType
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ExceedsDistributionThreshold.selector);
+        vm.prank(approvedProposer);
+        vm.roll(START_BLOCK + 1);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, _optionsDescriptions, _optionsRecipients, _optionsAmounts, proposalDescription, proposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_proposalIdMismatch_reverts(
+        uint8 _proposalTypeValue,
+        bytes32 _randomHash
+    )
+        public
+    {
+        vm.assume(_randomHash != governanceFundExpectedHash && _randomHash != councilBudgetExpectedHash);
+
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
+
+        bytes memory votingModuleData;
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            votingModuleData = governanceFundVotingModuleData;
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            votingModuleData = councilBudgetVotingModuleData;
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        // Mock the governor.proposeWithModule call
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (VotingModule(approvalVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(uint256(_randomHash))
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalIdMismatch.selector);
+        vm.roll(START_BLOCK + 1);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+    }
+}
 
 /// @title ProposalValidator_CanApproveProposal_Test
 /// @notice Tests for the canApproveProposal function
@@ -1054,7 +1785,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         }
 
         // Calculate expected proposal hash
-        bytes memory votingModuleData = _constructVotingModuleData(descriptions, recipients, amounts, criteriaValue);
+        bytes memory votingModuleData =
+            _constructFundingVotingModuleData(descriptions, recipients, amounts, criteriaValue);
         bytes32 expectedHash =
             validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
@@ -1263,7 +1995,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         // Calculate expected proposal hash
         bytes memory votingModuleData =
-            _constructVotingModuleData(descriptions, recipients, amounts, FUNDING_CRITERIA_VALUE);
+            _constructFundingVotingModuleData(descriptions, recipients, amounts, FUNDING_CRITERIA_VALUE);
         bytes32 expectedHash =
             validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
@@ -1303,7 +2035,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 
         // Calculate expected proposal hash
         bytes memory votingModuleData =
-            _constructVotingModuleData(descriptions, recipients, amounts, FUNDING_CRITERIA_VALUE);
+            _constructFundingVotingModuleData(descriptions, recipients, amounts, FUNDING_CRITERIA_VALUE);
         bytes32 expectedHash =
             validator.hashProposalWithModule(approvalVotingModule, votingModuleData, keccak256(bytes(description)));
 
