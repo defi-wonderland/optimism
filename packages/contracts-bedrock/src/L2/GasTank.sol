@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IGasTank } from "interfaces/L2/IGasTank.sol";
 import { IL2ToL2CrossDomainMessenger, Identifier } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 
 // Libraries
 import { Encoding } from "src/libraries/Encoding.sol";
@@ -26,6 +27,9 @@ contract GasTank is IGasTank {
     /// @notice The cross domain messenger
     IL2ToL2CrossDomainMessenger public constant MESSENGER =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+
+    /// @notice The gas price oracle for L1 cost calculations
+    IGasPriceOracle public constant GAS_PRICE_ORACLE = IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE);
 
     /// @notice The balance of each gas provider
     mapping(address gasProvider => uint256 balance) public balanceOf;
@@ -115,7 +119,8 @@ contract GasTank is IGasTank {
         }
 
         // Get the gas used
-        relayCost_ = _cost(initialGas - gasleft(), block.basefee) + _relayOverhead(nestedMessageHashes_.length);
+        relayCost_ = _cost(initialGas - gasleft(), block.basefee) + _relayOverhead(nestedMessageHashes_.length)
+            + GAS_PRICE_ORACLE.getL1Fee(msg.data);
 
         // Emit the event with the relationship between the origin message and the destination messages
         emit RelayedMessageGasReceipt(messageHash, msg.sender, relayCost_, nestedMessageHashes_);
@@ -152,7 +157,8 @@ contract GasTank is IGasTank {
 
         balanceOf[_gasProvider] -= relayCost;
 
-        uint256 claimCost = _min(balanceOf[_gasProvider], claimOverhead(nestedMessageHashesLength, block.basefee));
+        (uint256 l2ClaimCost, uint256 l1ClaimCost) = claimOverhead(nestedMessageHashesLength, block.basefee, msg.data);
+        uint256 claimCost = _min(balanceOf[_gasProvider], l2ClaimCost + l1ClaimCost);
 
         balanceOf[_gasProvider] -= claimCost;
 
@@ -188,17 +194,43 @@ contract GasTank is IGasTank {
     /// @notice Calculates the overhead of a claim
     /// @param _numHashes The number of destination hashes relayed
     /// @param _baseFee The base fee of the block
-    /// @return overhead_ The overhead cost of the claim transaction in wei
-    function claimOverhead(uint256 _numHashes, uint256 _baseFee) public pure returns (uint256 overhead_) {
-        overhead_ = _cost(151_800 + _numHashes * 23_000, _baseFee);
+    /// @param _data The data of the transaction
+    /// @return l2Cost_ The L2 overhead cost of the claim transaction in wei
+    /// @return l1Cost_ The L1 data availability cost of the claim transaction in wei
+    function claimOverhead(
+        uint256 _numHashes,
+        uint256 _baseFee,
+        bytes calldata _data
+    )
+        public
+        view
+        returns (uint256 l2Cost_, uint256 l1Cost_)
+    {
+        uint256 dynamicCost;
+        uint256 fixedCost;
+
+        if (_numHashes == 0) {
+            fixedCost = 298_000;
+        } else if (_numHashes == 1) {
+            fixedCost = 328_000;
+        } else {
+            fixedCost = 273_600;
+            dynamicCost = 34_800 * _numHashes;
+            dynamicCost += (_numHashes * _numHashes) >> 12;
+        }
+
+        // Calculate L2 and L1 costs separately
+        l2Cost_ = _cost(fixedCost + dynamicCost, _baseFee);
+        l1Cost_ = GAS_PRICE_ORACLE.getL1Fee(_data);
     }
 
     /// @notice Calculates the overhead to emit RelayedMessageGasReceipt
     /// @param _numHashes The number of destination hashes relayed
     /// @return overhead_ The gas cost to emit the event in wei
     function _relayOverhead(uint256 _numHashes) internal view returns (uint256 overhead_) {
-        uint256 memoryExpansionGas = (418 * _numHashes) + ((_numHashes * _numHashes) >> 9);
-        overhead_ = _cost(34_245 + memoryExpansionGas, block.basefee);
+        uint256 dynamicCost = 418 * _numHashes;
+        uint256 fixedCost = 34_300;
+        overhead_ = _cost(fixedCost + dynamicCost, block.basefee);
     }
 
     /// @notice Calculates the cost of gas used in wei
