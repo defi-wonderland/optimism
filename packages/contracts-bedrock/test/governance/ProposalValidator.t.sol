@@ -288,22 +288,27 @@ contract ProposalValidator_Init is CommonTest {
         proposalTypes[4] = ProposalValidator.ProposalType.CouncilBudget;
 
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](5);
+        // ProtocolOrGovernorUpgrade
         proposalTypesData[0] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
             proposalVotingModule: OPTIMISTIC_VOTING_MODULE_ID
         });
+        // MaintenanceUpgrade
         proposalTypesData[1] = ProposalValidator.ProposalTypeData({
-            requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
+            requiredApprovals: 0,
             proposalVotingModule: OPTIMISTIC_VOTING_MODULE_ID
         });
+        // CouncilMemberElections
         proposalTypesData[2] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
             proposalVotingModule: APPROVAL_VOTING_MODULE_ID
         });
+        // GovernanceFund
         proposalTypesData[3] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
             proposalVotingModule: APPROVAL_VOTING_MODULE_ID
         });
+        // CouncilBudget
         proposalTypesData[4] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
             proposalVotingModule: APPROVAL_VOTING_MODULE_ID
