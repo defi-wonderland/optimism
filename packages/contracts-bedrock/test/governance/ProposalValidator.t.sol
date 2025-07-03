@@ -965,12 +965,24 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         validator.moveToVoteProtocolOrGovernorUpgradeProposal(_againstThreshold, proposalDescription);
     }
 
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_insufficientApprovals_reverts() public {
+        // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, false, 0);
+
+        // Mock the proposal types configurator call
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InsufficientApprovals.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
+    }
+
     function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalAlreadyMovedToVote_reverts() public {
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
         // Set proposal data movedToVote to true
-        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 0);
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 1);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
         vm.prank(approvedProposer);

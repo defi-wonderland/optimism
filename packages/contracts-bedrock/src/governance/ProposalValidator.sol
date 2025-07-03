@@ -626,6 +626,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidProposer();
         }
 
+        // Check if proposal has enough approvals
+        if (proposal.approvalCount < proposalTypesData[proposalType].requiredApprovals) {
+            revert ProposalValidator_InsufficientApprovals();
+        }
+
         // Check if proposal is already in voting
         if (proposal.movedToVote) {
             revert ProposalValidator_ProposalAlreadyMovedToVote();
