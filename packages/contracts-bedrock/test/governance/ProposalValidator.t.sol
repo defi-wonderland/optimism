@@ -597,7 +597,7 @@ contract ProposalValidator_Init is CommonTest {
         // Create schemas
         vm.prank(owner);
         APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), false
+            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), true
         );
 
         vm.prank(owner);
@@ -636,7 +636,7 @@ contract ProposalValidator_Init is CommonTest {
                 data: AttestationRequestData({
                     recipient: address(0),
                     expirationTime: 0,
-                    revocable: false,
+                    revocable: true,
                     refUID: bytes32(0),
                     data: abi.encode(_delegate, _proposalType),
                     value: 0
@@ -841,6 +841,34 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
         vm.prank(topDelegate_A);
         validator.approveProposal(_proposalHash, _attestationUidWithPartialDelegation);
+    }
+
+    function test_approveProposal_nonExistentAttestation_reverts(
+        bytes32 _proposalHash,
+        uint8 proposalTypeValue,
+        bytes32 _nonExistentAttestationUid
+    )
+        public
+    {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
+        // Ensure the attestation uid is not one of the valid ones
+        vm.assume(
+            _nonExistentAttestationUid != topDelegateAttestation_A
+                && _nonExistentAttestationUid != topDelegateAttestation_B
+                && _nonExistentAttestationUid != topDelegateAttestation_C
+                && _nonExistentAttestationUid != topDelegateAttestation_D
+        );
+
+        // Set mock proposal data of a random proposal in the validator contract
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+
+        // Expect the invalid attestation error to be reverted when attestation doesn't exist
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        vm.prank(topDelegate_A);
+        validator.approveProposal(_proposalHash, _nonExistentAttestationUid);
     }
 }
 
@@ -1586,9 +1614,9 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
 
         bool canApprove;
         // Expect the invalid attestation error to be reverted
-        vm.expectRevert();
-        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result) {
-            canApprove = result;
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestationSchema.selector);
+        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result_) {
+            canApprove = result_;
         } catch {
             canApprove = false;
         }
@@ -2456,6 +2484,27 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
             invalidCriteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
     }
+
+    function test_submitCouncilMemberElectionsProposal_attestationRevoked_reverts() public {
+        // Create valid attestation first (make it revocable)
+        bytes32 revocableAttestationUid =
+            _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
+
+        // Revoke the attestation
+        vm.prank(owner);
+        IEAS(Predeploys.EAS).revoke(
+            RevocationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: RevocationRequestData({ uid: revocableAttestationUid, value: 0 })
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, revocableAttestationUid
+        );
+    }
 }
 
 /// @title ProposalValidator_SubmitUpgradeProposal_Test
@@ -2804,5 +2853,29 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         validator.submitUpgradeProposal(
             againstThreshold, proposalDescription, invalidAttestation, proposalType, CYCLE_NUMBER
         );
+    }
+
+    function testFuzz_submitUpgradeProposal_attestationRevoked_reverts(uint8 proposalTypeValue) public {
+        // Bound proposal type to only upgrade proposals (0 = ProtocolOrGovernorUpgrade, 1 = MaintenanceUpgrade)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
+        uint248 againstThreshold = 5000;
+
+        // Create valid attestation first (make it revocable)
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        // Revoke the attestation
+        vm.prank(owner);
+        IEAS(Predeploys.EAS).revoke(
+            RevocationRequest({
+                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                data: RevocationRequestData({ uid: attestationUid, value: 0 })
+            })
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
     }
 }
