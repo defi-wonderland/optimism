@@ -30,6 +30,7 @@ interface IProposalValidator is ISemver {
     error ProposalValidator_InvalidVotingCycle();
     error ProposalValidator_ProposalIdMismatch();
     error ProposalValidator_InvalidProposer();
+    error ProposalValidator_InvalidProposal();
 
     event ProposalSubmitted(
         bytes32 indexed proposalHash,

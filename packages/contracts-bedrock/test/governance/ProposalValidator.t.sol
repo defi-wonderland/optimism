@@ -944,7 +944,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
     }
 
-    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalDoesNotExist_reverts(
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_invalidProposal_reverts(
         uint248 _againstThreshold
     )
         public
@@ -955,7 +955,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidProposal.selector);
         vm.prank(approvedProposer);
         validator.moveToVoteProtocolOrGovernorUpgradeProposal(_againstThreshold, proposalDescription);
     }
@@ -1082,14 +1082,14 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
         validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
     }
 
-    function test_moveToVoteCouncilMemberElectionsProposal_proposalDoesNotExist_reverts() public {
+    function test_moveToVoteCouncilMemberElectionsProposal_invalidProposal_reverts() public {
         // This will generate a different proposal hash which will make the proposal type wrong
         uint128 _criteriaValue = 2; // we use 2 since it is the max based on the created proposal in setUp
 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidProposal.selector);
         vm.prank(approvedProposer);
         validator.moveToVoteCouncilMemberElectionsProposal(_criteriaValue, optionsDescriptions, proposalDescription);
     }
@@ -1333,7 +1333,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         );
     }
 
-    function test_moveToVoteFundingProposal_proposalDoesNotExist_reverts(
+    function test_moveToVoteFundingProposal_invalidProposal_reverts(
         uint8 _proposalTypeValue,
         uint128 _criteriaValue
     )
@@ -1357,14 +1357,14 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidProposal.selector);
         vm.prank(approvedProposer);
         validator.moveToVoteFundingProposal(
             _criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
         );
     }
 
-    function test_moveToVoteFundingProposal_proposalDoesNotExistWrongProposalType_reverts(
+    function test_moveToVoteFundingProposal_invalidProposalWrongProposalType_reverts(
         uint8 _wrongProposalTypeValue,
         uint8 _validProposalTypeValue
     )
@@ -1391,7 +1391,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidProposal.selector);
         vm.prank(approvedProposer);
         validator.moveToVoteFundingProposal(
             criteriaValue,

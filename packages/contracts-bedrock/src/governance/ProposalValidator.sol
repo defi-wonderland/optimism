@@ -91,6 +91,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the caller is not the proposer.
     error ProposalValidator_InvalidProposer();
 
+    /// @notice Thrown when the proposal is invalid trying to move to vote.
+    error ProposalValidator_InvalidProposal();
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -613,11 +616,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         ProposalData storage proposal = _proposals[proposalHash_];
 
-        // Proposal must exist and the proposer must be the caller
+        // Proposal must exist and be valid
         if (proposal.proposer == address(0) || proposal.proposalType != proposalType) {
-            revert ProposalValidator_ProposalDoesNotExist();
+            revert ProposalValidator_InvalidProposal();
         }
 
+        // Check if the caller is the proposer
         if (proposal.proposer != _msgSender()) {
             revert ProposalValidator_InvalidProposer();
         }
@@ -684,11 +688,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         ProposalData storage proposal = _proposals[proposalHash_];
 
-        // Proposal must exist and the proposer must be the caller
+        // Proposal must exist and be valid
         if (proposal.proposer == address(0) || proposal.proposalType != proposalType) {
-            revert ProposalValidator_ProposalDoesNotExist();
+            revert ProposalValidator_InvalidProposal();
         }
 
+        // Check if the caller is the proposer
         if (proposal.proposer != _msgSender()) {
             revert ProposalValidator_InvalidProposer();
         }
@@ -783,7 +788,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Proposal must exist
         if (proposal.proposer == address(0) || proposal.proposalType != _proposalType) {
-            revert ProposalValidator_ProposalDoesNotExist();
+            revert ProposalValidator_InvalidProposal();
         }
 
         // Check if proposal has enough approvals
