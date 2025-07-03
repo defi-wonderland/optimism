@@ -940,7 +940,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     )
         internal
         view
-        returns (ProposalOption[] memory options_, uint256 totalBudget)
+        returns (ProposalOption[] memory options_, uint256 totalBudget_)
     {
         uint256 optionsLength = _optionDescriptions.length;
         options_ = new ProposalOption[](optionsLength);
@@ -964,7 +964,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 targets[0] = Predeploys.GOVERNANCE_TOKEN;
                 calldatas[0] = abi.encodeCall(IERC20.transfer, (_recipients[i], _amounts[i]));
                 budgetTokensSpent = _amounts[i];
-                totalBudget += _amounts[i];
+                totalBudget_ += _amounts[i];
             } else {
                 // Non-funding proposals have no execution data
                 targets = new address[](0);

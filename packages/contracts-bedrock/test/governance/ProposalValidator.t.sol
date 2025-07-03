@@ -1599,23 +1599,23 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
 /// @title ProposalValidator_CanApproveProposal_Test
 /// @notice Tests for the canApproveProposal function
 contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
-    function test_canApproveProposal_returnsTrue_succeeds() public {
+    function test_canApproveProposal_returnTrue_succeeds() public {
         // Attestation already created in setUp
         bool canApprove = validator.canApproveProposal(topDelegateAttestation_A, topDelegate_A);
         assertTrue(canApprove);
     }
 
-    function test_canApproveProposal_returnsFalse_succeeds(bytes32 _attestationUid, address _delegate) public {
+    function test_canApproveProposal_returnFalse_succeeds(bytes32 attestationUid, address delegate) public {
         // Ensure the attestation uid is not one of the top delegates
         vm.assume(
-            _attestationUid != topDelegateAttestation_A && _attestationUid != topDelegateAttestation_B
-                && _attestationUid != topDelegateAttestation_C && _attestationUid != topDelegateAttestation_D
+            attestationUid != topDelegateAttestation_A && attestationUid != topDelegateAttestation_B
+                && attestationUid != topDelegateAttestation_C && attestationUid != topDelegateAttestation_D
         );
 
         bool canApprove;
         // Expect the invalid attestation error to be reverted
-        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidAttestationSchema.selector);
-        try validator.canApproveProposal(_attestationUid, _delegate) returns (bool result_) {
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
+        try validator.canApproveProposal(attestationUid, delegate) returns (bool result_) {
             canApprove = result_;
         } catch {
             canApprove = false;
