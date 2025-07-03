@@ -92,7 +92,8 @@ contract ProposalValidatorForTest is ProposalValidator {
         address _proposer,
         ProposalType _proposalType,
         bool _movedToVote,
-        uint256 _approvalCount
+        uint256 _approvalCount,
+        uint256 _votingCycle
     )
         public
     {
@@ -100,6 +101,7 @@ contract ProposalValidatorForTest is ProposalValidator {
         _proposals[_proposalHash].proposalType = _proposalType;
         _proposals[_proposalHash].movedToVote = _movedToVote;
         _proposals[_proposalHash].approvalCount = _approvalCount;
+        _proposals[_proposalHash].votingCycle = _votingCycle;
     }
 
     function mockApproveProposal(bytes32 _proposalHash, address _delegate) public {
@@ -139,8 +141,6 @@ contract ProposalValidator_Init is CommonTest {
     bytes32 topDelegateAttestation_C;
     bytes32 topDelegateAttestation_D;
     address approvedProposer = makeAddr("approvedProposer");
-    bytes32 approvedProposerUpgradeAttestationUid;
-    bytes32 approvedProposerCouncilMemberElectionsAttestationUid;
     address approvalVotingModule;
     address optimisticVotingModule;
 
@@ -414,7 +414,6 @@ contract ProposalValidator_Init is CommonTest {
     /// @notice Helper function to create a proposal for move to vote
     function _createUpgradeProposalForMoveToVote(
         address proposer,
-        bytes32 attestationUid,
         uint248 againstThreshold,
         string memory proposalDescription
     )
@@ -427,34 +426,13 @@ contract ProposalValidator_Init is CommonTest {
             optimisticVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
         );
 
-        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
-
-        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash_))),
-            abi.encode(0)
-        );
-
-        // create proposal
-        vm.prank(proposer);
-        validator.submitUpgradeProposal(
-            againstThreshold,
-            proposalDescription,
-            attestationUid,
-            ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade,
-            CYCLE_NUMBER
-        );
-
-        // approve proposal
-        vm.prank(topDelegate_A);
-        validator.approveProposal(proposalHash_, topDelegateAttestation_A);
+        // 1 vote as default for being able to move to vote
+        validator.setProposalData(proposalHash_, proposer, ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, false, PROPOSAL_REQUIRED_APPROVALS, CYCLE_NUMBER);
     }
 
     /// @notice Helper function to create a proposal for move to vote for council elections
     function _createCouncilElectionProposalForMoveToVote(
         address proposer,
-        bytes32 attestationUid,
         uint128 criteriaValue,
         string[] memory optionsDescriptions,
         string memory proposalDescription
@@ -467,24 +445,7 @@ contract ProposalValidator_Init is CommonTest {
             approvalVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
         );
 
-        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-
-        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash_))),
-            abi.encode(0)
-        );
-
-        // create proposal
-        vm.prank(proposer);
-        validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionsDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
-        );
-
-        // approve proposal
-        vm.prank(topDelegate_A);
-        validator.approveProposal(proposalHash_, topDelegateAttestation_A);
+        validator.setProposalData(proposalHash_, proposer, ProposalValidator.ProposalType.CouncilMemberElections, false, PROPOSAL_REQUIRED_APPROVALS, CYCLE_NUMBER);
     }
 
     /// @notice Helper function to create a proposal for move to vote for a funding proposal type
@@ -506,30 +467,7 @@ contract ProposalValidator_Init is CommonTest {
             approvalVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
         );
 
-        _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
-
-        // Mock proposalSnapshot to return 0 (proposal doesn't exist in governor)
-        _mockAndExpect(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash_))),
-            abi.encode(0)
-        );
-
-        // create proposal
-        vm.prank(proposer);
-        validator.submitFundingProposal(
-            criteriaValue,
-            optionsDescriptions,
-            optionsRecipients,
-            optionsAmounts,
-            proposalDescription,
-            proposalType,
-            CYCLE_NUMBER
-        );
-
-        // approve proposal
-        vm.prank(topDelegate_A);
-        validator.approveProposal(proposalHash_, topDelegateAttestation_A);
+        validator.setProposalData(proposalHash_, proposer, proposalType, false, PROPOSAL_REQUIRED_APPROVALS, CYCLE_NUMBER);
     }
 
     /// @notice Helper function to setup proposal types configurator mocks
@@ -618,13 +556,6 @@ contract ProposalValidator_Init is CommonTest {
         topDelegateAttestation_B = _createTopDelegateAttestation(topDelegate_B);
         topDelegateAttestation_C = _createTopDelegateAttestation(topDelegate_C);
         topDelegateAttestation_D = _createTopDelegateAttestation(topDelegate_D);
-
-        // Create approved proposer attestations
-        approvedProposerUpgradeAttestationUid = _createApprovedProposerAttestation(
-            approvedProposer, ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade
-        );
-        approvedProposerCouncilMemberElectionsAttestationUid =
-            _createApprovedProposerAttestation(approvedProposer, ProposalValidator.ProposalType.CouncilMemberElections);
     }
 
     /// @notice Helper to create a valid attestation for an approved proposer
@@ -682,7 +613,7 @@ contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Set mock proposal data of a random proposal in the validator contract
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         // Expect event to be emitted when approving
         vm.expectEmit(address(validator));
@@ -724,7 +655,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         // set proposal data so that the proposal exists
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         // Mock the proposal as already approved by the top delegate
         validator.mockApproveProposal(_proposalHash, topDelegate_A);
@@ -761,7 +692,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         );
 
         // set proposal data so that the proposal exists
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestationSchema.selector);
         vm.prank(topDelegate_A);
@@ -773,7 +704,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         // set proposal data so that the proposal exists
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         // revoke the attestation
         vm.prank(owner);
@@ -806,7 +737,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         );
 
         // Set mock proposal data of a random proposal in the validator contract
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         // Expect the invalid attestation error to be reverted
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -825,7 +756,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Set mock proposal data of a random proposal in the validator contract
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         // create an attestation with partial delegation
         vm.prank(owner);
@@ -869,7 +800,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         );
 
         // Set mock proposal data of a random proposal in the validator contract
-        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0);
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
 
         // Expect the invalid attestation error to be reverted when attestation doesn't exist
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -889,7 +820,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_Test is P
         super.setUp();
 
         (expectedHash, votingModuleData) = _createUpgradeProposalForMoveToVote(
-            approvedProposer, approvedProposerUpgradeAttestationUid, againstThreshold, proposalDescription
+            approvedProposer, againstThreshold, proposalDescription
         );
     }
 
@@ -932,7 +863,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         super.setUp();
 
         (expectedHash, votingModuleData) = _createUpgradeProposalForMoveToVote(
-            approvedProposer, approvedProposerUpgradeAttestationUid, againstThreshold, proposalDescription
+            approvedProposer, againstThreshold, proposalDescription
         );
     }
 
@@ -967,7 +898,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
 
     function test_moveToVoteProtocolOrGovernorUpgradeProposal_insufficientApprovals_reverts() public {
         // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
-        validator.setProposalData(expectedHash, approvedProposer, proposalType, false, 0);
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, false, 0, CYCLE_NUMBER);
 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
@@ -982,7 +913,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
         // Set proposal data movedToVote to true
-        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 1);
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 1, CYCLE_NUMBER);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
         vm.prank(approvedProposer);
@@ -1027,7 +958,6 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_Test is Prop
         optionsDescriptions[1] = "Option 2";
         (expectedHash, votingModuleData) = _createCouncilElectionProposalForMoveToVote(
             approvedProposer,
-            approvedProposerCouncilMemberElectionsAttestationUid,
             criteriaValue,
             optionsDescriptions,
             proposalDescription
@@ -1079,7 +1009,6 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
         optionsDescriptions[1] = "Option 2";
         (expectedHash, votingModuleData) = _createCouncilElectionProposalForMoveToVote(
             approvedProposer,
-            approvedProposerCouncilMemberElectionsAttestationUid,
             criteriaValue,
             optionsDescriptions,
             proposalDescription
@@ -1113,7 +1042,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
 
     function test_moveToVoteCouncilMemberElectionsProposal_insufficientApprovals_reverts() public {
         // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
-        validator.setProposalData(expectedHash, approvedProposer, proposalType, false, 0);
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, false, 0, CYCLE_NUMBER);
 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
@@ -1125,7 +1054,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
 
     function test_moveToVoteCouncilMemberElectionsProposal_proposalAlreadyMovedToVote_reverts() public {
         // Set proposal data movedToVote to true
-        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 2);
+        validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 2, CYCLE_NUMBER);
 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
@@ -1397,11 +1326,11 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         string memory proposalDescription;
         if (validProposalType == governanceFundProposalType) {
             // Set proposal data proposal type to a different value
-            validator.setProposalData(governanceFundExpectedHash, approvedProposer, wrongProposalType, false, 0);
+            validator.setProposalData(governanceFundExpectedHash, approvedProposer, wrongProposalType, false, 0, CYCLE_NUMBER);
             proposalDescription = governanceFundProposalDescription;
         } else {
             // Set proposal data proposal type to a different value
-            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, wrongProposalType, false, 0);
+            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, wrongProposalType, false, 0, CYCLE_NUMBER);
             proposalDescription = councilBudgetProposalDescription;
         }
 
@@ -1428,11 +1357,11 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         string memory proposalDescription;
         if (proposalType == governanceFundProposalType) {
             // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
-            validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, false, 0);
+            validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, false, 0, CYCLE_NUMBER);
             proposalDescription = governanceFundProposalDescription;
         } else {
             // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
-            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, false, 0);
+            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, false, 0, CYCLE_NUMBER);
             proposalDescription = councilBudgetProposalDescription;
         }
 
@@ -1454,11 +1383,11 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         string memory proposalDescription;
         if (proposalType == governanceFundProposalType) {
             // Set proposal data movedToVote to true
-            validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, true, 1);
+            validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, true, 1, CYCLE_NUMBER);
             proposalDescription = governanceFundProposalDescription;
         } else {
             // Set proposal data movedToVote to true
-            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, true, 1);
+            validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, true, 1, CYCLE_NUMBER);
             proposalDescription = councilBudgetProposalDescription;
         }
 
@@ -2206,7 +2135,11 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         // Verify proposal type data
         for (uint256 i = 0; i < proposalTypes.length; i++) {
             (uint256 requiredApprovals, uint8 proposalVotingModule) = validator.proposalTypesData(proposalTypes[i]);
-            assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
+            if (proposalTypes[i] == ProposalValidator.ProposalType.MaintenanceUpgrade) {
+                assertEq(requiredApprovals, 0);
+            } else {
+                assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS);
+            }
 
             // GovernanceFund, CouncilBudget, and CouncilMemberElections use APPROVAL_VOTING_MODULE_ID
             if (
