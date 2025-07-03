@@ -82,8 +82,9 @@ contract ProposalValidatorForTest is ProposalValidator {
         )
     {
         ProposalData storage proposal = _proposals[_proposalHash];
-        return
-            (proposal.proposer, proposal.proposalType, proposal.movedToVote, proposal.approvalCount, proposal.votingCycle);
+        return (
+            proposal.proposer, proposal.proposalType, proposal.movedToVote, proposal.approvalCount, proposal.votingCycle
+        );
     }
 
     function setProposalData(
@@ -2502,7 +2503,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, revocableAttestationUid
+            criteriaValue, optionDescriptions, proposalDescription, revocableAttestationUid, CYCLE_NUMBER
         );
     }
 }
@@ -2876,6 +2877,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
 
         vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
         vm.prank(topDelegate_A);
-        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType);
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER);
     }
 }

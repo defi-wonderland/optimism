@@ -932,7 +932,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _recipients An address for each option to transfer funds to (empty for non-funding proposals).
     /// @param _amounts The amount to transfer for each option (empty for non-funding proposals).
     /// @return options_ The built proposal options.
-    /// @return totalBudget The total budget amount (sum of all amounts, 0 for non-funding proposals).
+    /// @return totalBudget_ The total budget amount (sum of all amounts, 0 for non-funding proposals).
     function _buildApprovalModuleOptions(
         string[] memory _optionDescriptions,
         address[] memory _recipients,

@@ -182,8 +182,6 @@ interface IProposalValidator is ISemver {
 
     function distributionThreshold() external view returns (uint256);
 
-    function OPTIMISTIC_MODULE_PERCENT_DIVISOR() external view returns (uint256);
-
     function VOTING_TOKEN() external view returns (IGovernanceToken);
 
     function GOVERNOR() external view returns (IOptimismGovernor);
