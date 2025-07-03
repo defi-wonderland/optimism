@@ -142,14 +142,14 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Struct for storing proposal information.
     /// @param proposer The address that submitted the proposal.
     /// @param proposalType Type of the proposal from the ProposalType enum.
-    /// @param inVoting Whether the proposal has been moved to the voting phase.
+    /// @param movedToVote Whether the proposal has been proposed to the Governor for voting.
     /// @param delegateApprovals Mapping of delegate addresses to their approval status.
     /// @param approvalCount Number of approvals received so far.
     /// @param votingCycle The voting cycle number the proposal is targetted for.
     struct ProposalData {
         address proposer;
         ProposalType proposalType;
-        bool inVoting;
+        bool movedToVote;
         mapping(address => bool) delegateApprovals;
         uint256 approvalCount;
         uint256 votingCycle;
@@ -374,7 +374,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // MaintenanceUpgrade proposals move directly to voting (atomic operation)
         if (_proposalType == ProposalType.MaintenanceUpgrade) {
-            proposal.inVoting = true;
+            proposal.movedToVote = true;
 
             GOVERNOR.proposeWithModule(
                 VotingModule(votingModule), proposalVotingModuleData, _proposalDescription, uint8(_proposalType)
@@ -615,11 +615,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Check if proposal is already in voting
-        if (proposal.inVoting) {
+        if (proposal.movedToVote) {
             revert ProposalValidator_ProposalAlreadyMovedToVote();
         }
 
-        proposal.inVoting = true;
+        proposal.movedToVote = true;
 
         // Propose with module on the Governor
         uint256 proposalId = GOVERNOR.proposeWithModule(
@@ -687,7 +687,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Check if proposal is already in voting
-        if (proposal.inVoting) {
+        if (proposal.movedToVote) {
             revert ProposalValidator_ProposalAlreadyMovedToVote();
         }
 
@@ -701,7 +701,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidVotingCycle();
         }
 
-        proposal.inVoting = true;
+        proposal.movedToVote = true;
 
         // Propose with module on the Governor
         uint256 proposalId = GOVERNOR.proposeWithModule(
@@ -780,7 +780,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Check if proposal is already in voting
-        if (proposal.inVoting) {
+        if (proposal.movedToVote) {
             revert ProposalValidator_ProposalAlreadyMovedToVote();
         }
 
@@ -800,7 +800,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Move proposal to vote
-        proposal.inVoting = true;
+        proposal.movedToVote = true;
         votingCycles[proposal.votingCycle].movedToVoteTokenCount += totalBudget;
 
         // Propose with module on the Governor

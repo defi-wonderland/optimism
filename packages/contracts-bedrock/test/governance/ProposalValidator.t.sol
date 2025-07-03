@@ -76,28 +76,28 @@ contract ProposalValidatorForTest is ProposalValidator {
         returns (
             address proposer_,
             ProposalType proposalType_,
-            bool inVoting_,
+            bool movedToVote_,
             uint256 approvalCount_,
             uint256 votingCycle_
         )
     {
         ProposalData storage proposal = _proposals[_proposalHash];
         return
-            (proposal.proposer, proposal.proposalType, proposal.inVoting, proposal.approvalCount, proposal.votingCycle);
+            (proposal.proposer, proposal.proposalType, proposal.movedToVote, proposal.approvalCount, proposal.votingCycle);
     }
 
     function setProposalData(
         bytes32 _proposalHash,
         address _proposer,
         ProposalType _proposalType,
-        bool _inVoting,
+        bool _movedToVote,
         uint256 _approvalCount
     )
         public
     {
         _proposals[_proposalHash].proposer = _proposer;
         _proposals[_proposalHash].proposalType = _proposalType;
-        _proposals[_proposalHash].inVoting = _inVoting;
+        _proposals[_proposalHash].movedToVote = _movedToVote;
         _proposals[_proposalHash].approvalCount = _approvalCount;
     }
 
@@ -882,8 +882,8 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_Test is P
         validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
 
         // Check that the proposal is in voting
-        (,, bool inVoting,,) = validator.getProposalData(expectedHash);
-        assertTrue(inVoting, "Proposal should be in voting");
+        (,, bool movedToVote,,) = validator.getProposalData(expectedHash);
+        assertTrue(movedToVote, "Proposal should be in voting");
     }
 }
 
@@ -935,7 +935,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-        // Set proposal data inVoting to true
+        // Set proposal data movedToVote to true
         validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 0);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
@@ -1012,8 +1012,8 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_Test is Prop
         validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
 
         // Check that the proposal is in voting
-        (,, bool inVoting,,) = validator.getProposalData(expectedHash);
-        assertTrue(inVoting, "Proposal should be in voting");
+        (,, bool movedToVote,,) = validator.getProposalData(expectedHash);
+        assertTrue(movedToVote, "Proposal should be in voting");
     }
 }
 
@@ -1078,7 +1078,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
     }
 
     function test_moveToVoteCouncilMemberElectionsProposal_proposalAlreadyMovedToVote_reverts() public {
-        // Set proposal data inVoting to true
+        // Set proposal data movedToVote to true
         validator.setProposalData(expectedHash, approvedProposer, proposalType, true, 2);
 
         // Mock the proposal types configurator call
@@ -1208,8 +1208,8 @@ contract ProposalValidator_MoveToVoteFundingProposal_Test is ProposalValidator_I
         );
 
         // Check that the proposal is in voting
-        (,, bool inVoting,,) = validator.getProposalData(expectedGovernanceFundHash);
-        assertTrue(inVoting, "Proposal should be in voting");
+        (,, bool movedToVote,,) = validator.getProposalData(expectedGovernanceFundHash);
+        assertTrue(movedToVote, "Proposal should be in voting");
     }
 
     function test_moveToVoteFundingProposal_councilBudget_succeeds() public {
@@ -1407,11 +1407,11 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
 
         string memory proposalDescription;
         if (proposalType == governanceFundProposalType) {
-            // Set proposal data inVoting to true
+            // Set proposal data movedToVote to true
             validator.setProposalData(governanceFundExpectedHash, approvedProposer, proposalType, true, 1);
             proposalDescription = governanceFundProposalDescription;
         } else {
-            // Set proposal data inVoting to true
+            // Set proposal data movedToVote to true
             validator.setProposalData(councilBudgetExpectedHash, approvedProposer, proposalType, true, 1);
             proposalDescription = councilBudgetProposalDescription;
         }
@@ -1818,14 +1818,14 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         (
             address storedProposer,
             ProposalValidator.ProposalType storedProposalType,
-            bool inVoting,
+            bool movedToVote,
             uint256 approvalCount,
             uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
-        assertFalse(inVoting, "Proposal should not be in voting yet");
+        assertFalse(movedToVote, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
         assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
@@ -2279,7 +2279,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
         (
             address proposer,
             ProposalValidator.ProposalType proposalType,
-            bool inVoting,
+            bool movedToVote,
             uint256 approvalCount,
             uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
@@ -2290,7 +2290,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
             uint8(ProposalValidator.ProposalType.CouncilMemberElections),
             "Proposal type should be CouncilMemberElections"
         );
-        assertFalse(inVoting, "Proposal should not be in voting yet");
+        assertFalse(movedToVote, "Proposal should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
         assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
@@ -2534,14 +2534,14 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         (
             address storedProposer,
             ProposalValidator.ProposalType storedProposalType,
-            bool inVoting,
+            bool movedToVote,
             uint256 approvalCount,
             uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
-        assertTrue(inVoting, "MaintenanceUpgrade should be in voting immediately");
+        assertTrue(movedToVote, "MaintenanceUpgrade should be in voting immediately");
         assertEq(approvalCount, 0, "Approval count should be 0");
         assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
@@ -2596,14 +2596,14 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
         (
             address storedProposer,
             ProposalValidator.ProposalType storedProposalType,
-            bool inVoting,
+            bool movedToVote,
             uint256 approvalCount,
             uint256 votingCycle
         ) = validator.getProposalData(proposalHash);
 
         assertEq(storedProposer, proposer, "Proposer should match input");
         assertEq(uint8(storedProposalType), uint8(proposalType), "Proposal type should match input");
-        assertFalse(inVoting, "ProtocolOrGovernorUpgrade should not be in voting yet");
+        assertFalse(movedToVote, "ProtocolOrGovernorUpgrade should not be in voting yet");
         assertEq(approvalCount, 0, "Approval count should be 0");
         assertEq(votingCycle, CYCLE_NUMBER, "Voting cycle should match input");
     }
