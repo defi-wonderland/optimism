@@ -88,6 +88,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the proposalId returned by the Governor is not the same as the proposalHash.
     error ProposalValidator_ProposalIdMismatch();
 
+    /// @notice Thrown when the caller is not the proposer.
+    error ProposalValidator_InvalidProposer();
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -599,6 +602,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(settings);
 
         // Get the module address from the configurator
+        ProposalType proposalType = ProposalType.ProtocolOrGovernorUpgrade;
         address votingModule = proposalTypesConfigurator.proposalTypes(
             proposalTypesData[ProposalType.ProtocolOrGovernorUpgrade].proposalVotingModule
         ).module;
@@ -610,8 +614,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         ProposalData storage proposal = _proposals[proposalHash_];
 
         // Proposal must exist and the proposer must be the caller
-        if (proposal.proposer != _msgSender() || proposal.proposalType != ProposalType.ProtocolOrGovernorUpgrade) {
+        if (proposal.proposer == address(0) || proposal.proposalType != proposalType) {
             revert ProposalValidator_ProposalDoesNotExist();
+        }
+
+        if (proposal.proposer != _msgSender()) {
+            revert ProposalValidator_InvalidProposer();
         }
 
         // Check if proposal is already in voting
@@ -626,7 +634,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             VotingModule(votingModule),
             proposalVotingModuleData,
             _proposalDescription,
-            uint8(ProposalType.ProtocolOrGovernorUpgrade)
+            uint8(proposalType)
         );
 
         // Make sure the proposalId is the same as the proposalHash
@@ -677,8 +685,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         ProposalData storage proposal = _proposals[proposalHash_];
 
         // Proposal must exist and the proposer must be the caller
-        if (proposal.proposer != _msgSender() || proposal.proposalType != proposalType) {
+        if (proposal.proposer == address(0) || proposal.proposalType != proposalType) {
             revert ProposalValidator_ProposalDoesNotExist();
+        }
+
+        if (proposal.proposer != _msgSender()) {
+            revert ProposalValidator_InvalidProposer();
         }
 
         // Check if proposal has enough approvals

@@ -931,7 +931,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         );
     }
 
-    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalDoesNotExist_wrongCaller_reverts(address _caller)
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_invalidProposer_reverts(address _caller)
         public
     {
         vm.assume(_caller != approvedProposer);
@@ -939,12 +939,12 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidProposer.selector);
         vm.prank(_caller);
         validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, proposalDescription);
     }
 
-    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalDoesNotExist_wrongProposalType_reverts(
+    function test_moveToVoteProtocolOrGovernorUpgradeProposal_proposalDoesNotExist_reverts(
         uint248 _againstThreshold
     )
         public
@@ -1069,7 +1069,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
         );
     }
 
-    function test_moveToVoteCouncilMemberElectionsProposal_proposalDoesNotExist_wrongCaller_reverts(address _caller)
+    function test_moveToVoteCouncilMemberElectionsProposal_invalidProposer_reverts(address _caller)
         public
     {
         vm.assume(_caller != approvedProposer);
@@ -1077,12 +1077,12 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
         // Mock the proposal types configurator call
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
-        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalDoesNotExist.selector);
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidProposer.selector);
         vm.prank(_caller);
         validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
     }
 
-    function test_moveToVoteCouncilMemberElectionsProposal_proposalDoesNotExist_wrongProposalType_reverts() public {
+    function test_moveToVoteCouncilMemberElectionsProposal_proposalDoesNotExist_reverts() public {
         // This will generate a different proposal hash which will make the proposal type wrong
         uint128 _criteriaValue = 2; // we use 2 since it is the max based on the created proposal in setUp
 
@@ -1364,7 +1364,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         );
     }
 
-    function test_moveToVoteFundingProposal_proposalDoesNotExist_wrongProposalType_reverts(
+    function test_moveToVoteFundingProposal_proposalDoesNotExistWrongProposalType_reverts(
         uint8 _wrongProposalTypeValue,
         uint8 _validProposalTypeValue
     )
@@ -1478,7 +1478,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         );
     }
 
-    function test_moveToVoteFundingProposal_buildApprovalModuleOptions_exceedsDistributionThreshold_reverts(
+    function test_moveToVoteFundingProposal_buildApprovalModuleOptionsExceedsDistributionThreshold_reverts(
         uint8 _proposalTypeValue
     )
         public
