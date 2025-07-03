@@ -1128,7 +1128,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
-        vm.roll(block.number + 101);
+        vm.roll(block.number + DURATION + 1);
         vm.prank(approvedProposer);
         validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionsDescriptions, proposalDescription);
     }
@@ -1476,7 +1476,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
-        vm.roll(START_BLOCK + 101);
+        vm.roll(START_BLOCK + DURATION + 1);
         vm.prank(approvedProposer);
         validator.moveToVoteFundingProposal(
             criteriaValue, optionsDescriptions, optionsRecipients, optionsAmounts, proposalDescription, proposalType
