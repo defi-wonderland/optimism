@@ -133,13 +133,7 @@ contract ProposalValidator_Init is CommonTest {
     address owner;
     address user;
     address topDelegate_A = makeAddr("topDelegate_A");
-    address topDelegate_B = makeAddr("topDelegate_B");
-    address topDelegate_C = makeAddr("topDelegate_C");
-    address topDelegate_D = makeAddr("topDelegate_D");
     bytes32 topDelegateAttestation_A;
-    bytes32 topDelegateAttestation_B;
-    bytes32 topDelegateAttestation_C;
-    bytes32 topDelegateAttestation_D;
     address approvedProposer = makeAddr("approvedProposer");
     address approvalVotingModule;
     address optimisticVotingModule;
@@ -150,7 +144,6 @@ contract ProposalValidator_Init is CommonTest {
     IProposalTypesConfigurator public proposalTypesConfigurator;
     bytes32 public APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID;
     bytes32 public TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
-    bytes32 public proposalHash;
 
     event ProposalSubmitted(
         bytes32 indexed proposalHash,
@@ -225,12 +218,6 @@ contract ProposalValidator_Init is CommonTest {
         );
     }
 
-    /// @notice Helper function to set both funding proposal types.
-    function _setFundingProposalTypes() internal {
-        _setGovernanceFundProposalType();
-        _setCouncilBudgetProposalType();
-    }
-
     /// @notice Helper function to set ProtocolOrGovernorUpgrade proposal type data.
     function _setProtocolOrGovernorUpgradeProposalType() internal {
         _setProposalTypeData(
@@ -253,11 +240,6 @@ contract ProposalValidator_Init is CommonTest {
         );
     }
 
-    /// @notice Helper function to set both upgrade proposal types.
-    function _setUpgradeProposalTypes() internal {
-        _setProtocolOrGovernorUpgradeProposalType();
-        _setMaintenanceUpgradeProposalType();
-    }
     /// @notice Helper to create minimal valid arrays for funding proposal error tests
 
     function _createMinimalFundingArrays()
@@ -553,9 +535,6 @@ contract ProposalValidator_Init is CommonTest {
 
         // Create attestations for top delegates
         topDelegateAttestation_A = _createTopDelegateAttestation(topDelegate_A);
-        topDelegateAttestation_B = _createTopDelegateAttestation(topDelegate_B);
-        topDelegateAttestation_C = _createTopDelegateAttestation(topDelegate_C);
-        topDelegateAttestation_D = _createTopDelegateAttestation(topDelegate_D);
     }
 
     /// @notice Helper to create a valid attestation for an approved proposer
@@ -732,7 +711,8 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
     function setUp() public override {
         super.setUp();
 
-        _setUpgradeProposalTypes();
+        _setProtocolOrGovernorUpgradeProposalType();
+        _setMaintenanceUpgradeProposalType();
 
         proposalDescription = "Protocol Upgrade Proposal";
     }
@@ -883,7 +863,8 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     function setUp() public override {
         super.setUp();
 
-        _setUpgradeProposalTypes();
+        _setProtocolOrGovernorUpgradeProposalType();
+        _setMaintenanceUpgradeProposalType();
 
         proposalDescription = "Test upgrade proposal";
     }
@@ -998,17 +979,14 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
             againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
         );
 
-        // Create new attestation for second attempt
-        bytes32 secondAttestation = _createApprovedProposerAttestation(topDelegate_B, proposalType);
-
         // Attempt to submit identical proposal should revert
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
 
         _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
 
-        vm.prank(topDelegate_B);
+        vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(
-            againstThreshold, proposalDescription, secondAttestation, proposalType, CYCLE_NUMBER
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
         );
     }
 
@@ -1257,18 +1235,14 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
             criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
 
-        // Create new attestation for second attempt
-        bytes32 secondAttestation =
-            _createApprovedProposerAttestation(topDelegate_B, ProposalValidator.ProposalType.CouncilMemberElections);
-
         // Attempt to submit identical proposal should revert
         vm.expectRevert(ProposalValidator.ProposalValidator_ProposalAlreadySubmitted.selector);
 
         _mockProposalTypesConfiguratorCall(APPROVAL_VOTING_MODULE_ID);
 
-        vm.prank(topDelegate_B);
+        vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
-            criteriaValue, optionDescriptions, proposalDescription, secondAttestation, CYCLE_NUMBER
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
     }
 
@@ -1373,7 +1347,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
     function setUp() public override {
         super.setUp();
 
-        _setFundingProposalTypes();
+        _setGovernanceFundProposalType();
+        _setCouncilBudgetProposalType();
 
         criteriaValue = 1000 ether;
     }
@@ -1465,7 +1440,8 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
     function setUp() public override {
         super.setUp();
         // Set both funding proposal types to use the approval voting module
-        _setFundingProposalTypes();
+        _setGovernanceFundProposalType();
+        _setCouncilBudgetProposalType();
     }
 
     function testFuzz_submitFundingProposal_invalidProposalType_reverts(uint8 proposalTypeValue) public {
@@ -1862,9 +1838,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Ensure the caller is not a top delegate
-        vm.assume(
-            _caller != topDelegate_A && _caller != topDelegate_B && _caller != topDelegate_C && _caller != topDelegate_D
-        );
+        vm.assume(_caller != topDelegate_A);
 
         // Set mock proposal data of a random proposal in the validator contract
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
