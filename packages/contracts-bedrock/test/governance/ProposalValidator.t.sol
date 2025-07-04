@@ -2788,24 +2788,15 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
 /// @title ProposalValidator_HashProposalWithModule_Test
 /// @notice Tests for the hashProposalWithModule function
 contract ProposalValidator_HashProposalWithModule_Test is ProposalValidator_Init {
-    function test_hashProposalWithModule_succeeds() public {
-        address testModule = makeAddr("testModule");
-        bytes memory testProposalData = abi.encode("test", "proposal", "data");
-        bytes32 testDescriptionHash = keccak256("test description");
-
-        bytes32 hash = validator.hashProposalWithModule(testModule, testProposalData, testDescriptionHash);
-        assertTrue(hash != bytes32(0));
-    }
-
-    function test_hashProposalWithModule_consistentHash_succeeds() public {
-        address testModule = makeAddr("testModule");
-        bytes memory testProposalData = abi.encode("test data");
-        bytes32 testDescriptionHash = keccak256("description");
-
-        bytes32 hash1 = validator.hashProposalWithModule(testModule, testProposalData, testDescriptionHash);
-        bytes32 hash2 = validator.hashProposalWithModule(testModule, testProposalData, testDescriptionHash);
-
-        assertEq(hash1, hash2);
+    function testFuzz_hashProposalWithModule_succeeds(
+        address module,
+        bytes memory proposalData,
+        bytes32 descriptionHash
+    ) public {
+        bytes32 hash = validator.hashProposalWithModule(module, proposalData, descriptionHash);
+        bytes32 expectedHash = keccak256(abi.encode(address(validator.GOVERNOR()), module, proposalData, descriptionHash));
+        
+        assertEq(hash, expectedHash);
     }
 
     function test_hashProposalWithModule_differentInputs_succeeds() public {
