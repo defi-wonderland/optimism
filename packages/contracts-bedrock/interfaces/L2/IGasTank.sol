@@ -29,31 +29,27 @@ interface IGasTank {
     event WithdrawalFinalized(address indexed from, address indexed to, uint256 amount);
 
     // Errors
-    error MaxDepositExceeded();
     error InvalidOrigin();
     error InvalidPayload();
     error InsufficientBalance();
-    error AlreadyClaimed();
     error MessageNotAuthorized();
     error WithdrawPending();
     error InvalidLength();
 
     // Constants
-    function MAX_DEPOSIT() external pure returns (uint256);
     function WITHDRAWAL_DELAY() external pure returns (uint256);
     function MESSENGER() external pure returns (IL2ToL2CrossDomainMessenger);
 
     // State Variables
     function balanceOf(address) external view returns (uint256);
     function withdrawals(address) external view returns (uint256 timestamp, uint256 amount);
-    function claimed(bytes32) external view returns (bool);
     function authorizedMessages(address, bytes32) external view returns (bool);
 
     // Functions
     function deposit(address _to) external payable;
     function initiateWithdrawal(uint256 _amount) external;
     function finalizeWithdrawal(address _to) external;
-    function authorizeClaim(bytes32 _messageHash) external;
+    function authorizeClaim(bytes32[] calldata _messageHashes) external;
     function relayMessage(
         Identifier calldata _id,
         bytes calldata _sentMessage
@@ -72,5 +68,5 @@ interface IGasTank {
     )
         external
         view
-        returns (uint256 l2Cost_, uint256 l1Cost_);
+        returns (uint256 overhead_);
 }
