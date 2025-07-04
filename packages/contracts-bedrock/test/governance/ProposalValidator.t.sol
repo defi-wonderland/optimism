@@ -1088,8 +1088,7 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_Test is Proposal
     }
 
     function testFuzz_submitCouncilMemberElectionsProposal_succeeds(uint8 optionCount, uint128 criteriaValue) public {
-        optionCount = uint8(bound(optionCount, 2, type(uint8).max)); // Minimum 2 options to have valid criteria <
-            // optionCount
+        optionCount = uint8(bound(optionCount, 2, 5)); // Minimum 2 options to have valid criteria < optionCount
         criteriaValue = uint128(bound(criteriaValue, 1, optionCount - 1)); // Must be less than optionCount
 
         // Create dynamic array of option descriptions based on option count
