@@ -589,7 +589,6 @@ contract ProposalValidator_Version_Test is ProposalValidator_Init {
     }
 }
 
-
 /// @title ProposalValidator_Initialize_Test
 /// @notice Tests for the initialize function
 contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
@@ -1896,12 +1895,7 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
         // Ensure the attestation uid is not one of the valid ones
-        vm.assume(
-            _nonExistentAttestationUid != topDelegateAttestation_A
-                && _nonExistentAttestationUid != topDelegateAttestation_B
-                && _nonExistentAttestationUid != topDelegateAttestation_C
-                && _nonExistentAttestationUid != topDelegateAttestation_D
-        );
+        vm.assume(_nonExistentAttestationUid != topDelegateAttestation_A);
 
         // Set mock proposal data of a random proposal in the validator contract
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
@@ -1924,10 +1918,7 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
 
     function test_canApproveProposal_returnFalse_succeeds(bytes32 attestationUid, address delegate) public {
         // Ensure the attestation uid is not one of the top delegates
-        vm.assume(
-            attestationUid != topDelegateAttestation_A && attestationUid != topDelegateAttestation_B
-                && attestationUid != topDelegateAttestation_C && attestationUid != topDelegateAttestation_D
-        );
+        vm.assume(attestationUid != topDelegateAttestation_A);
 
         bool canApprove;
         // Expect the invalid attestation error to be reverted
@@ -2711,19 +2702,28 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         assertEq(actualMovedToVoteTokenCount, 0);
     }
 
-    function test_setVotingCycleData_notOwner_reverts() public {
-        vm.prank(user);
+    function testFuzz_setVotingCycleData_notOwner_reverts(
+        address caller,
+        uint256 cycleNumber,
+        uint256 startBlock,
+        uint256 duration,
+        uint256 distributionLimit
+    ) public {
+        vm.assume(caller != owner);
+        
+        vm.prank(caller);
         vm.expectRevert("Ownable: caller is not the owner");
-        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+        validator.setVotingCycleData(cycleNumber, startBlock, duration, distributionLimit);
     }
 
-    function test_setVotingCycleData_votingCycleAlreadySet_reverts() public {
-        vm.prank(owner);
-        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
-
+    function testFuzz_setVotingCycleData_votingCycleAlreadySet_reverts(
+        uint256 startBlock,
+        uint256 duration,
+        uint256 distributionLimit
+    ) public {
         vm.expectRevert(ProposalValidator.ProposalValidator_VotingCycleAlreadySet.selector);
         vm.prank(owner);
-        validator.setVotingCycleData(2, block.number, 100, 10000 ether);
+        validator.setVotingCycleData(CYCLE_NUMBER, startBlock, duration, distributionLimit);
     }
 
     function testFuzz_setDistributionThreshold_succeeds(uint256 newDistributionThreshold) public {
@@ -2737,10 +2737,12 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         assertEq(validator.distributionThreshold(), newDistributionThreshold);
     }
 
-    function test_setDistributionThreshold_notOwner_reverts() public {
-        vm.prank(user);
+    function testFuzz_setDistributionThreshold_notOwner_reverts(address caller, uint256 threshold) public {
+        vm.assume(caller != owner);
+        
+        vm.prank(caller);
         vm.expectRevert("Ownable: caller is not the owner");
-        validator.setDistributionThreshold(10000 ether);
+        validator.setDistributionThreshold(threshold);
     }
 
     function testFuzz_setProposalTypeData_succeeds(
@@ -2771,11 +2773,13 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         assertEq(proposalVotingModule, newProposalTypeId);
     }
 
-    function test_setProposalTypeData_notOwner_reverts() public {
+    function testFuzz_setProposalTypeData_notOwner_reverts(address caller) public {
+        vm.assume(caller != owner);
+        
         ProposalValidator.ProposalTypeData memory newData =
             ProposalValidator.ProposalTypeData({ requiredApprovals: 4, proposalVotingModule: 0 });
 
-        vm.prank(user);
+        vm.prank(caller);
         vm.expectRevert("Ownable: caller is not the owner");
         validator.setProposalTypeData(ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, newData);
     }
