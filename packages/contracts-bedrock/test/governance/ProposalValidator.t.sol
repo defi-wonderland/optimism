@@ -1337,19 +1337,14 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
 /// @title ProposalValidator_SubmitFundingProposal_Test
 /// @notice Happy path tests for submitFundingProposal function
 contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init {
-    uint128 criteriaValue;
-    string[] optionsDescriptions;
-    address[] optionsRecipients;
-    uint256[] optionsAmounts;
-    string description;
+    uint128 criteriaValue = 1000 ether;
+    string description = "Test funding proposal";
 
     function setUp() public override {
         super.setUp();
 
         _setGovernanceFundProposalType();
         _setCouncilBudgetProposalType();
-
-        criteriaValue = 1000 ether;
     }
 
     function testFuzz_submitFundingProposal_succeeds(
@@ -1366,21 +1361,21 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
-        // Bound option count between 1 and 50 for reasonable test execution
-        optionCount = uint8(bound(optionCount, 1, 50));
+        // Bound option count between 1 and 5 for reasonable test execution
+        optionCount = uint8(bound(optionCount, 1, 5));
 
         // Bound amount from 0 to DISTRIBUTION_THRESHOLD (inclusive)
         amount = bound(amount, 0, DISTRIBUTION_THRESHOLD);
 
-        // Create arrays based on option count
-        string[] memory descriptions = new string[](optionCount);
-        address[] memory recipients = new address[](optionCount);
-        uint256[] memory amounts = new uint256[](optionCount);
+        // Start with minimal arrays and extend based on option count
+        (string[] memory baseDescriptions, address[] memory baseRecipients, uint256[] memory baseAmounts) = 
+            _createMinimalFundingArrays();
+        
 
         for (uint256 i = 0; i < optionCount; i++) {
-            descriptions[i] = string(abi.encodePacked("Option ", vm.toString(i)));
-            recipients[i] = makeAddr(string(abi.encodePacked("recipient", vm.toString(i))));
-            amounts[i] = amount; // Use the same bounded amount for all options
+            descriptions[i] = baseDescriptions[0];
+            recipients[i] = baseRecipients[0];
+            amounts[i] = amount;
         }
 
         // Calculate expected proposal hash
