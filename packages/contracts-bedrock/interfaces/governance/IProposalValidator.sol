@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 // Interfaces
-import {IGovernanceToken} from './IGovernanceToken.sol';
 import {IOptimismGovernor} from './IOptimismGovernor.sol';
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IProposalTypesConfigurator } from './IProposalTypesConfigurator.sol';

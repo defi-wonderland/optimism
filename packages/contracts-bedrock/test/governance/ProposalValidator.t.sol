@@ -4,7 +4,6 @@ pragma solidity 0.8.15;
 // Interfaces
 import { IProposalValidator } from "interfaces/governance/IProposalValidator.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
-import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IProposalTypesConfigurator } from "interfaces/governance/IProposalTypesConfigurator.sol";
 import {
     IEAS,
@@ -41,11 +40,7 @@ contract ProposalValidatorForTest is ProposalValidator {
         bytes32 _topDelegatesAttestationSchemaUid,
         IOptimismGovernor _governor
     )
-        ProposalValidator(
-            _approvedProposerAttestationSchemaUid,
-            _topDelegatesAttestationSchemaUid,
-            _governor
-        )
+        ProposalValidator(_approvedProposerAttestationSchemaUid, _topDelegatesAttestationSchemaUid, _governor)
     { }
 
     function hashProposalWithModule(

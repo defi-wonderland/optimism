@@ -10,7 +10,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
-import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IProposalTypesConfigurator } from "interfaces/governance/IProposalTypesConfigurator.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
