@@ -218,9 +218,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice The Optimism Governor contract that will handle the voting phase.
     IOptimismGovernor public immutable GOVERNOR;
 
-    /// @notice The governance token contract.
-    IGovernanceToken public immutable VOTING_TOKEN;
-
     /// @notice The proposal types configurator contract.
     IProposalTypesConfigurator public proposalTypesConfigurator;
 
@@ -247,19 +244,16 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _topDelegatesAttestationSchemaUid The schema UID for attestations in EAS for checking if the caller
     ///        is part of the top100 delegates.
     /// @param _governor The Optimism Governor contract address.
-    /// @param _votingToken The token used to determine voting power.
     constructor(
         bytes32 _approvedProposerAttestationSchemaUid,
         bytes32 _topDelegatesAttestationSchemaUid,
-        IOptimismGovernor _governor,
-        IGovernanceToken _votingToken
+        IOptimismGovernor _governor
     )
         ReinitializableBase(1)
     {
         APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = _approvedProposerAttestationSchemaUid;
         TOP_DELEGATES_ATTESTATION_SCHEMA_UID = _topDelegatesAttestationSchemaUid;
         GOVERNOR = _governor;
-        VOTING_TOKEN = _votingToken;
         _disableInitializers();
     }
 

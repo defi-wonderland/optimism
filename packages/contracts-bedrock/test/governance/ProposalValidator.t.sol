@@ -39,14 +39,12 @@ contract ProposalValidatorForTest is ProposalValidator {
     constructor(
         bytes32 _approvedProposerAttestationSchemaUid,
         bytes32 _topDelegatesAttestationSchemaUid,
-        IOptimismGovernor _governor,
-        IGovernanceToken _governanceToken
+        IOptimismGovernor _governor
     )
         ProposalValidator(
             _approvedProposerAttestationSchemaUid,
             _topDelegatesAttestationSchemaUid,
-            _governor,
-            _governanceToken
+            _governor
         )
     { }
 
@@ -497,7 +495,7 @@ contract ProposalValidator_Init is CommonTest {
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
         impl = new ProposalValidatorForTest(
-            APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor, governanceToken
+            APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor
         );
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
@@ -608,7 +606,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
         impl = new ProposalValidatorForTest(
-            APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor, governanceToken
+            APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor
         );
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
     }

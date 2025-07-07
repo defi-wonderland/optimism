@@ -184,8 +184,6 @@ interface IProposalValidator is ISemver {
 
     function distributionThreshold() external view returns (uint256);
 
-    function VOTING_TOKEN() external view returns (IGovernanceToken);
-
     function GOVERNOR() external view returns (IOptimismGovernor);
 
     function owner() external view returns (address);
@@ -212,7 +210,6 @@ interface IProposalValidator is ISemver {
     function __constructor__(
         bytes32 _approvedProposerAttestationSchemaUid,
         bytes32 _topDelegatesAttestationSchemaUid,
-        IOptimismGovernor _governor,
-        IGovernanceToken _votingToken
+        IOptimismGovernor _governor
     ) external;
 }
