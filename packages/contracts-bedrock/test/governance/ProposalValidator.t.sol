@@ -1387,9 +1387,8 @@ contract ProposalValidator_SubmitFundingProposal_Test is ProposalValidator_Init 
         (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
             _createMinimalFundingArrays(optionCount);
 
+        // fuzz the amounts
         for (uint256 i = 0; i < optionCount; i++) {
-            descriptions[i] = descriptions[0];
-            recipients[i] = recipients[0];
             amounts[i] = amount;
         }
 
