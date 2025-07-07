@@ -16,6 +16,8 @@ import {
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IApprovalVotingModule } from "interfaces/governance/IApprovalVotingModule.sol";
+import { IOptimisticModule } from "interfaces/governance/IOptimisticModule.sol";
 
 // Testing utilities
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
@@ -26,15 +28,6 @@ import { Proxy } from "src/universal/Proxy.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
-// Modules
-import {
-    ProposalSettings as ApprovalProposalSettings,
-    ProposalOption,
-    PassingCriteria
-} from "src/governance/ApprovalVotingModule.sol";
-import { ProposalSettings as OptimisticProposalSettings } from "src/governance/OptimisticModule.sol";
-import { VotingModule } from "src/governance/VotingModule.sol";
 
 // Testing utilities
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
@@ -309,7 +302,8 @@ contract ProposalValidator_Init is CommonTest {
         returns (bytes memory)
     {
         // Construct ProposalOption array
-        ProposalOption[] memory options = new ProposalOption[](descriptions.length);
+        IApprovalVotingModule.ProposalOption[] memory options =
+            new IApprovalVotingModule.ProposalOption[](descriptions.length);
 
         for (uint256 i = 0; i < descriptions.length; i++) {
             address[] memory targets = new address[](1);
@@ -319,7 +313,7 @@ contract ProposalValidator_Init is CommonTest {
             targets[0] = Predeploys.GOVERNANCE_TOKEN;
             calldatas[0] = abi.encodeCall(IERC20.transfer, (recipients[i], amounts[i]));
 
-            options[i] = ProposalOption({
+            options[i] = IApprovalVotingModule.ProposalOption({
                 budgetTokensSpent: amounts[i],
                 targets: targets,
                 values: values,
@@ -335,9 +329,9 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         // Construct ProposalSettings
-        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(descriptions.length),
-            criteria: uint8(PassingCriteria.Threshold),
+            criteria: uint8(IApprovalVotingModule.PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,
             criteriaValue: criteriaValue,
             budgetAmount: uint128(totalBudget)
@@ -356,14 +350,15 @@ contract ProposalValidator_Init is CommonTest {
         returns (bytes memory)
     {
         // Construct ProposalOption array for elections (no execution calls)
-        ProposalOption[] memory options = new ProposalOption[](descriptions.length);
+        IApprovalVotingModule.ProposalOption[] memory options =
+            new IApprovalVotingModule.ProposalOption[](descriptions.length);
 
         for (uint256 i = 0; i < descriptions.length; i++) {
             address[] memory targets = new address[](0);
             uint256[] memory values = new uint256[](0);
             bytes[] memory calldatas = new bytes[](0);
 
-            options[i] = ProposalOption({
+            options[i] = IApprovalVotingModule.ProposalOption({
                 budgetTokensSpent: 0,
                 targets: targets,
                 values: values,
@@ -373,9 +368,9 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         // Construct ProposalSettings with TopChoices criteria
-        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(descriptions.length),
-            criteria: uint8(PassingCriteria.TopChoices),
+            criteria: uint8(IApprovalVotingModule.PassingCriteria.TopChoices),
             budgetToken: address(0),
             criteriaValue: criteriaValue,
             budgetAmount: 0
@@ -386,8 +381,8 @@ contract ProposalValidator_Init is CommonTest {
 
     /// @notice Helper function to construct voting module data for upgrade proposals
     function _constructOptimisticVotingModuleData(uint248 againstThreshold) internal pure returns (bytes memory) {
-        OptimisticProposalSettings memory settings =
-            OptimisticProposalSettings({ againstThreshold: againstThreshold, isRelativeToVotableSupply: true });
+        IOptimisticModule.ProposalSettings memory settings =
+            IOptimisticModule.ProposalSettings({ againstThreshold: againstThreshold, isRelativeToVotableSupply: true });
 
         return abi.encode(settings);
     }
@@ -768,7 +763,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (VotingModule(optimisticVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
             ),
             abi.encode(uint256(expectedHash))
         );
@@ -981,7 +976,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
                 address(governor),
                 abi.encodeCall(
                     IOptimismGovernor.proposeWithModule,
-                    (VotingModule(optimisticVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                    (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
                 ),
                 abi.encode(uint256(expectedHash))
             );
@@ -1967,7 +1962,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_Test is P
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (VotingModule(optimisticVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
             ),
             abi.encode(uint256(expectedHash))
         );
@@ -2060,7 +2055,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (VotingModule(optimisticVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
             ),
             abi.encode(uint256(_randomHash))
         );
@@ -2099,7 +2094,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_Test is Prop
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (VotingModule(approvalVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                (approvalVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
             ),
             abi.encode(uint256(expectedHash))
         );
@@ -2206,7 +2201,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (VotingModule(approvalVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                (approvalVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
             ),
             abi.encode(uint256(_randomHash))
         );
@@ -2278,7 +2273,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_Test is ProposalValidator_I
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
                 (
-                    VotingModule(approvalVotingModule),
+                    approvalVotingModule,
                     governanceFundVotingModuleData,
                     governanceFundProposalDescription,
                     uint8(governanceFundProposalType)
@@ -2318,7 +2313,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_Test is ProposalValidator_I
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
                 (
-                    VotingModule(approvalVotingModule),
+                    approvalVotingModule,
                     councilBudgetVotingModuleData,
                     councilBudgetProposalDescription,
                     uint8(councilBudgetProposalType)
@@ -2656,7 +2651,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (VotingModule(approvalVotingModule), votingModuleData, proposalDescription, uint8(proposalType))
+                (approvalVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
             ),
             abi.encode(uint256(_randomHash))
         );

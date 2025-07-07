@@ -15,15 +15,8 @@ import { IProposalTypesConfigurator } from "interfaces/governance/IProposalTypes
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
-
-// Modules
-import {
-    ProposalSettings as ApprovalProposalSettings,
-    ProposalOption,
-    PassingCriteria
-} from "src/governance/ApprovalVotingModule.sol";
-import { ProposalSettings as OptimisticProposalSettings } from "src/governance/OptimisticModule.sol";
-import { VotingModule } from "src/governance/VotingModule.sol";
+import { IApprovalVotingModule } from "interfaces/governance/IApprovalVotingModule.sol";
+import { IOptimisticModule } from "interfaces/governance/IOptimisticModule.sol";
 
 /// @custom:proxied true
 /// @title ProposalValidator
@@ -343,7 +336,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Create OptimisticModule ProposalSettings with required parameters
-        OptimisticProposalSettings memory optimisticSettings = OptimisticProposalSettings({
+        IOptimisticModule.ProposalSettings memory optimisticSettings = IOptimisticModule.ProposalSettings({
             againstThreshold: _againstThreshold,
             isRelativeToVotableSupply: true // MUST always be true
          });
@@ -384,7 +377,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             proposal.movedToVote = true;
 
             GOVERNOR.proposeWithModule(
-                VotingModule(votingModule), proposalVotingModuleData, _proposalDescription, uint8(_proposalType)
+                votingModule, proposalVotingModuleData, _proposalDescription, uint8(_proposalType)
             );
 
             emit ProposalMovedToVote(proposalHash_, msg.sender);
@@ -424,13 +417,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Build proposal options (elections don't execute operations)
-        (ProposalOption[] memory options,) =
+        (IApprovalVotingModule.ProposalOption[] memory options,) =
             _buildApprovalModuleOptions(_optionDescriptions, new address[](0), new uint256[](0));
 
         // Configure approval voting settings with TopChoices criteria
-        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(optionsLength),
-            criteria: uint8(PassingCriteria.TopChoices),
+            criteria: uint8(IApprovalVotingModule.PassingCriteria.TopChoices),
             budgetToken: address(0), // No budget token for elections
             criteriaValue: _criteriaValue,
             budgetAmount: 0 // No budget amount for elections
@@ -511,13 +504,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Build proposal options with funding execution data
-        (ProposalOption[] memory options, uint256 totalBudget) =
+        (IApprovalVotingModule.ProposalOption[] memory options, uint256 totalBudget) =
             _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
 
         // Configure approval voting settings
-        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(optionsLength),
-            criteria: uint8(PassingCriteria.Threshold),
+            criteria: uint8(IApprovalVotingModule.PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,
             criteriaValue: _criteriaValue,
             budgetAmount: uint128(totalBudget)
@@ -600,8 +593,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         returns (bytes32 proposalHash_)
     {
         // Configure optimistic proposal settings
-        OptimisticProposalSettings memory settings =
-            OptimisticProposalSettings({ againstThreshold: _againstThreshold, isRelativeToVotableSupply: true });
+        IOptimisticModule.ProposalSettings memory settings =
+            IOptimisticModule.ProposalSettings({ againstThreshold: _againstThreshold, isRelativeToVotableSupply: true });
 
         bytes memory proposalVotingModuleData = abi.encode(settings);
 
@@ -641,7 +634,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Propose with module on the Governor
         uint256 proposalId = GOVERNOR.proposeWithModule(
-            VotingModule(votingModule), proposalVotingModuleData, _proposalDescription, uint8(proposalType)
+            votingModule, proposalVotingModuleData, _proposalDescription, uint8(proposalType)
         );
 
         // Make sure the proposalId is the same as the proposalHash
@@ -666,13 +659,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         returns (bytes32 proposalHash_)
     {
         // Configure approval module options
-        (ProposalOption[] memory options,) =
+        (IApprovalVotingModule.ProposalOption[] memory options,) =
             _buildApprovalModuleOptions(_optionsDescriptions, new address[](0), new uint256[](0));
 
         // Configure approval module settings
-        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(_optionsDescriptions.length),
-            criteria: uint8(PassingCriteria.TopChoices),
+            criteria: uint8(IApprovalVotingModule.PassingCriteria.TopChoices),
             budgetToken: address(0),
             criteriaValue: _criteriaValue,
             budgetAmount: 0
@@ -724,7 +717,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Propose with module on the Governor
         uint256 proposalId = GOVERNOR.proposeWithModule(
-            VotingModule(votingModule), proposalVotingModuleData, _proposalDescription, uint8(proposalType)
+            votingModule, proposalVotingModuleData, _proposalDescription, uint8(proposalType)
         );
 
         // Make sure the proposalId is the same as the proposalHash
@@ -765,13 +758,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Configure approval module options
-        (ProposalOption[] memory options, uint256 totalBudget) =
+        (IApprovalVotingModule.ProposalOption[] memory options, uint256 totalBudget) =
             _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
 
         // Configure approval module settings
-        ApprovalProposalSettings memory settings = ApprovalProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(optionsLength),
-            criteria: uint8(PassingCriteria.Threshold),
+            criteria: uint8(IApprovalVotingModule.PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,
             criteriaValue: _criteriaValue,
             budgetAmount: uint128(totalBudget)
@@ -822,9 +815,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         votingCycles[proposal.votingCycle].movedToVoteTokenCount += totalBudget;
 
         // Propose with module on the Governor
-        uint256 proposalId = GOVERNOR.proposeWithModule(
-            VotingModule(votingModule), proposalVotingModuleData, _description, uint8(_proposalType)
-        );
+        uint256 proposalId =
+            GOVERNOR.proposeWithModule(votingModule, proposalVotingModuleData, _description, uint8(_proposalType));
 
         // Make sure the proposalId is the same as the proposalHash
         if (proposalId != uint256(proposalHash_)) {
@@ -960,10 +952,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     )
         internal
         view
-        returns (ProposalOption[] memory options_, uint256 totalBudget_)
+        returns (IApprovalVotingModule.ProposalOption[] memory options_, uint256 totalBudget_)
     {
         uint256 optionsLength = _optionDescriptions.length;
-        options_ = new ProposalOption[](optionsLength);
+        options_ = new IApprovalVotingModule.ProposalOption[](optionsLength);
 
         for (uint256 i = 0; i < optionsLength; i++) {
             address[] memory targets;
@@ -993,7 +985,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 budgetTokensSpent = 0;
             }
 
-            options_[i] = ProposalOption({
+            options_[i] = IApprovalVotingModule.ProposalOption({
                 budgetTokensSpent: budgetTokensSpent,
                 targets: targets,
                 values: values,
