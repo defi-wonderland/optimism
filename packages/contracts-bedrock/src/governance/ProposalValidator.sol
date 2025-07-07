@@ -118,9 +118,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 cycleNumber, uint256 startingTimestamp, uint256 duration, uint256 votingCycleDistributionLimit
     );
 
-    /// @notice Emitted when the distribution threshold is set.
-    /// @param newDistributionThreshold The new distribution threshold.
-    event DistributionThresholdSet(uint256 newDistributionThreshold);
+    /// @notice Emitted when the proposal distribution limit is set.
+    /// @param newProposalDistributionThreshold The new proposal distribution threshold.
+    event ProposalDistributionThresholdSet(uint256 newProposalDistributionThreshold);
 
     /// @notice Emitted when the proposal type data is set.
     /// @param proposalType The type of proposal.
@@ -221,7 +221,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     IProposalTypesConfigurator public proposalTypesConfigurator;
 
     /// @notice The max amount of tokens that can be distributed in a proposal.
-    uint256 public distributionThreshold;
+    uint256 public proposalDistributionThreshold;
 
     /// @notice Mapping of voting cycle numbers to their corresponding data.
     mapping(uint256 => VotingCycleData) public votingCycles;
@@ -263,7 +263,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _startingTimestamp The starting timestamp of the voting cycle.
     /// @param _duration The duration of the voting cycle.
     /// @param _votingCycleDistributionLimit The max amount of tokens that can be distributed during the voting cycle.
-    /// @param _distributionThreshold The max amount of tokens that can be distributed in a proposal.
+    /// @param _proposalDistributionThreshold The max amount of tokens that can be distributed in a proposal.
     /// @param _proposalTypes Array of proposal types to set data for.
     /// @param _proposalTypesData Array of proposal type data corresponding to the proposal types.
     function initialize(
@@ -273,7 +273,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 _startingTimestamp,
         uint256 _duration,
         uint256 _votingCycleDistributionLimit,
-        uint256 _distributionThreshold,
+        uint256 _proposalDistributionThreshold,
         ProposalType[] memory _proposalTypes,
         ProposalTypeData[] memory _proposalTypesData
     )
@@ -286,7 +286,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         proposalTypesConfigurator = _proposalTypesConfigurator;
         _setVotingCycleData(_cycleNumber, _startingTimestamp, _duration, _votingCycleDistributionLimit);
-        _setDistributionThreshold(_distributionThreshold);
+        _setProposalDistributionThreshold(_proposalDistributionThreshold);
 
         for (uint256 i = 0; i < _proposalTypes.length; i++) {
             _setProposalTypeData(_proposalTypes[i], _proposalTypesData[i]);
@@ -839,9 +839,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     }
 
     /// @notice Sets the max amount of tokens that can be distributed in a proposal.
-    /// @param _distributionThreshold The new distribution threshold.
-    function setDistributionThreshold(uint256 _distributionThreshold) external onlyOwner {
-        _setDistributionThreshold(_distributionThreshold);
+    /// @param _proposalDistributionThreshold The new proposal distribution threshold.
+    function setProposalDistributionThreshold(uint256 _proposalDistributionThreshold) external onlyOwner {
+        _setProposalDistributionThreshold(_proposalDistributionThreshold);
     }
 
     /// @notice Sets the data for a proposal type.
@@ -959,7 +959,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             // Check if this is a funding proposal (has recipients and amounts)
             if (_recipients.length > 0 && _amounts.length > 0) {
                 // Validate amount doesn't exceed distribution threshold
-                if (_amounts[i] > distributionThreshold) {
+                if (_amounts[i] > proposalDistributionThreshold) {
                     revert ProposalValidator_ExceedsDistributionThreshold();
                 }
                 targets = new address[](1);
@@ -1033,11 +1033,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         emit VotingCycleDataSet(_cycleNumber, _startingTimestamp, _duration, _votingCycleDistributionLimit);
     }
 
-    /// @notice Private function to set the distribution threshold and emit event.
-    /// @param _distributionThreshold The new distribution threshold.
-    function _setDistributionThreshold(uint256 _distributionThreshold) private {
-        distributionThreshold = _distributionThreshold;
-        emit DistributionThresholdSet(_distributionThreshold);
+    /// @notice Private function to set the proposal distribution threshold and emit event.
+    /// @param _proposalDistributionThreshold The new proposal distribution threshold.
+    function _setProposalDistributionThreshold(uint256 _proposalDistributionThreshold) private {
+        proposalDistributionThreshold = _proposalDistributionThreshold;
+        emit ProposalDistributionThresholdSet(_proposalDistributionThreshold);
     }
 
     /// @notice Private function to set a proposal's type data.

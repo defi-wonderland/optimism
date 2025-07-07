@@ -55,7 +55,7 @@ interface IProposalValidator is ISemver {
         uint256 votingCycleDistributionLimit
     );
 
-    event DistributionThresholdSet(uint256 newDistributionThreshold);
+    event ProposalDistributionThresholdSet(uint256 newProposalDistributionThreshold);
 
     event ProposalTypeDataSet(
         ProposalType proposalType,
@@ -158,7 +158,7 @@ interface IProposalValidator is ISemver {
         uint256 _votingCycleDistributionLimit
     ) external;
 
-    function setDistributionThreshold(uint256 _distributionThreshold) external;
+    function setProposalDistributionThreshold(uint256 _proposalDistributionThreshold) external;
 
     function setProposalTypeData(
         ProposalType _proposalType,
@@ -172,7 +172,7 @@ interface IProposalValidator is ISemver {
         uint256 _startingTimestamp,
         uint256 _duration,
         uint256 _votingCycleDistributionLimit,
-        uint256 _distributionThreshold,
+        uint256 _proposalDistributionThreshold,
         ProposalType[] memory _proposalTypes,
         ProposalTypeData[] memory _proposalTypesData
     ) external;
@@ -181,7 +181,7 @@ interface IProposalValidator is ISemver {
 
     function transferOwnership(address newOwner) external;
 
-    function distributionThreshold() external view returns (uint256);
+    function proposalDistributionThreshold() external view returns (uint256);
 
     function GOVERNOR() external view returns (IOptimismGovernor);
 

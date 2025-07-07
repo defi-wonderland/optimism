@@ -143,7 +143,7 @@ contract ProposalValidator_Init is CommonTest {
     event VotingCycleDataSet(
         uint256 cycleNumber, uint256 startingTimestamp, uint256 duration, uint256 votingCycleDistributionLimit
     );
-    event DistributionThresholdSet(uint256 newDistributionThreshold);
+    event ProposalDistributionThresholdSet(uint256 newProposalDistributionThreshold);
     event ProposalTypeDataSet(
         ProposalValidator.ProposalType proposalType, uint256 requiredApprovals, uint8 proposalVotingModule
     );
@@ -632,7 +632,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         );
 
         // Verify initialization was successful
-        assertEq(validator.distributionThreshold(), DISTRIBUTION_THRESHOLD);
+        assertEq(validator.proposalDistributionThreshold(), DISTRIBUTION_THRESHOLD);
         assertEq(validator.owner(), owner);
 
         // Verify voting cycle data
@@ -1557,7 +1557,7 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         );
     }
 
-    function testFuzz_submitFundingProposal_exceedsDistributionThreshold_reverts(
+    function testFuzz_submitFundingProposal_exceedsProposalDistributionThreshold_reverts(
         uint256 excessAmount,
         uint8 proposalTypeValue
     )
@@ -2539,7 +2539,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
         );
     }
 
-    function test_moveToVoteFundingProposal_buildApprovalModuleOptionsExceedsDistributionThreshold_reverts(
+    function test_moveToVoteFundingProposal_buildApprovalModuleOptionsExceedsProposalDistributionThreshold_reverts(
         uint8 _proposalTypeValue
     )
         public
@@ -2719,23 +2719,23 @@ contract ProposalValidator_Setters_Test is ProposalValidator_Init {
         validator.setVotingCycleData(CYCLE_NUMBER, startingTimestamp, duration, distributionLimit);
     }
 
-    function testFuzz_setDistributionThreshold_succeeds(uint256 newDistributionThreshold) public {
-        // Expect the DistributionThresholdSet event to be emitted
+    function testFuzz_setProposalDistributionThreshold_succeeds(uint256 newProposalDistributionThreshold) public {
+        // Expect the ProposalDistributionThresholdSet event to be emitted
         vm.expectEmit(address(validator));
-        emit DistributionThresholdSet(newDistributionThreshold);
+        emit ProposalDistributionThresholdSet(newProposalDistributionThreshold);
 
         vm.prank(owner);
-        validator.setDistributionThreshold(newDistributionThreshold);
+        validator.setProposalDistributionThreshold(newProposalDistributionThreshold);
 
-        assertEq(validator.distributionThreshold(), newDistributionThreshold);
+        assertEq(validator.proposalDistributionThreshold(), newProposalDistributionThreshold);
     }
 
-    function testFuzz_setDistributionThreshold_notOwner_reverts(address caller, uint256 threshold) public {
+    function testFuzz_setProposalDistributionThreshold_notOwner_reverts(address caller, uint256 threshold) public {
         vm.assume(caller != owner);
 
         vm.prank(caller);
         vm.expectRevert("Ownable: caller is not the owner");
-        validator.setDistributionThreshold(threshold);
+        validator.setProposalDistributionThreshold(threshold);
     }
 
     function testFuzz_setProposalTypeData_succeeds(
