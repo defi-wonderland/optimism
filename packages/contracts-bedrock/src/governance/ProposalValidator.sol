@@ -237,9 +237,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     mapping(bytes32 => ProposalData) internal _proposals;
 
     /// @notice Semantic version.
-    /// @custom:semver 1.0.0-beta.1
+    /// @custom:semver 1.0.0
     function version() public pure virtual returns (string memory) {
-        return "1.0.0-beta.1";
+        return "1.0.0";
     }
 
     /// @notice Constructs the ProposalValidator contract.

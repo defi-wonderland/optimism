@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.0;
 
 /// @title IApprovalVotingModule
 /// @notice Interface for the Approval Voting Module containing only the essential types

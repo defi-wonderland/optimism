@@ -595,7 +595,7 @@ contract ProposalValidator_Init is CommonTest {
 contract ProposalValidator_Version_Test is ProposalValidator_Init {
     function test_version_succeeds() public view {
         string memory versionString = validator.version();
-        assertEq(versionString, "1.0.0-beta.1");
+        assertEq(versionString, "1.0.0");
     }
 }
 
