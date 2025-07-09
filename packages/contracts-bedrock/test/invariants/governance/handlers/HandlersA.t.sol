@@ -42,39 +42,7 @@ contract HandlersA is Setup {
         return actors[seed % actors.length];
     }
 
-    function _mockGovernorCalls(
-        bytes32 proposalHash,
-        bytes memory votingModuleData,
-        string memory description,
-        uint8 proposalType
-    )
-        internal
-    {
-        // Mock proposalSnapshot to return 0 (proposal doesn't exist)
-        vm.mockCall(
-            address(governor),
-            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(proposalHash))),
-            abi.encode(0)
-        );
-
-        // Mock proposeWithModule to return the same hash
-        vm.mockCall(
-            address(governor),
-            abi.encodeCall(
-                IOptimismGovernor.proposeWithModule, (approvalVotingModule, votingModuleData, description, proposalType)
-            ),
-            abi.encode(uint256(proposalHash))
-        );
-
-        vm.mockCall(
-            address(governor),
-            abi.encodeCall(
-                IOptimismGovernor.proposeWithModule,
-                (optimisticVotingModule, votingModuleData, description, proposalType)
-            ),
-            abi.encode(uint256(proposalHash))
-        );
-    }
+    // Note: No longer need to mock governor calls since MockGovernor handles them properly
 
     function _ensureAttestation(address actor, ProposalValidator.ProposalType proposalType) internal {
         if (approvedProposerAttestations[actor] == bytes32(0)) {
@@ -231,9 +199,6 @@ contract HandlersA is Setup {
         bytes memory votingModuleData = abi.encode(settings);
         bytes32 proposalHash = _calculateProposalHash(optimisticVotingModule, votingModuleData, description);
 
-        // Mock governor calls
-        _mockGovernorCalls(proposalHash, votingModuleData, description, uint8(proposalType));
-
         try validator.submitUpgradeProposal(
             againstThreshold, description, approvedProposerAttestations[actor], proposalType, votingCycle
         ) returns (bytes32 returnedHash) {
@@ -280,9 +245,6 @@ contract HandlersA is Setup {
 
         bytes memory votingModuleData = abi.encode(settings);
         bytes32 proposalHash = _calculateProposalHash(optimisticVotingModule, votingModuleData, description);
-
-        // Mock governor calls
-        _mockGovernorCalls(proposalHash, votingModuleData, description, uint8(proposalType));
 
         try validator.submitUpgradeProposal(
             againstThreshold, description, approvedProposerAttestations[actor], proposalType, votingCycle
@@ -397,9 +359,6 @@ contract HandlersA is Setup {
         bytes memory votingModuleData = abi.encode(options, settings);
         bytes32 proposalHash = _calculateProposalHash(approvalVotingModule, votingModuleData, params.description);
 
-        // Mock governor calls
-        _mockGovernorCalls(proposalHash, votingModuleData, params.description, uint8(params.proposalType));
-
         try validator.submitCouncilMemberElectionsProposal(
             params.criteriaValue,
             optionDescriptions,
@@ -488,9 +447,6 @@ contract HandlersA is Setup {
     {
         bytes memory votingModuleData = abi.encode(options, settings);
         bytes32 proposalHash = _calculateProposalHash(approvalVotingModule, votingModuleData, params.description);
-
-        // Mock governor calls
-        _mockGovernorCalls(proposalHash, votingModuleData, params.description, uint8(params.proposalType));
 
         // Extract individual values to reduce stack depth
         uint128 criteriaValue = params.criteriaValue;

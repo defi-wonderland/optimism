@@ -16,6 +16,59 @@ import { MockGovernor } from "./utils/MockGovernor.sol";
 
 import { Test } from "forge-std/Test.sol";
 
+/// @title MockProposalTypesConfigurator
+/// @notice Simple mock for ProposalTypesConfigurator
+contract MockProposalTypesConfigurator is IProposalTypesConfigurator {
+    mapping(uint8 => IProposalTypesConfigurator.ProposalType) private _proposalTypes;
+
+    constructor(address _approvalVotingModule, address _optimisticVotingModule) {
+        // Setup approval voting module (ID: 1)
+        _proposalTypes[1] = IProposalTypesConfigurator.ProposalType({
+            quorum: 100,
+            approvalThreshold: 100,
+            name: "Approval Voting",
+            description: "Approval Voting Module",
+            module: _approvalVotingModule
+        });
+
+        // Setup optimistic voting module (ID: 2)
+        _proposalTypes[2] = IProposalTypesConfigurator.ProposalType({
+            quorum: 100,
+            approvalThreshold: 100,
+            name: "Optimistic Voting",
+            description: "Optimistic Voting Module",
+            module: _optimisticVotingModule
+        });
+    }
+
+    function initialize(address, IProposalTypesConfigurator.ProposalType[] calldata) external {
+        // Mock implementation - do nothing
+    }
+
+    function proposalTypes(uint8 _id) external view returns (IProposalTypesConfigurator.ProposalType memory) {
+        return _proposalTypes[_id];
+    }
+
+    function setProposalType(
+        uint8 proposalTypeId,
+        uint16 quorum,
+        uint16 approvalThreshold,
+        string memory name,
+        string memory description,
+        address module
+    )
+        external
+    {
+        _proposalTypes[proposalTypeId] = IProposalTypesConfigurator.ProposalType({
+            quorum: quorum,
+            approvalThreshold: approvalThreshold,
+            name: name,
+            description: description,
+            module: module
+        });
+    }
+}
+
 /// @title MockSchemaRegistry
 /// @notice Simple mock for schema registry that just returns incrementing UIDs
 contract MockSchemaRegistry is ISchemaRegistry {
@@ -182,35 +235,8 @@ contract Setup is Test {
         });
 
         governor = IOptimismGovernor(address(new MockGovernor()));
-        proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
-
-        // Mock proposalTypesConfigurator calls
-        vm.mockCall(
-            address(proposalTypesConfigurator),
-            abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (APPROVAL_VOTING_MODULE_ID)),
-            abi.encode(
-                IProposalTypesConfigurator.ProposalType({
-                    quorum: 100,
-                    approvalThreshold: 100,
-                    name: "Approval Voting",
-                    description: "Approval Voting Module",
-                    module: approvalVotingModule
-                })
-            )
-        );
-
-        vm.mockCall(
-            address(proposalTypesConfigurator),
-            abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (OPTIMISTIC_VOTING_MODULE_ID)),
-            abi.encode(
-                IProposalTypesConfigurator.ProposalType({
-                    quorum: 100,
-                    approvalThreshold: 100,
-                    name: "Optimistic Voting",
-                    description: "Optimistic Voting Module",
-                    module: optimisticVotingModule
-                })
-            )
+        proposalTypesConfigurator = IProposalTypesConfigurator(
+            address(new MockProposalTypesConfigurator(approvalVotingModule, optimisticVotingModule))
         );
 
         validator = ProposalValidator(address(new Proxy(owner)));

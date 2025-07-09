@@ -5,6 +5,9 @@ import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IVotesUpgradeable } from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 
 contract MockGovernor is IOptimismGovernor {
+    mapping(uint256 => bool) public proposalExists;
+    mapping(uint256 => uint8) public proposalTypeMapping;
+
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -15,7 +18,12 @@ contract MockGovernor is IOptimismGovernor {
         external
         returns (uint256 proposalId)
     {
-        return 0;
+        // Create a simple hash as proposal ID
+        proposalId =
+            uint256(keccak256(abi.encode(targets, values, calldatas, description, proposalType, block.timestamp)));
+        proposalExists[proposalId] = true;
+        proposalTypeMapping[proposalId] = proposalType;
+        return proposalId;
     }
 
     function proposeWithModule(
@@ -27,7 +35,11 @@ contract MockGovernor is IOptimismGovernor {
         external
         returns (uint256 proposalId)
     {
-        return 0;
+        // Generate proposal ID based on inputs - should match validator's _hashProposalWithModule
+        proposalId = uint256(keccak256(abi.encode(address(this), module, proposalData, keccak256(bytes(description)))));
+        proposalExists[proposalId] = true;
+        proposalTypeMapping[proposalId] = proposalType;
+        return proposalId;
     }
 
     function timelock() external view returns (address) {
@@ -43,7 +55,7 @@ contract MockGovernor is IOptimismGovernor {
     }
 
     function getProposalType(uint256 proposalId) external view returns (uint8) {
-        return 0;
+        return proposalTypeMapping[proposalId];
     }
 
     function proposalVotes(uint256 proposalId)
@@ -55,6 +67,7 @@ contract MockGovernor is IOptimismGovernor {
     }
 
     function proposalSnapshot(uint256 proposalId) external view returns (uint256) {
-        return 0;
+        // Return non-zero only if proposal exists (was created)
+        return proposalExists[proposalId] ? 1 : 0;
     }
 }
