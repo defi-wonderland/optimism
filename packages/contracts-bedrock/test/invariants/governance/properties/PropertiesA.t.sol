@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { HandlersParent } from "../handlers/HandlersParent.t.sol";
 
 contract PropertiesA is HandlersParent {
-    function invariant_sanity() public {
+    function test_sanity() public {
         assert(address(validator.GOVERNOR()) == address(governor));
         assert(address(validator.proposalTypesConfigurator()) == address(proposalTypesConfigurator));
         assert(validator.proposalDistributionThreshold() == DISTRIBUTION_THRESHOLD);
