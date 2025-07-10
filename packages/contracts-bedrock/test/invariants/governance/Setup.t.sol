@@ -16,6 +16,36 @@ import { MockGovernor } from "./utils/MockGovernor.sol";
 
 import { Test } from "forge-std/Test.sol";
 
+/// @title ProposalValidatorForTest
+/// @notice Test version of ProposalValidator that exposes internal functions
+contract ProposalValidatorForTest is ProposalValidator {
+    constructor(
+        bytes32 _approvedProposerAttestationSchemaUid,
+        bytes32 _topDelegatesAttestationSchemaUid,
+        IOptimismGovernor _governor
+    )
+        ProposalValidator(_approvedProposerAttestationSchemaUid, _topDelegatesAttestationSchemaUid, _governor)
+    { }
+
+    /// @notice Exposes proposal data for testing invariants
+    function getProposalData(bytes32 _proposalHash)
+        public
+        view
+        returns (
+            address proposer_,
+            ProposalType proposalType_,
+            bool movedToVote_,
+            uint256 approvalCount_,
+            uint256 votingCycle_
+        )
+    {
+        ProposalData storage proposal = _proposals[_proposalHash];
+        return (
+            proposal.proposer, proposal.proposalType, proposal.movedToVote, proposal.approvalCount, proposal.votingCycle
+        );
+    }
+}
+
 /// @title MockProposalTypesConfigurator
 /// @notice Simple mock for ProposalTypesConfigurator
 contract MockProposalTypesConfigurator is IProposalTypesConfigurator {
@@ -153,8 +183,8 @@ contract Setup is Test {
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
     uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2;
 
-    ProposalValidator public validator;
-    ProposalValidator public impl;
+    ProposalValidatorForTest public validator;
+    ProposalValidatorForTest public impl;
 
     // Mock contracts
     MockSchemaRegistry public mockSchemaRegistry;
@@ -169,6 +199,13 @@ contract Setup is Test {
     mapping(bytes32 => bool) public ghost_proposalApproved;
     mapping(bytes32 => bool) public ghost_proposalMovedToVote;
     uint256 public ghost_totalTokensRequested;
+
+    // Additional ghost variables for invariants
+    mapping(uint256 => uint256) public ghost_fundingAmountMovedToVotePerCycle; // cycle => total amount
+    mapping(bytes32 => uint256) public ghost_proposalApprovalCount; // proposal => actual approval count
+    mapping(bytes32 => address) public ghost_originalProposer; // proposal => original proposer
+    mapping(bytes32 => ProposalValidator.ProposalType) public ghost_originalProposalType; // proposal => original type
+    mapping(bytes32 => uint256) public ghost_proposalVotingCycle; // proposal => voting cycle
 
     function setUp() public {
         owner = makeAddr("owner");
@@ -239,9 +276,9 @@ contract Setup is Test {
             address(new MockProposalTypesConfigurator(approvalVotingModule, optimisticVotingModule))
         );
 
-        validator = ProposalValidator(address(new Proxy(owner)));
+        validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
-        impl = new ProposalValidator(
+        impl = new ProposalValidatorForTest(
             APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor
         );
 
@@ -315,6 +352,10 @@ contract Setup is Test {
         ghost_submittedProposalCount++;
         ghost_proposalsByType[_proposalType]++;
         ghost_proposalExists[_proposalHash] = true;
+
+        // Track original proposer and type (immutable after submission)
+        ghost_originalProposer[_proposalHash] = msg.sender;
+        ghost_originalProposalType[_proposalHash] = _proposalType;
     }
 
     /// @notice Helper to update ghost variables when a proposal is approved
@@ -323,6 +364,8 @@ contract Setup is Test {
             ghost_approvedProposalCount++;
             ghost_proposalApproved[_proposalHash] = true;
         }
+        // Increment actual approval count
+        ghost_proposalApprovalCount[_proposalHash]++;
     }
 
     /// @notice Helper to update ghost variables when a proposal is moved to vote
@@ -336,5 +379,21 @@ contract Setup is Test {
     /// @notice Helper to update ghost variables for token requests
     function _updateGhostTokensRequested(uint256 _amount) internal {
         ghost_totalTokensRequested += _amount;
+    }
+
+    /// @notice Helper to update ghost variables when funding proposals move to vote
+    function _updateGhostFundingMovedToVote(bytes32 _proposalHash, uint256 _amount, uint256 _cycle) internal {
+        ProposalValidator.ProposalType proposalType = ghost_originalProposalType[_proposalHash];
+        if (
+            proposalType == ProposalValidator.ProposalType.GovernanceFund
+                || proposalType == ProposalValidator.ProposalType.CouncilBudget
+        ) {
+            ghost_fundingAmountMovedToVotePerCycle[_cycle] += _amount;
+        }
+    }
+
+    /// @notice Helper to track proposal voting cycle
+    function _updateGhostProposalVotingCycle(bytes32 _proposalHash, uint256 _cycle) internal {
+        ghost_proposalVotingCycle[_proposalHash] = _cycle;
     }
 }

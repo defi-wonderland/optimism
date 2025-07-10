@@ -42,8 +42,6 @@ contract HandlersA is Setup {
         return actors[seed % actors.length];
     }
 
-    // Note: No longer need to mock governor calls since MockGovernor handles them properly
-
     function _ensureAttestation(address actor, ProposalValidator.ProposalType proposalType) internal {
         if (approvedProposerAttestations[actor] == bytes32(0)) {
             approvedProposerAttestations[actor] = _createApprovedProposerAttestation(actor, proposalType);
@@ -211,6 +209,7 @@ contract HandlersA is Setup {
                 proposalDescriptions[returnedHash] = description;
                 proposalAgainstThresholds[returnedHash] = againstThreshold;
                 _updateGhostOnSubmit(returnedHash, proposalType);
+                _updateGhostProposalVotingCycle(returnedHash, votingCycle);
             }
         } catch {
             // Proposal submission failed, which is expected in some cases
@@ -258,6 +257,7 @@ contract HandlersA is Setup {
                 proposalDescriptions[returnedHash] = description;
                 proposalAgainstThresholds[returnedHash] = againstThreshold;
                 _updateGhostOnSubmit(returnedHash, proposalType);
+                _updateGhostProposalVotingCycle(returnedHash, votingCycle);
             }
         } catch {
             // Proposal submission failed, which is expected in some cases
@@ -376,6 +376,7 @@ contract HandlersA is Setup {
                 proposalCriteriaValues[returnedHash] = params.criteriaValue;
                 proposalOptionDescriptions[returnedHash] = optionDescriptions;
                 _updateGhostOnSubmit(returnedHash, params.proposalType);
+                _updateGhostProposalVotingCycle(returnedHash, params.votingCycle);
             }
         } catch {
             // Proposal submission failed, which is expected in some cases
@@ -490,6 +491,7 @@ contract HandlersA is Setup {
         proposalOptionAmounts[returnedHash] = amounts;
         _updateGhostOnSubmit(returnedHash, params.proposalType);
         _updateGhostTokensRequested(totalAmount);
+        _updateGhostProposalVotingCycle(returnedHash, params.votingCycle);
     }
 
     // Helper functions to store proposal data (removed to reduce stack depth - functionality inlined)
@@ -621,8 +623,15 @@ contract HandlersA is Setup {
         try validator.moveToVoteFundingProposal(
             criteriaValue, optionDescriptions, recipients, amounts, description, proposalType
         ) {
+            // Calculate total amount for ghost variable update
+            uint256 totalAmount = 0;
+            for (uint256 i = 0; i < amounts.length; i++) {
+                totalAmount += amounts[i];
+            }
+
             // Update ghost variables
             _updateGhostOnMoveToVote(proposalHash);
+            _updateGhostFundingMovedToVote(proposalHash, totalAmount, ghost_proposalVotingCycle[proposalHash]);
         } catch {
             // Move to vote failed, which is expected in some cases
         }
