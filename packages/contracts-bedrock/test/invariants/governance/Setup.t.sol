@@ -174,7 +174,6 @@ contract Setup is Test {
     bytes32 public APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID;
     bytes32 public TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
 
-    uint256 public constant CYCLE_NUMBER = 1;
     uint256 public constant START_TIMESTAMP = 1000000;
     uint256 public constant DURATION = 1 days;
     uint256 public constant DISTRIBUTION_LIMIT = 20000 ether;
@@ -290,7 +289,7 @@ contract Setup is Test {
                 (
                     owner,
                     proposalTypesConfigurator,
-                    CYCLE_NUMBER,
+                    1,
                     START_TIMESTAMP,
                     DURATION,
                     DISTRIBUTION_LIMIT,

@@ -27,7 +27,9 @@ contract PropertiesA is HandlersParent {
     /// limit
     function invariant_funding_cycle_limits() public {
         // Check that for each cycle, the total funding moved to vote doesn't exceed the distribution limit
-        assert(ghost_fundingAmountMovedToVotePerCycle[CYCLE_NUMBER] <= DISTRIBUTION_LIMIT);
+        for (uint256 i = 0; i < 10; i++) {
+            assert(ghost_fundingAmountMovedToVotePerCycle[i] <= DISTRIBUTION_LIMIT);
+        }
     }
 
     /// @notice VAL-002: approvalCount == number of delegates having approved it
