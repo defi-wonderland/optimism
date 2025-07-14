@@ -13,16 +13,6 @@ contract PropertiesA is HandlersParent {
         assert(validator.TOP_DELEGATES_ATTESTATION_SCHEMA_UID() == TOP_DELEGATES_ATTESTATION_SCHEMA_UID);
     }
 
-    function invariant_sum_amounts() public {
-        uint256 sum = 0;
-        for (uint256 i = 0; i < submittedProposals.length; i++) {
-            for (uint256 j = 0; j < proposalOptionAmounts[submittedProposals[i]].length; j++) {
-                sum += proposalOptionAmounts[submittedProposals[i]][j];
-            }
-        }
-        assert(sum <= DISTRIBUTION_THRESHOLD);
-    }
-
     /// @notice VAL-001: sum of all funding proposals amount moved to vote during a cycle <= that cycle distribution
     /// limit
     function invariant_funding_cycle_limits() public {

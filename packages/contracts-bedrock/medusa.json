@@ -6,7 +6,7 @@
 		"testLimit": 0,
 		"shrinkLimit": 5000,
 		"callSequenceLength": 100,
-		"corpusDirectory": "corpus",
+		"corpusDirectory": "test/invariants/governance/corpus",
 		"coverageEnabled": true,
 		"coverageFormats": [
 			"html",
@@ -16,7 +16,9 @@
 		"targetContracts": [
 			"FuzzTest"
 		],
-		"predeployedContracts": {},
+		"predeployedContracts": {
+			"MockEAS": "0x4200000000000000000000000000000000000021"
+		},
 		"targetContractsBalances": [],
 		"constructorArgs": {},
 		"deployerAddress": "0x30000",
@@ -89,6 +91,7 @@
 			"exportDirectory": "",
 			"args": [
 				"--foundry-compile-all",
+				"--compile-libraries=(MockEAS,0x4200000000000000000000000000000000000021)",
 				"--foundry-out-directory",
 				"artifacts"
 			]

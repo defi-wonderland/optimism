@@ -11,10 +11,11 @@ import {
 import { ISchemaRegistry, ISchemaResolver, SchemaRecord } from "src/vendor/eas/ISchemaRegistry.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
+import { MockEAS } from "./utils/MockEAS.sol";
 import { MockGovernor } from "./utils/MockGovernor.sol";
-
 import { Test } from "forge-std/Test.sol";
+
+import { MockProposalTypesConfigurator } from "./utils/MockProposalTypesConfigurator.sol";
 
 /// @title ProposalValidatorForTest
 /// @notice Test version of ProposalValidator that exposes internal functions
@@ -46,133 +47,18 @@ contract ProposalValidatorForTest is ProposalValidator {
     }
 }
 
-/// @title MockProposalTypesConfigurator
-/// @notice Simple mock for ProposalTypesConfigurator
-contract MockProposalTypesConfigurator is IProposalTypesConfigurator {
-    mapping(uint8 => IProposalTypesConfigurator.ProposalType) private _proposalTypes;
-
-    constructor(address _approvalVotingModule, address _optimisticVotingModule) {
-        // Setup approval voting module (ID: 1)
-        _proposalTypes[1] = IProposalTypesConfigurator.ProposalType({
-            quorum: 100,
-            approvalThreshold: 100,
-            name: "Approval Voting",
-            description: "Approval Voting Module",
-            module: _approvalVotingModule
-        });
-
-        // Setup optimistic voting module (ID: 2)
-        _proposalTypes[2] = IProposalTypesConfigurator.ProposalType({
-            quorum: 100,
-            approvalThreshold: 100,
-            name: "Optimistic Voting",
-            description: "Optimistic Voting Module",
-            module: _optimisticVotingModule
-        });
-    }
-
-    function initialize(address, IProposalTypesConfigurator.ProposalType[] calldata) external {
-        // Mock implementation - do nothing
-    }
-
-    function proposalTypes(uint8 _id) external view returns (IProposalTypesConfigurator.ProposalType memory) {
-        return _proposalTypes[_id];
-    }
-
-    function setProposalType(
-        uint8 proposalTypeId,
-        uint16 quorum,
-        uint16 approvalThreshold,
-        string memory name,
-        string memory description,
-        address module
-    )
-        external
-    {
-        _proposalTypes[proposalTypeId] = IProposalTypesConfigurator.ProposalType({
-            quorum: quorum,
-            approvalThreshold: approvalThreshold,
-            name: name,
-            description: description,
-            module: module
-        });
-    }
-}
-
-/// @title MockSchemaRegistry
-/// @notice Simple mock for schema registry that just returns incrementing UIDs
-contract MockSchemaRegistry is ISchemaRegistry {
-    uint256 private _uidCounter = 1;
-    mapping(bytes32 => bool) public schemas;
-
-    function register(string calldata, ISchemaResolver, bool) external returns (bytes32) {
-        bytes32 uid = bytes32(_uidCounter++);
-        schemas[uid] = true;
-        return uid;
-    }
-
-    function getSchema(bytes32) external pure returns (SchemaRecord memory) {
-        return SchemaRecord({ uid: bytes32(0), resolver: ISchemaResolver(address(0)), revocable: false, schema: "" });
-    }
-}
-
-/// @title MockEAS
-/// @notice Simple mock for EAS that stores attestations - only implements needed methods
-contract MockEAS {
-    uint256 private _uidCounter = 1;
-    mapping(bytes32 => Attestation) public attestations;
-
-    function getSchemaRegistry() external pure returns (ISchemaRegistry) {
-        return ISchemaRegistry(address(0));
-    }
-
-    function attest(AttestationRequest calldata request) external payable returns (bytes32) {
-        bytes32 uid = bytes32(_uidCounter++);
-
-        attestations[uid] = Attestation({
-            uid: uid,
-            schema: request.schema,
-            time: uint64(block.timestamp),
-            expirationTime: request.data.expirationTime,
-            revocationTime: 0,
-            refUID: request.data.refUID,
-            recipient: request.data.recipient,
-            attester: msg.sender,
-            revocable: request.data.revocable,
-            data: request.data.data
-        });
-
-        return uid;
-    }
-
-    function revoke(RevocationRequest calldata request) external payable {
-        bytes32 uid = request.data.uid;
-        require(attestations[uid].attester == msg.sender, "Only attester can revoke");
-        attestations[uid].revocationTime = uint64(block.timestamp);
-    }
-
-    function getAttestation(bytes32 uid) external view returns (Attestation memory) {
-        return attestations[uid];
-    }
-
-    function isAttestationValid(bytes32 uid) external view returns (bool) {
-        return attestations[uid].uid != bytes32(0) && attestations[uid].revocationTime == 0;
-    }
-}
-
 contract Setup is Test {
     address public owner;
     address public user;
     address public topDelegate_A;
     address public topDelegate_B;
     address public approvedProposer;
-    address public approvalVotingModule;
-    address public optimisticVotingModule;
+    address public votingModule;
 
     IOptimismGovernor public governor;
     IProposalTypesConfigurator public proposalTypesConfigurator;
-    bytes32 public APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID;
-    bytes32 public TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
+    bytes32 public APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = bytes32(hex"1234");
+    bytes32 public TOP_DELEGATES_ATTESTATION_SCHEMA_UID = bytes32(hex"4567");
 
     uint256 public constant START_TIMESTAMP = 1000000;
     uint256 public constant DURATION = 1 days;
@@ -186,8 +72,7 @@ contract Setup is Test {
     ProposalValidatorForTest public impl;
 
     // Mock contracts
-    MockSchemaRegistry public mockSchemaRegistry;
-    MockEAS public mockEAS;
+    MockEAS public mockEAS = MockEAS(Predeploys.EAS);
 
     // Ghost variables to track proposal state
     uint256 public ghost_submittedProposalCount;
@@ -212,27 +97,7 @@ contract Setup is Test {
         topDelegate_A = makeAddr("topDelegate_A");
         topDelegate_B = makeAddr("topDelegate_B");
         approvedProposer = makeAddr("approvedProposer");
-        approvalVotingModule = makeAddr("approvalVotingModule");
-        optimisticVotingModule = makeAddr("optimisticVotingModule");
-
-        // Deploy mock contracts
-        mockSchemaRegistry = new MockSchemaRegistry();
-        mockEAS = new MockEAS();
-
-        // Etch mocks at predeploy addresses
-        vm.etch(Predeploys.SCHEMA_REGISTRY, address(mockSchemaRegistry).code);
-        vm.etch(Predeploys.EAS, address(mockEAS).code);
-
-        // Create schemas using mocks
-        vm.prank(owner);
-        APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), true
-        );
-
-        vm.prank(owner);
-        TOP_DELEGATES_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "string top100,bool includePartialDelegation,string date", ISchemaResolver(address(0)), true
-        );
+        votingModule = makeAddr("votingModule");
 
         ProposalValidator.ProposalType[] memory proposalTypes = new ProposalValidator.ProposalType[](5);
         proposalTypes[0] = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -271,15 +136,14 @@ contract Setup is Test {
         });
 
         governor = IOptimismGovernor(address(new MockGovernor()));
-        proposalTypesConfigurator = IProposalTypesConfigurator(
-            address(new MockProposalTypesConfigurator(approvalVotingModule, optimisticVotingModule))
-        );
 
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
         impl = new ProposalValidatorForTest(
             APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor
         );
+
+        proposalTypesConfigurator = IProposalTypesConfigurator(address(new MockProposalTypesConfigurator(votingModule)));
 
         vm.prank(owner);
         IProxy(payable(address(validator))).upgradeToAndCall(
@@ -304,47 +168,47 @@ contract Setup is Test {
         vm.warp(START_TIMESTAMP + 1);
     }
 
-    /// @notice Helper to create a valid attestation for an approved proposer
-    function _createApprovedProposerAttestation(
-        address _delegate,
-        ProposalValidator.ProposalType _proposalType
-    )
-        internal
-        returns (bytes32)
-    {
-        vm.prank(owner);
-        return IEAS(Predeploys.EAS).attest(
-            AttestationRequest({
-                schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-                data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
-                    revocable: true,
-                    refUID: bytes32(0),
-                    data: abi.encode(_delegate, _proposalType),
-                    value: 0
-                })
-            })
-        );
-    }
+    // /// @notice Helper to create a valid attestation for an approved proposer
+    // function _createApprovedProposerAttestation(
+    //     address _delegate,
+    //     ProposalValidator.ProposalType _proposalType
+    // )
+    //     internal
+    //     returns (bytes32)
+    // {
+    //     vm.prank(owner);
+    //     return IEAS(Predeploys.EAS).attest(
+    //         AttestationRequest({
+    //             schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+    //             data: AttestationRequestData({
+    //                 recipient: address(0),
+    //                 expirationTime: 0,
+    //                 revocable: true,
+    //                 refUID: bytes32(0),
+    //                 data: abi.encode(_delegate, _proposalType),
+    //                 value: 0
+    //             })
+    //         })
+    //     );
+    // }
 
-    /// @notice Helper to create a valid attestation for a top delegate
-    function _createTopDelegateAttestation(address _delegate) internal returns (bytes32) {
-        vm.prank(owner);
-        return IEAS(Predeploys.EAS).attest(
-            AttestationRequest({
-                schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
-                data: AttestationRequestData({
-                    recipient: _delegate,
-                    expirationTime: 0,
-                    revocable: true,
-                    refUID: bytes32(0),
-                    data: abi.encode("top100", false, "2000-01-01"),
-                    value: 0
-                })
-            })
-        );
-    }
+    // /// @notice Helper to create a valid attestation for a top delegate
+    // function _createTopDelegateAttestation(address _delegate) internal returns (bytes32) {
+    //     vm.prank(owner);
+    //     return IEAS(Predeploys.EAS).attest(
+    //         AttestationRequest({
+    //             schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
+    //             data: AttestationRequestData({
+    //                 recipient: _delegate,
+    //                 expirationTime: 0,
+    //                 revocable: true,
+    //                 refUID: bytes32(0),
+    //                 data: abi.encode("top100", false, "2000-01-01"),
+    //                 value: 0
+    //             })
+    //         })
+    //     );
+    // }
 
     /// @notice Helper to update ghost variables when a proposal is submitted
     function _updateGhostOnSubmit(bytes32 _proposalHash, ProposalValidator.ProposalType _proposalType) internal {
