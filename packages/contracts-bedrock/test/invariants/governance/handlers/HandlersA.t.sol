@@ -24,14 +24,13 @@ contract HandlersA is Setup {
     mapping(bytes32 => uint256[]) public proposalOptionAmounts;
     mapping(bytes32 => uint248) public proposalAgainstThresholds;
 
+    address actor;
+
     modifier useActor(uint256 actorIndexSeed) {
-        address actor = _getActor(actorIndexSeed);
-        vm.startPrank(actor);
+        actor = _getActor(actorIndexSeed);
         _;
-        vm.stopPrank();
     }
 
-    // Handler for Protocol/Governor upgrade proposals
     function handler_submitProtocolOrGovernorUpgradeProposal(
         uint256 actorSeed,
         uint248 againstThreshold,
@@ -44,7 +43,6 @@ contract HandlersA is Setup {
         againstThreshold = uint248(bound(againstThreshold, 1, 10000));
         votingCycle = bound(votingCycle, 1, 10);
 
-        address actor = _getActor(actorSeed);
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
 
         string memory description = string(abi.encodePacked("Protocol Upgrade #", vm.toString(descriptionSeed)));
@@ -72,7 +70,7 @@ contract HandlersA is Setup {
         bytes memory votingModuleData = abi.encode(settings);
         bytes32 proposalHash = _calculateProposalHash(votingModule, votingModuleData, description);
 
-        vm.startPrank(actor);
+        vm.prank(actor);
         try validator.submitUpgradeProposal(
             againstThreshold, description, bytes32(hex"1234"), proposalType, votingCycle
         ) returns (bytes32 returnedHash) {
@@ -82,14 +80,20 @@ contract HandlersA is Setup {
             proposalVotingModuleData[returnedHash] = votingModuleData;
             proposalDescriptions[returnedHash] = description;
             proposalAgainstThresholds[returnedHash] = againstThreshold;
-            _updateGhostOnSubmit(returnedHash, proposalType);
+            _updateGhostOnSubmitWithProposer(returnedHash, proposalType, actor);
             _updateGhostProposalVotingCycle(returnedHash, votingCycle);
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            // Expected reverts for upgrade proposals
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidUpgradeProposalType()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidAttestation()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidAgainstThreshold()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadySubmitted()"))
+            );
         }
     }
 
-    // Handler for Maintenance upgrade proposals
     function handler_submitMaintenanceUpgradeProposal(
         uint256 actorSeed,
         uint248 againstThreshold,
@@ -103,7 +107,6 @@ contract HandlersA is Setup {
         againstThreshold = uint248(bound(againstThreshold, 1, 10000));
         votingCycle = bound(votingCycle, 1, 10);
 
-        address actor = _getActor(actorSeed);
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.MaintenanceUpgrade;
 
         string memory description = string(abi.encodePacked("Maintenance Upgrade #", vm.toString(descriptionSeed)));
@@ -131,7 +134,7 @@ contract HandlersA is Setup {
         bytes memory votingModuleData = abi.encode(settings);
         bytes32 proposalHash = _calculateProposalHash(votingModule, votingModuleData, description);
 
-        vm.startPrank(actor);
+        vm.prank(actor);
         try validator.submitUpgradeProposal(
             againstThreshold, description, bytes32(hex"1234"), proposalType, votingCycle
         ) returns (bytes32 returnedHash) {
@@ -143,15 +146,21 @@ contract HandlersA is Setup {
                 proposalVotingModuleData[returnedHash] = votingModuleData;
                 proposalDescriptions[returnedHash] = description;
                 proposalAgainstThresholds[returnedHash] = againstThreshold;
-                _updateGhostOnSubmit(returnedHash, proposalType);
+                _updateGhostOnSubmitWithProposer(returnedHash, proposalType, actor);
                 _updateGhostProposalVotingCycle(returnedHash, votingCycle);
             }
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            // Expected reverts for maintenance proposals
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidUpgradeProposalType()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidAttestation()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidAgainstThreshold()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadySubmitted()"))
+            );
         }
     }
 
-    // Handler for Council Member Elections proposals
     function handler_submitCouncilMemberElectionsProposal(
         uint256 actorSeed,
         uint128 criteriaValue,
@@ -167,7 +176,6 @@ contract HandlersA is Setup {
             description: string(abi.encodePacked("Council Elections #", vm.toString(descriptionSeed))),
             criteriaValue: uint128(bound(criteriaValue, 1, bound(optionsSeed, 2, 5) - 1)),
             votingCycle: bound(votingCycle, 1, 10),
-            actor: _getActor(actorSeed),
             proposalType: ProposalValidator.ProposalType.CouncilMemberElections
         });
 
@@ -183,7 +191,7 @@ contract HandlersA is Setup {
                 recipient: address(0),
                 attester: validator.owner(),
                 revocable: false,
-                data: abi.encode(params.actor, uint8(params.proposalType))
+                data: abi.encode(actor, uint8(params.proposalType))
             })
         );
 
@@ -192,7 +200,6 @@ contract HandlersA is Setup {
         _submitElectionProposal(params, optionDescriptions);
     }
 
-    // Handler for GovernanceFund proposals
     function handler_submitGovernanceFundProposal(
         uint256 actorSeed,
         uint128 criteriaValue,
@@ -208,7 +215,6 @@ contract HandlersA is Setup {
             description: string(abi.encodePacked("Governance Fund #", vm.toString(descriptionSeed))),
             criteriaValue: uint128(bound(criteriaValue, 1, 1000 ether)),
             votingCycle: bound(votingCycle, 1, 10),
-            actor: _getActor(actorSeed),
             proposalType: ProposalValidator.ProposalType.GovernanceFund
         });
 
@@ -224,14 +230,13 @@ contract HandlersA is Setup {
                 recipient: address(0),
                 attester: validator.owner(),
                 revocable: false,
-                data: abi.encode(params.actor, uint8(params.proposalType))
+                data: abi.encode(actor, uint8(params.proposalType))
             })
         );
 
         _submitFundingProposal(params, optionsSeed, "recipient");
     }
 
-    // Handler for CouncilBudget proposals
     function handler_submitCouncilBudgetProposal(
         uint256 actorSeed,
         uint128 criteriaValue,
@@ -247,7 +252,6 @@ contract HandlersA is Setup {
             description: string(abi.encodePacked("Council Budget #", vm.toString(descriptionSeed))),
             criteriaValue: uint128(bound(criteriaValue, 1, 1000 ether)),
             votingCycle: bound(votingCycle, 1, 10),
-            actor: _getActor(actorSeed),
             proposalType: ProposalValidator.ProposalType.CouncilBudget
         });
 
@@ -263,32 +267,34 @@ contract HandlersA is Setup {
                 recipient: address(0),
                 attester: validator.owner(),
                 revocable: false,
-                data: abi.encode(params.actor, uint8(params.proposalType))
+                data: abi.encode(actor, uint8(params.proposalType))
             })
         );
 
         _submitFundingProposal(params, optionsSeed, "budgetRecipient");
     }
 
-    // Handler for approving proposals
-
     function handler_approveProposal(uint256 actorSeed, uint256 proposalIndexSeed) external useActor(actorSeed) {
         if (submittedProposals.length == 0) {
             return;
         }
 
-        address actor = _getActor(actorSeed);
         uint256 proposalIndex = bound(proposalIndexSeed, 0, submittedProposals.length - 1);
         bytes32 proposalHash = submittedProposals[proposalIndex];
 
-        // Ensure top delegate attestation exists
-        // _ensureTopDelegateAttestation(actor);
+        _ensureTopDelegateAttestation(actor);
 
-        try validator.approveProposal(proposalHash, bytes32(hex"1234")) {
+        vm.prank(actor);
+        try validator.approveProposal(proposalHash, bytes32(hex"4567")) {
             // Update ghost variables
             _updateGhostOnApprove(proposalHash);
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_ProposalDoesNotExist()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadyApproved()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidAttestation()"))
+            );
         }
     }
 
@@ -302,7 +308,7 @@ contract HandlersA is Setup {
     {
         if (submittedProposals.length == 0) return;
 
-        address actor = _getActor(actorSeed);
+        // address actor = _getActor(actorSeed);
         uint256 proposalIndex = bound(proposalIndexSeed, 0, submittedProposals.length - 1);
         bytes32 proposalHash = submittedProposals[proposalIndex];
 
@@ -319,15 +325,21 @@ contract HandlersA is Setup {
         string memory description = proposalDescriptions[proposalHash];
         uint248 againstThreshold = proposalAgainstThresholds[proposalHash];
 
+        vm.prank(actor);
         try validator.moveToVoteProtocolOrGovernorUpgradeProposal(againstThreshold, description) {
-            // Update ghost variables
             _updateGhostOnMoveToVote(proposalHash);
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidProposal()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidProposer()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InsufficientApprovals()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadyMovedToVote()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalIdMismatch()"))
+            );
         }
     }
 
-    // Handler for moving Council Elections proposals to vote
     function handler_moveToVoteCouncilMemberElectionsProposal(
         uint256 actorSeed,
         uint256 proposalIndexSeed
@@ -337,7 +349,6 @@ contract HandlersA is Setup {
     {
         if (submittedProposals.length == 0) return;
 
-        address actor = _getActor(actorSeed);
         uint256 proposalIndex = bound(proposalIndexSeed, 0, submittedProposals.length - 1);
         bytes32 proposalHash = submittedProposals[proposalIndex];
 
@@ -355,15 +366,22 @@ contract HandlersA is Setup {
         uint128 criteriaValue = uint128(proposalCriteriaValues[proposalHash]);
         string[] memory optionDescriptions = proposalOptionDescriptions[proposalHash];
 
+        vm.prank(actor);
         try validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, optionDescriptions, description) {
-            // Update ghost variables
             _updateGhostOnMoveToVote(proposalHash);
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidProposal()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidProposer()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InsufficientApprovals()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadyMovedToVote()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidVotingCycle()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalIdMismatch()"))
+            );
         }
     }
 
-    // Handler for moving funding proposals to vote
     function handler_moveToVoteFundingProposal(
         uint256 actorSeed,
         uint256 proposalIndexSeed
@@ -375,11 +393,9 @@ contract HandlersA is Setup {
             return;
         }
 
-        address actor = _getActor(actorSeed);
         uint256 proposalIndex = bound(proposalIndexSeed, 0, submittedProposals.length - 1);
         bytes32 proposalHash = submittedProposals[proposalIndex];
 
-        // Only handle funding proposals
         ProposalValidator.ProposalType proposalType = proposalTypes[proposalHash];
         if (
             proposalType != ProposalValidator.ProposalType.GovernanceFund
@@ -388,7 +404,6 @@ contract HandlersA is Setup {
             return;
         }
 
-        // Only original proposer can move to vote
         if (proposalProposers[proposalHash] != actor) {
             return;
         }
@@ -399,6 +414,7 @@ contract HandlersA is Setup {
         address[] memory recipients = proposalOptionRecipients[proposalHash];
         uint256[] memory amounts = proposalOptionAmounts[proposalHash];
 
+        vm.prank(actor);
         try validator.moveToVoteFundingProposal(
             criteriaValue, optionDescriptions, recipients, amounts, description, proposalType
         ) {
@@ -411,8 +427,17 @@ contract HandlersA is Setup {
             // Update ghost variables
             _updateGhostOnMoveToVote(proposalHash);
             _updateGhostFundingMovedToVote(proposalHash, totalAmount, ghost_proposalVotingCycle[proposalHash]);
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidFundingProposalType()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidProposal()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InsufficientApprovals()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadyMovedToVote()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidVotingCycle()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ExceedsDistributionThreshold()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalIdMismatch()"))
+            );
         }
     }
 
@@ -431,21 +456,27 @@ contract HandlersA is Setup {
         bytes memory votingModuleData = abi.encode(options, settings);
         bytes32 proposalHash = _calculateProposalHash(votingModule, votingModuleData, params.description);
 
-        vm.startPrank(params.actor);
+        vm.prank(actor);
         try validator.submitCouncilMemberElectionsProposal(
             params.criteriaValue, optionDescriptions, params.description, bytes32(hex"1234"), params.votingCycle
         ) returns (bytes32 returnedHash) {
             submittedProposals.push(returnedHash);
             proposalTypes[returnedHash] = params.proposalType;
-            proposalProposers[returnedHash] = params.actor;
+            proposalProposers[returnedHash] = actor;
             proposalVotingModuleData[returnedHash] = votingModuleData;
             proposalDescriptions[returnedHash] = params.description;
             proposalCriteriaValues[returnedHash] = params.criteriaValue;
             proposalOptionDescriptions[returnedHash] = optionDescriptions;
-            _updateGhostOnSubmit(returnedHash, params.proposalType);
+            _updateGhostOnSubmitWithProposer(returnedHash, params.proposalType, actor);
             _updateGhostProposalVotingCycle(returnedHash, params.votingCycle);
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidAttestation()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidOptionsLength()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidCriteriaValue()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadySubmitted()"))
+            );
         }
     }
 
@@ -516,7 +547,7 @@ contract HandlersA is Setup {
         ProposalValidator.ProposalType proposalType = params.proposalType;
         uint256 votingCycle = params.votingCycle;
 
-        vm.startPrank(params.actor);
+        vm.prank(actor);
         try validator.submitFundingProposal(
             criteriaValue, optionDescriptions, recipients, amounts, description, proposalType, votingCycle
         ) returns (bytes32 returnedHash) {
@@ -524,8 +555,14 @@ contract HandlersA is Setup {
             _storeFundingProposalFinal(
                 returnedHash, params, optionDescriptions, recipients, amounts, totalAmount, votingModuleData
             );
-        } catch {
-            assert(false);
+        } catch (bytes memory reason) {
+            bytes4 selector = bytes4(reason);
+            assert(
+                selector == bytes4(keccak256("ProposalValidator_InvalidFundingProposalType()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalTypesDataLengthMismatch()"))
+                    || selector == bytes4(keccak256("ProposalValidator_InvalidOptionsLength()"))
+                    || selector == bytes4(keccak256("ProposalValidator_ProposalAlreadySubmitted()"))
+            );
         }
     }
 
@@ -543,14 +580,14 @@ contract HandlersA is Setup {
     {
         submittedProposals.push(returnedHash);
         proposalTypes[returnedHash] = params.proposalType;
-        proposalProposers[returnedHash] = params.actor;
+        proposalProposers[returnedHash] = actor;
         proposalVotingModuleData[returnedHash] = votingModuleData;
         proposalDescriptions[returnedHash] = params.description;
         proposalCriteriaValues[returnedHash] = params.criteriaValue;
         proposalOptionDescriptions[returnedHash] = optionDescriptions;
         proposalOptionRecipients[returnedHash] = recipients;
         proposalOptionAmounts[returnedHash] = amounts;
-        _updateGhostOnSubmit(returnedHash, params.proposalType);
+        _updateGhostOnSubmitWithProposer(returnedHash, params.proposalType, actor);
         _updateGhostTokensRequested(totalAmount);
         _updateGhostProposalVotingCycle(returnedHash, params.votingCycle);
     }
@@ -564,17 +601,14 @@ contract HandlersA is Setup {
         return actors[seed % actors.length];
     }
 
-    // Helper struct to avoid stack too deep
     struct ProposalParams {
         uint256 optionsLength;
         string description;
         uint128 criteriaValue;
         uint256 votingCycle;
-        address actor;
         ProposalValidator.ProposalType proposalType;
     }
 
-    // Helper struct for funding proposals
     struct FundingParams {
         string[] optionDescriptions;
         address[] recipients;
@@ -582,7 +616,6 @@ contract HandlersA is Setup {
         uint256 totalAmount;
     }
 
-    // Helper function to build option descriptions
     function _buildOptionDescriptions(
         uint256 length,
         string memory prefix
@@ -597,7 +630,6 @@ contract HandlersA is Setup {
         }
     }
 
-    // Helper function to build funding arrays
     function _buildFundingArrays(
         uint256 length,
         uint256 seed,
@@ -616,7 +648,6 @@ contract HandlersA is Setup {
         }
     }
 
-    // Helper function to build approval module options for elections
     function _buildElectionOptions(string[] memory descriptions)
         internal
         pure
@@ -635,7 +666,6 @@ contract HandlersA is Setup {
         }
     }
 
-    // Helper function to build approval module options for funding
     function _buildFundingOptions(
         string[] memory descriptions,
         address[] memory recipients,
@@ -665,7 +695,6 @@ contract HandlersA is Setup {
         }
     }
 
-    // Helper function to create proposal hash
     function _calculateProposalHash(
         address module,
         bytes memory votingModuleData,
@@ -676,5 +705,27 @@ contract HandlersA is Setup {
         returns (bytes32)
     {
         return keccak256(abi.encode(address(governor), module, votingModuleData, keccak256(bytes(description))));
+    }
+
+    /// @notice Ensures a top delegate attestation exists for the given address
+    function _ensureTopDelegateAttestation(address _delegate) internal {
+        bytes32 attestationUid = bytes32(hex"4567");
+
+        // Create top delegate attestation if it doesn't exist
+        mockEAS.forTest_setAttestation(
+            attestationUid,
+            Attestation({
+                uid: attestationUid,
+                schema: validator.TOP_DELEGATES_ATTESTATION_SCHEMA_UID(),
+                time: uint64(block.timestamp),
+                expirationTime: 0,
+                revocationTime: 0,
+                refUID: bytes32(0),
+                recipient: _delegate,
+                attester: validator.owner(),
+                revocable: false,
+                data: abi.encode("top100", false, "2000-01-01")
+            })
+        );
     }
 }

@@ -17,8 +17,11 @@ contract PropertiesA is HandlersParent {
     /// limit
     function invariant_funding_cycle_limits() public {
         // Check that for each cycle, the total funding moved to vote doesn't exceed the distribution limit
-        for (uint256 i = 0; i < 10; i++) {
-            assert(ghost_fundingAmountMovedToVotePerCycle[i] <= DISTRIBUTION_LIMIT);
+        for (uint256 i = 1; i < 3; i++) {
+            (,, uint256 votingCycleDistributionLimit, uint256 movedToVoteTokenCount) = validator.votingCycles(i);
+
+            assert(movedToVoteTokenCount <= votingCycleDistributionLimit);
+            assert(ghost_fundingAmountMovedToVotePerCycle[i] == movedToVoteTokenCount);
         }
     }
 
@@ -50,7 +53,7 @@ contract PropertiesA is HandlersParent {
             (address actualProposer, ProposalValidator.ProposalType actualType,,,) =
                 validator.getProposalData(proposalHash);
 
-            // Skip if proposal doesn't exist
+            // Skip if proposal doesn't exist -> this shouldn't happen tho?
             if (actualProposer == address(0)) continue;
 
             // Get original data recorded at submission time
@@ -83,25 +86,30 @@ contract PropertiesA is HandlersParent {
                 // Check different rules based on proposal type
                 if (proposalType == ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade) {
                     // Must have required approvals
-                    assert(approvalCount >= PROPOSAL_REQUIRED_APPROVALS);
+                    (uint256 requiredApprovals,) = validator.proposalTypesData(proposalType);
+                    assert(approvalCount >= requiredApprovals);
                 } else if (proposalType == ProposalValidator.ProposalType.MaintenanceUpgrade) {
                     // MaintenanceUpgrade moves to vote immediately (no approval needed)
-                    // Always valid if it exists
+                    (uint256 requiredApprovals,) = validator.proposalTypesData(proposalType);
+                    assert(approvalCount >= requiredApprovals);
                 } else if (
                     proposalType == ProposalValidator.ProposalType.CouncilMemberElections
                         || proposalType == ProposalValidator.ProposalType.GovernanceFund
                         || proposalType == ProposalValidator.ProposalType.CouncilBudget
                 ) {
                     // Must have required approvals
-                    assert(approvalCount >= PROPOSAL_REQUIRED_APPROVALS);
+                    (uint256 requiredApprovals,) = validator.proposalTypesData(proposalType);
+                    assert(approvalCount >= requiredApprovals);
 
                     // For funding proposals, also check the cycle limits
                     if (
                         proposalType == ProposalValidator.ProposalType.GovernanceFund
                             || proposalType == ProposalValidator.ProposalType.CouncilBudget
                     ) {
-                        uint256 cycle = ghost_proposalVotingCycle[proposalHash];
-                        assert(ghost_fundingAmountMovedToVotePerCycle[cycle] <= DISTRIBUTION_LIMIT);
+                        (,, uint256 votingCycleDistributionLimit, uint256 movedToVoteTokenCount) =
+                            validator.votingCycles(i);
+
+                        assert(movedToVoteTokenCount <= votingCycleDistributionLimit);
                     }
                 }
             }

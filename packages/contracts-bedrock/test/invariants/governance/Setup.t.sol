@@ -91,7 +91,7 @@ contract Setup is Test {
     mapping(bytes32 => ProposalValidator.ProposalType) public ghost_originalProposalType; // proposal => original type
     mapping(bytes32 => uint256) public ghost_proposalVotingCycle; // proposal => voting cycle
 
-    function setUp() public {
+    function setUp() public virtual {
         owner = makeAddr("owner");
         user = makeAddr("user");
         topDelegate_A = makeAddr("topDelegate_A");
@@ -166,58 +166,30 @@ contract Setup is Test {
 
         // Warp to voting cycle start
         vm.warp(START_TIMESTAMP + 1);
+
+        // set a second voting cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(2, START_TIMESTAMP + DURATION * 2, DURATION, DISTRIBUTION_LIMIT);
     }
-
-    // /// @notice Helper to create a valid attestation for an approved proposer
-    // function _createApprovedProposerAttestation(
-    //     address _delegate,
-    //     ProposalValidator.ProposalType _proposalType
-    // )
-    //     internal
-    //     returns (bytes32)
-    // {
-    //     vm.prank(owner);
-    //     return IEAS(Predeploys.EAS).attest(
-    //         AttestationRequest({
-    //             schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-    //             data: AttestationRequestData({
-    //                 recipient: address(0),
-    //                 expirationTime: 0,
-    //                 revocable: true,
-    //                 refUID: bytes32(0),
-    //                 data: abi.encode(_delegate, _proposalType),
-    //                 value: 0
-    //             })
-    //         })
-    //     );
-    // }
-
-    // /// @notice Helper to create a valid attestation for a top delegate
-    // function _createTopDelegateAttestation(address _delegate) internal returns (bytes32) {
-    //     vm.prank(owner);
-    //     return IEAS(Predeploys.EAS).attest(
-    //         AttestationRequest({
-    //             schema: TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
-    //             data: AttestationRequestData({
-    //                 recipient: _delegate,
-    //                 expirationTime: 0,
-    //                 revocable: true,
-    //                 refUID: bytes32(0),
-    //                 data: abi.encode("top100", false, "2000-01-01"),
-    //                 value: 0
-    //             })
-    //         })
-    //     );
-    // }
 
     /// @notice Helper to update ghost variables when a proposal is submitted
     function _updateGhostOnSubmit(bytes32 _proposalHash, ProposalValidator.ProposalType _proposalType) internal {
+        _updateGhostOnSubmitWithProposer(_proposalHash, _proposalType, msg.sender);
+    }
+
+    function _updateGhostOnSubmitWithProposer(
+        bytes32 _proposalHash,
+        ProposalValidator.ProposalType _proposalType,
+        address _proposer
+    )
+        internal
+    {
         ghost_submittedProposalCount++;
         ghost_proposalsByType[_proposalType]++;
         ghost_proposalExists[_proposalHash] = true;
 
         // Track original proposer and type (immutable after submission)
-        ghost_originalProposer[_proposalHash] = msg.sender;
+        ghost_originalProposer[_proposalHash] = _proposer;
         ghost_originalProposalType[_proposalHash] = _proposalType;
     }
 
