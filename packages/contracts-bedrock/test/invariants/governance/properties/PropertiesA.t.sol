@@ -75,8 +75,13 @@ contract PropertiesA is HandlersParent {
             bytes32 proposalHash = submittedProposals[i];
 
             // Get actual proposal data from validator
-            (address proposer, ProposalValidator.ProposalType proposalType, bool movedToVote, uint256 approvalCount,) =
-                validator.getProposalData(proposalHash);
+            (
+                address proposer,
+                ProposalValidator.ProposalType proposalType,
+                bool movedToVote,
+                uint256 approvalCount,
+                uint256 votingCycle
+            ) = validator.getProposalData(proposalHash);
 
             // Skip if proposal doesn't exist
             if (proposer == address(0)) continue;
@@ -107,7 +112,7 @@ contract PropertiesA is HandlersParent {
                             || proposalType == ProposalValidator.ProposalType.CouncilBudget
                     ) {
                         (,, uint256 votingCycleDistributionLimit, uint256 movedToVoteTokenCount) =
-                            validator.votingCycles(i);
+                            validator.votingCycles(votingCycle);
 
                         assert(movedToVoteTokenCount <= votingCycleDistributionLimit);
                     }
