@@ -115,6 +115,7 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant OPTIMISTIC_MODULE_PERCENT_DIVISOR = 10_000;
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
     uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2;
+    uint64 public constant ATT_EXPIRATION_TIME = 10 days;
 
     address owner;
     address user;
@@ -526,7 +527,7 @@ contract ProposalValidator_Init is CommonTest {
         // Create schemas
         vm.prank(owner);
         APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), true
+            "uint8 proposalType,string date", ISchemaResolver(address(0)), true
         );
 
         vm.prank(owner);
@@ -553,11 +554,11 @@ contract ProposalValidator_Init is CommonTest {
             AttestationRequest({
                 schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
+                    recipient: _delegate,
+                    expirationTime: uint64(block.timestamp + ATT_EXPIRATION_TIME),
                     revocable: true,
                     refUID: bytes32(0),
-                    data: abi.encode(_delegate, _proposalType),
+                    data: abi.encode(_proposalType, "2000-01-01"),
                     value: 0
                 })
             })
@@ -915,6 +916,19 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         );
     }
 
+    function testFuzz_submitUpgradeProposal_attestationExpired_reverts(uint8 proposalTypeValue) public {
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        uint248 againstThreshold = 5000;
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        // warp the time to after the attestation expiration time
+        vm.warp(block.timestamp + ATT_EXPIRATION_TIME + 1);
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER);
+    }
+
     function test_submitUpgradeProposal_zeroAgainstThreshold_reverts() public {
         uint248 zeroThreshold = 0;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -1035,11 +1049,11 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
             AttestationRequest({
                 schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
+                    recipient: topDelegate_A,
+                    expirationTime: uint64(block.timestamp + ATT_EXPIRATION_TIME),
                     revocable: false,
                     refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, proposalType),
+                    data: abi.encode(proposalType, "2000-01-01"),
                     value: 0
                 })
             })
@@ -1244,6 +1258,16 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
+    function testFuzz_submitCouncilMemberElectionsProposal_attestationExpired_reverts() public {
+        // warp the time to after the attestation expiration time
+        vm.warp(block.timestamp + ATT_EXPIRATION_TIME + 1);
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
+        );
+    }
+
     function test_submitCouncilMemberElectionsProposal_zeroOptions_reverts() public {
         string[] memory emptyOptions = new string[](0);
 
@@ -1322,11 +1346,11 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
             AttestationRequest({
                 schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
+                    recipient: topDelegate_A,
+                    expirationTime: uint64(block.timestamp + ATT_EXPIRATION_TIME),
                     revocable: false,
                     refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections),
+                    data: abi.encode(ProposalValidator.ProposalType.CouncilMemberElections, "2000-01-01"),
                     value: 0
                 })
             })
