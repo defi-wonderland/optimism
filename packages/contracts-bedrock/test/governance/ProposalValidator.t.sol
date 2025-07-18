@@ -465,6 +465,12 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.PROPOSAL_TYPES_CONFIGURATOR, ()),
+            abi.encode(proposalTypesConfigurator)
+        );
+
+        _mockAndExpect(
             address(proposalTypesConfigurator),
             abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (_votingModuleId)),
             abi.encode(
@@ -487,6 +493,12 @@ contract ProposalValidator_Init is CommonTest {
         } else if (_votingModuleId == OPTIMISTIC_VOTING_MODULE_ID) {
             moduleAddress = optimisticVotingModule;
         }
+
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.PROPOSAL_TYPES_CONFIGURATOR, ()),
+            abi.encode(proposalTypesConfigurator)
+        );
 
         _mockAndExpect(
             address(proposalTypesConfigurator),
@@ -525,7 +537,6 @@ contract ProposalValidator_Init is CommonTest {
                 impl.initialize,
                 (
                     owner,
-                    proposalTypesConfigurator,
                     CYCLE_NUMBER,
                     START_TIMESTAMP,
                     DURATION,
@@ -643,7 +654,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                 impl.initialize,
                 (
                     owner,
-                    proposalTypesConfigurator,
                     CYCLE_NUMBER,
                     START_TIMESTAMP,
                     DURATION,
@@ -715,7 +725,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                 impl.initialize,
                 (
                     owner,
-                    proposalTypesConfigurator,
                     CYCLE_NUMBER,
                     START_TIMESTAMP,
                     DURATION,
@@ -1111,6 +1120,44 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
+    }
+
+    function test_submitUpgradeProposal_proposalIdMismatch_reverts(uint256 proposalId) public {
+        uint248 againstThreshold = 5000;
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.MaintenanceUpgrade;
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructOptimisticVotingModuleData(againstThreshold);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            optimisticVotingModule, votingModuleData, keccak256(bytes(proposalDescription))
+        );
+
+        vm.assume(proposalId != uint256(expectedHash)); // Ensure proposalId is different from expectedHash
+
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
+
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
+        );
+
+        // Mock the proposeWithModule call to return a different proposalId
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(proposalId)
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalIdMismatch.selector);
         vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(
             againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
