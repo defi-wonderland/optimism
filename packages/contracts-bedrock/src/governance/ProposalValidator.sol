@@ -335,9 +335,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(optimisticSettings);
 
         // Get the optimistic module address from configurator
-        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(
-            proposalTypesData[_proposalType].proposalVotingModule
-        );
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
+            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
+        ).proposalTypes(proposalTypesData[_proposalType].proposalVotingModule);
         address votingModule = proposalTypeConfig.module;
 
         // Validate voting module exists
@@ -434,9 +434,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
         // Get the module address from the configurator
-        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(
-            proposalTypesData[ProposalType.CouncilMemberElections].proposalVotingModule
-        );
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
+            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
+        ).proposalTypes(proposalTypesData[ProposalType.CouncilMemberElections].proposalVotingModule);
         address votingModule = proposalTypeConfig.module;
 
         // Validate voting module exists
@@ -527,9 +527,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
         // Get the module address from the configurator
-        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(
-            proposalTypesData[_proposalType].proposalVotingModule
-        );
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
+            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
+        ).proposalTypes(proposalTypesData[_proposalType].proposalVotingModule);
         address votingModule = proposalTypeConfig.module;
 
         // Validate voting module exists
