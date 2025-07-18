@@ -358,11 +358,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Store proposal metadata
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, _proposalType);
+        emit ProposalSubmitted(proposalHash_, _msgSender(), _proposalDescription, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
 
         // MaintenanceUpgrade proposals move directly to voting (atomic operation)
@@ -378,7 +378,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 revert ProposalValidator_ProposalIdMismatch();
             }
 
-            emit ProposalMovedToVote(proposalHash_, msg.sender);
+            emit ProposalMovedToVote(proposalHash_, _msgSender());
         }
     }
 
@@ -451,11 +451,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Store proposal metadata
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = ProposalType.CouncilMemberElections;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, ProposalType.CouncilMemberElections);
+        emit ProposalSubmitted(proposalHash_, _msgSender(), _proposalDescription, ProposalType.CouncilMemberElections);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
@@ -536,11 +536,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Store proposal metadata
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
+        emit ProposalSubmitted(proposalHash_, _msgSender(), _description, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
@@ -891,7 +891,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         if (
             attestation.attester != owner() || attestation.schema != APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID
-                || approvedDelegate != msg.sender || proposalType != uint8(_expectedProposalType)
+                || approvedDelegate != _msgSender() || proposalType != uint8(_expectedProposalType)
         ) {
             revert ProposalValidator_InvalidAttestation();
         }
