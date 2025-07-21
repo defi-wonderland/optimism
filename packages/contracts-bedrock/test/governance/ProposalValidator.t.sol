@@ -1854,7 +1854,7 @@ contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
         // cycle number decreased by 1 and start time CYCLE_DURATION before the current cycle
         vm.prank(owner);
         validator.setVotingCycleData(
-            CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, START_TIMESTAMP, DISTRIBUTION_THRESHOLD
+            CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD
         );
     }
 
