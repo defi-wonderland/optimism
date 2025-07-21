@@ -89,6 +89,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the proposal is invalid trying to move to vote.
     error ProposalValidator_InvalidProposal();
 
+    /// @notice Thrown when the voting module address is invalid (zero address).
+    error ProposalValidator_InvalidVotingModule();
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -220,9 +223,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice The Optimism Governor contract that will handle the voting phase.
     IOptimismGovernor public immutable GOVERNOR;
 
-    /// @notice The proposal types configurator contract.
-    IProposalTypesConfigurator public proposalTypesConfigurator;
-
     /// @notice The max amount of tokens that can be distributed in a proposal.
     uint256 public proposalDistributionThreshold;
 
@@ -261,7 +261,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice Initializes the ProposalValidator contract.
     /// @param _owner The address that will own the contract.
-    /// @param _proposalTypesConfigurator The proposal types configurator contract address.
     /// @param _cycleNumber The number of the current voting cycle.
     /// @param _startingTimestamp The starting timestamp of the voting cycle.
     /// @param _duration The duration of the voting cycle.
@@ -271,7 +270,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalTypesData Array of proposal type data corresponding to the proposal types.
     function initialize(
         address _owner,
-        IProposalTypesConfigurator _proposalTypesConfigurator,
         uint256 _cycleNumber,
         uint256 _startingTimestamp,
         uint256 _duration,
@@ -287,7 +285,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_ProposalTypesDataLengthMismatch();
         }
 
-        proposalTypesConfigurator = _proposalTypesConfigurator;
         _setVotingCycleData(_cycleNumber, _startingTimestamp, _duration, _votingCycleDistributionLimit);
         _setProposalDistributionThreshold(_proposalDistributionThreshold);
 
@@ -341,8 +338,15 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(optimisticSettings);
 
         // Get the optimistic module address from configurator
-        address votingModule =
-            proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
+            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
+        ).proposalTypes(proposalTypesData[_proposalType].proposalVotingModule);
+        address votingModule = proposalTypeConfig.module;
+
+        // Validate voting module exists
+        if (bytes(proposalTypeConfig.name).length == 0) {
+            revert ProposalValidator_InvalidVotingModule();
+        }
 
         // Generate unique proposal hash
         proposalHash_ =
@@ -361,11 +365,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Store proposal metadata
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, _proposalType);
+        emit ProposalSubmitted(proposalHash_, _msgSender(), _proposalDescription, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
 
         // MaintenanceUpgrade proposals move directly to voting (atomic operation)
@@ -381,7 +385,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 revert ProposalValidator_ProposalIdMismatch();
             }
 
-            emit ProposalMovedToVote(proposalHash_, msg.sender);
+            emit ProposalMovedToVote(proposalHash_, _msgSender());
         }
     }
 
@@ -433,9 +437,15 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
         // Get the module address from the configurator
-        address votingModule = proposalTypesConfigurator.proposalTypes(
-            proposalTypesData[ProposalType.CouncilMemberElections].proposalVotingModule
-        ).module;
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
+            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
+        ).proposalTypes(proposalTypesData[ProposalType.CouncilMemberElections].proposalVotingModule);
+        address votingModule = proposalTypeConfig.module;
+
+        // Validate voting module exists
+        if (bytes(proposalTypeConfig.name).length == 0) {
+            revert ProposalValidator_InvalidVotingModule();
+        }
 
         // Generate unique proposal hash
         proposalHash_ =
@@ -454,11 +464,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Store proposal metadata
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = ProposalType.CouncilMemberElections;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, msg.sender, _proposalDescription, ProposalType.CouncilMemberElections);
+        emit ProposalSubmitted(proposalHash_, _msgSender(), _proposalDescription, ProposalType.CouncilMemberElections);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
@@ -520,8 +530,15 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
         // Get the module address from the configurator
-        address votingModule =
-            proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
+            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
+        ).proposalTypes(proposalTypesData[_proposalType].proposalVotingModule);
+        address votingModule = proposalTypeConfig.module;
+
+        // Validate voting module exists
+        if (bytes(proposalTypeConfig.name).length == 0) {
+            revert ProposalValidator_InvalidVotingModule();
+        }
 
         // Generate unique proposal hash
         proposalHash_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
@@ -539,11 +556,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Store proposal metadata
-        proposal.proposer = msg.sender;
+        proposal.proposer = _msgSender();
         proposal.proposalType = _proposalType;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, msg.sender, _description, _proposalType);
+        emit ProposalSubmitted(proposalHash_, _msgSender(), _description, _proposalType);
         emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
     }
 
@@ -562,6 +579,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // check if the caller has already approved the proposal
         if (proposal.delegateApprovals[_delegate]) {
             revert ProposalValidator_ProposalAlreadyApproved();
+        }
+
+        // check if proposal has already moved to vote
+        if (proposal.movedToVote) {
+            revert ProposalValidator_ProposalAlreadyMovedToVote();
         }
 
         // validate the attestation
@@ -601,7 +623,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Get the module address from the configurator
         ProposalType proposalType = ProposalType.ProtocolOrGovernorUpgrade;
-        address votingModule = proposalTypesConfigurator.proposalTypes(
+        address votingModule = IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(
             proposalTypesData[ProposalType.ProtocolOrGovernorUpgrade].proposalVotingModule
         ).module;
 
@@ -676,8 +698,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // Get the module address from the configurator
         ProposalType proposalType = ProposalType.CouncilMemberElections;
-        address votingModule =
-            proposalTypesConfigurator.proposalTypes(proposalTypesData[proposalType].proposalVotingModule).module;
+        address votingModule = IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(
+            proposalTypesData[proposalType].proposalVotingModule
+        ).module;
 
         // Generate unique proposal hash
         proposalHash_ =
@@ -774,8 +797,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         bytes memory proposalVotingModuleData = abi.encode(options, settings);
 
         // Get the module address from the configurator
-        address votingModule =
-            proposalTypesConfigurator.proposalTypes(proposalTypesData[_proposalType].proposalVotingModule).module;
+        address votingModule = IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(
+            proposalTypesData[_proposalType].proposalVotingModule
+        ).module;
 
         // Generate unique proposal hash
         proposalHash_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
@@ -895,7 +919,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_AttestationExpired();
         }
 
-        (uint8 proposalType, ) = abi.decode(attestation.data, (uint8, string));
+        (uint8 proposalType,) = abi.decode(attestation.data, (uint8, string));
 
         if (
             attestation.attester != owner() || attestation.schema != APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID
