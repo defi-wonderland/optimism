@@ -575,7 +575,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         address _delegate = _msgSender();
         ProposalData storage proposal = _proposals[_proposalHash];
         // check if the proposal exists
-        if (proposal.proposer == address(0)) {
+        if (proposal.proposer == address(0) || proposal.votingCycle == 0) {
             revert ProposalValidator_ProposalDoesNotExist();
         }
 
@@ -590,7 +590,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // validate the attestation
-        _validateTopDelegateAttestation(_attestationUid, _msgSender(), _proposalHash);
+        _validateTopDelegateAttestation(_attestationUid, _msgSender(), proposal.votingCycle - 1);
 
         // store the approval
         proposal.delegateApprovals[_delegate] = true;
@@ -614,7 +614,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         view
         returns (bool canApprove_)
     {
-        canApprove_ = _validateTopDelegateAttestation(_attestationUid, _delegate, _proposalHash);
+        // TODO: this function should be fixed in OPT-957
+        ProposalData storage proposal = _proposals[_proposalHash];
+        if (proposal.votingCycle == 0) {
+            return false;
+        }
+
+        canApprove_ = _validateTopDelegateAttestation(_attestationUid, _delegate, proposal.votingCycle - 1);
     }
 
     /// @notice Moves a Protocol or Governor Upgrade proposal to vote by proposing it on the Governor.
@@ -950,17 +956,14 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     function _validateTopDelegateAttestation(
         bytes32 _attestationUid,
         address _delegate,
-        bytes32 _proposalHash
+        uint256 _lastVotingCycle
     )
         internal
         view
         returns (bool canApprove_)
     {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
-        ProposalData storage proposal = _proposals[_proposalHash];
-        // get the previous voting cycle data, proposal.votingCycle should never be 0
-        // since voting cycles already exist before the ProposalValidator is deployed
-        VotingCycleData memory previousVotingCycleData = votingCycles[proposal.votingCycle - 1];
+        VotingCycleData memory previousVotingCycleData = votingCycles[_lastVotingCycle];
         if (previousVotingCycleData.startingTimestamp == 0) {
             revert ProposalValidator_InvalidVotingCycle();
         }

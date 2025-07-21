@@ -2129,7 +2129,7 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
         assertTrue(canApprove);
     }
 
-    function test_canApproveProposal_returnFalse_succeeds(
+    function test_canApproveProposal_returnFalseRevert_succeeds(
         bytes32 _attestationUid,
         address _delegate,
         bytes32 _proposalHash
@@ -2148,6 +2148,15 @@ contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
             canApprove = false;
         }
 
+        assertEq(canApprove, false);
+    }
+
+    function test_canApproveProposal_returnFalseProposalNotFound_reverts(bytes32 _proposalHash) public {
+        validator.setProposalData(
+            _proposalHash, topDelegate_A, ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, false, 0, 0
+        );
+
+        bool canApprove = validator.canApproveProposal(topDelegateAttestation_A, topDelegate_A, _proposalHash);
         assertEq(canApprove, false);
     }
 }
