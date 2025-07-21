@@ -590,6 +590,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // validate the attestation
+        // proposal.votingCycle should never be 0, voting cycles already exist before the ProposalValidator is deployed
+        // and should be set by the OP Foundation
         _validateTopDelegateAttestation(_attestationUid, _msgSender(), proposal.votingCycle - 1);
 
         // store the approval
