@@ -320,6 +320,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidUpgradeProposalType();
         }
 
+        // Validate voting cycle exists and is not in the past
+        VotingCycleData memory votingCycleData = votingCycles[_votingCycle];
+        if (votingCycleData.startingTimestamp == 0 || votingCycleData.startingTimestamp < block.timestamp) {
+            revert ProposalValidator_InvalidVotingCycle();
+        }
+
         // Validate EAS attestation - must be called by owner-approved address
         _validateApprovedProposerAttestation(_attestationUid, _proposalType);
 
@@ -407,6 +413,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         external
         returns (bytes32 proposalHash_)
     {
+        // Validate voting cycle exists and is not in the past
+        VotingCycleData memory votingCycleData = votingCycles[_votingCycle];
+        if (votingCycleData.startingTimestamp == 0 || votingCycleData.startingTimestamp < block.timestamp) {
+            revert ProposalValidator_InvalidVotingCycle();
+        }
+
         // Validate EAS attestation - must be called by owner-approved address
         _validateApprovedProposerAttestation(_attestationUid, ProposalType.CouncilMemberElections);
 
@@ -501,6 +513,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // Only funding proposal types can use this function
         if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
             revert ProposalValidator_InvalidFundingProposalType();
+        }
+
+        // Validate voting cycle exists and is not in the past
+        VotingCycleData memory votingCycleData = votingCycles[_votingCycle];
+        if (votingCycleData.startingTimestamp == 0 || votingCycleData.startingTimestamp < block.timestamp) {
+            revert ProposalValidator_InvalidVotingCycle();
         }
 
         // Validate input arrays have matching lengths
