@@ -92,6 +92,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the voting module address is invalid (zero address).
     error ProposalValidator_InvalidVotingModule();
 
+    /// @notice Thrown when the attestation was created after the last voting cycle.
+    error ProposalValidator_AttestationCreatedAfterLastVotingCycle();
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -587,7 +590,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // validate the attestation
-        _validateTopDelegateAttestation(_attestationUid, _msgSender());
+        _validateTopDelegateAttestation(_attestationUid, _msgSender(), _proposalHash);
 
         // store the approval
         proposal.delegateApprovals[_delegate] = true;
@@ -599,9 +602,19 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Checks if a delegate can approve a proposal.
     /// @dev Helper function for UI integration.
     /// @param _attestationUid The UID of the attestation to check.
+    /// @param _delegate The delegate to check the attestation for.
+    /// @param _proposalHash The hash of the proposal to check the attestation for.
     /// @return canApprove_ True if the delegate can approve the proposal, false otherwise.
-    function canApproveProposal(bytes32 _attestationUid, address _delegate) external view returns (bool canApprove_) {
-        canApprove_ = _validateTopDelegateAttestation(_attestationUid, _delegate);
+    function canApproveProposal(
+        bytes32 _attestationUid,
+        address _delegate,
+        bytes32 _proposalHash
+    )
+        external
+        view
+        returns (bool canApprove_)
+    {
+        canApprove_ = _validateTopDelegateAttestation(_attestationUid, _delegate, _proposalHash);
     }
 
     /// @notice Moves a Protocol or Governor Upgrade proposal to vote by proposing it on the Governor.
@@ -936,13 +949,21 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @return canApprove_ True if the attestation is valid, false otherwise.
     function _validateTopDelegateAttestation(
         bytes32 _attestationUid,
-        address _delegate
+        address _delegate,
+        bytes32 _proposalHash
     )
         internal
         view
         returns (bool canApprove_)
     {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
+        ProposalData storage proposal = _proposals[_proposalHash];
+        // get the previous voting cycle data, proposal.votingCycle should never be 0
+        // since voting cycles already exist before the ProposalValidator is deployed
+        VotingCycleData memory previousVotingCycleData = votingCycles[proposal.votingCycle - 1];
+        if (previousVotingCycleData.startingTimestamp == 0) {
+            revert ProposalValidator_InvalidVotingCycle();
+        }
 
         // Check if attestation exists, equivalent to calling EAS.isAttestationValid(_attestationUid)
         if (attestation.uid == bytes32(0)) {
@@ -957,6 +978,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         // check if the attestation is revoked
         if (attestation.revocationTime != 0) {
             revert ProposalValidator_AttestationRevoked();
+        }
+
+        // since the attestations are updated daily we should only allow attestations
+        // created before the last voting cycle of the proposal
+        // check if attestation was created after the previous voting cycle
+        if (attestation.time > previousVotingCycleData.startingTimestamp + previousVotingCycleData.duration) {
+            revert ProposalValidator_AttestationCreatedAfterLastVotingCycle();
         }
 
         (, bool _includePartialDelegation,) = abi.decode(attestation.data, (string, bool, string));
