@@ -115,6 +115,7 @@ contract ProposalValidator_Init is CommonTest {
     uint256 public constant OPTIMISTIC_MODULE_PERCENT_DIVISOR = 10_000;
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
     uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2;
+    uint64 public constant ATT_EXPIRATION_TIME = 10 days;
 
     address owner;
     address user;
@@ -463,6 +464,12 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.PROPOSAL_TYPES_CONFIGURATOR, ()),
+            abi.encode(proposalTypesConfigurator)
+        );
+
+        _mockAndExpect(
             address(proposalTypesConfigurator),
             abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (_votingModuleId)),
             abi.encode(
@@ -472,6 +479,36 @@ contract ProposalValidator_Init is CommonTest {
                     name: "Test Proposal Type",
                     description: "Test Description",
                     module: moduleAddress
+                })
+            )
+        );
+    }
+
+    /// @notice Helper function to mock proposal types configurator call with changed module
+    function _mockProposalTypesConfiguratorCallWithUninitializedModule(uint8 _votingModuleId) internal {
+        address moduleAddress;
+        if (_votingModuleId == APPROVAL_VOTING_MODULE_ID) {
+            moduleAddress = approvalVotingModule;
+        } else if (_votingModuleId == OPTIMISTIC_VOTING_MODULE_ID) {
+            moduleAddress = optimisticVotingModule;
+        }
+
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.PROPOSAL_TYPES_CONFIGURATOR, ()),
+            abi.encode(proposalTypesConfigurator)
+        );
+
+        _mockAndExpect(
+            address(proposalTypesConfigurator),
+            abi.encodeCall(IProposalTypesConfigurator.proposalTypes, (_votingModuleId)),
+            abi.encode(
+                IProposalTypesConfigurator.ProposalType({
+                    quorum: 0,
+                    approvalThreshold: 0,
+                    name: "",
+                    description: "",
+                    module: address(0)
                 })
             )
         );
@@ -499,7 +536,6 @@ contract ProposalValidator_Init is CommonTest {
                 impl.initialize,
                 (
                     owner,
-                    proposalTypesConfigurator,
                     CYCLE_NUMBER,
                     START_TIMESTAMP,
                     DURATION,
@@ -524,7 +560,7 @@ contract ProposalValidator_Init is CommonTest {
         // Create schemas
         vm.prank(owner);
         APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
-            "address approvedAddress,uint8 proposalType", ISchemaResolver(address(0)), true
+            "uint8 proposalType,string date", ISchemaResolver(address(0)), true
         );
 
         vm.prank(owner);
@@ -551,11 +587,11 @@ contract ProposalValidator_Init is CommonTest {
             AttestationRequest({
                 schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
+                    recipient: _delegate,
+                    expirationTime: uint64(block.timestamp + ATT_EXPIRATION_TIME),
                     revocable: true,
                     refUID: bytes32(0),
-                    data: abi.encode(_delegate, _proposalType),
+                    data: abi.encode(_proposalType, "2000-01-01"),
                     value: 0
                 })
             })
@@ -617,7 +653,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                 impl.initialize,
                 (
                     owner,
-                    proposalTypesConfigurator,
                     CYCLE_NUMBER,
                     START_TIMESTAMP,
                     DURATION,
@@ -685,7 +720,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                 impl.initialize,
                 (
                     owner,
-                    proposalTypesConfigurator,
                     CYCLE_NUMBER,
                     START_TIMESTAMP,
                     DURATION,
@@ -909,6 +943,21 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         );
     }
 
+    function testFuzz_submitUpgradeProposal_attestationExpired_reverts(uint8 proposalTypeValue) public {
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        uint248 againstThreshold = 5000;
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        // warp the time to after the attestation expiration time
+        vm.warp(block.timestamp + ATT_EXPIRATION_TIME + 1);
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
+    }
+
     function test_submitUpgradeProposal_zeroAgainstThreshold_reverts() public {
         uint248 zeroThreshold = 0;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
@@ -931,6 +980,21 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(
             excessiveThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
+    }
+
+    function test_submitUpgradeProposal_invalidVotingModule_reverts() public {
+        uint248 againstThreshold = 5000; // 50%
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        // Mock configurator to return uninitialized module
+        _mockProposalTypesConfiguratorCallWithUninitializedModule(OPTIMISTIC_VOTING_MODULE_ID);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidVotingModule.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
         );
     }
 
@@ -1029,11 +1093,11 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
             AttestationRequest({
                 schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
+                    recipient: topDelegate_A,
+                    expirationTime: uint64(block.timestamp + ATT_EXPIRATION_TIME),
                     revocable: false,
                     refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, proposalType),
+                    data: abi.encode(proposalType, "2000-01-01"),
                     value: 0
                 })
             })
@@ -1066,6 +1130,44 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         );
 
         vm.expectRevert(ProposalValidator.ProposalValidator_AttestationRevoked.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
+        );
+    }
+
+    function test_submitUpgradeProposal_proposalIdMismatch_reverts(uint256 proposalId) public {
+        uint248 againstThreshold = 5000;
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.MaintenanceUpgrade;
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        // Calculate expected proposal hash
+        bytes memory votingModuleData = _constructOptimisticVotingModuleData(againstThreshold);
+        bytes32 expectedHash = validator.hashProposalWithModule(
+            optimisticVotingModule, votingModuleData, keccak256(bytes(proposalDescription))
+        );
+
+        vm.assume(proposalId != uint256(expectedHash)); // Ensure proposalId is different from expectedHash
+
+        _mockProposalTypesConfiguratorCall(OPTIMISTIC_VOTING_MODULE_ID);
+
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(IOptimismGovernor.proposalSnapshot, (uint256(expectedHash))),
+            abi.encode(0)
+        );
+
+        // Mock the proposeWithModule call to return a different proposalId
+        _mockAndExpect(
+            address(governor),
+            abi.encodeCall(
+                IOptimismGovernor.proposeWithModule,
+                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+            ),
+            abi.encode(proposalId)
+        );
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_ProposalIdMismatch.selector);
         vm.prank(topDelegate_A);
         validator.submitUpgradeProposal(
             againstThreshold, proposalDescription, attestationUid, proposalType, CYCLE_NUMBER
@@ -1200,6 +1302,16 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         );
     }
 
+    function testFuzz_submitCouncilMemberElectionsProposal_attestationExpired_reverts() public {
+        // warp the time to after the attestation expiration time
+        vm.warp(block.timestamp + ATT_EXPIRATION_TIME + 1);
+        vm.expectRevert(ProposalValidator.ProposalValidator_AttestationExpired.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
+        );
+    }
+
     function test_submitCouncilMemberElectionsProposal_zeroOptions_reverts() public {
         string[] memory emptyOptions = new string[](0);
 
@@ -1278,11 +1390,11 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
             AttestationRequest({
                 schema: APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
                 data: AttestationRequestData({
-                    recipient: address(0),
-                    expirationTime: 0,
+                    recipient: topDelegate_A,
+                    expirationTime: uint64(block.timestamp + ATT_EXPIRATION_TIME),
                     revocable: false,
                     refUID: bytes32(0),
-                    data: abi.encode(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections),
+                    data: abi.encode(ProposalValidator.ProposalType.CouncilMemberElections, "2000-01-01"),
                     value: 0
                 })
             })
@@ -1328,6 +1440,20 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         vm.prank(topDelegate_A);
         validator.submitCouncilMemberElectionsProposal(
             criteriaValue, optionDescriptions, proposalDescription, revocableAttestationUid, CYCLE_NUMBER
+        );
+    }
+
+    function test_submitCouncilMemberElectionsProposal_invalidVotingModule_reverts() public {
+        attestationUid =
+            _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
+
+        // Mock configurator to return uninitialized module
+        _mockProposalTypesConfiguratorCallWithUninitializedModule(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidVotingModule.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, CYCLE_NUMBER
         );
     }
 }
@@ -1695,6 +1821,21 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
             CYCLE_NUMBER
         );
     }
+
+    function test_submitFundingProposal_invalidVotingModule_reverts() public {
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.GovernanceFund;
+        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
+            _createMinimalFundingArrays(1);
+
+        // Mock configurator to return uninitialized module
+        _mockProposalTypesConfiguratorCallWithUninitializedModule(APPROVAL_VOTING_MODULE_ID);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidVotingModule.selector);
+        vm.prank(user);
+        validator.submitFundingProposal(
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
+        );
+    }
 }
 
 /// @title ProposalValidator_ApproveProposal_Test
@@ -1756,6 +1897,23 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         // Mock the proposal as already approved by the top delegate
         validator.mockApproveProposal(_proposalHash, topDelegate_A);
         vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyApproved.selector);
+        vm.prank(topDelegate_A);
+        validator.approveProposal(_proposalHash, topDelegateAttestation_A);
+    }
+
+    function test_approveProposal_proposalAlreadyMovedToVote_reverts(
+        bytes32 _proposalHash,
+        uint8 proposalTypeValue
+    )
+        public
+    {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        // set proposal data so that the proposal exists and set movedToVote to true
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, true, 0, CYCLE_NUMBER);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_ProposalAlreadyMovedToVote.selector);
         vm.prank(topDelegate_A);
         validator.approveProposal(_proposalHash, topDelegateAttestation_A);
     }
