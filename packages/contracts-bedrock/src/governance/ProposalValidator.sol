@@ -322,8 +322,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Validate voting cycle exists
-        VotingCycleData memory latestVotingCycleData = votingCycles[_latestVotingCycle];
-        if (latestVotingCycleData.startingTimestamp == 0) {
+        if (votingCycles[_latestVotingCycle].startingTimestamp == 0) {
             revert ProposalValidator_InvalidVotingCycle();
         }
 
@@ -335,27 +334,27 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidAgainstThreshold();
         }
 
-        // Create OptimisticModule ProposalSettings with required parameters
-        IOptimisticModule.ProposalSettings memory optimisticSettings = IOptimisticModule.ProposalSettings({
+        // Optimistic proposals are signal-only, no execution targets/calldatas needed
+        bytes memory proposalVotingModuleData = abi.encode(IOptimisticModule.ProposalSettings({
             againstThreshold: _againstThreshold,
             isRelativeToVotableSupply: true // MUST always be true
-         });
-
-        // Optimistic proposals are signal-only, no execution targets/calldatas needed
-        bytes memory proposalVotingModuleData = abi.encode(optimisticSettings);
+         }));
 
         // Retrieve the ID to use in the proposal type configurator
         uint8 idInConfigurator = proposalTypesData[_proposalType].idInConfigurator;
 
-        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig =
-            IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator);
-
         // Get the optimistic module address from configurator
-        address votingModule = proposalTypeConfig.module;
-
-        // Validate voting module exists
-        if (bytes(proposalTypeConfig.name).length == 0) {
-            revert ProposalValidator_InvalidVotingModule();
+        address votingModule;
+        {
+            IProposalTypesConfigurator.ProposalType memory proposalTypeConfig =
+                IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator);
+            
+            // Validate voting module exists
+            if (bytes(proposalTypeConfig.name).length == 0) {
+                revert ProposalValidator_InvalidVotingModule();
+            }
+            
+            votingModule = proposalTypeConfig.module;
         }
 
         // Generate unique proposal hash
