@@ -178,7 +178,7 @@
           },
           {
             "internalType": "uint8",
-            "name": "proposalVotingModule",
+            "name": "idInConfigurator",
             "type": "uint8"
           }
         ],
@@ -345,7 +345,7 @@
       },
       {
         "internalType": "uint8",
-        "name": "proposalVotingModule",
+        "name": "idInConfigurator",
         "type": "uint8"
       }
     ],
@@ -388,7 +388,7 @@
           },
           {
             "internalType": "uint8",
-            "name": "proposalVotingModule",
+            "name": "idInConfigurator",
             "type": "uint8"
           }
         ],
@@ -749,7 +749,7 @@
       {
         "indexed": false,
         "internalType": "uint8",
-        "name": "proposalVotingModule",
+        "name": "idInConfigurator",
         "type": "uint8"
       }
     ],

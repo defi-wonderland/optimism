@@ -261,10 +261,8 @@ contract ProposalValidator_Init is CommonTest {
             idInConfigurator: OPTIMISTIC_VOTING_MODULE_ID
         });
         // MaintenanceUpgrade
-        proposalTypesData[1] = ProposalValidator.ProposalTypeData({
-            requiredApprovals: 0,
-            idInConfigurator: OPTIMISTIC_VOTING_MODULE_ID
-        });
+        proposalTypesData[1] =
+            ProposalValidator.ProposalTypeData({ requiredApprovals: 0, idInConfigurator: OPTIMISTIC_VOTING_MODULE_ID });
         // CouncilMemberElections
         proposalTypesData[2] = ProposalValidator.ProposalTypeData({
             requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
@@ -674,14 +672,10 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
 
         // Create mismatched array with different length
         ProposalValidator.ProposalTypeData[] memory proposalTypesData = new ProposalValidator.ProposalTypeData[](2);
-        proposalTypesData[0] = ProposalValidator.ProposalTypeData({
-            requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            idInConfigurator: 0
-        });
-        proposalTypesData[1] = ProposalValidator.ProposalTypeData({
-            requiredApprovals: PROPOSAL_REQUIRED_APPROVALS,
-            idInConfigurator: 1
-        });
+        proposalTypesData[0] =
+            ProposalValidator.ProposalTypeData({ requiredApprovals: PROPOSAL_REQUIRED_APPROVALS, idInConfigurator: 0 });
+        proposalTypesData[1] =
+            ProposalValidator.ProposalTypeData({ requiredApprovals: PROPOSAL_REQUIRED_APPROVALS, idInConfigurator: 1 });
 
         vm.prank(owner);
         vm.expectRevert("Proxy: delegatecall to new implementation contract failed");
@@ -756,7 +750,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, OPTIMISTIC_VOTING_MODULE_ID)
             ),
             abi.encode(uint256(expectedHash))
         );
@@ -969,7 +963,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
                 address(governor),
                 abi.encodeCall(
                     IOptimismGovernor.proposeWithModule,
-                    (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                    (optimisticVotingModule, votingModuleData, proposalDescription, OPTIMISTIC_VOTING_MODULE_ID)
                 ),
                 abi.encode(uint256(expectedHash))
             );
@@ -1955,7 +1949,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_Test is P
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, OPTIMISTIC_VOTING_MODULE_ID)
             ),
             abi.encode(uint256(expectedHash))
         );
@@ -2048,7 +2042,7 @@ contract ProposalValidator_MoveToVoteProtocolOrGovernorUpgradeProposal_TestFail 
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, OPTIMISTIC_VOTING_MODULE_ID)
             ),
             abi.encode(uint256(_randomHash))
         );
@@ -2087,7 +2081,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_Test is Prop
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (approvalVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (approvalVotingModule, votingModuleData, proposalDescription, APPROVAL_VOTING_MODULE_ID)
             ),
             abi.encode(uint256(expectedHash))
         );
@@ -2194,7 +2188,7 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (approvalVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (approvalVotingModule, votingModuleData, proposalDescription, APPROVAL_VOTING_MODULE_ID)
             ),
             abi.encode(uint256(_randomHash))
         );
@@ -2269,7 +2263,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_Test is ProposalValidator_I
                     approvalVotingModule,
                     governanceFundVotingModuleData,
                     governanceFundProposalDescription,
-                    uint8(governanceFundProposalType)
+                    APPROVAL_VOTING_MODULE_ID
                 )
             ),
             abi.encode(uint256(expectedGovernanceFundHash))
@@ -2309,7 +2303,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_Test is ProposalValidator_I
                     approvalVotingModule,
                     councilBudgetVotingModuleData,
                     councilBudgetProposalDescription,
-                    uint8(councilBudgetProposalType)
+                    APPROVAL_VOTING_MODULE_ID
                 )
             ),
             abi.encode(uint256(expectedCouncilBudgetHash))
@@ -2644,7 +2638,7 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (approvalVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (approvalVotingModule, votingModuleData, proposalDescription, APPROVAL_VOTING_MODULE_ID)
             ),
             abi.encode(uint256(_randomHash))
         );
