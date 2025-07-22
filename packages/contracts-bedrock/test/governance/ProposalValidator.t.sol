@@ -1878,6 +1878,15 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
 /// @title ProposalValidator_ApproveProposal_Test
 /// @notice Happy path tests for approveProposal function
 contract ProposalValidator_ApproveProposal_Test is ProposalValidator_Init {
+    function setUp() public override {
+        super.setUp();
+
+        // create a new voting cycle
+        // cycle number decreased by 1 and start time CYCLE_DURATION before the current cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
+    }
+
     function test_approveProposal_succeeds(bytes32 _proposalHash, uint8 proposalTypeValue) public {
         // Ensure the proposal hash is not 0
         vm.assume(_proposalHash != bytes32(0));
@@ -1955,6 +1964,25 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         validator.approveProposal(_proposalHash, topDelegateAttestation_A);
     }
 
+    function test_approveProposal_invalidVotingCycle_reverts(
+        bytes32 _proposalHash,
+        uint8 proposalTypeValue,
+        uint256 votingCycle
+    )
+        public
+    {
+        vm.assume(votingCycle != CYCLE_NUMBER);
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        // set proposal data so that the proposal exists
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, votingCycle);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
+        vm.prank(topDelegate_A);
+        validator.approveProposal(_proposalHash, topDelegateAttestation_A);
+    }
+
     function test_approveProposal_invalidSchema_reverts(bytes32 _proposalHash, uint8 proposalTypeValue) public {
         // Bound the proposal type to valid enum values (0-4)
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
@@ -1984,6 +2012,9 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 
         // set proposal data so that the proposal exists
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
+        // set the voting cycle data of the previous cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
 
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestationSchema.selector);
         vm.prank(topDelegate_A);
@@ -1996,6 +2027,9 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
         // set proposal data so that the proposal exists
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
+        // set the voting cycle data of the previous cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
 
         // revoke the attestation
         vm.prank(owner);
@@ -2027,6 +2061,9 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 
         // Set mock proposal data of a random proposal in the validator contract
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
+        // set the voting cycle data of the previous cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
 
         // Expect the invalid attestation error to be reverted
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -2046,6 +2083,9 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 
         // Set mock proposal data of a random proposal in the validator contract
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
+        // set the voting cycle data of the previous cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
 
         // create an attestation with partial delegation
         vm.prank(owner);
@@ -2085,6 +2125,9 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 
         // Set mock proposal data of a random proposal in the validator contract
         validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
+        // set the voting cycle data of the previous cycle
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
 
         // Expect the invalid attestation error to be reverted when attestation doesn't exist
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
@@ -2096,25 +2139,48 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
 /// @title ProposalValidator_CanApproveProposal_Test
 /// @notice Tests for the canApproveProposal function
 contract ProposalValidator_CanApproveProposal_Test is ProposalValidator_Init {
-    function test_canApproveProposal_returnTrue_succeeds() public view {
+    function test_canApproveProposal_returnTrue_succeeds(bytes32 _proposalHash, uint8 proposalTypeValue) public {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        // set the voting cycle data of the previous cycle
+        validator.setProposalData(_proposalHash, topDelegate_A, proposalType, false, 0, CYCLE_NUMBER);
+        vm.prank(owner);
+        validator.setVotingCycleData(CYCLE_NUMBER - 1, START_TIMESTAMP - DURATION, DURATION, DISTRIBUTION_THRESHOLD);
+
         // Attestation already created in setUp
-        bool canApprove = validator.canApproveProposal(topDelegateAttestation_A, topDelegate_A);
+        bool canApprove = validator.canApproveProposal(topDelegateAttestation_A, topDelegate_A, _proposalHash);
         assertTrue(canApprove);
     }
 
-    function test_canApproveProposal_returnFalse_succeeds(bytes32 attestationUid, address delegate) public {
+    function test_canApproveProposal_returnFalseRevert_succeeds(
+        bytes32 _attestationUid,
+        address _delegate,
+        bytes32 _proposalHash
+    )
+        public
+    {
         // Ensure the attestation uid is not one of the top delegates
-        vm.assume(attestationUid != topDelegateAttestation_A);
+        vm.assume(_attestationUid != topDelegateAttestation_A);
 
         bool canApprove;
         // Expect the invalid attestation error to be reverted
         vm.expectRevert(IProposalValidator.ProposalValidator_InvalidAttestation.selector);
-        try validator.canApproveProposal(attestationUid, delegate) returns (bool result_) {
+        try validator.canApproveProposal(_attestationUid, _delegate, _proposalHash) returns (bool result_) {
             canApprove = result_;
         } catch {
             canApprove = false;
         }
 
+        assertEq(canApprove, false);
+    }
+
+    function test_canApproveProposal_returnFalseProposalNotFound_reverts(bytes32 _proposalHash) public {
+        validator.setProposalData(
+            _proposalHash, topDelegate_A, ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade, false, 0, 0
+        );
+
+        bool canApprove = validator.canApproveProposal(topDelegateAttestation_A, topDelegate_A, _proposalHash);
         assertEq(canApprove, false);
     }
 }
