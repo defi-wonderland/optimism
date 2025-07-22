@@ -1162,7 +1162,7 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
             address(governor),
             abi.encodeCall(
                 IOptimismGovernor.proposeWithModule,
-                (optimisticVotingModule, votingModuleData, proposalDescription, uint8(proposalType))
+                (optimisticVotingModule, votingModuleData, proposalDescription, OPTIMISTIC_VOTING_MODULE_ID)
             ),
             abi.encode(proposalId)
         );
