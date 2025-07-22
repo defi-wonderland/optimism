@@ -529,7 +529,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_votingCycle",
+        "name": "_latestVotingCycle",
         "type": "uint256"
       }
     ],
