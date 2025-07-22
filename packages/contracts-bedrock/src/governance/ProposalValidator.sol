@@ -335,10 +335,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Optimistic proposals are signal-only, no execution targets/calldatas needed
-        bytes memory proposalVotingModuleData = abi.encode(IOptimisticModule.ProposalSettings({
-            againstThreshold: _againstThreshold,
-            isRelativeToVotableSupply: true // MUST always be true
-         }));
+        bytes memory proposalVotingModuleData = abi.encode(
+            IOptimisticModule.ProposalSettings({
+                againstThreshold: _againstThreshold,
+                isRelativeToVotableSupply: true // MUST always be true
+             })
+        );
 
         // Retrieve the ID to use in the proposal type configurator
         uint8 idInConfigurator = proposalTypesData[_proposalType].idInConfigurator;
@@ -348,12 +350,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         {
             IProposalTypesConfigurator.ProposalType memory proposalTypeConfig =
                 IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator);
-            
+
             // Validate voting module exists
             if (bytes(proposalTypeConfig.name).length == 0) {
                 revert ProposalValidator_InvalidVotingModule();
             }
-            
+
             votingModule = proposalTypeConfig.module;
         }
 
