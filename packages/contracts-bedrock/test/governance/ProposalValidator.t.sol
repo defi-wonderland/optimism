@@ -889,6 +889,7 @@ contract ProposalValidator_SubmitUpgradeProposal_Test is ProposalValidator_Init 
 /// @notice Sad path tests for submitUpgradeProposal function
 contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_Init {
     string proposalDescription;
+    uint248 againstThreshold = 5000; // 50%
 
     function setUp() public override {
         super.setUp();
@@ -904,7 +905,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         proposalTypeValue = uint8(bound(proposalTypeValue, 2, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
-        uint248 againstThreshold = 5000; // 50%
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         vm.expectRevert(ProposalValidator.ProposalValidator_InvalidUpgradeProposalType.selector);
@@ -914,8 +914,25 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         );
     }
 
+    function testFuzz_submitUpgradeProposal_invalidVotingCycle_reverts(
+        uint8 proposalTypeValue,
+        uint256 votingCycle
+    )
+        public
+    {
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
+        vm.assume(votingCycle != CYCLE_NUMBER);
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
+        vm.prank(topDelegate_A);
+        validator.submitUpgradeProposal(
+            againstThreshold, proposalDescription, attestationUid, proposalType, votingCycle
+        );
+    }
+
     function testFuzz_submitUpgradeProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid) public {
-        uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         bytes32 validAttestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
@@ -931,7 +948,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     function testFuzz_submitUpgradeProposal_unattestedProposer_reverts(address fuzzedProposer) public {
         vm.assume(fuzzedProposer != topDelegate_A); // Ensure it's different from attested proposer
 
-        uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
@@ -946,7 +962,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     function testFuzz_submitUpgradeProposal_attestationExpired_reverts(uint8 proposalTypeValue) public {
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
-        uint248 againstThreshold = 5000;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // warp the time to after the attestation expiration time
@@ -984,7 +999,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     }
 
     function test_submitUpgradeProposal_invalidVotingModule_reverts() public {
-        uint248 againstThreshold = 5000; // 50%
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
@@ -1003,7 +1017,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
-        uint248 againstThreshold = 5000;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // Calculate expected proposal hash
@@ -1055,7 +1068,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
-        uint248 againstThreshold = 5000;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
         // Calculate expected proposal hash
@@ -1084,7 +1096,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     function testFuzz_submitUpgradeProposal_attestationNotFromOwner_reverts(address fuzzedAttester) public {
         vm.assume(fuzzedAttester != owner); // Ensure it's not the approved owner
 
-        uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade;
 
         // Create attestation but don't use proper owner as attester
@@ -1115,8 +1126,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 1));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
 
-        uint248 againstThreshold = 5000;
-
         // Create valid attestation first (make it revocable)
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
@@ -1137,7 +1146,6 @@ contract ProposalValidator_SubmitUpgradeProposal_TestFail is ProposalValidator_I
     }
 
     function test_submitUpgradeProposal_proposalIdMismatch_reverts(uint256 proposalId) public {
-        uint248 againstThreshold = 5000;
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType.MaintenanceUpgrade;
         bytes32 attestationUid = _createApprovedProposerAttestation(topDelegate_A, proposalType);
 
@@ -1277,6 +1285,15 @@ contract ProposalValidator_SubmitCouncilMemberElectionsProposal_TestFail is Prop
         proposalDescription = "Test Council Elections";
         attestationUid =
             _createApprovedProposerAttestation(topDelegate_A, ProposalValidator.ProposalType.CouncilMemberElections);
+    }
+
+    function testFuzz_submitCouncilMemberElectionsProposal_invalidVotingCycle_reverts(uint256 votingCycle) public {
+        vm.assume(votingCycle != CYCLE_NUMBER);
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
+        vm.prank(topDelegate_A);
+        validator.submitCouncilMemberElectionsProposal(
+            criteriaValue, optionDescriptions, proposalDescription, attestationUid, votingCycle
+        );
     }
 
     function testFuzz_submitCouncilMemberElectionsProposal_invalidAttestation_reverts(bytes32 fuzzedAttestationUid)
@@ -1572,6 +1589,26 @@ contract ProposalValidator_SubmitFundingProposal_TestFail is ProposalValidator_I
         vm.prank(user);
         validator.submitFundingProposal(
             FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, CYCLE_NUMBER
+        );
+    }
+
+    function testFuzz_submitFundingProposal_invalidVotingCycle_reverts(
+        uint8 proposalTypeValue,
+        uint256 votingCycle
+    )
+        public
+    {
+        proposalTypeValue = uint8(bound(proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+        vm.assume(votingCycle != CYCLE_NUMBER);
+
+        (string[] memory descriptions, address[] memory recipients, uint256[] memory amounts) =
+            _createMinimalFundingArrays(1);
+
+        vm.expectRevert(ProposalValidator.ProposalValidator_InvalidVotingCycle.selector);
+        vm.prank(user);
+        validator.submitFundingProposal(
+            FUNDING_CRITERIA_VALUE, descriptions, recipients, amounts, description, proposalType, votingCycle
         );
     }
 
