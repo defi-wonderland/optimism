@@ -966,13 +966,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @dev Only acceptes attestations that does NOT include partial delegation.
     /// @param _attestationUid The UID of the attestation to validate.
     /// @param _lastVotingCycle The last voting cycle to validate against.
-    function _validateTopDelegateAttestation(
-        bytes32 _attestationUid,
-        uint256 _lastVotingCycle
-    )
-        internal
-        view
-    {
+    function _validateTopDelegateAttestation(bytes32 _attestationUid, uint256 _lastVotingCycle) internal view {
         Attestation memory attestation = IEAS(Predeploys.EAS).getAttestation(_attestationUid);
         VotingCycleData memory previousVotingCycleData = votingCycles[_lastVotingCycle];
         if (previousVotingCycleData.startingTimestamp == 0) {
