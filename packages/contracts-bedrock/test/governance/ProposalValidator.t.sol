@@ -35,13 +35,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 /// @title ProposalValidatorForTest
 /// @notice A test contract that exposes the private _hashProposalWithModule function
 contract ProposalValidatorForTest is ProposalValidator {
-    constructor(
-        bytes32 _approvedProposerAttestationSchemaUid,
-        bytes32 _topDelegatesAttestationSchemaUid,
-        IOptimismGovernor _governor
-    )
-        ProposalValidator(_approvedProposerAttestationSchemaUid, _topDelegatesAttestationSchemaUid, _governor)
-    { }
+    constructor(IOptimismGovernor _governor) ProposalValidator(_governor) { }
 
     function hashProposalWithModule(
         address _module,
@@ -116,6 +110,8 @@ contract ProposalValidator_Init is CommonTest {
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 1;
     uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2;
     uint64 public constant ATT_EXPIRATION_TIME = 10 days;
+    bytes32 public APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID;
+    bytes32 public TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
 
     address owner;
     address user;
@@ -129,8 +125,6 @@ contract ProposalValidator_Init is CommonTest {
     ProposalValidatorForTest public impl;
     IOptimismGovernor public governor;
     IProposalTypesConfigurator public proposalTypesConfigurator;
-    bytes32 public APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID;
-    bytes32 public TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
 
     event ProposalSubmitted(
         uint256 indexed proposalId,
@@ -522,9 +516,7 @@ contract ProposalValidator_Init is CommonTest {
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
-        impl = new ProposalValidatorForTest(
-            APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor
-        );
+        impl = new ProposalValidatorForTest(governor);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
         vm.prank(owner);
@@ -539,6 +531,8 @@ contract ProposalValidator_Init is CommonTest {
                     DURATION,
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
+                    APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                    TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
                     proposalTypes,
                     proposalTypesData
                 )
@@ -632,9 +626,7 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
-        impl = new ProposalValidatorForTest(
-            APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID, governor
-        );
+        impl = new ProposalValidatorForTest(governor);
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
     }
 
@@ -656,6 +648,8 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                     DURATION,
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
+                    APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                    TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
                     proposalTypes,
                     proposalTypesData
                 )
@@ -723,6 +717,8 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                     DURATION,
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
+                    APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
+                    TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
                     proposalTypes,
                     proposalTypesData
                 )
@@ -1954,9 +1950,12 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         public
     {
         vm.assume(votingCycle != CYCLE_NUMBER && votingCycle != 0);
+        vm.assume(votingCycle != CYCLE_NUMBER + 1); // Avoid existing cycle
+
         // Bound the proposal type to valid enum values (0-4)
         proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
         ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
         // set proposal data so that the proposal exists
         validator.setProposalData(_proposalId, topDelegate_A, proposalType, false, 0, votingCycle);
 
