@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
