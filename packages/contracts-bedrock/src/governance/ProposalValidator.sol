@@ -246,7 +246,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Mapping of proposal ID to their corresponding proposal data.
     mapping(uint256 => ProposalData) internal _proposals;
 
-    /// @notice Constructs the ProposalValidator contract.tor
+    /// @notice Constructs the ProposalValidator contract.
     /// @param _governor The Optimism Governor contract address.
     constructor(IOptimismGovernor _governor) ReinitializableBase(1) {
         GOVERNOR = _governor;
