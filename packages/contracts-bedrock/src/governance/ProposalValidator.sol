@@ -80,7 +80,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Thrown when the trying to move a proposal to vote outside of the accepted voting cycle.
     error ProposalValidator_InvalidVotingCycle();
 
-    /// @notice Thrown when the proposalId returned by the Governor is not the same as the proposalHash.
+    /// @notice Thrown when the proposalId returned by the Governor does not match the expected proposalId.
     error ProposalValidator_ProposalIdMismatch();
 
     /// @notice Thrown when the caller is not the proposer.
@@ -100,23 +100,23 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Emitted when a new proposal is submitted.
-    /// @param proposalHash The hash of the submitted proposal.
+    /// @param proposalId The ID of the submitted proposal.
     /// @param proposer The address that submitted the proposal.
     /// @param description Description of the proposal.
     /// @param proposalType Type of the proposal.
     event ProposalSubmitted(
-        bytes32 indexed proposalHash, address indexed proposer, string description, ProposalType proposalType
+        uint256 indexed proposalId, address indexed proposer, string description, ProposalType proposalType
     );
 
     /// @notice Emitted when a delegate approves a proposal.
-    /// @param proposalHash The hash of the approved proposal.
+    /// @param proposalId The ID of the approved proposal.
     /// @param approver The address of the delegate who approved the proposal.
-    event ProposalApproved(bytes32 indexed proposalHash, address indexed approver);
+    event ProposalApproved(uint256 indexed proposalId, address indexed approver);
 
     /// @notice Emitted when a proposal is moved to the voting phase in the governor contract.
-    /// @param proposalHash The hash of the proposal moved to vote.
+    /// @param proposalId The ID of the proposal moved to vote.
     /// @param executor The address that executed the move to vote.
-    event ProposalMovedToVote(bytes32 indexed proposalHash, address indexed executor);
+    event ProposalMovedToVote(uint256 indexed proposalId, address indexed executor);
 
     /// @notice Emitted when the voting cycle data is set.
     /// @param cycleNumber The number of the voting cycle.
@@ -138,9 +138,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 idInConfigurator);
 
     /// @notice Emitted with ProposalSubmitted event.
-    /// @param proposalHash The hash of the submitted proposal.
+    /// @param proposalId The ID of the submitted proposal.
     /// @param encodedVotingModuleData The encoded voting module data.
-    event ProposalVotingModuleData(bytes32 indexed proposalHash, bytes encodedVotingModuleData);
+    event ProposalVotingModuleData(uint256 indexed proposalId, bytes encodedVotingModuleData);
 
     /*//////////////////////////////////////////////////////////////
                                  STRUCTS
@@ -239,10 +239,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Mapping of proposal types to their corresponding data.
     mapping(ProposalType => ProposalTypeData) public proposalTypesData;
 
-    /// @notice Mapping of proposal hash to their corresponding proposal data.
-    mapping(bytes32 => ProposalData) internal _proposals;
+    /// @notice Mapping of proposal ID to their corresponding proposal data.
+    mapping(uint256 => ProposalData) internal _proposals;
 
-    /// @notice Constructs the ProposalValidator contract.
+    /// @notice Constructs the ProposalValidator contract.tor
     /// @param _approvedProposerAttestationSchemaUid The schema UID for attestations in EAS for submitting proposals.
     /// @param _topDelegatesAttestationSchemaUid The schema UID for attestations in EAS for checking if the caller
     ///        is part of the top100 delegates.
@@ -305,7 +305,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalType The type of proposal (ProtocolOrGovernorUpgrade or MaintenanceUpgrade).
     /// @param _latestVotingCycle The latest voting cycle number. Even though the upgrade proposal can be submitted
     /// outside of a voting cycle, we still need the latest voting cycle number to validate top delegates attestations.
-    /// @return proposalHash_ The hash of the submitted proposal.
+    /// @return proposalId_ The ID of the submitted proposal.
     function submitUpgradeProposal(
         uint248 _againstThreshold,
         string memory _proposalDescription,
@@ -314,7 +314,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 _latestVotingCycle
     )
         external
-        returns (bytes32 proposalHash_)
+        returns (uint256 proposalId_)
     {
         // Validate proposal type is valid for upgrade proposals
         if (_proposalType != ProposalType.ProtocolOrGovernorUpgrade && _proposalType != ProposalType.MaintenanceUpgrade)
@@ -360,11 +360,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             votingModule = proposalTypeConfig.module;
         }
 
-        // Generate unique proposal hash
-        proposalHash_ =
+        // Generate unique proposal ID
+        proposalId_ =
             _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
 
-        ProposalData storage proposal = _proposals[proposalHash_];
+        ProposalData storage proposal = _proposals[proposalId_];
 
         // Prevent duplicate proposals
         if (proposal.proposer != address(0)) {
@@ -372,7 +372,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // Check if proposal already exists in OptimismGovernor
-        if (GOVERNOR.proposalSnapshot(uint256(proposalHash_)) != 0) {
+        if (GOVERNOR.proposalSnapshot(proposalId_) != 0) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
@@ -381,8 +381,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.proposalType = _proposalType;
         proposal.votingCycle = _latestVotingCycle;
 
-        emit ProposalSubmitted(proposalHash_, _msgSender(), _proposalDescription, _proposalType);
-        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
+        emit ProposalSubmitted(proposalId_, _msgSender(), _proposalDescription, _proposalType);
+        emit ProposalVotingModuleData(proposalId_, proposalVotingModuleData);
 
         // MaintenanceUpgrade proposals move directly to voting (atomic operation)
         if (_proposalType == ProposalType.MaintenanceUpgrade) {
@@ -392,12 +392,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
                 votingModule, proposalVotingModuleData, _proposalDescription, idInConfigurator
             );
 
-            // Make sure the proposalId is the same as the proposalHash
-            if (proposalId != uint256(proposalHash_)) {
+            // Make sure the proposalId matches
+            if (proposalId != proposalId_) {
                 revert ProposalValidator_ProposalIdMismatch();
             }
 
-            emit ProposalMovedToVote(proposalHash_, _msgSender());
+            emit ProposalMovedToVote(proposalId_, _msgSender());
         }
     }
 
@@ -408,7 +408,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _proposalDescription Description of the proposal.
     /// @param _attestationUid The UID of the attestation for the approved proposer.
     /// @param _votingCycle The voting cycle number the proposal is targetted for.
-    /// @return proposalHash_ The hash of the submitted proposal.
+    /// @return proposalId_ The ID of the submitted proposal.
     function submitCouncilMemberElectionsProposal(
         uint128 _criteriaValue,
         string[] memory _optionDescriptions,
@@ -417,7 +417,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 _votingCycle
     )
         external
-        returns (bytes32 proposalHash_)
+        returns (uint256 proposalId_)
     {
         // Validate voting cycle exists and is not in the past
         VotingCycleData memory votingCycleData = votingCycles[_votingCycle];
@@ -465,19 +465,19 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidVotingModule();
         }
 
-        // Generate unique proposal hash
-        proposalHash_ =
+        // Generate unique proposal ID
+        proposalId_ =
             _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
 
-        ProposalData storage proposal = _proposals[proposalHash_];
+        ProposalData storage proposal = _proposals[proposalId_];
 
-        // Prevent duplicate proposals with same hash
+        // Prevent duplicate proposals with same ID
         if (proposal.proposer != address(0)) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
         // Check if proposal already exists in OptimismGovernor
-        if (GOVERNOR.proposalSnapshot(uint256(proposalHash_)) != 0) {
+        if (GOVERNOR.proposalSnapshot(proposalId_) != 0) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
@@ -486,8 +486,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.proposalType = ProposalType.CouncilMemberElections;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, _msgSender(), _proposalDescription, ProposalType.CouncilMemberElections);
-        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
+        emit ProposalSubmitted(proposalId_, _msgSender(), _proposalDescription, ProposalType.CouncilMemberElections);
+        emit ProposalVotingModuleData(proposalId_, proposalVotingModuleData);
     }
 
     /// @notice Submits a GovernanceFund or CouncilBudget proposal type that transfers OP tokens for approval and
@@ -503,7 +503,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _description Description of the proposal.
     /// @param _proposalType The type of proposal (must be GovernanceFund or CouncilBudget).
     /// @param _votingCycle The voting cycle number the proposal is targetted for.
-    /// @return proposalHash_ The hash of the submitted proposal.
+    /// @return proposalId_ The ID of the submitted proposal.
     function submitFundingProposal(
         uint128 _criteriaValue,
         string[] memory _optionsDescriptions,
@@ -514,7 +514,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 _votingCycle
     )
         external
-        returns (bytes32 proposalHash_)
+        returns (uint256 proposalId_)
     {
         // Only funding proposal types can use this function
         if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
@@ -564,18 +564,18 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidVotingModule();
         }
 
-        // Generate unique proposal hash
-        proposalHash_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
+        // Generate unique proposal ID
+        proposalId_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
 
-        ProposalData storage proposal = _proposals[proposalHash_];
+        ProposalData storage proposal = _proposals[proposalId_];
 
-        // Prevent duplicate proposals with same hash
+        // Prevent duplicate proposals with same ID
         if (proposal.proposer != address(0)) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
         // Check if proposal already exists in OptimismGovernor
-        if (GOVERNOR.proposalSnapshot(uint256(proposalHash_)) != 0) {
+        if (GOVERNOR.proposalSnapshot(proposalId_) != 0) {
             revert ProposalValidator_ProposalAlreadySubmitted();
         }
 
@@ -584,17 +584,17 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.proposalType = _proposalType;
         proposal.votingCycle = _votingCycle;
 
-        emit ProposalSubmitted(proposalHash_, _msgSender(), _description, _proposalType);
-        emit ProposalVotingModuleData(proposalHash_, proposalVotingModuleData);
+        emit ProposalSubmitted(proposalId_, _msgSender(), _description, _proposalType);
+        emit ProposalVotingModuleData(proposalId_, proposalVotingModuleData);
     }
 
     /// @notice Approves a proposal before being moved for voting.
     /// @dev This function should only be called by the top delegates.
-    /// @param _proposalHash The hash of the proposal to approve
+    /// @param _proposalId The ID of the proposal to approve
     /// @param _attestationUid The UID of the attestation for the delegate to approve the proposal
-    function approveProposal(bytes32 _proposalHash, bytes32 _attestationUid) external {
+    function approveProposal(uint256 _proposalId, bytes32 _attestationUid) external {
         address _delegate = _msgSender();
-        ProposalData storage proposal = _proposals[_proposalHash];
+        ProposalData storage proposal = _proposals[_proposalId];
         // check if the proposal exists
         // proposal.votingCycle should never be 0, voting cycles already exist before the ProposalValidator is deployed
         // and should be set by the OP Foundation
@@ -628,19 +628,19 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         proposal.delegateApprovals[_delegate] = true;
         proposal.approvalCount++;
 
-        emit ProposalApproved(_proposalHash, _delegate);
+        emit ProposalApproved(_proposalId, _delegate);
     }
 
     /// @notice Moves a Protocol or Governor Upgrade proposal to vote by proposing it on the Governor.
     /// @param _againstThreshold The threshold for the proposal to be against the total supply.
     /// @param _proposalDescription Description of the proposal.
-    /// @return proposalHash_ The hash of the submitted proposal.
+    /// @return proposalId_ The ID of the submitted proposal.
     function moveToVoteProtocolOrGovernorUpgradeProposal(
         uint248 _againstThreshold,
         string memory _proposalDescription
     )
         external
-        returns (bytes32 proposalHash_)
+        returns (uint256 proposalId_)
     {
         // Configure optimistic proposal settings
         IOptimisticModule.ProposalSettings memory settings =
@@ -656,11 +656,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         address votingModule =
             IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator).module;
 
-        // Generate unique proposal hash
-        proposalHash_ =
+        // Generate unique proposal ID
+        proposalId_ =
             _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
 
-        ProposalData storage proposal = _proposals[proposalHash_];
+        ProposalData storage proposal = _proposals[proposalId_];
 
         // Proposal must exist and be valid
         if (proposal.proposer == address(0) || proposal.proposalType != proposalType) {
@@ -688,26 +688,26 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 proposalId =
             GOVERNOR.proposeWithModule(votingModule, proposalVotingModuleData, _proposalDescription, idInConfigurator);
 
-        // Make sure the proposalId is the same as the proposalHash
-        if (proposalId != uint256(proposalHash_)) {
+        // Make sure the proposalId matches
+        if (proposalId != proposalId_) {
             revert ProposalValidator_ProposalIdMismatch();
         }
 
-        emit ProposalMovedToVote(proposalHash_, _msgSender());
+        emit ProposalMovedToVote(proposalId_, _msgSender());
     }
 
     /// @notice Moves a council member elections proposal to vote by proposing it on the Governor.
     /// @param _criteriaValue The number of top choices that can pass the voting.
     /// @param _optionsDescriptions The strings of the different options that can be voted.
     /// @param _proposalDescription Description of the proposal.
-    /// @return proposalHash_ The hash of the submitted proposal.
+    /// @return proposalId_ The ID of the submitted proposal.
     function moveToVoteCouncilMemberElectionsProposal(
         uint128 _criteriaValue,
         string[] memory _optionsDescriptions,
         string memory _proposalDescription
     )
         external
-        returns (bytes32 proposalHash_)
+        returns (uint256 proposalId_)
     {
         // Configure approval module options
         (IApprovalVotingModule.ProposalOption[] memory options,) =
@@ -733,11 +733,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         address votingModule =
             IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator).module;
 
-        // Generate unique proposal hash
-        proposalHash_ =
+        // Generate unique proposal ID
+        proposalId_ =
             _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_proposalDescription)));
 
-        ProposalData storage proposal = _proposals[proposalHash_];
+        ProposalData storage proposal = _proposals[proposalId_];
 
         // Proposal must exist and be valid
         if (proposal.proposer == address(0) || proposal.proposalType != _proposalType) {
@@ -774,12 +774,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 proposalId =
             GOVERNOR.proposeWithModule(votingModule, proposalVotingModuleData, _proposalDescription, idInConfigurator);
 
-        // Make sure the proposalId is the same as the proposalHash
-        if (proposalId != uint256(proposalHash_)) {
+        // Make sure the proposalId matches
+        if (proposalId != proposalId_) {
             revert ProposalValidator_ProposalIdMismatch();
         }
 
-        emit ProposalMovedToVote(proposalHash_, _msgSender());
+        emit ProposalMovedToVote(proposalId_, _msgSender());
     }
 
     /// @notice Moves a funding proposal to vote by proposing it on the Governor.
@@ -793,7 +793,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param _optionsAmounts The amount to transfer for each option in case the option passes the voting.
     /// @param _description Description of the proposal.
     /// @param _proposalType The type of proposal (must be GovernanceFund or CouncilBudget).
-    /// @return proposalHash_ The hash of the submitted proposal.
+    /// @return proposalId_ The ID of the submitted proposal.
     function moveToVoteFundingProposal(
         uint128 _criteriaValue,
         string[] memory _optionsDescriptions,
@@ -803,7 +803,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         ProposalType _proposalType
     )
         external
-        returns (bytes32 proposalHash_)
+        returns (uint256 proposalId_)
     {
         // Only funding proposal types can use this function
         if (_proposalType != ProposalType.GovernanceFund && _proposalType != ProposalType.CouncilBudget) {
@@ -832,10 +832,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         address votingModule =
             IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator).module;
 
-        // Generate unique proposal hash
-        proposalHash_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
+        // Generate unique proposal ID
+        proposalId_ = _hashProposalWithModule(votingModule, proposalVotingModuleData, keccak256(bytes(_description)));
 
-        ProposalData storage proposal = _proposals[proposalHash_];
+        ProposalData storage proposal = _proposals[proposalId_];
 
         // Proposal must exist
         if (proposal.proposer == address(0) || proposal.proposalType != _proposalType) {
@@ -874,12 +874,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 proposalId =
             GOVERNOR.proposeWithModule(votingModule, proposalVotingModuleData, _description, idInConfigurator);
 
-        // Make sure the proposalId is the same as the proposalHash
-        if (proposalId != uint256(proposalHash_)) {
+        // Make sure the proposalId matches
+        if (proposalId != proposalId_) {
             revert ProposalValidator_ProposalIdMismatch();
         }
 
-        emit ProposalMovedToVote(proposalHash_, _msgSender());
+        emit ProposalMovedToVote(proposalId_, _msgSender());
     }
 
     /// @notice Sets the data of a voting cycle.
@@ -1057,11 +1057,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
     }
 
-    /// @notice Calculate `proposalId` hashing similarly to `hashProposal` but based on `module` and `proposalData`.
+    /// @notice Calculate `proposalId` based on `module`, `proposalData` and `descriptionHash`.
     /// @param _module The address of the voting module to use for this proposal.
     /// @param _proposalData The proposal data to pass to the voting module.
     /// @param _descriptionHash The hash of the proposal description.
-    /// @return The hash of the proposal.
+    /// @return The proposal ID as uint256.
     function _hashProposalWithModule(
         address _module,
         bytes memory _proposalData,
@@ -1069,9 +1069,9 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     )
         internal
         view
-        returns (bytes32)
+        returns (uint256)
     {
-        return keccak256(abi.encode(address(GOVERNOR), _module, _proposalData, _descriptionHash));
+        return uint256(keccak256(abi.encode(address(GOVERNOR), _module, _proposalData, _descriptionHash)));
     }
 
     /// @notice Private function to set the voting cycle data and emit event.

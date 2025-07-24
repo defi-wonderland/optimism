@@ -75,9 +75,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "_proposalHash",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "_proposalId",
+        "type": "uint256"
       },
       {
         "internalType": "bytes32",
@@ -184,9 +184,9 @@
     "name": "moveToVoteCouncilMemberElectionsProposal",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "proposalHash_",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -228,9 +228,9 @@
     "name": "moveToVoteFundingProposal",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "proposalHash_",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -252,9 +252,9 @@
     "name": "moveToVoteProtocolOrGovernorUpgradeProposal",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "proposalHash_",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -419,9 +419,9 @@
     "name": "submitCouncilMemberElectionsProposal",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "proposalHash_",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -468,9 +468,9 @@
     "name": "submitFundingProposal",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "proposalHash_",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -507,9 +507,9 @@
     "name": "submitUpgradeProposal",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "name": "proposalHash_",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId_",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -612,9 +612,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
-        "name": "proposalHash",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
       },
       {
         "indexed": true,
@@ -644,9 +644,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
-        "name": "proposalHash",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
       },
       {
         "indexed": true,
@@ -663,9 +663,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
-        "name": "proposalHash",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
       },
       {
         "indexed": true,
@@ -719,9 +719,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
-        "name": "proposalHash",
-        "type": "bytes32"
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
       },
       {
         "indexed": false,
