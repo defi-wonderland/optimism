@@ -315,7 +315,7 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         // Construct ProposalSettings
-        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory approvalSettings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(descriptions.length),
             criteria: uint8(IApprovalVotingModule.PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,
@@ -323,7 +323,7 @@ contract ProposalValidator_Init is CommonTest {
             budgetAmount: uint128(totalBudget)
         });
 
-        return abi.encode(options, settings);
+        return abi.encode(options, approvalSettings);
     }
 
     /// @notice Helper function to construct voting module data for council elections
@@ -354,7 +354,7 @@ contract ProposalValidator_Init is CommonTest {
         }
 
         // Construct ProposalSettings with TopChoices criteria
-        IApprovalVotingModule.ProposalSettings memory settings = IApprovalVotingModule.ProposalSettings({
+        IApprovalVotingModule.ProposalSettings memory approvalSettings = IApprovalVotingModule.ProposalSettings({
             maxApprovals: uint8(descriptions.length),
             criteria: uint8(IApprovalVotingModule.PassingCriteria.TopChoices),
             budgetToken: address(0),
@@ -362,15 +362,15 @@ contract ProposalValidator_Init is CommonTest {
             budgetAmount: 0
         });
 
-        return abi.encode(options, settings);
+        return abi.encode(options, approvalSettings);
     }
 
     /// @notice Helper function to construct voting module data for upgrade proposals
     function _constructOptimisticVotingModuleData(uint248 againstThreshold) internal pure returns (bytes memory) {
-        IOptimisticModule.ProposalSettings memory settings =
+        IOptimisticModule.ProposalSettings memory optimisticSettings =
             IOptimisticModule.ProposalSettings({ againstThreshold: againstThreshold, isRelativeToVotableSupply: true });
 
-        return abi.encode(settings);
+        return abi.encode(optimisticSettings);
     }
 
     /// @notice Helper function to create a proposal for move to vote
