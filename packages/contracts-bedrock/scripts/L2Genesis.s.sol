@@ -60,6 +60,11 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
+        bool isCustomGasToken;
+        string gasPayingTokenName;
+        string gasPayingTokenSymbol;
+        address liquidityControllerOwner;
+        uint256 nativeAssetLiquidityAmount;
     }
 
     using ForkUtils for Fork;
@@ -235,6 +240,10 @@ contract L2Genesis is Script {
                 setCrossL2Inbox(); // 22
             }
             setL2ToL2CrossDomainMessenger(); // 23
+        }
+        if (_input.isCustomGasToken) {
+            setLiquidityController(_input); // 29
+            setNativeAssetLiquidity(_input); // 30
         }
     }
 
@@ -544,6 +553,55 @@ contract L2Genesis is Script {
     ///         This contract has no initializer.
     function setSuperchainTokenBridge() internal {
         _setImplementationCode(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+    }
+
+    /// @notice This predeploy is following the safety invariant #2.
+    function setLiquidityController(Input memory _input) internal {
+        if (!_input.isCustomGasToken) {
+            return;
+        }
+
+        // Deploy LiquidityController with constructor arguments
+        bytes memory args = abi.encode(_input.gasPayingTokenName, _input.gasPayingTokenSymbol);
+        bytes memory bytecode = abi.encodePacked(vm.getCode("LiquidityController.sol:LiquidityController"), args);
+
+        address controller;
+        assembly {
+            controller := create(0, add(bytecode, 0x20), mload(bytecode))
+        }
+
+        vm.etch(Predeploys.LIQUIDITY_CONTROLLER, controller.code);
+
+        // Storage layout: Ownable._owner (slot 0), minters mapping (slot 1), gasPayingTokenName (slot 2),
+        // gasPayingTokenSymbol (slot 3)
+        bytes32 _ownerSlot = hex"0000000000000000000000000000000000000000000000000000000000000000";
+        bytes32 _nameSlot = hex"0000000000000000000000000000000000000000000000000000000000000002";
+        bytes32 _symbolSlot = hex"0000000000000000000000000000000000000000000000000000000000000003";
+
+        vm.store(
+            Predeploys.LIQUIDITY_CONTROLLER, _ownerSlot, bytes32(uint256(uint160(_input.liquidityControllerOwner)))
+        );
+        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _nameSlot, vm.load(controller, _nameSlot));
+        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _symbolSlot, vm.load(controller, _symbolSlot));
+
+        /// Reset so its not included state dump
+        vm.etch(controller, "");
+        vm.resetNonce(controller);
+    }
+
+    /// @notice This predeploy is following the safety invariant #1.
+    ///         This contract has no initializer.
+    function setNativeAssetLiquidity(Input memory _input) internal {
+        if (!_input.isCustomGasToken) {
+            return;
+        }
+
+        _setImplementationCode(Predeploys.NATIVE_ASSET_LIQUIDITY);
+
+        // Pre-fund the liquidity contract with the specified amount
+        if (_input.nativeAssetLiquidityAmount > 0) {
+            vm.deal(Predeploys.NATIVE_ASSET_LIQUIDITY, _input.nativeAssetLiquidityAmount);
+        }
     }
 
     /// @notice Sets all the preinstalls.

@@ -151,6 +151,8 @@ library Predeploys {
         if (_addr == OPTIMISM_SUPERCHAIN_ERC20_FACTORY) return "OptimismSuperchainERC20Factory";
         if (_addr == OPTIMISM_SUPERCHAIN_ERC20_BEACON) return "OptimismSuperchainERC20Beacon";
         if (_addr == SUPERCHAIN_TOKEN_BRIDGE) return "SuperchainTokenBridge";
+        if (_addr == LIQUIDITY_CONTROLLER) return "LiquidityController";
+        if (_addr == NATIVE_ASSET_LIQUIDITY) return "NativeAssetLiquidity";
         revert("Predeploys: unnamed predeploy");
     }
 

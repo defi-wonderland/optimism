@@ -318,7 +318,12 @@ contract Setup {
                 fork: uint256(l2Fork),
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
-                fundDevAccounts: deploy.cfg().fundDevAccounts()
+                fundDevAccounts: deploy.cfg().fundDevAccounts(),
+                isCustomGasToken: false,
+                gasPayingTokenName: "",
+                gasPayingTokenSymbol: "",
+                liquidityControllerOwner: address(0),
+                nativeAssetLiquidityAmount: 0
             })
         );
 
