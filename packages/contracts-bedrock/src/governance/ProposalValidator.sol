@@ -166,6 +166,10 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @param requiredApprovals The number of approvals each proposal type requires in order to be able to move for
     /// voting.
     /// @param idInConfigurator The proposal type ID used to get the voting module from the configurator.
+    /// @dev Based on the spec document, funding and council member elections proposals are
+    /// configured for the ApprovalVotingModule, while the upgrade proposals are configured for the
+    /// OptimisticVotingModule.
+    /// Any change on the module used for proposals would require the Validator to be upgraded.
     struct ProposalTypeData {
         uint256 requiredApprovals;
         uint8 idInConfigurator;
