@@ -7,10 +7,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 // Error imports
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
-// Contracts
-import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 /// @title NativeAssetLiquidity_TestInit
 /// @notice Reusable test initialization for `NativeAssetLiquidity` tests.
 contract NativeAssetLiquidity_TestInit is CommonTest {
@@ -42,19 +38,19 @@ contract NativeAssetLiquidity_Deposit_Test is NativeAssetLiquidity_TestInit {
         _amount = bound(_amount, 0, type(uint248).max);
 
         // Deal the LiquidityController with the amount to deposit
-        vm.deal(Predeploys.LIQUIDITY_CONTROLLER, _amount);
+        vm.deal(address(liquidityController), _amount);
         uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;
 
         // Expect emit LiquidityDeposited event
         vm.expectEmit(address(nativeAssetLiquidity));
-        emit LiquidityDeposited(Predeploys.LIQUIDITY_CONTROLLER, _amount);
+        emit LiquidityDeposited(address(liquidityController), _amount);
 
         // Call the deposit function with LiquidityController as the caller
-        vm.prank(Predeploys.LIQUIDITY_CONTROLLER);
+        vm.prank(address(liquidityController));
         nativeAssetLiquidity.deposit{ value: _amount }();
 
         // Assert LiquidityController and NativeAssetLiquidity balances are updated correctly
-        assertEq(Predeploys.LIQUIDITY_CONTROLLER.balance, 0);
+        assertEq(address(liquidityController).balance, 0);
         assertEq(address(nativeAssetLiquidity).balance, nativeAssetBalanceBefore + _amount);
     }
 
@@ -62,7 +58,7 @@ contract NativeAssetLiquidity_Deposit_Test is NativeAssetLiquidity_TestInit {
     /// @param _amount Amount of native asset (in wei) to call the deposit function with.
     /// @param _caller Address of the caller to call the deposit function with.
     function testFuzz_deposit_fromUnauthorizedCaller_fails(uint256 _amount, address _caller) public {
-        vm.assume(_caller != Predeploys.LIQUIDITY_CONTROLLER);
+        vm.assume(_caller != address(liquidityController));
         _amount = bound(_amount, 0, type(uint248).max);
 
         // Deal the unauthorized caller with the amount to deposit
@@ -92,16 +88,16 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
         // Deal NativeAssetLiquidity with the amount to withdraw
         vm.deal(address(nativeAssetLiquidity), _amount);
         uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;
-        uint256 controllerBalanceBefore = Predeploys.LIQUIDITY_CONTROLLER.balance;
+        uint256 controllerBalanceBefore = address(liquidityController).balance;
 
         // Expect emit LiquidityWithdrawn event
         vm.expectEmit(address(nativeAssetLiquidity));
-        emit LiquidityWithdrawn(Predeploys.LIQUIDITY_CONTROLLER, _amount);
-        vm.prank(Predeploys.LIQUIDITY_CONTROLLER);
+        emit LiquidityWithdrawn(address(liquidityController), _amount);
+        vm.prank(address(liquidityController));
         nativeAssetLiquidity.withdraw(_amount);
 
         // Assert LiquidityController and NativeAssetLiquidity balances are updated correctly
-        assertEq(Predeploys.LIQUIDITY_CONTROLLER.balance, controllerBalanceBefore + _amount);
+        assertEq(address(liquidityController).balance, controllerBalanceBefore + _amount);
         assertEq(address(nativeAssetLiquidity).balance, nativeAssetBalanceBefore - _amount);
     }
 
@@ -109,7 +105,7 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
     /// @param _amount Amount of native asset (in wei) to call the withdraw function with.
     /// @param _caller Address of the caller to call the withdraw function with.
     function testFuzz_withdraw_fromUnauthorizedCaller_fails(uint256 _amount, address _caller) public {
-        vm.assume(_caller != Predeploys.LIQUIDITY_CONTROLLER);
+        vm.assume(_caller != address(liquidityController));
         _amount = bound(_amount, 1, type(uint248).max);
 
         // Deal NativeAssetLiquidity with the amount to withdraw
@@ -135,13 +131,13 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
         uint256 amount = bound(contractBalance, contractBalance + 1, type(uint256).max);
 
         // Call the withdraw function with insufficient balance
-        vm.prank(Predeploys.LIQUIDITY_CONTROLLER);
+        vm.prank(address(liquidityController));
         // Expect revert with OutOfFunds
         vm.expectRevert();
         nativeAssetLiquidity.withdraw(amount);
 
         // Assert contract and controller balances remain unchanged
         assertEq(address(nativeAssetLiquidity).balance, contractBalance);
-        assertEq(Predeploys.LIQUIDITY_CONTROLLER.balance, 0);
+        assertEq(address(liquidityController).balance, 0);
     }
 }

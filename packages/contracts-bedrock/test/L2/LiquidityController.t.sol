@@ -7,10 +7,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 // Error imports
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
-// Contracts
-import { LiquidityController } from "src/L2/LiquidityController.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
 /// @title LiquidityController_TestInit
 /// @notice Reusable test initialization for `LiquidityController` tests.
 contract LiquidityController_TestInit is CommonTest {
