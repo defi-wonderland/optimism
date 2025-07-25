@@ -177,7 +177,7 @@ library Predeploys {
             || _addr == L2_ERC721_BRIDGE || _addr == L1_BLOCK_ATTRIBUTES || _addr == L2_TO_L1_MESSAGE_PASSER
             || _addr == OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == PROXY_ADMIN || _addr == BASE_FEE_VAULT
             || _addr == L1_FEE_VAULT || _addr == OPERATOR_FEE_VAULT || _addr == SCHEMA_REGISTRY || _addr == EAS
-            || _addr == GOVERNANCE_TOKEN
+            || _addr == GOVERNANCE_TOKEN || _addr == LIQUIDITY_CONTROLLER || _addr == NATIVE_ASSET_LIQUIDITY
             || (_fork >= uint256(Fork.INTEROP) && _enableCrossL2Inbox && _addr == CROSS_L2_INBOX)
             || (_fork >= uint256(Fork.INTEROP) && _addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     }
