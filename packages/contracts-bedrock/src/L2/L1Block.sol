@@ -61,35 +61,12 @@ contract L1Block is ISemver {
     /// @notice The scalar value applied to the operator fee.
     uint32 public operatorFeeScalar;
 
-    /// @custom:semver 1.6.1
+    /// @notice Whether the chain uses a custom gas token.
+    bool public isCustomGasToken;
+
+    /// @custom:semver 1.6.2
     function version() public pure virtual returns (string memory) {
-        return "1.6.1";
-    }
-
-    /// @notice Returns the gas paying token, its decimals, name and symbol.
-    function gasPayingToken() public pure returns (address addr_, uint8 decimals_) {
-        addr_ = Constants.ETHER;
-        decimals_ = 18;
-    }
-
-    /// @notice Returns the gas paying token name.
-    ///         If nothing is set in state, then it means ether is used.
-    ///         This function cannot be removed because WETH depends on it.
-    function gasPayingTokenName() public pure returns (string memory name_) {
-        name_ = "Ether";
-    }
-
-    /// @notice Returns the gas paying token symbol.
-    ///         If nothing is set in state, then it means ether is used.
-    ///         This function cannot be removed because WETH depends on it.
-    function gasPayingTokenSymbol() public pure returns (string memory symbol_) {
-        symbol_ = "ETH";
-    }
-
-    /// @notice Getter for custom gas token paying networks. Returns true if the
-    ///         network uses a custom gas token.
-    function isCustomGasToken() public pure returns (bool is_) {
-        is_ = false;
+        return "1.6.2";
     }
 
     /// @custom:legacy
@@ -102,6 +79,7 @@ contract L1Block is ISemver {
     /// @param _batcherHash    Versioned hash to authenticate batcher by.
     /// @param _l1FeeOverhead  L1 fee overhead.
     /// @param _l1FeeScalar    L1 fee scalar.
+    /// @param _isCustomGasToken Whether the chain uses a custom gas token.
     function setL1BlockValues(
         uint64 _number,
         uint64 _timestamp,
@@ -110,7 +88,8 @@ contract L1Block is ISemver {
         uint64 _sequenceNumber,
         bytes32 _batcherHash,
         uint256 _l1FeeOverhead,
-        uint256 _l1FeeScalar
+        uint256 _l1FeeScalar,
+        bool _isCustomGasToken
     )
         external
     {
@@ -124,6 +103,7 @@ contract L1Block is ISemver {
         batcherHash = _batcherHash;
         l1FeeOverhead = _l1FeeOverhead;
         l1FeeScalar = _l1FeeScalar;
+        isCustomGasToken = _isCustomGasToken;
     }
 
     /// @notice Updates the L1 block values for an Ecotone upgraded chain.

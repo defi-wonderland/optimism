@@ -8,11 +8,8 @@ interface IL1Block {
     function batcherHash() external view returns (bytes32);
     function blobBaseFee() external view returns (uint256);
     function blobBaseFeeScalar() external view returns (uint32);
-    function gasPayingToken() external pure returns (address addr_, uint8 decimals_);
-    function gasPayingTokenName() external pure returns (string memory name_);
-    function gasPayingTokenSymbol() external pure returns (string memory symbol_);
     function hash() external view returns (bytes32);
-    function isCustomGasToken() external pure returns (bool is_);
+    function isCustomGasToken() external view returns (bool);
     function l1FeeOverhead() external view returns (uint256);
     function l1FeeScalar() external view returns (uint256);
     function number() external view returns (uint64);
@@ -27,7 +24,8 @@ interface IL1Block {
         uint64 _sequenceNumber,
         bytes32 _batcherHash,
         uint256 _l1FeeOverhead,
-        uint256 _l1FeeScalar
+        uint256 _l1FeeScalar,
+        bool _isCustomGasToken
     )
         external;
     function setL1BlockValuesEcotone() external;
