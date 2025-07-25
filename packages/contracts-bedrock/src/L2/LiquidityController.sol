@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
+
+// Libraries
+import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Interfaces
+import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title LiquidityController
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
 ///         chain.
-contract LiquidityController is Ownable {
+contract LiquidityController is Ownable, ISemver {
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0
+    string public constant version = "1.0.0";
+
     /// @notice Mapping of addresses authorized to control liquidity operations
     mapping(address => bool) public minters;
 

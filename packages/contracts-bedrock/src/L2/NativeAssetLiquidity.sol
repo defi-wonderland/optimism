@@ -1,20 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
+// Contracts
 import { SafeSend } from "src/universal/SafeSend.sol";
+
+// Libraries
+import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-/// @custom:proxied true
+// Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
+
 /// @custom:predeploy 0x4200000000000000000000000000000000000030
 /// @title NativeAssetLiquidity
 /// @notice The NativeAssetLiquidity contract allows other contracts to access native asset liquidity
-contract NativeAssetLiquidity {
+contract NativeAssetLiquidity is ISemver {
     /// @notice Emitted when an address withdraws native asset liquidity.
     event LiquidityWithdrawn(address indexed caller, uint256 value);
 
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
+
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0
+    string public constant version = "1.0.0";
 
     /// @notice Allows an address to lock native asset liquidity into this contract.
     function deposit() external payable {

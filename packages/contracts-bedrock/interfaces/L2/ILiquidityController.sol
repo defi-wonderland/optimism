@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface ILiquidityController {
+import { ISemver } from "interfaces/universal/ISemver.sol";
+
+interface ILiquidityController is ISemver {
     error Unauthorized();
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);

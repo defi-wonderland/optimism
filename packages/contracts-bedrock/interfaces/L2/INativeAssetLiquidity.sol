@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface INativeAssetLiquidity {
+import { ISemver } from "interfaces/universal/ISemver.sol";
+
+interface INativeAssetLiquidity is ISemver {
     error Unauthorized();
 
     event LiquidityDeposited(address indexed caller, uint256 value);
