@@ -61,6 +61,11 @@ contract ProposalValidator_Integration_Test is Test {
         // Deploy proxy
         Proxy proxy = new Proxy(address(this));
         proposalValidator = IProposalValidator(address(proxy));
+
+        // Make the test contract the manager of the governor
+        // This is only for testing purposes, in production the authorizedProposer feature will be used instead
+        vm.prank(governor.manager());
+        governor.setManager(address(proxy));
         
         // Register approved proposer schema following ProposalValidator.t.sol pattern
         bytes32 approvedProposerSchemaUid = ISchemaRegistry(Predeploys.SCHEMA_REGISTRY).register(
@@ -92,6 +97,20 @@ contract ProposalValidator_Integration_Test is Test {
                     proposalTypesData
                 )
             )
+        );
+        
+        // Set previous voting cycle data (Cycle #37) for delegate attestation validation
+        // Previous cycle: May 1-21, 2025 (21 days before current cycle)
+        uint256 previousCycleNumber = CYCLE_NUMBER - 1; // Cycle #37
+        uint256 previousStartTimestamp = START_TIMESTAMP - 21 days; // 21 days before current cycle
+        uint256 previousDuration = 21 days; // Full cycle duration
+        uint256 previousDistributionLimit = 20_000 ether; // Same limit
+        
+        proposalValidator.setVotingCycleData(
+            previousCycleNumber,
+            previousStartTimestamp,
+            previousDuration,
+            previousDistributionLimit
         );
     }
 
@@ -187,6 +206,8 @@ contract ProposalValidator_Integration_Test is Test {
         
         // Approve proposal with delegates
         _approveProposal(proposalId, delegateAttestations);
+
+        vm.warp(START_TIMESTAMP);
         
         // Move to vote and validate
         _moveToVoteAndValidate(proposer, proposalId);

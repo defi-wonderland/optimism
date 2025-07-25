@@ -19,6 +19,9 @@ interface IOptimismGovernor {
         uint8 proposalType
     ) external returns (uint256 proposalId);
 
+    function manager() external view returns (address);
+    function setManager(address manager) external;
+
     function timelock() external view returns (address);
 
     function PROPOSAL_TYPES_CONFIGURATOR() external view returns (address);
