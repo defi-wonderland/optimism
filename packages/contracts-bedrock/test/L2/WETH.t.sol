@@ -9,7 +9,12 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 contract WETH_Name_Test is CommonTest {
     /// @notice Tests that the `name` function returns the correct value.
     function testFuzz_name_succeeds(string memory _gasPayingTokenName) external {
-        vm.mockCall(address(l1Block), abi.encodeCall(l1Block.gasPayingTokenName, ()), abi.encode(_gasPayingTokenName));
+        vm.mockCall(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(true));
+        vm.mockCall(
+            address(liquidityController),
+            abi.encodeCall(liquidityController.gasPayingTokenName, ()),
+            abi.encode(_gasPayingTokenName)
+        );
 
         assertEq(string.concat("Wrapped ", _gasPayingTokenName), weth.name());
     }
@@ -25,8 +30,11 @@ contract WETH_Name_Test is CommonTest {
 contract WETH_Symbol_Test is CommonTest {
     /// @notice Tests that the `symbol` function returns the correct value.
     function testFuzz_symbol_succeeds(string memory _gasPayingTokenSymbol) external {
+        vm.mockCall(address(l1Block), abi.encodeCall(l1Block.isCustomGasToken, ()), abi.encode(true));
         vm.mockCall(
-            address(l1Block), abi.encodeCall(l1Block.gasPayingTokenSymbol, ()), abi.encode(_gasPayingTokenSymbol)
+            address(liquidityController),
+            abi.encodeCall(liquidityController.gasPayingTokenSymbol, ()),
+            abi.encode(_gasPayingTokenSymbol)
         );
 
         assertEq(string.concat("W", _gasPayingTokenSymbol), weth.symbol());
