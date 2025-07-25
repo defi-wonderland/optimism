@@ -79,50 +79,6 @@
   },
   {
     "inputs": [],
-    "name": "gasPayingToken",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "addr_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint8",
-        "name": "decimals_",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "gasPayingTokenName",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "name_",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "gasPayingTokenSymbol",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "symbol_",
-        "type": "string"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "hash",
     "outputs": [
       {
@@ -140,11 +96,11 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "is_",
+        "name": "",
         "type": "bool"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -266,6 +222,11 @@
         "internalType": "uint256",
         "name": "_l1FeeScalar",
         "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_isCustomGasToken",
+        "type": "bool"
       }
     ],
     "name": "setL1BlockValues",
