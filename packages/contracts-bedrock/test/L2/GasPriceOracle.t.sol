@@ -29,6 +29,7 @@ contract GasPriceOracle_Test is CommonTest {
     uint32 constant baseFeeScalar = 20;
     uint32 constant operatorFeeScalar = 4_000_000;
     uint64 constant operatorFeeConstant = 300;
+    bool constant isCustomGasToken = false;
 
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
@@ -54,7 +55,8 @@ contract GasPriceOracleBedrock_Test is GasPriceOracle_Test {
             _sequenceNumber: sequenceNumber,
             _batcherHash: batcherHash,
             _l1FeeOverhead: l1FeeOverhead,
-            _l1FeeScalar: l1FeeScalar
+            _l1FeeScalar: l1FeeScalar,
+            _isCustomGasToken: isCustomGasToken
         });
     }
 
