@@ -2340,6 +2340,16 @@ contract ProposalValidator_MoveToVoteCouncilMemberElectionsProposal_TestFail is 
         validator.moveToVoteCouncilMemberElectionsProposal(_criteriaValue, optionsDescriptions, proposalDescription);
     }
 
+    function test_moveToVoteCouncilMemberElectionsProposal_invalidOptionsLength_reverts() public {
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, new string[](0), proposalDescription);
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteCouncilMemberElectionsProposal(criteriaValue, new string[](256), proposalDescription);
+    }
+
     function test_moveToVoteCouncilMemberElectionsProposal_insufficientApprovals_reverts() public {
         // Set proposal data approved count to 0 since it is 1 by the approval on the setUp
         validator.setProposalData(expectedId, approvedProposer, proposalType, false, 0, CYCLE_NUMBER);
@@ -2650,6 +2660,31 @@ contract ProposalValidator_MoveToVoteFundingProposal_TestFail is ProposalValidat
             optionsAmounts,
             proposalDescription,
             validProposalType
+        );
+    }
+
+    function test_moveToVoteFundingProposal_invalidOptionsLength_reverts(uint8 _proposalTypeValue) public {
+        // Valid funding proposal types are GovernanceFund (3) and CouncilBudget (4)
+        _proposalTypeValue = uint8(bound(_proposalTypeValue, 3, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(_proposalTypeValue);
+
+        string memory proposalDescription;
+        if (proposalType == governanceFundProposalType) {
+            proposalDescription = governanceFundProposalDescription;
+        } else {
+            proposalDescription = councilBudgetProposalDescription;
+        }
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, new string[](0), optionsRecipients, optionsAmounts, proposalDescription, proposalType
+        );
+
+        vm.expectRevert(IProposalValidator.ProposalValidator_InvalidOptionsLength.selector);
+        vm.prank(approvedProposer);
+        validator.moveToVoteFundingProposal(
+            criteriaValue, new string[](256), optionsRecipients, optionsAmounts, proposalDescription, proposalType
         );
     }
 

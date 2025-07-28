@@ -465,9 +465,8 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint8 idInConfigurator = proposalTypesData[ProposalType.CouncilMemberElections].idInConfigurator;
 
         // Get the module address from the configurator
-        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
-            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
-        ).proposalTypes(idInConfigurator);
+        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig =
+            IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator);
 
         // Validate voting module exists
         if (bytes(proposalTypeConfig.name).length == 0) {
@@ -726,13 +725,18 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         external
         returns (uint256 proposalId_)
     {
+        uint256 optionsLength = _optionsDescriptions.length;
+        // Validate options length bounds
+        if (optionsLength == 0 || optionsLength > type(uint8).max) {
+            revert ProposalValidator_InvalidOptionsLength();
+        }
         // Configure approval module options
         (IApprovalVotingModule.ProposalOption[] memory options,) =
             _buildApprovalModuleOptions(_optionsDescriptions, new address[](0), new uint256[](0));
 
         // Configure approval module settings
         IApprovalVotingModule.ProposalSettings memory approvalSettings = IApprovalVotingModule.ProposalSettings({
-            maxApprovals: uint8(_optionsDescriptions.length),
+            maxApprovals: uint8(optionsLength),
             criteria: uint8(IApprovalVotingModule.PassingCriteria.TopChoices),
             budgetToken: address(0),
             criteriaValue: _criteriaValue,
@@ -827,6 +831,12 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_InvalidFundingProposalType();
         }
 
+        uint256 optionsLength = _optionsDescriptions.length;
+        // Validate options length bounds
+        if (optionsLength == 0 || optionsLength > type(uint8).max) {
+            revert ProposalValidator_InvalidOptionsLength();
+        }
+
         // Configure approval module options
         (IApprovalVotingModule.ProposalOption[] memory options, uint256 totalBudget) =
             _buildApprovalModuleOptions(_optionsDescriptions, _optionsRecipients, _optionsAmounts);
@@ -869,18 +879,20 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
             revert ProposalValidator_ProposalAlreadyMovedToVote();
         }
 
-        // Check if proposal can be moved to vote
-        VotingCycleData memory votingCycleData = votingCycles[proposal.votingCycle];
-        if (
-            votingCycleData.startingTimestamp > block.timestamp
-                || votingCycleData.startingTimestamp + votingCycleData.duration < block.timestamp
-        ) {
-            revert ProposalValidator_InvalidVotingCycle();
-        }
+        {
+            // Check if proposal can be moved to vote
+            VotingCycleData memory votingCycleData = votingCycles[proposal.votingCycle];
+            if (
+                votingCycleData.startingTimestamp > block.timestamp
+                    || votingCycleData.startingTimestamp + votingCycleData.duration < block.timestamp
+            ) {
+                revert ProposalValidator_InvalidVotingCycle();
+            }
 
-        // Check if total budget is within the voting cycle distribution limit
-        if (votingCycleData.movedToVoteTokenCount + totalBudget > votingCycleData.votingCycleDistributionLimit) {
-            revert ProposalValidator_ExceedsDistributionThreshold();
+            // Check if total budget is within the voting cycle distribution limit
+            if (votingCycleData.movedToVoteTokenCount + totalBudget > votingCycleData.votingCycleDistributionLimit) {
+                revert ProposalValidator_ExceedsDistributionThreshold();
+            }
         }
 
         // Move proposal to vote
