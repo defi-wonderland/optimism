@@ -36,12 +36,6 @@ contract LiquidityController is Ownable, ISemver {
         gasPayingTokenSymbol = _gasPayingTokenSymbol;
     }
 
-    /// @notice Modifier to restrict access to authorized minters only
-    modifier onlyMinter() {
-        if (!minters[msg.sender]) revert Unauthorized();
-        _;
-    }
-
     /// @notice Authorizes an address to perform liquidity control operations
     /// @param _minter The address to authorize as a minter
     function authorizeMinter(address _minter) external onlyOwner {
@@ -51,7 +45,8 @@ contract LiquidityController is Ownable, ISemver {
     /// @notice Mints native asset liquidity and sends it to a specified address
     /// @param _to The address to receive the minted native asset
     /// @param _amount The amount of native asset to mint and send
-    function mint(address _to, uint256 _amount) external onlyMinter {
+    function mint(address _to, uint256 _amount) external {
+        if (!minters[msg.sender]) revert Unauthorized();
         INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).withdraw(_amount);
 
         // This is a forced ETH send to the recipient, the recipient should NOT expect to be called
@@ -59,7 +54,8 @@ contract LiquidityController is Ownable, ISemver {
     }
 
     /// @notice Burns native asset liquidity by sending ETH to the contract
-    function burn() external payable onlyMinter {
+    function burn() external payable {
+        if (!minters[msg.sender]) revert Unauthorized();
         INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).deposit{ value: msg.value }();
     }
 
