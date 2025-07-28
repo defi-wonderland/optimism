@@ -134,7 +134,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Emitted when the proposal type data is set.
     /// @param proposalType The type of proposal.
     /// @param requiredApprovals The required number of approvals.
-    /// @param idInConfigurator The proposal type ID.
+    /// @param idInConfigurator The proposal type ID in the ProposalTypesConfigurator contract.
     event ProposalTypeDataSet(ProposalType proposalType, uint256 requiredApprovals, uint8 idInConfigurator);
 
     /// @notice Emitted with ProposalSubmitted event.
