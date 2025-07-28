@@ -16,6 +16,15 @@ contract LiquidityController_TestInit is CommonTest {
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
 
+    /// @notice Emitted when an address is authorized to mint/burn liquidity
+    event MinterAuthorized(address indexed minter);
+
+    /// @notice Emitted when liquidity is minted
+    event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
+
+    /// @notice Emitted when liquidity is burned
+    event LiquidityBurned(address indexed minter, uint256 amount);
+
     /// @notice Test setup.
     function setUp() public virtual override {
         enableCustomGasToken();
@@ -27,7 +36,6 @@ contract LiquidityController_TestInit is CommonTest {
         assertEq(liquidityController.version(), "1.0.0");
         assertEq(liquidityController.gasPayingTokenName(), "Custom Gas Token");
         assertEq(liquidityController.gasPayingTokenSymbol(), "CGT");
-        assertEq(liquidityController.gasPayingTokenDecimals(), 18);
     }
 
     /// @notice Shared modifier to authorize a minter.
@@ -44,6 +52,9 @@ contract LiquidityController_TestInit is CommonTest {
 contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestInit {
     /// @notice Tests that the authorizeMinter function can be called by the owner.
     function testFuzz_authorizeMinter_fromOwner_succeeds(address _minter) public {
+        // Expect emit MinterAuthorized event
+        vm.expectEmit(address(liquidityController));
+        emit MinterAuthorized(_minter);
         // Call the authorizeMinter function with owner as the caller
         vm.prank(liquidityController.owner());
         liquidityController.authorizeMinter(_minter);
@@ -88,6 +99,9 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
         // Expect emit LiquidityWithdrawn event and call the mint function
         vm.expectEmit(address(nativeAssetLiquidity));
         emit LiquidityWithdrawn(address(liquidityController), _amount);
+        // Expect emit LiquidityMinted event
+        vm.expectEmit(address(liquidityController));
+        emit LiquidityMinted(authorizedMinter, _to, _amount);
         vm.prank(authorizedMinter);
         liquidityController.mint(_to, _amount);
 
@@ -148,6 +162,9 @@ contract LiquidityController_Burn_Test is LiquidityController_TestInit {
         // Expect emit LiquidityDeposited event and call the burn function
         vm.expectEmit(address(nativeAssetLiquidity));
         emit LiquidityDeposited(address(liquidityController), _amount);
+        // Expect emit LiquidityBurned event
+        vm.expectEmit(address(liquidityController));
+        emit LiquidityBurned(authorizedMinter, _amount);
         vm.prank(authorizedMinter);
         liquidityController.burn{ value: _amount }();
 

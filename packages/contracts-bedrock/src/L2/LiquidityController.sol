@@ -18,6 +18,15 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
 ///         chain.
 contract LiquidityController is Ownable, ISemver {
+    /// @notice Emitted when an address is authorized to mint/burn liquidity
+    event MinterAuthorized(address indexed minter);
+
+    /// @notice Emitted when liquidity is minted
+    event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
+
+    /// @notice Emitted when liquidity is burned
+    event LiquidityBurned(address indexed minter, uint256 amount);
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -40,6 +49,7 @@ contract LiquidityController is Ownable, ISemver {
     /// @param _minter The address to authorize as a minter
     function authorizeMinter(address _minter) external onlyOwner {
         minters[_minter] = true;
+        emit MinterAuthorized(_minter);
     }
 
     /// @notice Mints native asset liquidity and sends it to a specified address
@@ -51,16 +61,15 @@ contract LiquidityController is Ownable, ISemver {
 
         // This is a forced ETH send to the recipient, the recipient should NOT expect to be called
         new SafeSend{ value: _amount }(payable(_to));
+
+        emit LiquidityMinted(msg.sender, _to, _amount);
     }
 
     /// @notice Burns native asset liquidity by sending ETH to the contract
     function burn() external payable {
         if (!minters[msg.sender]) revert Unauthorized();
         INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).deposit{ value: msg.value }();
-    }
 
-    /// @notice Returns the decimals of the gas paying token
-    function gasPayingTokenDecimals() external pure returns (uint8) {
-        return 18;
+        emit LiquidityBurned(msg.sender, msg.value);
     }
 }

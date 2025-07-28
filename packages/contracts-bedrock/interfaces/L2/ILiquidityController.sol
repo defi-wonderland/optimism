@@ -8,13 +8,16 @@ interface ILiquidityController is ISemver {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    event MinterAuthorized(address indexed minter);
+    event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
+    event LiquidityBurned(address indexed minter, uint256 amount);
+
     function authorizeMinter(address _minter) external;
     function mint(address _to, uint256 _amount) external;
     function burn() external payable;
     function minters(address) external view returns (bool);
     function gasPayingTokenName() external view returns (string memory);
     function gasPayingTokenSymbol() external view returns (string memory);
-    function gasPayingTokenDecimals() external view returns (uint8);
 
     function owner() external view returns (address);
     function renounceOwnership() external;
