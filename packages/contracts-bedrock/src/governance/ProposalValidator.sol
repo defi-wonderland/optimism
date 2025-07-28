@@ -468,12 +468,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
             GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
         ).proposalTypes(idInConfigurator);
-        address votingModule = proposalTypeConfig.module;
 
         // Validate voting module exists
         if (bytes(proposalTypeConfig.name).length == 0) {
             revert ProposalValidator_InvalidVotingModule();
         }
+
+        address votingModule = proposalTypeConfig.module;
 
         // Generate unique proposal ID
         proposalId_ =
