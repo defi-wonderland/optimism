@@ -35,7 +35,13 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 /// @title ProposalValidatorForTest
 /// @notice A test contract that exposes the private _hashProposalWithModule function
 contract ProposalValidatorForTest is ProposalValidator {
-    constructor(IOptimismGovernor _governor) ProposalValidator(_governor) { }
+    constructor(
+        IOptimismGovernor _governor,
+        bytes32 _approvedProposerAttestationSchemaUid,
+        bytes32 _topDelegatesAttestationSchemaUid
+    )
+        ProposalValidator(_governor, _approvedProposerAttestationSchemaUid, _topDelegatesAttestationSchemaUid)
+    { }
 
     function hashProposalWithModule(
         address _module,
@@ -516,7 +522,9 @@ contract ProposalValidator_Init is CommonTest {
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
-        impl = new ProposalValidatorForTest(governor);
+        impl = new ProposalValidatorForTest(
+            governor, APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID
+        );
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
 
         vm.prank(owner);
@@ -531,8 +539,6 @@ contract ProposalValidator_Init is CommonTest {
                     DURATION,
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
-                    APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-                    TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
                     proposalTypes,
                     proposalTypesData
                 )
@@ -626,7 +632,9 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
         // Create mock addresses
         proposalTypesConfigurator = IProposalTypesConfigurator(makeAddr("proposalTypesConfigurator"));
 
-        impl = new ProposalValidatorForTest(governor);
+        impl = new ProposalValidatorForTest(
+            governor, APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID, TOP_DELEGATES_ATTESTATION_SCHEMA_UID
+        );
         validator = ProposalValidatorForTest(address(new Proxy(owner)));
     }
 
@@ -648,8 +656,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                     DURATION,
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
-                    APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-                    TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
                     proposalTypes,
                     proposalTypesData
                 )
@@ -717,8 +723,6 @@ contract ProposalValidator_Initialize_Test is ProposalValidator_Init {
                     DURATION,
                     DISTRIBUTION_LIMIT,
                     DISTRIBUTION_THRESHOLD,
-                    APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID,
-                    TOP_DELEGATES_ATTESTATION_SCHEMA_UID,
                     proposalTypes,
                     proposalTypesData
                 )

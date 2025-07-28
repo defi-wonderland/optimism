@@ -228,11 +228,11 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice The schema UID for attestations in the Ethereum Attestation Service for checking if the caller
     ///         is an approved proposer.
     /// @dev Schema format: { proposalType: uint8, date: string }
-    bytes32 public approvedProposerAttestationSchemaUid;
+    bytes32 public immutable APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID;
 
     /// @notice The schema UID for attestations in the Ethereum Attestation Service for checking if the caller
     ///         is part of the top100 delegates.
-    bytes32 public topDelegatesAttestationSchemaUid;
+    bytes32 public immutable TOP_DELEGATES_ATTESTATION_SCHEMA_UID;
 
     /// @notice The max amount of tokens that can be distributed in a proposal.
     uint256 public proposalDistributionThreshold;
@@ -248,8 +248,22 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
     /// @notice Constructs the ProposalValidator contract.
     /// @param _governor The Optimism Governor contract address.
-    constructor(IOptimismGovernor _governor) ReinitializableBase(1) {
+    /// @param _approvedProposerAttestationSchemaUid The schema UID for attestations in the Ethereum Attestation Service
+    /// for checking if the caller
+    ///         is an approved proposer.
+    /// @param _topDelegatesAttestationSchemaUid The schema UID for attestations in the Ethereum Attestation Service for
+    /// checking if the caller
+    ///         is part of the top100 delegates.
+    constructor(
+        IOptimismGovernor _governor,
+        bytes32 _approvedProposerAttestationSchemaUid,
+        bytes32 _topDelegatesAttestationSchemaUid
+    )
+        ReinitializableBase(1)
+    {
         GOVERNOR = _governor;
+        APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID = _approvedProposerAttestationSchemaUid;
+        TOP_DELEGATES_ATTESTATION_SCHEMA_UID = _topDelegatesAttestationSchemaUid;
         _disableInitializers();
     }
 
@@ -269,8 +283,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         uint256 _duration,
         uint256 _votingCycleDistributionLimit,
         uint256 _proposalDistributionThreshold,
-        bytes32 _approvedProposerAttestationSchemaUid,
-        bytes32 _topDelegatesAttestationSchemaUid,
         ProposalType[] memory _proposalTypes,
         ProposalTypeData[] memory _proposalTypesData
     )
@@ -280,9 +292,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         if (_proposalTypes.length != _proposalTypesData.length) {
             revert ProposalValidator_ProposalTypesDataLengthMismatch();
         }
-
-        approvedProposerAttestationSchemaUid = _approvedProposerAttestationSchemaUid;
-        topDelegatesAttestationSchemaUid = _topDelegatesAttestationSchemaUid;
 
         _setVotingCycleData(_cycleNumber, _startingTimestamp, _duration, _votingCycleDistributionLimit);
         _setProposalDistributionThreshold(_proposalDistributionThreshold);
@@ -951,7 +960,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         (uint8 proposalType,) = abi.decode(attestation.data, (uint8, string));
 
         if (
-            attestation.attester != owner() || attestation.schema != approvedProposerAttestationSchemaUid
+            attestation.attester != owner() || attestation.schema != APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID
                 || attestation.recipient != _msgSender() || proposalType != uint8(_expectedProposalType)
         ) {
             revert ProposalValidator_InvalidAttestation();
@@ -975,7 +984,7 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
         }
 
         // check if the schema is correct
-        if (attestation.schema != topDelegatesAttestationSchemaUid) {
+        if (attestation.schema != TOP_DELEGATES_ATTESTATION_SCHEMA_UID) {
             revert ProposalValidator_InvalidAttestationSchema();
         }
 
