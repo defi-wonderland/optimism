@@ -461,10 +461,13 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         bytes memory proposalVotingModuleData = abi.encode(options, approvalSettings);
 
+        // Retrieve the ID to use in the proposal type configurator
+        uint8 idInConfigurator = proposalTypesData[ProposalType.CouncilMemberElections].idInConfigurator;
+
         // Get the module address from the configurator
         IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
             GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
-        ).proposalTypes(proposalTypesData[ProposalType.CouncilMemberElections].idInConfigurator);
+        ).proposalTypes(idInConfigurator);
         address votingModule = proposalTypeConfig.module;
 
         // Validate voting module exists
@@ -560,15 +563,21 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         bytes memory proposalVotingModuleData = abi.encode(options, approvalSettings);
 
-        // Get the module address from the configurator
-        IProposalTypesConfigurator.ProposalType memory proposalTypeConfig = IProposalTypesConfigurator(
-            GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()
-        ).proposalTypes(proposalTypesData[_proposalType].idInConfigurator);
-        address votingModule = proposalTypeConfig.module;
+        // Retrieve the ID to use in the proposal type configurator
+        uint8 idInConfigurator = proposalTypesData[_proposalType].idInConfigurator;
 
-        // Validate voting module exists
-        if (bytes(proposalTypeConfig.name).length == 0) {
-            revert ProposalValidator_InvalidVotingModule();
+        // Get the module address from the configurator
+        address votingModule;
+        {
+            IProposalTypesConfigurator.ProposalType memory proposalTypeConfig =
+                IProposalTypesConfigurator(GOVERNOR.PROPOSAL_TYPES_CONFIGURATOR()).proposalTypes(idInConfigurator);
+
+            // Validate voting module exists
+            if (bytes(proposalTypeConfig.name).length == 0) {
+                revert ProposalValidator_InvalidVotingModule();
+            }
+
+            votingModule = proposalTypeConfig.module;
         }
 
         // Generate unique proposal ID
