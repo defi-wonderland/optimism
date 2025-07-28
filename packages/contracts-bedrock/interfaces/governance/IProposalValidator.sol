@@ -204,8 +204,8 @@ interface IProposalValidator is ISemver {
     );
 
     function __constructor__(
+        IOptimismGovernor _governor,
         bytes32 _approvedProposerAttestationSchemaUid,
-        bytes32 _topDelegatesAttestationSchemaUid,
-        IOptimismGovernor _governor
+        bytes32 _topDelegatesAttestationSchemaUid
     ) external;
 }
