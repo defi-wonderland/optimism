@@ -135,6 +135,9 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @notice The SuperchainConfig contract that manages the pause state.
     ISuperchainConfig public superchainConfig;
 
+    /// @notice Whether the gas token is custom.
+    bool public isCustomGasToken;
+
     /// @notice Emitted when configuration is updated.
     /// @param version    SystemConfig version.
     /// @param updateType Type of update.
@@ -180,7 +183,8 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         address _batchInbox,
         SystemConfig.Addresses memory _addresses,
         uint256 _l2ChainId,
-        ISuperchainConfig _superchainConfig
+        ISuperchainConfig _superchainConfig,
+        bool _isCustomGasToken
     )
         public
         reinitializer(initVersion())
@@ -211,6 +215,8 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
 
         l2ChainId = _l2ChainId;
         superchainConfig = _superchainConfig;
+
+        isCustomGasToken = _isCustomGasToken;
     }
 
     /// @notice Upgrades the SystemConfig by adding a reference to the SuperchainConfig.

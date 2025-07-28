@@ -80,6 +80,7 @@ contract SystemConfig_Constructor_Test is SystemConfig_TestInit {
         assertEq(actual.maximumBaseFee, 0);
         assertEq(impl.startBlock(), type(uint256).max);
         assertEq(address(impl.batchInbox()), address(0));
+        assertEq(impl.isCustomGasToken(), false);
         // Check addresses
         assertEq(address(impl.l1CrossDomainMessenger()), address(0));
         assertEq(address(impl.l1ERC721Bridge()), address(0));
@@ -159,7 +160,8 @@ contract SystemConfig_Initialize_Test is SystemConfig_TestInit {
                 optimismMintableERC20Factory: address(0)
             }),
             _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _superchainConfig: ISuperchainConfig(address(0)),
+            _isCustomGasToken: false
         });
     }
 
@@ -215,7 +217,8 @@ contract SystemConfig_Initialize_Test is SystemConfig_TestInit {
                 optimismMintableERC20Factory: address(0)
             }),
             _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _superchainConfig: ISuperchainConfig(address(0)),
+            _isCustomGasToken: false
         });
     }
 }
@@ -342,7 +345,8 @@ contract SystemConfig_StartBlock_Test is SystemConfig_TestInit {
                 optimismMintableERC20Factory: address(0)
             }),
             _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _superchainConfig: ISuperchainConfig(address(0)),
+            _isCustomGasToken: false
         });
         assertEq(systemConfig.startBlock(), block.number);
     }
@@ -373,7 +377,8 @@ contract SystemConfig_StartBlock_Test is SystemConfig_TestInit {
                 optimismMintableERC20Factory: address(0)
             }),
             _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _superchainConfig: ISuperchainConfig(address(0)),
+            _isCustomGasToken: false
         });
         assertEq(systemConfig.startBlock(), 1);
     }
@@ -670,7 +675,8 @@ contract SystemConfig_SetResourceConfig_Test is SystemConfig_TestInit {
                 optimismMintableERC20Factory: address(0)
             }),
             _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _superchainConfig: ISuperchainConfig(address(0)),
+            _isCustomGasToken: false
         });
     }
 }

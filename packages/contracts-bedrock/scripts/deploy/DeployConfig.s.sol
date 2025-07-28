@@ -74,7 +74,7 @@ contract DeployConfig is Script {
     uint256 public daResolveWindow;
     uint256 public daBondSize;
     uint256 public daResolverRefundPercentage;
-
+    bool public isCustomGasToken;
     bool public useInterop;
     bool public useUpgradedFork;
 
@@ -119,6 +119,7 @@ contract DeployConfig is Script {
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
         basefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBaseFeeScalar", 1368));
         blobbasefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBlobBaseFeeScalar", 810949));
+        isCustomGasToken = _readOr(_json, "$.isCustomGasToken", false);
 
         enableGovernance = _readOr(_json, "$.enableGovernance", false);
         systemConfigStartBlock = stdJson.readUint(_json, "$.systemConfigStartBlock");

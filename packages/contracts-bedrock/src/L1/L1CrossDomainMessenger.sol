@@ -42,6 +42,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
     /// @notice Contract of the SystemConfig.
     ISystemConfig public systemConfig;
 
+    /// @notice Thrown when ETH deposits are not allowed when the custom gas token is active.
+    error L1CrossDomainMessenger_ETHDepositsNotAllowedForCGT();
+
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() ReinitializableBase(2) {
         _disableInitializers();
@@ -91,6 +94,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
 
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+        if (systemConfig.isCustomGasToken() && _value > 0) {
+            revert L1CrossDomainMessenger_ETHDepositsNotAllowedForCGT();
+        }
         portal.depositTransaction{ value: _value }({
             _to: _to,
             _value: _value,

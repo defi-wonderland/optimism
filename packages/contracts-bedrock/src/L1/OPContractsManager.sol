@@ -1268,6 +1268,9 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         (IResourceMetering.ResourceConfig memory referenceResourceConfig, ISystemConfig.Addresses memory opChainAddrs) =
             defaultSystemConfigParams(_input, _output);
 
+        // TODO: This is a temporary to avoid stack too deep.
+        bool isCustomGasToken = _input.isCustomGasToken;
+
         return abi.encodeCall(
             ISystemConfig.initialize,
             (
@@ -1281,7 +1284,8 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
                 chainIdToBatchInboxAddress(_input.l2ChainId),
                 opChainAddrs,
                 _input.l2ChainId,
-                _superchainConfig
+                _superchainConfig,
+                isCustomGasToken
             )
         );
     }
@@ -1663,6 +1667,7 @@ contract OPContractsManager is ISemver {
         uint32 basefeeScalar;
         uint32 blobBasefeeScalar;
         uint256 l2ChainId;
+        bool isCustomGasToken;
         // The correct type is Proposal memory but OP Deployer does not yet support structs.
         bytes startingAnchorRoot;
         // The salt mixer is used as part of making the resulting salt unique.

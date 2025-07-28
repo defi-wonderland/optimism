@@ -8,8 +8,8 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
 interface IL1StandardBridge is IStandardBridge, IProxyAdminOwnedBase {
-
     error ReinitializableBase_ZeroInitVersion();
+    error L1StandardBridge_ETHDepositsNotAllowedForCGT();
 
     event ERC20DepositInitiated(
         address indexed l1Token,
@@ -68,11 +68,7 @@ interface IL1StandardBridge is IStandardBridge, IProxyAdminOwnedBase {
     )
         external
         payable;
-    function initialize(
-        ICrossDomainMessenger _messenger,
-        ISystemConfig _systemConfig
-    )
-        external;
+    function initialize(ICrossDomainMessenger _messenger, ISystemConfig _systemConfig) external;
     function l2TokenBridge() external view returns (address);
     function systemConfig() external view returns (ISystemConfig);
     function version() external view returns (string memory);

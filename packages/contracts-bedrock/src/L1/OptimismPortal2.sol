@@ -180,6 +180,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Thrown when the portal is paused.
     error OptimismPortal_CallPaused();
 
+    /// @notice Thrown when ETH deposits are not allowed when the custom gas token is active.
+    error OptimismPortal_ETHDepositsNotAllowedForCGT();
+
     /// @notice Thrown when a gas estimation transaction is being executed.
     error OptimismPortal_GasEstimation();
 
@@ -748,8 +751,13 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         payable
         metered(_gasLimit)
     {
-        // Lock the ETH in the ETHLockbox.
-        if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
+        // Handle ETH deposits: prevent when custom gas token is active, otherwise lock in ETHLockbox.
+        if (msg.value > 0) {
+            if (systemConfig.isCustomGasToken()) {
+                revert OptimismPortal_ETHDepositsNotAllowedForCGT();
+            }
+            ethLockbox.lockETH{ value: msg.value }();
+        }
 
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
