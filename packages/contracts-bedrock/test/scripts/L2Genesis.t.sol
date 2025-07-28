@@ -49,7 +49,7 @@ contract L2Genesis_TestInit is Test {
             assertEq(Predeploys.PROXY_ADMIN, EIP1967Helper.getAdmin(addr));
 
             // If it's not a supported predeploy, skip next checks.
-            if (!Predeploys.isSupportedPredeploy(addr, uint256(LATEST_FORK), true)) {
+            if (!Predeploys.isSupportedPredeploy(addr, uint256(LATEST_FORK), true, input.isCustomGasToken)) {
                 continue;
             }
 
@@ -113,7 +113,7 @@ contract L2Genesis_TestInit is Test {
 
         // Test NativeAssetLiquidity deployment and funding
         INativeAssetLiquidity liquidity = INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY);
-        assertEq(address(liquidity).balance, input.nativeAssetLiquidityAmount);
+        assertEq(address(liquidity).balance, type(uint248).max);
 
         // Verify predeploys have code
         assertGt(Predeploys.LIQUIDITY_CONTROLLER.code.length, 0);
@@ -148,9 +148,7 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             fundDevAccounts: true,
             isCustomGasToken: false,
             gasPayingTokenName: "",
-            gasPayingTokenSymbol: "",
-            liquidityControllerOwner: address(0),
-            nativeAssetLiquidityAmount: 0
+            gasPayingTokenSymbol: ""
         });
         genesis.run(input);
 
@@ -186,9 +184,7 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             fundDevAccounts: true,
             isCustomGasToken: true,
             gasPayingTokenName: "Custom Gas Token",
-            gasPayingTokenSymbol: "CGT",
-            liquidityControllerOwner: address(0x0000000000000000000000000000000000000009),
-            nativeAssetLiquidityAmount: type(uint248).max
+            gasPayingTokenSymbol: "CGT"
         });
         genesis.run(input);
 

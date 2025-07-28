@@ -325,9 +325,7 @@ contract Setup {
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
                 isCustomGasToken: isCustomGasToken(),
                 gasPayingTokenName: "Custom Gas Token",
-                gasPayingTokenSymbol: "CGT",
-                liquidityControllerOwner: deploy.cfg().finalSystemOwner(),
-                nativeAssetLiquidityAmount: type(uint248).max
+                gasPayingTokenSymbol: "CGT"
             })
         );
 

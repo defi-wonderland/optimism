@@ -5,7 +5,8 @@ pragma solidity 0.8.15;
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
-import { Script } from "forge-std/Script.sol";
+import { Script, StdStorage } from "forge-std/Script.sol";
+import { stdStorage } from "forge-std/StdStorage.sol";
 import { OutputMode, OutputModeUtils, Fork, ForkUtils } from "scripts/libraries/Config.sol";
 import { SetPreinstalls } from "scripts/SetPreinstalls.s.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
@@ -30,6 +31,7 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -39,6 +41,8 @@ import { IL1Block } from "interfaces/L2/IL1Block.sol";
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Script {
+    using stdStorage for StdStorage;
+
     struct Input {
         uint256 l1ChainID;
         uint256 l2ChainID;
@@ -63,8 +67,6 @@ contract L2Genesis is Script {
         bool isCustomGasToken;
         string gasPayingTokenName;
         string gasPayingTokenSymbol;
-        address liquidityControllerOwner;
-        uint256 nativeAssetLiquidityAmount;
     }
 
     using ForkUtils for Fork;
@@ -200,7 +202,8 @@ contract L2Genesis is Script {
             vm.etch(addr, code);
             EIP1967Helper.setAdmin(addr, Predeploys.PROXY_ADMIN);
 
-            if (Predeploys.isSupportedPredeploy(addr, _input.fork, _input.deployCrossL2Inbox)) {
+            if (Predeploys.isSupportedPredeploy(addr, _input.fork, _input.deployCrossL2Inbox, _input.isCustomGasToken))
+            {
                 address implementation = Predeploys.predeployToCodeNamespace(addr);
                 EIP1967Helper.setImplementation(addr, implementation);
             }
@@ -561,32 +564,31 @@ contract L2Genesis is Script {
             return;
         }
 
-        // Deploy LiquidityController with constructor arguments
-        bytes memory args = abi.encode(_input.gasPayingTokenName, _input.gasPayingTokenSymbol);
-        bytes memory bytecode = abi.encodePacked(vm.getCode("LiquidityController.sol:LiquidityController"), args);
-
-        address controller;
-        assembly {
-            controller := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-
-        vm.etch(Predeploys.LIQUIDITY_CONTROLLER, controller.code);
-
-        // Storage layout: Ownable._owner (slot 0), minters mapping (slot 1), gasPayingTokenName (slot 2),
-        // gasPayingTokenSymbol (slot 3)
-        bytes32 _ownerSlot = hex"0000000000000000000000000000000000000000000000000000000000000000";
-        bytes32 _nameSlot = hex"0000000000000000000000000000000000000000000000000000000000000002";
-        bytes32 _symbolSlot = hex"0000000000000000000000000000000000000000000000000000000000000003";
-
-        vm.store(
-            Predeploys.LIQUIDITY_CONTROLLER, _ownerSlot, bytes32(uint256(uint160(_input.liquidityControllerOwner)))
+        ILiquidityController controller = ILiquidityController(
+            DeployUtils.create1({
+                _name: "LiquidityController",
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(
+                        ILiquidityController.__constructor__, (_input.gasPayingTokenName, _input.gasPayingTokenSymbol)
+                    )
+                )
+            })
         );
-        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _nameSlot, vm.load(controller, _nameSlot));
-        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _symbolSlot, vm.load(controller, _symbolSlot));
+
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.LIQUIDITY_CONTROLLER);
+        vm.etch(impl, address(controller).code);
+
+        bytes32 _ownerSlot = bytes32(uint256(0));
+        bytes32 _nameSlot = bytes32(uint256(2));
+        bytes32 _symbolSlot = bytes32(uint256(3));
+
+        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _ownerSlot, bytes32(uint256(uint160(_input.opChainProxyAdminOwner))));
+        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _nameSlot, vm.load(address(controller), _nameSlot));
+        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _symbolSlot, vm.load(address(controller), _symbolSlot));
 
         /// Reset so its not included state dump
-        vm.etch(controller, "");
-        vm.resetNonce(controller);
+        vm.etch(address(controller), "");
+        vm.resetNonce(address(controller));
     }
 
     /// @notice This predeploy is following the safety invariant #1.
@@ -599,9 +601,7 @@ contract L2Genesis is Script {
         _setImplementationCode(Predeploys.NATIVE_ASSET_LIQUIDITY);
 
         // Pre-fund the liquidity contract with the specified amount
-        if (_input.nativeAssetLiquidityAmount > 0) {
-            vm.deal(Predeploys.NATIVE_ASSET_LIQUIDITY, _input.nativeAssetLiquidityAmount);
-        }
+        vm.deal(Predeploys.NATIVE_ASSET_LIQUIDITY, type(uint248).max);
     }
 
     /// @notice Sets all the preinstalls.
