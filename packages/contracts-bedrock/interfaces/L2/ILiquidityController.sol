@@ -7,6 +7,7 @@ interface ILiquidityController is ISemver {
     error Unauthorized();
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event Initialized(uint8 version);
 
     event MinterAuthorized(address indexed minter);
     event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
@@ -18,10 +19,11 @@ interface ILiquidityController is ISemver {
     function minters(address) external view returns (bool);
     function gasPayingTokenName() external view returns (string memory);
     function gasPayingTokenSymbol() external view returns (string memory);
+    function initialize(string memory _gasPayingTokenName, string memory _gasPayingTokenSymbol) external;
 
     function owner() external view returns (address);
     function renounceOwnership() external;
     function transferOwnership(address newOwner) external;
 
-    function __constructor__(string memory _gasPayingTokenName, string memory _gasPayingTokenSymbol) external;
+    function __constructor__() external;
 }

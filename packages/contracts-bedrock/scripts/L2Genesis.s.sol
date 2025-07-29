@@ -561,31 +561,14 @@ contract L2Genesis is Script {
             return;
         }
 
-        ILiquidityController controller = ILiquidityController(
-            DeployUtils.create1({
-                _name: "LiquidityController",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        ILiquidityController.__constructor__, (_input.gasPayingTokenName, _input.gasPayingTokenSymbol)
-                    )
-                )
-            })
-        );
+        address impl = _setImplementationCode(Predeploys.LIQUIDITY_CONTROLLER);
 
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.LIQUIDITY_CONTROLLER);
-        vm.etch(impl, address(controller).code);
+        ILiquidityController(payable(impl)).initialize({ _gasPayingTokenName: "", _gasPayingTokenSymbol: "" });
 
-        bytes32 _ownerSlot = bytes32(uint256(0));
-        bytes32 _nameSlot = bytes32(uint256(2));
-        bytes32 _symbolSlot = bytes32(uint256(3));
-
-        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _ownerSlot, bytes32(uint256(uint160(_input.opChainProxyAdminOwner))));
-        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _nameSlot, vm.load(address(controller), _nameSlot));
-        vm.store(Predeploys.LIQUIDITY_CONTROLLER, _symbolSlot, vm.load(address(controller), _symbolSlot));
-
-        /// Reset so its not included state dump
-        vm.etch(address(controller), "");
-        vm.resetNonce(address(controller));
+        ILiquidityController(payable(Predeploys.LIQUIDITY_CONTROLLER)).initialize({
+            _gasPayingTokenName: _input.gasPayingTokenName,
+            _gasPayingTokenSymbol: _input.gasPayingTokenSymbol
+        });
     }
 
     /// @notice This predeploy is following the safety invariant #1.

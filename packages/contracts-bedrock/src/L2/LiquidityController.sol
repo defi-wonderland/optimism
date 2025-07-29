@@ -2,6 +2,7 @@
 pragma solidity 0.8.15;
 
 // Contracts
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
@@ -13,11 +14,12 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
+/// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title LiquidityController
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
 ///         chain.
-contract LiquidityController is Ownable, ISemver {
+contract LiquidityController is Ownable, ISemver, Initializable {
     /// @notice Emitted when an address is authorized to mint/burn liquidity
     event MinterAuthorized(address indexed minter);
 
@@ -40,7 +42,14 @@ contract LiquidityController is Ownable, ISemver {
     /// @notice The symbol of the native asset
     string public gasPayingTokenSymbol;
 
-    constructor(string memory _gasPayingTokenName, string memory _gasPayingTokenSymbol) {
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initializer.
+    /// @param _gasPayingTokenName The name of the native asset
+    /// @param _gasPayingTokenSymbol The symbol of the native asset
+    function initialize(string memory _gasPayingTokenName, string memory _gasPayingTokenSymbol) external initializer {
         gasPayingTokenName = _gasPayingTokenName;
         gasPayingTokenSymbol = _gasPayingTokenSymbol;
     }
