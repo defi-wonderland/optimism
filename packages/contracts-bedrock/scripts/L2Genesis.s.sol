@@ -5,8 +5,7 @@ pragma solidity 0.8.15;
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
-import { Script, StdStorage } from "forge-std/Script.sol";
-import { stdStorage } from "forge-std/StdStorage.sol";
+import { Script } from "forge-std/Script.sol";
 import { OutputMode, OutputModeUtils, Fork, ForkUtils } from "scripts/libraries/Config.sol";
 import { SetPreinstalls } from "scripts/SetPreinstalls.s.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
@@ -41,8 +40,6 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Script {
-    using stdStorage for StdStorage;
-
     struct Input {
         uint256 l1ChainID;
         uint256 l2ChainID;
