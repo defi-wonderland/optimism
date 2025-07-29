@@ -76,9 +76,6 @@ contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, Reinitializabl
         bytes extraData
     );
 
-    /// @notice Thrown when ETH deposits are not allowed when the custom gas token is active.
-    error L1StandardBridge_ETHDepositsNotAllowedForCGT();
-
     /// @notice Semantic version.
     /// @custom:semver 2.6.0
     string public constant version = "2.6.0";
@@ -272,9 +269,6 @@ contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, Reinitializabl
     /// @param _minGasLimit Minimum gas limit for the deposit message on L2.
     /// @param _extraData   Optional data to forward to L2.
     function _initiateETHDeposit(address _from, address _to, uint32 _minGasLimit, bytes memory _extraData) internal {
-        if (systemConfig.isCustomGasToken() && msg.value > 0) {
-            revert L1StandardBridge_ETHDepositsNotAllowedForCGT();
-        }
         _initiateBridgeETH(_from, _to, msg.value, _minGasLimit, _extraData);
     }
 

@@ -246,25 +246,6 @@ contract L1CrossDomainMessenger_SuperchainConfig_Test is L1CrossDomainMessenger_
 /// @title L1CrossDomainMessenger_SendMessage_Test
 /// @notice Tests for the `sendMessage` functionality of the L1CrossDomainMessenger.
 contract L1CrossDomainMessenger_SendMessage_Test is L1CrossDomainMessenger_TestInit {
-    /// @notice Tests that the `sendMessage` function reverts when the value is greater than 0 and the
-    ///         custom gas token is active.
-    /// @param _value The value to send to the `sendMessage` function.
-    function test_sendMessage_customGasToken_reverts(uint256 _value) external {
-        _value = bound(_value, 1, type(uint256).max - address(ethLockbox).balance);
-
-        // Set the custom gas token to true.
-        vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.isCustomGasToken, ()), abi.encode(true));
-
-        // Expect the revert.
-        vm.expectRevert(IL1CrossDomainMessenger.L1CrossDomainMessenger_ETHDepositsNotAllowedForCGT.selector);
-
-        // Deal the value to the alice.
-        vm.deal(alice, _value);
-        // Send the message.
-        vm.prank(alice);
-        l1CrossDomainMessenger.sendMessage{ value: _value }(recipient, hex"ff", uint32(100));
-    }
-
     /// @notice Tests that the `sendMessage` function is able to send a single message.
     /// TODO: this same test needs to be done with the legacy message type
     ///       by setting the message version to 0

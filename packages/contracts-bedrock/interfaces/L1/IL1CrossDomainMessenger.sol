@@ -9,7 +9,6 @@ import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
 interface IL1CrossDomainMessenger is ICrossDomainMessenger, IProxyAdminOwnedBase {
     error ReinitializableBase_ZeroInitVersion();
-    error L1CrossDomainMessenger_ETHDepositsNotAllowedForCGT();
 
     function PORTAL() external view returns (IOptimismPortal);
     function initialize(ISystemConfig _systemConfig, IOptimismPortal _portal) external;

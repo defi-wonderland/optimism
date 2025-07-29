@@ -425,26 +425,6 @@ contract L1StandardBridge_Receive_Test is CommonTest {
         assertEq(address(ethLockbox).balance, ethLockboxBalanceBefore + 100);
     }
 
-    /// @notice Tests that the `receive` function reverts when the value is greater than 0 and the
-    ///         custom gas token is active.
-    /// @param _value The value to send to the `receive` function.
-    function test_receive_customGasToken_reverts(uint256 _value) external {
-        _value = bound(_value, 1, type(uint256).max);
-
-        // Set the custom gas token to true.
-        vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.isCustomGasToken, ()), abi.encode(true));
-
-        // Expect the revert.
-        vm.expectRevert(IL1StandardBridge.L1StandardBridge_ETHDepositsNotAllowedForCGT.selector);
-
-        // Deal the value to the alice.
-        vm.deal(alice, _value);
-        // Send the message.
-        vm.prank(alice);
-        (bool success,) = address(l1StandardBridge).call{ value: _value }(hex"");
-        assertEq(success, false);
-    }
-
     /// @notice Verifies receive function reverts when called by contracts
     function test_receive_notEOA_reverts() external {
         vm.etch(alice, hex"ffff");
@@ -486,22 +466,6 @@ contract L1StandardBridge_DepositETH_Test is L1StandardBridge_TestInit {
         assertEq(address(ethLockbox).balance, ethLockboxBalanceBefore + 500);
     }
 
-    /// @notice Tests that the `depositETH` function reverts when the value is greater than 0 and the
-    ///         custom gas token is active.
-    function test_depositETH_customGasToken_reverts() external {
-        // Set the custom gas token to true.
-        vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.isCustomGasToken, ()), abi.encode(true));
-
-        // Set alice to have 7702 code.
-        vm.etch(alice, abi.encodePacked(hex"EF0100", address(0)));
-        vm.deal(alice, 1);
-
-        // Expect the revert.
-        vm.expectRevert(IL1StandardBridge.L1StandardBridge_ETHDepositsNotAllowedForCGT.selector);
-        vm.prank(alice);
-        l1StandardBridge.depositETH{ value: 1 }(50000, hex"");
-    }
-
     /// @notice Tests that depositing ETH reverts if the call is not from an EOA.
     function test_depositETH_notEoa_reverts() external {
         vm.etch(alice, address(L1Token).code);
@@ -541,18 +505,6 @@ contract L1StandardBridge_DepositETHTo_Test is L1StandardBridge_TestInit {
         vm.prank(alice);
         l1StandardBridge.depositETHTo{ value: _amount }(_to, 60000, hex"dead");
         assertEq(address(ethLockbox).balance, ethLockboxBalanceBefore + _amount);
-    }
-
-    /// @notice Tests that the `depositETHTo` function reverts when the value is greater than 0 and the
-    ///         custom gas token is active.
-    function test_depositETHTo_customGasToken_reverts() external {
-        // Set the custom gas token to true.
-        vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.isCustomGasToken, ()), abi.encode(true));
-
-        vm.deal(alice, 1);
-        vm.prank(alice);
-        vm.expectRevert(IL1StandardBridge.L1StandardBridge_ETHDepositsNotAllowedForCGT.selector);
-        l1StandardBridge.depositETHTo{ value: 1 }(bob, 60000, hex"dead");
     }
 }
 

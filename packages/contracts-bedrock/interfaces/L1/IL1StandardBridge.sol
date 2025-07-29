@@ -9,7 +9,6 @@ import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
 interface IL1StandardBridge is IStandardBridge, IProxyAdminOwnedBase {
     error ReinitializableBase_ZeroInitVersion();
-    error L1StandardBridge_ETHDepositsNotAllowedForCGT();
 
     event ERC20DepositInitiated(
         address indexed l1Token,
