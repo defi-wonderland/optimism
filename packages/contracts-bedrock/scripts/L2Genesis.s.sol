@@ -224,7 +224,7 @@ contract L2Genesis is Script {
         setOptimismMintableERC20Factory(); // 12
         setL1BlockNumber(); // 13
         setL2ERC721Bridge(_input.l1ERC721BridgeProxy); // 14
-        setL1Block(); // 15
+        setL1Block(_input.isCustomGasToken); // 15
         setL2ToL1MessagePasser(); // 16
         setOptimismMintableERC721Factory(_input); // 17
         setProxyAdmin(_input); // 18
@@ -355,10 +355,22 @@ contract L2Genesis is Script {
     }
 
     /// @notice This predeploy is following the safety invariant #1.
-    function setL1Block() internal {
+    function setL1Block(bool _isCustomGasToken) internal {
+        IL1Block l1Block = IL1Block(
+            DeployUtils.create1({
+                _name: "L1Block",
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL1Block.__constructor__, (_isCustomGasToken)))
+            })
+        );
+
         // Note: L1 block attributes are set to 0.
         // Before the first user-tx the state is overwritten with actual L1 attributes.
-        _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
+        vm.etch(impl, address(l1Block).code);
+
+        /// Reset so its not included state dump
+        vm.etch(address(l1Block), "");
+        vm.resetNonce(address(l1Block));
     }
 
     /// @notice This predeploy is following the safety invariant #1.
