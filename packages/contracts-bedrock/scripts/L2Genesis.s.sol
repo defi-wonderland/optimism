@@ -555,7 +555,7 @@ contract L2Genesis is Script {
         _setImplementationCode(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
     }
 
-    /// @notice This predeploy is following the safety invariant #2.
+    /// @notice This predeploy is following the safety invariant #1.
     function setLiquidityController(Input memory _input) internal {
         if (!_input.isCustomGasToken) {
             return;
@@ -563,9 +563,9 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.LIQUIDITY_CONTROLLER);
 
-        ILiquidityController(payable(impl)).initialize({ _gasPayingTokenName: "", _gasPayingTokenSymbol: "" });
+        ILiquidityController(impl).initialize({ _gasPayingTokenName: "", _gasPayingTokenSymbol: "" });
 
-        ILiquidityController(payable(Predeploys.LIQUIDITY_CONTROLLER)).initialize({
+        ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).initialize({
             _gasPayingTokenName: _input.gasPayingTokenName,
             _gasPayingTokenSymbol: _input.gasPayingTokenSymbol
         });
