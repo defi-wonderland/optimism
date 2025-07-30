@@ -48,9 +48,6 @@ contract FeeRouter is ISemver, Initializable {
     /// @notice Thrown when the L1 fee wallet share exceeds 100%.
     error FeeRouter_L1FeeWalletShareExceeds100Percent();
 
-    /// @notice Thrown when the contract is not initialized.
-    error FeeRouter_NotInitialized();
-
     /// @notice Thrown when the disbursement interval has not been reached.
     error FeeRouter_DisbursementIntervalNotReached();
 
@@ -94,6 +91,9 @@ contract FeeRouter is ISemver, Initializable {
     /// @notice The minimum gas limit for the FeeRouter withdrawal transactions to L1.
     uint32 public constant WITHDRAWAL_MIN_GAS = 35_000;
 
+    /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
+    uint256 public constant MIN_FEE_DISBURSEMENT_INTERVAL = 24 hours;
+
     /// @notice The chain ID of the OP chain.
     uint256 public constant OP_CHAIN_ID = 10;
 
@@ -102,7 +102,7 @@ contract FeeRouter is ISemver, Initializable {
     //////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice The chain ID of the current network.
-    uint256 internal immutable BLOCK_CHAIN_ID_;
+    uint256 public immutable BLOCK_CHAIN_ID;
 
     //////////////////////////////////////////////////////////////////////////////////////
     ///                                    Storage                                     ///
@@ -128,9 +128,6 @@ contract FeeRouter is ISemver, Initializable {
 
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint256 public feeDisbursementInterval;
-
-    /// @notice Whether the contract has been initialized.
-    bool public initialized;
 
     //////////////////////////////////////////////////////////////////////////////////////
     ///                                     Events                                     ///
@@ -206,14 +203,8 @@ contract FeeRouter is ISemver, Initializable {
 
     /// @notice Constructor for the FeeRouter contract which validates and sets immutable variables.
     constructor() {
-        BLOCK_CHAIN_ID_ = block.chainid;
+        BLOCK_CHAIN_ID = block.chainid;
         _disableInitializers();
-    }
-
-    /// @notice Getter for the block chain ID.
-    /// @return The chain ID of the current network.
-    function BLOCK_CHAIN_ID() external view returns (uint256) {
-        return BLOCK_CHAIN_ID_;
     }
 
     /// @notice Initializes the contract with all required addresses and parameters.
@@ -238,15 +229,16 @@ contract FeeRouter is ISemver, Initializable {
         if (_l1Wallet == address(0)) revert FeeRouter_L1WalletCannotBeZero();
         if (_feeCollector == address(0)) revert FeeRouter_FeeCollectorCannotBeZero();
         if (_opPortalAddress == address(0)) revert FeeRouter_OpPortalAddressCannotBeZero();
-        if (_feeDisbursementInterval < 24 hours) revert FeeRouter_FeeDisbursementIntervalTooShort();
-        if (_l1FeeWalletShare >= BASIS_POINT_SCALE) revert FeeRouter_L1FeeWalletShareExceeds100Percent();
+        if (_feeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
+            revert FeeRouter_FeeDisbursementIntervalTooShort();
+        }
+        if (_l1FeeWalletShare > BASIS_POINT_SCALE) revert FeeRouter_L1FeeWalletShareExceeds100Percent();
 
         l1Wallet = _l1Wallet;
         feeCollector = _feeCollector;
         opPortalAddress = _opPortalAddress;
         feeDisbursementInterval = _feeDisbursementInterval;
         l1FeeWalletShare = _l1FeeWalletShare;
-        initialized = true;
 
         emit Initialized(_l1Wallet, _feeCollector, _opPortalAddress, _feeDisbursementInterval, _l1FeeWalletShare);
     }
@@ -287,17 +279,16 @@ contract FeeRouter is ISemver, Initializable {
     ///          Gross Revenue           = Net Revenue + l1 FeeVault fee revenue + operator FeeVault fee revenue
     ///          Optimism Revenue Share  = Maximum of 15% of Net Revenue and 2.5% of Gross Revenue
     ///          L1 Wallet Revenue Share = Gross Revenue - Optimism Revenue Share
-    function disburseFees() external virtual {
-        if (!initialized) revert FeeRouter_NotInitialized();
+    function disburseFees() external {
         if (block.timestamp < lastDisbursementTime + feeDisbursementInterval) {
             revert FeeRouter_DisbursementIntervalNotReached();
         }
 
         // Sequencer and base FeeVaults will withdraw fees to the FeeRouter
-        _feeVaultWithdrawal({ feeVault: payable(Predeploys.SEQUENCER_FEE_WALLET) });
-        _feeVaultWithdrawal({ feeVault: payable(Predeploys.BASE_FEE_VAULT) });
-        _feeVaultWithdrawal({ feeVault: payable(Predeploys.L1_FEE_VAULT) });
-        _feeVaultWithdrawal({ feeVault: payable(Predeploys.OPERATOR_FEE_VAULT) });
+        _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
+        _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
+        _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
+        _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
 
         // Gross revenue is the sum of all fees
         uint256 feeBalance = address(this).balance;
@@ -316,7 +307,7 @@ contract FeeRouter is ISemver, Initializable {
         // OP Fee Collector share is the remainder of the fee balance
         uint256 opFeeCollectorShare = feeBalance - l1FeeWalletShareAmount;
 
-        if (BLOCK_CHAIN_ID_ == OP_CHAIN_ID) {
+        if (BLOCK_CHAIN_ID == OP_CHAIN_ID) {
             // OP Mainnet: Send to OP Fee Collector contract
             if (!SafeCall.send({ _target: feeCollector, _gas: gasleft(), _value: opFeeCollectorShare })) {
                 revert FeeRouter_FailedToSendToFeeCollector();
@@ -396,7 +387,9 @@ contract FeeRouter is ISemver, Initializable {
     ///
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
     function setFeeDisbursementInterval(uint256 _newFeeDisbursementInterval) external onlyOwner {
-        if (_newFeeDisbursementInterval < 24 hours) revert FeeRouter_NewFeeDisbursementIntervalTooShort();
+        if (_newFeeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
+            revert FeeRouter_NewFeeDisbursementIntervalTooShort();
+        }
         uint256 oldInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
         emit FeeDisbursementIntervalUpdated(oldInterval, _newFeeDisbursementInterval);
