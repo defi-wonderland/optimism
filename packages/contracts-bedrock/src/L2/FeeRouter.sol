@@ -15,13 +15,72 @@ import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
+// OpenZeppelin
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+/// @custom:proxied
+/// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title FeeRouter
-///
-/// @notice Withdraws funds from system FeeVault contracts, bridges approprate funds to L1 for OP chain runner fees, and
-/// shares the rest of the
-///         revenue with Optimism. Supports different behavior based on chain type (OP Mainnet vs other OP chains).
-contract FeeRouter is ISemver {
+/// @notice Withdraws funds from system FeeVault contracts, bridges appropriate funds to L1 for OP chain runner fees,
+/// and
+///         shares the rest of the revenue with Optimism. Supports different behavior based on chain type (OP Mainnet vs
+/// other OP chains).
+contract FeeRouter is ISemver, Initializable {
+    //////////////////////////////////////////////////////////////////////////////////////
+    ///                                   Errors                                       ///
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    /// @notice Thrown when the contract is already initialized.
+    error FeeRouter_AlreadyInitialized();
+
+    /// @notice Thrown when the L1 wallet address is zero.
+    error FeeRouter_L1WalletCannotBeZero();
+
+    /// @notice Thrown when the OP Fee Collector contract address is zero.
+    error FeeRouter_FeeCollectorCannotBeZero();
+
+    /// @notice Thrown when the OP Portal address is zero.
+    error FeeRouter_OpPortalAddressCannotBeZero();
+
+    /// @notice Thrown when the fee disbursement interval is less than 24 hours.
+    error FeeRouter_FeeDisbursementIntervalTooShort();
+
+    /// @notice Thrown when the L1 fee wallet share exceeds 100%.
+    error FeeRouter_L1FeeWalletShareExceeds100Percent();
+
+    /// @notice Thrown when the contract is not initialized.
+    error FeeRouter_NotInitialized();
+
+    /// @notice Thrown when the disbursement interval has not been reached.
+    error FeeRouter_DisbursementIntervalNotReached();
+
+    /// @notice Thrown when the FeeVault does not withdraw to L2.
+    error FeeRouter_FeeVaultMustWithdrawToL2();
+
+    /// @notice Thrown when the FeeVault does not withdraw to FeeRouter contract.
+    error FeeRouter_FeeVaultMustWithdrawToFeeRouter();
+
+    /// @notice Thrown when the new L1 wallet address is zero.
+    error FeeRouter_NewL1WalletCannotBeZero();
+
+    /// @notice Thrown when the new OP Fee Collector contract address is zero.
+    error FeeRouter_NewFeeCollectorCannotBeZero();
+
+    /// @notice Thrown when the new OP Portal address is zero.
+    error FeeRouter_NewOpPortalAddressCannotBeZero();
+
+    /// @notice Thrown when the new L1 fee wallet share exceeds 100%.
+    error FeeRouter_NewL1FeeWalletShareExceeds100Percent();
+
+    /// @notice Thrown when the new fee disbursement interval is less than 24 hours.
+    error FeeRouter_NewFeeDisbursementIntervalTooShort();
+
+    /// @notice Thrown when the caller is not the ProxyAdmin owner.
+    error FeeRouter_OnlyProxyAdminOwner();
+
+    /// @notice Thrown when sending funds to OP Fee Collector contract fails.
+    error FeeRouter_FailedToSendToFeeCollector();
+
     //////////////////////////////////////////////////////////////////////////////////////
     ///                                   Constants                                    ///
     //////////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +102,7 @@ contract FeeRouter is ISemver {
     //////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice The chain ID of the current network.
-    uint256 public immutable BLOCK_CHAIN_ID;
+    uint256 internal immutable BLOCK_CHAIN_ID_;
 
     //////////////////////////////////////////////////////////////////////////////////////
     ///                                    Storage                                     ///
@@ -145,9 +204,16 @@ contract FeeRouter is ISemver {
     ///                                  Constructor                                   ///
     //////////////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Constructor for the FeeRouter  contract which validates and sets immutable variables.
+    /// @notice Constructor for the FeeRouter contract which validates and sets immutable variables.
     constructor() {
-        BLOCK_CHAIN_ID = block.chainid;
+        BLOCK_CHAIN_ID_ = block.chainid;
+        _disableInitializers();
+    }
+
+    /// @notice Getter for the block chain ID.
+    /// @return The chain ID of the current network.
+    function BLOCK_CHAIN_ID() external view returns (uint256) {
+        return BLOCK_CHAIN_ID_;
     }
 
     /// @notice Initializes the contract with all required addresses and parameters.
@@ -166,16 +232,14 @@ contract FeeRouter is ISemver {
         uint256 _l1FeeWalletShare
     )
         external
+        initializer
         onlyOwner
     {
-        require(!initialized, "FeeRouter : Already initialized");
-        require(_l1Wallet != address(0), "FeeRouter : L1Wallet cannot be address(0)");
-        require(_feeCollector != address(0), "FeeRouter : OP Fee Collector contract cannot be address(0)");
-        require(_opPortalAddress != address(0), "FeeRouter : OP Portal address cannot be address(0)");
-        require(
-            _feeDisbursementInterval >= 24 hours, "FeeRouter : FeeDisbursementInterval cannot be less than 24 hours"
-        );
-        require(_l1FeeWalletShare <= BASIS_POINT_SCALE, "FeeRouter : L1 fee wallet share cannot exceed 100%");
+        if (_l1Wallet == address(0)) revert FeeRouter_L1WalletCannotBeZero();
+        if (_feeCollector == address(0)) revert FeeRouter_FeeCollectorCannotBeZero();
+        if (_opPortalAddress == address(0)) revert FeeRouter_OpPortalAddressCannotBeZero();
+        if (_feeDisbursementInterval < 24 hours) revert FeeRouter_FeeDisbursementIntervalTooShort();
+        if (_l1FeeWalletShare >= BASIS_POINT_SCALE) revert FeeRouter_L1FeeWalletShareExceeds100Percent();
 
         l1Wallet = _l1Wallet;
         feeCollector = _feeCollector;
@@ -193,7 +257,9 @@ contract FeeRouter is ISemver {
 
     /// @notice Modifier that restricts access to the ProxyAdmin owner.
     modifier onlyOwner() {
-        require(msg.sender == IProxyAdmin(Predeploys.PROXY_ADMIN).owner(), "FeeRouter : Only ProxyAdmin owner");
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert FeeRouter_OnlyProxyAdminOwner();
+        }
         _;
     }
 
@@ -222,13 +288,12 @@ contract FeeRouter is ISemver {
     ///          Optimism Revenue Share  = Maximum of 15% of Net Revenue and 2.5% of Gross Revenue
     ///          L1 Wallet Revenue Share = Gross Revenue - Optimism Revenue Share
     function disburseFees() external virtual {
-        require(initialized, "FeeRouter : Not initialized");
-        require(
-            block.timestamp >= lastDisbursementTime + feeDisbursementInterval,
-            "FeeRouter : Disbursement interval not reached"
-        );
+        if (!initialized) revert FeeRouter_NotInitialized();
+        if (block.timestamp < lastDisbursementTime + feeDisbursementInterval) {
+            revert FeeRouter_DisbursementIntervalNotReached();
+        }
 
-        // Sequencer and base FeeVaults will withdraw fees to the FeeRouter  contract mutating netFeeRevenue
+        // Sequencer and base FeeVaults will withdraw fees to the FeeRouter
         _feeVaultWithdrawal({ feeVault: payable(Predeploys.SEQUENCER_FEE_WALLET) });
         _feeVaultWithdrawal({ feeVault: payable(Predeploys.BASE_FEE_VAULT) });
         _feeVaultWithdrawal({ feeVault: payable(Predeploys.L1_FEE_VAULT) });
@@ -251,12 +316,11 @@ contract FeeRouter is ISemver {
         // OP Fee Collector share is the remainder of the fee balance
         uint256 opFeeCollectorShare = feeBalance - l1FeeWalletShareAmount;
 
-        if (BLOCK_CHAIN_ID == OP_CHAIN_ID) {
+        if (BLOCK_CHAIN_ID_ == OP_CHAIN_ID) {
             // OP Mainnet: Send to OP Fee Collector contract
-            require(
-                SafeCall.send({ _target: feeCollector, _gas: gasleft(), _value: opFeeCollectorShare }),
-                "FeeRouter : Failed to send funds to OP Fee Collector contract"
-            );
+            if (!SafeCall.send({ _target: feeCollector, _gas: gasleft(), _value: opFeeCollectorShare })) {
+                revert FeeRouter_FailedToSendToFeeCollector();
+            }
 
             // Send to L1 wallet via L2ToL1MessagePasser
             IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{
@@ -292,7 +356,7 @@ contract FeeRouter is ISemver {
     ///
     /// @param _newL1Wallet The new L1 wallet address.
     function setL1Wallet(address _newL1Wallet) external onlyOwner {
-        require(_newL1Wallet != address(0), "FeeRouter : New L1 wallet cannot be address(0)");
+        if (_newL1Wallet == address(0)) revert FeeRouter_NewL1WalletCannotBeZero();
         address oldWallet = l1Wallet;
         l1Wallet = payable(_newL1Wallet);
         emit L1WalletUpdated(oldWallet, _newL1Wallet);
@@ -302,7 +366,7 @@ contract FeeRouter is ISemver {
     ///
     /// @param _newFeeCollector The new OP Fee Collector contract address.
     function setFeeCollector(address payable _newFeeCollector) external onlyOwner {
-        require(_newFeeCollector != address(0), "FeeRouter : New OP Fee Collector contract cannot be address(0)");
+        if (_newFeeCollector == address(0)) revert FeeRouter_NewFeeCollectorCannotBeZero();
         address oldContract = feeCollector;
         feeCollector = _newFeeCollector;
         emit FeeCollectorUpdated(oldContract, _newFeeCollector);
@@ -312,7 +376,7 @@ contract FeeRouter is ISemver {
     ///
     /// @param _newOpPortalAddress The new OP Portal address.
     function setOpPortalAddress(address _newOpPortalAddress) external onlyOwner {
-        require(_newOpPortalAddress != address(0), "FeeRouter : New OP Portal address cannot be address(0)");
+        if (_newOpPortalAddress == address(0)) revert FeeRouter_NewOpPortalAddressCannotBeZero();
         address oldAddress = opPortalAddress;
         opPortalAddress = payable(_newOpPortalAddress);
         emit OpPortalAddressUpdated(oldAddress, _newOpPortalAddress);
@@ -322,7 +386,7 @@ contract FeeRouter is ISemver {
     ///
     /// @param _newL1FeeWalletShare The new L1 fee wallet share percentage in basis points.
     function setL1FeeWalletShare(uint256 _newL1FeeWalletShare) external onlyOwner {
-        require(_newL1FeeWalletShare <= BASIS_POINT_SCALE, "FeeRouter : L1 fee wallet share cannot exceed 100%");
+        if (_newL1FeeWalletShare > BASIS_POINT_SCALE) revert FeeRouter_NewL1FeeWalletShareExceeds100Percent();
         uint256 oldShare = l1FeeWalletShare;
         l1FeeWalletShare = _newL1FeeWalletShare;
         emit L1FeeWalletShareUpdated(oldShare, _newL1FeeWalletShare);
@@ -332,9 +396,7 @@ contract FeeRouter is ISemver {
     ///
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
     function setFeeDisbursementInterval(uint256 _newFeeDisbursementInterval) external onlyOwner {
-        require(
-            _newFeeDisbursementInterval >= 24 hours, "FeeRouter : FeeDisbursementInterval cannot be less than 24 hours"
-        );
+        if (_newFeeDisbursementInterval < 24 hours) revert FeeRouter_NewFeeDisbursementIntervalTooShort();
         uint256 oldInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
         emit FeeDisbursementIntervalUpdated(oldInterval, _newFeeDisbursementInterval);
@@ -349,17 +411,16 @@ contract FeeRouter is ISemver {
     /// @dev Withdrawal will only occur if the given FeeVault's balance is greater than or equal to the minimum
     ///      withdrawal amount.
     ///
-    /// @param feeVault The address of the FeeVault to withdraw from.
-    function _feeVaultWithdrawal(address payable feeVault) internal {
-        require(
-            FeeVault(feeVault).WITHDRAWAL_NETWORK() == Types.WithdrawalNetwork.L2,
-            "FeeRouter : FeeVault must withdraw to L2"
-        );
-        require(
-            FeeVault(feeVault).RECIPIENT() == address(this), "FeeRouter : FeeVault must withdraw to FeeRouter  contract"
-        );
-        if (feeVault.balance >= FeeVault(feeVault).MIN_WITHDRAWAL_AMOUNT()) {
-            FeeVault(feeVault).withdraw();
+    /// @param _feeVault The address of the FeeVault to withdraw from.
+    function _feeVaultWithdrawal(address payable _feeVault) internal {
+        if (FeeVault(_feeVault).WITHDRAWAL_NETWORK() != Types.WithdrawalNetwork.L2) {
+            revert FeeRouter_FeeVaultMustWithdrawToL2();
+        }
+        if (FeeVault(_feeVault).RECIPIENT() != address(this)) {
+            revert FeeRouter_FeeVaultMustWithdrawToFeeRouter();
+        }
+        if (_feeVault.balance >= FeeVault(_feeVault).MIN_WITHDRAWAL_AMOUNT()) {
+            FeeVault(_feeVault).withdraw();
         }
     }
 }
