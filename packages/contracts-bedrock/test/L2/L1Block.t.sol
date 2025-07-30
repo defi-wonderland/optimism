@@ -19,11 +19,15 @@ contract L1Block_TestInit is CommonTest {
 
     /// @notice Sets up the test suite.
     function setUp() public virtual override {
+        // Enable custom gas token:
+        /// L1Block.isCustomGasToken() == true;
+        /// LiquidityController & NativeAssetLiquidity are deployed.
         super.enableCustomGasToken();
         super.setUp();
         depositor = l1Block.DEPOSITOR_ACCOUNT();
     }
 
+    /// @notice Sets the L1Block contract to use the default gas token (ETH).
     function disableCustomGasToken() internal {
         address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
         vm.etch(impl, address(new L1Block(false)).code);
