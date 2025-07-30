@@ -12,11 +12,11 @@ import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { console } from "forge-std/console.sol";
 
-/// @title ProposalValidator_Integration_Test
-/// @notice Integration tests for ProposalValidator using createSelectFork
+/// @title ProposalValidator_Init_Test
+/// @notice Setup and deployment tests for ProposalValidator using createSelectFork
 /// @dev PoC based on voting cycle #38: https://gov.optimism.io/t/voting-cycle-roundup-38/9932
 /// @dev The distribution limits and thresholds were defined only for testing purposes.
-contract ProposalValidator_Integration_Test is Test {
+contract ProposalValidator_Init_Test is Test {
     IProposalValidator public proposalValidator;
     ProposalValidator public proposalValidatorImpl;
     IOptimismGovernor public governor;
@@ -29,9 +29,6 @@ contract ProposalValidator_Integration_Test is Test {
         IProposalValidator.ProposalType proposalType
     );
     
-    string MAINNET_RPC_URL = vm.envString("ETH_RPC_URL");
-    uint256 FORK_BLOCK_NUMBER = vm.envUint("FORK_BLOCK_NUMBER");
-
     // Cycle #38: May 22th 19:00 GMT to June 11th 19:00 GMT (21 days total) - 2025
     // START_TIMESTAMP is 1 day before voting period starts (end of Week 2)
     uint256 public constant CYCLE_NUMBER = 38;
@@ -43,9 +40,36 @@ contract ProposalValidator_Integration_Test is Test {
     uint8 public constant APPROVAL_VOTING_MODULE_ID = 3; // idInConfigurator for ApprovalVotingModule
     uint8 public constant OPTIMISTIC_VOTING_MODULE_ID = 2; // idInConfigurator for OptimisticVotingModule
 
+    /// @notice Indicates whether a test should run with OP Mainnet fork
+    function isOpMainnetForkTest() public view returns (bool) {
+        // Check if both required environment variables are set (non-default values)
+        string memory rpcUrl = vm.envOr("FORK_RPC_URL", string(""));
+        uint256 blockNumber = vm.envOr("FORK_BLOCK_NUMBER", uint256(0));
+        
+        // Both must be set to non-default values
+        return bytes(rpcUrl).length > 0 && blockNumber > 0;
+    }
+
     function setUp() public {
+        // Skip all tests if required environment variables are not set
+        if (!isOpMainnetForkTest()) {
+            console.log("Skipping OP Mainnet integration tests - Required env vars not set:");
+            console.log("- FORK_RPC_URL: OP Mainnet RPC URL");
+            console.log("- FORK_BLOCK_NUMBER: Block number to fork from");
+            return;
+        }
+
+        // Get environment variables
+        string memory rpcUrl = vm.envString("FORK_RPC_URL");
+        uint256 blockNumber = vm.envUint("FORK_BLOCK_NUMBER");
+        
         // Create fork from environment variables
-        vm.createSelectFork(MAINNET_RPC_URL, FORK_BLOCK_NUMBER);
+        vm.createSelectFork(rpcUrl, blockNumber);
+        
+        // Require OP Mainnet chain ID
+        require(block.chainid == 10, "Integration tests require OP Mainnet fork (chain ID 10)");
+        
+        console.log("Forked OP Mainnet at block:", blockNumber);
         
         // Deploy ProposalValidator
         _deployProposalValidator();
@@ -154,19 +178,12 @@ contract ProposalValidator_Integration_Test is Test {
         return (proposalTypes, proposalTypesData);
     }
 
-    /// @notice Test that demonstrates basic fork functionality
-    function test_fork_integration_basicCheck_succeeds() public {
-        // This test verifies that the fork is working correctly
-        assertTrue(block.number > 0, "Block number should be greater than 0 on forked chain");
-        assertEq(block.number, FORK_BLOCK_NUMBER, "Should be at the specified fork block number");
-        
-        // Basic chain state validation
-        assertGt(block.timestamp, 0, "Block timestamp should be set");
-        assertTrue(block.chainid == 10, "Should be on OP Mainnet");
-    }
-
     /// @notice Test that ProposalValidator is deployed and initialized correctly
-    function test_fork_integration_proposalValidatorDeployment_succeeds() public {
+    function test_proposalValidatorDeployment_succeeds() public {
+        // Skip if environment variables not set
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
         // Verify the contract is deployed
         assertTrue(address(proposalValidator).code.length > 0, "ProposalValidator should have code");
         assertTrue(address(proposalValidatorImpl).code.length > 0, "ProposalValidator implementation should have code");
@@ -191,8 +208,19 @@ contract ProposalValidator_Integration_Test is Test {
         assertEq(idInConfigurator, OPTIMISTIC_VOTING_MODULE_ID, "ID in configurator should be set");
     }
 
+}
+
+/// @title ProposalValidator_FundingProposalFullFlow_Test
+/// @notice Complete funding proposal flow integration test
+/// @dev Tests the full proposal lifecycle from submission to move-to-vote
+contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Init_Test {
+
     /// @notice Complete funding proposal flow from submission to approval
     function test_fork_integration_fundingProposalFullFlow_succeeds() public {
+        // Skip if environment variables not set
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
         // Set timestamp to be within the voting window (after start but before start + duration)
         uint256 votingWindowTimestamp = START_TIMESTAMP - 1; // Halfway through the voting window
         vm.warp(votingWindowTimestamp);
@@ -408,4 +436,3 @@ contract ProposalValidator_Integration_Test is Test {
     }
 
 }
-
