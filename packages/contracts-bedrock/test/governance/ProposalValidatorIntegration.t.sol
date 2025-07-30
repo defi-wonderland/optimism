@@ -216,15 +216,14 @@ contract ProposalValidator_Init_Test is Test {
 contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Init_Test {
 
     /// @notice Complete funding proposal flow from submission to approval
-    function test_fork_integration_fundingProposalFullFlow_succeeds() public {
+    function test_fundingProposalFullFlow_succeeds() public {
         // Skip if environment variables not set
         if (!isOpMainnetForkTest()) {
             vm.skip(true);
         }
-        // Set timestamp to be within the voting window (after start but before start + duration)
-        uint256 votingWindowTimestamp = START_TIMESTAMP - 1; // Halfway through the voting window
-        vm.warp(votingWindowTimestamp);
-        console.log("[OK] Timestamp set to voting window:", votingWindowTimestamp);
+        // Set timestamp to be within the voting window (before cycle starts)
+        vm.warp(START_TIMESTAMP - 1);
+        console.log("[OK] Timestamp set to voting window:", START_TIMESTAMP - 1);
         
         // Setup addresses and attestations
         (address proposer, bytes32 proposerAttestation, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations();
@@ -232,9 +231,10 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         // Submit proposal and get ID
         uint256 proposalId = _submitFundingProposal(proposer);
         
-        // Approve proposal with delegates
+        // Make required approvals from top delegates (4)
         _approveProposal(proposalId, delegateAttestations);
 
+        // Set timestamp to be within the voting window (after cycle starts) which allows to move to vote
         vm.warp(START_TIMESTAMP);
         
         // Move to vote and validate
@@ -244,10 +244,10 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
     function _setupAddressesAndAttestations() internal returns (address proposer, bytes32 proposerAttestation, bytes32[4] memory delegateAttestations) {
         // Create test addresses
         proposer = makeAddr("proposer");
-        address delegate1 = makeAddr("delegate1");
-        address delegate2 = makeAddr("delegate2");
-        address delegate3 = makeAddr("delegate3");
-        address delegate4 = makeAddr("delegate4");
+        address[] memory delegates = new address[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            delegates[i] = makeAddr(string.concat("delegate", vm.toString(i + 1)));
+        }
         
         console.log("[OK] Setup phase completed - addresses created and funded");
         
@@ -258,10 +258,9 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         proposerAttestation = _createProposerAttestation(eas, proposer);
         
         // Create delegate attestations
-        delegateAttestations[0] = _createDelegateAttestation(eas, delegate1);
-        delegateAttestations[1] = _createDelegateAttestation(eas, delegate2);
-        delegateAttestations[2] = _createDelegateAttestation(eas, delegate3);
-        delegateAttestations[3] = _createDelegateAttestation(eas, delegate4);
+        for (uint256 i = 0; i < 4; i++) {
+            delegateAttestations[i] = _createDelegateAttestation(eas, delegates[i]);
+        }
         
         console.log("[OK] Attestation creation completed - proposer and 4 delegates attested");
     }
