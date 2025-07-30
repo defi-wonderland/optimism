@@ -55,6 +55,10 @@
     "initCodeHash": "0xd4a8b5b95e29bdad905637c4007af161b28224f350f54508e66299f56cffcef0",
     "sourceCodeHash": "0x6d137fef431d75a8bf818444915fc39c8b1d93434a9af9971d96fb3170bc72b7"
   },
+  "src/L2/FeeRouter.sol:FeeRouter": {
+    "initCodeHash": "0x7a35f2e45768d26c1e8a57571ca80add91ebd5da3b02289aebf0f42e439db31e",
+    "sourceCodeHash": "0xae0516bbd2da074b47823da16b5d513a3009a47138a07d68ae4f272470dcdcb2"
+  },
   "src/L2/GasPriceOracle.sol:GasPriceOracle": {
     "initCodeHash": "0x38ef70b2783dd45ad807afcf57972c7df4abaaeb5d16d17cdb451b9e931a9cbb",
     "sourceCodeHash": "0x4351fe2ac1106c8c220b8cfe7839bc107c24d8084deb21259ac954f5a362725d"
