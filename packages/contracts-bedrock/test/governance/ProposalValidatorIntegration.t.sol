@@ -427,11 +427,10 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         assertEq(idInConfigurator, APPROVAL_VOTING_MODULE_ID, "Should use approval voting module");
         
         console.log("[SUCCESS] Complete funding proposal flow validation successful!");
-        console.log("  - Proposal ID:", proposalId);
-        console.log("  - Governor Proposal ID:", movedProposalId);
-        console.log("  - Total OP Requested:", totalTokensRequested / 1 ether, "OP");
-        console.log("  - Voting Cycle:", CYCLE_NUMBER);
-        console.log("  - Approval Threshold:", criteriaValue, "%");
+        console.log("- Proposal ID:", proposalId);
+        console.log("- Governor Proposal ID:", movedProposalId);
+        console.log("- Total OP Requested:", totalTokensRequested / 1 ether, "OP");
+        console.log("- Voting Cycle:", CYCLE_NUMBER);
+        console.log("- Approval Threshold:", criteriaValue, "%");
     }
-
 }
