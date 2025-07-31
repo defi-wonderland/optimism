@@ -284,47 +284,82 @@ contract ProposalValidator_Init_Test is Test {
 }
 
 /// @title ProposalValidator_FundingProposalFullFlow_Test
-/// @notice Complete funding proposal flow integration test
+/// @notice Complete funding proposal flow integration test for both GovernanceFund and CouncilBudget
 /// @dev Tests the full proposal lifecycle from submission to move-to-vote
 contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Init_Test {
 
-    /// @notice Complete funding proposal flow from submission to approval
-    function test_fundingProposalFullFlow_succeeds() public {
+    /// @notice Complete governance fund proposal flow from submission to approval
+    function test_governanceFundProposalFullFlow_succeeds() public {
         // Skip if environment variables not set
         if (!isOpMainnetForkTest()) {
             vm.skip(true);
         }
         vm.warp(START_TIMESTAMP - 1);
         
-        (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("funding");
-        uint256 proposalId = _submitFundingProposal(proposer);
-        _approveProposal(proposalId, delegateAttestations, "funding");
+        (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("governance_fund");
+        uint256 proposalId = _submitFundingProposal(proposer, IProposalValidator.ProposalType.GovernanceFund);
+        _approveProposal(proposalId, delegateAttestations, "governance_fund");
 
         vm.warp(START_TIMESTAMP);
-        _moveFundingToVoteAndValidate(proposer, proposalId);
+        _moveFundingToVoteAndValidate(proposer, proposalId, IProposalValidator.ProposalType.GovernanceFund);
+    }
+
+    /// @notice Complete council budget proposal flow from submission to approval
+    function test_councilBudgetProposalFullFlow_succeeds() public {
+        // Skip if environment variables not set
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
+        vm.warp(START_TIMESTAMP - 1);
+        
+        (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("council_budget");
+        uint256 proposalId = _submitFundingProposal(proposer, IProposalValidator.ProposalType.CouncilBudget);
+        _approveProposal(proposalId, delegateAttestations, "council_budget");
+
+        vm.warp(START_TIMESTAMP);
+        _moveFundingToVoteAndValidate(proposer, proposalId, IProposalValidator.ProposalType.CouncilBudget);
     }
 
 
-    function _submitFundingProposal(address proposer) internal returns (uint256) {
+    function _submitFundingProposal(address proposer, IProposalValidator.ProposalType proposalType) internal returns (uint256) {
         // Prepare funding proposal parameters
         uint128 criteriaValue = 75;
         string[] memory optionsDescriptions = new string[](3);
-        optionsDescriptions[0] = "Infrastructure Development: Build new governance tools";
-        optionsDescriptions[1] = "Community Growth: Marketing campaigns and events";
-        optionsDescriptions[2] = "Developer Relations: Developer tools and documentation";
-        
         address[] memory optionsRecipients = new address[](3);
-        optionsRecipients[0] = makeAddr("recipient1");
-        optionsRecipients[1] = makeAddr("recipient2");
-        optionsRecipients[2] = makeAddr("recipient3");
-        
         uint256[] memory optionsAmounts = new uint256[](3);
-        optionsAmounts[0] = 4000 ether;
-        optionsAmounts[1] = 3000 ether;
-        optionsAmounts[2] = 2500 ether;
+        string memory description;
         
-        string memory description = "Q3 2025 Governance Fund Proposal: Comprehensive ecosystem development initiative";
-        IProposalValidator.ProposalType proposalType = IProposalValidator.ProposalType.GovernanceFund;
+        if (proposalType == IProposalValidator.ProposalType.GovernanceFund) {
+            // Governance Fund: External ecosystem development
+            optionsDescriptions[0] = "Infrastructure Development: Build new governance tools";
+            optionsDescriptions[1] = "Community Growth: Marketing campaigns and events";
+            optionsDescriptions[2] = "Developer Relations: Developer tools and documentation";
+            
+            optionsRecipients[0] = makeAddr("infra_recipient");
+            optionsRecipients[1] = makeAddr("community_recipient");
+            optionsRecipients[2] = makeAddr("devrel_recipient");
+            
+            optionsAmounts[0] = 4000 ether;
+            optionsAmounts[1] = 3000 ether;
+            optionsAmounts[2] = 2500 ether;
+            
+            description = "Q3 2025 Governance Fund Proposal: Comprehensive ecosystem development initiative";
+        } else {
+            // Council Budget: Internal council operations
+            optionsDescriptions[0] = "Council Operations: Meeting coordination and governance overhead";
+            optionsDescriptions[1] = "Legal & Compliance: Legal review and regulatory compliance";
+            optionsDescriptions[2] = "Security Audits: Smart contract security assessments";
+            
+            optionsRecipients[0] = makeAddr("council_ops_recipient");
+            optionsRecipients[1] = makeAddr("legal_recipient");
+            optionsRecipients[2] = makeAddr("security_recipient");
+            
+            optionsAmounts[0] = 2000 ether;
+            optionsAmounts[1] = 1500 ether;
+            optionsAmounts[2] = 1000 ether;
+            
+            description = "Q3 2025 Council Budget Proposal: Essential council operations and governance support";
+        }
         
         // Submit the proposal
         vm.prank(proposer);
@@ -343,26 +378,48 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
     }
 
 
-    function _moveFundingToVoteAndValidate(address proposer, uint256 proposalId) internal {
+    function _moveFundingToVoteAndValidate(address proposer, uint256 proposalId, IProposalValidator.ProposalType proposalType) internal {
         // Prepare move to vote parameters
         uint128 criteriaValue = 75;
         string[] memory optionsDescriptions = new string[](3);
-        optionsDescriptions[0] = "Infrastructure Development: Build new governance tools";
-        optionsDescriptions[1] = "Community Growth: Marketing campaigns and events";
-        optionsDescriptions[2] = "Developer Relations: Developer tools and documentation";
-        
         address[] memory optionsRecipients = new address[](3);
-        optionsRecipients[0] = makeAddr("recipient1");
-        optionsRecipients[1] = makeAddr("recipient2");
-        optionsRecipients[2] = makeAddr("recipient3");
-        
         uint256[] memory optionsAmounts = new uint256[](3);
-        optionsAmounts[0] = 4000 ether;
-        optionsAmounts[1] = 3000 ether;
-        optionsAmounts[2] = 2500 ether;
+        string memory description;
+        uint256 totalTokensRequested;
         
-        string memory description = "Q3 2025 Governance Fund Proposal: Comprehensive ecosystem development initiative";
-        IProposalValidator.ProposalType proposalType = IProposalValidator.ProposalType.GovernanceFund;
+        if (proposalType == IProposalValidator.ProposalType.GovernanceFund) {
+            // Governance Fund: External ecosystem development
+            optionsDescriptions[0] = "Infrastructure Development: Build new governance tools";
+            optionsDescriptions[1] = "Community Growth: Marketing campaigns and events";
+            optionsDescriptions[2] = "Developer Relations: Developer tools and documentation";
+            
+            optionsRecipients[0] = makeAddr("infra_recipient");
+            optionsRecipients[1] = makeAddr("community_recipient");
+            optionsRecipients[2] = makeAddr("devrel_recipient");
+            
+            optionsAmounts[0] = 4000 ether;
+            optionsAmounts[1] = 3000 ether;
+            optionsAmounts[2] = 2500 ether;
+            
+            description = "Q3 2025 Governance Fund Proposal: Comprehensive ecosystem development initiative";
+            totalTokensRequested = 9500 ether; // 4k + 3k + 2.5k OP
+        } else {
+            // Council Budget: Internal council operations
+            optionsDescriptions[0] = "Council Operations: Meeting coordination and governance overhead";
+            optionsDescriptions[1] = "Legal & Compliance: Legal review and regulatory compliance";
+            optionsDescriptions[2] = "Security Audits: Smart contract security assessments";
+            
+            optionsRecipients[0] = makeAddr("council_ops_recipient");
+            optionsRecipients[1] = makeAddr("legal_recipient");
+            optionsRecipients[2] = makeAddr("security_recipient");
+            
+            optionsAmounts[0] = 2000 ether;
+            optionsAmounts[1] = 1500 ether;
+            optionsAmounts[2] = 1000 ether;
+            
+            description = "Q3 2025 Council Budget Proposal: Essential council operations and governance support";
+            totalTokensRequested = 4500 ether; // 2k + 1.5k + 1k OP
+        }
         
         // Execute move to vote
         vm.prank(proposer);
@@ -377,11 +434,10 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         
         assertTrue(movedProposalId > 0, "Move to vote should return valid proposal ID");
         (, , , uint256 movedToVoteTokenCount) = proposalValidator.votingCycles(CYCLE_NUMBER);
-        uint256 totalTokensRequested = 9500 ether; // 4k + 3k + 2.5k OP
         assertEq(movedToVoteTokenCount, totalTokensRequested, "Moved to vote token count should be updated");
         
         (uint256 requiredApprovals, uint8 idInConfigurator) = 
-            proposalValidator.proposalTypesData(IProposalValidator.ProposalType.GovernanceFund);
+            proposalValidator.proposalTypesData(proposalType);
         assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS, "Required approvals should match");
         assertEq(idInConfigurator, APPROVAL_VOTING_MODULE_ID, "Should use approval voting module");
         
