@@ -138,15 +138,94 @@ abstract contract StandardCGTBridge is Initializable {
         return superchainConfig.paused();
     }
 
-    /// @notice Internal function for initiating a CGT deposit.
-    /// @param _token       Address of the CGT token being deposited.
+    /// @notice Sends ERC20 tokens to the sender's address on the other chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _amount      Amount of local tokens to deposit.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function bridgeERC20(
+        address _localToken,
+        address _remoteToken,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        public
+        virtual
+        onlyEOA
+    {
+        _initiateBridgeERC20(_localToken, _remoteToken, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of local tokens to deposit.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function bridgeERC20To(
+        address _localToken,
+        address _remoteToken,
+        address _to,
+        uint256 _amount,
+        uint32 _minGasLimit,
+        bytes calldata _extraData
+    )
+        public
+        virtual
+    {
+        _initiateBridgeERC20(_localToken, _remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.
-    /// @param _to          Address of the recipient on the other chain.
-    /// @param _amount      Amount of the CGT to deposit.
-    /// @param _minGasLimit Minimum gas limit for the deposit message.
-    /// @param _extraData   Optional data to forward.
-    function _initiateCGTDeposit(
-        address _token,
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of the ERC20 being bridged.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function finalizeBridgeERC20(
+        address _localToken,
+        address _remoteToken,
+        address _from,
+        address _to,
+        uint256 _amount,
+        bytes calldata _extraData
+    )
+        public
+        onlyOtherBridge
+    {
+        if (paused()) {
+            revert StandardCGTBridge_Paused();
+        }
+
+        deposits[_localToken] = deposits[_localToken] - _amount;
+        IERC20(_localToken).safeTransfer(_to, _amount);
+
+        emit ERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+    }
+
+    /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
+    /// @param _localToken  Address of the ERC20 on this chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of local tokens to deposit.
+    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function _initiateBridgeERC20(
+        address _localToken,
+        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
@@ -158,61 +237,33 @@ abstract contract StandardCGTBridge is Initializable {
         if (_amount == 0) {
             revert StandardCGTBridge_AmountMustBeGreaterThanZero();
         }
+
         if (_to == address(0)) {
             revert StandardCGTBridge_RecipientCannotBeZeroAddress();
         }
 
-        // Transfer tokens from sender to this contract (escrow)
-        IERC20(_token).safeTransferFrom(_from, address(this), _amount);
-        deposits[_token] = deposits[_token] + _amount;
+        if (_localToken == cgtToken) revert StandardCGTBridge_TokenNotSupported();
 
-        // Emit the CGT deposit initiated event
-        emit CGTDepositInitiated(_token, _from, _to, _amount, _extraData);
+        IERC20(_localToken).safeTransferFrom(_from, address(this), _amount);
+        deposits[_localToken] = deposits[_localToken] + _amount;
 
-        // Send message to the other bridge to finalize the deposit
-        _sendCrossChainMessage(_token, _from, _to, _amount, _minGasLimit, _extraData);
+        emit CGTDepositInitiated(_localToken, _from, _to, _amount, _extraData);
+
+        messenger.sendMessage({
+            _target: address(otherBridge),
+            _message: abi.encodeWithSelector(
+                this.finalizeBridgeERC20.selector,
+                // Because this call will be executed on the remote chain, we reverse the order of
+                // the remote and local token addresses relative to their order in the
+                // finalizeBridgeERC20 function.
+                _remoteToken,
+                _localToken,
+                _from,
+                _to,
+                _amount,
+                _extraData
+            ),
+            _minGasLimit: _minGasLimit
+        });
     }
-
-    /// @notice Internal function for finalizing a CGT withdrawal.
-    /// @param _token     Address of the CGT token.
-    /// @param _from      Address of the sender on the other chain.
-    /// @param _to        Address of the recipient on this chain.
-    /// @param _amount    Amount of the CGT to withdraw.
-    /// @param _extraData Optional data forwarded from the other chain.
-    function _finalizeCGTWithdrawal(
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        bytes calldata _extraData
-    )
-        internal
-    {
-        if (deposits[_token] < _amount) {
-            revert StandardCGTBridge_InsufficientDeposits();
-        }
-
-        deposits[_token] = deposits[_token] - _amount;
-        IERC20(_token).safeTransfer(_to, _amount);
-
-        emit CGTWithdrawalFinalized(_token, _from, _to, _amount, _extraData);
-    }
-
-    /// @notice Internal function to send cross-chain messages. Must be implemented by child contracts.
-    /// @param _token       Address of the CGT token.
-    /// @param _from        Address of the sender.
-    /// @param _to          Address of the recipient.
-    /// @param _amount      Amount of the CGT.
-    /// @param _minGasLimit Minimum gas limit for the message.
-    /// @param _extraData   Optional data to forward.
-    function _sendCrossChainMessage(
-        address _token,
-        address _from,
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes memory _extraData
-    )
-        internal
-        virtual;
 }
