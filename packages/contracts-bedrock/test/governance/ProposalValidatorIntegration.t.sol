@@ -10,7 +10,6 @@ import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { ISchemaRegistry, ISchemaResolver } from "src/vendor/eas/ISchemaRegistry.sol";
 import { IEAS, AttestationRequest, AttestationRequestData } from "src/vendor/eas/IEAS.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { console } from "forge-std/console.sol";
 
 /// @title ProposalValidator_Init_Test
 /// @notice Setup and deployment tests for ProposalValidator using createSelectFork
@@ -53,9 +52,6 @@ contract ProposalValidator_Init_Test is Test {
     function setUp() public {
         // Skip all tests if required environment variables are not set
         if (!isOpMainnetForkTest()) {
-            console.log("Skipping OP Mainnet integration tests - Required env vars not set:");
-            console.log("- FORK_RPC_URL: OP Mainnet RPC URL");
-            console.log("- FORK_BLOCK_NUMBER: Block number to fork from");
             return;
         }
 
@@ -68,8 +64,6 @@ contract ProposalValidator_Init_Test is Test {
         
         // Require OP Mainnet chain ID
         require(block.chainid == 10, "Integration tests require OP Mainnet fork (chain ID 10)");
-        
-        console.log("Forked OP Mainnet at block:", blockNumber);
         
         // Deploy ProposalValidator
         _deployProposalValidator();
@@ -207,88 +201,6 @@ contract ProposalValidator_Init_Test is Test {
         assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS, "Required approvals should be set");
         assertEq(idInConfigurator, OPTIMISTIC_VOTING_MODULE_ID, "ID in configurator should be set");
     }
-
-}
-
-/// @title ProposalValidator_FundingProposalFullFlow_Test
-/// @notice Complete funding proposal flow integration test
-/// @dev Tests the full proposal lifecycle from submission to move-to-vote
-contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Init_Test {
-
-    /// @notice Complete funding proposal flow from submission to approval
-    function test_fundingProposalFullFlow_succeeds() public {
-        // Skip if environment variables not set
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
-        // Set timestamp to be within the voting window (before cycle starts)
-        vm.warp(START_TIMESTAMP - 1);
-        console.log("[OK] Timestamp set to voting window:", START_TIMESTAMP - 1);
-        
-        // Setup addresses and attestations
-        (address proposer, bytes32 proposerAttestation, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations();
-        
-        // Submit proposal and get ID
-        uint256 proposalId = _submitFundingProposal(proposer);
-        
-        // Make required approvals from top delegates (4)
-        _approveProposal(proposalId, delegateAttestations);
-
-        // Set timestamp to be within the voting window (after cycle starts) which allows to move to vote
-        vm.warp(START_TIMESTAMP);
-        
-        // Move to vote and validate
-        _moveToVoteAndValidate(proposer, proposalId);
-    }
-
-    function _setupAddressesAndAttestations() internal returns (address proposer, bytes32 proposerAttestation, bytes32[4] memory delegateAttestations) {
-        // Create test addresses
-        proposer = makeAddr("proposer");
-        address[] memory delegates = new address[](4);
-        for (uint256 i = 0; i < 4; i++) {
-            delegates[i] = makeAddr(string.concat("delegate", vm.toString(i + 1)));
-        }
-        
-        console.log("[OK] Setup phase completed - addresses created and funded");
-        
-        // Create attestations
-        IEAS eas = IEAS(Predeploys.EAS);
-        
-        // Create approved proposer attestation
-        proposerAttestation = _createProposerAttestation(eas, proposer);
-        
-        // Create delegate attestations
-        for (uint256 i = 0; i < 4; i++) {
-            delegateAttestations[i] = _createDelegateAttestation(eas, delegates[i]);
-        }
-        
-        console.log("[OK] Attestation creation completed - proposer and 4 delegates attested");
-    }
-
-    function _createProposerAttestation(IEAS eas, address proposer) internal returns (bytes32) {
-        bytes32 approvedProposerSchemaUid = proposalValidator.approvedProposerAttestationSchemaUid();
-        bytes memory proposerAttestationData = abi.encode(
-            uint8(IProposalValidator.ProposalType.GovernanceFund),
-            "2025-06-04"
-        );
-        
-        AttestationRequest memory proposerRequest = AttestationRequest({
-            schema: approvedProposerSchemaUid,
-            data: AttestationRequestData({
-                recipient: proposer,
-                expirationTime: uint64(block.timestamp + 365 days),
-                revocable: true,
-                refUID: bytes32(0),
-                data: proposerAttestationData,
-                value: 0
-            })
-        });
-        
-        bytes32 proposerAttestationUid = eas.attest(proposerRequest);
-        assertTrue(proposerAttestationUid != bytes32(0), "Proposer attestation should be created");
-        return proposerAttestationUid;
-    }
-
     function _createDelegateAttestation(IEAS eas, address delegate) internal returns (bytes32) {
         bytes32 topDelegatesSchemaUid = proposalValidator.topDelegatesAttestationSchemaUid();
         
@@ -317,6 +229,81 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         vm.prank(topDelegateIssuer);
         return eas.attest(delegateRequest);
     }
+
+    function _createProposerAttestation(IEAS eas, address proposer, IProposalValidator.ProposalType proposalType) internal returns (bytes32) {
+        bytes32 approvedProposerSchemaUid = proposalValidator.approvedProposerAttestationSchemaUid();
+        bytes memory proposerAttestationData = abi.encode(
+            uint8(proposalType),
+            "2025-06-04"
+        );
+        
+        AttestationRequest memory proposerRequest = AttestationRequest({
+            schema: approvedProposerSchemaUid,
+            data: AttestationRequestData({
+                recipient: proposer,
+                expirationTime: uint64(block.timestamp + 365 days),
+                revocable: true,
+                refUID: bytes32(0),
+                data: proposerAttestationData,
+                value: 0
+            })
+        });
+        
+        bytes32 proposerAttestationUid = eas.attest(proposerRequest);
+        assertTrue(proposerAttestationUid != bytes32(0), "Proposer attestation should be created");
+        return proposerAttestationUid;
+    }
+
+    function _setupAddressesAndAttestations(string memory prefix) internal returns (address proposer, bytes32[4] memory delegateAttestations) {
+        // Create test addresses with prefix to avoid collisions
+        proposer = makeAddr(string.concat(prefix, "_proposer"));
+        address[] memory delegates = new address[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            delegates[i] = makeAddr(string.concat(prefix, "_delegate", vm.toString(i + 1)));
+        }
+        
+        // Create delegate attestations
+        IEAS eas = IEAS(Predeploys.EAS);
+        for (uint256 i = 0; i < 4; i++) {
+            delegateAttestations[i] = _createDelegateAttestation(eas, delegates[i]);
+        }
+    }
+
+    function _approveProposal(uint256 proposalId, bytes32[4] memory delegateAttestations, string memory prefix) internal {
+        address[] memory delegates = new address[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            delegates[i] = makeAddr(string.concat(prefix, "_delegate", vm.toString(i + 1)));
+        }
+        
+        for (uint256 i = 0; i < 4; i++) {
+            vm.prank(delegates[i]);
+            proposalValidator.approveProposal(proposalId, delegateAttestations[i]);
+        }
+    }
+
+}
+
+/// @title ProposalValidator_FundingProposalFullFlow_Test
+/// @notice Complete funding proposal flow integration test
+/// @dev Tests the full proposal lifecycle from submission to move-to-vote
+contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Init_Test {
+
+    /// @notice Complete funding proposal flow from submission to approval
+    function test_fundingProposalFullFlow_succeeds() public {
+        // Skip if environment variables not set
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
+        vm.warp(START_TIMESTAMP - 1);
+        
+        (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("funding");
+        uint256 proposalId = _submitFundingProposal(proposer);
+        _approveProposal(proposalId, delegateAttestations, "funding");
+
+        vm.warp(START_TIMESTAMP);
+        _moveFundingToVoteAndValidate(proposer, proposalId);
+    }
+
 
     function _submitFundingProposal(address proposer) internal returns (uint256) {
         // Prepare funding proposal parameters
@@ -351,37 +338,12 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
             CYCLE_NUMBER
         );
         
-        // Validate proposal submission - hash-based ID should be non-zero
         assertTrue(proposalId != 0, "Proposal ID should not be zero (hash-based ID)");
-        console.log("[OK] Proposal submission completed - ID:", proposalId);
-        
         return proposalId;
     }
 
-    function _approveProposal(uint256 proposalId, bytes32[4] memory delegateAttestations) internal {
-        address delegate1 = makeAddr("delegate1");
-        address delegate2 = makeAddr("delegate2");
-        address delegate3 = makeAddr("delegate3");
-        address delegate4 = makeAddr("delegate4");
-        
-        vm.prank(delegate1);
-        proposalValidator.approveProposal(proposalId, delegateAttestations[0]);
-        console.log("[OK] Delegate 1 approved proposal");
-        
-        vm.prank(delegate2);
-        proposalValidator.approveProposal(proposalId, delegateAttestations[1]);
-        console.log("[OK] Delegate 2 approved proposal");
-        
-        vm.prank(delegate3);
-        proposalValidator.approveProposal(proposalId, delegateAttestations[2]);
-        console.log("[OK] Delegate 3 approved proposal");
-        
-        vm.prank(delegate4);
-        proposalValidator.approveProposal(proposalId, delegateAttestations[3]);
-        console.log("[OK] Delegate 4 approved proposal - threshold reached");
-    }
 
-    function _moveToVoteAndValidate(address proposer, uint256 proposalId) internal {
+    function _moveFundingToVoteAndValidate(address proposer, uint256 proposalId) internal {
         // Prepare move to vote parameters
         uint128 criteriaValue = 75;
         string[] memory optionsDescriptions = new string[](3);
@@ -414,9 +376,6 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         );
         
         assertTrue(movedProposalId > 0, "Move to vote should return valid proposal ID");
-        console.log("[OK] Proposal moved to vote - Governor ID:", movedProposalId);
-        
-        // Final validation
         (, , , uint256 movedToVoteTokenCount) = proposalValidator.votingCycles(CYCLE_NUMBER);
         uint256 totalTokensRequested = 9500 ether; // 4k + 3k + 2.5k OP
         assertEq(movedToVoteTokenCount, totalTokensRequested, "Moved to vote token count should be updated");
@@ -426,11 +385,92 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS, "Required approvals should match");
         assertEq(idInConfigurator, APPROVAL_VOTING_MODULE_ID, "Should use approval voting module");
         
-        console.log("[SUCCESS] Complete funding proposal flow validation successful!");
-        console.log("- Proposal ID:", proposalId);
-        console.log("- Governor Proposal ID:", movedProposalId);
-        console.log("- Total OP Requested:", totalTokensRequested / 1 ether, "OP");
-        console.log("- Voting Cycle:", CYCLE_NUMBER);
-        console.log("- Approval Threshold:", criteriaValue, "%");
+    }
+}
+
+/// @title ProposalValidator_CouncilMemberElectionsFullFlow_Test
+/// @notice Complete council member elections proposal flow integration test
+/// @dev Tests the full elections proposal lifecycle from submission to move-to-vote
+contract ProposalValidator_CouncilMemberElectionsFullFlow_Test is ProposalValidator_Init_Test {
+
+    /// @notice Complete council member elections proposal flow from submission to approval
+    function test_councilMemberElectionsFullFlow_succeeds() public {
+        // Skip if environment variables not set
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
+        vm.warp(START_TIMESTAMP - 1);
+        
+        (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("elections");
+        uint256 proposalId = _submitCouncilMemberElectionsProposal(proposer);
+        _approveProposal(proposalId, delegateAttestations, "elections");
+
+        vm.warp(START_TIMESTAMP);
+        _moveElectionsToVoteAndValidate(proposer, proposalId);
+    }
+
+
+    function _submitCouncilMemberElectionsProposal(address proposer) internal returns (uint256) {
+        // Configure election parameters - electing top 3 candidates from 5 options
+        uint128 criteriaValue = 3; // Number of candidates to elect (TopChoices)
+        
+        // Create realistic candidate options
+        string[] memory optionDescriptions = new string[](5);
+        optionDescriptions[0] = "Alice Johnson - DeFi Protocol Developer & Governance Advocate";
+        optionDescriptions[1] = "Bob Smith - Community Manager & DAO Operations Expert";
+        optionDescriptions[2] = "Carol Davis - Security Researcher & Smart Contract Auditor";
+        optionDescriptions[3] = "David Wilson - Marketing Lead & Partnership Specialist";
+        optionDescriptions[4] = "Eva Chen - Product Manager & User Experience Designer";
+        
+        string memory proposalDescription = "Q3 2025 Council Member Elections: Electing 3 new council members to guide protocol governance and community initiatives";
+        
+        // Create proposer attestation using shared helper
+        IEAS eas = IEAS(Predeploys.EAS);
+        bytes32 attestationUid = _createProposerAttestation(eas, proposer, IProposalValidator.ProposalType.CouncilMemberElections);
+        
+        // Submit the council member elections proposal
+        vm.prank(proposer);
+        uint256 proposalId = proposalValidator.submitCouncilMemberElectionsProposal(
+            criteriaValue,
+            optionDescriptions,
+            proposalDescription,
+            attestationUid,
+            CYCLE_NUMBER
+        );
+        
+        assertTrue(proposalId != 0, "Elections proposal ID should not be zero (hash-based ID)");
+        return proposalId;
+    }
+
+
+    function _moveElectionsToVoteAndValidate(address proposer, uint256 proposalId) internal {
+        // Prepare move to vote parameters (same as submission)
+        uint128 criteriaValue = 3; // Electing top 3 candidates
+        
+        string[] memory optionDescriptions = new string[](5);
+        optionDescriptions[0] = "Alice Johnson - DeFi Protocol Developer & Governance Advocate";
+        optionDescriptions[1] = "Bob Smith - Community Manager & DAO Operations Expert";
+        optionDescriptions[2] = "Carol Davis - Security Researcher & Smart Contract Auditor";
+        optionDescriptions[3] = "David Wilson - Marketing Lead & Partnership Specialist";
+        optionDescriptions[4] = "Eva Chen - Product Manager & User Experience Designer";
+        
+        string memory proposalDescription = "Q3 2025 Council Member Elections: Electing 3 new council members to guide protocol governance and community initiatives";
+        
+        // Execute move to vote
+        vm.prank(proposer);
+        uint256 movedProposalId = proposalValidator.moveToVoteCouncilMemberElectionsProposal(
+            criteriaValue,
+            optionDescriptions,
+            proposalDescription
+        );
+        
+        assertTrue(movedProposalId > 0, "Elections move to vote should return valid proposal ID");
+        assertEq(movedProposalId, proposalId, "Moved proposal ID should match original");
+        
+        // Validate proposal type configuration
+        (uint256 requiredApprovals, uint8 idInConfigurator) = 
+            proposalValidator.proposalTypesData(IProposalValidator.ProposalType.CouncilMemberElections);
+        assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS, "Elections required approvals should match");
+        assertEq(idInConfigurator, APPROVAL_VOTING_MODULE_ID, "Elections should use approval voting module");
     }
 }
