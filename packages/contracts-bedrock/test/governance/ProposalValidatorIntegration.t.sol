@@ -330,35 +330,33 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         string memory description;
         
         if (proposalType == IProposalValidator.ProposalType.GovernanceFund) {
-            // Governance Fund: External ecosystem development
-            optionsDescriptions[0] = "Infrastructure Development: Build new governance tools";
-            optionsDescriptions[1] = "Community Growth: Marketing campaigns and events";
-            optionsDescriptions[2] = "Developer Relations: Developer tools and documentation";
+            optionsDescriptions[0] = "Option 1";
+            optionsDescriptions[1] = "Option 2";
+            optionsDescriptions[2] = "Option 3";
             
-            optionsRecipients[0] = makeAddr("infra_recipient");
-            optionsRecipients[1] = makeAddr("community_recipient");
-            optionsRecipients[2] = makeAddr("devrel_recipient");
+            optionsRecipients[0] = makeAddr("recipient1");
+            optionsRecipients[1] = makeAddr("recipient2");
+            optionsRecipients[2] = makeAddr("recipient3");
             
             optionsAmounts[0] = 4000 ether;
             optionsAmounts[1] = 3000 ether;
             optionsAmounts[2] = 2500 ether;
             
-            description = "Q3 2025 Governance Fund Proposal: Comprehensive ecosystem development initiative";
+            description = "Test governance fund proposal";
         } else {
-            // Council Budget: Internal council operations
-            optionsDescriptions[0] = "Council Operations: Meeting coordination and governance overhead";
-            optionsDescriptions[1] = "Legal & Compliance: Legal review and regulatory compliance";
-            optionsDescriptions[2] = "Security Audits: Smart contract security assessments";
+            optionsDescriptions[0] = "Item A";
+            optionsDescriptions[1] = "Item B";
+            optionsDescriptions[2] = "Item C";
             
-            optionsRecipients[0] = makeAddr("council_ops_recipient");
-            optionsRecipients[1] = makeAddr("legal_recipient");
-            optionsRecipients[2] = makeAddr("security_recipient");
+            optionsRecipients[0] = makeAddr("recipient1");
+            optionsRecipients[1] = makeAddr("recipient2");
+            optionsRecipients[2] = makeAddr("recipient3");
             
             optionsAmounts[0] = 2000 ether;
             optionsAmounts[1] = 1500 ether;
             optionsAmounts[2] = 1000 ether;
             
-            description = "Q3 2025 Council Budget Proposal: Essential council operations and governance support";
+            description = "Test council budget proposal";
         }
         
         // Submit the proposal
@@ -388,37 +386,35 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         uint256 totalTokensRequested;
         
         if (proposalType == IProposalValidator.ProposalType.GovernanceFund) {
-            // Governance Fund: External ecosystem development
-            optionsDescriptions[0] = "Infrastructure Development: Build new governance tools";
-            optionsDescriptions[1] = "Community Growth: Marketing campaigns and events";
-            optionsDescriptions[2] = "Developer Relations: Developer tools and documentation";
+            optionsDescriptions[0] = "Option 1";
+            optionsDescriptions[1] = "Option 2";
+            optionsDescriptions[2] = "Option 3";
             
-            optionsRecipients[0] = makeAddr("infra_recipient");
-            optionsRecipients[1] = makeAddr("community_recipient");
-            optionsRecipients[2] = makeAddr("devrel_recipient");
+            optionsRecipients[0] = makeAddr("recipient1");
+            optionsRecipients[1] = makeAddr("recipient2");
+            optionsRecipients[2] = makeAddr("recipient3");
             
             optionsAmounts[0] = 4000 ether;
             optionsAmounts[1] = 3000 ether;
             optionsAmounts[2] = 2500 ether;
             
-            description = "Q3 2025 Governance Fund Proposal: Comprehensive ecosystem development initiative";
-            totalTokensRequested = 9500 ether; // 4k + 3k + 2.5k OP
+            description = "Test governance fund proposal";
+            totalTokensRequested = 9500 ether;
         } else {
-            // Council Budget: Internal council operations
-            optionsDescriptions[0] = "Council Operations: Meeting coordination and governance overhead";
-            optionsDescriptions[1] = "Legal & Compliance: Legal review and regulatory compliance";
-            optionsDescriptions[2] = "Security Audits: Smart contract security assessments";
+            optionsDescriptions[0] = "Item A";
+            optionsDescriptions[1] = "Item B";
+            optionsDescriptions[2] = "Item C";
             
-            optionsRecipients[0] = makeAddr("council_ops_recipient");
-            optionsRecipients[1] = makeAddr("legal_recipient");
-            optionsRecipients[2] = makeAddr("security_recipient");
+            optionsRecipients[0] = makeAddr("recipient1");
+            optionsRecipients[1] = makeAddr("recipient2");
+            optionsRecipients[2] = makeAddr("recipient3");
             
             optionsAmounts[0] = 2000 ether;
             optionsAmounts[1] = 1500 ether;
             optionsAmounts[2] = 1000 ether;
             
-            description = "Q3 2025 Council Budget Proposal: Essential council operations and governance support";
-            totalTokensRequested = 4500 ether; // 2k + 1.5k + 1k OP
+            description = "Test council budget proposal";
+            totalTokensRequested = 4500 ether;
         }
         
         // Execute move to vote
@@ -467,18 +463,16 @@ contract ProposalValidator_CouncilMemberElectionsFullFlow_Test is ProposalValida
 
 
     function _submitCouncilMemberElectionsProposal(address proposer) internal returns (uint256) {
-        // Configure election parameters - electing top 3 candidates from 5 options
-        uint128 criteriaValue = 3; // Number of candidates to elect (TopChoices)
+        uint128 criteriaValue = 3;
         
-        // Create realistic candidate options
         string[] memory optionDescriptions = new string[](5);
-        optionDescriptions[0] = "Alice Johnson - DeFi Protocol Developer & Governance Advocate";
-        optionDescriptions[1] = "Bob Smith - Community Manager & DAO Operations Expert";
-        optionDescriptions[2] = "Carol Davis - Security Researcher & Smart Contract Auditor";
-        optionDescriptions[3] = "David Wilson - Marketing Lead & Partnership Specialist";
-        optionDescriptions[4] = "Eva Chen - Product Manager & User Experience Designer";
+        optionDescriptions[0] = "Option A";
+        optionDescriptions[1] = "Option B";
+        optionDescriptions[2] = "Option C";
+        optionDescriptions[3] = "Option D";
+        optionDescriptions[4] = "Option E";
         
-        string memory proposalDescription = "Q3 2025 Council Member Elections: Electing 3 new council members to guide protocol governance and community initiatives";
+        string memory proposalDescription = "Test elections proposal";
         
         // Create proposer attestation using shared helper
         IEAS eas = IEAS(Predeploys.EAS);
@@ -500,17 +494,16 @@ contract ProposalValidator_CouncilMemberElectionsFullFlow_Test is ProposalValida
 
 
     function _moveElectionsToVoteAndValidate(address proposer, uint256 proposalId) internal {
-        // Prepare move to vote parameters (same as submission)
-        uint128 criteriaValue = 3; // Electing top 3 candidates
+        uint128 criteriaValue = 3;
         
         string[] memory optionDescriptions = new string[](5);
-        optionDescriptions[0] = "Alice Johnson - DeFi Protocol Developer & Governance Advocate";
-        optionDescriptions[1] = "Bob Smith - Community Manager & DAO Operations Expert";
-        optionDescriptions[2] = "Carol Davis - Security Researcher & Smart Contract Auditor";
-        optionDescriptions[3] = "David Wilson - Marketing Lead & Partnership Specialist";
-        optionDescriptions[4] = "Eva Chen - Product Manager & User Experience Designer";
+        optionDescriptions[0] = "Option A";
+        optionDescriptions[1] = "Option B";
+        optionDescriptions[2] = "Option C";
+        optionDescriptions[3] = "Option D";
+        optionDescriptions[4] = "Option E";
         
-        string memory proposalDescription = "Q3 2025 Council Member Elections: Electing 3 new council members to guide protocol governance and community initiatives";
+        string memory proposalDescription = "Test elections proposal";
         
         // Execute move to vote
         vm.prank(proposer);
