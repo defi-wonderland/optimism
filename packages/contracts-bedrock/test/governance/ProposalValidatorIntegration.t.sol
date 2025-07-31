@@ -301,7 +301,7 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         _approveProposal(proposalId, delegateAttestations, "governance_fund");
 
         vm.warp(START_TIMESTAMP);
-        _moveFundingToVoteAndValidate(proposer, proposalId, IProposalValidator.ProposalType.GovernanceFund);
+        _moveFundingToVoteAndValidate(proposer, IProposalValidator.ProposalType.GovernanceFund);
     }
 
     /// @notice Complete council budget proposal flow from submission to approval
@@ -317,7 +317,7 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         _approveProposal(proposalId, delegateAttestations, "council_budget");
 
         vm.warp(START_TIMESTAMP);
-        _moveFundingToVoteAndValidate(proposer, proposalId, IProposalValidator.ProposalType.CouncilBudget);
+        _moveFundingToVoteAndValidate(proposer, IProposalValidator.ProposalType.CouncilBudget);
     }
 
 
@@ -376,7 +376,7 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
     }
 
 
-    function _moveFundingToVoteAndValidate(address proposer, uint256 proposalId, IProposalValidator.ProposalType proposalType) internal {
+    function _moveFundingToVoteAndValidate(address proposer, IProposalValidator.ProposalType proposalType) internal {
         // Prepare move to vote parameters
         uint128 criteriaValue = 75;
         string[] memory optionsDescriptions = new string[](3);
@@ -437,6 +437,92 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
         assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS, "Required approvals should match");
         assertEq(idInConfigurator, APPROVAL_VOTING_MODULE_ID, "Should use approval voting module");
         
+    }
+}
+
+/// @title ProposalValidator_UpgradeProposalFullFlow_Test
+/// @notice Complete upgrade proposal flow integration test for both types
+/// @dev Tests maintenance upgrades (direct) and protocol upgrades (with approvals)
+contract ProposalValidator_UpgradeProposalFullFlow_Test is ProposalValidator_Init_Test {
+
+    /// @notice Protocol upgrade proposal flow requiring approvals and move-to-vote
+    function test_protocolUpgradeProposalFullFlow_succeeds() public {
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
+        vm.warp(START_TIMESTAMP - 1);
+        
+        (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("protocol_upgrade");
+        uint256 proposalId = _submitUpgradeProposal(proposer, IProposalValidator.ProposalType.ProtocolOrGovernorUpgrade);
+        _approveProposal(proposalId, delegateAttestations, "protocol_upgrade");
+
+        vm.warp(START_TIMESTAMP);
+        _moveUpgradeToVoteAndValidate(proposer, proposalId);
+    }
+
+    /// @notice Maintenance upgrade proposal flow (direct submission to governor)
+    /// @dev Maintenance upgrades bypass the approval process and are sent directly to the governor
+    function test_maintenanceUpgradeProposalFullFlow_succeeds() public {
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
+        vm.warp(START_TIMESTAMP);
+        
+        address proposer = makeAddr("maintenance_proposer");
+        uint256 proposalId = _submitUpgradeProposal(proposer, IProposalValidator.ProposalType.MaintenanceUpgrade);
+        
+        // Maintenance upgrades are sent directly to the governor on submission
+        // No move-to-vote call needed - just validate the proposal was created
+        assertTrue(proposalId > 0, "Maintenance upgrade should return valid proposal ID");
+        
+        (uint256 requiredApprovals, uint8 idInConfigurator) = 
+            proposalValidator.proposalTypesData(IProposalValidator.ProposalType.MaintenanceUpgrade);
+        assertEq(requiredApprovals, 0, "Maintenance upgrades should not require approvals");
+        assertEq(idInConfigurator, OPTIMISTIC_VOTING_MODULE_ID, "Maintenance upgrades should use optimistic voting");
+    }
+
+    function _submitUpgradeProposal(address proposer, IProposalValidator.ProposalType proposalType) internal returns (uint256) {
+        uint248 againstThreshold = 50;
+        string memory description;
+        if (proposalType == IProposalValidator.ProposalType.ProtocolOrGovernorUpgrade) {
+            description = "Test protocol upgrade proposal";
+        } else {
+            description = "Test maintenance upgrade proposal";
+        }
+        
+        IEAS eas = IEAS(Predeploys.EAS);
+        bytes32 attestationUid = _createProposerAttestation(eas, proposer, proposalType);
+        
+        vm.prank(proposer);
+        uint256 proposalId = proposalValidator.submitUpgradeProposal(
+            againstThreshold,
+            description,
+            attestationUid,
+            proposalType,
+            CYCLE_NUMBER
+        );
+        
+        assertTrue(proposalId != 0, "Upgrade proposal ID should not be zero");
+        return proposalId;
+    }
+
+    function _moveUpgradeToVoteAndValidate(address proposer, uint256 proposalId) internal {
+        uint248 againstThreshold = 50;
+        string memory description = "Test protocol upgrade proposal";
+        
+        vm.prank(proposer);
+        uint256 movedProposalId = proposalValidator.moveToVoteProtocolOrGovernorUpgradeProposal(
+            againstThreshold,
+            description
+        );
+        
+        assertTrue(movedProposalId > 0, "Move to vote should return valid proposal ID");
+        
+        (uint256 requiredApprovals, uint8 idInConfigurator) = 
+            proposalValidator.proposalTypesData(IProposalValidator.ProposalType.ProtocolOrGovernorUpgrade);
+        
+        assertEq(requiredApprovals, PROPOSAL_REQUIRED_APPROVALS, "Protocol upgrades should require approvals");
+        assertEq(idInConfigurator, OPTIMISTIC_VOTING_MODULE_ID, "Protocol upgrades should use optimistic voting");
     }
 }
 
