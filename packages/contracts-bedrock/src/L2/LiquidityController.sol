@@ -21,12 +21,18 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 ///         chain.
 contract LiquidityController is Ownable, ISemver, Initializable {
     /// @notice Emitted when an address is authorized to mint/burn liquidity
+    /// @param minter The address that was authorized
     event MinterAuthorized(address indexed minter);
 
     /// @notice Emitted when liquidity is minted
+    /// @param minter The address that minted the liquidity
+    /// @param to The address that received the minted liquidity
+    /// @param amount The amount of liquidity that was minted
     event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
 
     /// @notice Emitted when liquidity is burned
+    /// @param minter The address that burned the liquidity
+    /// @param amount The amount of liquidity that was burned
     event LiquidityBurned(address indexed minter, uint256 amount);
 
     /// @notice Semantic version.
