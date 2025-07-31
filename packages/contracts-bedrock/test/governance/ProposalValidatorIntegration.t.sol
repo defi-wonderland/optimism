@@ -49,6 +49,14 @@ contract ProposalValidator_Init_Test is Test {
         return bytes(rpcUrl).length > 0 && blockNumber > 0;
     }
 
+    /// @notice Modifier to skip tests when fork environment variables are not set
+    modifier skipIfNotForkTest() {
+        if (!isOpMainnetForkTest()) {
+            vm.skip(true);
+        }
+        _;
+    }
+
     function setUp() public {
         // Skip all tests if required environment variables are not set
         if (!isOpMainnetForkTest()) {
@@ -173,11 +181,7 @@ contract ProposalValidator_Init_Test is Test {
     }
 
     /// @notice Test that ProposalValidator is deployed and initialized correctly
-    function test_proposalValidatorDeployment_succeeds() public {
-        // Skip if environment variables not set
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
+    function test_proposalValidatorDeployment_succeeds() public skipIfNotForkTest {
         // Verify the contract is deployed
         assertTrue(address(proposalValidator).code.length > 0, "ProposalValidator should have code");
         assertTrue(address(proposalValidatorImpl).code.length > 0, "ProposalValidator implementation should have code");
@@ -289,11 +293,7 @@ contract ProposalValidator_Init_Test is Test {
 contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Init_Test {
 
     /// @notice Complete governance fund proposal flow from submission to approval
-    function test_governanceFundProposalFullFlow_succeeds() public {
-        // Skip if environment variables not set
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
+    function test_governanceFundProposalFullFlow_succeeds() public skipIfNotForkTest {
         vm.warp(START_TIMESTAMP - 1);
         
         (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("governance_fund");
@@ -305,11 +305,7 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
     }
 
     /// @notice Complete council budget proposal flow from submission to approval
-    function test_councilBudgetProposalFullFlow_succeeds() public {
-        // Skip if environment variables not set
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
+    function test_councilBudgetProposalFullFlow_succeeds() public skipIfNotForkTest {
         vm.warp(START_TIMESTAMP - 1);
         
         (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("council_budget");
@@ -446,10 +442,7 @@ contract ProposalValidator_FundingProposalFullFlow_Test is ProposalValidator_Ini
 contract ProposalValidator_UpgradeProposalFullFlow_Test is ProposalValidator_Init_Test {
 
     /// @notice Protocol upgrade proposal flow requiring approvals and move-to-vote
-    function test_protocolUpgradeProposalFullFlow_succeeds() public {
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
+    function test_protocolUpgradeProposalFullFlow_succeeds() public skipIfNotForkTest {
         vm.warp(START_TIMESTAMP - 1);
         
         (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("protocol_upgrade");
@@ -462,10 +455,7 @@ contract ProposalValidator_UpgradeProposalFullFlow_Test is ProposalValidator_Ini
 
     /// @notice Maintenance upgrade proposal flow (direct submission to governor)
     /// @dev Maintenance upgrades bypass the approval process and are sent directly to the governor
-    function test_maintenanceUpgradeProposalFullFlow_succeeds() public {
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
+    function test_maintenanceUpgradeProposalFullFlow_succeeds() public skipIfNotForkTest {
         vm.warp(START_TIMESTAMP);
         
         address proposer = makeAddr("maintenance_proposer");
@@ -532,11 +522,7 @@ contract ProposalValidator_UpgradeProposalFullFlow_Test is ProposalValidator_Ini
 contract ProposalValidator_CouncilMemberElectionsFullFlow_Test is ProposalValidator_Init_Test {
 
     /// @notice Complete council member elections proposal flow from submission to approval
-    function test_councilMemberElectionsFullFlow_succeeds() public {
-        // Skip if environment variables not set
-        if (!isOpMainnetForkTest()) {
-            vm.skip(true);
-        }
+    function test_councilMemberElectionsFullFlow_succeeds() public skipIfNotForkTest {
         vm.warp(START_TIMESTAMP - 1);
         
         (address proposer, bytes32[4] memory delegateAttestations) = _setupAddressesAndAttestations("elections");
