@@ -13,30 +13,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
-/// @notice Thrown when a token is not supported for CGT bridging.
-error StandardCGTBridge_TokenNotSupported();
-
-/// @notice Thrown when the amount to deposit is zero.
-error StandardCGTBridge_AmountMustBeGreaterThanZero();
-
-/// @notice Thrown when the recipient address is the zero address.
-error StandardCGTBridge_RecipientCannotBeZeroAddress();
-
-/// @notice Thrown when the function is called from a non-EOA.
-error StandardCGTBridge_FunctionCanOnlyBeCalledFromEOA();
-
-/// @notice Thrown when the bridge is paused.
-error StandardCGTBridge_Paused();
-
-/// @notice Thrown when the function is called from a non-other bridge.
-error StandardCGTBridge_FunctionCanOnlyBeCalledFromOtherBridge();
-
-/// @notice Thrown when the deposits are insufficient.
-error StandardCGTBridge_InsufficientDeposits();
-
-/// @notice Thrown when the daily deposit limit is exceeded.
-error StandardCGTBridge_ExceedsDailyDepositLimit();
-
 /// @custom:upgradeable
 /// @title StandardCGTBridge
 /// @notice StandardCGTBridge is a base contract for the L1 and L2 Custom Gas Token bridges.
@@ -49,6 +25,7 @@ abstract contract StandardCGTBridge is Initializable {
     mapping(address => uint256) public deposits;
 
     /// @notice Address of the CGT token.
+    /// @custom:network-specific
     address public cgtToken;
 
     /// @notice Messenger contract on this domain.
@@ -65,30 +42,65 @@ abstract contract StandardCGTBridge is Initializable {
     /// @notice Reserve extra slots in the storage layout for future upgrades.
     uint256[45] private __gap;
 
-    /// @notice Emitted when a CGT deposit is initiated to the other chain.
-    /// @param token     Address of the CGT token.
+    /// @notice Emitted when a CGT bridge is initiated on this chain.
+    /// @param localToken     Address of the token.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
-    /// @param amount    Amount of CGT sent.
+    /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTDepositInitiated(
-        address indexed token, address indexed from, address indexed to, uint256 amount, bytes extraData
+    event CGTBridgeInitiated(
+        address indexed localToken,
+        address remoteToken,
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        bytes extraData
     );
 
-    /// @notice Emitted when a CGT withdrawal is finalized on this chain.
-    /// @param token     Address of the CGT token.
+    /// @notice Emitted when a CGT bridge is finalized on this chain.
+    /// @param localToken     Address of the token.
+    /// @param remoteToken    Address of the corresponding token on the remote chain.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
-    /// @param amount    Amount of CGT sent.
+    /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTWithdrawalFinalized(
-        address indexed token, address indexed from, address indexed to, uint256 amount, bytes extraData
+    event CGTBridgeFinalized(
+        address indexed localToken,
+        address remoteToken,
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        bytes extraData
     );
+
+    /// @notice Thrown when a token is not supported for CGT bridging.
+    error TokenNotSupported();
+
+    /// @notice Thrown when the amount to deposit is zero.
+    error AmountMustBeGreaterThanZero();
+
+    /// @notice Thrown when the recipient address is the zero address.
+    error RecipientCannotBeZeroAddress();
+
+    /// @notice Thrown when the function is called from a non-EOA.
+    error FunctionCanOnlyBeCalledFromEOA();
+
+    /// @notice Thrown when the bridge is paused.
+    error Paused();
+
+    /// @notice Thrown when the function is called from a non-other bridge.
+    error FunctionCanOnlyBeCalledFromOtherBridge();
+
+    /// @notice Thrown when the deposits are insufficient.
+    error InsufficientDeposits();
+
+    /// @notice Thrown when the daily deposit limit is exceeded.
+    error ExceedsDailyDepositLimit();
 
     /// @notice Modifier to ensure only EOA can call a function.
     modifier onlyEOA() {
-        if (!EOA.isEOA(msg.sender)) {
-            revert StandardCGTBridge_FunctionCanOnlyBeCalledFromEOA();
+        if (!EOA.isSenderEOA()) {
+            revert FunctionCanOnlyBeCalledFromEOA();
         }
         _;
     }
@@ -96,7 +108,7 @@ abstract contract StandardCGTBridge is Initializable {
     /// @notice Modifier to ensure the system is not paused.
     modifier whenNotPaused() {
         if (paused()) {
-            revert StandardCGTBridge_Paused();
+            revert Paused();
         }
         _;
     }
@@ -104,10 +116,10 @@ abstract contract StandardCGTBridge is Initializable {
     /// @notice Modifier to ensure the caller is the other bridge.
     modifier onlyOtherBridge() {
         if (msg.sender != address(messenger)) {
-            revert StandardCGTBridge_FunctionCanOnlyBeCalledFromOtherBridge();
+            revert FunctionCanOnlyBeCalledFromOtherBridge();
         }
         if (messenger.xDomainMessageSender() != address(otherBridge)) {
-            revert StandardCGTBridge_FunctionCanOnlyBeCalledFromOtherBridge();
+            revert FunctionCanOnlyBeCalledFromOtherBridge();
         }
         _;
     }
@@ -153,7 +165,7 @@ abstract contract StandardCGTBridge is Initializable {
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
-        public
+        external
         virtual
         onlyEOA
     {
@@ -177,7 +189,7 @@ abstract contract StandardCGTBridge is Initializable {
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
-        public
+        external
         virtual
     {
         _initiateBridgeERC20(_localToken, _remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
@@ -201,17 +213,17 @@ abstract contract StandardCGTBridge is Initializable {
         uint256 _amount,
         bytes calldata _extraData
     )
-        public
+        external
         onlyOtherBridge
     {
         if (paused()) {
-            revert StandardCGTBridge_Paused();
+            revert Paused();
         }
 
         deposits[_localToken] = deposits[_localToken] - _amount;
         IERC20(_localToken).safeTransfer(_to, _amount);
 
-        emit ERC20BridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
+        emit CGTBridgeFinalized(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 
     /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
@@ -235,19 +247,17 @@ abstract contract StandardCGTBridge is Initializable {
         internal
     {
         if (_amount == 0) {
-            revert StandardCGTBridge_AmountMustBeGreaterThanZero();
+            revert AmountMustBeGreaterThanZero();
         }
 
         if (_to == address(0)) {
-            revert StandardCGTBridge_RecipientCannotBeZeroAddress();
+            revert RecipientCannotBeZeroAddress();
         }
 
-        if (_localToken == cgtToken) revert StandardCGTBridge_TokenNotSupported();
+        if (_localToken == cgtToken) revert TokenNotSupported();
 
         IERC20(_localToken).safeTransferFrom(_from, address(this), _amount);
         deposits[_localToken] = deposits[_localToken] + _amount;
-
-        emit CGTDepositInitiated(_localToken, _from, _to, _amount, _extraData);
 
         messenger.sendMessage({
             _target: address(otherBridge),
@@ -265,5 +275,7 @@ abstract contract StandardCGTBridge is Initializable {
             ),
             _minGasLimit: _minGasLimit
         });
+
+        emit CGTBridgeInitiated(_localToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 }

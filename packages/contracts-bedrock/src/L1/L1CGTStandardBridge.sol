@@ -5,15 +5,16 @@ pragma solidity 0.8.15;
 import { StandardCGTBridge } from "src/universal/StandardCGTBridge.sol";
 import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
 import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+// Libraries
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IL1CGTStandardBridge } from "interfaces/L1/IL1CGTStandardBridge.sol";
-import { IL2CGTStandardBridge } from "interfaces/L2/IL2CGTStandardBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTStandardBridge
@@ -21,33 +22,29 @@ import { IL2CGTStandardBridge } from "interfaces/L2/IL2CGTStandardBridge.sol";
 ///         to L2 where they are converted to native assets through the LiquidityController system.
 ///         This bridge escrows CGT tokens on L1 and triggers the minting of equivalent native
 ///         assets on L2.
-contract L1CGTStandardBridge is
-    StandardCGTBridge,
-    ProxyAdminOwnedBase,
-    ReinitializableBase,
-    OwnableUpgradeable,
-    ISemver,
-    IL1CGTStandardBridge
-{
+contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
+    using SafeERC20 for IERC20;
+
     /// @notice Address of the SystemConfig contract.
+    /// @custom:network-specific
     ISystemConfig public systemConfig;
-
-    /// @notice Address of the CGT token.
-    address public cgtToken;
-
-    /// @notice Reserve extra slots in the storage layout for future upgrades.
-    uint256[49] private __gap;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant VERSION = "1.0.0";
 
     /// @notice Constructs the L1CGTStandardBridge contract.
-    constructor() ReinitializableBase(1) {
+    constructor() StandardCGTBridge() ReinitializableBase(1) {
         _disableInitializers();
     }
 
-    /// @notice Initializes the contract.
+    /// @notice Returns the semantic version of the contract.
+    /// @return Semver contract version as a string.
+    function version() external pure override returns (string memory) {
+        return VERSION;
+    }
+
+    /// @notice Initializer.
     /// @param _cgtToken         Address of the CGT token.
     /// @param _messenger        Address of the CrossDomainMessenger on this network.
     /// @param _otherBridge      Address of the corresponding bridge on the other network.
@@ -60,95 +57,123 @@ contract L1CGTStandardBridge is
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig
     )
-        public
+        external
         reinitializer(initVersion())
     {
+        // Initialization transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        systemConfig = _systemConfig;
         __StandardCGTBridge_init({
             _cgtToken: _cgtToken,
             _messenger: _messenger,
             _otherBridge: _otherBridge,
             _superchainConfig: _superchainConfig
         });
-
-        systemConfig = _systemConfig;
-        __Ownable_init();
     }
 
-    /// @inheritdoc ISemver
-    /// @custom:semver 1.0.0
-    function version() public pure virtual override returns (string memory) {
-        return VERSION;
-    }
-
-    /// @inheritdoc IL1CGTStandardBridge
-    /// @dev This function is used to deposit CGT tokens into the bridge.
-    /// @param _amount      Amount of CGT tokens to deposit.
-    /// @param _minGasLimit Minimum gas limit for the deposit.
+    /// @notice Sends CGT tokens to the sender's address on the other chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _amount      Amount of CGT tokens to bridge.
+    /// @param _minGasLimit Minimum gas limit for the bridge.
     /// @param _extraData   Extra data to forward.
-    function depositCGT(
+    function bridgeCGT(
+        address _remoteToken,
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
         external
-        override
         onlyEOA
         whenNotPaused
     {
-        _initiateCGTDeposit(cgtToken, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+        _initiateBridgeCGT(_remoteToken, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
-    /// @inheritdoc IL1CGTStandardBridge
-    /// @dev This function is used to deposit CGT tokens into the bridge.
-    /// @param _to          Address to deposit the CGT tokens to.
-    /// @param _amount      Amount of CGT tokens to deposit.
-    /// @param _minGasLimit Minimum gas limit for the deposit.
+    /// @notice Sends CGT tokens to a receiver's address on the other chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _to          Address to bridge the CGT tokens to.
+    /// @param _amount      Amount of CGT tokens to bridge.
+    /// @param _minGasLimit Minimum gas limit for the bridge.
     /// @param _extraData   Extra data to forward.
-    function depositCGTTo(
+    function bridgeCGTTo(
+        address _remoteToken,
         address _to,
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
         external
-        override
         whenNotPaused
     {
-        _initiateCGTDeposit(cgtToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
+        _initiateBridgeCGT(_remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
-    /// @inheritdoc IL1CGTStandardBridge
-    function finalizeCGTWithdrawal(
+    /// @notice Finalizes a CGT bridge on this chain. Can only be triggered by the other
+    ///         StandardBridge contract on the remote chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of the CGT being bridged.
+    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
+    ///                     not be triggered with this data, but it will be emitted and can be used
+    ///                     to identify the transaction.
+    function finalizeBridgeCGT(
+        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
         bytes calldata _extraData
     )
         external
-        override
         onlyOtherBridge
     {
-        _finalizeCGTWithdrawal(_l1Token, _from, _to, _amount, _extraData);
+        if (paused()) {
+            revert Paused();
+        }
+
+        deposits[cgtToken] = deposits[cgtToken] - _amount;
+        IERC20(cgtToken).safeTransfer(_to, _amount);
+
+        emit CGTBridgeFinalized(cgtToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 
-    /// @inheritdoc StandardCGTBridge
-    function _sendCrossChainMessage(
-        address _token,
+    /// @notice Sends CGT tokens to the sender's address on the other chain.
+    /// @param _remoteToken Address of the corresponding token on the remote chain.
+    /// @param _from        Address of the sender.
+    /// @param _to          Address of the receiver.
+    /// @param _amount      Amount of CGT tokens to bridge.
+    /// @param _minGasLimit Minimum gas limit for the bridge.
+    /// @param _extraData   Extra data to forward.
+    function _initiateBridgeCGT(
+        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
         uint32 _minGasLimit,
-        bytes memory _extraData
+        bytes calldata _extraData
     )
         internal
-        override
     {
+        if (_amount == 0) {
+            revert AmountMustBeGreaterThanZero();
+        }
+
+        if (_to == address(0)) {
+            revert RecipientCannotBeZeroAddress();
+        }
+
+        IERC20(cgtToken).safeTransferFrom(_from, address(this), _amount);
+        deposits[cgtToken] = deposits[cgtToken] + _amount;
+
         messenger.sendMessage({
             _target: address(otherBridge),
             _message: abi.encodeWithSelector(
-                IL2CGTStandardBridge.finalizeCGTDeposit.selector, _token, _from, _to, _amount, _extraData
+                this.finalizeBridgeCGT.selector, _remoteToken, cgtToken, _from, _to, _amount, _extraData
             ),
             _minGasLimit: _minGasLimit
         });
+
+        emit CGTBridgeInitiated(cgtToken, _remoteToken, _from, _to, _amount, _extraData);
     }
 }
