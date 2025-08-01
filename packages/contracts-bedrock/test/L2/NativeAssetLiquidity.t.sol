@@ -13,6 +13,8 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
+import "forge-std/console.sol";
+
 /// @title NativeAssetLiquidity_TestInit
 /// @notice Reusable test initialization for `NativeAssetLiquidity` tests.
 contract NativeAssetLiquidity_TestInit is CommonTest {
@@ -161,6 +163,10 @@ contract NativeAssetLiquidity_Burn_Test is NativeAssetLiquidity_TestInit {
 
         uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;
 
+        address deployer = address(nativeAssetLiquidity);
+        uint256 nonce = vm.getNonce(deployer);
+        address precalculatedBurner = vm.computeCreateAddress(deployer, nonce);
+
         // Call the burn function with ProxyAdmin owner as the caller
         vm.expectEmit(address(nativeAssetLiquidity));
         emit LiquidityBurned(IProxyAdmin(Predeploys.PROXY_ADMIN).owner(), _amount);
@@ -169,5 +175,8 @@ contract NativeAssetLiquidity_Burn_Test is NativeAssetLiquidity_TestInit {
 
         // Assert NativeAssetLiquidity balance is updated correctly
         assertEq(address(nativeAssetLiquidity).balance, nativeAssetBalanceBefore - _amount);
+
+        // Assert burner balance is 0
+        assertEq(precalculatedBurner.balance, 0);
     }
 }
