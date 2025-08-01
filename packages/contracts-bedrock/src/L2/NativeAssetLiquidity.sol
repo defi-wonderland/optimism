@@ -11,7 +11,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
-/// @custom:predeploy 0x4200000000000000000000000000000000000030
+/// @custom:predeploy 0x420000000000000000000000000000000000001D
 /// @title NativeAssetLiquidity
 /// @notice The NativeAssetLiquidity contract allows other contracts to access native asset liquidity
 contract NativeAssetLiquidity is ISemver {

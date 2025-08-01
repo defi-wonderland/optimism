@@ -15,7 +15,7 @@ import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:proxied true
-/// @custom:predeploy 0x4200000000000000000000000000000000000029
+/// @custom:predeploy 0x420000000000000000000000000000000000001C
 /// @title LiquidityController
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
 ///         chain.
