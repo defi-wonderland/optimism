@@ -96,8 +96,8 @@
     "sourceCodeHash": "0x25fb2acffafc6f58b1386a08cdc91103d2818904ca297a28fdee184b1d926f38"
   },
   "src/L2/NativeAssetLiquidity.sol:NativeAssetLiquidity": {
-    "initCodeHash": "0xef569d5053ca70837fe70b070f4f3f62dfcc1da3262b46b32251f0538b825743",
-    "sourceCodeHash": "0x628893e9538cc90e2cc7dcac6f32da144fb5ccaebee98aed777a04cf4ad6f433"
+    "initCodeHash": "0x6de086699e4ecfa1a1c8d619948a6040ebe41b7796f55ab8832165aa05f790af",
+    "sourceCodeHash": "0xb908a3912a7a27eb1ec324b2cc72320dfa2d2c51b2ef3067d6239cf09a03b993"
   },
   "src/L2/OperatorFeeVault.sol:OperatorFeeVault": {
     "initCodeHash": "0x3d8c0d7736e8767f2f797da1c20c5fe30bd7f48a4cf75f376290481ad7c0f91f",

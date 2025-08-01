@@ -7,6 +7,12 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 // Error imports
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Interfaces
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+
 /// @title NativeAssetLiquidity_TestInit
 /// @notice Reusable test initialization for `NativeAssetLiquidity` tests.
 contract NativeAssetLiquidity_TestInit is CommonTest {
@@ -15,6 +21,9 @@ contract NativeAssetLiquidity_TestInit is CommonTest {
 
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
+
+    /// @notice Emitted when an address burns native asset liquidity.
+    event LiquidityBurned(address indexed caller, uint256 value);
 
     /// @notice Test setup.
     function setUp() public virtual override {
@@ -139,5 +148,26 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
         // Assert contract and controller balances remain unchanged
         assertEq(address(nativeAssetLiquidity).balance, contractBalance);
         assertEq(address(liquidityController).balance, 0);
+    }
+}
+
+/// @title NativeAssetLiquidity_Burn_Test
+/// @notice Tests the `burn` function of the `NativeAssetLiquidity` contract.
+contract NativeAssetLiquidity_Burn_Test is NativeAssetLiquidity_TestInit {
+    /// @notice Tests that the burn function can be called by the ProxyAdmin owner.
+    /// @param _amount Amount of native asset (in wei) to call the burn function with.
+    function test_burn_fromAuthorizedCaller_succeeds(uint256 _amount) public {
+        _amount = bound(_amount, 1, type(uint248).max);
+
+        uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;
+
+        // Call the burn function with ProxyAdmin owner as the caller
+        vm.expectEmit(address(nativeAssetLiquidity));
+        emit LiquidityBurned(IProxyAdmin(Predeploys.PROXY_ADMIN).owner(), _amount);
+        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+        nativeAssetLiquidity.burn(_amount);
+
+        // Assert NativeAssetLiquidity balance is updated correctly
+        assertEq(address(nativeAssetLiquidity).balance, nativeAssetBalanceBefore - _amount);
     }
 }

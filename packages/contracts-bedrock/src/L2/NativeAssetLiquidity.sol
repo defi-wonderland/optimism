@@ -7,9 +7,11 @@ import { SafeSend } from "src/universal/SafeSend.sol";
 // Libraries
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Burn } from "src/libraries/Burn.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 /// @custom:predeploy 0x420000000000000000000000000000000000001D
 /// @title NativeAssetLiquidity
@@ -21,6 +23,9 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
 
+    /// @notice Emitted when an address burns native asset liquidity.
+    event LiquidityBurned(address indexed caller, uint256 value);
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -28,6 +33,7 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Allows an address to lock native asset liquidity into this contract.
     function deposit() external payable {
         if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
+
         emit LiquidityDeposited(msg.sender, msg.value);
     }
 
@@ -35,7 +41,21 @@ contract NativeAssetLiquidity is ISemver {
     /// @param _amount The amount of liquidity to unlock.
     function withdraw(uint256 _amount) external {
         if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
+
         new SafeSend{ value: _amount }(payable(msg.sender));
+
         emit LiquidityWithdrawn(msg.sender, _amount);
+    }
+
+    /// @notice Allows to burn native asset liquidity from this contract.
+    /// @dev Burn an arbitrary amount of native supply forever, ideally to be called only once by
+    ///      the ProxyAdmin owner.
+    /// @param _amount The amount of liquidity to burn.
+    function burn(uint256 _amount) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
+
+        Burn.eth(_amount);
+
+        emit LiquidityBurned(msg.sender, _amount);
     }
 }
