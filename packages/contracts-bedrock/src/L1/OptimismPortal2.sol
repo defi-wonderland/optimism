@@ -754,7 +754,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // Handle ETH deposits: prevent when custom gas token is active, otherwise lock in ETHLockbox.
         if (msg.value > 0) {
             if (systemConfig.isCustomGasToken()) {
-                revert OptimismPortal_ETHDepositsNotAllowedForCGT();
+                revert OptimismPortal_CGTWithdrawalNotAllowed();
             }
             ethLockbox.lockETH{ value: msg.value }();
         }
