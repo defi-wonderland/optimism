@@ -6,7 +6,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 interface ILiquidityController is ISemver {
     error Unauthorized();
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event Initialized(uint8 version);
 
     event MinterAuthorized(address indexed minter);
@@ -20,10 +19,6 @@ interface ILiquidityController is ISemver {
     function gasPayingTokenName() external view returns (string memory);
     function gasPayingTokenSymbol() external view returns (string memory);
     function initialize(string memory _gasPayingTokenName, string memory _gasPayingTokenSymbol) external;
-
-    function owner() external view returns (address);
-    function renounceOwnership() external;
-    function transferOwnership(address newOwner) external;
 
     function __constructor__() external;
 }

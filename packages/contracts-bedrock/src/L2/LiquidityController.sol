@@ -3,7 +3,6 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
@@ -12,6 +11,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:proxied true
@@ -19,7 +19,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @title LiquidityController
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
 ///         chain.
-contract LiquidityController is Ownable, ISemver, Initializable {
+contract LiquidityController is ISemver, Initializable {
     /// @notice Emitted when an address is authorized to mint/burn liquidity
     /// @param minter The address that was authorized
     event MinterAuthorized(address indexed minter);
@@ -62,7 +62,8 @@ contract LiquidityController is Ownable, ISemver, Initializable {
 
     /// @notice Authorizes an address to perform liquidity control operations
     /// @param _minter The address to authorize as a minter
-    function authorizeMinter(address _minter) external onlyOwner {
+    function authorizeMinter(address _minter) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
         minters[_minter] = true;
         emit MinterAuthorized(_minter);
     }

@@ -92,8 +92,8 @@
     "sourceCodeHash": "0xbea4229c5c6988243dbc7cf5a086ddd412fe1f2903b8e20d56699fec8de0c2c9"
   },
   "src/L2/LiquidityController.sol:LiquidityController": {
-    "initCodeHash": "0x78a8c9ce67929734d617883b3fe981b8fd7eb93eb24bd9dac16dfe95d35249df",
-    "sourceCodeHash": "0x25fb2acffafc6f58b1386a08cdc91103d2818904ca297a28fdee184b1d926f38"
+    "initCodeHash": "0x46e6afa7c0d232efa07e0f7d5e6b0d8efa415e3ec8f5bcdd778d01e6acecd6e8",
+    "sourceCodeHash": "0x7ac8102be33e45190e59dd208c72f6950aea0c3253b816d3c93cc7c6fd4e88b7"
   },
   "src/L2/NativeAssetLiquidity.sol:NativeAssetLiquidity": {
     "initCodeHash": "0x6de086699e4ecfa1a1c8d619948a6040ebe41b7796f55ab8832165aa05f790af",

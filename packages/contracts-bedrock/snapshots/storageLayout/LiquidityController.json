@@ -1,22 +1,15 @@
 [
   {
-    "bytes": "20",
-    "label": "_owner",
-    "offset": 0,
-    "slot": "0",
-    "type": "address"
-  },
-  {
     "bytes": "1",
     "label": "_initialized",
-    "offset": 20,
+    "offset": 0,
     "slot": "0",
     "type": "uint8"
   },
   {
     "bytes": "1",
     "label": "_initializing",
-    "offset": 21,
+    "offset": 1,
     "slot": "0",
     "type": "bool"
   },

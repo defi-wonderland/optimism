@@ -3,13 +3,22 @@ pragma solidity 0.8.15;
 
 // Testing utilities
 import { CommonTest } from "test/setup/CommonTest.sol";
+import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 // Error imports
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
+
+// Interfaces
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+
 /// @title LiquidityController_TestInit
 /// @notice Reusable test initialization for `LiquidityController` tests.
 contract LiquidityController_TestInit is CommonTest {
+    using stdStorage for StdStorage;
+
     /// @notice Emitted when an address withdraws native asset liquidity.
     event LiquidityWithdrawn(address indexed caller, uint256 value);
 
@@ -41,8 +50,8 @@ contract LiquidityController_TestInit is CommonTest {
     /// @notice Shared modifier to authorize a minter.
     modifier isAuthorizedMinter(address _minter) {
         // Authorize the minter
-        vm.prank(liquidityController.owner());
-        liquidityController.authorizeMinter(_minter);
+        stdstore.target(address(liquidityController)).sig(liquidityController.minters.selector).with_key(_minter)
+            .checked_write(true);
         _;
     }
 }
@@ -56,7 +65,7 @@ contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestIni
         vm.expectEmit(address(liquidityController));
         emit MinterAuthorized(_minter);
         // Call the authorizeMinter function with owner as the caller
-        vm.prank(liquidityController.owner());
+        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
         liquidityController.authorizeMinter(_minter);
 
         // Assert minter is authorized
@@ -65,11 +74,11 @@ contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestIni
 
     /// @notice Tests that the authorizeMinter function reverts when called by non-owner.
     function testFuzz_authorizeMinter_fromNonOwner_fails(address _caller, address _minter) public {
-        vm.assume(_caller != liquidityController.owner());
+        vm.assume(_caller != IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
 
         // Call the authorizeMinter function with non-owner as the caller
         vm.prank(_caller);
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(Unauthorized.selector);
         liquidityController.authorizeMinter(_minter);
 
         // Assert minter is not authorized
