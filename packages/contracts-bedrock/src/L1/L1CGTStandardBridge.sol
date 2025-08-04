@@ -25,9 +25,16 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
     using SafeERC20 for IERC20;
 
+    /// @notice Mapping that stores deposits for a given CGT token.
+    mapping(address => uint256) public deposits;
+
     /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
     ISystemConfig public systemConfig;
+
+    /// @notice Address of the SuperchainConfig contract.
+    /// @custom:network-specific
+    ISuperchainConfig public superchainConfig;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -38,10 +45,24 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         _disableInitializers();
     }
 
+    /// @notice Modifier to ensure the bridge is not paused.
+    modifier whenNotPaused() {
+        if (paused()) {
+            revert Paused();
+        }
+        _;
+    }
+
     /// @notice Returns the semantic version of the contract.
     /// @return Semver contract version as a string.
     function version() external pure override returns (string memory) {
         return VERSION;
+    }
+
+    /// @notice Returns whether the bridge is paused.
+    /// @return Whether the bridge is paused.
+    function paused() public view override returns (bool) {
+        return superchainConfig.paused();
     }
 
     /// @notice Initializer.
@@ -64,12 +85,8 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         _assertOnlyProxyAdminOrProxyAdminOwner();
 
         systemConfig = _systemConfig;
-        __StandardCGTBridge_init({
-            _cgtToken: _cgtToken,
-            _messenger: _messenger,
-            _otherBridge: _otherBridge,
-            _superchainConfig: _superchainConfig
-        });
+        superchainConfig = _superchainConfig;
+        __StandardCGTBridge_init({ _cgtToken: _cgtToken, _messenger: _messenger, _otherBridge: _otherBridge });
     }
 
     /// @notice Sends CGT tokens to the sender's address on the other chain.
@@ -84,6 +101,7 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         bytes calldata _extraData
     )
         external
+        override
         onlyEOA
         whenNotPaused
     {
@@ -104,6 +122,8 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         bytes calldata _extraData
     )
         external
+        override
+        onlyEOA
         whenNotPaused
     {
         _initiateBridgeCGT(_remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
@@ -126,6 +146,7 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         bytes calldata _extraData
     )
         external
+        override
         onlyOtherBridge
     {
         if (paused()) {
