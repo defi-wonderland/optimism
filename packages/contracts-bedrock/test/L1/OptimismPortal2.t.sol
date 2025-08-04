@@ -2079,7 +2079,7 @@ contract OptimismPortal2_DepositTransaction_Test is OptimismPortal2_TestInit {
 
         vm.deal(depositor, _value);
         vm.prank(depositor);
-        vm.expectRevert(IOptimismPortal.OptimismPortal_ETHDepositsNotAllowedForCGT.selector);
+        vm.expectRevert(IOptimismPortal.OptimismPortal_CGTWithdrawalNotAllowed.selector);
         optimismPortal2.depositTransaction{ value: _value }({
             _to: address(0x40),
             _value: _value,

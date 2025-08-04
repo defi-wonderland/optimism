@@ -180,8 +180,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Thrown when the portal is paused.
     error OptimismPortal_CallPaused();
 
-    /// @notice Thrown when ETH deposits are not allowed when the custom gas token is active.
-    error OptimismPortal_ETHDepositsNotAllowedForCGT();
+    /// @notice Thrown when a CGT withdrawal is not allowed.
+    error OptimismPortal_CGTWithdrawalNotAllowed();
 
     /// @notice Thrown when a gas estimation transaction is being executed.
     error OptimismPortal_GasEstimation();
