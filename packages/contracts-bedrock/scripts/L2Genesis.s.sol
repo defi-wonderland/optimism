@@ -243,7 +243,7 @@ contract L2Genesis is Script {
         }
         if (_input.isCustomGasToken) {
             setLiquidityController(_input); // 29
-            setNativeAssetLiquidity(_input); // 30
+            setNativeAssetLiquidity(); // 30
         }
     }
 
@@ -557,10 +557,6 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setLiquidityController(Input memory _input) internal {
-        if (!_input.isCustomGasToken) {
-            return;
-        }
-
         address impl = _setImplementationCode(Predeploys.LIQUIDITY_CONTROLLER);
 
         ILiquidityController(impl).initialize({ _gasPayingTokenName: "", _gasPayingTokenSymbol: "" });
@@ -573,11 +569,7 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #1.
     ///         This contract has no initializer.
-    function setNativeAssetLiquidity(Input memory _input) internal {
-        if (!_input.isCustomGasToken) {
-            return;
-        }
-
+    function setNativeAssetLiquidity() internal {
         _setImplementationCode(Predeploys.NATIVE_ASSET_LIQUIDITY);
 
         // Pre-fund the liquidity contract with the specified amount
