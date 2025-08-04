@@ -46,7 +46,7 @@ interface IStandardCGTBridge {
 
     /// @notice Returns the paused state of the bridge.
     /// @return True if the bridge is paused, false otherwise.
-    function paused() public view virtual returns (bool);
+    function paused() external view returns (bool);
 
     /// @notice Sends CGT tokens to the sender's address on the other chain.
     /// @param _remoteToken Address of the corresponding token on the remote chain.
@@ -61,8 +61,7 @@ interface IStandardCGTBridge {
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
-        external
-        virtual;
+        external;
 
     /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
     /// @param _remoteToken Address of the corresponding token on the remote chain.
@@ -79,8 +78,7 @@ interface IStandardCGTBridge {
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
-        external
-        virtual;
+        external;
 
     /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
     ///         StandardBridge contract on the remote chain.
@@ -98,6 +96,5 @@ interface IStandardCGTBridge {
         uint256 _amount,
         bytes calldata _extraData
     )
-        external
-        virtual;
+        external;
 }

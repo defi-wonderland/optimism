@@ -41,7 +41,7 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     string public constant VERSION = "1.0.0";
 
     /// @notice Constructs the L1CGTStandardBridge contract.
-    constructor() StandardCGTBridge() ReinitializableBase(1) {
+    constructor() ReinitializableBase(1) {
         _disableInitializers();
     }
 
