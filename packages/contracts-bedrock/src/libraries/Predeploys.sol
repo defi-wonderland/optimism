@@ -113,7 +113,7 @@ library Predeploys {
     /// @notice Address of the SuperchainTokenBridge predeploy.
     address internal constant SUPERCHAIN_TOKEN_BRIDGE = 0x4200000000000000000000000000000000000028;
 
-    /// @notice Address of the FeeRouter predeploy.
+    /// @notice Address of the FeeSplitter predeploy.
     address internal constant FEE_ROUTER = 0x4200000000000000000000000000000000000029;
 
     /// @notice Returns the name of the predeploy at the given address.
@@ -148,7 +148,7 @@ library Predeploys {
         if (_addr == OPTIMISM_SUPERCHAIN_ERC20_FACTORY) return "OptimismSuperchainERC20Factory";
         if (_addr == OPTIMISM_SUPERCHAIN_ERC20_BEACON) return "OptimismSuperchainERC20Beacon";
         if (_addr == SUPERCHAIN_TOKEN_BRIDGE) return "SuperchainTokenBridge";
-        if (_addr == FEE_ROUTER) return "FeeRouter";
+        if (_addr == FEE_ROUTER) return "FeeSplitter";
         revert("Predeploys: unnamed predeploy");
     }
 
