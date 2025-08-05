@@ -58,7 +58,8 @@ interface ISystemConfig is IProxyAdminOwnedBase {
         address _batchInbox,
         Addresses memory _addresses,
         uint256 _l2ChainId,
-        ISuperchainConfig _superchainConfig
+        ISuperchainConfig _superchainConfig,
+        bool _isCustomGasToken
     )
         external;
     function initVersion() external view returns (uint8);
@@ -66,6 +67,7 @@ interface ISystemConfig is IProxyAdminOwnedBase {
     function l1ERC721Bridge() external view returns (address addr_);
     function l1StandardBridge() external view returns (address addr_);
     function l2ChainId() external view returns (uint256);
+    function isCustomGasToken() external view returns (bool);
     function maximumGasLimit() external pure returns (uint64);
     function minimumGasLimit() external view returns (uint64);
     function operatorFeeConstant() external view returns (uint64);
