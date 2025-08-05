@@ -181,7 +181,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     error OptimismPortal_CallPaused();
 
     /// @notice Thrown when a CGT withdrawal is not allowed.
-    error OptimismPortal_CGTWithdrawalNotAllowed();
+    error OptimismPortal_NotAllowedOnCGTMode();
 
     /// @notice Thrown when a gas estimation transaction is being executed.
     error OptimismPortal_GasEstimation();
@@ -754,7 +754,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // Handle ETH deposits: prevent when custom gas token is active, otherwise lock in ETHLockbox.
         if (msg.value > 0) {
             if (systemConfig.isCustomGasToken()) {
-                revert OptimismPortal_CGTWithdrawalNotAllowed();
+                revert OptimismPortal_NotAllowedOnCGTMode();
             }
             ethLockbox.lockETH{ value: msg.value }();
         }

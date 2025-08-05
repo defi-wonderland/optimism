@@ -1254,7 +1254,6 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         return abi.encodeCall(IETHLockbox.initialize, (_output.systemConfigProxy, _portals));
     }
 
-    /// @notice Helper method for encoding the SystemConfig initializer data.
     function encodeSystemConfigInitializer(
         OPContractsManager.DeployInput memory _input,
         OPContractsManager.DeployOutput memory _output,
@@ -1268,9 +1267,20 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         (IResourceMetering.ResourceConfig memory referenceResourceConfig, ISystemConfig.Addresses memory opChainAddrs) =
             defaultSystemConfigParams(_input, _output);
 
-        // TODO: This is a temporary to avoid stack too deep.
-        bool isCustomGasToken = _input.isCustomGasToken;
+        return _systemConfigInitializerData(_input, _superchainConfig, referenceResourceConfig, opChainAddrs);
+    }
 
+    function _systemConfigInitializerData(
+        OPContractsManager.DeployInput memory _input,
+        ISuperchainConfig _superchainConfig,
+        IResourceMetering.ResourceConfig memory referenceResourceConfig,
+        ISystemConfig.Addresses memory opChainAddrs
+    )
+        internal
+        view
+        virtual
+        returns (bytes memory)
+    {
         return abi.encodeCall(
             ISystemConfig.initialize,
             (
@@ -1285,7 +1295,7 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
                 opChainAddrs,
                 _input.l2ChainId,
                 _superchainConfig,
-                isCustomGasToken
+                _input.isCustomGasToken
             )
         );
     }
