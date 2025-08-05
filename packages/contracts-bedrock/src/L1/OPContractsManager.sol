@@ -1254,6 +1254,7 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         return abi.encodeCall(IETHLockbox.initialize, (_output.systemConfigProxy, _portals));
     }
 
+    /// @notice Helper method for encoding the SystemConfig initializer data.
     function encodeSystemConfigInitializer(
         OPContractsManager.DeployInput memory _input,
         OPContractsManager.DeployOutput memory _output,
@@ -1267,10 +1268,11 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         (IResourceMetering.ResourceConfig memory referenceResourceConfig, ISystemConfig.Addresses memory opChainAddrs) =
             defaultSystemConfigParams(_input, _output);
 
-        return _systemConfigInitializerData(_input, _superchainConfig, referenceResourceConfig, opChainAddrs);
+        return systemConfigInitializerData(_input, _superchainConfig, referenceResourceConfig, opChainAddrs);
     }
 
-    function _systemConfigInitializerData(
+    /// @notice Helper method for encoding the call data for the SystemConfig initializer.
+    function systemConfigInitializerData(
         OPContractsManager.DeployInput memory _input,
         ISuperchainConfig _superchainConfig,
         IResourceMetering.ResourceConfig memory referenceResourceConfig,

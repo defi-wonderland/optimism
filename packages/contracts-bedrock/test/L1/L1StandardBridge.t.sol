@@ -430,9 +430,9 @@ contract L1StandardBridge_Receive_Test is CommonTest {
         vm.etch(alice, hex"ffff");
         vm.deal(alice, 100);
         vm.prank(alice);
-        vm.expectRevert("StandardBridge: function can only be called from an EOA");
-        (bool success,) = address(l1StandardBridge).call{ value: 100 }(hex"");
-        assertEq(success, true);
+        vm.expectRevert(bytes("StandardBridge: function can only be called from an EOA"));
+        (bool revertsAsExpected,) = address(l1StandardBridge).call{ value: 100 }(hex"");
+        assertTrue(revertsAsExpected, "expectRevert: call did not revert");
     }
 }
 
