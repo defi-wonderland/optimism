@@ -1029,7 +1029,6 @@ contract ProposalValidator is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         // since the attestations are updated daily we should only allow attestations
         // created before the last voting cycle of the proposal
-        // check if attestation was created after the previous voting cycle
         if (attestation.time > previousVotingCycleData.startingTimestamp) {
             revert ProposalValidator_AttestationCreatedAfterLastVotingCycle();
         }

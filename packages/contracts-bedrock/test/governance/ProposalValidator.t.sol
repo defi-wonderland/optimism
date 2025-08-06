@@ -2091,6 +2091,42 @@ contract ProposalValidator_ApproveProposal_TestFail is ProposalValidator_Init {
         validator.approveProposal(_proposalId, topDelegateAttestation_A);
     }
 
+    function test_approveProposal_attestationCreatedAfterPreviousVotingCycle_reverts(
+        uint256 _proposalId,
+        uint8 proposalTypeValue
+    )
+        public
+    {
+        // Bound the proposal type to valid enum values (0-4)
+        proposalTypeValue = uint8(bound(proposalTypeValue, 0, 4));
+        ProposalValidator.ProposalType proposalType = ProposalValidator.ProposalType(proposalTypeValue);
+
+        // create a new delegate and attestation
+        address _delegate = makeAddr("delegate");
+        bytes32 _attestationUid;
+
+        // create the attestation based on the proposal type
+        if (proposalType == ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade) {
+            // warp to after the start of the current voting cycle if the proposal is ProtocolOrGovernorUpgrade
+            // because this proposal can be submitted and approved outside of a voting cycle
+            vm.warp(START_TIMESTAMP + 1);
+            _attestationUid = _createTopDelegateAttestation(_delegate);
+        } else {
+            // warp to after the start of the previous cycle for an other proposal type
+            vm.warp(START_TIMESTAMP - DURATION + 1);
+            _attestationUid = _createTopDelegateAttestation(_delegate);
+        }
+
+        // set proposal data so that the proposal exists
+        validator.setProposalData(_proposalId, _delegate, proposalType, false, 0, CYCLE_NUMBER);
+
+        // warp to after the start of the current voting cycle
+        vm.warp(START_TIMESTAMP + 2);
+        vm.expectRevert(IProposalValidator.ProposalValidator_AttestationCreatedAfterLastVotingCycle.selector);
+        vm.prank(_delegate);
+        validator.approveProposal(_proposalId, _attestationUid);
+    }
+
     function test_approveProposal_invalidAttestationCaller_reverts(
         uint256 _proposalId,
         uint8 proposalTypeValue,
