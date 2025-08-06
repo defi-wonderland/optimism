@@ -23,40 +23,8 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
         __StandardCGTBridge_init(_cgtToken, _messenger, _otherBridge);
     }
 
-    /// @notice Expose bridgeCGT function for testing
-    function bridgeCGT(
-        address _remoteToken,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        override
-        onlyEOA
-    {
-        // Empty implementation for testing modifiers only
-        // Actual implementation will be in L1/L2 specific contracts
-    }
-
-    /// @notice Expose bridgeCGTTo function for testing
-    function bridgeCGTTo(
-        address _remoteToken,
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        override
-        onlyEOA
-    {
-        // Empty implementation for testing modifiers only
-        // Actual implementation will be in L1/L2 specific contracts
-    }
-
     /// @notice Expose finalizeBridgeCGT function for testing
     function finalizeBridgeCGT(
-        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
@@ -115,44 +83,6 @@ contract StandardCGTBridge_Initialize_Test is StandardCGTBridge_TestInit {
     }
 }
 
-/// @title StandardCGTBridge_OnlyEOA_Test
-/// @notice Tests the `onlyEOA` modifier of the `StandardCGTBridge` contract.
-contract StandardCGTBridge_OnlyEOA_Test is StandardCGTBridge_TestInit {
-    /// @notice Tests that EOA can call functions with onlyEOA modifier.
-    function test_bridgeCGT_onlyEOA_fromEOA_succeeds() external {
-        // Call the function and expect it to succeed
-        // Use startPrank with tx.origin to simulate a proper EOA transaction
-        vm.startPrank(from, from);
-        standardCGTBridge.bridgeCGT(cgtToken, 100, 100, "");
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that contract cannot call functions with onlyEOA modifier.
-    function test_bridgeCGT_onlyEOA_fromContract_reverts() external {
-        // Expect the function to revert
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromEOA.selector);
-        vm.prank(address(otherBridge));
-        standardCGTBridge.bridgeCGT(cgtToken, 100, 100, "");
-    }
-
-    /// @notice Tests that EOA can call functions with onlyEOA modifier.
-    function test_bridgeCGTTo_onlyEOA_fromEOA_succeeds() external {
-        // Call the function and expect it to succeed
-        // Use startPrank with tx.origin to simulate a proper EOA transaction
-        vm.startPrank(from, from);
-        standardCGTBridge.bridgeCGTTo(cgtToken, to, 100, 100, "");
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that contract cannot call functions with onlyEOA modifier.
-    function test_bridgeCGTTo_onlyEOA_fromContract_reverts() external {
-        // Expect the function to revert
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromEOA.selector);
-        vm.prank(address(otherBridge));
-        standardCGTBridge.bridgeCGTTo(cgtToken, to, 100, 100, "");
-    }
-}
-
 /// @title StandardCGTBridge_OnlyOtherBridge_Test
 /// @notice Tests the `onlyOtherBridge` modifier of the `StandardCGTBridge` contract.
 contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
@@ -160,8 +90,8 @@ contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
     function test_finalizeBridgeCGT_onlyOtherBridge_wrongMessenger_reverts() external {
         // Mock the xDomainMessageSender to return the wrong sender
         vm.prank(makeAddr("wrongMessenger"));
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromOtherBridge.selector);
-        standardCGTBridge.finalizeBridgeCGT(cgtToken, from, to, 100, "");
+        vm.expectRevert(StandardCGTBridge.Unauthorized.selector);
+        standardCGTBridge.finalizeBridgeCGT(from, to, 100, "");
     }
 
     /// @notice Tests that function reverts when xDomainMessageSender is not otherBridge.
@@ -175,8 +105,8 @@ contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
 
         // Call the function and expect it to revert
         vm.prank(address(messenger));
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromOtherBridge.selector);
-        standardCGTBridge.finalizeBridgeCGT(cgtToken, from, to, 100, "");
+        vm.expectRevert(StandardCGTBridge.Unauthorized.selector);
+        standardCGTBridge.finalizeBridgeCGT(from, to, 100, "");
     }
 
     /// @notice Tests that function succeeds when called correctly.
@@ -190,6 +120,6 @@ contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
 
         // Call the function and expect it to succeed
         vm.prank(address(messenger));
-        standardCGTBridge.finalizeBridgeCGT(cgtToken, from, to, 100, "");
+        standardCGTBridge.finalizeBridgeCGT(from, to, 100, "");
     }
 }
