@@ -26,9 +26,6 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
     using SafeERC20 for IERC20;
 
-    /// @notice Mapping that stores deposits for a given CGT token.
-    mapping(address => uint256) public deposits;
-
     /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
     ISystemConfig public systemConfig;

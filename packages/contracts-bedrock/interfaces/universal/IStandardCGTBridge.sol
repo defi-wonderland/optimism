@@ -5,35 +5,18 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 
 interface IStandardCGTBridge {
     /// @notice Emitted when a CGT bridge is initiated on this chain.
-    /// @param localToken     Address of the token.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
     /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTBridgeInitiated(
-        address indexed localToken,
-        address remoteToken,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        bytes extraData
-    );
+    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
     /// @notice Emitted when a CGT bridge is finalized on this chain.
-    /// @param localToken     Address of the token.
-    /// @param remoteToken    Address of the corresponding token on the remote chain.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
     /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTBridgeFinalized(
-        address indexed localToken,
-        address remoteToken,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        bytes extraData
-    );
+    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
     /// @notice Address of the CGT token.
     function cgtToken() external view returns (address);
@@ -48,43 +31,19 @@ interface IStandardCGTBridge {
     /// @return True if the bridge is paused, false otherwise.
     function paused() public view virtual returns (bool);
 
-    /// @notice Sends CGT tokens to the sender's address on the other chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
-    /// @param _amount      Amount of local tokens to deposit.
-    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
-    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
-    ///                     not be triggered with this data, but it will be emitted and can be used
-    ///                     to identify the transaction.
-    function bridgeCGT(
-        address _remoteToken,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        virtual;
+    /// @notice Initializes the bridge contract.
+    /// @param _cgtToken         Address of the CGT token.
+    /// @param _messenger        Address of the CrossDomainMessenger on this network.
+    /// @param _otherBridge      Address of the corresponding bridge on the other network.
+    function initialize(
+        address _cgtToken,
+        ICrossDomainMessenger _messenger,
+        address _otherBridge
+    ) external;
 
-    /// @notice Sends ERC20 tokens to a receiver's address on the other chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
-    /// @param _to          Address of the receiver.
-    /// @param _amount      Amount of local tokens to deposit.
-    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
-    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
-    ///                     not be triggered with this data, but it will be emitted and can be used
-    ///                     to identify the transaction.
-    function bridgeCGTTo(
-        address _remoteToken,
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        virtual;
 
-    /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
+    /// @notice Finalizes a CGT bridge on this chain. Can only be triggered by the other
     ///         StandardBridge contract on the remote chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
@@ -92,12 +51,10 @@ interface IStandardCGTBridge {
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
     function finalizeBridgeCGT(
-        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
         bytes calldata _extraData
     )
-        external
-        virtual;
+        external;
 }
