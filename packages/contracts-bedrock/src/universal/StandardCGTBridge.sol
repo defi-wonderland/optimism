@@ -8,15 +8,12 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { EOA } from "src/libraries/EOA.sol";
 
 // Interfaces
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
-import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 /// @custom:upgradeable
 /// @title StandardCGTBridge
-/// @notice StandardCGTBridge is a base contract for the L1 and L2 Custom Gas Token bridges.
-///         It handles the core bridging logic, including escrowing tokens and managing
-///         cross-domain communication for CGT transfers.
+/// @notice StandardCGTBridge is a base contract for the L1 and L2 CGT bridges. It defines common
+///         structures and functions for the CGT bridges on both L1 and L2.
 abstract contract StandardCGTBridge is Initializable {
     /// @notice Address of the CGT token.
     /// @custom:network-specific
@@ -34,55 +31,43 @@ abstract contract StandardCGTBridge is Initializable {
     uint256[46] private __gap;
 
     /// @notice Emitted when a CGT bridge is initiated on this chain.
-    /// @param localToken     Address of the token.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
     /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTBridgeInitiated(
-        address indexed localToken,
-        address remoteToken,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        bytes extraData
-    );
+    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
     /// @notice Emitted when a CGT bridge is finalized on this chain.
-    /// @param localToken     Address of the token.
-    /// @param remoteToken    Address of the corresponding token on the remote chain.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
     /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTBridgeFinalized(
-        address indexed localToken,
-        address remoteToken,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        bytes extraData
-    );
+    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
-    /// @notice Thrown when the amount to deposit is zero.
-    error AmountMustBeGreaterThanZero();
-
-    /// @notice Thrown when the recipient address is the zero address.
-    error RecipientCannotBeZeroAddress();
-
-    /// @notice Thrown when the function is called from a non-EOA.
-    error FunctionCanOnlyBeCalledFromEOA();
+    /// @notice Thrown when the recipient is not a valid address.
+    error InvalidRecipient();
 
     /// @notice Thrown when the bridge is paused.
     error Paused();
 
-    /// @notice Thrown when the function is called from a non-other bridge.
-    error FunctionCanOnlyBeCalledFromOtherBridge();
+    /// @notice Thrown when the function is not called from an EOA.
+    error NotEOA();
+
+    /// @notice Thrown when the caller is not authorized to call the function.
+    error Unauthorized();
 
     /// @notice Modifier to ensure only EOA can call a function.
     modifier onlyEOA() {
         if (!EOA.isSenderEOA()) {
-            revert FunctionCanOnlyBeCalledFromEOA();
+            revert NotEOA();
+        }
+        _;
+    }
+
+    /// @notice Modifier to ensure the caller is the other bridge.
+    modifier onlyOtherBridge() {
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(otherBridge)) {
+            revert Unauthorized();
         }
         _;
     }
@@ -93,17 +78,6 @@ abstract contract StandardCGTBridge is Initializable {
     /// @return Whether or not the contract is paused.
     function paused() public view virtual returns (bool) {
         return false;
-    }
-
-    /// @notice Modifier to ensure the caller is the other bridge.
-    modifier onlyOtherBridge() {
-        if (msg.sender != address(messenger)) {
-            revert FunctionCanOnlyBeCalledFromOtherBridge();
-        }
-        if (messenger.xDomainMessageSender() != address(otherBridge)) {
-            revert FunctionCanOnlyBeCalledFromOtherBridge();
-        }
-        _;
     }
 
     /// @notice Initializer for the StandardCGTBridge.
@@ -123,43 +97,8 @@ abstract contract StandardCGTBridge is Initializable {
         otherBridge = _otherBridge;
     }
 
-    /// @notice Sends CGT tokens to the sender's address on the other chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
-    /// @param _amount      Amount of local tokens to deposit.
-    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
-    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
-    ///                     not be triggered with this data, but it will be emitted and can be used
-    ///                     to identify the transaction.
-    function bridgeCGT(
-        address _remoteToken,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        virtual;
-
-    /// @notice Sends CGT tokens to a receiver's address on the other chain.s
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
-    /// @param _to          Address of the receiver.
-    /// @param _amount      Amount of local tokens to deposit.
-    /// @param _minGasLimit Minimum amount of gas that the bridge can be relayed with.
-    /// @param _extraData   Extra data to be sent with the transaction. Note that the recipient will
-    ///                     not be triggered with this data, but it will be emitted and can be used
-    ///                     to identify the transaction.
-    function bridgeCGTTo(
-        address _remoteToken,
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        virtual;
-
     /// @notice Finalizes a CGT bridge on this chain. Can only be triggered by the other
     ///         StandardBridge contract on the remote chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
@@ -167,7 +106,6 @@ abstract contract StandardCGTBridge is Initializable {
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
     function finalizeBridgeCGT(
-        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
