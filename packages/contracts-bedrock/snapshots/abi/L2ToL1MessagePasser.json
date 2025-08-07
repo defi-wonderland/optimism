@@ -155,7 +155,7 @@
   },
   {
     "inputs": [],
-    "name": "CGTWithdrawalNotAllowed",
+    "name": "NotAllowedOnCGTMode",
     "type": "error"
   }
 ]

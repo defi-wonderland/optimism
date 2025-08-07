@@ -8,8 +8,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import "src/libraries/L1BlockErrors.sol";
-import { L1Block } from "src/L2/L1Block.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @title L1Block_ TestInit
 /// @notice Reusable test initialization for `L1Block` tests.

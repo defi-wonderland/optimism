@@ -182,9 +182,9 @@ contract L2ToL1MessagePasser_Uncategorized_Test is CommonTest {
         _value = bound(_value, 1, type(uint256).max);
         vm.deal(_randomAddress, _value);
 
-        // Expect revert with CGTWithdrawalNotAllowed
+        // Expect revert with NotAllowedOnCGTMode
         vm.prank(_randomAddress);
-        vm.expectRevert(IL2ToL1MessagePasser.CGTWithdrawalNotAllowed.selector);
+        vm.expectRevert(IL2ToL1MessagePasser.NotAllowedOnCGTMode.selector);
         l2ToL1MessagePasser.initiateWithdrawal{ value: _value }({ _target: address(0), _gasLimit: 1, _data: "" });
     }
 }
