@@ -24,16 +24,10 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
     }
 
     /// @notice Expose bridgeCGT function for testing
-    function bridgeCGT(
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        payable
-        override
-        onlyEOA
-    {
+    function bridgeCGT(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external payable override {
+        if (!EOA.isSenderEOA()) {
+            revert FunctionCanOnlyBeCalledFromEOA();
+        }
         // Empty implementation for testing modifiers only
         // Actual implementation will be in L1/L2 specific contracts
     }
@@ -48,8 +42,10 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
         external
         payable
         override
-        onlyEOA
     {
+        if (!EOA.isSenderEOA()) {
+            revert FunctionCanOnlyBeCalledFromEOA();
+        }
         // Empty implementation for testing modifiers only
         // Actual implementation will be in L1/L2 specific contracts
     }
@@ -63,8 +59,13 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
     )
         external
         override
-        onlyOtherBridge
     {
+        if (msg.sender != address(messenger)) {
+            revert FunctionCanOnlyBeCalledFromOtherBridge();
+        }
+        if (messenger.xDomainMessageSender() != address(otherBridge)) {
+            revert FunctionCanOnlyBeCalledFromOtherBridge();
+        }
         // Empty implementation for testing modifiers only
         // Actual implementation will be in L1/L2 specific contracts
     }

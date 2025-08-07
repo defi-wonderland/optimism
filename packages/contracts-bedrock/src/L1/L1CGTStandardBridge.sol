@@ -8,6 +8,7 @@ import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { EOA } from "src/libraries/EOA.sol";
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -43,14 +44,6 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     /// @notice Constructs the L1CGTStandardBridge contract.
     constructor() ReinitializableBase(1) {
         _disableInitializers();
-    }
-
-    /// @notice Modifier to ensure the bridge is not paused.
-    modifier whenNotPaused() {
-        if (paused()) {
-            revert Paused();
-        }
-        _;
     }
 
     /// @notice Returns the semantic version of the contract.
@@ -93,17 +86,7 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
     /// @param _extraData   Extra data to forward.
-    function bridgeCGT(
-        uint256 _amount,
-        uint32 _minGasLimit,
-        bytes calldata _extraData
-    )
-        external
-        payable
-        override
-        onlyEOA
-        whenNotPaused
-    {
+    function bridgeCGT(uint256 _amount, uint32 _minGasLimit, bytes calldata _extraData) external payable override {
         _initiateBridgeCGT(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
@@ -121,8 +104,6 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         external
         payable
         override
-        onlyEOA
-        whenNotPaused
     {
         _initiateBridgeCGT(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
@@ -143,10 +124,16 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     )
         external
         override
-        onlyOtherBridge
     {
         if (paused()) {
             revert Paused();
+        }
+
+        if (msg.sender != address(messenger)) {
+            revert FunctionCanOnlyBeCalledFromOtherBridge();
+        }
+        if (messenger.xDomainMessageSender() != address(otherBridge)) {
+            revert FunctionCanOnlyBeCalledFromOtherBridge();
         }
 
         deposits[cgtToken] = deposits[cgtToken] - _amount;
@@ -170,6 +157,14 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     )
         internal
     {
+        if (!EOA.isSenderEOA()) {
+            revert FunctionCanOnlyBeCalledFromEOA();
+        }
+
+        if (paused()) {
+            revert Paused();
+        }
+
         if (msg.value > 0) {
             revert CGTBridge_ETHNotAllowed();
         }

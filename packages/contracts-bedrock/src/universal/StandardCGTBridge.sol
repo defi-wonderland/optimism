@@ -4,9 +4,6 @@ pragma solidity 0.8.15;
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-// Libraries
-import { EOA } from "src/libraries/EOA.sol";
-
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
@@ -65,31 +62,12 @@ abstract contract StandardCGTBridge is Initializable {
     /// @notice Thrown when ETH is sent to the bridge.
     error CGTBridge_ETHNotAllowed();
 
-    /// @notice Modifier to ensure only EOA can call a function.
-    modifier onlyEOA() {
-        if (!EOA.isSenderEOA()) {
-            revert FunctionCanOnlyBeCalledFromEOA();
-        }
-        _;
-    }
-
     /// @notice This function should return true if the contract is paused.
     ///         On L1 this function will check the SuperchainConfig for its paused status.
     ///         On L2 this function should be a no-op.
     /// @return Whether or not the contract is paused.
     function paused() public view virtual returns (bool) {
         return false;
-    }
-
-    /// @notice Modifier to ensure the caller is the other bridge.
-    modifier onlyOtherBridge() {
-        if (msg.sender != address(messenger)) {
-            revert FunctionCanOnlyBeCalledFromOtherBridge();
-        }
-        if (messenger.xDomainMessageSender() != address(otherBridge)) {
-            revert FunctionCanOnlyBeCalledFromOtherBridge();
-        }
-        _;
     }
 
     /// @notice Initializer for the StandardCGTBridge.
