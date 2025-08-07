@@ -91,6 +91,14 @@
     "initCodeHash": "0x975fd33a3a386310d54dbb01b56f3a6a8350f55a3b6bd7781e5ccc2166ddf2e6",
     "sourceCodeHash": "0xbea4229c5c6988243dbc7cf5a086ddd412fe1f2903b8e20d56699fec8de0c2c9"
   },
+  "src/L2/LiquidityController.sol:LiquidityController": {
+    "initCodeHash": "0x1692f8b5a14c14d579afc56964f9e2b48f6b32b2443ac0ded9d5c050866664de",
+    "sourceCodeHash": "0x753c1d9c2462393595f57c9a765440f649753e6ab74bf297f5d5d15541304e28"
+  },
+  "src/L2/NativeAssetLiquidity.sol:NativeAssetLiquidity": {
+    "initCodeHash": "0xc532da05d70300ce98d32dec956b72d3ad476be7da61bb7937e8393579e920e4",
+    "sourceCodeHash": "0x796b1670108f32545ead802b1e839bdf67828e0c7ea12fd4b02ff67c125346af"
+  },
   "src/L2/OperatorFeeVault.sol:OperatorFeeVault": {
     "initCodeHash": "0x3d8c0d7736e8767f2f797da1c20c5fe30bd7f48a4cf75f376290481ad7c0f91f",
     "sourceCodeHash": "0x2022fdb4e32769eb9446dab4aed4b8abb5261fd866f381cccfa7869df1a2adff"

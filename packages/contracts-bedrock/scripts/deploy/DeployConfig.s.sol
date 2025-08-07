@@ -77,6 +77,7 @@ contract DeployConfig is Script {
     bool public isCustomGasToken;
     bool public useInterop;
     bool public useUpgradedFork;
+    bool public isCustomGasToken;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -216,6 +217,11 @@ contract DeployConfig is Script {
     ///      system be deployed in setUp().
     function setUseUpgradedFork(bool _useUpgradedFork) public {
         useUpgradedFork = _useUpgradedFork;
+    }
+
+    /// @notice Allow the `isCustomGasToken` config to be overridden in testing environments
+    function setIsCustomGasToken(bool _isCustomGasToken) public {
+        isCustomGasToken = _isCustomGasToken;
     }
 
     function latestGenesisFork() internal view returns (Fork) {
