@@ -3,9 +3,11 @@ pragma solidity 0.8.15;
 
 // Libraries
 import { Constants } from "src/libraries/Constants.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000015
@@ -19,6 +21,9 @@ contract L1Block is ISemver {
     function DEPOSITOR_ACCOUNT() public pure returns (address addr_) {
         addr_ = Constants.DEPOSITOR_ACCOUNT;
     }
+
+    /// @notice Whether the gas paying token is custom.
+    bool public immutable IS_CUSTOM_GAS_TOKEN;
 
     /// @notice The latest L1 block number known by the L2 system.
     uint64 public number;
@@ -61,9 +66,13 @@ contract L1Block is ISemver {
     /// @notice The scalar value applied to the operator fee.
     uint32 public operatorFeeScalar;
 
-    /// @custom:semver 1.6.1
+    constructor(bool _isCustomGasToken) {
+        IS_CUSTOM_GAS_TOKEN = _isCustomGasToken;
+    }
+
+    /// @custom:semver 1.6.2
     function version() public pure virtual returns (string memory) {
-        return "1.6.1";
+        return "1.6.2";
     }
 
     /// @notice Returns the gas paying token, its decimals, name and symbol.
@@ -75,21 +84,22 @@ contract L1Block is ISemver {
     /// @notice Returns the gas paying token name.
     ///         If nothing is set in state, then it means ether is used.
     ///         This function cannot be removed because WETH depends on it.
-    function gasPayingTokenName() public pure returns (string memory name_) {
-        name_ = "Ether";
+    function gasPayingTokenName() public view returns (string memory name_) {
+        name_ =
+            IS_CUSTOM_GAS_TOKEN ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenName() : "Ether";
     }
 
     /// @notice Returns the gas paying token symbol.
     ///         If nothing is set in state, then it means ether is used.
     ///         This function cannot be removed because WETH depends on it.
-    function gasPayingTokenSymbol() public pure returns (string memory symbol_) {
-        symbol_ = "ETH";
+    function gasPayingTokenSymbol() public view returns (string memory symbol_) {
+        symbol_ =
+            IS_CUSTOM_GAS_TOKEN ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenSymbol() : "ETH";
     }
 
-    /// @notice Getter for custom gas token paying networks. Returns true if the
-    ///         network uses a custom gas token.
-    function isCustomGasToken() public pure returns (bool is_) {
-        is_ = false;
+    /// @notice Returns whether the gas paying token is custom.
+    function isCustomGasToken() public view returns (bool is_) {
+        is_ = IS_CUSTOM_GAS_TOKEN;
     }
 
     /// @custom:legacy

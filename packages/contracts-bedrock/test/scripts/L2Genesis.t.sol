@@ -15,6 +15,8 @@ import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableE
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
 
 /// @title L2Genesis_TestInit
 /// @notice Reusable test initialization for `L2Genesis` tests.
@@ -47,7 +49,7 @@ contract L2Genesis_TestInit is Test {
             assertEq(Predeploys.PROXY_ADMIN, EIP1967Helper.getAdmin(addr));
 
             // If it's not a supported predeploy, skip next checks.
-            if (!Predeploys.isSupportedPredeploy(addr, uint256(LATEST_FORK), true)) {
+            if (!Predeploys.isSupportedPredeploy(addr, uint256(LATEST_FORK), true, input.isCustomGasToken)) {
                 continue;
             }
 
@@ -102,6 +104,21 @@ contract L2Genesis_TestInit is Test {
         assertEq(gasPriceOracle.isFjord(), true);
         assertEq(gasPriceOracle.isIsthmus(), true);
     }
+
+    function testCGT() internal view {
+        // Test LiquidityController deployment
+        ILiquidityController controller = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
+        assertEq(controller.gasPayingTokenName(), input.gasPayingTokenName);
+        assertEq(controller.gasPayingTokenSymbol(), input.gasPayingTokenSymbol);
+
+        // Test NativeAssetLiquidity deployment and funding
+        INativeAssetLiquidity liquidity = INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY);
+        assertEq(address(liquidity).balance, type(uint248).max);
+
+        // Verify predeploys have code
+        assertGt(Predeploys.LIQUIDITY_CONTROLLER.code.length, 0);
+        assertGt(Predeploys.NATIVE_ASSET_LIQUIDITY.code.length, 0);
+    }
 }
 
 /// @title L2Genesis_Run_Test
@@ -128,7 +145,10 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             fork: uint256(LATEST_FORK),
             deployCrossL2Inbox: true,
             enableGovernance: true,
-            fundDevAccounts: true
+            fundDevAccounts: true,
+            isCustomGasToken: false,
+            gasPayingTokenName: "",
+            gasPayingTokenSymbol: ""
         });
         genesis.run(input);
 
@@ -138,5 +158,42 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         testGovernance();
         testFactories();
         testForks();
+    }
+
+    function test_run_cgt_succeeds() external {
+        input = L2Genesis.Input({
+            l1ChainID: 1,
+            l2ChainID: 2,
+            l1CrossDomainMessengerProxy: payable(address(0x0000000000000000000000000000000000000001)),
+            l1StandardBridgeProxy: payable(address(0x0000000000000000000000000000000000000002)),
+            l1ERC721BridgeProxy: payable(address(0x0000000000000000000000000000000000000003)),
+            opChainProxyAdminOwner: address(0x0000000000000000000000000000000000000004),
+            sequencerFeeVaultRecipient: address(0x0000000000000000000000000000000000000005),
+            sequencerFeeVaultMinimumWithdrawalAmount: 1,
+            sequencerFeeVaultWithdrawalNetwork: 1,
+            baseFeeVaultRecipient: address(0x0000000000000000000000000000000000000006),
+            baseFeeVaultMinimumWithdrawalAmount: 1,
+            baseFeeVaultWithdrawalNetwork: 1,
+            l1FeeVaultRecipient: address(0x0000000000000000000000000000000000000007),
+            l1FeeVaultMinimumWithdrawalAmount: 1,
+            l1FeeVaultWithdrawalNetwork: 1,
+            governanceTokenOwner: address(0x0000000000000000000000000000000000000008),
+            fork: uint256(LATEST_FORK),
+            deployCrossL2Inbox: true,
+            enableGovernance: true,
+            fundDevAccounts: true,
+            isCustomGasToken: true,
+            gasPayingTokenName: "Custom Gas Token",
+            gasPayingTokenSymbol: "CGT"
+        });
+        genesis.run(input);
+
+        testProxyAdmin();
+        testPredeploys();
+        testVaults();
+        testGovernance();
+        testFactories();
+        testForks();
+        testCGT();
     }
 }
