@@ -13,7 +13,7 @@ import { Burn } from "src/libraries/Burn.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
-/// @custom:predeploy 0x420000000000000000000000000000000000001D
+/// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title NativeAssetLiquidity
 /// @notice The NativeAssetLiquidity contract allows other contracts to access native asset liquidity
 contract NativeAssetLiquidity is ISemver {

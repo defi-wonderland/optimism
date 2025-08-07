@@ -113,11 +113,11 @@ library Predeploys {
     /// @notice Address of the SuperchainTokenBridge predeploy.
     address internal constant SUPERCHAIN_TOKEN_BRIDGE = 0x4200000000000000000000000000000000000028;
 
-    /// @notice Address of the LiquidityController predeploy.
-    address internal constant LIQUIDITY_CONTROLLER = 0x420000000000000000000000000000000000001c;
-
     /// @notice Address of the NativeAssetLiquidity predeploy.
-    address internal constant NATIVE_ASSET_LIQUIDITY = 0x420000000000000000000000000000000000001D;
+    address internal constant NATIVE_ASSET_LIQUIDITY = 0x4200000000000000000000000000000000000029;
+
+    /// @notice Address of the LiquidityController predeploy.
+    address internal constant LIQUIDITY_CONTROLLER = 0x420000000000000000000000000000000000002a;
 
     /// @notice Returns the name of the predeploy at the given address.
     function getName(address _addr) internal pure returns (string memory out_) {

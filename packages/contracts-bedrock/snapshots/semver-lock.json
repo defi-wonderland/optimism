@@ -92,12 +92,12 @@
     "sourceCodeHash": "0xbea4229c5c6988243dbc7cf5a086ddd412fe1f2903b8e20d56699fec8de0c2c9"
   },
   "src/L2/LiquidityController.sol:LiquidityController": {
-    "initCodeHash": "0x46e6afa7c0d232efa07e0f7d5e6b0d8efa415e3ec8f5bcdd778d01e6acecd6e8",
-    "sourceCodeHash": "0x7ac8102be33e45190e59dd208c72f6950aea0c3253b816d3c93cc7c6fd4e88b7"
+    "initCodeHash": "0x1692f8b5a14c14d579afc56964f9e2b48f6b32b2443ac0ded9d5c050866664de",
+    "sourceCodeHash": "0x753c1d9c2462393595f57c9a765440f649753e6ab74bf297f5d5d15541304e28"
   },
   "src/L2/NativeAssetLiquidity.sol:NativeAssetLiquidity": {
-    "initCodeHash": "0x6de086699e4ecfa1a1c8d619948a6040ebe41b7796f55ab8832165aa05f790af",
-    "sourceCodeHash": "0xb908a3912a7a27eb1ec324b2cc72320dfa2d2c51b2ef3067d6239cf09a03b993"
+    "initCodeHash": "0xc532da05d70300ce98d32dec956b72d3ad476be7da61bb7937e8393579e920e4",
+    "sourceCodeHash": "0x796b1670108f32545ead802b1e839bdf67828e0c7ea12fd4b02ff67c125346af"
   },
   "src/L2/OperatorFeeVault.sol:OperatorFeeVault": {
     "initCodeHash": "0x3d8c0d7736e8767f2f797da1c20c5fe30bd7f48a4cf75f376290481ad7c0f91f",
