@@ -9,21 +9,23 @@ import { Encoding } from "src/libraries/Encoding.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import "src/libraries/L1BlockErrors.sol";
 
-/// @title L1Block_ TestInit
-/// @notice Reusable test initialization for `L1Block` tests.
-contract L1Block_TestInit is CommonTest {
+/// @title L1Block_CGT_TestInit
+/// @notice Reusable test initialization for `L1Block` tests with custom gas token enabled.
+contract L1Block_CGT_TestInit is CommonTest {
     address depositor;
 
     /// @notice Sets up the test suite.
     function setUp() public virtual override {
+        super.enableCustomGasToken();
         super.setUp();
         depositor = l1Block.DEPOSITOR_ACCOUNT();
     }
 }
 
-/// @title L1Block_GasPayingToken_Test
-/// @notice Tests the `gasPayingToken` function of the `L1Block` contract.
-contract L1Block_GasPayingToken_Test is L1Block_TestInit {
+/// @title L1Block_CGT_GasPayingToken_Test
+/// @notice Tests the `gasPayingToken` function of the `L1Block` contract with custom gas token
+///         enabled.
+contract L1Block_CGT_GasPayingToken_Test is L1Block_CGT_TestInit {
     /// @notice Tests that the `gasPayingToken` function returns the correct token address and
     ///         decimals.
     function test_gasPayingToken_succeeds() external view {
@@ -33,37 +35,41 @@ contract L1Block_GasPayingToken_Test is L1Block_TestInit {
     }
 }
 
-/// @title L1Block_GasPayingTokenName_Test
-/// @notice Tests the `gasPayingTokenName` function of the `L1Block` contract.
-contract L1Block_GasPayingTokenName_Test is L1Block_TestInit {
+/// @title L1Block_CGT_GasPayingTokenName_Test
+/// @notice Tests the `gasPayingTokenName` function of the `L1Block` contract with custom gas
+///         token enabled.
+contract L1Block_CGT_GasPayingTokenName_Test is L1Block_CGT_TestInit {
     /// @notice Tests that the `gasPayingTokenName` function returns the correct token name.
     function test_gasPayingTokenName_succeeds() external view {
-        assertEq("Ether", l1Block.gasPayingTokenName());
+        assertEq(liquidityController.gasPayingTokenName(), l1Block.gasPayingTokenName());
     }
 }
 
-/// @title L1Block_GasPayingTokenSymbol_Test
-/// @notice Tests the `gasPayingTokenSymbol` function of the `L1Block` contract.
-contract L1Block_GasPayingTokenSymbol_Test is L1Block_TestInit {
+/// @title L1Block_CGT_GasPayingTokenSymbol_Test
+/// @notice Tests the `gasPayingTokenSymbol` function of the `L1Block` contract with custom gas
+///         token enabled.
+contract L1Block_CGT_GasPayingTokenSymbol_Test is L1Block_CGT_TestInit {
     /// @notice Tests that the `gasPayingTokenSymbol` function returns the correct token symbol.
     function test_gasPayingTokenSymbol_succeeds() external view {
-        assertEq("ETH", l1Block.gasPayingTokenSymbol());
+        assertEq(liquidityController.gasPayingTokenSymbol(), l1Block.gasPayingTokenSymbol());
     }
 }
 
-/// @title L1Block_IsCustomGasToken_Test
-/// @notice Tests the `isCustomGasToken` function of the `L1Block` contract.
-contract L1Block_IsCustomGasToken_Test is L1Block_TestInit {
+/// @title L1Block_CGT_IsCustomGasToken_Test
+/// @notice Tests the `isCustomGasToken` function of the `L1Block` contract with custom gas token
+///         enabled.
+contract L1Block_CGT_IsCustomGasToken_Test is L1Block_CGT_TestInit {
     /// @notice Tests that the `isCustomGasToken` function returns false when no custom gas token
     ///         is used.
     function test_isCustomGasToken_succeeds() external view {
-        assertFalse(l1Block.isCustomGasToken());
+        assertTrue(l1Block.isCustomGasToken());
     }
 }
 
-/// @title L1Block_SetL1BlockValues_Test
-/// @notice Tests the `setL1BlockValues` function of the `L1Block` contract.
-contract L1Block_SetL1BlockValues_Test is L1Block_TestInit {
+/// @title L1Block_CGT_SetL1BlockValues_Test
+/// @notice Tests the `setL1BlockValues` function of the `L1Block` contract with custom gas token
+///         enabled.
+contract L1Block_CGT_SetL1BlockValues_Test is L1Block_CGT_TestInit {
     /// @notice Tests that `setL1BlockValues` updates the values correctly.
     function testFuzz_setL1BlockValues_succeeds(
         uint64 n,
@@ -120,9 +126,10 @@ contract L1Block_SetL1BlockValues_Test is L1Block_TestInit {
     }
 }
 
-/// @title L1Block_SetL1BlockValuesEcotone_Test
-/// @notice Tests the `setL1BlockValuesEcotone` function of the `L1Block` contract.
-contract L1Block_SetL1BlockValuesEcotone_Test is L1Block_TestInit {
+/// @title L1Block_CGT_SetL1BlockValuesEcotone_Test
+/// @notice Tests the `setL1BlockValuesEcotone` function of the `L1Block` contract with custom gas
+///         token enabled.
+contract L1Block_CGT_SetL1BlockValuesEcotone_Test is L1Block_CGT_TestInit {
     /// @notice Tests that setL1BlockValuesEcotone updates the values appropriately.
     function testFuzz_setL1BlockValuesEcotone_succeeds(
         uint32 baseFeeScalar,
@@ -209,9 +216,10 @@ contract L1Block_SetL1BlockValuesEcotone_Test is L1Block_TestInit {
     }
 }
 
-/// @title L1Block_SetL1BlockValuesIsthmus_Test
-/// @notice Tests the `setL1BlockValuesIsthmus` function of the `L1Block` contract.
-contract L1Block_SetL1BlockValuesIsthmus_Test is L1Block_TestInit {
+/// @title L1Block_CGTSetL1BlockValuesIsthmus_Test
+/// @notice Tests the `setL1BlockValuesIsthmus` function of the `L1Block` contract with custom gas
+///         token enabled.
+contract L1Block_CGT_SetL1BlockValuesIsthmus_Test is L1Block_CGT_TestInit {
     /// @notice Tests that setL1BlockValuesIsthmus updates the values appropriately.
     function testFuzz_setL1BlockValuesIsthmus_succeeds(
         uint32 baseFeeScalar,
