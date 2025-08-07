@@ -90,48 +90,45 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     }
 
     /// @notice Sends CGT tokens to the sender's address on the other chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
     /// @param _extraData   Extra data to forward.
     function bridgeCGT(
-        address _remoteToken,
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
         external
+        payable
         override
         onlyEOA
         whenNotPaused
     {
-        _initiateBridgeCGT(_remoteToken, msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
+        _initiateBridgeCGT(msg.sender, msg.sender, _amount, _minGasLimit, _extraData);
     }
 
     /// @notice Sends CGT tokens to a receiver's address on the other chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _to          Address to bridge the CGT tokens to.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
     /// @param _extraData   Extra data to forward.
     function bridgeCGTTo(
-        address _remoteToken,
         address _to,
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
         external
+        payable
         override
         onlyEOA
         whenNotPaused
     {
-        _initiateBridgeCGT(_remoteToken, msg.sender, _to, _amount, _minGasLimit, _extraData);
+        _initiateBridgeCGT(msg.sender, _to, _amount, _minGasLimit, _extraData);
     }
 
     /// @notice Finalizes a CGT bridge on this chain. Can only be triggered by the other
     ///         StandardBridge contract on the remote chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
@@ -139,7 +136,6 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     ///                     not be triggered with this data, but it will be emitted and can be used
     ///                     to identify the transaction.
     function finalizeBridgeCGT(
-        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
@@ -156,18 +152,16 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         deposits[cgtToken] = deposits[cgtToken] - _amount;
         IERC20(cgtToken).safeTransfer(_to, _amount);
 
-        emit CGTBridgeFinalized(cgtToken, _remoteToken, _from, _to, _amount, _extraData);
+        emit CGTBridgeFinalized(_from, _to, _amount, _extraData);
     }
 
     /// @notice Sends CGT tokens to the sender's address on the other chain.
-    /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
     /// @param _extraData   Extra data to forward.
     function _initiateBridgeCGT(
-        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
@@ -176,6 +170,10 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     )
         internal
     {
+        if (msg.value > 0) {
+            revert CGTBridge_ETHNotAllowed();
+        }
+
         if (_amount == 0) {
             revert AmountMustBeGreaterThanZero();
         }
@@ -189,12 +187,10 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
 
         messenger.sendMessage({
             _target: address(otherBridge),
-            _message: abi.encodeWithSelector(
-                this.finalizeBridgeCGT.selector, _remoteToken, cgtToken, _from, _to, _amount, _extraData
-            ),
+            _message: abi.encodeWithSelector(this.finalizeBridgeCGT.selector, _from, _to, _amount, _extraData),
             _minGasLimit: _minGasLimit
         });
 
-        emit CGTBridgeInitiated(cgtToken, _remoteToken, _from, _to, _amount, _extraData);
+        emit CGTBridgeInitiated(_from, _to, _amount, _extraData);
     }
 }

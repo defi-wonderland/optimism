@@ -25,12 +25,12 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
 
     /// @notice Expose bridgeCGT function for testing
     function bridgeCGT(
-        address _remoteToken,
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
         external
+        payable
         override
         onlyEOA
     {
@@ -40,13 +40,13 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
 
     /// @notice Expose bridgeCGTTo function for testing
     function bridgeCGTTo(
-        address _remoteToken,
         address _to,
         uint256 _amount,
         uint32 _minGasLimit,
         bytes calldata _extraData
     )
         external
+        payable
         override
         onlyEOA
     {
@@ -56,7 +56,6 @@ contract StandardCGTBridgeTester is StandardCGTBridge {
 
     /// @notice Expose finalizeBridgeCGT function for testing
     function finalizeBridgeCGT(
-        address _remoteToken,
         address _from,
         address _to,
         uint256 _amount,
@@ -123,7 +122,7 @@ contract StandardCGTBridge_OnlyEOA_Test is StandardCGTBridge_TestInit {
         // Call the function and expect it to succeed
         // Use startPrank with tx.origin to simulate a proper EOA transaction
         vm.startPrank(from, from);
-        standardCGTBridge.bridgeCGT(cgtToken, 100, 100, "");
+        standardCGTBridge.bridgeCGT(100, 100, "");
         vm.stopPrank();
     }
 
@@ -132,7 +131,7 @@ contract StandardCGTBridge_OnlyEOA_Test is StandardCGTBridge_TestInit {
         // Expect the function to revert
         vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromEOA.selector);
         vm.prank(address(otherBridge));
-        standardCGTBridge.bridgeCGT(cgtToken, 100, 100, "");
+        standardCGTBridge.bridgeCGT(100, 100, "");
     }
 
     /// @notice Tests that EOA can call functions with onlyEOA modifier.
@@ -140,7 +139,7 @@ contract StandardCGTBridge_OnlyEOA_Test is StandardCGTBridge_TestInit {
         // Call the function and expect it to succeed
         // Use startPrank with tx.origin to simulate a proper EOA transaction
         vm.startPrank(from, from);
-        standardCGTBridge.bridgeCGTTo(cgtToken, to, 100, 100, "");
+        standardCGTBridge.bridgeCGTTo(to, 100, 100, "");
         vm.stopPrank();
     }
 
@@ -149,7 +148,7 @@ contract StandardCGTBridge_OnlyEOA_Test is StandardCGTBridge_TestInit {
         // Expect the function to revert
         vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromEOA.selector);
         vm.prank(address(otherBridge));
-        standardCGTBridge.bridgeCGTTo(cgtToken, to, 100, 100, "");
+        standardCGTBridge.bridgeCGTTo(to, 100, 100, "");
     }
 }
 
@@ -161,7 +160,7 @@ contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
         // Mock the xDomainMessageSender to return the wrong sender
         vm.prank(makeAddr("wrongMessenger"));
         vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromOtherBridge.selector);
-        standardCGTBridge.finalizeBridgeCGT(cgtToken, from, to, 100, "");
+        standardCGTBridge.finalizeBridgeCGT(from, to, 100, "");
     }
 
     /// @notice Tests that function reverts when xDomainMessageSender is not otherBridge.
@@ -176,7 +175,7 @@ contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
         // Call the function and expect it to revert
         vm.prank(address(messenger));
         vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromOtherBridge.selector);
-        standardCGTBridge.finalizeBridgeCGT(cgtToken, from, to, 100, "");
+        standardCGTBridge.finalizeBridgeCGT(from, to, 100, "");
     }
 
     /// @notice Tests that function succeeds when called correctly.
@@ -190,6 +189,6 @@ contract StandardCGTBridge_OnlyOtherBridge_Test is StandardCGTBridge_TestInit {
 
         // Call the function and expect it to succeed
         vm.prank(address(messenger));
-        standardCGTBridge.finalizeBridgeCGT(cgtToken, from, to, 100, "");
+        standardCGTBridge.finalizeBridgeCGT(from, to, 100, "");
     }
 }

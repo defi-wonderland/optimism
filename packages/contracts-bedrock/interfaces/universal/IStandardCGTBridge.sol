@@ -5,35 +5,18 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 
 interface IStandardCGTBridge {
     /// @notice Emitted when a CGT bridge is initiated on this chain.
-    /// @param localToken     Address of the token.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
     /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTBridgeInitiated(
-        address indexed localToken,
-        address remoteToken,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        bytes extraData
-    );
+    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
     /// @notice Emitted when a CGT bridge is finalized on this chain.
-    /// @param localToken     Address of the token.
-    /// @param remoteToken    Address of the corresponding token on the remote chain.
     /// @param from      Address of the sender.
     /// @param to        Address of the receiver.
     /// @param amount    Amount of token sent.
     /// @param extraData Extra data sent with the transaction.
-    event CGTBridgeFinalized(
-        address indexed localToken,
-        address remoteToken,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        bytes extraData
-    );
+    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
 
     /// @notice Address of the CGT token.
     function cgtToken() external view returns (address);
