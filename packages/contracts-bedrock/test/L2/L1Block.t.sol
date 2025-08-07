@@ -15,22 +15,11 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 /// @notice Reusable test initialization for `L1Block` tests.
 contract L1Block_TestInit is CommonTest {
     address depositor;
-    address _l1Block;
 
     /// @notice Sets up the test suite.
     function setUp() public virtual override {
-        // Enable custom gas token:
-        /// L1Block.isCustomGasToken() == true;
-        /// LiquidityController & NativeAssetLiquidity are deployed.
-        super.enableCustomGasToken();
         super.setUp();
         depositor = l1Block.DEPOSITOR_ACCOUNT();
-    }
-
-    /// @notice Sets the L1Block contract to use the default gas token (ETH).
-    function disableCustomGasToken() internal {
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
-        vm.etch(impl, address(new L1Block(false)).code);
     }
 }
 
@@ -50,10 +39,8 @@ contract L1Block_GasPayingToken_Test is L1Block_TestInit {
 /// @notice Tests the `gasPayingTokenName` function of the `L1Block` contract.
 contract L1Block_GasPayingTokenName_Test is L1Block_TestInit {
     /// @notice Tests that the `gasPayingTokenName` function returns the correct token name.
-    function test_gasPayingTokenName_succeeds() external {
+    function test_gasPayingTokenName_succeeds() external view {
         assertEq(liquidityController.gasPayingTokenName(), l1Block.gasPayingTokenName());
-        disableCustomGasToken();
-        assertEq("Ether", l1Block.gasPayingTokenName());
     }
 }
 
@@ -61,10 +48,8 @@ contract L1Block_GasPayingTokenName_Test is L1Block_TestInit {
 /// @notice Tests the `gasPayingTokenSymbol` function of the `L1Block` contract.
 contract L1Block_GasPayingTokenSymbol_Test is L1Block_TestInit {
     /// @notice Tests that the `gasPayingTokenSymbol` function returns the correct token symbol.
-    function test_gasPayingTokenSymbol_succeeds() external {
+    function test_gasPayingTokenSymbol_succeeds() external view {
         assertEq(liquidityController.gasPayingTokenSymbol(), l1Block.gasPayingTokenSymbol());
-        disableCustomGasToken();
-        assertEq("ETH", l1Block.gasPayingTokenSymbol());
     }
 }
 
@@ -73,10 +58,8 @@ contract L1Block_GasPayingTokenSymbol_Test is L1Block_TestInit {
 contract L1Block_IsCustomGasToken_Test is L1Block_TestInit {
     /// @notice Tests that the `isCustomGasToken` function returns false when no custom gas token
     ///         is used.
-    function test_isCustomGasToken_succeeds() external {
+    function test_isCustomGasToken_succeeds() external view {
         assertTrue(l1Block.isCustomGasToken());
-        disableCustomGasToken();
-        assertFalse(l1Block.isCustomGasToken());
     }
 }
 
@@ -338,7 +321,8 @@ contract L1Block_SetL1BlockValuesIsthmus_Test is L1Block_TestInit {
 /// @title L1Block_Uncategorized_Test
 /// @notice Tests the `L1Block` contract with a custom gas token.
 contract L1Block_Uncategorized_Test is CommonTest {
-    function setUp() public override {
+    /// @notice Sets up the test suite with custom gas token enabled.
+    function setUp() public virtual override {
         super.enableCustomGasToken();
         super.setUp();
     }

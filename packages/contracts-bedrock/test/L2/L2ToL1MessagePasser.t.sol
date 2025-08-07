@@ -133,6 +133,7 @@ contract L2ToL1MessagePasser_Burn_Test is CommonTest {
 /// @title L2ToL1MessagePasser_Uncategorized_Test
 /// @notice Tests the `L2ToL1MessagePasser` contract with a custom gas token.
 contract L2ToL1MessagePasser_Uncategorized_Test is CommonTest {
+    /// @notice Sets up the test suite with custom gas token enabled.
     function setUp() public override {
         super.enableCustomGasToken();
         super.setUp();
