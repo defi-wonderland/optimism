@@ -9,11 +9,14 @@ interface IFeeSplitter {
     /// @notice Emitted when fees are disbursed.
     ///
     /// @param disbursementTime   The time of the disbursement.
-    /// @param paidToRecipientA     The amount of fees disbursed to the recipient A.
-    /// @param paidToRecipientB    The amount of fees disbursed to the recipient B.
+    /// @param paidConfiguredShareRecipient     The amount of fees disbursed to the fee share recipient.
+    /// @param paidToRemainderRecipient    The amount of fees disbursed to the remainder recipient.
     /// @param totalFeesDisbursed The total amount of fees disbursed.
     event FeesDisbursed(
-        uint256 indexed disbursementTime, uint256 paidToRecipientA, uint256 paidToRecipientB, uint256 totalFeesDisbursed
+        uint256 indexed disbursementTime,
+        uint256 paidConfiguredShareRecipient,
+        uint256 paidToRemainderRecipient,
+        uint256 totalFeesDisbursed
     );
 
     /// @notice Emitted when fees are received from FeeVaults.
@@ -25,17 +28,23 @@ interface IFeeSplitter {
     /// @notice Emitted when no fees are collected from FeeVaults at time of disbursement.
     event NoFeesCollected();
 
-    /// @notice Emitted when the recipient A address is updated.
+    /// @notice Emitted when the fee share recipient address is updated.
     ///
-    /// @param oldRecipientA The previous recipient A address.
-    /// @param newRecipientA The new recipient A address.
-    event FeeRecipientAUpdated(address indexed oldRecipientA, address indexed newRecipientA);
+    /// @param oldConfiguredShareRecipient The previous fee share recipient address.
+    /// @param newConfiguredShareRecipient The new fee share recipient address.
+    event ConfiguredShareRecipientUpdated(
+        address indexed oldConfiguredShareRecipient,
+        address indexed newConfiguredShareRecipient
+    );
 
-    /// @notice Emitted when the recipient B address is updated.
+    /// @notice Emitted when the remainder recipient address is updated.
     ///
-    /// @param oldRecipientB The previous recipient B address.
-    /// @param newRecipientB The new recipient B address.
-    event FeeRecipientBUpdated(address indexed oldRecipientB, address indexed newRecipientB);
+    /// @param oldRemainderRecipient The previous remainder recipient address.
+    /// @param newRemainderRecipient The new remainder recipient address.
+    event RemainderRecipientUpdated(
+        address indexed oldRemainderRecipient,
+        address indexed newRemainderRecipient
+    );
 
     /// @notice Emitted when the fee share in basis points is updated.
     ///
@@ -47,16 +56,22 @@ interface IFeeSplitter {
     ///
     /// @param oldInterval The previous fee disbursement interval.
     /// @param newInterval The new fee disbursement interval.
-    event FeeDisbursementIntervalUpdated(uint256 oldInterval, uint256 newInterval);
+    event FeeDisbursementIntervalUpdated(
+        uint256 oldInterval,
+        uint256 newInterval
+    );
 
     /// @notice Emitted when the contract is initialized.
     ///
-    /// @param feeRecipientA           The address which receives the fee share of the revenue.
-    /// @param feeRecipientB           The address which receives the remainder of the revenue.
+    /// @param configuredShareRecipient           The address which receives the fee share of the revenue.
+    /// @param remainderRecipient           The address which receives the remainder of the revenue.
     /// @param feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
     /// @param feeShareBP              The fee share percentage in basis points.
     event Initialized(
-        address payable feeRecipientA, address payable feeRecipientB, uint256 feeDisbursementInterval, uint256 feeShareBP
+        address payable configuredShareRecipient,
+        address payable remainderRecipient,
+        uint256 feeDisbursementInterval,
+        uint256 feeShareBP
     );
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -76,11 +91,11 @@ interface IFeeSplitter {
     ///                                    Storage                                     ///
     //////////////////////////////////////////////////////////////////////////////////////
 
-    /// @notice An address that recieves the fee split of the total fees dispursed
-    function feeRecipientA() external view returns (address payable);
+    /// @notice An address that receives the fee split of the total fees disbursed
+    function configuredShareRecipient() external view returns (address payable);
 
-    /// @notice An address that recieves the remainder of the total fees disbursed.
-    function feeRecipientB() external view returns (address payable);
+    /// @notice An address that receives the remainder of the total fees disbursed.
+    function remainderRecipient() external view returns (address payable);
 
     /// @notice The timestamp of the last disbursal.
     function lastDisbursementTime() external view returns (uint256);
@@ -105,31 +120,34 @@ interface IFeeSplitter {
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     ///
-    /// @param _feeRecipientA           The address which receives the fee share of the revenue.
-    /// @param _feeRecipientB           The address which receives the remainder of the revenue.
+    /// @param _configuredShareRecipient           The address which receives the fee share of the revenue.
+    /// @param _remainderRecipient           The address which receives the remainder of the revenue.
     /// @param _feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
     /// @param _feeShareBP              The fee share percentage in basis points.
     function initialize(
-        address payable _feeRecipientA,
-        address payable _feeRecipientB,
+        address payable _configuredShareRecipient,
+        address payable _remainderRecipient,
         uint256 _feeDisbursementInterval,
         uint256 _feeShareBP
-    )
-        external;
+    ) external;
 
-    /// @notice Withdraws funds from FeeVaults, sends the fee share to the fee recipient A, and sends the remainder to the
-    /// fee recipient B.
+    /// @notice Withdraws funds from FeeVaults, sends the fee share to the fee share recipient, and sends the remainder to the
+    /// remainder recipient.
     function disburseFees() external;
 
-    /// @notice Updates the fee recipient A address.
+    /// @notice Updates the fee share recipient address.
     ///
-    /// @param _newFeeRecipientA The new fee recipient A address.
-    function setFeeRecipientA(address _newFeeRecipientA) external;
+    /// @param _newConfiguredShareRecipient The new fee share recipient address.
+    function setConfiguredShareRecipient(
+        address _newConfiguredShareRecipient
+    ) external;
 
-    /// @notice Updates the fee recipient B address.
+    /// @notice Updates the remainder recipient address.
     ///
-    /// @param _newFeeRecipientB The new fee recipient B address.
-    function setFeeRecipientB(address payable _newFeeRecipientB) external;
+    /// @param _oldRemainderRecipient The new remainder recipient address.
+    function setRemainderRecipient(
+        address payable _oldRemainderRecipient
+    ) external;
 
     /// @notice Updates the fee share percentage in basis points.
     ///
@@ -139,5 +157,7 @@ interface IFeeSplitter {
     /// @notice Updates the fee disbursement interval.
     ///
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
-    function setFeeDisbursementInterval(uint256 _newFeeDisbursementInterval) external;
+    function setFeeDisbursementInterval(
+        uint256 _newFeeDisbursementInterval
+    ) external;
 }

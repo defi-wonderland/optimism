@@ -10,13 +10,16 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
 
 contract FeeSplitterTest is CommonTest {
-    address private _feeRecipientA;
-    address private _feeRecipientB;
+    address private _configuredShareRecipient;
+    address private _remainderRecipient;
     address private _owner;
 
     // Events
     event FeesDisbursed(
-        uint256 indexed disbursementTime, uint256 paidToRecipientA, uint256 paidToRecipientB, uint256 totalFeesDisbursed
+        uint256 indexed disbursementTime,
+        uint256 paidConfiguredShareRecipient,
+        uint256 paidToRemainderRecipient,
+        uint256 totalFeesDisbursed
     );
 
     event NoFeesCollected();
@@ -33,56 +36,56 @@ contract FeeSplitterTest is CommonTest {
         FeeSplitter implementation = new FeeSplitter();
 
         // Deploy proxy at the predeploy address with the implementation
-        vm.etch(Predeploys.FEE_ROUTER, address(new Proxy(address(implementation))).code);
+        vm.etch(Predeploys.FEE_SPLITTER, address(new Proxy(address(implementation))).code);
 
         // Set the admin to the ProxyAdmin predeploy
-        EIP1967Helper.setAdmin(Predeploys.FEE_ROUTER, Predeploys.PROXY_ADMIN);
+        EIP1967Helper.setAdmin(Predeploys.FEE_SPLITTER, Predeploys.PROXY_ADMIN);
 
         // Set the implementation
-        EIP1967Helper.setImplementation(Predeploys.FEE_ROUTER, address(implementation));
+        EIP1967Helper.setImplementation(Predeploys.FEE_SPLITTER, address(implementation));
 
         // Label the contract for better debugging
-        vm.label(Predeploys.FEE_ROUTER, "FeeSplitter");
+        vm.label(Predeploys.FEE_SPLITTER, "FeeSplitter");
 
         _owner = ProxyAdmin(Predeploys.PROXY_ADMIN).owner();
 
         // Deploy fee recipient A
-        _feeRecipientA = address(new Mock_FeeRecipientA());
+        _configuredShareRecipient = address(new Mock_ConfiguredShareRecipient());
 
         // Deploy fee recipient B
-        _feeRecipientB = address(new Mock_FeeRecipientB());
+        _remainderRecipient = address(new Mock_RemainderRecipient());
     }
 
     function _initializeFeeSplitter() internal {
         // Initialize the fee splitter as admin
         vm.prank(_owner);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).initialize(
-            payable(_feeRecipientA), payable(_feeRecipientB), 24 hours, 150
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(_configuredShareRecipient), payable(_remainderRecipient), 24 hours, 150
         );
     }
 
     function _setupMockFeeVaults() internal {
         // Deploy mock FeeVault contracts with proper configuration
         Mock_FeeVault sequencerFeeVault = new Mock_FeeVault(
-            payable(Predeploys.FEE_ROUTER), // recipient
+            payable(Predeploys.FEE_SPLITTER), // recipient
             1 ether, // minWithdrawalAmount
             Types.WithdrawalNetwork.L2 // withdrawalNetwork
         );
 
         Mock_FeeVault baseFeeVault = new Mock_FeeVault(
-            payable(Predeploys.FEE_ROUTER), // recipient
+            payable(Predeploys.FEE_SPLITTER), // recipient
             1 ether, // minWithdrawalAmount
             Types.WithdrawalNetwork.L2 // withdrawalNetwork
         );
 
         Mock_FeeVault l1FeeVault = new Mock_FeeVault(
-            payable(Predeploys.FEE_ROUTER), // recipient
+            payable(Predeploys.FEE_SPLITTER), // recipient
             1 ether, // minWithdrawalAmount
             Types.WithdrawalNetwork.L2 // withdrawalNetwork
         );
 
         Mock_FeeVault operatorFeeVault = new Mock_FeeVault(
-            payable(Predeploys.FEE_ROUTER), // recipient
+            payable(Predeploys.FEE_SPLITTER), // recipient
             1 ether, // minWithdrawalAmount
             Types.WithdrawalNetwork.L2 // withdrawalNetwork
         );
@@ -96,18 +99,18 @@ contract FeeSplitterTest is CommonTest {
 
     // assert the version is correctly set
     function test_constructor_succeeds() public {
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).version(), "1.0.0");
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).version(), "1.0.0");
     }
 
     // assert all addresses, fee disbursement interval, and fee share are correctly set
     function test_feeSplitter_initialization() public {
         _initializeFeeSplitter();
 
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).version(), "1.0.0");
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeRecipientA(), _feeRecipientA);
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeRecipientB(), _feeRecipientB);
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeDisbursementInterval(), 24 hours);
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeShareBP(), 150);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).version(), "1.0.0");
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).configuredShareRecipient(), _configuredShareRecipient);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).remainderRecipient(), _remainderRecipient);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).feeDisbursementInterval(), 24 hours);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).feeShareBP(), 150);
     }
 
     function test_feeSplitter_disburseFees_reverts_when_feeDisbursementInterval_not_reached() public {
@@ -115,7 +118,7 @@ contract FeeSplitterTest is CommonTest {
         vm.roll(block.timestamp + 24 hours + 1);
 
         vm.expectRevert(FeeSplitter.FeeSplitter_DisbursementIntervalNotReached.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).disburseFees();
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).disburseFees();
     }
 
     function test_feeSplitter_disburseFees_succeeds() public {
@@ -133,34 +136,34 @@ contract FeeSplitterTest is CommonTest {
 
         // Calculate expected amounts
         uint256 totalFees = 7 ether;
-        uint256 feeShareAmount = totalFees * FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeShareBP()
-            / FeeSplitter(payable(Predeploys.FEE_ROUTER)).BASIS_POINT_SCALE(); // 1.5%
-        uint256 feeRecipientBShare = totalFees - feeShareAmount;
+        uint256 feeShareAmount = (totalFees * FeeSplitter(payable(Predeploys.FEE_SPLITTER)).feeShareBP())
+            / FeeSplitter(payable(Predeploys.FEE_SPLITTER)).BASIS_POINT_SCALE(); // 1.5%
+        uint256 remainderRecipientShare = totalFees - feeShareAmount;
 
         // Expect the FeesDisbursed event to be emitted
-        vm.expectEmit(address(Predeploys.FEE_ROUTER));
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
         emit FeesDisbursed({
             disbursementTime: block.timestamp,
-            paidToRecipientA: feeShareAmount,
-            paidToRecipientB: feeRecipientBShare,
+            paidConfiguredShareRecipient: feeShareAmount,
+            paidToRemainderRecipient: remainderRecipientShare,
             totalFeesDisbursed: totalFees
         });
 
         // Store initial balances
-        uint256 feeRecipientABalanceBefore = address(_feeRecipientA).balance;
-        uint256 feeRecipientBBalanceBefore = address(_feeRecipientB).balance;
+        uint256 configuredShareRecipientBalanceBefore = address(_configuredShareRecipient).balance;
+        uint256 remainderRecipientBalanceBefore = address(_remainderRecipient).balance;
 
         // Call disburseFees
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).disburseFees();
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).disburseFees();
 
         // Verify the last disbursement time was updated
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).lastDisbursementTime(), block.timestamp);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).lastDisbursementTime(), block.timestamp);
 
         // Verify fee recipient A received the correct amount
-        assertEq(address(_feeRecipientA).balance, feeRecipientABalanceBefore + feeShareAmount);
+        assertEq(address(_configuredShareRecipient).balance, configuredShareRecipientBalanceBefore + feeShareAmount);
 
         // Verify fee recipient B received the correct amount
-        assertEq(address(_feeRecipientB).balance, feeRecipientBBalanceBefore + feeRecipientBShare);
+        assertEq(address(_remainderRecipient).balance, remainderRecipientBalanceBefore + remainderRecipientShare);
     }
 
     function test_feeSplitter_disburseFees_noFeesCollected_succeeds() public {
@@ -172,34 +175,36 @@ contract FeeSplitterTest is CommonTest {
         vm.warp(block.timestamp + 25 hours);
 
         // Expect the NoFeesCollected event to be emitted
-        vm.expectEmit(address(Predeploys.FEE_ROUTER));
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
         emit NoFeesCollected();
 
         // Call disburseFees
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).disburseFees();
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).disburseFees();
 
         // Verify the last disbursement time was NOT updated
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).lastDisbursementTime(), 0);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).lastDisbursementTime(), 0);
     }
 
-    // expect a revert when initializing with an invalid _feeRecipientA (address(0))
-    function test_feeSplitter_initialize_reverts_with_invalid_feeRecipientA() public {
+    // expect a revert when initializing with an invalid _configuredShareRecipient (address(0))
+    function test_feeSplitter_initialize_reverts_with_invalid_configuredShareRecipient() public {
         _deployFeeSplitter();
 
         vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_FeeRecipientACannotBeZero.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).initialize(
-            payable(address(0)), payable(_feeRecipientB), 24 hours, 150
+        vm.expectRevert(FeeSplitter.FeeSplitter_ConfiguredShareRecipientCannotBeZero.selector);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(address(0)), payable(_remainderRecipient), 24 hours, 150
         );
     }
 
-    // expect a revert when initializing with an invalid _feeRecipientB (address(0))
-    function test_feeSplitter_initialize_reverts_with_invalid_feeRecipientB() public {
+    // expect a revert when initializing with an invalid _remainderRecipient (address(0))
+    function test_feeSplitter_initialize_reverts_with_invalid_remainderRecipient() public {
         _deployFeeSplitter();
 
         vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_FeeRecipientBCannotBeZero.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).initialize(payable(_feeRecipientA), payable(address(0)), 24 hours, 150);
+        vm.expectRevert(FeeSplitter.FeeSplitter_RemainderRecipientCannotBeZero.selector);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(_configuredShareRecipient), payable(address(0)), 24 hours, 150
+        );
     }
 
     // expect a revert when initializing with an invalid _feeDisbursementInterval (less than 24 hours)
@@ -208,8 +213,8 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_FeeDisbursementIntervalTooShort.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).initialize(
-            payable(_feeRecipientA), payable(_feeRecipientB), 1 hours, 150
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(_configuredShareRecipient), payable(_remainderRecipient), 1 hours, 150
         );
     }
 
@@ -219,71 +224,71 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_FeeShareBPExceeds100Percent.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).initialize(
-            payable(_feeRecipientA), payable(_feeRecipientB), 24 hours, 10001
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(_configuredShareRecipient), payable(_remainderRecipient), 24 hours, 10001
         );
     }
 
-    // test the setFeeRecipientA function works as expected
-    function test_feeSplitter_setFeeRecipientA_succeeds(address _newFeeRecipientA) public {
-        vm.assume(_newFeeRecipientA != address(0));
+    // test the setConfiguredShareRecipient function works as expected
+    function test_feeSplitter_setConfiguredShareRecipient_succeeds(address _newConfiguredShareRecipient) public {
+        vm.assume(_newConfiguredShareRecipient != address(0));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeRecipientA(_newFeeRecipientA);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setConfiguredShareRecipient(_newConfiguredShareRecipient);
 
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeRecipientA(), _newFeeRecipientA);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).configuredShareRecipient(), _newConfiguredShareRecipient);
     }
 
-    // test the setFeeRecipientA function reverts with an invalid _newFeeRecipientA (address(0))
-    function test_feeSplitter_setFeeRecipientA_reverts_with_invalid_newFeeRecipientA() public {
+    // test the setConfiguredShareRecipient function reverts with an invalid _newConfiguredShareRecipient (address(0))
+    function test_feeSplitter_setConfiguredShareRecipient_reverts_with_invalid_newConfiguredShareRecipient() public {
         _initializeFeeSplitter();
 
         vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_NewFeeRecipientACannotBeZero.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeRecipientA(address(0));
+        vm.expectRevert(FeeSplitter.FeeSplitter_NewConfiguredShareRecipientCannotBeZero.selector);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setConfiguredShareRecipient(address(0));
     }
 
-    // test the setFeeRecipientA function reverts when the caller is not the owner
-    function test_feeSplitter_setFeeRecipientA_reverts_when_caller_is_not_owner(address _caller) public {
+    // test the setConfiguredShareRecipient function reverts when the caller is not the owner
+    function test_feeSplitter_setConfiguredShareRecipient_reverts_when_caller_is_not_owner(address _caller) public {
         vm.assume(_caller != _owner);
 
         _initializeFeeSplitter();
 
         vm.prank(_caller);
         vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeRecipientA(address(0x123));
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setConfiguredShareRecipient(address(0x123));
     }
 
-    // test the setFeeRecipientB function works as expected
-    function test_feeSplitter_setFeeRecipientB_succeeds(address _newFeeRecipientB) public {
-        vm.assume(_newFeeRecipientB != address(0));
+    // test the setRemainderRecipient function works as expected
+    function test_feeSplitter_setRemainderRecipient_succeeds(address _oldRemainderRecipient) public {
+        vm.assume(_oldRemainderRecipient != address(0));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeRecipientB(payable(_newFeeRecipientB));
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setRemainderRecipient(payable(_oldRemainderRecipient));
 
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeRecipientB(), _newFeeRecipientB);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).remainderRecipient(), _oldRemainderRecipient);
     }
 
-    // test the setFeeRecipientB function reverts with an invalid _newFeeRecipientB (address(0))
-    function test_feeSplitter_setFeeRecipientB_reverts_with_invalid_newFeeRecipientB() public {
+    // test the setRemainderRecipient function reverts with an invalid _oldRemainderRecipient (address(0))
+    function test_feeSplitter_setRemainderRecipient_reverts_with_invalid_oldRemainderRecipient() public {
         _initializeFeeSplitter();
 
         vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_NewFeeRecipientBCannotBeZero.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeRecipientB(payable(address(0)));
+        vm.expectRevert(FeeSplitter.FeeSplitter_NewRemainderRecipientCannotBeZero.selector);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setRemainderRecipient(payable(address(0)));
     }
 
-    // test the setFeeRecipientB function reverts when the caller is not the owner
-    function test_feeSplitter_setFeeRecipientB_reverts_when_caller_is_not_owner(address _caller) public {
+    // test the setRemainderRecipient function reverts when the caller is not the owner
+    function test_feeSplitter_setRemainderRecipient_reverts_when_caller_is_not_owner(address _caller) public {
         vm.assume(_caller != _owner);
 
         _initializeFeeSplitter();
 
         vm.prank(_caller);
         vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeRecipientB(payable(address(0x789)));
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setRemainderRecipient(payable(address(0x789)));
     }
 
     // test the setFeeShareBP function works as expected
@@ -292,9 +297,9 @@ contract FeeSplitterTest is CommonTest {
         _initializeFeeSplitter();
 
         vm.prank(_owner);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeShareBP(_newFeeShareBP);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeShareBP(_newFeeShareBP);
 
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeShareBP(), _newFeeShareBP);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).feeShareBP(), _newFeeShareBP);
     }
 
     // test the setFeeShareBP function reverts with an invalid _newFeeShareBP (greater than 100%)
@@ -304,7 +309,7 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_FeeShareBPExceeds100Percent.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeShareBP(_newFeeShareBP);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeShareBP(_newFeeShareBP);
     }
 
     // test the setFeeShareBP function reverts when the caller is not the owner
@@ -315,7 +320,7 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_caller);
         vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeShareBP(150);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeShareBP(150);
     }
 
     // test the setFeeDisbursementInterval function works as expected
@@ -324,9 +329,9 @@ contract FeeSplitterTest is CommonTest {
         _initializeFeeSplitter();
 
         vm.prank(_owner);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeDisbursementInterval(_newFeeDisbursementInterval);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeDisbursementInterval(_newFeeDisbursementInterval);
 
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).feeDisbursementInterval(), _newFeeDisbursementInterval);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).feeDisbursementInterval(), _newFeeDisbursementInterval);
     }
 
     // test the setFeeDisbursementInterval function reverts with an invalid _newFeeDisbursementInterval (less than 24
@@ -341,7 +346,7 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_NewFeeDisbursementIntervalTooShort.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeDisbursementInterval(_newFeeDisbursementInterval);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeDisbursementInterval(_newFeeDisbursementInterval);
     }
 
     // test the setFeeDisbursementInterval function reverts when the caller is not the owner
@@ -352,7 +357,7 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_caller);
         vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        FeeSplitter(payable(Predeploys.FEE_ROUTER)).setFeeDisbursementInterval(48 hours);
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeDisbursementInterval(48 hours);
     }
 
     // test the receive function works as expected
@@ -362,11 +367,11 @@ contract FeeSplitterTest is CommonTest {
         // Send ETH to the FeeSplitter from a FeeVault
         vm.deal(Predeploys.SEQUENCER_FEE_WALLET, 1 ether);
         vm.prank(Predeploys.SEQUENCER_FEE_WALLET);
-        (bool success,) = payable(Predeploys.FEE_ROUTER).call{ value: 1 ether }("");
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
         assertTrue(success);
 
         // Verify the net fee revenue was updated
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).netFeeRevenue(), 1 ether);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).netFeeRevenue(), 1 ether);
     }
 
     // test the receive function from non-FeeVault address
@@ -376,19 +381,19 @@ contract FeeSplitterTest is CommonTest {
         // Send ETH to the FeeSplitter from a non-FeeVault address
         vm.deal(address(0x123), 1 ether);
         vm.prank(address(0x123));
-        (bool success,) = payable(Predeploys.FEE_ROUTER).call{ value: 1 ether }("");
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
         assertTrue(success);
 
         // Verify the net fee revenue was NOT updated (only FeeVaults update it)
-        assertEq(FeeSplitter(payable(Predeploys.FEE_ROUTER)).netFeeRevenue(), 0);
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).netFeeRevenue(), 0);
     }
 }
 
-contract Mock_FeeRecipientA {
+contract Mock_ConfiguredShareRecipient {
     receive() external payable { }
 }
 
-contract Mock_FeeRecipientB {
+contract Mock_RemainderRecipient {
     receive() external payable { }
 }
 
