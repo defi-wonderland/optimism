@@ -50,10 +50,10 @@ contract FeeSplitterTest is CommonTest {
         _owner = ProxyAdmin(Predeploys.PROXY_ADMIN).owner();
 
         // Deploy fee recipient A
-        _configuredShareRecipient = address(new Mock_ConfiguredShareRecipient());
+        _configuredShareRecipient = makeAddr("configuredShareRecipient");
 
         // Deploy fee recipient B
-        _remainderRecipient = address(new Mock_RemainderRecipient());
+        _remainderRecipient = makeAddr("remainderRecipient");
     }
 
     function _initializeFeeSplitter() internal {
@@ -389,14 +389,6 @@ contract FeeSplitterTest is CommonTest {
     }
 }
 
-contract Mock_ConfiguredShareRecipient {
-    receive() external payable { }
-}
-
-contract Mock_RemainderRecipient {
-    receive() external payable { }
-}
-
 contract Mock_FeeVault {
     uint256 public immutable MIN_WITHDRAWAL_AMOUNT;
     address public immutable RECIPIENT;
@@ -430,5 +422,17 @@ contract Mock_FeeVault {
             (bool success,) = RECIPIENT.call{ value: value }("");
             require(success, "FeeVault: failed to send ETH to L2 fee recipient");
         }
+    }
+
+    function withdrawalNetwork() external view returns (Types.WithdrawalNetwork) {
+        return WITHDRAWAL_NETWORK;
+    }
+
+    function minWithdrawalAmount() external view returns (uint256) {
+        return MIN_WITHDRAWAL_AMOUNT;
+    }
+
+    function recipient() external view returns (address) {
+        return RECIPIENT;
     }
 }

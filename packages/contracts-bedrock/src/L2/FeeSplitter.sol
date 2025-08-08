@@ -345,13 +345,13 @@ contract FeeSplitter is ISemver, Initializable {
     ///
     /// @param _feeVault The address of the FeeVault to withdraw from.
     function _feeVaultWithdrawal(address payable _feeVault) internal {
-        if (FeeVault(_feeVault).WITHDRAWAL_NETWORK() != Types.WithdrawalNetwork.L2) {
+        if (FeeVault(_feeVault).withdrawalNetwork() != Types.WithdrawalNetwork.L2) {
             revert FeeSplitter_FeeVaultMustWithdrawToL2();
         }
-        if (FeeVault(_feeVault).RECIPIENT() != address(this)) {
+        if (FeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
-        if (_feeVault.balance >= FeeVault(_feeVault).MIN_WITHDRAWAL_AMOUNT()) {
+        if (_feeVault.balance >= FeeVault(_feeVault).minWithdrawalAmount()) {
             FeeVault(_feeVault).withdraw();
         }
     }

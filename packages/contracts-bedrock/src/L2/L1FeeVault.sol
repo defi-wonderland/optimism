@@ -16,18 +16,24 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @notice The L1FeeVault accumulates the L1 portion of the transaction fees.
 contract L1FeeVault is FeeVault, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.5.1
-    string public constant version = "1.5.1";
+    /// @custom:semver 1.6.0
+    string public constant version = "1.6.0";
 
     /// @notice Constructs the L1FeeVault contract.
+    constructor() FeeVault() { }
+
+    /// @notice Initializes the L1FeeVault contract.
     /// @param _recipient           Wallet that will receive the fees.
     /// @param _minWithdrawalAmount Minimum balance for withdrawals.
     /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
-    constructor(
+    function initialize(
         address _recipient,
         uint256 _minWithdrawalAmount,
         Types.WithdrawalNetwork _withdrawalNetwork
     )
-        FeeVault(_recipient, _minWithdrawalAmount, _withdrawalNetwork)
-    { }
+        external
+        reinitializer(1)
+    {
+        __FeeVault_init(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
+    }
 }
