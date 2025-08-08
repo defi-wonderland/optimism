@@ -3,12 +3,10 @@ pragma solidity ^0.8.0;
 
 // Interfaces
 import {IOptimismGovernor} from './IOptimismGovernor.sol';
-import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
-interface IProposalValidator is ISemver {
-    error ReinitializableBase_ZeroInitVersion();
+interface IProposalValidator {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();
@@ -71,8 +69,6 @@ interface IProposalValidator is ISemver {
         uint256 indexed proposalId,
         bytes encodedVotingModuleData
     );
-
-    event Initialized(uint8 version);
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -167,13 +163,6 @@ interface IProposalValidator is ISemver {
         ProposalTypeData memory _proposalTypeData
     ) external;
 
-    function initialize(
-        address _owner,
-        uint256 _proposalDistributionThreshold,
-        ProposalType[] memory _proposalTypes,
-        ProposalTypeData[] memory _proposalTypesData
-    ) external;
-
     function renounceOwnership() external;
 
     function transferOwnership(address newOwner) external;
@@ -184,7 +173,6 @@ interface IProposalValidator is ISemver {
 
     function owner() external view returns (address);
 
-    function initVersion() external view returns (uint8);
 
     function APPROVED_PROPOSER_ATTESTATION_SCHEMA_UID() external view returns (bytes32);
 
@@ -202,6 +190,7 @@ interface IProposalValidator is ISemver {
     );
 
     function __constructor__(
+        address _owner,
         IOptimismGovernor _governor,
         bytes32 _approvedProposerAttestationSchemaUid,
         bytes32 _topDelegatesAttestationSchemaUid
