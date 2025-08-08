@@ -290,10 +290,10 @@ contract ProposalValidator_TestInit is CommonTest {
     }
 
     function _constructFundingVotingModuleData(
-        string[] memory descriptions,
-        address[] memory recipients,
-        uint256[] memory amounts,
-        uint128 criteriaValue
+        string[] memory _descriptions,
+        address[] memory _recipients,
+        uint256[] memory _amounts,
+        uint128 _criteriaValue
     )
         internal
         pure
@@ -301,37 +301,37 @@ contract ProposalValidator_TestInit is CommonTest {
     {
         // Construct ProposalOption array
         IApprovalVotingModule.ProposalOption[] memory options =
-            new IApprovalVotingModule.ProposalOption[](descriptions.length);
+            new IApprovalVotingModule.ProposalOption[](_descriptions.length);
 
-        for (uint256 i = 0; i < descriptions.length; i++) {
+        for (uint256 i = 0; i < _descriptions.length; i++) {
             address[] memory targets = new address[](1);
             uint256[] memory values = new uint256[](1);
             bytes[] memory calldatas = new bytes[](1);
 
             targets[0] = Predeploys.GOVERNANCE_TOKEN;
-            calldatas[0] = abi.encodeCall(IERC20.transfer, (recipients[i], amounts[i]));
+            calldatas[0] = abi.encodeCall(IERC20.transfer, (_recipients[i], _amounts[i]));
 
             options[i] = IApprovalVotingModule.ProposalOption({
-                budgetTokensSpent: amounts[i],
+                budgetTokensSpent: _amounts[i],
                 targets: targets,
                 values: values,
                 calldatas: calldatas,
-                description: descriptions[i]
+                description: _descriptions[i]
             });
         }
 
         // Calculate total budget
         uint256 totalBudget = 0;
-        for (uint256 i = 0; i < amounts.length; i++) {
-            totalBudget += amounts[i];
+        for (uint256 i = 0; i < _amounts.length; i++) {
+            totalBudget += _amounts[i];
         }
 
         // Construct ProposalSettings
         IApprovalVotingModule.ProposalSettings memory approvalSettings = IApprovalVotingModule.ProposalSettings({
-            maxApprovals: uint8(descriptions.length),
+            maxApprovals: uint8(_descriptions.length),
             criteria: uint8(IApprovalVotingModule.PassingCriteria.Threshold),
             budgetToken: Predeploys.GOVERNANCE_TOKEN,
-            criteriaValue: criteriaValue,
+            criteriaValue: _criteriaValue,
             budgetAmount: uint128(totalBudget)
         });
 
@@ -340,8 +340,8 @@ contract ProposalValidator_TestInit is CommonTest {
 
     /// @notice Helper function to construct voting module data for council elections
     function _constructCouncilElectionVotingModuleData(
-        string[] memory descriptions,
-        uint128 criteriaValue
+        string[] memory _descriptions,
+        uint128 _criteriaValue
     )
         internal
         pure
@@ -349,9 +349,9 @@ contract ProposalValidator_TestInit is CommonTest {
     {
         // Construct ProposalOption array for elections (no execution calls)
         IApprovalVotingModule.ProposalOption[] memory options =
-            new IApprovalVotingModule.ProposalOption[](descriptions.length);
+            new IApprovalVotingModule.ProposalOption[](_descriptions.length);
 
-        for (uint256 i = 0; i < descriptions.length; i++) {
+        for (uint256 i = 0; i < _descriptions.length; i++) {
             address[] memory targets = new address[](0);
             uint256[] memory values = new uint256[](0);
             bytes[] memory calldatas = new bytes[](0);
@@ -361,16 +361,16 @@ contract ProposalValidator_TestInit is CommonTest {
                 targets: targets,
                 values: values,
                 calldatas: calldatas,
-                description: descriptions[i]
+                description: _descriptions[i]
             });
         }
 
         // Construct ProposalSettings with TopChoices criteria
         IApprovalVotingModule.ProposalSettings memory approvalSettings = IApprovalVotingModule.ProposalSettings({
-            maxApprovals: uint8(descriptions.length),
+            maxApprovals: uint8(_descriptions.length),
             criteria: uint8(IApprovalVotingModule.PassingCriteria.TopChoices),
             budgetToken: address(0),
-            criteriaValue: criteriaValue,
+            criteriaValue: _criteriaValue,
             budgetAmount: 0
         });
 
@@ -378,32 +378,32 @@ contract ProposalValidator_TestInit is CommonTest {
     }
 
     /// @notice Helper function to construct voting module data for upgrade proposals
-    function _constructOptimisticVotingModuleData(uint248 againstThreshold) internal pure returns (bytes memory) {
+    function _constructOptimisticVotingModuleData(uint248 _againstThreshold) internal pure returns (bytes memory) {
         IOptimisticModule.ProposalSettings memory optimisticSettings =
-            IOptimisticModule.ProposalSettings({ againstThreshold: againstThreshold, isRelativeToVotableSupply: true });
+            IOptimisticModule.ProposalSettings({ againstThreshold: _againstThreshold, isRelativeToVotableSupply: true });
 
         return abi.encode(optimisticSettings);
     }
 
     /// @notice Helper function to create a proposal for move to vote
     function _createUpgradeProposalForMoveToVote(
-        address proposer,
-        uint248 againstThreshold,
-        string memory proposalDescription
+        address _proposer,
+        uint248 _againstThreshold,
+        string memory _proposalDescription
     )
         internal
         returns (uint256 proposalId_, bytes memory votingModuleData_)
     {
         // Calculate expected proposal ID
-        votingModuleData_ = _constructOptimisticVotingModuleData(againstThreshold);
+        votingModuleData_ = _constructOptimisticVotingModuleData(_againstThreshold);
         proposalId_ = validator.hashProposalWithModule(
-            optimisticVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
+            optimisticVotingModule, votingModuleData_, keccak256(bytes(_proposalDescription))
         );
 
         // 1 vote as default for being able to move to vote
         validator.setProposalData(
             proposalId_,
-            proposer,
+            _proposer,
             ProposalValidator.ProposalType.ProtocolOrGovernorUpgrade,
             false,
             PROPOSAL_REQUIRED_APPROVALS,
@@ -413,22 +413,22 @@ contract ProposalValidator_TestInit is CommonTest {
 
     /// @notice Helper function to create a proposal for move to vote for council elections
     function _createCouncilElectionProposalForMoveToVote(
-        address proposer,
-        uint128 criteriaValue,
-        string[] memory optionsDescriptions,
-        string memory proposalDescription
+        address _proposer,
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        string memory _proposalDescription
     )
         internal
         returns (uint256 proposalId_, bytes memory votingModuleData_)
     {
-        votingModuleData_ = _constructCouncilElectionVotingModuleData(optionsDescriptions, criteriaValue);
+        votingModuleData_ = _constructCouncilElectionVotingModuleData(_optionsDescriptions, _criteriaValue);
         proposalId_ = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
+            approvalVotingModule, votingModuleData_, keccak256(bytes(_proposalDescription))
         );
 
         validator.setProposalData(
             proposalId_,
-            proposer,
+            _proposer,
             ProposalValidator.ProposalType.CouncilMemberElections,
             false,
             PROPOSAL_REQUIRED_APPROVALS,
@@ -438,24 +438,24 @@ contract ProposalValidator_TestInit is CommonTest {
 
     /// @notice Helper function to create a proposal for move to vote for a funding proposal type
     function _createFundingProposalForMoveToVote(
-        address proposer,
-        uint128 criteriaValue,
-        string[] memory optionsDescriptions,
-        address[] memory optionsRecipients,
-        uint256[] memory optionsAmounts,
-        string memory proposalDescription,
-        ProposalValidator.ProposalType proposalType
+        address _proposer,
+        uint128 _criteriaValue,
+        string[] memory _optionsDescriptions,
+        address[] memory _optionsRecipients,
+        uint256[] memory _optionsAmounts,
+        string memory _proposalDescription,
+        ProposalValidator.ProposalType _proposalType
     )
         internal
         returns (uint256 proposalId_, bytes memory votingModuleData_)
     {
         votingModuleData_ =
-            _constructFundingVotingModuleData(optionsDescriptions, optionsRecipients, optionsAmounts, criteriaValue);
+            _constructFundingVotingModuleData(_optionsDescriptions, _optionsRecipients, _optionsAmounts, _criteriaValue);
         proposalId_ = validator.hashProposalWithModule(
-            approvalVotingModule, votingModuleData_, keccak256(bytes(proposalDescription))
+            approvalVotingModule, votingModuleData_, keccak256(bytes(_proposalDescription))
         );
 
-        validator.setProposalData(proposalId_, proposer, proposalType, false, PROPOSAL_REQUIRED_APPROVALS, CYCLE_NUMBER);
+        validator.setProposalData(proposalId_, _proposer, _proposalType, false, PROPOSAL_REQUIRED_APPROVALS, CYCLE_NUMBER);
     }
 
     /// @notice Helper function to setup proposal types configurator mocks
