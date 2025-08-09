@@ -169,7 +169,7 @@ contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
         // Check that tokens were transferred and deposit recorded
         assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - BRIDGE_AMOUNT);
         assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), BRIDGE_AMOUNT);
-        assertEq(l1CGTStandardBridge.deposits(address(cgtToken)), BRIDGE_AMOUNT);
+        assertEq(l1CGTStandardBridge.cgtDeposits(), BRIDGE_AMOUNT);
     }
 
     /// @notice Tests that bridgeCGT reverts when amount is zero.
@@ -232,7 +232,7 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
         // Check that tokens were transferred and deposit recorded
         assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - BRIDGE_AMOUNT);
         assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), BRIDGE_AMOUNT);
-        assertEq(l1CGTStandardBridge.deposits(address(cgtToken)), BRIDGE_AMOUNT);
+        assertEq(l1CGTStandardBridge.cgtDeposits(), BRIDGE_AMOUNT);
     }
 
     /// @notice Tests that bridgeCGTTo reverts when recipient is zero address.
@@ -307,7 +307,7 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
         // Check that tokens were transferred and deposit decreased
         assertEq(cgtToken.balanceOf(bob), BRIDGE_AMOUNT);
         assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), 0);
-        assertEq(l1CGTStandardBridge.deposits(address(cgtToken)), 0);
+        assertEq(l1CGTStandardBridge.cgtDeposits(), 0);
     }
 
     /// @notice Tests that finalizeBridgeCGT reverts when called from wrong messenger.
@@ -373,7 +373,7 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
         // Check that tokens were transferred and deposit recorded
         assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - _amount);
         assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), _amount);
-        assertEq(l1CGTStandardBridge.deposits(address(cgtToken)), _amount);
+        assertEq(l1CGTStandardBridge.cgtDeposits(), _amount);
     }
 
     /// @notice Fuzz test for bridgeCGTTo with valid amounts and recipients.
@@ -398,6 +398,6 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
         // Check that tokens were transferred and deposit recorded
         assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - _amount);
         assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), _amount);
-        assertEq(l1CGTStandardBridge.deposits(address(cgtToken)), _amount);
+        assertEq(l1CGTStandardBridge.cgtDeposits(), _amount);
     }
 }

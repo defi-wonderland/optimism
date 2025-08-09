@@ -26,9 +26,6 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
     using SafeERC20 for IERC20;
 
-    /// @notice Mapping that stores deposits for a given CGT token.
-    mapping(address => uint256) public deposits;
-
     /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
     ISystemConfig public systemConfig;
@@ -36,6 +33,9 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
     /// @notice Address of the SuperchainConfig contract.
     /// @custom:network-specific
     ISuperchainConfig public superchainConfig;
+
+    /// @notice Total amount of CGT tokens deposited.
+    uint256 public cgtDeposits;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -136,7 +136,7 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
             revert FunctionCanOnlyBeCalledFromOtherBridge();
         }
 
-        deposits[cgtToken] = deposits[cgtToken] - _amount;
+        cgtDeposits = cgtDeposits - _amount;
         IERC20(cgtToken).safeTransfer(_to, _amount);
 
         emit CGTBridgeFinalized(_from, _to, _amount, _extraData);
@@ -178,7 +178,7 @@ contract L1CGTStandardBridge is StandardCGTBridge, ProxyAdminOwnedBase, Reinitia
         }
 
         IERC20(cgtToken).safeTransferFrom(_from, address(this), _amount);
-        deposits[cgtToken] = deposits[cgtToken] + _amount;
+        cgtDeposits = cgtDeposits + _amount;
 
         messenger.sendMessage({
             _target: address(otherBridge),

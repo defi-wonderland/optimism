@@ -7,8 +7,8 @@ import { IStandardCGTBridge } from "interfaces/universal/IStandardCGTBridge.sol"
 /// @title IL1CGTStandardBridge
 /// @notice Interface for the L1 Custom Gas Token Standard Bridge
 interface IL1CGTStandardBridge is IStandardCGTBridge {
-    /// @notice Mapping that stores deposits for a given CGT token.
-    function deposits(address) external view returns (uint256);
+    /// @notice Total amount of CGT tokens deposited.
+    function cgtDeposits() external view returns (uint256);
 
     /// @notice Address of the SystemConfig contract.
     function systemConfig() external view returns (ISystemConfig);

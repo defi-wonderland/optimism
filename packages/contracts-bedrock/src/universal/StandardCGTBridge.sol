@@ -28,7 +28,7 @@ abstract contract StandardCGTBridge is Initializable {
     StandardCGTBridge public otherBridge;
 
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    uint256[46] private __gap;
+    uint256[50] private __gap;
 
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from      Address of the sender.
