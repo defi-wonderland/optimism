@@ -19,6 +19,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @title L1CGTStandardBridge_TestInit
 /// @notice Reusable test initialization for `L1CGTStandardBridge` tests.
@@ -32,6 +33,7 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
     L1CGTStandardBridge internal l1CGTStandardBridge;
     StandardCGTBridge internal l2CGTStandardBridge;
     ICrossDomainMessenger internal messenger;
+    IOptimismPortal2 internal optimismPortal;
     TestERC20 internal cgtToken;
 
     uint256 internal constant INITIAL_BALANCE = 1000 ether;
@@ -45,6 +47,7 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
         cgtToken = new TestERC20();
         l2CGTStandardBridge = StandardCGTBridge(makeAddr("l2CGTStandardBridge"));
         messenger = ICrossDomainMessenger(makeAddr("messenger"));
+        optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTStandardBridge implementation
         L1CGTStandardBridge impl = new L1CGTStandardBridge();
@@ -65,7 +68,7 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
         // Initialize the bridge
         vm.prank(alice);
         l1CGTStandardBridge.initialize(
-            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig
+            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig, optimismPortal
         );
 
         // Give alice some CGT tokens
@@ -90,7 +93,7 @@ contract L1CGTStandardBridge_Initialize_Test is L1CGTStandardBridge_TestInit {
         vm.expectRevert();
         vm.prank(alice);
         l1CGTStandardBridge.initialize(
-            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig
+            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig, optimismPortal
         );
     }
 
@@ -107,7 +110,9 @@ contract L1CGTStandardBridge_Initialize_Test is L1CGTStandardBridge_TestInit {
         // Try to initialize from unauthorized account
         vm.expectRevert();
         vm.prank(bob);
-        newBridge.initialize(address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig);
+        newBridge.initialize(
+            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig, optimismPortal
+        );
     }
 }
 
