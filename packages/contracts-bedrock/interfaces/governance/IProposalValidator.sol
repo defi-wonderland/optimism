@@ -2,11 +2,12 @@
 pragma solidity ^0.8.0;
 
 // Interfaces
-import {IOptimismGovernor} from './IOptimismGovernor.sol';
+import { IOptimismGovernor } from "./IOptimismGovernor.sol";
+import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @title IProposalValidator
 /// @notice Interface for the ProposalValidator contract.
-interface IProposalValidator {
+interface IProposalValidator is ISemver {
     error ProposalValidator_InsufficientApprovals();
     error ProposalValidator_ProposalAlreadyApproved();
     error ProposalValidator_ProposalAlreadySubmitted();

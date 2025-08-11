@@ -8,6 +8,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IOptimismGovernor } from "interfaces/governance/IOptimismGovernor.sol";
 import { IProposalTypesConfigurator } from "interfaces/governance/IProposalTypesConfigurator.sol";
 import { IEAS, Attestation } from "src/vendor/eas/IEAS.sol";
@@ -15,11 +16,10 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IApprovalVotingModule } from "interfaces/governance/IApprovalVotingModule.sol";
 import { IOptimisticModule } from "interfaces/governance/IOptimisticModule.sol";
 
-/// @custom:proxied true
 /// @title ProposalValidator
 /// @notice The ProposalValidator contract is responsible for validating proposals and moving
 ///         them to the vote phase on the Optimism Governor.
-contract ProposalValidator is Ownable {
+contract ProposalValidator is Ownable, ISemver {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -213,6 +213,10 @@ contract ProposalValidator is Ownable {
     /*//////////////////////////////////////////////////////////////
                                CONSTANTS
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0
+    string public constant version = "1.0.0";
 
     /// @notice The divisor used for percentage calculations in optimistic voting modules.
     /// @dev Represents 100% in basis points (10,000 = 100%).
