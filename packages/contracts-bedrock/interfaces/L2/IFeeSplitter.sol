@@ -46,11 +46,17 @@ interface IFeeSplitter {
         address indexed newRemainderRecipient
     );
 
-    /// @notice Emitted when the fee share in basis points is updated.
+    /// @notice Emitted when the net fee share in basis points is updated.
     ///
-    /// @param oldFeeShareBP The previous fee share in basis points.
-    /// @param newFeeShareBP The new fee share in basis points.
-    event FeeShareBPUpdated(uint256 oldFeeShareBP, uint256 newFeeShareBP);
+    /// @param oldNetFeeShareBP The previous net fee share in basis points.
+    /// @param newNetFeeShareBP The new net fee share in basis points.
+    event NetFeeShareBPUpdated(uint256 oldNetFeeShareBP, uint256 newNetFeeShareBP);
+
+    /// @notice Emitted when the gross fee share in basis points is updated.
+    ///
+    /// @param oldGrossFeeShareBP The previous gross fee share in basis points.
+    /// @param newGrossFeeShareBP The new gross fee share in basis points.
+    event GrossFeeShareBPUpdated(uint256 oldGrossFeeShareBP, uint256 newGrossFeeShareBP);
 
     /// @notice Emitted when the fee disbursement interval is updated.
     ///
@@ -66,12 +72,14 @@ interface IFeeSplitter {
     /// @param configuredShareRecipient           The address which receives the fee share of the revenue.
     /// @param remainderRecipient           The address which receives the remainder of the revenue.
     /// @param feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
-    /// @param feeShareBP              The fee share percentage in basis points.
+    /// @param netFeeShareBP              The net fee share percentage in basis points.
+    /// @param grossFeeShareBP            The gross fee share percentage in basis points.
     event Initialized(
         address payable configuredShareRecipient,
         address payable remainderRecipient,
         uint256 feeDisbursementInterval,
-        uint256 feeShareBP
+        uint256 netFeeShareBP,
+        uint256 grossFeeShareBP
     );
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -103,8 +111,11 @@ interface IFeeSplitter {
     /// @notice Tracks aggregate net fee revenue which is the sum of all fees received by this contract.
     function netFeeRevenue() external view returns (uint256);
 
-    /// @notice The revenue share percentage denominated in basis points.
-    function feeShareBP() external view returns (uint256);
+    /// @notice The net revenue share percentage denominated in basis points.
+    function netFeeShareBP() external view returns (uint256);
+
+    /// @notice The gross revenue share percentage denominated in basis points.
+    function grossFeeShareBP() external view returns (uint256);
 
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     function feeDisbursementInterval() external view returns (uint256);
@@ -123,12 +134,14 @@ interface IFeeSplitter {
     /// @param _configuredShareRecipient           The address which receives the fee share of the revenue.
     /// @param _remainderRecipient           The address which receives the remainder of the revenue.
     /// @param _feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
-    /// @param _feeShareBP              The fee share percentage in basis points.
+    /// @param _netFeeShareBP              The net fee share percentage in basis points.
+    /// @param _grossFeeShareBP            The gross fee share percentage in basis points.
     function initialize(
         address payable _configuredShareRecipient,
         address payable _remainderRecipient,
         uint256 _feeDisbursementInterval,
-        uint256 _feeShareBP
+        uint256 _netFeeShareBP,
+        uint256 _grossFeeShareBP
     ) external;
 
     /// @notice Withdraws funds from FeeVaults, sends the fee share to the fee share recipient, and sends the remainder to the
@@ -149,10 +162,15 @@ interface IFeeSplitter {
         address payable _oldRemainderRecipient
     ) external;
 
-    /// @notice Updates the fee share percentage in basis points.
+    /// @notice Updates the net fee share percentage in basis points.
     ///
-    /// @param _newFeeShareBP The new fee share percentage in basis points.
-    function setFeeShareBP(uint256 _newFeeShareBP) external;
+    /// @param _newNetFeeShareBP The new net fee share percentage in basis points.
+    function setNetFeeShareBP(uint256 _newNetFeeShareBP) external;
+
+    /// @notice Updates the gross fee share percentage in basis points.
+    ///
+    /// @param _newGrossFeeShareBP The new gross fee share percentage in basis points.
+    function setGrossFeeShareBP(uint256 _newGrossFeeShareBP) external;
 
     /// @notice Updates the fee disbursement interval.
     ///

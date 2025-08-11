@@ -38,6 +38,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee share exceeds 100%.
     error FeeSplitter_FeeShareBPExceeds100Percent();
 
+    /// @notice Thrown when the gross fee share exceeds 100%.
+    error FeeSplitter_GrossFeeShareBPExceeds100Percent();
+
     /// @notice Thrown when the disbursement interval has not been reached.
     error FeeSplitter_DisbursementIntervalNotReached();
 
@@ -91,11 +94,14 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The timestamp of the last disbursal.
     uint256 public lastDisbursementTime;
 
-    /// @notice Tracks aggregate net fee revenue which is the sum of all fees received by this contract.
+    /// @notice Tracks aggregate net fee revenue which is the sum of sequencer, base, and operator fees received by this contract.
     uint256 public netFeeRevenue;
 
-    /// @notice The revenue share percentage denominated in basis points.
-    uint256 public feeShareBP;
+    /// @notice The net revenue share percentage denominated in basis points.
+    uint256 public netFeeShareBP;
+
+    /// @notice The gross revenue share percentage denominated in basis points.
+    uint256 public grossFeeShareBP;
 
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint256 public feeDisbursementInterval;
@@ -140,11 +146,17 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param newRemainderRecipient The new recipient B address.
     event RemainderRecipientUpdated(address indexed oldRemainderRecipient, address indexed newRemainderRecipient);
 
-    /// @notice Emitted when the fee share in basis points is updated.
+    /// @notice Emitted when the net fee share in basis points is updated.
     ///
-    /// @param oldFeeShareBP The previous fee share in basis points.
-    /// @param newFeeShareBP The new fee share in basis points.
-    event FeeShareBPUpdated(uint256 oldFeeShareBP, uint256 newFeeShareBP);
+    /// @param oldNetFeeShareBP The previous net fee share in basis points.
+    /// @param newNetFeeShareBP The new net fee share in basis points.
+    event NetFeeShareBPUpdated(uint256 oldNetFeeShareBP, uint256 newNetFeeShareBP);
+
+    /// @notice Emitted when the gross fee share in basis points is updated.
+    ///
+    /// @param oldGrossFeeShareBP The previous gross fee share in basis points.
+    /// @param newGrossFeeShareBP The new gross fee share in basis points.
+    event GrossFeeShareBPUpdated(uint256 oldGrossFeeShareBP, uint256 newGrossFeeShareBP);
 
     /// @notice Emitted when the fee disbursement interval is updated.
     ///
@@ -157,12 +169,14 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param configuredShareRecipient           The address which receives the fee share of the revenue.
     /// @param remainderRecipient           The address which receives the remainder of the revenue.
     /// @param feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
-    /// @param feeShareBP              The fee share percentage in basis points.
+    /// @param netFeeShareBP              The net revenue share percentage in basis points.
+    /// @param grossFeeShareBP         The gross revenue share percentage in basis points.
     event Initialized(
         address payable configuredShareRecipient,
         address payable remainderRecipient,
         uint256 feeDisbursementInterval,
-        uint256 feeShareBP
+        uint256 netFeeShareBP,
+        uint256 grossFeeShareBP
     );
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -180,12 +194,14 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param _configuredShareRecipient           The address which receives the fee share of the revenue.
     /// @param _remainderRecipient           The address which receives the remainder of the revenue.
     /// @param _feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
-    /// @param _feeShareBP              The fee share percentage in basis points.
+    /// @param _netFeeShareBP              The net revenue share percentage in basis points.
+    /// @param _grossFeeShareBP         The gross revenue share percentage in basis points.
     function initialize(
         address payable _configuredShareRecipient,
         address payable _remainderRecipient,
         uint256 _feeDisbursementInterval,
-        uint256 _feeShareBP
+        uint256 _netFeeShareBP,
+        uint256 _grossFeeShareBP
     )
         external
         initializer
@@ -200,16 +216,26 @@ contract FeeSplitter is ISemver, Initializable {
         if (_feeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_FeeDisbursementIntervalTooShort();
         }
-        if (_feeShareBP > BASIS_POINT_SCALE) {
+        if (_netFeeShareBP > BASIS_POINT_SCALE) {
             revert FeeSplitter_FeeShareBPExceeds100Percent();
+        }
+        if (_grossFeeShareBP > BASIS_POINT_SCALE) {
+            revert FeeSplitter_GrossFeeShareBPExceeds100Percent();
         }
 
         configuredShareRecipient = _configuredShareRecipient;
         remainderRecipient = _remainderRecipient;
         feeDisbursementInterval = _feeDisbursementInterval;
-        feeShareBP = _feeShareBP;
+        netFeeShareBP = _netFeeShareBP;
+        grossFeeShareBP = _grossFeeShareBP;
 
-        emit Initialized(_configuredShareRecipient, _remainderRecipient, _feeDisbursementInterval, _feeShareBP);
+        emit Initialized(
+            _configuredShareRecipient,
+            _remainderRecipient,
+            _feeDisbursementInterval,
+            _netFeeShareBP,
+            _grossFeeShareBP
+        );
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -229,13 +255,12 @@ contract FeeSplitter is ISemver, Initializable {
     //////////////////////////////////////////////////////////////////////////////////////
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
-    /// @dev Will revert if ETH is not sent from L2 FeeVaults.
     receive() external payable virtual {
+        // Only count Sequencer, Base, and Operator fee vault deposits towards net fee revenue
         if (
             msg.sender == Predeploys.SEQUENCER_FEE_WALLET || msg.sender == Predeploys.BASE_FEE_VAULT
-                || msg.sender == Predeploys.L1_FEE_VAULT || msg.sender == Predeploys.OPERATOR_FEE_VAULT
+                || msg.sender == Predeploys.OPERATOR_FEE_VAULT
         ) {
-            // Adds value received to net fee revenue if the sender is the sequencer or base FeeVault
             netFeeRevenue += msg.value;
         }
         emit FeesReceived({ sender: msg.sender, amount: msg.value });
@@ -266,8 +291,13 @@ contract FeeSplitter is ISemver, Initializable {
 
         lastDisbursementTime = block.timestamp;
 
-        // Calculate fee share amount
-        uint256 feeShare = (feeBalance * feeShareBP) / BASIS_POINT_SCALE;
+        // Calculate revenue shares
+        uint256 netRevenueShare = (netFeeRevenue * netFeeShareBP) / BASIS_POINT_SCALE;
+
+        uint256 grossRevenueShare = (feeBalance * grossFeeShareBP) / BASIS_POINT_SCALE;
+
+        // Configured share is the max of net and gross revenue shares
+        uint256 feeShare = netRevenueShare > grossRevenueShare ? netRevenueShare : grossRevenueShare;
 
         if (!SafeCall.send({ _target: configuredShareRecipient, _gas: gasleft(), _value: feeShare })) {
             revert FeeSplitter_FailedToSendToConfiguredShareRecipient();
@@ -313,16 +343,28 @@ contract FeeSplitter is ISemver, Initializable {
         emit RemainderRecipientUpdated(oldRemainderRecipient, _oldRemainderRecipient);
     }
 
-    /// @notice Updates the fee share percentage in basis points.
+    /// @notice Updates the net fee share percentage in basis points.
     ///
-    /// @param _newFeeShareBP The new fee share percentage in basis points.
-    function setFeeShareBP(uint256 _newFeeShareBP) external onlyOwner {
-        if (_newFeeShareBP > BASIS_POINT_SCALE) {
+    /// @param _newNetFeeShareBP The new net fee share percentage in basis points.
+    function setNetFeeShareBP(uint256 _newNetFeeShareBP) external onlyOwner {
+        if (_newNetFeeShareBP > BASIS_POINT_SCALE) {
             revert FeeSplitter_FeeShareBPExceeds100Percent();
         }
-        uint256 oldShare = feeShareBP;
-        feeShareBP = _newFeeShareBP;
-        emit FeeShareBPUpdated(oldShare, _newFeeShareBP);
+        uint256 oldShare = netFeeShareBP;
+        netFeeShareBP = _newNetFeeShareBP;
+        emit NetFeeShareBPUpdated(oldShare, _newNetFeeShareBP);
+    }
+
+    /// @notice Updates the gross fee share percentage in basis points.
+    ///
+    /// @param _newGrossFeeShareBP The new gross fee share percentage in basis points.
+    function setGrossFeeShareBP(uint256 _newGrossFeeShareBP) external onlyOwner {
+        if (_newGrossFeeShareBP > BASIS_POINT_SCALE) {
+            revert FeeSplitter_GrossFeeShareBPExceeds100Percent();
+        }
+        uint256 oldGrossShare = grossFeeShareBP;
+        grossFeeShareBP = _newGrossFeeShareBP;
+        emit GrossFeeShareBPUpdated(oldGrossShare, _newGrossFeeShareBP);
     }
 
     /// @notice Updates the fee disbursement interval.
