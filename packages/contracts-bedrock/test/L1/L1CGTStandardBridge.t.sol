@@ -10,7 +10,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 // Contracts
 import { L1CGTStandardBridge } from "src/L1/L1CGTStandardBridge.sol";
-import { StandardCGTBridge } from "src/universal/StandardCGTBridge.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 
@@ -26,12 +25,12 @@ import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 contract L1CGTStandardBridge_TestInit is CommonTest {
     using SafeERC20 for IERC20;
 
-    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount, bytes extraData);
+    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount);
 
-    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount, bytes extraData);
+    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 
     L1CGTStandardBridge internal l1CGTStandardBridge;
-    StandardCGTBridge internal l2CGTStandardBridge;
+    L1CGTStandardBridge internal l2CGTStandardBridge;
     ICrossDomainMessenger internal messenger;
     IOptimismPortal2 internal optimismPortal;
     TestERC20 internal cgtToken;
@@ -45,7 +44,8 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
 
         // Deploy mock contracts
         cgtToken = new TestERC20();
-        l2CGTStandardBridge = StandardCGTBridge(makeAddr("l2CGTStandardBridge"));
+        l1CGTStandardBridge = L1CGTStandardBridge(makeAddr("l1CGTStandardBridge"));
+        l2CGTStandardBridge = L1CGTStandardBridge(makeAddr("l2CGTStandardBridge"));
         messenger = ICrossDomainMessenger(makeAddr("messenger"));
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
@@ -86,6 +86,7 @@ contract L1CGTStandardBridge_Initialize_Test is L1CGTStandardBridge_TestInit {
         assertEq(address(l1CGTStandardBridge.otherBridge()), address(l2CGTStandardBridge));
         assertEq(address(l1CGTStandardBridge.systemConfig()), address(systemConfig));
         assertEq(address(l1CGTStandardBridge.superchainConfig()), address(superchainConfig));
+        assertEq(address(l1CGTStandardBridge.optimismPortal()), address(optimismPortal));
     }
 
     /// @notice Tests that the contract cannot be initialized twice.
@@ -141,69 +142,6 @@ contract L1CGTStandardBridge_Paused_Test is L1CGTStandardBridge_TestInit {
     }
 }
 
-/// @title L1CGTStandardBridge_BridgeCGT_Test
-/// @notice Tests for the `bridgeCGT` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
-    /// @notice Tests that bridgeCGT succeeds when called properly.
-    function test_bridgeCGT_succeeds() external {
-        // Approve the bridge to spend tokens
-        vm.prank(alice);
-        cgtToken.approve(address(l1CGTStandardBridge), BRIDGE_AMOUNT);
-
-        // Mock the messenger call
-        vm.mockCall(
-            address(messenger),
-            abi.encodeWithSelector(
-                ICrossDomainMessenger.sendMessage.selector,
-                address(l2CGTStandardBridge),
-                abi.encodeWithSelector(StandardCGTBridge.finalizeBridgeCGT.selector, alice, alice, BRIDGE_AMOUNT, ""),
-                MIN_GAS_LIMIT
-            ),
-            ""
-        );
-
-        // Expect the event to be emitted
-        vm.expectEmit(address(l1CGTStandardBridge));
-        emit CGTBridgeInitiated(alice, alice, BRIDGE_AMOUNT, "");
-
-        // Call bridgeCGT
-        vm.startPrank(alice, alice); // Set both msg.sender and tx.origin to alice
-        l1CGTStandardBridge.bridgeCGT(BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
-        vm.stopPrank();
-
-        // Check that tokens were transferred and deposit recorded
-        assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - BRIDGE_AMOUNT);
-        assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), BRIDGE_AMOUNT);
-        assertEq(l1CGTStandardBridge.cgtDeposits(), BRIDGE_AMOUNT);
-    }
-
-    /// @notice Tests that bridgeCGT reverts when amount is zero.
-    function test_bridgeCGT_revertsWhenAmountIsZero() external {
-        vm.expectRevert(StandardCGTBridge.AmountMustBeGreaterThanZero.selector);
-        vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(0, MIN_GAS_LIMIT, "");
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that bridgeCGT reverts when bridge is paused.
-    function test_bridgeCGT_revertsWhenPaused() external {
-        // Mock paused to return true
-        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
-
-        vm.expectRevert(StandardCGTBridge.Paused.selector);
-        vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
-        vm.stopPrank();
-    }
-
-    /// @notice Tests that bridgeCGT reverts when called from a contract.
-    function test_bridgeCGT_revertsWhenCalledFromContract() external {
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromEOA.selector);
-        vm.prank(address(this));
-        l1CGTStandardBridge.bridgeCGT(BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
-    }
-}
-
 /// @title L1CGTStandardBridge_BridgeCGTTo_Test
 /// @notice Tests for the `bridgeCGTTo` function of the `L1CGTStandardBridge` contract.
 contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
@@ -219,7 +157,7 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
                 address(l2CGTStandardBridge),
-                abi.encodeWithSelector(StandardCGTBridge.finalizeBridgeCGT.selector, alice, alice, BRIDGE_AMOUNT, ""),
+                abi.encodeWithSelector(L1CGTStandardBridge.finalizeBridgeCGT.selector, alice, alice, BRIDGE_AMOUNT),
                 MIN_GAS_LIMIT
             ),
             ""
@@ -227,11 +165,11 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
 
         // Expect the event to be emitted
         vm.expectEmit(address(l1CGTStandardBridge));
-        emit CGTBridgeInitiated(alice, bob, BRIDGE_AMOUNT, "");
+        emit CGTBridgeInitiated(alice, bob, BRIDGE_AMOUNT);
 
         // Call bridgeCGTTo
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
+        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
 
         // Check that tokens were transferred and deposit recorded
@@ -242,17 +180,17 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
 
     /// @notice Tests that bridgeCGTTo reverts when recipient is zero address.
     function test_bridgeCGTTo_revertsWhenRecipientIsZero() external {
-        vm.expectRevert(StandardCGTBridge.RecipientCannotBeZeroAddress.selector);
+        vm.expectRevert(L1CGTStandardBridge.InvalidRecipient.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(address(0), BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
+        l1CGTStandardBridge.bridgeCGTTo(address(0), BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
     /// @notice Tests that bridgeCGTTo reverts when amount is zero.
     function test_bridgeCGTTo_revertsWhenAmountIsZero() external {
-        vm.expectRevert(StandardCGTBridge.AmountMustBeGreaterThanZero.selector);
+        vm.expectRevert(L1CGTStandardBridge.InvalidAmount.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(bob, 0, MIN_GAS_LIMIT, "");
+        l1CGTStandardBridge.bridgeCGTTo(bob, 0, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
@@ -261,17 +199,10 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
         // Mock paused to return true
         vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
 
-        vm.expectRevert(StandardCGTBridge.Paused.selector);
+        vm.expectRevert(L1CGTStandardBridge.Paused.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
+        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
-    }
-
-    /// @notice Tests that bridgeCGTTo reverts when called from a contract.
-    function test_bridgeCGTTo_revertsWhenCalledFromContract() external {
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromEOA.selector);
-        vm.prank(address(this));
-        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
     }
 }
 
@@ -288,7 +219,7 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
         vm.mockCall(address(messenger), abi.encodeWithSelector(ICrossDomainMessenger.sendMessage.selector), "");
 
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(BRIDGE_AMOUNT, MIN_GAS_LIMIT, "");
+        l1CGTStandardBridge.bridgeCGTTo(alice, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
@@ -303,11 +234,11 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
 
         // Expect the event to be emitted
         vm.expectEmit(address(l1CGTStandardBridge));
-        emit CGTBridgeFinalized(alice, bob, BRIDGE_AMOUNT, "");
+        emit CGTBridgeFinalized(alice, bob, BRIDGE_AMOUNT);
 
         // Call finalizeBridgeCGT from the messenger
         vm.prank(address(messenger));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT, "");
+        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
 
         // Check that tokens were transferred and deposit decreased
         assertEq(cgtToken.balanceOf(bob), BRIDGE_AMOUNT);
@@ -317,9 +248,9 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
 
     /// @notice Tests that finalizeBridgeCGT reverts when called from wrong messenger.
     function test_finalizeBridgeCGT_revertsWhenWrongMessenger() external {
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromOtherBridge.selector);
+        vm.expectRevert(L1CGTStandardBridge.OnlyOtherBridge.selector);
         vm.prank(makeAddr("wrongMessenger"));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT, "");
+        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
 
     /// @notice Tests that finalizeBridgeCGT reverts when wrong xDomainMessageSender.
@@ -331,9 +262,9 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
             abi.encode(makeAddr("wrongSender"))
         );
 
-        vm.expectRevert(StandardCGTBridge.FunctionCanOnlyBeCalledFromOtherBridge.selector);
+        vm.expectRevert(L1CGTStandardBridge.OnlyOtherBridge.selector);
         vm.prank(address(messenger));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT, "");
+        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
 
     /// @notice Tests that finalizeBridgeCGT reverts when bridge is paused.
@@ -348,9 +279,9 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
             abi.encode(address(l2CGTStandardBridge))
         );
 
-        vm.expectRevert(StandardCGTBridge.Paused.selector);
+        vm.expectRevert(L1CGTStandardBridge.Paused.selector);
         vm.prank(address(messenger));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT, "");
+        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
 }
 
@@ -372,7 +303,7 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
 
         // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(_amount, _minGasLimit, "");
+        l1CGTStandardBridge.bridgeCGTTo(alice, _amount, _minGasLimit);
         vm.stopPrank();
 
         // Check that tokens were transferred and deposit recorded
@@ -397,7 +328,7 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
 
         // Call bridgeCGTTo
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(_to, _amount, _minGasLimit, "");
+        l1CGTStandardBridge.bridgeCGTTo(_to, _amount, _minGasLimit);
         vm.stopPrank();
 
         // Check that tokens were transferred and deposit recorded
