@@ -113,7 +113,7 @@ contract FeeSplitterTest is CommonTest {
         assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).feeShareBP(), 150);
     }
 
-    function test_feeSplitter_disburseFees_reverts_when_feeDisbursementInterval_not_reached() public {
+    function test_feeSplitterDisburseFees_WhenFeeDisbursementIntervalNotReached_Reverts() public {
         _initializeFeeSplitter();
         vm.roll(block.timestamp + 24 hours + 1);
 
@@ -121,7 +121,7 @@ contract FeeSplitterTest is CommonTest {
         FeeSplitter(payable(Predeploys.FEE_SPLITTER)).disburseFees();
     }
 
-    function test_feeSplitter_disburseFees_succeeds() public {
+    function test_feeSplitterDisburseFees_succeeds() public {
         _initializeFeeSplitter();
         _setupMockFeeVaults();
 
@@ -164,9 +164,12 @@ contract FeeSplitterTest is CommonTest {
 
         // Verify fee recipient B received the correct amount
         assertEq(address(_remainderRecipient).balance, remainderRecipientBalanceBefore + remainderRecipientShare);
+
+        // Verify the net fee revenue was reset
+        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).netFeeRevenue(), 0);
     }
 
-    function test_feeSplitter_disburseFees_noFeesCollected_succeeds() public {
+    function test_feeSplitterDisburseFees_WhenNoFeesCollected_Succeeds() public {
         _initializeFeeSplitter();
         _setupMockFeeVaults();
 
@@ -186,7 +189,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // expect a revert when initializing with an invalid _configuredShareRecipient (address(0))
-    function test_feeSplitter_initialize_reverts_with_invalid_configuredShareRecipient() public {
+    function test_feeSplitterInitialize_WhenInvalidConfiguredShareRecipient_Reverts() public {
         _deployFeeSplitter();
 
         vm.prank(_owner);
@@ -197,7 +200,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // expect a revert when initializing with an invalid _remainderRecipient (address(0))
-    function test_feeSplitter_initialize_reverts_with_invalid_remainderRecipient() public {
+    function test_feeSplitterInitialize_WhenInvalidRemainderRecipient_Reverts() public {
         _deployFeeSplitter();
 
         vm.prank(_owner);
@@ -208,7 +211,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // expect a revert when initializing with an invalid _feeDisbursementInterval (less than 24 hours)
-    function test_feeSplitter_initialize_reverts_with_invalid_feeDisbursementInterval() public {
+    function test_feeSplitterInitialize_WhenInvalidFeeDisbursementInterval_Reverts() public {
         _deployFeeSplitter();
 
         vm.prank(_owner);
@@ -219,7 +222,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // expect a revert when initializing with an invalid _feeShareBP (greater than 100%)
-    function test_feeSplitter_initialize_reverts_with_invalid_feeShareBP() public {
+    function test_feeSplitterInitialize_WhenInvalidFeeShareBP_Reverts() public {
         _deployFeeSplitter();
 
         vm.prank(_owner);
@@ -230,7 +233,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setConfiguredShareRecipient function works as expected
-    function test_feeSplitter_setConfiguredShareRecipient_succeeds(address _newConfiguredShareRecipient) public {
+    function test_feeSplitterSetConfiguredShareRecipient_WhenValidNewConfiguredShareRecipient_Succeeds(address _newConfiguredShareRecipient) public {
         vm.assume(_newConfiguredShareRecipient != address(0));
         _initializeFeeSplitter();
 
@@ -241,7 +244,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setConfiguredShareRecipient function reverts with an invalid _newConfiguredShareRecipient (address(0))
-    function test_feeSplitter_setConfiguredShareRecipient_reverts_with_invalid_newConfiguredShareRecipient() public {
+    function test_feeSplitterSetConfiguredShareRecipient_WhenInvalidNewConfiguredShareRecipient_Reverts() public {
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -250,7 +253,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setConfiguredShareRecipient function reverts when the caller is not the owner
-    function test_feeSplitter_setConfiguredShareRecipient_reverts_when_caller_is_not_owner(address _caller) public {
+    function test_feeSplitterSetConfiguredShareRecipient_WhenCallerIsNotOwner_Reverts(address _caller) public {
         vm.assume(_caller != _owner);
 
         _initializeFeeSplitter();
@@ -261,7 +264,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setRemainderRecipient function works as expected
-    function test_feeSplitter_setRemainderRecipient_succeeds(address _oldRemainderRecipient) public {
+    function test_feeSplitterSetRemainderRecipient_WhenValidOldRemainderRecipient_Succeeds(address _oldRemainderRecipient) public {
         vm.assume(_oldRemainderRecipient != address(0));
         _initializeFeeSplitter();
 
@@ -272,7 +275,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setRemainderRecipient function reverts with an invalid _oldRemainderRecipient (address(0))
-    function test_feeSplitter_setRemainderRecipient_reverts_with_invalid_oldRemainderRecipient() public {
+    function test_feeSplitterSetRemainderRecipient_WhenInvalidOldRemainderRecipient_Reverts() public {
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -281,7 +284,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setRemainderRecipient function reverts when the caller is not the owner
-    function test_feeSplitter_setRemainderRecipient_reverts_when_caller_is_not_owner(address _caller) public {
+    function test_feeSplitterSetRemainderRecipient_WhenCallerIsNotOwner_Reverts(address _caller) public {
         vm.assume(_caller != _owner);
 
         _initializeFeeSplitter();
@@ -292,7 +295,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeShareBP function works as expected
-    function test_feeSplitter_setFeeShareBP_succeeds(uint256 _newFeeShareBP) public {
+    function test_feeSplitterSetFeeShareBP_WhenValidNewFeeShareBP_Succeeds(uint256 _newFeeShareBP) public {
         _newFeeShareBP = bound(_newFeeShareBP, 0, 10000);
         _initializeFeeSplitter();
 
@@ -303,7 +306,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeShareBP function reverts with an invalid _newFeeShareBP (greater than 100%)
-    function test_feeSplitter_setFeeShareBP_reverts_with_invalid_newFeeShareBP(uint256 _newFeeShareBP) public {
+    function test_feeSplitterSetFeeShareBP_WhenInvalidNewFeeShareBP_Reverts(uint256 _newFeeShareBP) public {
         _newFeeShareBP = bound(_newFeeShareBP, 10001, type(uint256).max);
         _initializeFeeSplitter();
 
@@ -313,7 +316,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeShareBP function reverts when the caller is not the owner
-    function test_feeSplitter_setFeeShareBP_reverts_when_caller_is_not_owner(address _caller) public {
+    function test_feeSplitterSetFeeShareBP_WhenCallerIsNotOwner_Reverts(address _caller) public {
         vm.assume(_caller != _owner);
 
         _initializeFeeSplitter();
@@ -324,7 +327,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeDisbursementInterval function works as expected
-    function test_feeSplitter_setFeeDisbursementInterval_succeeds(uint256 _newFeeDisbursementInterval) public {
+    function test_feeSplitterSetFeeDisbursementInterval_WhenValidNewFeeDisbursementInterval_Succeeds(uint256 _newFeeDisbursementInterval) public {
         _newFeeDisbursementInterval = bound(_newFeeDisbursementInterval, 24 hours, type(uint256).max);
         _initializeFeeSplitter();
 
@@ -336,7 +339,7 @@ contract FeeSplitterTest is CommonTest {
 
     // test the setFeeDisbursementInterval function reverts with an invalid _newFeeDisbursementInterval (less than 24
     // hours)
-    function test_feeSplitter_setFeeDisbursementInterval_reverts_with_invalid_newFeeDisbursementInterval(
+    function test_feeSplitterSetFeeDisbursementInterval_WhenInvalidNewFeeDisbursementInterval_Reverts(
         uint256 _newFeeDisbursementInterval
     )
         public
@@ -350,7 +353,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeDisbursementInterval function reverts when the caller is not the owner
-    function test_feeSplitter_setFeeDisbursementInterval_reverts_when_caller_is_not_owner(address _caller) public {
+    function test_feeSplitterSetFeeDisbursementInterval_WhenCallerIsNotOwner_Reverts(address _caller) public {
         vm.assume(_caller != _owner);
 
         _initializeFeeSplitter();
@@ -361,7 +364,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the receive function works as expected
-    function test_feeSplitter_receive_succeeds() public {
+    function test_feeSplitterReceive_WhenValidFeeVault_Succeeds() public {
         _initializeFeeSplitter();
 
         // Send ETH to the FeeSplitter from a FeeVault
@@ -375,7 +378,7 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the receive function from non-FeeVault address
-    function test_feeSplitter_receive_from_nonFeeVault_succeeds() public {
+    function test_feeSplitterReceive_WhenNonFeeVault_Succeeds() public {
         _initializeFeeSplitter();
 
         // Send ETH to the FeeSplitter from a non-FeeVault address

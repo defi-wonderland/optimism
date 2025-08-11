@@ -278,6 +278,9 @@ contract FeeSplitter is ISemver, Initializable {
             revert FeeSplitter_FailedToSendToRemainderRecipient();
         }
 
+        // Reset net fee revenue
+        netFeeRevenue = 0;
+
         emit FeesDisbursed({
             disbursementTime: lastDisbursementTime,
             paidConfiguredShareRecipient: feeShare,
