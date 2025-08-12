@@ -289,14 +289,14 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the remainder recipient address.
-    /// @param _oldRemainderRecipient The new remainder recipient address.
-    function setRemainderRecipient(address payable _oldRemainderRecipient) external onlyProxyAdminOwner {
-        if (_oldRemainderRecipient == address(0)) {
+    /// @param _newRemainderRecipient The new remainder recipient address.
+    function setRemainderRecipient(address payable _newRemainderRecipient) external onlyProxyAdminOwner {
+        if (_newRemainderRecipient == address(0)) {
             revert FeeSplitter_NewRemainderRecipientCannotBeZero();
         }
         address oldRemainderRecipient = remainderRecipient;
-        remainderRecipient = _oldRemainderRecipient;
-        emit RemainderRecipientUpdated(oldRemainderRecipient, _oldRemainderRecipient);
+        remainderRecipient = _newRemainderRecipient;
+        emit RemainderRecipientUpdated(oldRemainderRecipient, _newRemainderRecipient);
     }
 
     /// @notice Updates the net fee share percentage in basis points.
