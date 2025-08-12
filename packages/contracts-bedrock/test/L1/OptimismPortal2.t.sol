@@ -2062,6 +2062,33 @@ contract OptimismPortal2_DepositTransaction_Test is OptimismPortal2_TestInit {
         optimismPortal2.depositTransaction({ _to: address(1), _value: 0, _gasLimit: 0, _isCreation: false, _data: hex"" });
     }
 
+    /// @notice Tests that `depositTransaction` reverts when the value is greater than 0 and the
+    ///         custom gas token is active.
+    function test_depositTransaction_customGasToken_reverts(
+        bytes memory _data,
+        uint64 _gasLimit,
+        uint256 _value
+    )
+        external
+    {
+        // Prevent overflow on an upgrade context
+        _value = bound(_value, 1, type(uint256).max - address(ethLockbox).balance);
+        // Set the custom gas token to true.
+        vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.isCustomGasToken, ()), abi.encode(true));
+        uint64 gasLimit = optimismPortal2.minimumGasLimit(uint64(_data.length));
+
+        vm.deal(depositor, _value);
+        vm.prank(depositor);
+        vm.expectRevert(IOptimismPortal.OptimismPortal_NotAllowedOnCGTMode.selector);
+        optimismPortal2.depositTransaction{ value: _value }({
+            _to: address(0x40),
+            _value: _value,
+            _gasLimit: gasLimit,
+            _isCreation: false,
+            _data: _data
+        });
+    }
+
     /// @notice Tests that `depositTransaction` succeeds for small, but sufficient, gas limits.
     function testFuzz_depositTransaction_smallGasLimit_succeeds(bytes memory _data, bool _shouldFail) external {
         uint64 gasLimit = optimismPortal2.minimumGasLimit(uint64(_data.length));
