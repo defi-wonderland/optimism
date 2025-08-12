@@ -176,7 +176,7 @@ contract FeeSplitter is ISemver, Initializable {
     )
         external
         initializer
-        onlyOwner
+        onlyProxyAdminOwner
     {
         if (_configuredShareRecipient == address(0)) {
             revert FeeSplitter_ConfiguredShareRecipientCannotBeZero();
@@ -206,7 +206,7 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Modifier that restricts access to the ProxyAdmin owner.
-    modifier onlyOwner() {
+    modifier onlyProxyAdminOwner() {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
         }
@@ -279,7 +279,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Updates the fee share recipient address.
     /// @param _newConfiguredShareRecipient The new fee share recipient address.
-    function setConfiguredShareRecipient(address _newConfiguredShareRecipient) external onlyOwner {
+    function setConfiguredShareRecipient(address _newConfiguredShareRecipient) external onlyProxyAdminOwner {
         if (_newConfiguredShareRecipient == address(0)) {
             revert FeeSplitter_NewConfiguredShareRecipientCannotBeZero();
         }
@@ -290,7 +290,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Updates the remainder recipient address.
     /// @param _oldRemainderRecipient The new remainder recipient address.
-    function setRemainderRecipient(address payable _oldRemainderRecipient) external onlyOwner {
+    function setRemainderRecipient(address payable _oldRemainderRecipient) external onlyProxyAdminOwner {
         if (_oldRemainderRecipient == address(0)) {
             revert FeeSplitter_NewRemainderRecipientCannotBeZero();
         }
@@ -301,7 +301,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Updates the net fee share percentage in basis points.
     /// @param _newNetFeeShareBP The new net fee share percentage in basis points.
-    function setNetFeeShareBP(uint256 _newNetFeeShareBP) external onlyOwner {
+    function setNetFeeShareBP(uint256 _newNetFeeShareBP) external onlyProxyAdminOwner {
         if (_newNetFeeShareBP > BASIS_POINT_SCALE) {
             revert FeeSplitter_FeeShareBPExceeds100Percent();
         }
@@ -312,7 +312,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Updates the gross fee share percentage in basis points.
     /// @param _newGrossFeeShareBP The new gross fee share percentage in basis points.
-    function setGrossFeeShareBP(uint256 _newGrossFeeShareBP) external onlyOwner {
+    function setGrossFeeShareBP(uint256 _newGrossFeeShareBP) external onlyProxyAdminOwner {
         if (_newGrossFeeShareBP > BASIS_POINT_SCALE) {
             revert FeeSplitter_GrossFeeShareBPExceeds100Percent();
         }
@@ -323,7 +323,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Updates the fee disbursement interval.
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
-    function setFeeDisbursementInterval(uint256 _newFeeDisbursementInterval) external onlyOwner {
+    function setFeeDisbursementInterval(uint256 _newFeeDisbursementInterval) external onlyProxyAdminOwner {
         if (_newFeeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_NewFeeDisbursementIntervalTooShort();
         }
