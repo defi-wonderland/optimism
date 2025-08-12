@@ -2913,8 +2913,9 @@ contract ProposalValidator_SetProposalTypeData_Test is ProposalValidator_TestIni
     }
 }
 
-/// @title ProposalValidator_HashProposalWithModule_Test
-/// @notice Tests for the hashProposalWithModule function
+/// @title ProposalValidator_Uncategorized_Test
+/// @notice Tests for the `_hashProposalWithModule` function that is not part of the public interface
+/// @dev This internal function is only exposed through the ProposalValidatorForTest contract
 contract ProposalValidator_Uncategorized_Test is ProposalValidator_TestInit {
     function testFuzz_hashProposalWithModule_succeeds(
         address fuzzedModule,
