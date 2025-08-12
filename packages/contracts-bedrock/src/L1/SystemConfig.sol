@@ -145,9 +145,9 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     event ConfigUpdate(uint256 indexed version, UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 3.4.0
+    /// @custom:semver 3.4.1
     function version() public pure virtual returns (string memory) {
-        return "3.4.0";
+        return "3.4.1";
     }
 
     /// @notice Constructs the SystemConfig contract.

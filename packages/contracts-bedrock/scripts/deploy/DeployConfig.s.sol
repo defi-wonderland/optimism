@@ -77,7 +77,6 @@ contract DeployConfig is Script {
     bool public isCustomGasToken;
     bool public useInterop;
     bool public useUpgradedFork;
-    bool public isCustomGasToken;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
