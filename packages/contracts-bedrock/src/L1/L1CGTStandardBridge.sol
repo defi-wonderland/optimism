@@ -76,9 +76,6 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @notice Thrown when the amount to deposit is zero.
     error InvalidAmount();
 
-    /// @notice Thrown when the recipient address is the zero address.
-    error InvalidRecipient();
-
     /// @notice Thrown when the bridge is paused.
     error Paused();
 
@@ -135,17 +132,13 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @param _to          Address to bridge the CGT tokens to.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
-    function bridgeCGTTo(address _to, uint256 _amount, uint32 _minGasLimit) external {
+    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external {
         if (paused()) {
             revert Paused();
         }
 
         if (_amount == 0) {
             revert InvalidAmount();
-        }
-
-        if (_to == address(0)) {
-            revert InvalidRecipient();
         }
 
         _to = _to == address(0) ? msg.sender : _to;

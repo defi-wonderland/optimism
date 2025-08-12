@@ -142,11 +142,11 @@ contract L1CGTStandardBridge_Paused_Test is L1CGTStandardBridge_TestInit {
     }
 }
 
-/// @title L1CGTStandardBridge_BridgeCGTTo_Test
-/// @notice Tests for the `bridgeCGTTo` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
-    /// @notice Tests that bridgeCGTTo succeeds when called properly.
-    function test_bridgeCGTTo_succeeds() external {
+/// @title L1CGTStandardBridge_BridgeCGT_Test
+/// @notice Tests for the `bridgeCGT` function of the `L1CGTStandardBridge` contract.
+contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
+    /// @notice Tests that bridgeCGT succeeds when called properly.
+    function test_bridgeCGT_succeedsWithRecipient() external {
         // Approve the bridge to spend tokens
         vm.prank(alice);
         cgtToken.approve(address(l1CGTStandardBridge), BRIDGE_AMOUNT);
@@ -167,9 +167,9 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
         vm.expectEmit(address(l1CGTStandardBridge));
         emit CGTBridgeInitiated(alice, bob, BRIDGE_AMOUNT);
 
-        // Call bridgeCGTTo
+        // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        l1CGTStandardBridge.bridgeCGT(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
 
         // Check that tokens were transferred and deposit recorded
@@ -178,30 +178,55 @@ contract L1CGTStandardBridge_BridgeCGTTo_Test is L1CGTStandardBridge_TestInit {
         assertEq(l1CGTStandardBridge.cgtDeposits(), BRIDGE_AMOUNT);
     }
 
-    /// @notice Tests that bridgeCGTTo reverts when recipient is zero address.
-    function test_bridgeCGTTo_revertsWhenRecipientIsZero() external {
-        vm.expectRevert(L1CGTStandardBridge.InvalidRecipient.selector);
+    /// @notice Tests that bridgeCGT succeeds when recipient is the zero address.
+    function test_bridgeCGT_succeedsWhenRecipientIsZeroAddress() external {
+        // Approve the bridge to spend tokens
+        vm.prank(alice);
+        cgtToken.approve(address(l1CGTStandardBridge), BRIDGE_AMOUNT);
+
+        // Mock the messenger call
+        vm.mockCall(
+            address(messenger),
+            abi.encodeWithSelector(
+                ICrossDomainMessenger.sendMessage.selector,
+                address(l2CGTStandardBridge),
+                abi.encodeWithSelector(L1CGTStandardBridge.finalizeBridgeCGT.selector, alice, alice, BRIDGE_AMOUNT),
+                MIN_GAS_LIMIT
+            ),
+            ""
+        );
+
+        // Expect the event to be emitted
+        vm.expectEmit(address(l1CGTStandardBridge));
+        emit CGTBridgeInitiated(alice, alice, BRIDGE_AMOUNT);
+
+        // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(address(0), BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        l1CGTStandardBridge.bridgeCGT(address(0), BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
+
+        // Check that tokens were transferred and deposit recorded
+        assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - BRIDGE_AMOUNT);
+        assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), BRIDGE_AMOUNT);
+        assertEq(l1CGTStandardBridge.cgtDeposits(), BRIDGE_AMOUNT);
     }
 
-    /// @notice Tests that bridgeCGTTo reverts when amount is zero.
-    function test_bridgeCGTTo_revertsWhenAmountIsZero() external {
+    /// @notice Tests that bridgeCGT reverts when amount is zero.
+    function test_bridgeCGT_revertsWhenAmountIsZero() external {
         vm.expectRevert(L1CGTStandardBridge.InvalidAmount.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(bob, 0, MIN_GAS_LIMIT);
+        l1CGTStandardBridge.bridgeCGT(bob, 0, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
-    /// @notice Tests that bridgeCGTTo reverts when bridge is paused.
-    function test_bridgeCGTTo_revertsWhenPaused() external {
+    /// @notice Tests that bridgeCGT reverts when bridge is paused.
+    function test_bridgeCGT_revertsWhenPaused() external {
         // Mock paused to return true
         vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
 
         vm.expectRevert(L1CGTStandardBridge.Paused.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        l1CGTStandardBridge.bridgeCGT(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 }
@@ -219,7 +244,7 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
         vm.mockCall(address(messenger), abi.encodeWithSelector(ICrossDomainMessenger.sendMessage.selector), "");
 
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(alice, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        l1CGTStandardBridge.bridgeCGT(alice, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
@@ -288,8 +313,8 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
 /// @title L1CGTStandardBridge_Fuzz_Test
 /// @notice Fuzz tests for the `L1CGTStandardBridge` contract.
 contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
-    /// @notice Fuzz test for bridgeCGT with valid amounts.
-    function testFuzz_bridgeCGT_succeeds(uint256 _amount, uint32 _minGasLimit) external {
+    /// @notice Fuzz test for bridgeCGT with valid amounts and recipient.
+    function testFuzz_bridgeCGT_succeedsWithRecipient(uint256 _amount, uint32 _minGasLimit) external {
         // Bound the amount to reasonable values
         _amount = bound(_amount, 1, INITIAL_BALANCE);
         _minGasLimit = uint32(bound(_minGasLimit, 21000, 1000000));
@@ -303,7 +328,7 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
 
         // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(alice, _amount, _minGasLimit);
+        l1CGTStandardBridge.bridgeCGT(alice, _amount, _minGasLimit);
         vm.stopPrank();
 
         // Check that tokens were transferred and deposit recorded
@@ -312,12 +337,11 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
         assertEq(l1CGTStandardBridge.cgtDeposits(), _amount);
     }
 
-    /// @notice Fuzz test for bridgeCGTTo with valid amounts and recipients.
-    function testFuzz_bridgeCGTTo_succeeds(uint256 _amount, uint32 _minGasLimit, address _to) external {
+    /// @notice Fuzz test for bridgeCGT with valid amounts and zero address recipient.
+    function testFuzz_bridgeCGT_succeedsWhenRecipientIsZeroAddress(uint256 _amount, uint32 _minGasLimit) external {
         // Bound the amount to reasonable values
         _amount = bound(_amount, 1, INITIAL_BALANCE);
         _minGasLimit = uint32(bound(_minGasLimit, 21000, 1000000));
-        vm.assume(_to != address(0));
 
         // Approve the bridge to spend tokens
         vm.prank(alice);
@@ -326,9 +350,9 @@ contract L1CGTStandardBridge_Fuzz_Test is L1CGTStandardBridge_TestInit {
         // Mock the messenger call
         vm.mockCall(address(messenger), abi.encodeWithSelector(ICrossDomainMessenger.sendMessage.selector), "");
 
-        // Call bridgeCGTTo
+        // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGTTo(_to, _amount, _minGasLimit);
+        l1CGTStandardBridge.bridgeCGT(address(0), _amount, _minGasLimit);
         vm.stopPrank();
 
         // Check that tokens were transferred and deposit recorded

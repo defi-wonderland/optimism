@@ -63,7 +63,7 @@ interface IL1CGTStandardBridge {
     /// @return True if the bridge is paused, false otherwise.
     function paused() external view returns (bool);
 
-    function bridgeCGTTo(address _to, uint256 _amount, uint32 _minGasLimit) external;
+    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external;
 
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external;
 }
