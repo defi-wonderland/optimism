@@ -22,7 +22,6 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.
 contract FeeSplitter is ISemver, Initializable {
-
     /// @notice Thrown when the fee recipient address is zero.
     error FeeSplitter_ConfiguredShareRecipientCannotBeZero();
 
@@ -83,7 +82,8 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The timestamp of the last disbursal.
     uint256 public lastDisbursementTime;
 
-    /// @notice Tracks aggregate net fee revenue which is the sum of sequencer, base, and operator fees received by this contract.
+    /// @notice Tracks aggregate net fee revenue which is the sum of sequencer, base, and operator fees received by this
+    /// contract.
     uint256 public netFeeRevenue;
 
     /// @notice The net revenue share percentage denominated in basis points.
@@ -332,9 +332,9 @@ contract FeeSplitter is ISemver, Initializable {
         emit FeeDisbursementIntervalUpdated(oldInterval, _newFeeDisbursementInterval);
     }
 
-    /// @notice Withdraws fees from a FeeVault.
-    /// @dev Withdrawal will only occur if the given FeeVault's balance is greater than or equal to the minimum
-    ///      withdrawal amount.
+    /// @notice Checks & Withdraws fees from a FeeVault.
+    /// @dev Withdrawal will only occur if the vault are properly configured and if the FeeVault's balance is greater
+    /// than or equal to the minimum
     /// @param _feeVault The address of the FeeVault to withdraw from.
     function _feeVaultWithdrawal(address payable _feeVault) internal {
         if (FeeVault(_feeVault).WITHDRAWAL_NETWORK() != Types.WithdrawalNetwork.L2) {
