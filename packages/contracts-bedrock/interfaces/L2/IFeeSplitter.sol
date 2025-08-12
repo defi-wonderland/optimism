@@ -43,9 +43,9 @@ interface IFeeSplitter {
     event Initialized(
         address payable configuredShareRecipient,
         address payable remainderRecipient,
-        uint256 feeDisbursementInterval,
-        uint256 netFeeShareBP,
-        uint256 grossFeeShareBP
+        uint32 feeDisbursementInterval,
+        uint32 netFeeShareBP,
+        uint32 grossFeeShareBP
     );
 
     function version() external view returns (string memory);
@@ -54,16 +54,16 @@ interface IFeeSplitter {
     function configuredShareRecipient() external view returns (address payable);
     function remainderRecipient() external view returns (address payable);
     function lastDisbursementTime() external view returns (uint256);
-    function netFeeRevenue() external view returns (uint256);
-    function netFeeShareBP() external view returns (uint256);
-    function grossFeeShareBP() external view returns (uint256);
-    function feeDisbursementInterval() external view returns (uint256);
+    function netFeeRevenue() external view returns (uint128);
+    function netFeeShareBP() external view returns (uint32);
+    function grossFeeShareBP() external view returns (uint32);
+    function feeDisbursementInterval() external view returns (uint32);
     function initialize(
         address payable _configuredShareRecipient,
         address payable _remainderRecipient,
-        uint256 _feeDisbursementInterval,
-        uint256 _netFeeShareBP,
-        uint256 _grossFeeShareBP
+        uint32 _feeDisbursementInterval,
+        uint32 _netFeeShareBP,
+        uint32 _grossFeeShareBP
     ) external;
     function disburseFees() external;
     function setConfiguredShareRecipient(
@@ -72,10 +72,10 @@ interface IFeeSplitter {
     function setRemainderRecipient(
         address payable _oldRemainderRecipient
     ) external;
-    function setNetFeeShareBP(uint256 _newNetFeeShareBP) external;
-    function setGrossFeeShareBP(uint256 _newGrossFeeShareBP) external;
+    function setNetFeeShareBP(uint32 _newNetFeeShareBP) external;
+    function setGrossFeeShareBP(uint32 _newGrossFeeShareBP) external;
     function setFeeDisbursementInterval(
-        uint256 _newFeeDisbursementInterval
+        uint32 _newFeeDisbursementInterval
     ) external;
 
     receive() external payable;
