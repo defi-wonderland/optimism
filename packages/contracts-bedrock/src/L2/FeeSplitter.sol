@@ -207,7 +207,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Modifier that restricts access to the ProxyAdmin owner.
     modifier onlyProxyAdminOwner() {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+        if (IProxyAdmin(Predeploys.PROXY_ADMIN).owner() == address(0) || msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
         }
         _;
