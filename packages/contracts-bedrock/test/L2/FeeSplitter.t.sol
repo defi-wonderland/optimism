@@ -50,10 +50,10 @@ contract FeeSplitterTest is CommonTest {
         _owner = ProxyAdmin(Predeploys.PROXY_ADMIN).owner();
 
         // Deploy fee recipient A
-        _configuredShareRecipient = address(new Mock_ConfiguredShareRecipient());
+        _configuredShareRecipient = makeAddr("ConfiguredShareRecipient");
 
         // Deploy fee recipient B
-        _remainderRecipient = address(new Mock_RemainderRecipient());
+        _remainderRecipient = makeAddr("RemainderRecipient");
     }
 
     function _initializeFeeSplitter() internal {
@@ -137,13 +137,11 @@ contract FeeSplitterTest is CommonTest {
 
         // Calculate expected amounts using max(netShare, grossShare) from contract
         uint256 expectedTotalFees = address(Predeploys.SEQUENCER_FEE_WALLET).balance
-            + address(Predeploys.BASE_FEE_VAULT).balance
-            + address(Predeploys.L1_FEE_VAULT).balance
+            + address(Predeploys.BASE_FEE_VAULT).balance + address(Predeploys.L1_FEE_VAULT).balance
             + address(Predeploys.OPERATOR_FEE_VAULT).balance;
 
         uint256 expectedNetRevenue = address(Predeploys.SEQUENCER_FEE_WALLET).balance
-            + address(Predeploys.BASE_FEE_VAULT).balance
-            + address(Predeploys.OPERATOR_FEE_VAULT).balance;
+            + address(Predeploys.BASE_FEE_VAULT).balance + address(Predeploys.OPERATOR_FEE_VAULT).balance;
 
         uint256 bpScale = FeeSplitter(payable(Predeploys.FEE_SPLITTER)).BASIS_POINT_SCALE();
         uint256 netShareBP = FeeSplitter(payable(Predeploys.FEE_SPLITTER)).netFeeShareBP();
@@ -257,7 +255,11 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setConfiguredShareRecipient function works as expected
-    function test_feeSplitterSetConfiguredShareRecipient_WhenValidNewConfiguredShareRecipient_Succeeds(address _newConfiguredShareRecipient) public {
+    function test_feeSplitterSetConfiguredShareRecipient_WhenValidNewConfiguredShareRecipient_Succeeds(
+        address _newConfiguredShareRecipient
+    )
+        public
+    {
         vm.assume(_newConfiguredShareRecipient != address(0));
         _initializeFeeSplitter();
 
@@ -288,7 +290,11 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setRemainderRecipient function works as expected
-    function test_feeSplitterSetRemainderRecipient_WhenValidOldRemainderRecipient_Succeeds(address _oldRemainderRecipient) public {
+    function test_feeSplitterSetRemainderRecipient_WhenValidOldRemainderRecipient_Succeeds(
+        address _oldRemainderRecipient
+    )
+        public
+    {
         vm.assume(_oldRemainderRecipient != address(0));
         _initializeFeeSplitter();
 
@@ -319,8 +325,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeShareBP function works as expected
-    function test_feeSplitterSetNetFeeShareBP_WhenValidNewNetFeeShareBP_Succeeds(uint256 _newNetFeeShareBP) public {
-        _newNetFeeShareBP = bound(_newNetFeeShareBP, 0, 10000);
+    function test_feeSplitterSetNetFeeShareBP_WhenValidNewNetFeeShareBP_Succeeds(uint32 _newNetFeeShareBP) public {
+        _newNetFeeShareBP = uint32(bound(_newNetFeeShareBP, 0, 10000));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -330,8 +336,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeShareBP function reverts with an invalid _newFeeShareBP (greater than 100%)
-    function test_feeSplitterSetNetFeeShareBP_WhenInvalidNewNetFeeShareBP_Reverts(uint256 _newNetFeeShareBP) public {
-        _newNetFeeShareBP = bound(_newNetFeeShareBP, 10001, type(uint256).max);
+    function test_feeSplitterSetNetFeeShareBP_WhenInvalidNewNetFeeShareBP_Reverts(uint32 _newNetFeeShareBP) public {
+        _newNetFeeShareBP = uint32(bound(_newNetFeeShareBP, 10001, type(uint256).max));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -351,8 +357,12 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test the setFeeDisbursementInterval function works as expected
-    function test_feeSplitterSetFeeDisbursementInterval_WhenValidNewFeeDisbursementInterval_Succeeds(uint256 _newFeeDisbursementInterval) public {
-        _newFeeDisbursementInterval = bound(_newFeeDisbursementInterval, 24 hours, type(uint256).max);
+    function test_feeSplitterSetFeeDisbursementInterval_WhenValidNewFeeDisbursementInterval_Succeeds(
+        uint32 _newFeeDisbursementInterval
+    )
+        public
+    {
+        _newFeeDisbursementInterval = uint32(bound(_newFeeDisbursementInterval, 24 hours, type(uint256).max));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -364,11 +374,11 @@ contract FeeSplitterTest is CommonTest {
     // test the setFeeDisbursementInterval function reverts with an invalid _newFeeDisbursementInterval (less than 24
     // hours)
     function test_feeSplitterSetFeeDisbursementInterval_WhenInvalidNewFeeDisbursementInterval_Reverts(
-        uint256 _newFeeDisbursementInterval
+        uint32 _newFeeDisbursementInterval
     )
         public
     {
-        _newFeeDisbursementInterval = bound(_newFeeDisbursementInterval, 0, 24 hours - 1);
+        _newFeeDisbursementInterval = uint32(bound(_newFeeDisbursementInterval, 0, 24 hours - 1));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -428,8 +438,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     // test updating gross fee share bp
-    function test_feeSplitterSetGrossFeeShareBP_WhenValid_Succeeds(uint256 _newGrossFeeShareBP) public {
-        _newGrossFeeShareBP = bound(_newGrossFeeShareBP, 0, 10000);
+    function test_feeSplitterSetGrossFeeShareBP_WhenValid_Succeeds(uint32 _newGrossFeeShareBP) public {
+        _newGrossFeeShareBP = uint32(bound(_newGrossFeeShareBP, 0, 10000));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -438,8 +448,8 @@ contract FeeSplitterTest is CommonTest {
         assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).grossFeeShareBP(), _newGrossFeeShareBP);
     }
 
-    function test_feeSplitterSetGrossFeeShareBP_WhenInvalid_Reverts(uint256 _newGrossFeeShareBP) public {
-        _newGrossFeeShareBP = bound(_newGrossFeeShareBP, 10001, type(uint256).max);
+    function test_feeSplitterSetGrossFeeShareBP_WhenInvalid_Reverts(uint32 _newGrossFeeShareBP) public {
+        _newGrossFeeShareBP = uint32(bound(_newGrossFeeShareBP, 10001, type(uint256).max));
         _initializeFeeSplitter();
 
         vm.prank(_owner);
@@ -455,14 +465,6 @@ contract FeeSplitterTest is CommonTest {
         vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
         FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setGrossFeeShareBP(100);
     }
-}
-
-contract Mock_ConfiguredShareRecipient {
-    receive() external payable { }
-}
-
-contract Mock_RemainderRecipient {
-    receive() external payable { }
 }
 
 contract Mock_FeeVault {
