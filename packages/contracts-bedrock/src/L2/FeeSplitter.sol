@@ -22,9 +22,6 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.
 contract FeeSplitter is ISemver, Initializable {
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                                   Errors                                       ///
-    //////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice Thrown when the fee recipient address is zero.
     error FeeSplitter_ConfiguredShareRecipientCannotBeZero();
@@ -68,10 +65,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when sending funds to the fee recipient fails.
     error FeeSplitter_FailedToSendToRemainderRecipient();
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                                   Constants                                    ///
-    //////////////////////////////////////////////////////////////////////////////////////
-
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
@@ -80,10 +73,6 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint256 public constant MIN_FEE_DISBURSEMENT_INTERVAL = 24 hours;
-
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                                    Storage                                     ///
-    //////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice An address that receives the fee split of the total fees disbursed
     address payable public configuredShareRecipient;
@@ -106,16 +95,11 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint256 public feeDisbursementInterval;
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                                     Events                                     ///
-    //////////////////////////////////////////////////////////////////////////////////////
-
     /// @notice Emitted when fees are disbursed.
-    ///
-    /// @param disbursementTime   The time of the disbursement.
+    /// @param disbursementTime                 The time of the disbursement.
     /// @param paidConfiguredShareRecipient     The amount of fees disbursed to the fee share recipient.
-    /// @param paidToRemainderRecipient    The amount of fees disbursed to the remainder recipient.
-    /// @param totalFeesDisbursed The total amount of fees disbursed.
+    /// @param paidToRemainderRecipient         The amount of fees disbursed to the remainder recipient.
+    /// @param totalFeesDisbursed               The total amount of fees disbursed.
     event FeesDisbursed(
         uint256 indexed disbursementTime,
         uint256 paidConfiguredShareRecipient,
@@ -124,7 +108,6 @@ contract FeeSplitter is ISemver, Initializable {
     );
 
     /// @notice Emitted when fees are received from FeeVaults.
-    ///
     /// @param sender The FeeVault that sent the fees.
     /// @param amount The amount of fees received.
     event FeesReceived(address indexed sender, uint256 amount);
@@ -133,7 +116,6 @@ contract FeeSplitter is ISemver, Initializable {
     event NoFeesCollected();
 
     /// @notice Emitted when the share recipient address is updated.
-    ///
     /// @param oldConfiguredShareRecipient The previous recipient A address.
     /// @param newConfiguredShareRecipient The new recipient A address.
     event ConfiguredShareRecipientUpdated(
@@ -141,36 +123,31 @@ contract FeeSplitter is ISemver, Initializable {
     );
 
     /// @notice Emitted when the remainder recipient address is updated.
-    ///
     /// @param oldRemainderRecipient The previous recipient B address.
     /// @param newRemainderRecipient The new recipient B address.
     event RemainderRecipientUpdated(address indexed oldRemainderRecipient, address indexed newRemainderRecipient);
 
     /// @notice Emitted when the net fee share in basis points is updated.
-    ///
     /// @param oldNetFeeShareBP The previous net fee share in basis points.
     /// @param newNetFeeShareBP The new net fee share in basis points.
     event NetFeeShareBPUpdated(uint256 oldNetFeeShareBP, uint256 newNetFeeShareBP);
 
     /// @notice Emitted when the gross fee share in basis points is updated.
-    ///
     /// @param oldGrossFeeShareBP The previous gross fee share in basis points.
     /// @param newGrossFeeShareBP The new gross fee share in basis points.
     event GrossFeeShareBPUpdated(uint256 oldGrossFeeShareBP, uint256 newGrossFeeShareBP);
 
     /// @notice Emitted when the fee disbursement interval is updated.
-    ///
     /// @param oldInterval The previous fee disbursement interval.
     /// @param newInterval The new fee disbursement interval.
     event FeeDisbursementIntervalUpdated(uint256 oldInterval, uint256 newInterval);
 
     /// @notice Emitted when the contract is initialized.
-    ///
-    /// @param configuredShareRecipient           The address which receives the fee share of the revenue.
-    /// @param remainderRecipient           The address which receives the remainder of the revenue.
-    /// @param feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
-    /// @param netFeeShareBP              The net revenue share percentage in basis points.
-    /// @param grossFeeShareBP         The gross revenue share percentage in basis points.
+    /// @param configuredShareRecipient  The address which receives the fee share of the revenue.
+    /// @param remainderRecipient        The address which receives the remainder of the revenue.
+    /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
+    /// @param netFeeShareBP             The net revenue share percentage in basis points.
+    /// @param grossFeeShareBP           The gross revenue share percentage in basis points.
     event Initialized(
         address payable configuredShareRecipient,
         address payable remainderRecipient,
@@ -179,23 +156,17 @@ contract FeeSplitter is ISemver, Initializable {
         uint256 grossFeeShareBP
     );
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                                  Constructor                                   ///
-    //////////////////////////////////////////////////////////////////////////////////////
-
-    /// @notice Constructor for the FeeSplitter contract which validates and sets immutable variables.
     constructor() {
         _disableInitializers();
     }
 
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
-    ///
-    /// @param _configuredShareRecipient           The address which receives the fee share of the revenue.
-    /// @param _remainderRecipient           The address which receives the remainder of the revenue.
-    /// @param _feeDisbursementInterval The minimum amount of time in seconds that must pass between fee disbursals.
+    /// @param _configuredShareRecipient   The address which receives the fee share of the revenue.
+    /// @param _remainderRecipient         The address which receives the remainder of the revenue.
+    /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
     /// @param _netFeeShareBP              The net revenue share percentage in basis points.
-    /// @param _grossFeeShareBP         The gross revenue share percentage in basis points.
+    /// @param _grossFeeShareBP            The gross revenue share percentage in basis points.
     function initialize(
         address payable _configuredShareRecipient,
         address payable _remainderRecipient,
@@ -230,17 +201,9 @@ contract FeeSplitter is ISemver, Initializable {
         grossFeeShareBP = _grossFeeShareBP;
 
         emit Initialized(
-            _configuredShareRecipient,
-            _remainderRecipient,
-            _feeDisbursementInterval,
-            _netFeeShareBP,
-            _grossFeeShareBP
+            _configuredShareRecipient, _remainderRecipient, _feeDisbursementInterval, _netFeeShareBP, _grossFeeShareBP
         );
     }
-
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                               Modifiers                                       ///
-    //////////////////////////////////////////////////////////////////////////////////////
 
     /// @notice Modifier that restricts access to the ProxyAdmin owner.
     modifier onlyOwner() {
@@ -249,10 +212,6 @@ contract FeeSplitter is ISemver, Initializable {
         }
         _;
     }
-
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                               External Functions                               ///
-    //////////////////////////////////////////////////////////////////////////////////////
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
     receive() external payable virtual {
@@ -267,8 +226,7 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Withdraws funds from FeeVaults, sends the fee share to the fee share recipient, and sends the remainder
-    /// to the
-    /// remainder recipient.
+    /// to the remainder recipient.
     function disburseFees() external {
         if (block.timestamp < lastDisbursementTime + feeDisbursementInterval) {
             revert FeeSplitter_DisbursementIntervalNotReached();
@@ -320,7 +278,6 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the fee share recipient address.
-    ///
     /// @param _newConfiguredShareRecipient The new fee share recipient address.
     function setConfiguredShareRecipient(address _newConfiguredShareRecipient) external onlyOwner {
         if (_newConfiguredShareRecipient == address(0)) {
@@ -332,7 +289,6 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the remainder recipient address.
-    ///
     /// @param _oldRemainderRecipient The new remainder recipient address.
     function setRemainderRecipient(address payable _oldRemainderRecipient) external onlyOwner {
         if (_oldRemainderRecipient == address(0)) {
@@ -344,7 +300,6 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the net fee share percentage in basis points.
-    ///
     /// @param _newNetFeeShareBP The new net fee share percentage in basis points.
     function setNetFeeShareBP(uint256 _newNetFeeShareBP) external onlyOwner {
         if (_newNetFeeShareBP > BASIS_POINT_SCALE) {
@@ -356,7 +311,6 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the gross fee share percentage in basis points.
-    ///
     /// @param _newGrossFeeShareBP The new gross fee share percentage in basis points.
     function setGrossFeeShareBP(uint256 _newGrossFeeShareBP) external onlyOwner {
         if (_newGrossFeeShareBP > BASIS_POINT_SCALE) {
@@ -368,7 +322,6 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the fee disbursement interval.
-    ///
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
     function setFeeDisbursementInterval(uint256 _newFeeDisbursementInterval) external onlyOwner {
         if (_newFeeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
@@ -379,15 +332,9 @@ contract FeeSplitter is ISemver, Initializable {
         emit FeeDisbursementIntervalUpdated(oldInterval, _newFeeDisbursementInterval);
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////
-    ///                               Internal Functions                               ///
-    //////////////////////////////////////////////////////////////////////////////////////
-
     /// @notice Withdraws fees from a FeeVault.
-    ///
     /// @dev Withdrawal will only occur if the given FeeVault's balance is greater than or equal to the minimum
     ///      withdrawal amount.
-    ///
     /// @param _feeVault The address of the FeeVault to withdraw from.
     function _feeVaultWithdrawal(address payable _feeVault) internal {
         if (FeeVault(_feeVault).WITHDRAWAL_NETWORK() != Types.WithdrawalNetwork.L2) {
