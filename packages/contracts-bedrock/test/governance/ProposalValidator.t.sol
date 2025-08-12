@@ -2915,7 +2915,7 @@ contract ProposalValidator_SetProposalTypeData_Test is ProposalValidator_TestIni
 
 /// @title ProposalValidator_HashProposalWithModule_Test
 /// @notice Tests for the hashProposalWithModule function
-contract ProposalValidator_HashProposalWithModule_Test is ProposalValidator_TestInit {
+contract ProposalValidator_Uncategorized_Test is ProposalValidator_TestInit {
     function testFuzz_hashProposalWithModule_succeeds(
         address fuzzedModule,
         bytes memory fuzzedProposalData,
