@@ -20,7 +20,6 @@ contract L1FeeVault is FeeVault, ISemver {
     string public constant version = "1.6.0";
 
     /// @notice Constructs the L1FeeVault contract.
-    constructor() FeeVault() { }
 
     /// @notice Initializes the L1FeeVault contract.
     /// @param _recipient           Wallet that will receive the fees.
