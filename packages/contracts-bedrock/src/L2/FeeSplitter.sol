@@ -81,19 +81,19 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Tracks aggregate net fee revenue which is the sum of sequencer, base, and operator fees received by this
     /// contract.
-    uint128 public netFeeRevenue;
+    uint144 public netFeeRevenue;
 
     /// @notice The timestamp of the last disbursal.
-    uint32 public lastDisbursementTime;
+    uint40 public lastDisbursementTime;
 
     /// @notice The net revenue share percentage denominated in basis points.
-    uint32 public netFeeShareBP;
+    uint16 public netFeeShareBP;
 
     /// @notice The gross revenue share percentage denominated in basis points.
-    uint32 public grossFeeShareBP;
+    uint16 public grossFeeShareBP;
 
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
-    uint32 public feeDisbursementInterval;
+    uint40 public feeDisbursementInterval;
 
     /// @notice Emitted when fees are disbursed.
     /// @param disbursementTime                 The time of the disbursement.
@@ -130,17 +130,17 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Emitted when the net fee share in basis points is updated.
     /// @param oldNetFeeShareBP The previous net fee share in basis points.
     /// @param newNetFeeShareBP The new net fee share in basis points.
-    event NetFeeShareBPUpdated(uint32 oldNetFeeShareBP, uint32 newNetFeeShareBP);
+    event NetFeeShareBPUpdated(uint16 oldNetFeeShareBP, uint16 newNetFeeShareBP);
 
     /// @notice Emitted when the gross fee share in basis points is updated.
     /// @param oldGrossFeeShareBP The previous gross fee share in basis points.
     /// @param newGrossFeeShareBP The new gross fee share in basis points.
-    event GrossFeeShareBPUpdated(uint32 oldGrossFeeShareBP, uint32 newGrossFeeShareBP);
+    event GrossFeeShareBPUpdated(uint16 oldGrossFeeShareBP, uint16 newGrossFeeShareBP);
 
     /// @notice Emitted when the fee disbursement interval is updated.
     /// @param oldInterval The previous fee disbursement interval.
     /// @param newInterval The new fee disbursement interval.
-    event FeeDisbursementIntervalUpdated(uint32 oldInterval, uint32 newInterval);
+    event FeeDisbursementIntervalUpdated(uint40 oldInterval, uint40 newInterval);
 
     /// @notice Emitted when the contract is initialized.
     /// @param revenueShareRecipient     The address which receives the fee share of the revenue.
@@ -151,9 +151,9 @@ contract FeeSplitter is ISemver, Initializable {
     event Initialized(
         address payable revenueShareRecipient,
         address payable revenueRemainderRecipient,
-        uint32 feeDisbursementInterval,
-        uint32 netFeeShareBP,
-        uint32 grossFeeShareBP
+        uint40 feeDisbursementInterval,
+        uint16 netFeeShareBP,
+        uint16 grossFeeShareBP
     );
 
     constructor() {
@@ -170,9 +170,9 @@ contract FeeSplitter is ISemver, Initializable {
     function initialize(
         address payable _revenueShareRecipient,
         address payable _revenueRemainderRecipient,
-        uint32 _feeDisbursementInterval,
-        uint32 _netFeeShareBP,
-        uint32 _grossFeeShareBP
+        uint40 _feeDisbursementInterval,
+        uint16 _netFeeShareBP,
+        uint16 _grossFeeShareBP
     )
         external
         initializer
@@ -222,7 +222,7 @@ contract FeeSplitter is ISemver, Initializable {
             msg.sender == Predeploys.SEQUENCER_FEE_WALLET || msg.sender == Predeploys.BASE_FEE_VAULT
                 || msg.sender == Predeploys.OPERATOR_FEE_VAULT
         ) {
-            netFeeRevenue += uint128(msg.value);
+            netFeeRevenue += uint144(msg.value);
         }
         emit FeesReceived({ sender: msg.sender, amount: msg.value });
     }
@@ -249,10 +249,10 @@ contract FeeSplitter is ISemver, Initializable {
             return;
         }
 
-        lastDisbursementTime = uint32(block.timestamp);
+        lastDisbursementTime = uint40(block.timestamp);
 
         // Calculate revenue shares
-        uint256 netRevenueShare = (netFeeRevenue * netFeeShareBP) / BASIS_POINT_SCALE; //@note casting overflow issues??
+        uint256 netRevenueShare = (netFeeRevenue * netFeeShareBP) / BASIS_POINT_SCALE;
 
         uint256 grossRevenueShare = (grossRevenue * grossFeeShareBP) / BASIS_POINT_SCALE;
 
@@ -303,33 +303,33 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Updates the net fee share percentage in basis points.
     /// @param _newNetFeeShareBP The new net fee share percentage in basis points.
-    function setNetFeeShareBP(uint32 _newNetFeeShareBP) external onlyProxyAdminOwner {
+    function setNetFeeShareBP(uint16 _newNetFeeShareBP) external onlyProxyAdminOwner {
         if (_newNetFeeShareBP > BASIS_POINT_SCALE) {
             revert FeeSplitter_FeeShareBPExceeds100Percent();
         }
-        uint32 oldShare = netFeeShareBP;
+        uint16 oldShare = netFeeShareBP;
         netFeeShareBP = _newNetFeeShareBP;
         emit NetFeeShareBPUpdated(oldShare, _newNetFeeShareBP);
     }
 
     /// @notice Updates the gross fee share percentage in basis points.
     /// @param _newGrossFeeShareBP The new gross fee share percentage in basis points.
-    function setGrossFeeShareBP(uint32 _newGrossFeeShareBP) external onlyProxyAdminOwner {
+    function setGrossFeeShareBP(uint16 _newGrossFeeShareBP) external onlyProxyAdminOwner {
         if (_newGrossFeeShareBP > BASIS_POINT_SCALE) {
             revert FeeSplitter_GrossFeeShareBPExceeds100Percent();
         }
-        uint32 oldGrossShare = grossFeeShareBP;
+        uint16 oldGrossShare = grossFeeShareBP;
         grossFeeShareBP = _newGrossFeeShareBP;
         emit GrossFeeShareBPUpdated(oldGrossShare, _newGrossFeeShareBP);
     }
 
     /// @notice Updates the fee disbursement interval.
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
-    function setFeeDisbursementInterval(uint32 _newFeeDisbursementInterval) external onlyProxyAdminOwner {
+    function setFeeDisbursementInterval(uint40 _newFeeDisbursementInterval) external onlyProxyAdminOwner {
         if (_newFeeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_NewFeeDisbursementIntervalTooShort();
         }
-        uint32 oldInterval = feeDisbursementInterval;
+        uint40 oldInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
         emit FeeDisbursementIntervalUpdated(oldInterval, _newFeeDisbursementInterval);
     }

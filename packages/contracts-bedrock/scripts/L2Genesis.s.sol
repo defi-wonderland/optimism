@@ -586,18 +586,18 @@ contract L2Genesis is Script {
         IFeeSplitter(payable(impl)).initialize(
             payable(address(0x0123456789012345678901234567890123456789)),
             payable(address(0x0123456789012345678901234567890123456789)),
-            uint32(_input.feeSplitterFeeDisbursementInterval),
-            uint32(_input.feeSplitterNetFeeShareBP),
-            uint32(_input.feeSplitterGrossFeeShareBP)
+            uint40(_input.feeSplitterFeeDisbursementInterval),
+            uint16(_input.feeSplitterNetFeeShareBP),
+            uint16(_input.feeSplitterGrossFeeShareBP)
         );
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
             payable(_input.feeSplitterRevenueShareRecipient),
             payable(_input.feeSplitterRevenueRemainderRecipient),
-            uint32(_input.feeSplitterFeeDisbursementInterval),
-            uint32(_input.feeSplitterNetFeeShareBP),
-            uint32(_input.feeSplitterGrossFeeShareBP)
+            uint40(_input.feeSplitterFeeDisbursementInterval),
+            uint16(_input.feeSplitterNetFeeShareBP),
+            uint16(_input.feeSplitterGrossFeeShareBP)
         );
     }
 

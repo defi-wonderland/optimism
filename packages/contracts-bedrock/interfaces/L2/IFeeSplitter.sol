@@ -34,18 +34,18 @@ interface IFeeSplitter {
         address indexed oldRevenueRemainderRecipient,
         address indexed newRevenueRemainderRecipient
     );
-    event NetFeeShareBPUpdated(uint256 oldNetFeeShareBP, uint256 newNetFeeShareBP);
-    event GrossFeeShareBPUpdated(uint256 oldGrossFeeShareBP, uint256 newGrossFeeShareBP);
+    event NetFeeShareBPUpdated(uint16 oldNetFeeShareBP, uint16 newNetFeeShareBP);
+    event GrossFeeShareBPUpdated(uint16 oldGrossFeeShareBP, uint16 newGrossFeeShareBP);
     event FeeDisbursementIntervalUpdated(
-        uint256 oldInterval,
-        uint256 newInterval
+        uint40 oldInterval,
+        uint40 newInterval
     );
     event Initialized(
         address payable revenueShareRecipient,
         address payable revenueRemainderRecipient,
-        uint32 feeDisbursementInterval,
-        uint32 netFeeShareBP,
-        uint32 grossFeeShareBP
+        uint40 feeDisbursementInterval,
+        uint16 netFeeShareBP,
+        uint16 grossFeeShareBP
     );
 
     function version() external view returns (string memory);
@@ -53,17 +53,17 @@ interface IFeeSplitter {
     function MIN_FEE_DISBURSEMENT_INTERVAL() external view returns (uint256);
     function revenueShareRecipient() external view returns (address payable);
     function revenueRemainderRecipient() external view returns (address payable);
-    function lastDisbursementTime() external view returns (uint256);
-    function netFeeRevenue() external view returns (uint128);
-    function netFeeShareBP() external view returns (uint32);
-    function grossFeeShareBP() external view returns (uint32);
-    function feeDisbursementInterval() external view returns (uint32);
+    function lastDisbursementTime() external view returns (uint40);
+    function netFeeRevenue() external view returns (uint144);
+    function netFeeShareBP() external view returns (uint16);
+    function grossFeeShareBP() external view returns (uint16);
+    function feeDisbursementInterval() external view returns (uint40);
     function initialize(
         address payable _revenueShareRecipient,
         address payable _revenueRemainderRecipient,
-        uint32 _feeDisbursementInterval,
-        uint32 _netFeeShareBP,
-        uint32 _grossFeeShareBP
+        uint40 _feeDisbursementInterval,
+        uint16 _netFeeShareBP,
+        uint16 _grossFeeShareBP
     ) external;
     function disburseFees() external;
     function setRevenueShareRecipient(
@@ -72,10 +72,10 @@ interface IFeeSplitter {
     function setRevenueRemainderRecipient(
         address payable _newRevenueRemainderRecipient
     ) external;
-    function setNetFeeShareBP(uint32 _newNetFeeShareBP) external;
-    function setGrossFeeShareBP(uint32 _newGrossFeeShareBP) external;
+    function setNetFeeShareBP(uint16 _newNetFeeShareBP) external;
+    function setGrossFeeShareBP(uint16 _newGrossFeeShareBP) external;
     function setFeeDisbursementInterval(
-        uint32 _newFeeDisbursementInterval
+        uint40 _newFeeDisbursementInterval
     ) external;
 
     receive() external payable;

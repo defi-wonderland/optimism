@@ -317,8 +317,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the setFeeShareBP function works as expected
-    function test_feeSplitterSetNetFeeShareBP_WhenValidNewNetFeeShareBP_Succeeds(uint32 _newNetFeeShareBP) public {
-        _newNetFeeShareBP = uint32(bound(_newNetFeeShareBP, 0, 10000));
+    function test_feeSplitterSetNetFeeShareBP_WhenValidNewNetFeeShareBP_Succeeds(uint16 _newNetFeeShareBP) public {
+        _newNetFeeShareBP = uint16(bound(_newNetFeeShareBP, 0, 10000));
 
         vm.prank(_owner);
         FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setNetFeeShareBP(_newNetFeeShareBP);
@@ -327,8 +327,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the setFeeShareBP function reverts when the new fee share bp is greater than 100%
-    function test_feeSplitterSetNetFeeShareBP_WhenInvalidNewNetFeeShareBP_Reverts(uint32 _newNetFeeShareBP) public {
-        _newNetFeeShareBP = uint32(bound(_newNetFeeShareBP, 10001, type(uint256).max));
+    function test_feeSplitterSetNetFeeShareBP_WhenInvalidNewNetFeeShareBP_Reverts(uint16 _newNetFeeShareBP) public {
+        _newNetFeeShareBP = uint16(bound(_newNetFeeShareBP, 10001, type(uint16).max));
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_FeeShareBPExceeds100Percent.selector);
@@ -346,11 +346,11 @@ contract FeeSplitterTest is CommonTest {
 
     /// @notice assert the setFeeDisbursementInterval function works as expected
     function test_feeSplitterSetFeeDisbursementInterval_WhenValidNewFeeDisbursementInterval_Succeeds(
-        uint32 _newFeeDisbursementInterval
+        uint40 _newFeeDisbursementInterval
     )
         public
     {
-        _newFeeDisbursementInterval = uint32(bound(_newFeeDisbursementInterval, 24 hours, type(uint256).max));
+        _newFeeDisbursementInterval = uint40(bound(_newFeeDisbursementInterval, 24 hours, type(uint40).max));
 
         vm.prank(_owner);
         FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setFeeDisbursementInterval(_newFeeDisbursementInterval);
@@ -361,11 +361,11 @@ contract FeeSplitterTest is CommonTest {
     /// @notice assert the setFeeDisbursementInterval function reverts when the new fee disbursement interval is less
     /// than 24 hours
     function test_feeSplitterSetFeeDisbursementInterval_WhenInvalidNewFeeDisbursementInterval_Reverts(
-        uint32 _newFeeDisbursementInterval
+        uint40 _newFeeDisbursementInterval
     )
         public
     {
-        _newFeeDisbursementInterval = uint32(bound(_newFeeDisbursementInterval, 0, 24 hours - 1));
+        _newFeeDisbursementInterval = uint40(bound(_newFeeDisbursementInterval, 0, 24 hours - 1));
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_NewFeeDisbursementIntervalTooShort.selector);
@@ -416,8 +416,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the setGrossFeeShareBP function works as expected
-    function test_feeSplitterSetGrossFeeShareBP_WhenValid_Succeeds(uint32 _newGrossFeeShareBP) public {
-        _newGrossFeeShareBP = uint32(bound(_newGrossFeeShareBP, 0, 10000));
+    function test_feeSplitterSetGrossFeeShareBP_WhenValid_Succeeds(uint16 _newGrossFeeShareBP) public {
+        _newGrossFeeShareBP = uint16(bound(_newGrossFeeShareBP, 0, 10000));
 
         vm.prank(_owner);
         FeeSplitter(payable(Predeploys.FEE_SPLITTER)).setGrossFeeShareBP(_newGrossFeeShareBP);
@@ -426,8 +426,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the setGrossFeeShareBP function reverts when the new gross fee share bp is greater than 100%
-    function test_feeSplitterSetGrossFeeShareBP_WhenInvalid_Reverts(uint32 _newGrossFeeShareBP) public {
-        _newGrossFeeShareBP = uint32(bound(_newGrossFeeShareBP, 10001, type(uint256).max));
+    function test_feeSplitterSetGrossFeeShareBP_WhenInvalid_Reverts(uint16 _newGrossFeeShareBP) public {
+        _newGrossFeeShareBP = uint16(bound(_newGrossFeeShareBP, 10001, type(uint16).max));
 
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_GrossFeeShareBPExceeds100Percent.selector);
