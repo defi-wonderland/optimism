@@ -23,7 +23,6 @@ contract FeeVaultInitializer is ISemver {
     string public constant version = "1.0.0";
 
     /// @notice Constructs the FeeVaultMigrator contract.
-    constructor() { }
 
     function migrate() public {
         _migrateBaseFeeVault();
