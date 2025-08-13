@@ -20,7 +20,6 @@ contract SequencerFeeVault is FeeVault, ISemver {
     string public constant version = "1.6.0";
 
     /// @notice Constructs the SequencerFeeVault contract.
-    constructor() FeeVault() { }
 
     /// @notice Initializes the SequencerFeeVault contract.
     /// @param _recipient           Wallet that will receive the fees.
