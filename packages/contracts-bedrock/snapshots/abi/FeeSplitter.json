@@ -23,19 +23,6 @@
   },
   {
     "inputs": [],
-    "name": "BLOCK_CHAIN_ID",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "MIN_FEE_DISBURSEMENT_INTERVAL",
     "outputs": [
       {
@@ -49,25 +36,12 @@
   },
   {
     "inputs": [],
-    "name": "OP_CHAIN_ID",
+    "name": "configuredShareRecipient",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address payable",
         "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "WITHDRAWAL_MIN_GAS",
-    "outputs": [
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -82,12 +56,12 @@
   },
   {
     "inputs": [],
-    "name": "feeCollector",
+    "name": "feeDisbursementInterval",
     "outputs": [
       {
-        "internalType": "address payable",
+        "internalType": "uint32",
         "name": "",
-        "type": "address"
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",
@@ -95,12 +69,12 @@
   },
   {
     "inputs": [],
-    "name": "feeDisbursementInterval",
+    "name": "grossFeeShareBP",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",
@@ -110,28 +84,28 @@
     "inputs": [
       {
         "internalType": "address payable",
-        "name": "_l1Wallet",
+        "name": "_configuredShareRecipient",
         "type": "address"
       },
       {
         "internalType": "address payable",
-        "name": "_feeCollector",
+        "name": "_remainderRecipient",
         "type": "address"
       },
       {
-        "internalType": "address payable",
-        "name": "_opPortalAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "_feeDisbursementInterval",
-        "type": "uint256"
+        "type": "uint32"
       },
       {
-        "internalType": "uint256",
-        "name": "_l1FeeWalletShare",
-        "type": "uint256"
+        "internalType": "uint32",
+        "name": "_netFeeShareBP",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "_grossFeeShareBP",
+        "type": "uint32"
       }
     ],
     "name": "initialize",
@@ -141,38 +115,12 @@
   },
   {
     "inputs": [],
-    "name": "l1FeeWalletShare",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "l1Wallet",
-    "outputs": [
-      {
-        "internalType": "address payable",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "lastDisbursementTime",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",
@@ -183,9 +131,9 @@
     "name": "netFeeRevenue",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint128",
         "name": "",
-        "type": "uint256"
+        "type": "uint128"
       }
     ],
     "stateMutability": "view",
@@ -193,7 +141,20 @@
   },
   {
     "inputs": [],
-    "name": "opPortalAddress",
+    "name": "netFeeShareBP",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "remainderRecipient",
     "outputs": [
       {
         "internalType": "address payable",
@@ -207,12 +168,12 @@
   {
     "inputs": [
       {
-        "internalType": "address payable",
-        "name": "_newFeeCollector",
+        "internalType": "address",
+        "name": "_newConfiguredShareRecipient",
         "type": "address"
       }
     ],
-    "name": "setFeeCollector",
+    "name": "setConfiguredShareRecipient",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -220,9 +181,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "_newFeeDisbursementInterval",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "name": "setFeeDisbursementInterval",
@@ -233,12 +194,12 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_newL1FeeWalletShare",
-        "type": "uint256"
+        "internalType": "uint32",
+        "name": "_newGrossFeeShareBP",
+        "type": "uint32"
       }
     ],
-    "name": "setL1FeeWalletShare",
+    "name": "setGrossFeeShareBP",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -246,12 +207,12 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_newL1Wallet",
-        "type": "address"
+        "internalType": "uint32",
+        "name": "_newNetFeeShareBP",
+        "type": "uint32"
       }
     ],
-    "name": "setL1Wallet",
+    "name": "setNetFeeShareBP",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -259,12 +220,12 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_newOpPortalAddress",
+        "internalType": "address payable",
+        "name": "_newRemainderRecipient",
         "type": "address"
       }
     ],
-    "name": "setOpPortalAddress",
+    "name": "setRemainderRecipient",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -288,17 +249,17 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "oldContract",
+        "name": "oldConfiguredShareRecipient",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "newContract",
+        "name": "newConfiguredShareRecipient",
         "type": "address"
       }
     ],
-    "name": "FeeCollectorUpdated",
+    "name": "ConfiguredShareRecipientUpdated",
     "type": "event"
   },
   {
@@ -306,15 +267,15 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "oldInterval",
-        "type": "uint256"
+        "type": "uint32"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "newInterval",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "name": "FeeDisbursementIntervalUpdated",
@@ -332,13 +293,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "paidToL1Wallet",
+        "name": "paidConfiguredShareRecipient",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "paidToFeeCollector",
+        "name": "paidToRemainderRecipient",
         "type": "uint256"
       },
       {
@@ -375,33 +336,52 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint32",
+        "name": "oldGrossFeeShareBP",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "newGrossFeeShareBP",
+        "type": "uint32"
+      }
+    ],
+    "name": "GrossFeeShareBPUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "address payable",
-        "name": "l1Wallet",
+        "name": "configuredShareRecipient",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "address payable",
-        "name": "feeCollector",
+        "name": "remainderRecipient",
         "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "address payable",
-        "name": "opPortalAddress",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "feeDisbursementInterval",
-        "type": "uint256"
+        "type": "uint32"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "l1FeeWalletShare",
-        "type": "uint256"
+        "internalType": "uint32",
+        "name": "netFeeShareBP",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "grossFeeShareBP",
+        "type": "uint32"
       }
     ],
     "name": "Initialized",
@@ -425,37 +405,18 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "oldShare",
-        "type": "uint256"
+        "internalType": "uint32",
+        "name": "oldNetFeeShareBP",
+        "type": "uint32"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "newShare",
-        "type": "uint256"
+        "internalType": "uint32",
+        "name": "newNetFeeShareBP",
+        "type": "uint32"
       }
     ],
-    "name": "L1FeeWalletShareUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "oldWallet",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newWallet",
-        "type": "address"
-      }
-    ],
-    "name": "L1WalletUpdated",
+    "name": "NetFeeShareBPUpdated",
     "type": "event"
   },
   {
@@ -470,97 +431,87 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "oldAddress",
+        "name": "oldRemainderRecipient",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "newAddress",
+        "name": "newRemainderRecipient",
         "type": "address"
       }
     ],
-    "name": "OpPortalAddressUpdated",
+    "name": "RemainderRecipientUpdated",
     "type": "event"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_AlreadyInitialized",
+    "name": "FeeSplitter_ConfiguredShareRecipientCannotBeZero",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_DisbursementIntervalNotReached",
+    "name": "FeeSplitter_DisbursementIntervalNotReached",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_FailedToSendToFeeCollector",
+    "name": "FeeSplitter_FailedToSendToConfiguredShareRecipient",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_FeeCollectorCannotBeZero",
+    "name": "FeeSplitter_FailedToSendToRemainderRecipient",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_FeeDisbursementIntervalTooShort",
+    "name": "FeeSplitter_FeeDisbursementIntervalTooShort",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_FeeVaultMustWithdrawToFeeRouter",
+    "name": "FeeSplitter_FeeShareBPExceeds100Percent",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_FeeVaultMustWithdrawToL2",
+    "name": "FeeSplitter_FeeVaultMustWithdrawToFeeSplitter",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_L1FeeWalletShareExceeds100Percent",
+    "name": "FeeSplitter_FeeVaultMustWithdrawToL2",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_L1WalletCannotBeZero",
+    "name": "FeeSplitter_GrossFeeShareBPExceeds100Percent",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_NewFeeCollectorCannotBeZero",
+    "name": "FeeSplitter_NewConfiguredShareRecipientCannotBeZero",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_NewFeeDisbursementIntervalTooShort",
+    "name": "FeeSplitter_NewFeeDisbursementIntervalTooShort",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_NewL1FeeWalletShareExceeds100Percent",
+    "name": "FeeSplitter_NewRemainderRecipientCannotBeZero",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_NewL1WalletCannotBeZero",
+    "name": "FeeSplitter_OnlyProxyAdminOwner",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeRouter_NewOpPortalAddressCannotBeZero",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "FeeRouter_OnlyProxyAdminOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "FeeRouter_OpPortalAddressCannotBeZero",
+    "name": "FeeSplitter_RemainderRecipientCannotBeZero",
     "type": "error"
   }
 ]

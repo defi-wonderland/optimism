@@ -121,8 +121,10 @@ contract DeployConfig is Script {
         sequencerFeeVaultMinimumWithdrawalAmount = stdJson.readUint(_json, "$.sequencerFeeVaultMinimumWithdrawalAmount");
         sequencerFeeVaultWithdrawalNetwork = stdJson.readUint(_json, "$.sequencerFeeVaultWithdrawalNetwork");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
-        feeSplitterConfiguredShareRecipient = _readOr(_json, "$.feeSplitterConfiguredShareRecipient", address(0x1234567890123456789012345678901234567890));
-        feeSplitterRemainderRecipient = _readOr(_json, "$.feeSplitterRemainderRecipient", address(0x0987654321098765432109876543210987654321));
+        feeSplitterConfiguredShareRecipient =
+            _readOr(_json, "$.feeSplitterConfiguredShareRecipient", address(0x1234567890123456789012345678901234567890));
+        feeSplitterRemainderRecipient =
+            _readOr(_json, "$.feeSplitterRemainderRecipient", address(0x0987654321098765432109876543210987654321));
         feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(86400));
         feeSplitterNetFeeShareBP = _readOr(_json, "$.feeSplitterNetFeeShareBP", uint256(1500));
         feeSplitterGrossFeeShareBP = _readOr(_json, "$.feeSplitterGrossFeeShareBP", uint256(250));
