@@ -7,7 +7,6 @@ import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
-import { Proxy } from "src/universal/Proxy.sol";
 
 contract FeeSplitterTest is CommonTest {
     address private _configuredShareRecipient;
