@@ -335,7 +335,7 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Checks & Withdraws fees from a FeeVault.
-    /// @dev Withdrawal will only occur if the vault are properly configured and if the FeeVault's balance is greater
+    /// @dev Withdrawal will only occur if the vault is properly configured and if the FeeVault's balance is greater
     /// than or equal to the minimum
     /// @param _feeVault The address of the FeeVault to withdraw from.
     function _feeVaultWithdrawal(address payable _feeVault) internal {
