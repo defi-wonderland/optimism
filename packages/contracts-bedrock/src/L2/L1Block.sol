@@ -23,7 +23,7 @@ contract L1Block is ISemver {
     }
 
     /// @notice Whether the gas paying token is custom.
-    bool public immutable IS_CUSTOM_GAS_TOKEN;
+    bool public immutable isCustomGasToken;
 
     /// @notice The latest L1 block number known by the L2 system.
     uint64 public number;
@@ -67,7 +67,7 @@ contract L1Block is ISemver {
     uint32 public operatorFeeScalar;
 
     constructor(bool _isCustomGasToken) {
-        IS_CUSTOM_GAS_TOKEN = _isCustomGasToken;
+        isCustomGasToken = _isCustomGasToken;
     }
 
     /// @custom:semver 1.6.2
@@ -85,8 +85,7 @@ contract L1Block is ISemver {
     ///         If nothing is set in state, then it means ether is used.
     ///         This function cannot be removed because WETH depends on it.
     function gasPayingTokenName() public view returns (string memory name_) {
-        name_ =
-            IS_CUSTOM_GAS_TOKEN ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenName() : "Ether";
+        name_ = isCustomGasToken ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenName() : "Ether";
     }
 
     /// @notice Returns the gas paying token symbol.
@@ -94,12 +93,12 @@ contract L1Block is ISemver {
     ///         This function cannot be removed because WETH depends on it.
     function gasPayingTokenSymbol() public view returns (string memory symbol_) {
         symbol_ =
-            IS_CUSTOM_GAS_TOKEN ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenSymbol() : "ETH";
+            isCustomGasToken ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenSymbol() : "ETH";
     }
 
     /// @notice Returns whether the gas paying token is custom.
     function isCustomGasToken() public view returns (bool is_) {
-        is_ = IS_CUSTOM_GAS_TOKEN;
+        is_ = isCustomGasToken;
     }
 
     /// @custom:legacy
