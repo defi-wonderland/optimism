@@ -82,7 +82,7 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Tracks aggregate net fee revenue which is the sum of sequencer, base, and operator fees received by this
     /// contract.
     uint128 public netFeeRevenue;
-    
+
     /// @notice The timestamp of the last disbursal.
     uint32 public lastDisbursementTime;
 
@@ -176,14 +176,7 @@ contract FeeSplitter is ISemver, Initializable {
     )
         external
         initializer
-        onlyProxyAdminOwner
     {
-        if (_configuredShareRecipient == address(0)) {
-            revert FeeSplitter_ConfiguredShareRecipientCannotBeZero();
-        }
-        if (_remainderRecipient == address(0)) {
-            revert FeeSplitter_RemainderRecipientCannotBeZero();
-        }
         if (_feeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_FeeDisbursementIntervalTooShort();
         }

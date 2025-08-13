@@ -318,7 +318,12 @@ contract Setup {
                 fork: uint256(l2Fork),
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
-                fundDevAccounts: deploy.cfg().fundDevAccounts()
+                fundDevAccounts: deploy.cfg().fundDevAccounts(),
+                feeSplitterConfiguredShareRecipient: deploy.cfg().feeSplitterConfiguredShareRecipient(),
+                feeSplitterRemainderRecipient: deploy.cfg().feeSplitterRemainderRecipient(),
+                feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval(),
+                feeSplitterNetFeeShareBP: deploy.cfg().feeSplitterNetFeeShareBP(),
+                feeSplitterGrossFeeShareBP: deploy.cfg().feeSplitterGrossFeeShareBP()
             })
         );
 
@@ -350,6 +355,7 @@ contract Setup {
         labelPredeploy(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
         labelPredeploy(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON);
         labelPredeploy(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+        labelPredeploy(Predeploys.FEE_SPLITTER);
 
         // L2 Preinstalls
         labelPreinstall(Preinstalls.MultiCall3);

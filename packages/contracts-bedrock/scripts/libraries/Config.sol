@@ -235,4 +235,29 @@ library Config {
     function forkTest() internal view returns (bool) {
         return vm.envOr("FORK_TEST", false);
     }
+
+    /// @notice Returns the configured share recipient for the FeeSplitter predeploy.
+    function feeSplitterConfiguredShareRecipient() internal view returns (address) {
+        return vm.envOr("FEE_SPLITTER_CONFIGURED_SHARE_RECIPIENT", address(0x1234567890123456789012345678901234567890));
+    }
+
+    /// @notice Returns the remainder recipient for the FeeSplitter predeploy.
+    function feeSplitterRemainderRecipient() internal view returns (address) {
+        return vm.envOr("FEE_SPLITTER_REMAINDER_RECIPIENT", address(0x0987654321098765432109876543210987654321));
+    }
+
+    /// @notice Returns the fee disbursement interval for the FeeSplitter predeploy.
+    function feeSplitterFeeDisbursementInterval() internal view returns (uint256) {
+        return vm.envOr("FEE_SPLITTER_FEE_DISBURSEMENT_INTERVAL", uint256(86400));
+    }
+
+    /// @notice Returns the net fee share basis points for the FeeSplitter predeploy.
+    function feeSplitterNetFeeShareBP() internal view returns (uint256) {
+        return vm.envOr("FEE_SPLITTER_NET_FEE_SHARE_BP", uint256(1500));
+    }
+
+    /// @notice Returns the gross fee share basis points for the FeeSplitter predeploy.
+    function feeSplitterGrossFeeShareBP() internal view returns (uint256) {
+        return vm.envOr("FEE_SPLITTER_GROSS_FEE_SHARE_BP", uint256(250));
+    }
 }

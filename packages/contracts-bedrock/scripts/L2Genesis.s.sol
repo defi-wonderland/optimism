@@ -30,6 +30,7 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -60,6 +61,11 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
+        address feeSplitterConfiguredShareRecipient;
+        address feeSplitterRemainderRecipient;
+        uint256 feeSplitterFeeDisbursementInterval;
+        uint256 feeSplitterNetFeeShareBP;
+        uint256 feeSplitterGrossFeeShareBP;
     }
 
     using ForkUtils for Fork;
@@ -230,6 +236,7 @@ contract L2Genesis is Script {
         setSchemaRegistry(); // 20
         setEAS(); // 21
         setGovernanceToken(_input); // 42: OP (not behind a proxy)
+        setFeeSplitter(_input); // 29: FeeSplitter
         if (_input.fork >= uint256(Fork.INTEROP)) {
             if (_input.deployCrossL2Inbox) {
                 setCrossL2Inbox(); // 22
@@ -569,6 +576,29 @@ contract L2Genesis is Script {
     function activateIsthmus() internal {
         vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
         IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE).setIsthmus();
+    }
+
+    /// @notice This predeploy is following the safety invariant #1.
+    function setFeeSplitter(Input memory _input) internal {
+        address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
+
+        // Initialize the implementation with address(0) for addresses
+        IFeeSplitter(payable(impl)).initialize(
+            payable(address(0)),
+            payable(address(0)),
+            uint32(_input.feeSplitterFeeDisbursementInterval),
+            uint32(_input.feeSplitterNetFeeShareBP),
+            uint32(_input.feeSplitterGrossFeeShareBP)
+        );
+
+        // Initialize the proxy with the actual values
+        IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(_input.feeSplitterConfiguredShareRecipient),
+            payable(_input.feeSplitterRemainderRecipient),
+            uint32(_input.feeSplitterFeeDisbursementInterval),
+            uint32(_input.feeSplitterNetFeeShareBP),
+            uint32(_input.feeSplitterGrossFeeShareBP)
+        );
     }
 
     /// @notice Sets the bytecode in state
