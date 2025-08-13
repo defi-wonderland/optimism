@@ -21,7 +21,6 @@ contract OperatorFeeVault is FeeVault, ISemver {
     string public constant version = "1.1.0";
 
     /// @notice Constructs the OperatorFeeVault contract.
-    constructor() FeeVault() { }
 
     /// @notice Initializes the OperatorFeeVault contract.
     /// Funds are withdrawn to the base fee vault on the L2 network.
