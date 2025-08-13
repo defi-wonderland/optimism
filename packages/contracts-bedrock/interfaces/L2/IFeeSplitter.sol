@@ -70,7 +70,7 @@ interface IFeeSplitter {
         address _newConfiguredShareRecipient
     ) external;
     function setRemainderRecipient(
-        address payable _oldRemainderRecipient
+        address payable _newRemainderRecipient
     ) external;
     function setNetFeeShareBP(uint32 _newNetFeeShareBP) external;
     function setGrossFeeShareBP(uint32 _newGrossFeeShareBP) external;
