@@ -236,14 +236,14 @@ library Config {
         return vm.envOr("FORK_TEST", false);
     }
 
-    /// @notice Returns the configured share recipient for the FeeSplitter predeploy.
-    function feeSplitterConfiguredShareRecipient() internal view returns (address) {
-        return vm.envOr("FEE_SPLITTER_CONFIGURED_SHARE_RECIPIENT", address(0x1234567890123456789012345678901234567890));
+    /// @notice Returns the revenue share recipient for the FeeSplitter predeploy.
+    function feeSplitterRevenueShareRecipient() internal view returns (address) {
+        return vm.envOr("FEE_SPLITTER_REVENUE_SHARE_RECIPIENT", address(0x1234567890123456789012345678901234567890));
     }
 
-    /// @notice Returns the remainder recipient for the FeeSplitter predeploy.
-    function feeSplitterRemainderRecipient() internal view returns (address) {
-        return vm.envOr("FEE_SPLITTER_REMAINDER_RECIPIENT", address(0x0987654321098765432109876543210987654321));
+    /// @notice Returns the revenue remainder recipient for the FeeSplitter predeploy.
+    function feeSplitterRevenueRemainderRecipient() internal view returns (address) {
+        return vm.envOr("FEE_SPLITTER_REVENUE_REMAINDER_RECIPIENT", address(0x0987654321098765432109876543210987654321));
     }
 
     /// @notice Returns the fee disbursement interval for the FeeSplitter predeploy.

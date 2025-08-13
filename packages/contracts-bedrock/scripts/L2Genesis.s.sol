@@ -61,8 +61,8 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
-        address feeSplitterConfiguredShareRecipient;
-        address feeSplitterRemainderRecipient;
+        address feeSplitterRevenueShareRecipient;
+        address feeSplitterRevenueRemainderRecipient;
         uint256 feeSplitterFeeDisbursementInterval;
         uint256 feeSplitterNetFeeShareBP;
         uint256 feeSplitterGrossFeeShareBP;
@@ -584,8 +584,8 @@ contract L2Genesis is Script {
 
         // Initialize the implementation with address(0) for addresses
         IFeeSplitter(payable(impl)).initialize(
-            payable(address(0)),
-            payable(address(0)),
+            payable(address(0x0123456789012345678901234567890123456789)),
+            payable(address(0x0123456789012345678901234567890123456789)),
             uint32(_input.feeSplitterFeeDisbursementInterval),
             uint32(_input.feeSplitterNetFeeShareBP),
             uint32(_input.feeSplitterGrossFeeShareBP)
@@ -593,8 +593,8 @@ contract L2Genesis is Script {
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
-            payable(_input.feeSplitterConfiguredShareRecipient),
-            payable(_input.feeSplitterRemainderRecipient),
+            payable(_input.feeSplitterRevenueShareRecipient),
+            payable(_input.feeSplitterRevenueRemainderRecipient),
             uint32(_input.feeSplitterFeeDisbursementInterval),
             uint32(_input.feeSplitterNetFeeShareBP),
             uint32(_input.feeSplitterGrossFeeShareBP)

@@ -319,8 +319,8 @@ contract Setup {
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
-                feeSplitterConfiguredShareRecipient: deploy.cfg().feeSplitterConfiguredShareRecipient(),
-                feeSplitterRemainderRecipient: deploy.cfg().feeSplitterRemainderRecipient(),
+                feeSplitterRevenueShareRecipient: deploy.cfg().feeSplitterRevenueShareRecipient(),
+                feeSplitterRevenueRemainderRecipient: deploy.cfg().feeSplitterRevenueRemainderRecipient(),
                 feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval(),
                 feeSplitterNetFeeShareBP: deploy.cfg().feeSplitterNetFeeShareBP(),
                 feeSplitterGrossFeeShareBP: deploy.cfg().feeSplitterGrossFeeShareBP()

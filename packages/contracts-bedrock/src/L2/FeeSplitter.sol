@@ -23,10 +23,10 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 ///         sends the remaining funds to the fee router.
 contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee recipient address is zero.
-    error FeeSplitter_ConfiguredShareRecipientCannotBeZero();
+    error FeeSplitter_RevenueShareRecipientCannotBeZero();
 
     /// @notice Thrown when the fee recipient address is zero.
-    error FeeSplitter_RemainderRecipientCannotBeZero();
+    error FeeSplitter_RevenueRemainderRecipientCannotBeZero();
 
     /// @notice Thrown when the fee disbursement interval is less than 24 hours.
     error FeeSplitter_FeeDisbursementIntervalTooShort();
@@ -47,10 +47,10 @@ contract FeeSplitter is ISemver, Initializable {
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
 
     /// @notice Thrown when the new fee recipient address is zero.
-    error FeeSplitter_NewConfiguredShareRecipientCannotBeZero();
+    error FeeSplitter_NewRevenueShareRecipientCannotBeZero();
 
     /// @notice Thrown when the new fee recipient address is zero.
-    error FeeSplitter_NewRemainderRecipientCannotBeZero();
+    error FeeSplitter_NewRevenueRemainderRecipientCannotBeZero();
 
     /// @notice Thrown when the new fee disbursement interval is less than 24 hours.
     error FeeSplitter_NewFeeDisbursementIntervalTooShort();
@@ -59,10 +59,10 @@ contract FeeSplitter is ISemver, Initializable {
     error FeeSplitter_OnlyProxyAdminOwner();
 
     /// @notice Thrown when sending funds to the fee recipient fails.
-    error FeeSplitter_FailedToSendToConfiguredShareRecipient();
+    error FeeSplitter_FailedToSendToRevenueShareRecipient();
 
     /// @notice Thrown when sending funds to the fee recipient fails.
-    error FeeSplitter_FailedToSendToRemainderRecipient();
+    error FeeSplitter_FailedToSendToRevenueRemainderRecipient();
 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -73,11 +73,11 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint256 public constant MIN_FEE_DISBURSEMENT_INTERVAL = 24 hours;
 
-    /// @notice An address that receives the fee split of the total fees disbursed
-    address payable public configuredShareRecipient;
+    /// @notice An address that receives the fee split of the total fees disbursed. This share is the greater of net or gross revenue.
+    address payable public revenueShareRecipient;
 
     /// @notice An address that receives the remainder of the total fees disbursed.
-    address payable public remainderRecipient;
+    address payable public revenueRemainderRecipient;
 
     /// @notice Tracks aggregate net fee revenue which is the sum of sequencer, base, and operator fees received by this
     /// contract.
@@ -97,13 +97,13 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Emitted when fees are disbursed.
     /// @param disbursementTime                 The time of the disbursement.
-    /// @param paidConfiguredShareRecipient     The amount of fees disbursed to the fee share recipient.
-    /// @param paidToRemainderRecipient         The amount of fees disbursed to the remainder recipient.
+    /// @param paidToRevenueShareRecipient      The amount of fees disbursed to the fee share recipient.
+    /// @param paidToRevenueRemainderRecipient  The amount of fees disbursed to the remainder recipient.
     /// @param totalFeesDisbursed               The total amount of fees disbursed.
     event FeesDisbursed(
         uint256 indexed disbursementTime,
-        uint256 paidConfiguredShareRecipient,
-        uint256 paidToRemainderRecipient,
+        uint256 paidToRevenueShareRecipient,
+        uint256 paidToRevenueRemainderRecipient,
         uint256 totalFeesDisbursed
     );
 
@@ -116,16 +116,16 @@ contract FeeSplitter is ISemver, Initializable {
     event NoFeesCollected();
 
     /// @notice Emitted when the share recipient address is updated.
-    /// @param oldConfiguredShareRecipient The previous recipient A address.
-    /// @param newConfiguredShareRecipient The new recipient A address.
-    event ConfiguredShareRecipientUpdated(
-        address indexed oldConfiguredShareRecipient, address indexed newConfiguredShareRecipient
+    /// @param oldRevenueShareRecipient The previous recipient A address.
+    /// @param newRevenueShareRecipient The new recipient A address.
+    event RevenueShareRecipientUpdated(
+        address indexed oldRevenueShareRecipient, address indexed newRevenueShareRecipient
     );
 
     /// @notice Emitted when the remainder recipient address is updated.
-    /// @param oldRemainderRecipient The previous recipient B address.
-    /// @param newRemainderRecipient The new recipient B address.
-    event RemainderRecipientUpdated(address indexed oldRemainderRecipient, address indexed newRemainderRecipient);
+    /// @param oldRevenueRemainderRecipient The previous recipient B address.
+    /// @param newRevenueRemainderRecipient The new recipient B address.
+    event RevenueRemainderRecipientUpdated(address indexed oldRevenueRemainderRecipient, address indexed newRevenueRemainderRecipient);
 
     /// @notice Emitted when the net fee share in basis points is updated.
     /// @param oldNetFeeShareBP The previous net fee share in basis points.
@@ -143,14 +143,14 @@ contract FeeSplitter is ISemver, Initializable {
     event FeeDisbursementIntervalUpdated(uint32 oldInterval, uint32 newInterval);
 
     /// @notice Emitted when the contract is initialized.
-    /// @param configuredShareRecipient  The address which receives the fee share of the revenue.
-    /// @param remainderRecipient        The address which receives the remainder of the revenue.
+    /// @param revenueShareRecipient     The address which receives the fee share of the revenue.
+    /// @param revenueRemainderRecipient The address which receives the remainder of the revenue.
     /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
     /// @param netFeeShareBP             The net revenue share percentage in basis points.
     /// @param grossFeeShareBP           The gross revenue share percentage in basis points.
     event Initialized(
-        address payable configuredShareRecipient,
-        address payable remainderRecipient,
+        address payable revenueShareRecipient,
+        address payable revenueRemainderRecipient,
         uint32 feeDisbursementInterval,
         uint32 netFeeShareBP,
         uint32 grossFeeShareBP
@@ -162,14 +162,14 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
-    /// @param _configuredShareRecipient   The address which receives the fee share of the revenue.
-    /// @param _remainderRecipient         The address which receives the remainder of the revenue.
+    /// @param _revenueShareRecipient      The address which receives the fee share of the revenue.
+    /// @param _revenueRemainderRecipient  The address which receives the remainder of the revenue.
     /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
     /// @param _netFeeShareBP              The net revenue share percentage in basis points.
     /// @param _grossFeeShareBP            The gross revenue share percentage in basis points.
     function initialize(
-        address payable _configuredShareRecipient,
-        address payable _remainderRecipient,
+        address payable _revenueShareRecipient,
+        address payable _revenueRemainderRecipient,
         uint32 _feeDisbursementInterval,
         uint32 _netFeeShareBP,
         uint32 _grossFeeShareBP
@@ -177,11 +177,11 @@ contract FeeSplitter is ISemver, Initializable {
         external
         initializer
     {
-        if (_configuredShareRecipient == address(0)) {
-            revert FeeSplitter_ConfiguredShareRecipientCannotBeZero();
+        if (_revenueShareRecipient == address(0)) {
+            revert FeeSplitter_RevenueShareRecipientCannotBeZero();
         }
-        if (_remainderRecipient == address(0)) {
-            revert FeeSplitter_RemainderRecipientCannotBeZero();
+        if (_revenueRemainderRecipient == address(0)) {
+            revert FeeSplitter_RevenueRemainderRecipientCannotBeZero();
         }
         if (_feeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_FeeDisbursementIntervalTooShort();
@@ -193,14 +193,14 @@ contract FeeSplitter is ISemver, Initializable {
             revert FeeSplitter_GrossFeeShareBPExceeds100Percent();
         }
 
-        configuredShareRecipient = _configuredShareRecipient;
-        remainderRecipient = _remainderRecipient;
+        revenueShareRecipient = _revenueShareRecipient;
+        revenueRemainderRecipient = _revenueRemainderRecipient;
         feeDisbursementInterval = _feeDisbursementInterval;
         netFeeShareBP = _netFeeShareBP;
         grossFeeShareBP = _grossFeeShareBP;
 
         emit Initialized(
-            _configuredShareRecipient, _remainderRecipient, _feeDisbursementInterval, _netFeeShareBP, _grossFeeShareBP
+            _revenueShareRecipient, _revenueRemainderRecipient, _feeDisbursementInterval, _netFeeShareBP, _grossFeeShareBP
         );
     }
 
@@ -241,10 +241,10 @@ contract FeeSplitter is ISemver, Initializable {
         _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
 
         // Gross revenue is the sum of all fees
-        uint256 feeBalance = address(this).balance;
+        uint256 grossRevenue = address(this).balance;
 
         // Stop execution if no fees were collected
-        if (feeBalance == 0) {
+        if (grossRevenue == 0) {
             emit NoFeesCollected();
             return;
         }
@@ -254,18 +254,18 @@ contract FeeSplitter is ISemver, Initializable {
         // Calculate revenue shares
         uint256 netRevenueShare = (netFeeRevenue * netFeeShareBP) / BASIS_POINT_SCALE; //@note casting overflow issues??
 
-        uint256 grossRevenueShare = (feeBalance * grossFeeShareBP) / BASIS_POINT_SCALE;
+        uint256 grossRevenueShare = (grossRevenue * grossFeeShareBP) / BASIS_POINT_SCALE;
 
         // Configured share is the max of net and gross revenue shares
         uint256 feeShare = netRevenueShare > grossRevenueShare ? netRevenueShare : grossRevenueShare;
 
-        if (!SafeCall.send({ _target: configuredShareRecipient, _gas: gasleft(), _value: feeShare })) {
-            revert FeeSplitter_FailedToSendToConfiguredShareRecipient();
+        if (!SafeCall.send({ _target: revenueShareRecipient, _gas: gasleft(), _value: feeShare })) {
+            revert FeeSplitter_FailedToSendToRevenueShareRecipient();
         }
 
-        // Send the remainder to remainderRecipient
-        if (!SafeCall.send({ _target: remainderRecipient, _gas: gasleft(), _value: feeBalance - feeShare })) {
-            revert FeeSplitter_FailedToSendToRemainderRecipient();
+        // Send the remainder to revenueRemainderRecipient
+        if (!SafeCall.send({ _target: revenueRemainderRecipient, _gas: gasleft(), _value: grossRevenue - feeShare })) {
+            revert FeeSplitter_FailedToSendToRevenueRemainderRecipient();
         }
 
         // Reset net fee revenue
@@ -273,32 +273,32 @@ contract FeeSplitter is ISemver, Initializable {
 
         emit FeesDisbursed({
             disbursementTime: lastDisbursementTime,
-            paidConfiguredShareRecipient: feeShare,
-            paidToRemainderRecipient: feeBalance - feeShare,
-            totalFeesDisbursed: feeBalance
+            paidToRevenueShareRecipient: feeShare,
+            paidToRevenueRemainderRecipient: grossRevenue - feeShare,
+            totalFeesDisbursed: grossRevenue
         });
     }
 
     /// @notice Updates the fee share recipient address.
-    /// @param _newConfiguredShareRecipient The new fee share recipient address.
-    function setConfiguredShareRecipient(address _newConfiguredShareRecipient) external onlyProxyAdminOwner {
-        if (_newConfiguredShareRecipient == address(0)) {
-            revert FeeSplitter_NewConfiguredShareRecipientCannotBeZero();
+    /// @param _newRevenueShareRecipient The new fee share recipient address.
+    function setRevenueShareRecipient(address _newRevenueShareRecipient) external onlyProxyAdminOwner {
+        if (_newRevenueShareRecipient == address(0)) {
+            revert FeeSplitter_NewRevenueShareRecipientCannotBeZero();
         }
-        address oldConfiguredShareRecipient = configuredShareRecipient;
-        configuredShareRecipient = payable(_newConfiguredShareRecipient);
-        emit ConfiguredShareRecipientUpdated(oldConfiguredShareRecipient, _newConfiguredShareRecipient);
+        address oldRevenueShareRecipient = revenueShareRecipient;
+        revenueShareRecipient = payable(_newRevenueShareRecipient);
+        emit RevenueShareRecipientUpdated(oldRevenueShareRecipient, _newRevenueShareRecipient);
     }
 
     /// @notice Updates the remainder recipient address.
-    /// @param _newRemainderRecipient The new remainder recipient address.
-    function setRemainderRecipient(address payable _newRemainderRecipient) external onlyProxyAdminOwner {
-        if (_newRemainderRecipient == address(0)) {
-            revert FeeSplitter_NewRemainderRecipientCannotBeZero();
+    /// @param _newRevenueRemainderRecipient The new remainder recipient address.
+    function setRevenueRemainderRecipient(address payable _newRevenueRemainderRecipient) external onlyProxyAdminOwner {
+        if (_newRevenueRemainderRecipient == address(0)) {
+            revert FeeSplitter_NewRevenueRemainderRecipientCannotBeZero();
         }
-        address oldRemainderRecipient = remainderRecipient;
-        remainderRecipient = _newRemainderRecipient;
-        emit RemainderRecipientUpdated(oldRemainderRecipient, _newRemainderRecipient);
+        address oldRevenueRemainderRecipient = revenueRemainderRecipient;
+        revenueRemainderRecipient = _newRevenueRemainderRecipient;
+        emit RevenueRemainderRecipientUpdated(oldRevenueRemainderRecipient, _newRevenueRemainderRecipient);
     }
 
     /// @notice Updates the net fee share percentage in basis points.
