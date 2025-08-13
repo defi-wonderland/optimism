@@ -177,6 +177,12 @@ contract FeeSplitter is ISemver, Initializable {
         external
         initializer
     {
+        if (_configuredShareRecipient == address(0)) {
+            revert FeeSplitter_ConfiguredShareRecipientCannotBeZero();
+        }
+        if (_remainderRecipient == address(0)) {
+            revert FeeSplitter_RemainderRecipientCannotBeZero();
+        }
         if (_feeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_FeeDisbursementIntervalTooShort();
         }
@@ -200,7 +206,10 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Modifier that restricts access to the ProxyAdmin owner.
     modifier onlyProxyAdminOwner() {
-        if (IProxyAdmin(Predeploys.PROXY_ADMIN).owner() == address(0) || msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+        if (
+            IProxyAdmin(Predeploys.PROXY_ADMIN).owner() == address(0)
+                || msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()
+        ) {
             revert FeeSplitter_OnlyProxyAdminOwner();
         }
         _;
