@@ -20,7 +20,6 @@ contract BaseFeeVault is FeeVault, ISemver {
     string public constant version = "1.6.0";
 
     /// @notice Constructs the BaseFeeVault contract.
-    constructor() FeeVault() { }
 
     /// @notice Initializes the BaseFeeVault contract.
     /// @param _recipient           Wallet that will receive the fees.
