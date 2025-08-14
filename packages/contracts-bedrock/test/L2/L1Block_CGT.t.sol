@@ -86,6 +86,8 @@ contract L1Block_CGT_SetL1BlockValuesEcotone_Test is L1Block_SetL1BlockValuesEco
 /// @notice Tests the `setL1BlockValuesIsthmus` function of the `L1Block` contract with custom gas
 ///         token enabled.
 contract L1Block_CGT_SetL1BlockValuesIsthmus_Test is L1Block_SetL1BlockValuesIsthmus_Test {
+    // Override setUp to enable custom gas token
+    // Re-use the test from L1Block.t.sols
     function setUp() public override {
         super.enableCustomGasToken();
         super.setUp();

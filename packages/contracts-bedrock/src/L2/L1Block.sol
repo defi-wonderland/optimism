@@ -75,12 +75,6 @@ contract L1Block is ISemver {
         return "1.6.2";
     }
 
-    /// @notice Returns the gas paying token, its decimals, name and symbol.
-    function gasPayingToken() public pure returns (address addr_, uint8 decimals_) {
-        addr_ = Constants.ETHER;
-        decimals_ = 18;
-    }
-
     /// @notice Returns the gas paying token name.
     ///         If nothing is set in state, then it means ether is used.
     ///         This function cannot be removed because WETH depends on it.
