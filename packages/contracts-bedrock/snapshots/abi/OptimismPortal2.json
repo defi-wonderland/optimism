@@ -1083,6 +1083,11 @@
   },
   {
     "inputs": [],
+    "name": "OptimismPortal_NotAllowedOnCGTMode",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OptimismPortal_ProofNotOldEnough",
     "type": "error"
   },

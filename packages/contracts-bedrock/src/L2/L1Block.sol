@@ -96,11 +96,6 @@ contract L1Block is ISemver {
             isCustomGasToken ? ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER).gasPayingTokenSymbol() : "ETH";
     }
 
-    /// @notice Returns whether the gas paying token is custom.
-    function isCustomGasToken() public view returns (bool is_) {
-        is_ = isCustomGasToken;
-    }
-
     /// @custom:legacy
     /// @notice Updates the L1 block values.
     /// @param _number         L1 blocknumber.
