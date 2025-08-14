@@ -15,13 +15,14 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 
 // OpenZeppelin
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @custom:proxied
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title FeeSplitter
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.
-contract FeeSplitter is ISemver, Initializable {
+contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
     /// @notice Thrown when the fee recipient address is zero.
     error FeeSplitter_RevenueShareRecipientCannotBeZero();
 
@@ -64,6 +65,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when sending funds to the fee recipient fails.
     error FeeSplitter_FailedToSendToRevenueRemainderRecipient();
 
+    /// @notice Thrown when receiving funds is disabled during payout.
+    error FeeSplitter_ReceiveDisabledDuringPayout();
+
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
@@ -73,7 +77,18 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint256 public constant MIN_FEE_DISBURSEMENT_INTERVAL = 24 hours;
 
-    /// @notice An address that receives the fee split of the total fees disbursed. This share is the greater of net or gross revenue.
+    /// @notice The payout gate is open. This is the default state and allows for receiving funds.
+    uint256 public constant _PAYOUT_OPEN = 0;
+
+    /// @notice The payout gate is closed. This is the state when paying the recipients and disallows receiving funds.
+    uint256 public constant _PAYOUT_CLOSED = 1;
+
+    /// @notice Tracks whether the payout gate is currently closed (1) or open (0).
+    ///         When closed, the receive() function is disabled to prevent reentrancy during payouts.
+    uint256 public payoutGateState;
+
+    /// @notice An address that receives the fee split of the total fees disbursed. This share is the greater of net or
+    /// gross revenue.
     address payable public revenueShareRecipient;
 
     /// @notice An address that receives the remainder of the total fees disbursed.
@@ -125,7 +140,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Emitted when the remainder recipient address is updated.
     /// @param oldRevenueRemainderRecipient The previous recipient B address.
     /// @param newRevenueRemainderRecipient The new recipient B address.
-    event RevenueRemainderRecipientUpdated(address indexed oldRevenueRemainderRecipient, address indexed newRevenueRemainderRecipient);
+    event RevenueRemainderRecipientUpdated(
+        address indexed oldRevenueRemainderRecipient, address indexed newRevenueRemainderRecipient
+    );
 
     /// @notice Emitted when the net fee share in basis points is updated.
     /// @param oldNetFeeShareBP The previous net fee share in basis points.
@@ -201,7 +218,11 @@ contract FeeSplitter is ISemver, Initializable {
         grossFeeShareBP = _grossFeeShareBP;
 
         emit Initialized(
-            _revenueShareRecipient, _revenueRemainderRecipient, _feeDisbursementInterval, _netFeeShareBP, _grossFeeShareBP
+            _revenueShareRecipient,
+            _revenueRemainderRecipient,
+            _feeDisbursementInterval,
+            _netFeeShareBP,
+            _grossFeeShareBP
         );
     }
 
@@ -218,6 +239,8 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
     receive() external payable virtual {
+        if (payoutGateState == _PAYOUT_CLOSED) revert FeeSplitter_ReceiveDisabledDuringPayout();
+
         // Only count Sequencer, Base, and Operator fee vault deposits towards net fee revenue
         if (
             msg.sender == Predeploys.SEQUENCER_FEE_WALLET || msg.sender == Predeploys.BASE_FEE_VAULT
@@ -230,7 +253,7 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Withdraws funds from FeeVaults, sends the fee share to the fee share recipient, and sends the remainder
     /// to the remainder recipient.
-    function disburseFees() external {
+    function disburseFees() external nonReentrant {
         if (block.timestamp < lastDisbursementTime + feeDisbursementInterval) {
             revert FeeSplitter_DisbursementIntervalNotReached();
         }
@@ -260,6 +283,9 @@ contract FeeSplitter is ISemver, Initializable {
         // Configured share is the max of net and gross revenue shares
         uint256 feeShare = netRevenueShare > grossRevenueShare ? netRevenueShare : grossRevenueShare;
 
+        // --- CLOSE receive() for the payout window ---
+        payoutGateState = _PAYOUT_CLOSED;
+
         if (!SafeCall.send({ _target: revenueShareRecipient, _gas: gasleft(), _value: feeShare })) {
             revert FeeSplitter_FailedToSendToRevenueShareRecipient();
         }
@@ -271,6 +297,9 @@ contract FeeSplitter is ISemver, Initializable {
 
         // Reset net fee revenue
         netFeeRevenue = 0;
+
+        // --- REOPEN receive() after the payout window ---
+        payoutGateState = _PAYOUT_OPEN;
 
         emit FeesDisbursed({
             disbursementTime: lastDisbursementTime,
