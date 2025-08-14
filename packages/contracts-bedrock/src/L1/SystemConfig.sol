@@ -145,9 +145,9 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     event ConfigUpdate(uint256 indexed version, UpdateType indexed updateType, bytes data);
 
     /// @notice Semantic version.
-    /// @custom:semver 3.4.0
+    /// @custom:semver 3.4.1
     function version() public pure virtual returns (string memory) {
-        return "3.4.0";
+        return "3.4.1";
     }
 
     /// @notice Constructs the SystemConfig contract.
@@ -196,27 +196,28 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         __Ownable_init();
         transferOwnership(_owner);
 
-        // These are set in ascending order of their UpdateTypes.
-        _setBatcherHash(_batcherHash);
-        _setGasConfigEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
-        _setGasLimit(_gasLimit);
-
-        Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
-        Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
-        Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
-        Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
-        Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
-        Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
-        Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
-
-        _setStartBlock();
-
-        _setResourceConfig(_config);
-
+        isCustomGasToken = _isCustomGasToken;
         l2ChainId = _l2ChainId;
         superchainConfig = _superchainConfig;
 
-        isCustomGasToken = _isCustomGasToken;
+        {
+            // These are set in ascending order of their UpdateTypes.
+            _setBatcherHash(_batcherHash);
+            _setGasConfigEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
+            _setGasLimit(_gasLimit);
+
+            Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
+            Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
+            Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
+            Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
+            Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
+            Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
+            Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
+
+            _setStartBlock();
+
+            _setResourceConfig(_config);
+        }
     }
 
     /// @notice Upgrades the SystemConfig by adding a reference to the SuperchainConfig.

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IL1Block {
-    function IS_CUSTOM_GAS_TOKEN() external view returns (bool);
     function DEPOSITOR_ACCOUNT() external pure returns (address addr_);
     function baseFeeScalar() external view returns (uint32);
     function basefee() external view returns (uint256);
@@ -13,7 +12,7 @@ interface IL1Block {
     function gasPayingTokenName() external view returns (string memory name_);
     function gasPayingTokenSymbol() external view returns (string memory symbol_);
     function hash() external view returns (bytes32);
-    function isCustomGasToken() external view returns (bool is_);
+    function isCustomGasToken() external view returns (bool);
     function l1FeeOverhead() external view returns (uint256);
     function l1FeeScalar() external view returns (uint256);
     function number() external view returns (uint64);

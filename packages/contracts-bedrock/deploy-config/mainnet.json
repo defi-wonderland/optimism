@@ -56,5 +56,5 @@
   "disputeGameFinalityDelaySeconds": 302400,
   "respectedGameType": 0,
   "useFaultProofs": true,
-  "isCustomGasToken": false
+  "useCustomGasToken": false
 }

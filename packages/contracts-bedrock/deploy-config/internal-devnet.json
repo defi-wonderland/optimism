@@ -39,5 +39,5 @@
   "systemConfigStartBlock": 8364212,
   "requiredProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "recommendedProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "isCustomGasToken": false
+  "useCustomGasToken": false
 }
