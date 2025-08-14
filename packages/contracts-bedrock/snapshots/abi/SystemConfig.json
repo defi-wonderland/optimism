@@ -406,11 +406,6 @@
         "internalType": "contract ISuperchainConfig",
         "name": "_superchainConfig",
         "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_isCustomGasToken",
-        "type": "bool"
       }
     ],
     "name": "initialize",

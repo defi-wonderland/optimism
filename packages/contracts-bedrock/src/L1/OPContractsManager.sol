@@ -1077,7 +1077,7 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
             output.opChainProxyAdmin, address(output.l1ERC721BridgeProxy), implementation.l1ERC721BridgeImpl, data
         );
 
-        data = encodeOptimismPortalInitializer(output);
+        data = encodeOptimismPortalInitializer(output, _input);
         upgradeToAndCall(
             output.opChainProxyAdmin, address(output.optimismPortalProxy), implementation.optimismPortalImpl, data
         );
@@ -1229,7 +1229,10 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
     }
 
     /// @notice Helper method for encoding the OptimismPortal initializer data.
-    function encodeOptimismPortalInitializer(OPContractsManager.DeployOutput memory _output)
+    function encodeOptimismPortalInitializer(
+        OPContractsManager.DeployOutput memory _output,
+        OPContractsManager.DeployInput memory _input
+    )
         internal
         view
         virtual
@@ -1237,7 +1240,12 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
     {
         return abi.encodeCall(
             IOptimismPortal.initialize,
-            (_output.systemConfigProxy, _output.anchorStateRegistryProxy, _output.ethLockboxProxy)
+            (
+                _output.systemConfigProxy,
+                _output.anchorStateRegistryProxy,
+                _output.ethLockboxProxy,
+                _input.isCustomGasToken
+            )
         );
     }
 
@@ -1296,8 +1304,7 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
                 chainIdToBatchInboxAddress(_input.l2ChainId),
                 opChainAddrs,
                 _input.l2ChainId,
-                _superchainConfig,
-                _input.isCustomGasToken
+                _superchainConfig
             )
         );
     }

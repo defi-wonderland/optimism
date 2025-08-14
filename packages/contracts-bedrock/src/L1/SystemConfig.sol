@@ -135,9 +135,6 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @notice The SuperchainConfig contract that manages the pause state.
     ISuperchainConfig public superchainConfig;
 
-    /// @notice Whether the gas token is custom.
-    bool public isCustomGasToken;
-
     /// @notice Emitted when configuration is updated.
     /// @param version    SystemConfig version.
     /// @param updateType Type of update.
@@ -183,8 +180,7 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         address _batchInbox,
         SystemConfig.Addresses memory _addresses,
         uint256 _l2ChainId,
-        ISuperchainConfig _superchainConfig,
-        bool _isCustomGasToken
+        ISuperchainConfig _superchainConfig
     )
         public
         reinitializer(initVersion())
@@ -196,28 +192,25 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         __Ownable_init();
         transferOwnership(_owner);
 
-        isCustomGasToken = _isCustomGasToken;
+        // These are set in ascending order of their UpdateTypes.
+        _setBatcherHash(_batcherHash);
+        _setGasConfigEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
+        _setGasLimit(_gasLimit);
+
+        Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
+        Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
+        Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
+        Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
+        Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
+        Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
+        Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
+
+        _setStartBlock();
+
+        _setResourceConfig(_config);
+
         l2ChainId = _l2ChainId;
         superchainConfig = _superchainConfig;
-
-        {
-            // These are set in ascending order of their UpdateTypes.
-            _setBatcherHash(_batcherHash);
-            _setGasConfigEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
-            _setGasLimit(_gasLimit);
-
-            Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
-            Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
-            Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
-            Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
-            Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
-            Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
-            Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
-
-            _setStartBlock();
-
-            _setResourceConfig(_config);
-        }
     }
 
     /// @notice Upgrades the SystemConfig by adding a reference to the SuperchainConfig.
@@ -503,5 +496,11 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @return address The guardian address.
     function guardian() public view returns (address) {
         return superchainConfig.guardian();
+    }
+
+    /// @notice Returns whether the gas token is custom by reading from the OptimismPortal.
+    /// @return bool True if the gas token is custom, false otherwise.
+    function isCustomGasToken() public view returns (bool) {
+        return IOptimismPortal2(payable(optimismPortal())).isCustomGasToken();
     }
 }
