@@ -20,8 +20,8 @@ interface IFeeSplitter {
 
     event FeesDisbursed(
         uint256 indexed disbursementTime,
-        uint256 paidToRevenueShareRecipient,
-        uint256 paidToRevenueRemainderRecipient,
+        uint256 revenueShareRecipientAmount,
+        uint256 revenueRemainderRecipientAmount,
         uint256 totalFeesDisbursed
     );
     event FeesReceived(address indexed sender, uint256 amount);
@@ -37,8 +37,8 @@ interface IFeeSplitter {
     event NetFeeShareBPUpdated(uint16 oldNetFeeShareBP, uint16 newNetFeeShareBP);
     event GrossFeeShareBPUpdated(uint16 oldGrossFeeShareBP, uint16 newGrossFeeShareBP);
     event FeeDisbursementIntervalUpdated(
-        uint40 oldInterval,
-        uint40 newInterval
+        uint40 oldFeeDisbursementInterval,
+        uint40 newFeeDisbursementInterval
     );
     event Initialized(
         address payable revenueShareRecipient,

@@ -97,13 +97,13 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Emitted when fees are disbursed.
     /// @param disbursementTime                 The time of the disbursement.
-    /// @param paidToRevenueShareRecipient      The amount of fees disbursed to the fee share recipient.
-    /// @param paidToRevenueRemainderRecipient  The amount of fees disbursed to the remainder recipient.
+    /// @param revenueShareRecipientAmount      The amount of fees disbursed to the fee share recipient.
+    /// @param revenueRemainderRecipientAmount  The amount of fees disbursed to the remainder recipient.
     /// @param totalFeesDisbursed               The total amount of fees disbursed.
     event FeesDisbursed(
         uint256 indexed disbursementTime,
-        uint256 paidToRevenueShareRecipient,
-        uint256 paidToRevenueRemainderRecipient,
+        uint256 revenueShareRecipientAmount,
+        uint256 revenueRemainderRecipientAmount,
         uint256 totalFeesDisbursed
     );
 
@@ -138,11 +138,11 @@ contract FeeSplitter is ISemver, Initializable {
     event GrossFeeShareBPUpdated(uint16 oldGrossFeeShareBP, uint16 newGrossFeeShareBP);
 
     /// @notice Emitted when the fee disbursement interval is updated.
-    /// @param oldInterval The previous fee disbursement interval.
-    /// @param newInterval The new fee disbursement interval.
-    event FeeDisbursementIntervalUpdated(uint40 oldInterval, uint40 newInterval);
+    /// @param oldFeeDisbursementInterval The previous fee disbursement interval.
+    /// @param newFeeDisbursementInterval The new fee disbursement interval.
+    event FeeDisbursementIntervalUpdated(uint40 oldFeeDisbursementInterval, uint40 newFeeDisbursementInterval);
 
-    /// @notice Emitted when the contract is initialized.
+    /// @notice Emitted when the contract is initialized with its initial configuration.
     /// @param revenueShareRecipient     The address which receives the fee share of the revenue.
     /// @param revenueRemainderRecipient The address which receives the remainder of the revenue.
     /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
@@ -175,6 +175,7 @@ contract FeeSplitter is ISemver, Initializable {
         uint16 _grossFeeShareBP
     )
         external
+        onlyProxyAdminOwner
         initializer
     {
         if (_revenueShareRecipient == address(0)) {
@@ -273,8 +274,8 @@ contract FeeSplitter is ISemver, Initializable {
 
         emit FeesDisbursed({
             disbursementTime: lastDisbursementTime,
-            paidToRevenueShareRecipient: feeShare,
-            paidToRevenueRemainderRecipient: grossRevenue - feeShare,
+            revenueShareRecipientAmount: feeShare,
+            revenueRemainderRecipientAmount: grossRevenue - feeShare,
             totalFeesDisbursed: grossRevenue
         });
     }
@@ -329,9 +330,9 @@ contract FeeSplitter is ISemver, Initializable {
         if (_newFeeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_NewFeeDisbursementIntervalTooShort();
         }
-        uint40 oldInterval = feeDisbursementInterval;
+        uint40 oldFeeDisbursementInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
-        emit FeeDisbursementIntervalUpdated(oldInterval, _newFeeDisbursementInterval);
+        emit FeeDisbursementIntervalUpdated(oldFeeDisbursementInterval, _newFeeDisbursementInterval);
     }
 
     /// @notice Checks & Withdraws fees from a FeeVault.

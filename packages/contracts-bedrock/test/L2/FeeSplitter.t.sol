@@ -16,8 +16,8 @@ contract FeeSplitterTest is CommonTest {
     // Events
     event FeesDisbursed(
         uint256 indexed disbursementTime,
-        uint256 paidToRevenueShareRecipient,
-        uint256 paidToRevenueRemainderRecipient,
+        uint256 revenueShareRecipientAmount,
+        uint256 revenueRemainderRecipientAmount,
         uint256 totalFeesDisbursed
     );
 
@@ -138,8 +138,8 @@ contract FeeSplitterTest is CommonTest {
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
         emit FeesDisbursed({
             disbursementTime: block.timestamp,
-            paidToRevenueShareRecipient: feeShareAmount,
-            paidToRevenueRemainderRecipient: revenueRemainderRecipientShare,
+            revenueShareRecipientAmount: feeShareAmount,
+            revenueRemainderRecipientAmount: revenueRemainderRecipientShare,
             totalFeesDisbursed: expectedTotalFees
         });
 
