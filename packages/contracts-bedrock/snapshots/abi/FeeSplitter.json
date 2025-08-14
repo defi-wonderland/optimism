@@ -36,12 +36,25 @@
   },
   {
     "inputs": [],
-    "name": "configuredShareRecipient",
+    "name": "_PAYOUT_CLOSED",
     "outputs": [
       {
-        "internalType": "address payable",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "_PAYOUT_OPEN",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -59,9 +72,9 @@
     "name": "feeDisbursementInterval",
     "outputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint40",
         "name": "",
-        "type": "uint32"
+        "type": "uint40"
       }
     ],
     "stateMutability": "view",
@@ -72,9 +85,9 @@
     "name": "grossFeeShareBP",
     "outputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "stateMutability": "view",
@@ -84,28 +97,28 @@
     "inputs": [
       {
         "internalType": "address payable",
-        "name": "_configuredShareRecipient",
+        "name": "_revenueShareRecipient",
         "type": "address"
       },
       {
         "internalType": "address payable",
-        "name": "_remainderRecipient",
+        "name": "_revenueRemainderRecipient",
         "type": "address"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint40",
         "name": "_feeDisbursementInterval",
-        "type": "uint32"
+        "type": "uint40"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "_netFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "_grossFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "name": "initialize",
@@ -118,9 +131,9 @@
     "name": "lastDisbursementTime",
     "outputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint40",
         "name": "",
-        "type": "uint32"
+        "type": "uint40"
       }
     ],
     "stateMutability": "view",
@@ -131,9 +144,9 @@
     "name": "netFeeRevenue",
     "outputs": [
       {
-        "internalType": "uint128",
+        "internalType": "uint144",
         "name": "",
-        "type": "uint128"
+        "type": "uint144"
       }
     ],
     "stateMutability": "view",
@@ -144,9 +157,9 @@
     "name": "netFeeShareBP",
     "outputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "stateMutability": "view",
@@ -154,7 +167,33 @@
   },
   {
     "inputs": [],
-    "name": "remainderRecipient",
+    "name": "payoutGateState",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "revenueRemainderRecipient",
+    "outputs": [
+      {
+        "internalType": "address payable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "revenueShareRecipient",
     "outputs": [
       {
         "internalType": "address payable",
@@ -168,22 +207,9 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_newConfiguredShareRecipient",
-        "type": "address"
-      }
-    ],
-    "name": "setConfiguredShareRecipient",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint32",
+        "internalType": "uint40",
         "name": "_newFeeDisbursementInterval",
-        "type": "uint32"
+        "type": "uint40"
       }
     ],
     "name": "setFeeDisbursementInterval",
@@ -194,9 +220,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "_newGrossFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "name": "setGrossFeeShareBP",
@@ -207,9 +233,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "_newNetFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "name": "setNetFeeShareBP",
@@ -221,11 +247,24 @@
     "inputs": [
       {
         "internalType": "address payable",
-        "name": "_newRemainderRecipient",
+        "name": "_newRevenueRemainderRecipient",
         "type": "address"
       }
     ],
-    "name": "setRemainderRecipient",
+    "name": "setRevenueRemainderRecipient",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_newRevenueShareRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "setRevenueShareRecipient",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -247,35 +286,16 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "oldConfiguredShareRecipient",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newConfiguredShareRecipient",
-        "type": "address"
-      }
-    ],
-    "name": "ConfiguredShareRecipientUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
         "indexed": false,
-        "internalType": "uint32",
-        "name": "oldInterval",
-        "type": "uint32"
+        "internalType": "uint40",
+        "name": "oldFeeDisbursementInterval",
+        "type": "uint40"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
-        "name": "newInterval",
-        "type": "uint32"
+        "internalType": "uint40",
+        "name": "newFeeDisbursementInterval",
+        "type": "uint40"
       }
     ],
     "name": "FeeDisbursementIntervalUpdated",
@@ -293,13 +313,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "paidConfiguredShareRecipient",
+        "name": "revenueShareRecipientAmount",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "paidToRemainderRecipient",
+        "name": "revenueRemainderRecipientAmount",
         "type": "uint256"
       },
       {
@@ -336,15 +356,15 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "oldGrossFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "newGrossFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "name": "GrossFeeShareBPUpdated",
@@ -356,32 +376,32 @@
       {
         "indexed": false,
         "internalType": "address payable",
-        "name": "configuredShareRecipient",
+        "name": "revenueShareRecipient",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "address payable",
-        "name": "remainderRecipient",
+        "name": "revenueRemainderRecipient",
         "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint40",
         "name": "feeDisbursementInterval",
-        "type": "uint32"
+        "type": "uint40"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "netFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "grossFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "name": "Initialized",
@@ -405,15 +425,15 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "oldNetFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       },
       {
         "indexed": false,
-        "internalType": "uint32",
+        "internalType": "uint16",
         "name": "newNetFeeShareBP",
-        "type": "uint32"
+        "type": "uint16"
       }
     ],
     "name": "NetFeeShareBPUpdated",
@@ -431,23 +451,37 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "oldRemainderRecipient",
+        "name": "oldRevenueRemainderRecipient",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "newRemainderRecipient",
+        "name": "newRevenueRemainderRecipient",
         "type": "address"
       }
     ],
-    "name": "RemainderRecipientUpdated",
+    "name": "RevenueRemainderRecipientUpdated",
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "FeeSplitter_ConfiguredShareRecipientCannotBeZero",
-    "type": "error"
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldRevenueShareRecipient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newRevenueShareRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "RevenueShareRecipientUpdated",
+    "type": "event"
   },
   {
     "inputs": [],
@@ -456,12 +490,12 @@
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_FailedToSendToConfiguredShareRecipient",
+    "name": "FeeSplitter_FailedToSendToRevenueRemainderRecipient",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_FailedToSendToRemainderRecipient",
+    "name": "FeeSplitter_FailedToSendToRevenueShareRecipient",
     "type": "error"
   },
   {
@@ -491,17 +525,17 @@
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_NewConfiguredShareRecipientCannotBeZero",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "FeeSplitter_NewFeeDisbursementIntervalTooShort",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_NewRemainderRecipientCannotBeZero",
+    "name": "FeeSplitter_NewRevenueRemainderRecipientCannotBeZero",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FeeSplitter_NewRevenueShareRecipientCannotBeZero",
     "type": "error"
   },
   {
@@ -511,7 +545,17 @@
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_RemainderRecipientCannotBeZero",
+    "name": "FeeSplitter_ReceiveDisabledDuringPayout",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FeeSplitter_RevenueRemainderRecipientCannotBeZero",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "FeeSplitter_RevenueShareRecipientCannotBeZero",
     "type": "error"
   }
 ]
