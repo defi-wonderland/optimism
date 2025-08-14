@@ -32,7 +32,7 @@
     "label": "otherBridge",
     "offset": 0,
     "slot": "2",
-    "type": "contract L1CGTStandardBridge"
+    "type": "contract IL2CGTStandardBridge"
   },
   {
     "bytes": "20",

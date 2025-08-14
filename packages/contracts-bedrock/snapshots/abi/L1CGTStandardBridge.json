@@ -115,7 +115,7 @@
         "type": "address"
       },
       {
-        "internalType": "contract L1CGTStandardBridge",
+        "internalType": "contract IL2CGTStandardBridge",
         "name": "_otherBridge",
         "type": "address"
       },
@@ -171,7 +171,7 @@
     "name": "otherBridge",
     "outputs": [
       {
-        "internalType": "contract L1CGTStandardBridge",
+        "internalType": "contract IL2CGTStandardBridge",
         "name": "",
         "type": "address"
       }

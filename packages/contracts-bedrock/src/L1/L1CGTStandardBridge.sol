@@ -16,6 +16,7 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IL2CGTStandardBridge } from "interfaces/L2/IL2CGTStandardBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTStandardBridge
@@ -34,10 +35,9 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @custom:network-specific
     ICrossDomainMessenger public messenger;
 
-    // TODO: change to L2CGTStandardBridge
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    L1CGTStandardBridge public otherBridge;
+    IL2CGTStandardBridge public otherBridge;
 
     /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
@@ -109,7 +109,7 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     function initialize(
         address _cgtToken,
         ICrossDomainMessenger _messenger,
-        L1CGTStandardBridge _otherBridge,
+        IL2CGTStandardBridge _otherBridge,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
         IOptimismPortal2 _optimismPortal
