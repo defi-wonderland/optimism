@@ -283,7 +283,7 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
         // Configured share is the max of net and gross revenue shares
         uint256 feeShare = netRevenueShare > grossRevenueShare ? netRevenueShare : grossRevenueShare;
 
-        // --- CLOSE receive() for the payout window ---
+        // close receive() for the payout window
         payoutGateState = _PAYOUT_CLOSED;
 
         if (!SafeCall.send({ _target: revenueShareRecipient, _gas: gasleft(), _value: feeShare })) {
@@ -291,14 +291,14 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
         }
 
         // Send the remainder to revenueRemainderRecipient
-        if (!SafeCall.send({ _target: revenueRemainderRecipient, _gas: gasleft(), _value: grossRevenue - feeShare })) {
+        if (!SafeCall.send({ _target: revenueRemainderRecipient, _gas: gasleft(), _value: address(this).balance })) {
             revert FeeSplitter_FailedToSendToRevenueRemainderRecipient();
         }
 
         // Reset net fee revenue
         netFeeRevenue = 0;
 
-        // --- REOPEN receive() after the payout window ---
+        // reopen receive() after the payout window
         payoutGateState = _PAYOUT_OPEN;
 
         emit FeesDisbursed({

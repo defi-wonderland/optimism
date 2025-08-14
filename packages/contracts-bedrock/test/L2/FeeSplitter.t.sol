@@ -100,14 +100,17 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the disburseFees function succeeds when the fee disbursement interval has been reached
-    function test_feeSplitterDisburseFees_succeeds() public {
+    function testFuzz_feeSplitterDisburseFees_succeeds(uint256 _amount) public {
+        _amount = bound(_amount, 10 ether, type(uint128).max);
+
         _setupMockFeeVaults();
 
         // Add balances to the fee vaults
-        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, 2 ether);
-        vm.deal(Predeploys.BASE_FEE_VAULT, 3 ether);
-        vm.deal(Predeploys.L1_FEE_VAULT, 1 ether);
-        vm.deal(Predeploys.OPERATOR_FEE_VAULT, 1 ether);
+        uint256 _amountToSend = _amount / 4;
+        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, _amountToSend);
+        vm.deal(Predeploys.BASE_FEE_VAULT, _amountToSend);
+        vm.deal(Predeploys.L1_FEE_VAULT, _amountToSend);
+        vm.deal(Predeploys.OPERATOR_FEE_VAULT, _amountToSend);
 
         // Fast forward time to allow disbursement
         vm.warp(block.timestamp + 25 hours);
@@ -164,6 +167,9 @@ contract FeeSplitterTest is CommonTest {
 
         // Verify the net fee revenue was reset
         assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).netFeeRevenue(), 0);
+
+        // Verify the FeeSplitter has no balance
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, 0);
     }
 
     /// @notice assert the disburseFees function succeeds when no fees have been collected
