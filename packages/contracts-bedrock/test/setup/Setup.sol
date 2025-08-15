@@ -60,6 +60,7 @@ import { ISuperchainTokenBridge } from "interfaces/L2/ISuperchainTokenBridge.sol
 import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 
 /// @title Setup
 /// @dev This contact is responsible for setting up the contracts in state. It currently
@@ -142,6 +143,7 @@ contract Setup {
     ISuperchainTokenBridge superchainTokenBridge = ISuperchainTokenBridge(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
     IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
+    IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
 
     /// @notice Indicates whether a test is running against a forked production network.
     function isForkTest() public view returns (bool) {
