@@ -255,6 +255,12 @@ contract FeeSplitterTest is CommonTest {
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
         emit NoFeesCollected();
 
+        // Expect 0 calls to withdraw on the fee vaults
+        vm.expectCall(Predeploys.SEQUENCER_FEE_WALLET, abi.encodeWithSelector(Mock_FeeVault.withdraw.selector), 0);
+        vm.expectCall(Predeploys.BASE_FEE_VAULT, abi.encodeWithSelector(Mock_FeeVault.withdraw.selector), 0);
+        vm.expectCall(Predeploys.L1_FEE_VAULT, abi.encodeWithSelector(Mock_FeeVault.withdraw.selector), 0);
+        vm.expectCall(Predeploys.OPERATOR_FEE_VAULT, abi.encodeWithSelector(Mock_FeeVault.withdraw.selector), 0);
+
         // Call disburseFees
         feeSplitter.disburseFees();
 
