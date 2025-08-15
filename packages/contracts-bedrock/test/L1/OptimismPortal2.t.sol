@@ -191,6 +191,7 @@ contract OptimismPortal2_Initialize_Test is OptimismPortal2_TestInit {
         assertEq(optimismPortal2.paused(), false);
         assertEq(address(optimismPortal2.systemConfig()), address(systemConfig));
         assertEq(address(optimismPortal2.ethLockbox()), address(ethLockbox));
+        assertFalse(OptimismPortal2(payable(address(optimismPortal2))).isCustomGasToken());
 
         returnIfForkTest(
             "OptimismPortal2_Initialize_Test: Do not check guardian and respectedGameType on forked networks"
