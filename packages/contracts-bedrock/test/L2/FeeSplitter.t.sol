@@ -436,25 +436,31 @@ contract FeeSplitterTest is CommonTest {
         vm.expectCall(Predeploys.L1_FEE_VAULT, abi.encodeWithSelector(Mock_FeeVault.withdraw.selector), 0);
         vm.expectCall(Predeploys.OPERATOR_FEE_VAULT, abi.encodeWithSelector(Mock_FeeVault.withdraw.selector), 0);
 
+        uint40 lastDisbursementTimeBefore = feeSplitter.lastDisbursementTime();
+
         // Call disburseFees
         feeSplitter.disburseFees();
 
         // Verify the last disbursement time was NOT updated
-        assertEq(feeSplitter.lastDisbursementTime(), 0);
+        assertEq(feeSplitter.lastDisbursementTime(), lastDisbursementTimeBefore);
     }
 
     /// @notice assert the disburseFees function succeeds when the fee disbursement interval has been reached
-    function testFuzz_feeSplitterDisburseFees_succeeds(uint256 _amount) public {
-        _amount = bound(_amount, 10 ether, type(uint128).max);
+    function testFuzz_feeSplitterDisburseFees_succeeds(uint256 _sequencerAmount, uint256 _baseAmount, uint256 _l1Amount, uint256 _operatorAmount) public {
+        // Bound amounts to prevent uint144 overflow in netFeeRevenue & share calculations
+        uint256 maxPerVault = type(uint128).max / 3;
+        _sequencerAmount = bound(_sequencerAmount, 1 ether, maxPerVault);
+        _baseAmount = bound(_baseAmount, 1 ether, maxPerVault);
+        _l1Amount = bound(_l1Amount, 1 ether, maxPerVault);
+        _operatorAmount = bound(_operatorAmount, 1 ether, maxPerVault);
 
         _setupMockFeeVaults();
 
         // Add balances to the fee vaults
-        uint256 _amountToSend = _amount / 4;
-        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, _amountToSend);
-        vm.deal(Predeploys.BASE_FEE_VAULT, _amountToSend);
-        vm.deal(Predeploys.L1_FEE_VAULT, _amountToSend);
-        vm.deal(Predeploys.OPERATOR_FEE_VAULT, _amountToSend);
+        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, _sequencerAmount);
+        vm.deal(Predeploys.BASE_FEE_VAULT, _baseAmount);
+        vm.deal(Predeploys.L1_FEE_VAULT, _l1Amount);
+        vm.deal(Predeploys.OPERATOR_FEE_VAULT, _operatorAmount);
 
         // Fast forward time to allow disbursement
         vm.warp(block.timestamp + 25 hours);
