@@ -6,11 +6,9 @@ import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Burn } from "src/libraries/Burn.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 // Errors
 import { Unauthorized, InvalidAmount } from "src/libraries/errors/CommonErrors.sol";
@@ -24,9 +22,6 @@ contract NativeAssetLiquidity is ISemver {
 
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
-
-    /// @notice Emitted when an address burns native asset liquidity.
-    event LiquidityBurned(address indexed caller, uint256 value);
 
     /// @notice Emitted when funds are received.
     event LiquidityFunded(address indexed funder, uint256 value);
@@ -50,18 +45,6 @@ contract NativeAssetLiquidity is ISemver {
         new SafeSend{ value: _amount }(payable(msg.sender));
 
         emit LiquidityWithdrawn(msg.sender, _amount);
-    }
-
-    /// @notice Allows to burn native asset liquidity from this contract.
-    /// @dev Burn an arbitrary amount of native supply forever, ideally to be called only once by
-    ///      the ProxyAdmin owner.
-    /// @param _amount The amount of liquidity to burn.
-    function burn(uint256 _amount) external {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
-
-        Burn.eth(_amount);
-
-        emit LiquidityBurned(msg.sender, _amount);
     }
 
     /// @notice Fund the contract by sending native asset.
