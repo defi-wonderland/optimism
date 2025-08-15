@@ -69,9 +69,13 @@ contract FeeSplitterTest is CommonTest {
         vm.etch(Predeploys.OPERATOR_FEE_VAULT, address(operatorFeeVault).code);
     }
 
-    /// @notice assert the version is correctly set
+    /// @notice test the contract cant be re-initialized
     function test_constructor_succeeds() public {
-        assertEq(FeeSplitter(payable(Predeploys.FEE_SPLITTER)).version(), "1.0.0");
+        vm.prank(_owner);
+        vm.expectRevert();
+        FeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
+            payable(_revenueShareRecipient), payable(_revenueRemainderRecipient), 24 hours, 1_500, 250
+        );
     }
 
     /// @notice assert all addresses, fee disbursement interval, and fee share are correctly set
