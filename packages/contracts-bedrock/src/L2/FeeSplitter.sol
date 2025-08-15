@@ -111,13 +111,15 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
     uint40 public feeDisbursementInterval;
 
     /// @notice Emitted when fees are disbursed.
+    /// @param revenueShareRecipient           The address which receives the fee share of the revenue.
+    /// @param remainderRecipient              The address which receives the remainder of the revenue.
     /// @param revenueShareRecipientAmount      The amount of fees disbursed to the fee share recipient.
     /// @param revenueRemainderRecipientAmount  The amount of fees disbursed to the remainder recipient.
-    /// @param totalFeesDisbursed               The total amount of fees disbursed.
     event FeesDisbursed(
+        address indexed revenueShareRecipient,
+        address indexed remainderRecipient,
         uint256 revenueShareRecipientAmount,
-        uint256 revenueRemainderRecipientAmount,
-        uint256 totalFeesDisbursed
+        uint256 revenueRemainderRecipientAmount
     );
 
     /// @notice Emitted when fees are received from FeeVaults.
@@ -288,8 +290,10 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
             revert FeeSplitter_FailedToSendToRevenueShareRecipient();
         }
 
+        uint256 remainder = address(this).balance;
+
         // Send the remainder to revenueRemainderRecipient
-        if (!SafeCall.send({ _target: revenueRemainderRecipient, _gas: gasleft(), _value: address(this).balance })) {
+        if (!SafeCall.send({ _target: revenueRemainderRecipient, _gas: gasleft(), _value: remainder })) {
             revert FeeSplitter_FailedToSendToRevenueRemainderRecipient();
         }
 
@@ -300,9 +304,10 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
         payoutGateState = _PAYOUT_OPEN;
 
         emit FeesDisbursed({
+            revenueShareRecipient: revenueShareRecipient,
+            remainderRecipient: revenueRemainderRecipient,
             revenueShareRecipientAmount: feeShare,
-            revenueRemainderRecipientAmount: grossRevenue - feeShare,
-            totalFeesDisbursed: grossRevenue
+            revenueRemainderRecipientAmount: remainder
         });
     }
 

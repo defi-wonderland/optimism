@@ -19,9 +19,10 @@ interface IFeeSplitter {
     error FeeSplitter_FailedToSendToRevenueRemainderRecipient();
 
     event FeesDisbursed(
+        address indexed revenueShareRecipient,
+        address indexed remainderRecipient,
         uint256 revenueShareRecipientAmount,
-        uint256 revenueRemainderRecipientAmount,
-        uint256 totalFeesDisbursed
+        uint256 revenueRemainderRecipientAmount
     );
     event FeesReceived(address indexed sender, uint256 amount);
     event NoFeesCollected();

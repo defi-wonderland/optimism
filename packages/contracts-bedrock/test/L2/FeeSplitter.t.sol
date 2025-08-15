@@ -15,9 +15,10 @@ contract FeeSplitterTest is CommonTest {
 
     // Events
     event FeesDisbursed(
+        address indexed revenueShareRecipient,
+        address indexed revenueRemainderRecipient,
         uint256 revenueShareRecipientAmount,
-        uint256 revenueRemainderRecipientAmount,
-        uint256 totalFeesDisbursed
+        uint256 revenueRemainderRecipientAmount
     );
 
     event NoFeesCollected();
@@ -270,9 +271,10 @@ contract FeeSplitterTest is CommonTest {
         // Expect the FeesDisbursed event to be emitted
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
         emit FeesDisbursed({
+            revenueShareRecipient: defaultRevenueShareRecipient,
+            revenueRemainderRecipient: defaultRevenueRemainderRecipient,
             revenueShareRecipientAmount: feeShareAmount,
-            revenueRemainderRecipientAmount: revenueRemainderRecipientShare,
-            totalFeesDisbursed: expectedTotalFees
+            revenueRemainderRecipientAmount: revenueRemainderRecipientShare
         });
 
         // Store initial balances
