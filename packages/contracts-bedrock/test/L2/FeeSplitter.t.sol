@@ -84,12 +84,66 @@ contract FeeSplitterTest is CommonTest {
         vm.etch(Predeploys.OPERATOR_FEE_VAULT, address(operatorFeeVault).code);
     }
 
+    /// @notice Setup mock fee vaults with invalid configuration for testing revert conditions
+    function _setupMockFeeVaultsWithInvalidConfig(
+        address _targetVault,
+        Types.WithdrawalNetwork _withdrawalNetwork,
+        address _recipient
+    )
+        internal
+    {
+        // Deploy mock FeeVault contracts with proper configuration for all vaults
+        Mock_FeeVault sequencerFeeVault = new Mock_FeeVault(
+            payable(Predeploys.FEE_SPLITTER), // recipient
+            1 ether, // minWithdrawalAmount
+            Types.WithdrawalNetwork.L2 // withdrawalNetwork
+        );
+
+        Mock_FeeVault baseFeeVault = new Mock_FeeVault(
+            payable(Predeploys.FEE_SPLITTER), // recipient
+            1 ether, // minWithdrawalAmount
+            Types.WithdrawalNetwork.L2 // withdrawalNetwork
+        );
+
+        Mock_FeeVault l1FeeVault = new Mock_FeeVault(
+            payable(Predeploys.FEE_SPLITTER), // recipient
+            1 ether, // minWithdrawalAmount
+            Types.WithdrawalNetwork.L2 // withdrawalNetwork
+        );
+
+        Mock_FeeVault operatorFeeVault = new Mock_FeeVault(
+            payable(Predeploys.FEE_SPLITTER), // recipient
+            1 ether, // minWithdrawalAmount
+            Types.WithdrawalNetwork.L2 // withdrawalNetwork
+        );
+
+        // Create a mock vault with invalid configuration for the target vault
+        Mock_FeeVault invalidFeeVault = new Mock_FeeVault(
+            payable(_recipient), // recipient
+            1 ether, // minWithdrawalAmount
+            _withdrawalNetwork // withdrawalNetwork
+        );
+
+        // Etch the mock vaults at the predeploy addresses
+        vm.etch(Predeploys.SEQUENCER_FEE_WALLET, address(sequencerFeeVault).code);
+        vm.etch(Predeploys.BASE_FEE_VAULT, address(baseFeeVault).code);
+        vm.etch(Predeploys.L1_FEE_VAULT, address(l1FeeVault).code);
+        vm.etch(Predeploys.OPERATOR_FEE_VAULT, address(operatorFeeVault).code);
+
+        // Override the target vault with invalid configuration
+        vm.etch(_targetVault, address(invalidFeeVault).code);
+    }
+
     /// @notice test the contract cant be re-initialized
     function test_constructor_succeeds() public {
         vm.prank(_owner);
         vm.expectRevert("Initializable: contract is already initialized");
         feeSplitter.initialize(
-            payable(_revenueShareRecipient), payable(_revenueRemainderRecipient), _defaultFeeDisbursementInterval, _defaultNetFeeShareBP, _defaultGrossFeeShareBP
+            payable(_revenueShareRecipient),
+            payable(_revenueRemainderRecipient),
+            _defaultFeeDisbursementInterval,
+            _defaultNetFeeShareBP,
+            _defaultGrossFeeShareBP
         );
     }
 
@@ -102,7 +156,11 @@ contract FeeSplitterTest is CommonTest {
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_RevenueShareRecipientCannotBeZero.selector);
         IFeeSplitter(payable(impl)).initialize(
-            payable(address(0)), payable(_revenueRemainderRecipient), _defaultFeeDisbursementInterval, 10001, _defaultGrossFeeShareBP
+            payable(address(0)),
+            payable(_revenueRemainderRecipient),
+            _defaultFeeDisbursementInterval,
+            10001,
+            _defaultGrossFeeShareBP
         );
     }
 
@@ -114,7 +172,11 @@ contract FeeSplitterTest is CommonTest {
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_RevenueRemainderRecipientCannotBeZero.selector);
         IFeeSplitter(payable(impl)).initialize(
-            payable(_revenueShareRecipient), payable(address(0)), _defaultFeeDisbursementInterval, 10001, _defaultGrossFeeShareBP
+            payable(_revenueShareRecipient),
+            payable(address(0)),
+            _defaultFeeDisbursementInterval,
+            10001,
+            _defaultGrossFeeShareBP
         );
     }
 
@@ -127,7 +189,11 @@ contract FeeSplitterTest is CommonTest {
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_FeeDisbursementIntervalTooShort.selector);
         IFeeSplitter(payable(impl)).initialize(
-            payable(_revenueShareRecipient), payable(_revenueRemainderRecipient), 1 hours, _defaultNetFeeShareBP, _defaultGrossFeeShareBP
+            payable(_revenueShareRecipient),
+            payable(_revenueRemainderRecipient),
+            1 hours,
+            _defaultNetFeeShareBP,
+            _defaultGrossFeeShareBP
         );
     }
 
@@ -140,7 +206,11 @@ contract FeeSplitterTest is CommonTest {
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_FeeShareBPExceeds100Percent.selector);
         IFeeSplitter(payable(impl)).initialize(
-            payable(_revenueShareRecipient), payable(_revenueRemainderRecipient), _defaultFeeDisbursementInterval, 10001, _defaultGrossFeeShareBP
+            payable(_revenueShareRecipient),
+            payable(_revenueRemainderRecipient),
+            _defaultFeeDisbursementInterval,
+            10001,
+            _defaultGrossFeeShareBP
         );
     }
 
@@ -153,7 +223,11 @@ contract FeeSplitterTest is CommonTest {
         vm.prank(_owner);
         vm.expectRevert(FeeSplitter.FeeSplitter_GrossFeeShareBPExceeds100Percent.selector);
         IFeeSplitter(payable(impl)).initialize(
-            payable(_revenueShareRecipient), payable(_revenueRemainderRecipient), _defaultFeeDisbursementInterval, _defaultNetFeeShareBP, 10001
+            payable(_revenueShareRecipient),
+            payable(_revenueRemainderRecipient),
+            _defaultFeeDisbursementInterval,
+            _defaultNetFeeShareBP,
+            10001
         );
     }
 
@@ -174,17 +248,15 @@ contract FeeSplitterTest is CommonTest {
 
         vm.prank(_owner);
         IFeeSplitter(payable(impl)).initialize(
-            payable(_defaultRevenueShareRecipient), payable(_defaultRevenueRemainderRecipient), _defaultFeeDisbursementInterval, _defaultNetFeeShareBP, _defaultGrossFeeShareBP
+            payable(_defaultRevenueShareRecipient),
+            payable(_defaultRevenueRemainderRecipient),
+            _defaultFeeDisbursementInterval,
+            _defaultNetFeeShareBP,
+            _defaultGrossFeeShareBP
         );
 
-        assertEq(
-            IFeeSplitter(payable(impl)).revenueShareRecipient(),
-            _defaultRevenueShareRecipient
-        );
-        assertEq(
-            IFeeSplitter(payable(impl)).revenueRemainderRecipient(),
-            _defaultRevenueRemainderRecipient
-        );
+        assertEq(IFeeSplitter(payable(impl)).revenueShareRecipient(), _defaultRevenueShareRecipient);
+        assertEq(IFeeSplitter(payable(impl)).revenueRemainderRecipient(), _defaultRevenueRemainderRecipient);
         assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), _defaultFeeDisbursementInterval);
         assertEq(IFeeSplitter(payable(impl)).netFeeShareBP(), _defaultNetFeeShareBP);
         assertEq(IFeeSplitter(payable(impl)).grossFeeShareBP(), _defaultGrossFeeShareBP);
@@ -236,10 +308,113 @@ contract FeeSplitterTest is CommonTest {
         assertEq(feeSplitter.netFeeRevenue(), 0);
     }
 
-
     /// @notice assert the disburseFees function reverts when the fee disbursement interval has not been reached
     function test_feeSplitterDisburseFees_WhenFeeDisbursementIntervalNotReached_Reverts() public {
         vm.expectRevert(FeeSplitter.FeeSplitter_DisbursementIntervalNotReached.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when SEQUENCER_FEE_WALLET has L1 withdrawal network
+    function test_feeSplitterDispurseFees_WhenSequencerFeeWalletHasL1WithdrawalNetwork_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.SEQUENCER_FEE_WALLET,
+            Types.WithdrawalNetwork.L1, // Invalid: should be L2
+            Predeploys.FEE_SPLITTER // Valid recipient
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToL2.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when SEQUENCER_FEE_WALLET has invalid recipient
+    function test_feeSplitterDispurseFees_WhenSequencerFeeWalletHasInvalidRecipient_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.SEQUENCER_FEE_WALLET,
+            Types.WithdrawalNetwork.L2, // Valid network
+            address(0x123) // Invalid: should be FeeSplitter
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToFeeSplitter.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when BASE_FEE_VAULT has L1 withdrawal network
+    function test_feeSplitterDispurseFees_WhenBaseFeeVaultHasL1WithdrawalNetwork_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.BASE_FEE_VAULT,
+            Types.WithdrawalNetwork.L1, // Invalid: should be L2
+            Predeploys.FEE_SPLITTER // Valid recipient
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToL2.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when BASE_FEE_VAULT has invalid recipient
+    function test_feeSplitterDispurseFees_WhenBaseFeeVaultHasInvalidRecipient_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.BASE_FEE_VAULT,
+            Types.WithdrawalNetwork.L2, // Valid network
+            address(0x456) // Invalid: should be FeeSplitter
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToFeeSplitter.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when L1_FEE_VAULT has L1 withdrawal network
+    function test_feeSplitterDispurseFees_WhenL1FeeVaultHasL1WithdrawalNetwork_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.L1_FEE_VAULT,
+            Types.WithdrawalNetwork.L1, // Invalid: should be L2
+            Predeploys.FEE_SPLITTER // Valid recipient
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToL2.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when L1_FEE_VAULT has invalid recipient
+    function test_feeSplitterDispurseFees_WhenL1FeeVaultHasInvalidRecipient_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.L1_FEE_VAULT,
+            Types.WithdrawalNetwork.L2, // Valid network
+            address(0x789) // Invalid: should be FeeSplitter
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToFeeSplitter.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when OPERATOR_FEE_VAULT has L1 withdrawal network
+    function test_feeSplitterDispurseFees_WhenOperatorFeeVaultHasL1WithdrawalNetwork_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.OPERATOR_FEE_VAULT,
+            Types.WithdrawalNetwork.L1, // Invalid: should be L2
+            Predeploys.FEE_SPLITTER // Valid recipient
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToL2.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test that _feeVaultWithdrawal reverts when OPERATOR_FEE_VAULT has invalid recipient
+    function test_feeSplitterDispurseFees_WhenOperatorFeeVaultHasInvalidRecipient_Reverts() public {
+        _setupMockFeeVaultsWithInvalidConfig(
+            Predeploys.OPERATOR_FEE_VAULT,
+            Types.WithdrawalNetwork.L2, // Valid network
+            address(0xABC) // Invalid: should be FeeSplitter
+        );
+
+        vm.warp(block.timestamp + 25 hours);
+        vm.expectRevert(FeeSplitter.FeeSplitter_FeeVaultMustWithdrawToFeeSplitter.selector);
         feeSplitter.disburseFees();
     }
 
@@ -303,8 +478,7 @@ contract FeeSplitterTest is CommonTest {
 
         // Get the default recipients from genesis setup
         address defaultRevenueShareRecipient = feeSplitter.revenueShareRecipient();
-        address defaultRevenueRemainderRecipient =
-            feeSplitter.revenueRemainderRecipient();
+        address defaultRevenueRemainderRecipient = feeSplitter.revenueRemainderRecipient();
 
         // Expect the FeesDisbursed event to be emitted
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
@@ -397,13 +571,9 @@ contract FeeSplitterTest is CommonTest {
         vm.assume(_newRevenueRemainderRecipient != address(0));
 
         vm.prank(_owner);
-        feeSplitter.setRevenueRemainderRecipient(
-            payable(_newRevenueRemainderRecipient)
-        );
+        feeSplitter.setRevenueRemainderRecipient(payable(_newRevenueRemainderRecipient));
 
-        assertEq(
-            feeSplitter.revenueRemainderRecipient(), _newRevenueRemainderRecipient
-        );
+        assertEq(feeSplitter.revenueRemainderRecipient(), _newRevenueRemainderRecipient);
     }
 
     /// @notice assert the setFeeShareBP function reverts when the caller is not the owner
@@ -442,7 +612,6 @@ contract FeeSplitterTest is CommonTest {
         vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
         feeSplitter.setGrossFeeShareBP(100);
     }
-
 
     /// @notice assert the setGrossFeeShareBP function reverts when the new gross fee share bp is greater than 100%
     function test_feeSplitterSetGrossFeeShareBP_WhenInvalid_Reverts(uint16 _newGrossFeeShareBP) public {
