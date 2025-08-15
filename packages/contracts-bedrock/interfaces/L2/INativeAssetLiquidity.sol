@@ -9,11 +9,9 @@ interface INativeAssetLiquidity is ISemver {
 
     event LiquidityDeposited(address indexed caller, uint256 value);
     event LiquidityWithdrawn(address indexed caller, uint256 value);
-    event LiquidityBurned(address indexed caller, uint256 value);
     event LiquidityFunded(address indexed funder, uint256 value);
 
     function deposit() external payable;
     function withdraw(uint256 _amount) external;
-    function burn(uint256 _amount) external;
     function fund() external payable;
 }
