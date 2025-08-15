@@ -37,6 +37,22 @@ contract FeeSplitterTest is CommonTest {
 
     event NoFeesCollected();
 
+    event FeesReceived(address indexed sender, uint256 amount);
+
+    event RevenueShareRecipientUpdated(
+        address indexed oldRevenueShareRecipient, address indexed newRevenueShareRecipient
+    );
+
+    event RevenueRemainderRecipientUpdated(
+        address indexed oldRevenueRemainderRecipient, address indexed newRevenueRemainderRecipient
+    );
+
+    event FeeDisbursementIntervalUpdated(uint40 oldFeeDisbursementInterval, uint40 newFeeDisbursementInterval);
+
+    event NetFeeShareBPUpdated(uint16 oldNetFeeShareBP, uint16 newNetFeeShareBP);
+
+    event GrossFeeShareBPUpdated(uint16 oldGrossFeeShareBP, uint16 newGrossFeeShareBP);
+
     /// @notice Use common test to setup the test environment
     function setUp() public override {
         super.setUp();
@@ -275,27 +291,70 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the receive function works as expected
-    function test_feeSplitterReceive_WhenValidFeeVault_Succeeds() public {
+    function test_feeSplitterReceive_SequencerFeeVaultIncreasesRevenue_Succeeds() public {
         // Send ETH to the FeeSplitter from a FeeVault
         vm.deal(Predeploys.SEQUENCER_FEE_WALLET, 1 ether);
+
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit FeesReceived(Predeploys.SEQUENCER_FEE_WALLET, 1 ether);
+
         vm.prank(Predeploys.SEQUENCER_FEE_WALLET);
         (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
         assertTrue(success);
 
         // Verify the net fee revenue was updated
         assertEq(feeSplitter.netFeeRevenue(), 1 ether);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
+    }
+
+        /// @notice assert the receive function works as expected
+    function test_feeSplitterReceive_BaseFeeVaultIncreasesRevenue_Succeeds() public {
+        // Send ETH to the FeeSplitter from a FeeVault
+        vm.deal(Predeploys.BASE_FEE_VAULT, 1 ether);
+
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit FeesReceived(Predeploys.BASE_FEE_VAULT, 1 ether);
+
+        vm.prank(Predeploys.BASE_FEE_VAULT);
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
+        assertTrue(success);
+
+        // Verify the net fee revenue was updated
+        assertEq(feeSplitter.netFeeRevenue(), 1 ether);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
+    }
+
+    function test_feeSplitterReceive_OperatorFeeVaultIncreasesRevenue_Succeeds() public {
+        // Send ETH to the FeeSplitter from a FeeVault
+        vm.deal(Predeploys.OPERATOR_FEE_VAULT, 1 ether);
+
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit FeesReceived(Predeploys.OPERATOR_FEE_VAULT, 1 ether);
+
+        vm.prank(Predeploys.OPERATOR_FEE_VAULT);
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
+        assertTrue(success);
+
+        // Verify the net fee revenue was updated
+        assertEq(feeSplitter.netFeeRevenue(), 1 ether);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
     }
 
     /// @notice assert the receive function from non-FeeVault address
     function test_feeSplitterReceive_WhenNonFeeVault_Succeeds() public {
         // Send ETH to the FeeSplitter from a non-FeeVault address
         vm.deal(address(0x123), 1 ether);
+
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit FeesReceived(address(0x123), 1 ether);
+
         vm.prank(address(0x123));
         (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
         assertTrue(success);
 
         // Verify the net fee revenue was NOT updated (only FeeVaults update it)
         assertEq(feeSplitter.netFeeRevenue(), 0);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
     }
 
     /// @notice assert the receive function from L1 FeeVault does not increment net revenue
@@ -546,6 +605,9 @@ contract FeeSplitterTest is CommonTest {
     {
         vm.assume(_newRevenueShareRecipient != address(0));
 
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit RevenueShareRecipientUpdated(feeSplitter.revenueShareRecipient(), _newRevenueShareRecipient);
+
         vm.prank(_owner);
         feeSplitter.setRevenueShareRecipient(_newRevenueShareRecipient);
 
@@ -576,6 +638,9 @@ contract FeeSplitterTest is CommonTest {
     {
         vm.assume(_newRevenueRemainderRecipient != address(0));
 
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit RevenueRemainderRecipientUpdated(feeSplitter.revenueRemainderRecipient(), _newRevenueRemainderRecipient);
+
         vm.prank(_owner);
         feeSplitter.setRevenueRemainderRecipient(payable(_newRevenueRemainderRecipient));
 
@@ -604,6 +669,9 @@ contract FeeSplitterTest is CommonTest {
     function test_feeSplitterSetNetFeeShareBP_WhenValidNewNetFeeShareBP_Succeeds(uint16 _newNetFeeShareBP) public {
         _newNetFeeShareBP = uint16(bound(_newNetFeeShareBP, 0, 10000));
 
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit NetFeeShareBPUpdated(feeSplitter.netFeeShareBP(), _newNetFeeShareBP);
+
         vm.prank(_owner);
         feeSplitter.setNetFeeShareBP(_newNetFeeShareBP);
 
@@ -631,6 +699,9 @@ contract FeeSplitterTest is CommonTest {
     /// @notice assert the setGrossFeeShareBP function works as expected
     function test_feeSplitterSetGrossFeeShareBP_WhenValid_Succeeds(uint16 _newGrossFeeShareBP) public {
         _newGrossFeeShareBP = uint16(bound(_newGrossFeeShareBP, 0, 10000));
+
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit GrossFeeShareBPUpdated(feeSplitter.grossFeeShareBP(), _newGrossFeeShareBP);
 
         vm.prank(_owner);
         feeSplitter.setGrossFeeShareBP(_newGrossFeeShareBP);
@@ -668,6 +739,9 @@ contract FeeSplitterTest is CommonTest {
         public
     {
         _newFeeDisbursementInterval = uint40(bound(_newFeeDisbursementInterval, 24 hours, type(uint40).max));
+
+        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
+        emit FeeDisbursementIntervalUpdated(feeSplitter.feeDisbursementInterval(), _newFeeDisbursementInterval);
 
         vm.prank(_owner);
         feeSplitter.setFeeDisbursementInterval(_newFeeDisbursementInterval);
