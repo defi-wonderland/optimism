@@ -2066,13 +2066,7 @@ contract OptimismPortal2_DepositTransaction_Test is OptimismPortal2_TestInit {
 
     /// @notice Tests that `depositTransaction` reverts when the value is greater than 0 and the
     ///         custom gas token is active.
-    function test_depositTransaction_customGasToken_reverts(
-        bytes memory _data,
-        uint64 _gasLimit,
-        uint256 _value
-    )
-        external
-    {
+    function test_depositTransaction_customGasToken_reverts(bytes memory _data, uint256 _value) external {
         // Prevent overflow on an upgrade context
         _value = bound(_value, 1, type(uint256).max - address(ethLockbox).balance);
         // Set the custom gas token to true.
@@ -2468,7 +2462,7 @@ contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
     function testFuzz_receive_reverts(uint256 value) external {
         value = bound(value, 1, type(uint128).max);
         vm.deal(depositor, value);
-        
+
         address portal = address(optimismPortal2);
 
         vm.prank(depositor);
