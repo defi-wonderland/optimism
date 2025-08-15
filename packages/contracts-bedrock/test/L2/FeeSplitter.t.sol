@@ -67,6 +67,8 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice Setup the mock fee vaults
+    /// TODO: Once the initializer PR with the updated vaults is finished we'll remove this and integrate the vaults
+    ///       properly
     function _setupMockFeeVaults() internal {
         // Deploy mock FeeVault contracts with proper configuration
         Mock_FeeVault sequencerFeeVault = new Mock_FeeVault(
@@ -310,7 +312,7 @@ contract FeeSplitterTest is CommonTest {
         assertEq(address(Predeploys.FEE_SPLITTER).balance, _amount);
     }
 
-        /// @notice assert the receive function works as expected
+    /// @notice assert the receive function works as expected
     function test_feeSplitterReceive_BaseFeeVaultIncreasesRevenue_Succeeds(uint256 _amount) public {
         // Bound to max netFeeRevenue type
         _amount = bound(_amount, 1 ether, type(uint144).max);
@@ -519,7 +521,14 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the disburseFees function succeeds when the fee disbursement interval has been reached
-    function testFuzz_feeSplitterDisburseFees_succeeds(uint256 _sequencerAmount, uint256 _baseAmount, uint256 _l1Amount, uint256 _operatorAmount) public {
+    function testFuzz_feeSplitterDisburseFees_succeeds(
+        uint256 _sequencerAmount,
+        uint256 _baseAmount,
+        uint256 _l1Amount,
+        uint256 _operatorAmount
+    )
+        public
+    {
         // Bound amounts to prevent uint144 overflow in netFeeRevenue & share calculations
         uint256 maxPerVault = type(uint128).max / 3;
         _sequencerAmount = bound(_sequencerAmount, 1 ether, maxPerVault);
