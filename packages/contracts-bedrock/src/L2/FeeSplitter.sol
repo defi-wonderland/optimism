@@ -78,14 +78,14 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
     uint256 public constant MIN_FEE_DISBURSEMENT_INTERVAL = 24 hours;
 
     /// @notice The payout gate is open. This is the default state and allows for receiving funds.
-    uint256 public constant _PAYOUT_OPEN = 0;
+    uint256 public constant _PAYOUT_OPEN = 1;
 
     /// @notice The payout gate is closed. This is the state when paying the recipients and disallows receiving funds.
-    uint256 public constant _PAYOUT_CLOSED = 1;
+    uint256 public constant _PAYOUT_CLOSED = 2;
 
     /// @notice Tracks whether the payout gate is currently closed (1) or open (0).
     ///         When closed, the receive() function is disabled to prevent reentrancy during payouts.
-    uint256 public payoutGateState;
+    uint256 public payoutGateState = _PAYOUT_OPEN;
 
     /// @notice An address that receives the fee split of the total fees disbursed. This share is the greater of net or
     /// gross revenue.
