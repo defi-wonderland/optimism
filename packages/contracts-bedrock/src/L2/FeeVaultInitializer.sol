@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 import { FeeVault } from "src/L2/FeeVault.sol";
 import { BaseFeeVault } from "src/L2/BaseFeeVault.sol";
@@ -18,13 +18,69 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 /// @title FeeVaultInitializer
 /// @notice This contract migrates the fee vaults from the legacy system to the new system.
 contract FeeVaultInitializer is ISemver {
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
-    /// @notice Constructs the FeeVaultMigrator contract.
+    /// @notice Emitted when the Sequencer Fee Vault is migrated.
+    /// @param oldImplementation The previous implementation address.
+    /// @param newImplementation The new implementation address.
+    /// @param recipient The recipient address for the new implementation.
+    /// @param network The withdrawal network for the new implementation.
+    /// @param minWithdrawalAmount The minimum withdrawal amount for the new implementation.
+    event SequencerFeeVaultUpgraded(
+        address indexed oldImplementation,
+        address indexed newImplementation,
+        address recipient,
+        Types.WithdrawalNetwork network,
+        uint256 minWithdrawalAmount
+    );
 
-    function migrate() public {
+    /// @notice Emitted when the L1 Fee Vault is migrated.
+    /// @param oldImplementation The previous implementation address.
+    /// @param newImplementation The new implementation address.
+    /// @param recipient The recipient address for the new implementation.
+    /// @param network The withdrawal network for the new implementation.
+    /// @param minWithdrawalAmount The minimum withdrawal amount for the new implementation.
+    event L1FeeVaultUpgraded(
+        address indexed oldImplementation,
+        address indexed newImplementation,
+        address recipient,
+        Types.WithdrawalNetwork network,
+        uint256 minWithdrawalAmount
+    );
+
+    /// @notice Emitted when the Base Fee Vault is migrated.
+    /// @param oldImplementation The previous implementation address.
+    /// @param newImplementation The new implementation address.
+    /// @param recipient The recipient address for the new implementation.
+    /// @param network The withdrawal network for the new implementation.
+    /// @param minWithdrawalAmount The minimum withdrawal amount for the new implementation.
+    event BaseFeeVaultUpgraded(
+        address indexed oldImplementation,
+        address indexed newImplementation,
+        address recipient,
+        Types.WithdrawalNetwork network,
+        uint256 minWithdrawalAmount
+    );
+
+    /// @notice Emitted when the Operator Fee Vault is migrated.
+    /// @param oldImplementation The previous implementation address.
+    /// @param newImplementation The new implementation address.
+    /// @param recipient The recipient address for the new implementation.
+    /// @param network The withdrawal network for the new implementation.
+    /// @param minWithdrawalAmount The minimum withdrawal amount for the new implementation.
+    event OperatorFeeVaultUpgraded(
+        address indexed oldImplementation,
+        address indexed newImplementation,
+        address recipient,
+        Types.WithdrawalNetwork network,
+        uint256 minWithdrawalAmount
+    );
+
+    /// @notice Migrates all fee vaults to their new implementations.
+    function migrate() external {
         _migrateBaseFeeVault();
         _migrateSequencerFeeVault();
         _migrateL1FeeVault();
@@ -38,9 +94,7 @@ contract FeeVaultInitializer is ISemver {
             FeeVault(payable(Predeploys.BASE_FEE_VAULT)).withdrawalNetwork();
         uint256 currentBaseFeeVaultMinWithdrawalAmount =
             FeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount();
-
-        // Withdraw funds from the old fee vaults
-        FeeVault(payable(Predeploys.BASE_FEE_VAULT)).withdraw();
+        address currentImplementation = IProxy(payable(Predeploys.BASE_FEE_VAULT)).implementation();
 
         // Deploy new implementation
         BaseFeeVault newBaseFeeVault = new BaseFeeVault();
@@ -55,6 +109,14 @@ contract FeeVaultInitializer is ISemver {
                 currentBaseFeeVaultWithdrawalNetwork
             )
         );
+
+        emit BaseFeeVaultUpgraded(
+            currentImplementation,
+            address(newBaseFeeVault),
+            currentBaseFeeVaultRecipient,
+            currentBaseFeeVaultWithdrawalNetwork,
+            currentBaseFeeVaultMinWithdrawalAmount
+        );
     }
 
     function _migrateSequencerFeeVault() internal {
@@ -64,9 +126,7 @@ contract FeeVaultInitializer is ISemver {
             FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).withdrawalNetwork();
         uint256 currentSequencerFeeVaultMinWithdrawalAmount =
             FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount();
-
-        // Withdraw funds from the old fee vaults
-        FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).withdraw();
+        address currentImplementation = IProxy(payable(Predeploys.SEQUENCER_FEE_WALLET)).implementation();
 
         // Deploy new implementation
         SequencerFeeVault newSequencerFeeVault = new SequencerFeeVault();
@@ -81,6 +141,14 @@ contract FeeVaultInitializer is ISemver {
                 currentSequencerFeeVaultWithdrawalNetwork
             )
         );
+
+        emit SequencerFeeVaultUpgraded(
+            currentImplementation,
+            address(newSequencerFeeVault),
+            currentSequencerFeeVaultRecipient,
+            currentSequencerFeeVaultWithdrawalNetwork,
+            currentSequencerFeeVaultMinWithdrawalAmount
+        );
     }
 
     function _migrateL1FeeVault() internal {
@@ -89,9 +157,7 @@ contract FeeVaultInitializer is ISemver {
         Types.WithdrawalNetwork currentL1FeeVaultWithdrawalNetwork =
             FeeVault(payable(Predeploys.L1_FEE_VAULT)).withdrawalNetwork();
         uint256 currentL1FeeVaultMinWithdrawalAmount = FeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount();
-
-        // Withdraw funds from the old fee vaults
-        FeeVault(payable(Predeploys.L1_FEE_VAULT)).withdraw();
+        address currentImplementation = IProxy(payable(Predeploys.L1_FEE_VAULT)).implementation();
 
         // Deploy new implementation
         L1FeeVault newL1FeeVault = new L1FeeVault();
@@ -106,11 +172,19 @@ contract FeeVaultInitializer is ISemver {
                 currentL1FeeVaultWithdrawalNetwork
             )
         );
+
+        emit L1FeeVaultUpgraded(
+            currentImplementation,
+            address(newL1FeeVault),
+            currentL1FeeVaultRecipient,
+            currentL1FeeVaultWithdrawalNetwork,
+            currentL1FeeVaultMinWithdrawalAmount
+        );
     }
 
     function _migrateOperatorFeeVault() internal {
-        // Withdraw funds from the old fee vaults
-        FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).withdraw();
+        // Grab current implementation for the event
+        address currentImplementation = IProxy(payable(Predeploys.OPERATOR_FEE_VAULT)).implementation();
 
         // Deploy new implementation Note this has hardcoded parameters in the constructor that initialize the feevault
         OperatorFeeVault newOperatorFeeVault = new OperatorFeeVault();
@@ -118,6 +192,14 @@ contract FeeVaultInitializer is ISemver {
         // Upgrade the proxy and initialize the new implementation
         IProxy(payable(Predeploys.OPERATOR_FEE_VAULT)).upgradeToAndCall(
             address(newOperatorFeeVault), abi.encodeWithSelector(OperatorFeeVault.initialize.selector)
+        );
+
+        emit OperatorFeeVaultUpgraded(
+            currentImplementation,
+            address(newOperatorFeeVault),
+            newOperatorFeeVault.recipient(),
+            newOperatorFeeVault.withdrawalNetwork(),
+            newOperatorFeeVault.minWithdrawalAmount()
         );
     }
 }
