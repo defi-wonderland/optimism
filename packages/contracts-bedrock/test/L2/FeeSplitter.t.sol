@@ -282,14 +282,28 @@ contract FeeSplitterTest is CommonTest {
 
     /// @notice assert the receive function reverts when the payout gate is closed
     function test_feeSplitterReceive_WhenPayoutGateIsClosed_Reverts() public {
-        Mock_FeeSplitter feeSplitter = new Mock_FeeSplitter();
-        feeSplitter.setPayoutGateState(1);
+        // Setup mock fee vaults
+        _setupMockFeeVaults();
 
-        address sender = makeAddr("sender");
-        vm.deal(sender, 1 ether);
-        vm.prank(sender);
-        vm.expectRevert(FeeSplitter.FeeSplitter_ReceiveDisabledDuringPayout.selector);
-        address(feeSplitter).call{ value: 1 ether }("");
+        // Deploy a reentrant contract that will attempt to send funds back to FeeSplitter
+        ReentrantRevenueReceiver reentrantReceiver = new ReentrantRevenueReceiver();
+
+        // Set the reentrant receiver as the revenue share recipient
+        vm.prank(_owner);
+        feeSplitter.setRevenueShareRecipient(address(reentrantReceiver));
+
+        // Add some funds to the FeeSplitter
+        vm.deal(address(feeSplitter), 10 ether);
+
+        // Fast forward time to allow disbursement
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+        // The ReentrantRevenueReceiver will attempt to send funds back during disbursement
+        // Expect the disbursement to fail because the recipient tried to reenter when the payout gate is closed
+        // The FeeSplitter will fail to send funds to the recipient and revert
+        vm.expectRevert(FeeSplitter.FeeSplitter_FailedToSendToRevenueShareRecipient.selector);
+
+        feeSplitter.disburseFees();
     }
 
     /// @notice assert the receive function works as expected
@@ -813,6 +827,28 @@ contract Mock_FeeVault {
         if (WITHDRAWAL_NETWORK == Types.WithdrawalNetwork.L2) {
             (bool success,) = RECIPIENT.call{ value: value }("");
             require(success, "FeeVault: failed to send ETH to L2 fee recipient");
+        }
+    }
+}
+
+/// @notice A malicious contract that attempts to reenter the FeeSplitter during fee distribution
+contract ReentrantRevenueReceiver {
+    FeeSplitter public immutable feeSplitter;
+
+    constructor() {
+        feeSplitter = FeeSplitter(payable(Predeploys.FEE_SPLITTER));
+    }
+
+    /// @notice This receive function will be called when the FeeSplitter sends funds during disbursement
+    /// @dev Attempts to send funds back to the FeeSplitter to trigger reentrancy
+    receive() external payable {
+        // Attempt to send funds back to the FeeSplitter
+        // This should fail because the payout gate is closed during disbursement
+        (bool success,) = address(feeSplitter).call{ value: msg.value }("");
+
+        // If the reentrant call fails, propagate the revert
+        if (!success) {
+            revert FeeSplitter.FeeSplitter_ReceiveDisabledDuringPayout();
         }
     }
 }
