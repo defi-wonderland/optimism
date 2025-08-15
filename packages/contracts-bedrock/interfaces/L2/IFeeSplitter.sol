@@ -19,7 +19,6 @@ interface IFeeSplitter {
     error FeeSplitter_FailedToSendToRevenueRemainderRecipient();
 
     event FeesDisbursed(
-        uint256 indexed disbursementTime,
         uint256 revenueShareRecipientAmount,
         uint256 revenueRemainderRecipientAmount,
         uint256 totalFeesDisbursed

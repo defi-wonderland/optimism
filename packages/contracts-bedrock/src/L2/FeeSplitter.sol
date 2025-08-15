@@ -111,12 +111,10 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
     uint40 public feeDisbursementInterval;
 
     /// @notice Emitted when fees are disbursed.
-    /// @param disbursementTime                 The time of the disbursement.
     /// @param revenueShareRecipientAmount      The amount of fees disbursed to the fee share recipient.
     /// @param revenueRemainderRecipientAmount  The amount of fees disbursed to the remainder recipient.
     /// @param totalFeesDisbursed               The total amount of fees disbursed.
     event FeesDisbursed(
-        uint256 indexed disbursementTime,
         uint256 revenueShareRecipientAmount,
         uint256 revenueRemainderRecipientAmount,
         uint256 totalFeesDisbursed
@@ -302,7 +300,6 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
         payoutGateState = _PAYOUT_OPEN;
 
         emit FeesDisbursed({
-            disbursementTime: lastDisbursementTime,
             revenueShareRecipientAmount: feeShare,
             revenueRemainderRecipientAmount: grossRevenue - feeShare,
             totalFeesDisbursed: grossRevenue
