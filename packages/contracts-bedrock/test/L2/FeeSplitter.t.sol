@@ -145,17 +145,23 @@ contract FeeSplitterTest is CommonTest {
 
     /// @notice assert all addresses, fee disbursement interval, and fee share are correctly set
     function test_feeSplitter_initialization_succeeds() public {
+        address defaultRevenueShareRecipient = address(0x1234567890123456789012345678901234567890);
+        address defaultRevenueRemainderRecipient = address(0x0987654321098765432109876543210987654321);
+        uint40 defaultFeeDisbursementInterval = 24 hours;
+        uint16 defaultNetFeeShareBP = 1_500;
+        uint16 defaultGrossFeeShareBP = 250;
+
         assertEq(
             feeSplitter.revenueShareRecipient(),
-            address(0x1234567890123456789012345678901234567890)
+            defaultRevenueShareRecipient
         );
         assertEq(
             feeSplitter.revenueRemainderRecipient(),
-            address(0x0987654321098765432109876543210987654321)
+            defaultRevenueRemainderRecipient
         );
-        assertEq(feeSplitter.feeDisbursementInterval(), 24 hours);
-        assertEq(feeSplitter.netFeeShareBP(), 1_500);
-        assertEq(feeSplitter.grossFeeShareBP(), 250);
+        assertEq(feeSplitter.feeDisbursementInterval(), defaultFeeDisbursementInterval);
+        assertEq(feeSplitter.netFeeShareBP(), defaultNetFeeShareBP);
+        assertEq(feeSplitter.grossFeeShareBP(), defaultGrossFeeShareBP);
     }
 
     /// @notice assert the receive function reverts when the payout gate is closed
@@ -247,7 +253,7 @@ contract FeeSplitterTest is CommonTest {
         vm.warp(block.timestamp + 25 hours);
 
         // Calculate expected amounts using max(netShare, grossShare) from contract
-        uint256 expectedTotalFees = address(Predeploys.SEQUENCER_FEE_WALLET).balance
+        uint256 expectedGrossRevenue = address(Predeploys.SEQUENCER_FEE_WALLET).balance
             + address(Predeploys.BASE_FEE_VAULT).balance + address(Predeploys.L1_FEE_VAULT).balance
             + address(Predeploys.OPERATOR_FEE_VAULT).balance;
 
@@ -259,9 +265,9 @@ contract FeeSplitterTest is CommonTest {
         uint256 grossShareBP = feeSplitter.grossFeeShareBP();
 
         uint256 netShareAmount = (expectedNetRevenue * netShareBP) / bpScale;
-        uint256 grossShareAmount = (expectedTotalFees * grossShareBP) / bpScale;
+        uint256 grossShareAmount = (expectedGrossRevenue * grossShareBP) / bpScale;
         uint256 feeShareAmount = netShareAmount > grossShareAmount ? netShareAmount : grossShareAmount;
-        uint256 revenueRemainderRecipientShare = expectedTotalFees - feeShareAmount;
+        uint256 revenueRemainderRecipientShare = expectedGrossRevenue - feeShareAmount;
 
         // Get the default recipients from genesis setup
         address defaultRevenueShareRecipient = feeSplitter.revenueShareRecipient();
