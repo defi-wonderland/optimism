@@ -9,6 +9,8 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { NextImpl } from "test/mocks/NextImpl.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { DisputeGameFactory_TestInit } from "test/dispute/DisputeGameFactory.t.sol";
+import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
+import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
 
 // Scripts
 import { ForgeArtifacts, StorageSlot } from "scripts/libraries/ForgeArtifacts.sol";
@@ -2404,5 +2406,75 @@ contract OptimismPortal2_Params_Test is CommonTest {
         bytes32 slot21After = vm.load(address(optimismPortal2), bytes32(uint256(21)));
         bytes32 slot21Expected = NextImpl(address(optimismPortal2)).slot21Init();
         assertEq(slot21Expected, slot21After);
+    }
+}
+
+/// @title OptimismPortal2_CustomGasToken_Test
+/// @notice Test suite for OptimismPortal2 with custom gas token enabled.
+contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
+    using stdStorage for StdStorage;
+
+    /// @notice Sets up a portal with custom gas token enabled
+    function setUp() public override {
+        super.setUp();
+
+        uint256 slot = 63; // shared slot: ethLockbox, superRootsActive, isCustomGasToken
+        uint256 offset = 21; // offset in bytes
+
+        bytes32 existingValue = vm.load(address(optimismPortal2), bytes32(slot));
+        // Clear the existing boolean value at offset 21 and set it to true
+        bytes32 clearedValue = bytes32(uint256(existingValue) & ~(uint256(0xFF) << (offset * 8)));
+        bytes32 newValue = bytes32(uint256(clearedValue) | (uint256(1) << (offset * 8)));
+
+        vm.store(address(optimismPortal2), bytes32(slot), newValue);
+    }
+
+    /// @notice Tests that isCustomGasToken storage is set correctly
+    function test_isCustomGasToken_succeeds() external view {
+        // Check that the public getter returns true
+        assertTrue(OptimismPortal2(payable(address(optimismPortal2))).isCustomGasToken());
+    }
+
+    /// @notice Tests that depositTransaction reverts when value > 0 and custom gas token is enabled
+    function testFuzz_depositTransaction_withValue_reverts(uint256 value) external {
+        value = bound(value, 1, type(uint128).max);
+        vm.deal(depositor, value);
+
+        vm.prank(depositor);
+        vm.expectRevert(IOptimismPortal.OptimismPortal_NotAllowedOnCGTMode.selector);
+        optimismPortal2.depositTransaction{ value: value }({
+            _to: address(0x40),
+            _value: value,
+            _gasLimit: 100_000,
+            _isCreation: false,
+            _data: hex""
+        });
+    }
+
+    /// @notice Tests that depositTransaction succeeds when value = 0 and custom gas token is enabled
+    function test_depositTransaction_withZeroValue_succeeds() external {
+        vm.prank(depositor);
+        optimismPortal2.depositTransaction({
+            _to: address(0x40),
+            _value: 0,
+            _gasLimit: 100_000,
+            _isCreation: false,
+            _data: hex""
+        });
+        // No revert expected
+    }
+
+    /// @notice Tests that receive() reverts when custom gas token is enabled
+    function testFuzz_receive_reverts(uint256 value) external {
+        value = bound(value, 1, type(uint128).max);
+        vm.deal(depositor, value);
+        
+        address portal = address(optimismPortal2);
+
+        vm.prank(depositor);
+        vm.expectRevert(IOptimismPortal.OptimismPortal_NotAllowedOnCGTMode.selector);
+        assembly {
+            pop(call(gas(), portal, value, 0, 0, 0, 0))
+        }
     }
 }
