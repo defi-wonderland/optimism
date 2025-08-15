@@ -291,70 +291,84 @@ contract FeeSplitterTest is CommonTest {
     }
 
     /// @notice assert the receive function works as expected
-    function test_feeSplitterReceive_SequencerFeeVaultIncreasesRevenue_Succeeds() public {
+    function test_feeSplitterReceive_SequencerFeeVaultIncreasesRevenue_Succeeds(uint256 _amount) public {
+        // Bound to max netFeeRevenue type
+        _amount = bound(_amount, 1 ether, type(uint144).max);
+
         // Send ETH to the FeeSplitter from a FeeVault
-        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, 1 ether);
+        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, _amount);
 
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
-        emit FeesReceived(Predeploys.SEQUENCER_FEE_WALLET, 1 ether);
+        emit FeesReceived(Predeploys.SEQUENCER_FEE_WALLET, _amount);
 
         vm.prank(Predeploys.SEQUENCER_FEE_WALLET);
-        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: _amount }("");
         assertTrue(success);
 
         // Verify the net fee revenue was updated
-        assertEq(feeSplitter.netFeeRevenue(), 1 ether);
-        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
+        assertEq(feeSplitter.netFeeRevenue(), _amount);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, _amount);
     }
 
         /// @notice assert the receive function works as expected
-    function test_feeSplitterReceive_BaseFeeVaultIncreasesRevenue_Succeeds() public {
+    function test_feeSplitterReceive_BaseFeeVaultIncreasesRevenue_Succeeds(uint256 _amount) public {
+        // Bound to max netFeeRevenue type
+        _amount = bound(_amount, 1 ether, type(uint144).max);
+
         // Send ETH to the FeeSplitter from a FeeVault
-        vm.deal(Predeploys.BASE_FEE_VAULT, 1 ether);
+        vm.deal(Predeploys.BASE_FEE_VAULT, _amount);
 
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
-        emit FeesReceived(Predeploys.BASE_FEE_VAULT, 1 ether);
+        emit FeesReceived(Predeploys.BASE_FEE_VAULT, _amount);
 
         vm.prank(Predeploys.BASE_FEE_VAULT);
-        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: _amount }("");
         assertTrue(success);
 
         // Verify the net fee revenue was updated
-        assertEq(feeSplitter.netFeeRevenue(), 1 ether);
-        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
+        assertEq(feeSplitter.netFeeRevenue(), _amount);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, _amount);
     }
 
-    function test_feeSplitterReceive_OperatorFeeVaultIncreasesRevenue_Succeeds() public {
+    function test_feeSplitterReceive_OperatorFeeVaultIncreasesRevenue_Succeeds(uint256 _amount) public {
+        // Bound to max netFeeRevenue type
+        _amount = bound(_amount, 1 ether, type(uint144).max);
+
         // Send ETH to the FeeSplitter from a FeeVault
-        vm.deal(Predeploys.OPERATOR_FEE_VAULT, 1 ether);
+        vm.deal(Predeploys.OPERATOR_FEE_VAULT, _amount);
 
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
-        emit FeesReceived(Predeploys.OPERATOR_FEE_VAULT, 1 ether);
+        emit FeesReceived(Predeploys.OPERATOR_FEE_VAULT, _amount);
 
         vm.prank(Predeploys.OPERATOR_FEE_VAULT);
-        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: _amount }("");
         assertTrue(success);
 
         // Verify the net fee revenue was updated
-        assertEq(feeSplitter.netFeeRevenue(), 1 ether);
-        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
+        assertEq(feeSplitter.netFeeRevenue(), _amount);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, _amount);
     }
 
     /// @notice assert the receive function from non-FeeVault address
-    function test_feeSplitterReceive_WhenNonFeeVault_Succeeds() public {
-        // Send ETH to the FeeSplitter from a non-FeeVault address
-        vm.deal(address(0x123), 1 ether);
+    function test_feeSplitterReceive_WhenNonFeeVault_Succeeds(address _caller, uint256 _amount) public {
+        _amount = bound(_amount, 1 ether, type(uint256).max);
+        vm.assume(_caller != Predeploys.SEQUENCER_FEE_WALLET);
+        vm.assume(_caller != Predeploys.BASE_FEE_VAULT);
+        vm.assume(_caller != Predeploys.OPERATOR_FEE_VAULT);
+        vm.assume(_caller != address(0));
+
+        vm.deal(_caller, _amount);
 
         vm.expectEmit(address(Predeploys.FEE_SPLITTER));
-        emit FeesReceived(address(0x123), 1 ether);
+        emit FeesReceived(_caller, _amount);
 
-        vm.prank(address(0x123));
-        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: 1 ether }("");
+        vm.prank(_caller);
+        (bool success,) = payable(Predeploys.FEE_SPLITTER).call{ value: _amount }("");
         assertTrue(success);
 
         // Verify the net fee revenue was NOT updated (only FeeVaults update it)
         assertEq(feeSplitter.netFeeRevenue(), 0);
-        assertEq(address(Predeploys.FEE_SPLITTER).balance, 1 ether);
+        assertEq(address(Predeploys.FEE_SPLITTER).balance, _amount);
     }
 
     /// @notice assert the receive function from L1 FeeVault does not increment net revenue
