@@ -2414,11 +2414,7 @@ contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
         super.setUp();
 
         // Use stdStorage to handle packed slot for isCustomGasToken
-        stdstore
-            .enable_packed_slots()
-            .target(address(optimismPortal2))
-            .sig("isCustomGasToken()")
-            .checked_write(true);
+        stdstore.enable_packed_slots().target(address(optimismPortal2)).sig("isCustomGasToken()").checked_write(true);
     }
 
     /// @notice Tests that isCustomGasToken storage is set correctly
@@ -2457,7 +2453,7 @@ contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
     }
 
     /// @notice Tests that receive() reverts when custom gas token is enabled
-    function testFuzz_receive_reverts(uint256 value) external {
+    function testFuzz_receive_withCustomGasToken_reverts(uint256 value) external {
         value = bound(value, 1, type(uint128).max);
         vm.deal(depositor, value);
 
