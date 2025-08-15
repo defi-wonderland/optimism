@@ -5,13 +5,15 @@ pragma solidity 0.8.15;
 import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Burn } from "src/libraries/Burn.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+
+// Errors
+import { Unauthorized, InvalidAmount } from "src/libraries/errors/CommonErrors.sol";
 
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title NativeAssetLiquidity
@@ -25,6 +27,9 @@ contract NativeAssetLiquidity is ISemver {
 
     /// @notice Emitted when an address burns native asset liquidity.
     event LiquidityBurned(address indexed caller, uint256 value);
+
+    /// @notice Emitted when funds are received.
+    event LiquidityFunded(address indexed funder, uint256 value);
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -57,5 +62,13 @@ contract NativeAssetLiquidity is ISemver {
         Burn.eth(_amount);
 
         emit LiquidityBurned(msg.sender, _amount);
+    }
+
+    /// @notice Fund the contract by sending native asset.
+    /// @dev The function is payable to accept native asset.
+    function fund() external payable {
+        if (msg.value == 0) revert InvalidAmount();
+
+        emit LiquidityFunded(msg.sender, msg.value);
     }
 }
