@@ -83,7 +83,7 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
     /// @notice The payout gate is closed. This is the state when paying the recipients and disallows receiving funds.
     uint256 public constant _PAYOUT_CLOSED = 2;
 
-    /// @notice Tracks whether the payout gate is currently closed (1) or open (0).
+    /// @notice Tracks whether the payout gate is currently closed (2) or open (1).
     ///         When closed, the receive() function is disabled to prevent reentrancy during payouts.
     uint256 public payoutGateState = _PAYOUT_OPEN;
 
