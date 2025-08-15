@@ -2413,15 +2413,12 @@ contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
     function setUp() public override {
         super.setUp();
 
-        uint256 slot = 63; // shared slot: ethLockbox, superRootsActive, isCustomGasToken
-        uint256 offset = 21; // offset in bytes
-
-        bytes32 existingValue = vm.load(address(optimismPortal2), bytes32(slot));
-        // Clear the existing boolean value at offset 21 and set it to true
-        bytes32 clearedValue = bytes32(uint256(existingValue) & ~(uint256(0xFF) << (offset * 8)));
-        bytes32 newValue = bytes32(uint256(clearedValue) | (uint256(1) << (offset * 8)));
-
-        vm.store(address(optimismPortal2), bytes32(slot), newValue);
+        // Use stdStorage to handle packed slot for isCustomGasToken
+        stdstore
+            .enable_packed_slots()
+            .target(address(optimismPortal2))
+            .sig("isCustomGasToken()")
+            .checked_write(true);
     }
 
     /// @notice Tests that isCustomGasToken storage is set correctly
