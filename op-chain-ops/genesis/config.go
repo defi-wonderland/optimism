@@ -273,25 +273,15 @@ func (d *GasPriceOracleDeployConfig) OperatorFeeParams() [32]byte {
 
 // GasTokenDeployConfig configures the optional custom gas token functionality.
 type GasTokenDeployConfig struct {
-	// UseCustomGasToken is a flag to indicate that a custom gas token should be used
-	UseCustomGasToken bool `json:"useCustomGasToken"`
-	// IsCustomGasToken is a flag to indicate that a custom gas token should be used (alternative field name)
+	// IsCustomGasToken is a flag to indicate that a custom gas token should be used
 	IsCustomGasToken bool `json:"isCustomGasToken"`
-	// CustomGasTokenAddress is the address of the ERC20 token to be used to pay for gas on L2.
-	CustomGasTokenAddress common.Address `json:"customGasTokenAddress"`
 }
 
 var _ ConfigChecker = (*GasTokenDeployConfig)(nil)
 
 func (d *GasTokenDeployConfig) Check(log log.Logger) error {
-	// Check if either field indicates custom gas token usage
-	isCustomGasToken := d.UseCustomGasToken || d.IsCustomGasToken
-
-	if isCustomGasToken {
-		if d.CustomGasTokenAddress == (common.Address{}) {
-			return fmt.Errorf("%w: CustomGasTokenAddress cannot be address(0)", ErrInvalidDeployConfig)
-		}
-		log.Info("Using custom gas token", "address", d.CustomGasTokenAddress)
+	if d.IsCustomGasToken {
+		log.Info("Using custom gas token")
 	}
 	return nil
 }
