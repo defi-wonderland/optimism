@@ -64,8 +64,6 @@ contract L2Genesis is Script {
         address feeSplitterRevenueShareRecipient;
         address feeSplitterRevenueRemainderRecipient;
         uint256 feeSplitterFeeDisbursementInterval;
-        uint256 feeSplitterNetFeeShareBP;
-        uint256 feeSplitterGrossFeeShareBP;
     }
 
     using ForkUtils for Fork;
@@ -586,18 +584,14 @@ contract L2Genesis is Script {
         IFeeSplitter(payable(impl)).initialize(
             payable(address(0x0123456789012345678901234567890123456789)),
             payable(address(0x0123456789012345678901234567890123456789)),
-            uint40(_input.feeSplitterFeeDisbursementInterval),
-            uint16(_input.feeSplitterNetFeeShareBP),
-            uint16(_input.feeSplitterGrossFeeShareBP)
+            uint40(_input.feeSplitterFeeDisbursementInterval)
         );
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
             payable(_input.feeSplitterRevenueShareRecipient),
             payable(_input.feeSplitterRevenueRemainderRecipient),
-            uint40(_input.feeSplitterFeeDisbursementInterval),
-            uint16(_input.feeSplitterNetFeeShareBP),
-            uint16(_input.feeSplitterGrossFeeShareBP)
+            uint40(_input.feeSplitterFeeDisbursementInterval)
         );
         vm.stopPrank();
     }

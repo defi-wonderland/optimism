@@ -23,9 +23,7 @@ contract FeeSplitterTest is CommonTest {
     event Initialized(
         address payable revenueShareRecipient,
         address payable revenueRemainderRecipient,
-        uint40 feeDisbursementInterval,
-        uint16 netFeeShareBP,
-        uint16 grossFeeShareBP
+        uint40 feeDisbursementInterval
     );
 
     event FeesDisbursed(
@@ -48,10 +46,6 @@ contract FeeSplitterTest is CommonTest {
     );
 
     event FeeDisbursementIntervalUpdated(uint40 oldFeeDisbursementInterval, uint40 newFeeDisbursementInterval);
-
-    event NetFeeShareBPUpdated(uint16 oldNetFeeShareBP, uint16 newNetFeeShareBP);
-
-    event GrossFeeShareBPUpdated(uint16 oldGrossFeeShareBP, uint16 newGrossFeeShareBP);
 
     /// @notice Use common test to setup the test environment
     function setUp() public override {
@@ -159,9 +153,7 @@ contract FeeSplitterTest is CommonTest {
         feeSplitter.initialize(
             payable(_revenueShareRecipient),
             payable(_revenueRemainderRecipient),
-            _defaultFeeDisbursementInterval,
-            _defaultNetFeeShareBP,
-            _defaultGrossFeeShareBP
+            _defaultFeeDisbursementInterval
         );
     }
 
@@ -176,9 +168,7 @@ contract FeeSplitterTest is CommonTest {
         IFeeSplitter(payable(impl)).initialize(
             payable(address(0)),
             payable(_revenueRemainderRecipient),
-            _defaultFeeDisbursementInterval,
-            10001,
-            _defaultGrossFeeShareBP
+            _defaultFeeDisbursementInterval
         );
     }
 
@@ -192,9 +182,7 @@ contract FeeSplitterTest is CommonTest {
         IFeeSplitter(payable(impl)).initialize(
             payable(_revenueShareRecipient),
             payable(address(0)),
-            _defaultFeeDisbursementInterval,
-            10001,
-            _defaultGrossFeeShareBP
+            _defaultFeeDisbursementInterval
         );
     }
 
@@ -209,43 +197,7 @@ contract FeeSplitterTest is CommonTest {
         IFeeSplitter(payable(impl)).initialize(
             payable(_revenueShareRecipient),
             payable(_revenueRemainderRecipient),
-            1 hours,
-            _defaultNetFeeShareBP,
-            _defaultGrossFeeShareBP
-        );
-    }
-
-    /// @notice assert the initialize function reverts when the net fee share bp is greater than 100%
-    function test_feeSplitterInitialize_WhenInvalidNetFeeShareBP_Reverts() public {
-        // Deploy a fresh instance for testing initialization
-        address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl2"))));
-        vm.etch(impl, vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
-
-        vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_FeeShareBPExceeds100Percent.selector);
-        IFeeSplitter(payable(impl)).initialize(
-            payable(_revenueShareRecipient),
-            payable(_revenueRemainderRecipient),
-            _defaultFeeDisbursementInterval,
-            10001,
-            _defaultGrossFeeShareBP
-        );
-    }
-
-    /// @notice assert the initialize function reverts when the gross fee share bp is greater than 100%
-    function test_feeSplitterInitialize_WhenInvalidGrossFeeShareBP_Reverts() public {
-        // Deploy a fresh instance for testing initialization
-        address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl3"))));
-        vm.etch(impl, vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
-
-        vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_GrossFeeShareBPExceeds100Percent.selector);
-        IFeeSplitter(payable(impl)).initialize(
-            payable(_revenueShareRecipient),
-            payable(_revenueRemainderRecipient),
-            _defaultFeeDisbursementInterval,
-            _defaultNetFeeShareBP,
-            10001
+            1 hours
         );
     }
 
@@ -259,25 +211,19 @@ contract FeeSplitterTest is CommonTest {
         emit Initialized({
             revenueShareRecipient: payable(_defaultRevenueShareRecipient),
             revenueRemainderRecipient: payable(_defaultRevenueRemainderRecipient),
-            feeDisbursementInterval: _defaultFeeDisbursementInterval,
-            netFeeShareBP: _defaultNetFeeShareBP,
-            grossFeeShareBP: _defaultGrossFeeShareBP
+            feeDisbursementInterval: _defaultFeeDisbursementInterval
         });
 
         vm.prank(_owner);
         IFeeSplitter(payable(impl)).initialize(
             payable(_defaultRevenueShareRecipient),
             payable(_defaultRevenueRemainderRecipient),
-            _defaultFeeDisbursementInterval,
-            _defaultNetFeeShareBP,
-            _defaultGrossFeeShareBP
+            _defaultFeeDisbursementInterval
         );
 
         assertEq(IFeeSplitter(payable(impl)).revenueShareRecipient(), _defaultRevenueShareRecipient);
         assertEq(IFeeSplitter(payable(impl)).revenueRemainderRecipient(), _defaultRevenueRemainderRecipient);
         assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), _defaultFeeDisbursementInterval);
-        assertEq(IFeeSplitter(payable(impl)).netFeeShareBP(), _defaultNetFeeShareBP);
-        assertEq(IFeeSplitter(payable(impl)).grossFeeShareBP(), _defaultGrossFeeShareBP);
     }
 
     /// @notice assert the receive function reverts when the payout gate is closed
@@ -570,8 +516,8 @@ contract FeeSplitterTest is CommonTest {
             + address(Predeploys.BASE_FEE_VAULT).balance + address(Predeploys.OPERATOR_FEE_VAULT).balance;
 
         uint256 bpScale = feeSplitter.BASIS_POINT_SCALE();
-        uint256 netShareBP = feeSplitter.netFeeShareBP();
-        uint256 grossShareBP = feeSplitter.grossFeeShareBP();
+        uint256 netShareBP = feeSplitter.NET_FEE_SHARE_BP();
+        uint256 grossShareBP = feeSplitter.GROSS_FEE_SHARE_BP();
 
         uint256 netShareAmount = (expectedNetRevenue * netShareBP) / bpScale;
         uint256 grossShareAmount = (expectedGrossRevenue * grossShareBP) / bpScale;
@@ -682,68 +628,6 @@ contract FeeSplitterTest is CommonTest {
         feeSplitter.setRevenueRemainderRecipient(payable(_newRevenueRemainderRecipient));
 
         assertEq(feeSplitter.revenueRemainderRecipient(), _newRevenueRemainderRecipient);
-    }
-
-    /// @notice assert the setFeeShareBP function reverts when the caller is not the owner
-    function test_feeSplitterSetNetFeeShareBP_WhenCallerIsNotOwner_Reverts(address _caller) public {
-        vm.assume(_caller != _owner);
-
-        vm.prank(_caller);
-        vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        feeSplitter.setNetFeeShareBP(150);
-    }
-
-    /// @notice assert the setFeeShareBP function reverts when the new fee share bp is greater than 100%
-    function test_feeSplitterSetNetFeeShareBP_WhenInvalidNewNetFeeShareBP_Reverts(uint16 _newNetFeeShareBP) public {
-        _newNetFeeShareBP = uint16(bound(_newNetFeeShareBP, 10001, type(uint16).max));
-
-        vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_FeeShareBPExceeds100Percent.selector);
-        feeSplitter.setNetFeeShareBP(_newNetFeeShareBP);
-    }
-
-    /// @notice assert the setFeeShareBP function works as expected
-    function test_feeSplitterSetNetFeeShareBP_WhenValidNewNetFeeShareBP_Succeeds(uint16 _newNetFeeShareBP) public {
-        _newNetFeeShareBP = uint16(bound(_newNetFeeShareBP, 0, 10000));
-
-        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
-        emit NetFeeShareBPUpdated(feeSplitter.netFeeShareBP(), _newNetFeeShareBP);
-
-        vm.prank(_owner);
-        feeSplitter.setNetFeeShareBP(_newNetFeeShareBP);
-
-        assertEq(feeSplitter.netFeeShareBP(), _newNetFeeShareBP);
-    }
-
-    /// @notice assert the setGrossFeeShareBP function reverts when the caller is not the owner
-    function test_feeSplitterSetGrossFeeShareBP_WhenCallerIsNotOwner_Reverts(address _caller) public {
-        vm.assume(_caller != _owner);
-
-        vm.prank(_caller);
-        vm.expectRevert(FeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        feeSplitter.setGrossFeeShareBP(100);
-    }
-
-    /// @notice assert the setGrossFeeShareBP function reverts when the new gross fee share bp is greater than 100%
-    function test_feeSplitterSetGrossFeeShareBP_WhenInvalid_Reverts(uint16 _newGrossFeeShareBP) public {
-        _newGrossFeeShareBP = uint16(bound(_newGrossFeeShareBP, 10001, type(uint16).max));
-
-        vm.prank(_owner);
-        vm.expectRevert(FeeSplitter.FeeSplitter_GrossFeeShareBPExceeds100Percent.selector);
-        feeSplitter.setGrossFeeShareBP(_newGrossFeeShareBP);
-    }
-
-    /// @notice assert the setGrossFeeShareBP function works as expected
-    function test_feeSplitterSetGrossFeeShareBP_WhenValid_Succeeds(uint16 _newGrossFeeShareBP) public {
-        _newGrossFeeShareBP = uint16(bound(_newGrossFeeShareBP, 0, 10000));
-
-        vm.expectEmit(address(Predeploys.FEE_SPLITTER));
-        emit GrossFeeShareBPUpdated(feeSplitter.grossFeeShareBP(), _newGrossFeeShareBP);
-
-        vm.prank(_owner);
-        feeSplitter.setGrossFeeShareBP(_newGrossFeeShareBP);
-
-        assertEq(feeSplitter.grossFeeShareBP(), _newGrossFeeShareBP);
     }
 
     /// @notice assert the setFeeDisbursementInterval function reverts when the caller is not the owner

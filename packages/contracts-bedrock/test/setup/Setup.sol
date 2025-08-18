@@ -323,9 +323,7 @@ contract Setup {
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
                 feeSplitterRevenueShareRecipient: deploy.cfg().feeSplitterRevenueShareRecipient(),
                 feeSplitterRevenueRemainderRecipient: deploy.cfg().feeSplitterRevenueRemainderRecipient(),
-                feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval(),
-                feeSplitterNetFeeShareBP: deploy.cfg().feeSplitterNetFeeShareBP(),
-                feeSplitterGrossFeeShareBP: deploy.cfg().feeSplitterGrossFeeShareBP()
+                feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval()
             })
         );
 

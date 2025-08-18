@@ -250,14 +250,4 @@ library Config {
     function feeSplitterFeeDisbursementInterval() internal view returns (uint256) {
         return vm.envOr("FEE_SPLITTER_FEE_DISBURSEMENT_INTERVAL", uint256(86400));
     }
-
-    /// @notice Returns the net fee share basis points for the FeeSplitter predeploy.
-    function feeSplitterNetFeeShareBP() internal view returns (uint256) {
-        return vm.envOr("FEE_SPLITTER_NET_FEE_SHARE_BP", uint256(1500));
-    }
-
-    /// @notice Returns the gross fee share basis points for the FeeSplitter predeploy.
-    function feeSplitterGrossFeeShareBP() internal view returns (uint256) {
-        return vm.envOr("FEE_SPLITTER_GROSS_FEE_SHARE_BP", uint256(250));
-    }
 }
