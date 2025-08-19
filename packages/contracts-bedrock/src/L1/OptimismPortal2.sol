@@ -636,6 +636,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     )
         public
     {
+        // Cannot finalize withdrawal with value when custom gas token mode is enabled.
+        if (isCustomGasToken && _tx.value > 0) {
+            revert OptimismPortal_NotAllowedOnCGTMode();
+        }
+
         // Cannot finalize withdrawal transactions while the system is paused.
         _assertNotPaused();
 
