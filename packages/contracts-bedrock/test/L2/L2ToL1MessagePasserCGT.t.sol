@@ -18,7 +18,7 @@ contract L2ToL1MessagePasserCGT_TestInit is CommonTest {
     function setUp() public override {
         super.enableCustomGasToken();
         super.setUp();
-        
+
         // Manually activate custom gas token since we removed the constructor parameter
         address depositor = l1Block.DEPOSITOR_ACCOUNT();
         vm.prank(depositor);
