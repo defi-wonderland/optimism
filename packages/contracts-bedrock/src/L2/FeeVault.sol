@@ -41,9 +41,9 @@ abstract contract FeeVault is ProxyAdminOwnedBase, Initializable {
     uint32 internal constant WITHDRAWAL_MIN_GAS = 400_000;
 
     /// @notice Flag positions for configuration tracking.
-    uint8 private constant RECIPIENT_FLAG = 0;
-    uint8 private constant MIN_WITHDRAWAL_AMOUNT_FLAG = 1;
-    uint8 private constant WITHDRAWAL_NETWORK_FLAG = 2;
+    uint8 internal constant RECIPIENT_FLAG = 0;
+    uint8 internal constant MIN_WITHDRAWAL_AMOUNT_FLAG = 1;
+    uint8 internal constant WITHDRAWAL_NETWORK_FLAG = 2;
 
     /// @notice Total amount of wei processed by the contract.
     uint256 public totalProcessed;
@@ -122,29 +122,6 @@ abstract contract FeeVault is ProxyAdminOwnedBase, Initializable {
         return (_configFlags & uint8(1 << flagPosition)) != 0;
     }
 
-    /// @notice Initializes the FeeVault with the current configuration.
-    /// @param _newRecipient           Wallet that will receive the fees.
-    /// @param _newMinWithdrawalAmount Minimum balance for withdrawals.
-    /// @param _newWithdrawalNetwork   Network which the recipient will receive fees on.
-    function __FeeVault_init(
-        address _newRecipient,
-        uint256 _newMinWithdrawalAmount,
-        Types.WithdrawalNetwork _newWithdrawalNetwork
-    )
-        public
-        onlyInitializing
-    {
-        _assertOnlyProxyAdminOwner();
-
-        _recipient = _newRecipient;
-        _minWithdrawalAmount = _newMinWithdrawalAmount;
-        _withdrawalNetwork = _newWithdrawalNetwork;
-
-        // Set all configuration flags to indicate values have been set by initialization
-        _setConfigFlag(RECIPIENT_FLAG);
-        _setConfigFlag(MIN_WITHDRAWAL_AMOUNT_FLAG);
-        _setConfigFlag(WITHDRAWAL_NETWORK_FLAG);
-    }
 
     /// @notice Allow the contract to receive ETH.
     receive() external payable { }

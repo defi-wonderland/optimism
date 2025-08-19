@@ -16,23 +16,13 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @notice The BaseFeeVault accumulates the base fee that is paid by transactions.
 contract BaseFeeVault is FeeVault, ISemver {
     /// @notice Semantic version.
-    /// @custom:semver 1.6.0
-    string public constant version = "1.6.0";
+    /// @custom:semver 1.5.2
+    string public constant version = "1.5.2";
 
     /// @notice Constructs the BaseFeeVault contract.
+    /// @param _currentRecipient         Wallet that will receive the fees.
+    /// @param _currentMinWithdrawAmount Minimum balance for withdrawals.
+    /// @param _currentWithdrawNetwrok   Network which the recipient will receive fees on.
+    constructor(address _currentRecipient, uint256 _currentMinWithdrawAmount, Types.WithdrawalNetwork _currentWithdrawNetwrok) FeeVault(_currentRecipient, _currentMinWithdrawAmount, _currentWithdrawNetwrok) { }
 
-    /// @notice Initializes the BaseFeeVault contract.
-    /// @param _recipient           Wallet that will receive the fees.
-    /// @param _minWithdrawalAmount Minimum balance for withdrawals.
-    /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
-    function initialize(
-        address _recipient,
-        uint256 _minWithdrawalAmount,
-        Types.WithdrawalNetwork _withdrawalNetwork
-    )
-        external
-        reinitializer(1)
-    {
-        __FeeVault_init(_recipient, _minWithdrawalAmount, _withdrawalNetwork);
-    }
 }
