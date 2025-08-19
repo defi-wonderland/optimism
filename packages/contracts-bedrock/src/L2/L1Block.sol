@@ -22,9 +22,6 @@ contract L1Block is ISemver {
         addr_ = Constants.DEPOSITOR_ACCOUNT;
     }
 
-    /// @notice Whether the gas paying token is custom.
-    bool public immutable isCustomGasToken;
-
     /// @notice The latest L1 block number known by the L2 system.
     uint64 public number;
 
@@ -66,9 +63,8 @@ contract L1Block is ISemver {
     /// @notice The scalar value applied to the operator fee.
     uint32 public operatorFeeScalar;
 
-    constructor(bool _isCustomGasToken) {
-        isCustomGasToken = _isCustomGasToken;
-    }
+    /// @notice Whether the gas paying token is custom.
+    bool public isCustomGasToken;
 
     /// @custom:semver 1.6.2
     function version() public pure virtual returns (string memory) {
@@ -209,5 +205,15 @@ contract L1Block is ISemver {
             // operatorFeeScalar (uint32), operatorFeeConstant (uint64)
             sstore(operatorFeeConstant.slot, shr(160, calldataload(164)))
         }
+    }
+
+    /// @notice Set chain to use custom gas token (callable by depositor account)
+    function setCustomGasToken() external {
+        require(
+            msg.sender == Constants.DEPOSITOR_ACCOUNT,
+            "L1Block: only the depositor account can set isCustomGasToken flag"
+        );
+        require(isCustomGasToken == false, "L1Block: CustomGasToken already active");
+        isCustomGasToken = true;
     }
 }

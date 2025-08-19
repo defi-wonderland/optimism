@@ -18,13 +18,18 @@ contract L2ToL1MessagePasserCGT_TestInit is CommonTest {
     function setUp() public override {
         super.enableCustomGasToken();
         super.setUp();
+        
+        // Manually activate custom gas token since we removed the constructor parameter
+        address depositor = l1Block.DEPOSITOR_ACCOUNT();
+        vm.prank(depositor);
+        l1Block.setCustomGasToken();
     }
 }
 
-/// @title L2ToL1MessagePasser_CGT_InitiateWithdrawal_Test
+/// @title L2ToL1MessagePasserCGT_InitiateWithdrawal_Test
 /// @notice Tests the `initiateWithdrawal` function of the `L2ToL1MessagePasser` contract with
 ///         custom gas token enabled.
-contract L2ToL1MessagePasser_CGT_InitiateWithdrawal_Test is L2ToL1MessagePasserCGT_TestInit {
+contract L2ToL1MessagePasserCGT_InitiateWithdrawal_Test is L2ToL1MessagePasserCGT_TestInit {
     /// @notice Tests that `initiateWithdrawal` succeeds and correctly sets the state of the
     ///         message passer for the withdrawal hash.
     function testFuzz_initiateWithdrawal_withZeroValue_succeeds(
