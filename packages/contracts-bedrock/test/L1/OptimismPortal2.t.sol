@@ -1203,8 +1203,6 @@ contract OptimismPortal2_ProveWithdrawalTransaction_Test is OptimismPortal2_Test
 /// @title OptimismPortal2_FinalizeWithdrawalTransaction_Test
 /// @notice Test contract for OptimismPortal2 `finalizeWithdrawalTransaction` function.
 contract OptimismPortal2_FinalizeWithdrawalTransaction_Test is OptimismPortal2_TestInit {
-    using stdStorage for StdStorage;
-
     /// @notice Tests that `finalizeWithdrawalTransaction` reverts when the target is the portal
     ///         contract or the lockbox.
     function test_finalizeWithdrawalTransaction_badTarget_reverts() external {
@@ -2289,8 +2287,6 @@ contract OptimismPortal2_CheckWithdrawal_Test is OptimismPortal2_TestInit {
 /// @title OptimismPortal2_DepositTransaction_Test
 /// @notice Test contract for OptimismPortal2 `depositTransaction` function.
 contract OptimismPortal2_DepositTransaction_Test is OptimismPortal2_TestInit {
-    using stdStorage for StdStorage;
-
     /// @notice Tests that `depositTransaction` reverts when the destination address is non-zero
     ///         for a contract creation deposit.
     function test_depositTransaction_contractCreation_reverts() external {
@@ -2662,8 +2658,6 @@ contract OptimismPortal2_Params_Test is CommonTest {
 /// @title OptimismPortal2_CustomGasToken_Test
 /// @notice Test suite for OptimismPortal2 with custom gas token enabled.
 contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
-    using stdStorage for StdStorage;
-
     /// @notice Sets up a portal with custom gas token enabled
     function setUp() public override {
         super.setUp();
