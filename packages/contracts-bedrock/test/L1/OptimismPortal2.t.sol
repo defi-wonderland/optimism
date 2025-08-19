@@ -2189,6 +2189,8 @@ contract OptimismPortal2_CheckWithdrawal_Test is OptimismPortal2_TestInit {
 /// @title OptimismPortal2_DepositTransaction_Test
 /// @notice Test contract for OptimismPortal2 `depositTransaction` function.
 contract OptimismPortal2_DepositTransaction_Test is OptimismPortal2_TestInit {
+    using stdStorage for StdStorage;
+
     /// @notice Tests that `depositTransaction` reverts when the destination address is non-zero
     ///         for a contract creation deposit.
     function test_depositTransaction_contractCreation_reverts() external {
@@ -2224,7 +2226,7 @@ contract OptimismPortal2_DepositTransaction_Test is OptimismPortal2_TestInit {
         // Prevent overflow on an upgrade context
         _value = bound(_value, 1, type(uint256).max - address(ethLockbox).balance);
         // Set the custom gas token to true.
-        vm.mockCall(address(systemConfig), abi.encodeCall(systemConfig.isCustomGasToken, ()), abi.encode(true));
+        stdstore.enable_packed_slots().target(address(optimismPortal2)).sig("isCustomGasToken()").checked_write(true);
         uint64 gasLimit = optimismPortal2.minimumGasLimit(uint64(_data.length));
 
         vm.deal(depositor, _value);
