@@ -12,9 +12,9 @@ import {
 // Libraries
 import "src/libraries/L1BlockErrors.sol";
 
-/// @title L1Block_CGT_TestInit
+/// @title L1BlockCGT_TestInit
 /// @notice Reusable test initialization for `L1Block` tests with custom gas token enabled.
-contract L1Block_CGT_TestInit is CommonTest {
+contract L1BlockCGT_TestInit is CommonTest {
     address depositor;
 
     /// @notice Sets up the test suite.
@@ -28,7 +28,7 @@ contract L1Block_CGT_TestInit is CommonTest {
 /// @title L1Block_CGT_GasPayingTokenName_Test
 /// @notice Tests the `gasPayingTokenName` function of the `L1Block` contract with custom gas
 ///         token enabled.
-contract L1Block_CGT_GasPayingTokenName_Test is L1Block_CGT_TestInit {
+contract L1Block_CGT_GasPayingTokenName_Test is L1BlockCGT_TestInit {
     /// @notice Tests that the `gasPayingTokenName` function returns the correct token name.
     function test_gasPayingTokenName_succeeds() external view {
         assertEq(liquidityController.gasPayingTokenName(), l1Block.gasPayingTokenName());
@@ -38,7 +38,7 @@ contract L1Block_CGT_GasPayingTokenName_Test is L1Block_CGT_TestInit {
 /// @title L1Block_CGT_GasPayingTokenSymbol_Test
 /// @notice Tests the `gasPayingTokenSymbol` function of the `L1Block` contract with custom gas
 ///         token enabled.
-contract L1Block_CGT_GasPayingTokenSymbol_Test is L1Block_CGT_TestInit {
+contract L1Block_CGT_GasPayingTokenSymbol_Test is L1BlockCGT_TestInit {
     /// @notice Tests that the `gasPayingTokenSymbol` function returns the correct token symbol.
     function test_gasPayingTokenSymbol_succeeds() external view {
         assertEq(liquidityController.gasPayingTokenSymbol(), l1Block.gasPayingTokenSymbol());
@@ -48,7 +48,7 @@ contract L1Block_CGT_GasPayingTokenSymbol_Test is L1Block_CGT_TestInit {
 /// @title L1Block_CGT_IsCustomGasToken_Test
 /// @notice Tests the `isCustomGasToken` function of the `L1Block` contract with custom gas token
 ///         enabled.
-contract L1Block_CGT_IsCustomGasToken_Test is L1Block_CGT_TestInit {
+contract L1Block_CGT_IsCustomGasToken_Test is L1BlockCGT_TestInit {
     /// @notice Tests that the `isCustomGasToken` function returns false when no custom gas token
     ///         is used.
     function test_isCustomGasToken_succeeds() external view {
