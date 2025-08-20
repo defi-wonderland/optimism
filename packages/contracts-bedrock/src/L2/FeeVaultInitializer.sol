@@ -89,10 +89,32 @@ contract FeeVaultInitializer is ISemver {
 
     function _deployBaseFeeVault() internal {
         // Get current values from the existing fee vault
-        address recipient = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).recipient();
-        Types.WithdrawalNetwork network = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).withdrawalNetwork();
-        uint256 minWithdrawalAmount = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount();
+        address recipient;
+        Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         address currentImplementation = IProxy(payable(Predeploys.BASE_FEE_VAULT)).implementation();
+
+        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
+        try FeeVault(payable(Predeploys.BASE_FEE_VAULT)).recipient() returns (address _recipient) {
+            recipient = _recipient;
+        } catch {
+            // Legacy implementation - try snake_case function
+            recipient = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).RECIPIENT();
+        }
+
+        try FeeVault(payable(Predeploys.BASE_FEE_VAULT)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
+            network = _network;
+        } catch {
+            // Legacy implementation - try snake_case function
+            network = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).WITHDRAWAL_NETWORK();
+        }
+
+        try FeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
+            minWithdrawalAmount = _minWithdrawalAmount;
+        } catch {
+            // Legacy implementation - try snake_case function
+            minWithdrawalAmount = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
+        }
 
         // Deploy new implementation with current values as immutables
         BaseFeeVault newBaseFeeVault = new BaseFeeVault(recipient, minWithdrawalAmount, network);
@@ -108,10 +130,32 @@ contract FeeVaultInitializer is ISemver {
 
     function _deploySequencerFeeVault() internal {
         // Get current values from the existing fee vault
-        address recipient = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).recipient();
-        Types.WithdrawalNetwork network = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).withdrawalNetwork();
-        uint256 minWithdrawalAmount = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount();
+        address recipient;
+        Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         address currentImplementation = IProxy(payable(Predeploys.SEQUENCER_FEE_WALLET)).implementation();
+
+        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
+        try FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).recipient() returns (address _recipient) {
+            recipient = _recipient;
+        } catch {
+            // Legacy implementation - try snake_case function
+            recipient = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).RECIPIENT();
+        }
+
+        try FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
+            network = _network;
+        } catch {
+            // Legacy implementation - try snake_case function
+            network = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).WITHDRAWAL_NETWORK();
+        }
+
+        try FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
+            minWithdrawalAmount = _minWithdrawalAmount;
+        } catch {
+            // Legacy implementation - try snake_case function
+            minWithdrawalAmount = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).MIN_WITHDRAWAL_AMOUNT();
+        }
 
         // Deploy new implementation with current values as immutables
         SequencerFeeVault newSequencerFeeVault = new SequencerFeeVault(recipient, minWithdrawalAmount, network);
@@ -127,10 +171,32 @@ contract FeeVaultInitializer is ISemver {
 
     function _deployL1FeeVault() internal {
         // Get current values from the existing fee vault
-        address recipient = FeeVault(payable(Predeploys.L1_FEE_VAULT)).recipient();
-        Types.WithdrawalNetwork network = FeeVault(payable(Predeploys.L1_FEE_VAULT)).withdrawalNetwork();
-        uint256 minWithdrawalAmount = FeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount();
+        address recipient;
+        Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         address currentImplementation = IProxy(payable(Predeploys.L1_FEE_VAULT)).implementation();
+
+        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
+        try FeeVault(payable(Predeploys.L1_FEE_VAULT)).recipient() returns (address _recipient) {
+            recipient = _recipient;
+        } catch {
+            // Legacy implementation - try snake_case function
+            recipient = FeeVault(payable(Predeploys.L1_FEE_VAULT)).RECIPIENT();
+        }
+
+        try FeeVault(payable(Predeploys.L1_FEE_VAULT)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
+            network = _network;
+        } catch {
+            // Legacy implementation - try snake_case function
+            network = FeeVault(payable(Predeploys.L1_FEE_VAULT)).WITHDRAWAL_NETWORK();
+        }
+
+        try FeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
+            minWithdrawalAmount = _minWithdrawalAmount;
+        } catch {
+            // Legacy implementation - try snake_case function
+            minWithdrawalAmount = FeeVault(payable(Predeploys.L1_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
+        }
 
         // Deploy new implementation with current values as immutables
         L1FeeVault newL1FeeVault = new L1FeeVault(recipient, minWithdrawalAmount, network);
@@ -146,10 +212,32 @@ contract FeeVaultInitializer is ISemver {
 
     function _deployOperatorFeeVault() internal {
         // Get current values from the existing fee vault
-        address recipient = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).recipient();
-        Types.WithdrawalNetwork network = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).withdrawalNetwork();
-        uint256 minWithdrawalAmount = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount();
+        address recipient;
+        Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         address currentImplementation = IProxy(payable(Predeploys.OPERATOR_FEE_VAULT)).implementation();
+
+        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
+        try FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).recipient() returns (address _recipient) {
+            recipient = _recipient;
+        } catch {
+            // Legacy implementation - try snake_case function
+            recipient = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).RECIPIENT();
+        }
+
+        try FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
+            network = _network;
+        } catch {
+            // Legacy implementation - try snake_case function
+            network = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).WITHDRAWAL_NETWORK();
+        }
+
+        try FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
+            minWithdrawalAmount = _minWithdrawalAmount;
+        } catch {
+            // Legacy implementation - try snake_case function
+            minWithdrawalAmount = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
+        }
 
         // Deploy new implementation with current values as immutables
         OperatorFeeVault newOperatorFeeVault = new OperatorFeeVault(recipient, minWithdrawalAmount, network);
