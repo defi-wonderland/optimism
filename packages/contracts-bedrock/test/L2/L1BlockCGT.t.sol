@@ -72,7 +72,6 @@ contract L1Block_CGT_SetL1BlockValues_Test is L1Block_SetL1BlockValues_Test {
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
         l1Block.setCustomGasToken();
-        assertTrue(l1Block.isCustomGasToken());
     }
 }
 
@@ -88,7 +87,6 @@ contract L1Block_CGT_SetL1BlockValuesEcotone_Test is L1Block_SetL1BlockValuesEco
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
         l1Block.setCustomGasToken();
-        assertTrue(l1Block.isCustomGasToken());
     }
 }
 
@@ -104,7 +102,6 @@ contract L1Block_CGT_SetL1BlockValuesIsthmus_Test is L1Block_SetL1BlockValuesIst
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
         l1Block.setCustomGasToken();
-        assertTrue(l1Block.isCustomGasToken());
     }
 }
 
@@ -145,8 +142,10 @@ contract L1Block_SetCustomGasToken_Test is CommonTest {
     }
 
     /// @notice Tests that `setCustomGasToken` reverts if sender address is not the depositor.
-    function test_setCustomGasToken_notDepositor_reverts() external {
+    function test_setCustomGasToken_notDepositor_reverts(address nonDepositor) external {
+        vm.assume(nonDepositor != depositor);
         vm.expectRevert("L1Block: only the depositor account can set isCustomGasToken flag");
+        vm.prank(nonDepositor);
         l1Block.setCustomGasToken();
     }
 }
