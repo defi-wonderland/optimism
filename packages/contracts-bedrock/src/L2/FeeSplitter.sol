@@ -15,14 +15,13 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 
 // OpenZeppelin
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @custom:proxied
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title FeeSplitter
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.
-contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
+contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee recipient address is zero.
     error FeeSplitter_RevenueShareRecipientCannotBeZero();
 
@@ -31,12 +30,6 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
 
     /// @notice Thrown when the fee disbursement interval is less than 24 hours.
     error FeeSplitter_FeeDisbursementIntervalTooShort();
-
-    /// @notice Thrown when the fee share exceeds 100%.
-    error FeeSplitter_FeeShareBPExceeds100Percent();
-
-    /// @notice Thrown when the gross fee share exceeds 100%.
-    error FeeSplitter_GrossFeeShareBPExceeds100Percent();
 
     /// @notice Thrown when the disbursement interval has not been reached.
     error FeeSplitter_DisbursementIntervalNotReached();
@@ -201,8 +194,7 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
     /// @notice Modifier that restricts access to the ProxyAdmin owner.
     modifier onlyProxyAdminOwner() {
         if (
-            IProxyAdmin(Predeploys.PROXY_ADMIN).owner() == address(0)
-                || msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()
+            msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()
         ) {
             revert FeeSplitter_OnlyProxyAdminOwner();
         }
@@ -225,7 +217,7 @@ contract FeeSplitter is ISemver, Initializable, ReentrancyGuard {
 
     /// @notice Withdraws funds from FeeVaults, sends the fee share to the fee share recipient, and sends the remainder
     /// to the remainder recipient.
-    function disburseFees() external nonReentrant {
+    function disburseFees() external {
         if (block.timestamp < lastDisbursementTime + feeDisbursementInterval) {
             revert FeeSplitter_DisbursementIntervalNotReached();
         }
