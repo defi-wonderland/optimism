@@ -77,7 +77,6 @@ func (recipe *InteropDevRecipe) Build(addrs devkeys.Addresses) (*WorldConfig, er
 		Challenger:            challenger,
 		Deployer:              superchainDeployer,
 		Implementations: OPCMImplementationsConfig{
-			L1ContractsRelease: "dev",
 			FaultProof: SuperFaultProofConfig{
 				WithdrawalDelaySeconds:          big.NewInt(302400),
 				MinProposalSizeBytes:            big.NewInt(10000),
@@ -244,7 +243,7 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 				GasPriceOracleBlobBaseFeeScalar: 810949,
 			},
 			GasTokenDeployConfig: genesis.GasTokenDeployConfig{
-				UseCustomGasToken: false,
+				IsCustomGasToken: false,
 			},
 			OperatorDeployConfig: genesis.OperatorDeployConfig{
 				P2PSequencerAddress: sequencerP2P,
@@ -264,8 +263,8 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 				L2GenesisGraniteTimeOffset:  new(hexutil.Uint64),
 				L2GenesisHoloceneTimeOffset: new(hexutil.Uint64),
 				L2GenesisIsthmusTimeOffset:  new(hexutil.Uint64),
+				L2GenesisJovianTimeOffset:   new(hexutil.Uint64),
 				L2GenesisInteropTimeOffset:  (*hexutil.Uint64)(&r.InteropOffset),
-				L2GenesisJovianTimeOffset:   nil,
 				L1CancunTimeOffset:          new(hexutil.Uint64),
 				L1PragueTimeOffset:          new(hexutil.Uint64),
 			},

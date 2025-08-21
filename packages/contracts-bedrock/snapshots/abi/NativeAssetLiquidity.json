@@ -1,20 +1,14 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "burn",
+    "inputs": [],
+    "name": "deposit",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "deposit",
+    "name": "fund",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -61,7 +55,7 @@
         "type": "uint256"
       }
     ],
-    "name": "LiquidityBurned",
+    "name": "LiquidityDeposited",
     "type": "event"
   },
   {
@@ -70,7 +64,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "caller",
+        "name": "funder",
         "type": "address"
       },
       {
@@ -80,7 +74,7 @@
         "type": "uint256"
       }
     ],
-    "name": "LiquidityDeposited",
+    "name": "LiquidityFunded",
     "type": "event"
   },
   {
@@ -101,6 +95,11 @@
     ],
     "name": "LiquidityWithdrawn",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidAmount",
+    "type": "error"
   },
   {
     "inputs": [],

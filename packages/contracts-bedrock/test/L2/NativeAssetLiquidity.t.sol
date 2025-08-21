@@ -5,15 +5,7 @@ pragma solidity 0.8.15;
 import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Error imports
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-
-// Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
-
-// Interfaces
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
-
-import "forge-std/console.sol";
+import { Unauthorized, InvalidAmount } from "src/libraries/errors/CommonErrors.sol";
 
 /// @title NativeAssetLiquidity_TestInit
 /// @notice Reusable test initialization for `NativeAssetLiquidity` tests.
@@ -24,8 +16,8 @@ contract NativeAssetLiquidity_TestInit is CommonTest {
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
 
-    /// @notice Emitted when an address burns native asset liquidity.
-    event LiquidityBurned(address indexed caller, uint256 value);
+    /// @notice Emitted when an address funds the contract.
+    event LiquidityFunded(address indexed funder, uint256 value);
 
     /// @notice Test setup.
     function setUp() public virtual override {
@@ -153,30 +145,40 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
     }
 }
 
-/// @title NativeAssetLiquidity_Burn_Test
-/// @notice Tests the `burn` function of the `NativeAssetLiquidity` contract.
-contract NativeAssetLiquidity_Burn_Test is NativeAssetLiquidity_TestInit {
-    /// @notice Tests that the burn function can be called by the ProxyAdmin owner.
-    /// @param _amount Amount of native asset (in wei) to call the burn function with.
-    function test_burn_fromAuthorizedCaller_succeeds(uint256 _amount) public {
-        _amount = bound(_amount, 1, type(uint248).max);
+/// @title NativeAssetLiquidity_Fund_Test
+/// @notice Tests the `fund` function of the `NativeAssetLiquidity` contract.
+contract NativeAssetLiquidity_Fund_Test is NativeAssetLiquidity_TestInit {
+    /// @notice Tests that the fund function succeeds when called with a non-zero value.
+    /// @param _amount Amount of native asset (in wei) to call the fund function with.
+    /// @param _caller Address of the caller to call the fund function with.
+    function testFuzz_fund_succeeds(uint256 _amount, address _caller) public {
+        _amount = bound(_amount, 1, 1000 ether);
+        vm.assume(_caller != address(0));
+        vm.assume(_caller != address(nativeAssetLiquidity)); // Prevent contract from calling itself
 
-        uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;
+        // Deal caller with the amount to fund
+        vm.deal(_caller, _amount);
+        uint256 initialContractBalance = address(nativeAssetLiquidity).balance;
 
-        address deployer = address(nativeAssetLiquidity);
-        uint256 nonce = vm.getNonce(deployer);
-        address precalculatedBurner = vm.computeCreateAddress(deployer, nonce);
-
-        // Call the burn function with ProxyAdmin owner as the caller
+        // Expect emit LiquidityFunded event
         vm.expectEmit(address(nativeAssetLiquidity));
-        emit LiquidityBurned(IProxyAdmin(Predeploys.PROXY_ADMIN).owner(), _amount);
-        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
-        nativeAssetLiquidity.burn(_amount);
+        emit LiquidityFunded(_caller, _amount);
+        vm.prank(_caller);
+        nativeAssetLiquidity.fund{ value: _amount }();
 
-        // Assert NativeAssetLiquidity balance is updated correctly
-        assertEq(address(nativeAssetLiquidity).balance, nativeAssetBalanceBefore - _amount);
+        // Assert caller and contract balances are updated correctly
+        assertEq(_caller.balance, 0);
+        assertEq(address(nativeAssetLiquidity).balance, initialContractBalance + _amount);
+    }
 
-        // Assert burner balance is 0
-        assertEq(precalculatedBurner.balance, 0);
+    /// @notice Tests that the fund function reverts when called with zero value.
+    function test_fund_zeroAmount_reverts() public {
+        uint256 initialContractBalance = address(nativeAssetLiquidity).balance;
+        // Expect revert with InvalidAmount
+        vm.expectRevert(InvalidAmount.selector);
+        nativeAssetLiquidity.fund{ value: 0 }();
+
+        // Assert contract balance does not change
+        assertEq(address(nativeAssetLiquidity).balance, initialContractBalance);
     }
 }

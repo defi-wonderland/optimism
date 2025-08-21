@@ -125,6 +125,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Whether the OptimismPortal is using Super Roots or Output Roots.
     bool public superRootsActive;
 
+    /// @notice Whether the gas token is custom.
+    bool public isCustomGasToken;
+
     /// @notice Emitted when a transaction is deposited from L1 to L2. The parameters of this event
     ///         are read by the rollup node and used to derive deposit transactions on L2.
     /// @param from       Address that triggered the deposit transaction.
@@ -250,10 +253,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param _systemConfig Address of the SystemConfig.
     /// @param _anchorStateRegistry Address of the AnchorStateRegistry.
     /// @param _ethLockbox Contract of the ETHLockbox.
+    /// @param _isCustomGasToken Whether the gas token is custom.
     function initialize(
         ISystemConfig _systemConfig,
         IAnchorStateRegistry _anchorStateRegistry,
-        IETHLockbox _ethLockbox
+        IETHLockbox _ethLockbox,
+        bool _isCustomGasToken
     )
         external
         reinitializer(initVersion())
@@ -265,6 +270,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         systemConfig = _systemConfig;
         anchorStateRegistry = _anchorStateRegistry;
         ethLockbox = _ethLockbox;
+        isCustomGasToken = _isCustomGasToken;
 
         // Set the l2Sender slot, only if it is currently empty. This signals the first
         // initialization of the contract.
@@ -753,7 +759,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     {
         // Handle ETH deposits: prevent when custom gas token is active, otherwise lock in ETHLockbox.
         if (msg.value > 0) {
-            if (systemConfig.isCustomGasToken()) {
+            if (isCustomGasToken) {
                 revert OptimismPortal_NotAllowedOnCGTMode();
             }
             ethLockbox.lockETH{ value: msg.value }();

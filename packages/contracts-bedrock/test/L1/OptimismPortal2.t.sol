@@ -9,6 +9,8 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { NextImpl } from "test/mocks/NextImpl.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { DisputeGameFactory_TestInit } from "test/dispute/DisputeGameFactory.t.sol";
+import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
+import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
 
 // Scripts
 import { ForgeArtifacts, StorageSlot } from "scripts/libraries/ForgeArtifacts.sol";
@@ -189,6 +191,7 @@ contract OptimismPortal2_Initialize_Test is OptimismPortal2_TestInit {
         assertEq(optimismPortal2.paused(), false);
         assertEq(address(optimismPortal2.systemConfig()), address(systemConfig));
         assertEq(address(optimismPortal2.ethLockbox()), address(ethLockbox));
+        assertFalse(OptimismPortal2(payable(address(optimismPortal2))).isCustomGasToken());
 
         returnIfForkTest(
             "OptimismPortal2_Initialize_Test: Do not check guardian and respectedGameType on forked networks"
@@ -234,7 +237,7 @@ contract OptimismPortal2_Initialize_Test is OptimismPortal2_TestInit {
 
         // Call the `initialize` function with the sender
         vm.prank(_sender);
-        optimismPortal2.initialize(systemConfig, anchorStateRegistry, ethLockbox);
+        optimismPortal2.initialize(systemConfig, anchorStateRegistry, ethLockbox, false);
     }
 }
 
@@ -350,13 +353,166 @@ contract OptimismPortal2_Upgrade_Test is CommonTest {
 /// @title OptimismPortal2_MinimumGasLimit_Test
 /// @notice Test contract for OptimismPortal2 `minimumGasLimit` function.
 contract OptimismPortal2_MinimumGasLimit_Test is OptimismPortal2_TestInit {
-    /// @notice Tests that `minimumGasLimit` succeeds for small calldata sizes.
+    /// @notice Tests that `minimumGasLimit` succeeds for various calldata sizes.
     /// @dev The gas limit should be 21k for 0 calldata and increase linearly for larger calldata
     ///      sizes.
-    function test_minimumGasLimit_succeeds() external view {
+    function test_minimumGasLimit_zeroCalldata_succeeds() external view {
         assertEq(optimismPortal2.minimumGasLimit(0), 21_000);
-        assertTrue(optimismPortal2.minimumGasLimit(2) > optimismPortal2.minimumGasLimit(1));
-        assertTrue(optimismPortal2.minimumGasLimit(3) > optimismPortal2.minimumGasLimit(2));
+    }
+
+    /// @notice Tests that `minimumGasLimit` increases linearly with calldata size.
+    function testFuzz_minimumGasLimit_increasesLinearly_succeeds(uint64 _byteCount) external view {
+        // Bound to prevent overflow: ensure _byteCount * 40 + 21000 fits in uint64
+        // Max safe value: (type(uint64).max - 21000) / 40
+        _byteCount = uint64(bound(_byteCount, 1, (type(uint64).max - 21_000) / 40 - 1));
+
+        uint64 gasLimit1 = optimismPortal2.minimumGasLimit(_byteCount);
+        uint64 gasLimit2 = optimismPortal2.minimumGasLimit(_byteCount + 1);
+
+        // Should increase by exactly 40 gas per byte
+        assertEq(gasLimit2, gasLimit1 + 40);
+
+        // Should always be at least 21k base cost + linear increase
+        assertEq(gasLimit1, 21_000 + (_byteCount * 40));
+    }
+}
+
+/// @title OptimismPortal2_Paused_Test
+/// @notice Test contract for OptimismPortal2 `paused` function.
+contract OptimismPortal2_Paused_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `paused` returns the correct paused status.
+    function test_paused_succeeds() external view {
+        assertEq(optimismPortal2.paused(), systemConfig.paused());
+    }
+}
+
+/// @title OptimismPortal2_ProofMaturityDelaySeconds_Test
+/// @notice Test contract for OptimismPortal2 `proofMaturityDelaySeconds` function.
+contract OptimismPortal2_ProofMaturityDelaySeconds_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `proofMaturityDelaySeconds` returns the correct delay.
+    function test_proofMaturityDelaySeconds_succeeds() external view {
+        assertTrue(optimismPortal2.proofMaturityDelaySeconds() > 0);
+    }
+}
+
+/// @title OptimismPortal2_DisputeGameFactory_Test
+/// @notice Test contract for OptimismPortal2 `disputeGameFactory` function.
+contract OptimismPortal2_DisputeGameFactory_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `disputeGameFactory` returns the correct address.
+    function test_disputeGameFactory_succeeds() external view {
+        assertEq(address(optimismPortal2.disputeGameFactory()), address(disputeGameFactory));
+    }
+}
+
+/// @title OptimismPortal2_SuperchainConfig_Test
+/// @notice Test contract for OptimismPortal2 `superchainConfig` function.
+contract OptimismPortal2_SuperchainConfig_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `superchainConfig` returns the correct address.
+    function test_superchainConfig_succeeds() external view {
+        assertEq(address(optimismPortal2.superchainConfig()), address(superchainConfig));
+    }
+}
+
+/// @title OptimismPortal2_Guardian_Test
+/// @notice Test contract for OptimismPortal2 `guardian` function.
+contract OptimismPortal2_Guardian_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `guardian` returns the correct address.
+    function test_guardian_succeeds() external view {
+        assertEq(optimismPortal2.guardian(), systemConfig.guardian());
+    }
+}
+
+/// @title OptimismPortal2_DisputeGameFinalityDelaySeconds_Test
+/// @notice Test contract for OptimismPortal2 `disputeGameFinalityDelaySeconds` function.
+contract OptimismPortal2_DisputeGameFinalityDelaySeconds_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `disputeGameFinalityDelaySeconds` returns the correct delay.
+    function test_disputeGameFinalityDelaySeconds_succeeds() external view {
+        assertEq(
+            optimismPortal2.disputeGameFinalityDelaySeconds(), anchorStateRegistry.disputeGameFinalityDelaySeconds()
+        );
+    }
+}
+
+/// @title OptimismPortal2_RespectedGameType_Test
+/// @notice Test contract for OptimismPortal2 `respectedGameType` function.
+contract OptimismPortal2_RespectedGameType_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `respectedGameType` returns the correct game type.
+    function test_respectedGameType_succeeds() external view {
+        assertEq(optimismPortal2.respectedGameType().raw(), anchorStateRegistry.respectedGameType().raw());
+    }
+}
+
+/// @title OptimismPortal2_RespectedGameTypeUpdatedAt_Test
+/// @notice Test contract for OptimismPortal2 `respectedGameTypeUpdatedAt` function.
+contract OptimismPortal2_RespectedGameTypeUpdatedAt_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `respectedGameTypeUpdatedAt` returns the correct timestamp.
+    function test_respectedGameTypeUpdatedAt_succeeds() external view {
+        assertEq(optimismPortal2.respectedGameTypeUpdatedAt(), anchorStateRegistry.retirementTimestamp());
+    }
+}
+
+/// @title OptimismPortal2_DisputeGameBlacklist_Test
+/// @notice Test contract for OptimismPortal2 `disputeGameBlacklist` function.
+contract OptimismPortal2_DisputeGameBlacklist_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `disputeGameBlacklist` returns false for non-blacklisted games.
+    function test_disputeGameBlacklist_nonBlacklisted_succeeds() external view {
+        assertFalse(optimismPortal2.disputeGameBlacklist(game));
+    }
+
+    /// @notice Tests that `disputeGameBlacklist` returns the correct status for any game.
+    function testFuzz_disputeGameBlacklist_succeeds(IDisputeGame _game) external view {
+        bool expected = anchorStateRegistry.disputeGameBlacklist(_game);
+        assertEq(optimismPortal2.disputeGameBlacklist(_game), expected);
+    }
+}
+
+/// @title OptimismPortal2_NumProofSubmitters_Test
+/// @notice Test contract for OptimismPortal2 `numProofSubmitters` function.
+contract OptimismPortal2_NumProofSubmitters_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that `numProofSubmitters` returns zero for unproven withdrawals.
+    function test_numProofSubmitters_unprovenWithdrawal_succeeds() external view {
+        bytes32 withdrawalHash = Hashing.hashWithdrawal(_defaultTx);
+        assertEq(optimismPortal2.numProofSubmitters(withdrawalHash), 0);
+    }
+
+    /// @notice Tests that `numProofSubmitters` returns the correct count after proving.
+    function test_numProofSubmitters_provenWithdrawal_succeeds() external {
+        bytes32 withdrawalHash = Hashing.hashWithdrawal(_defaultTx);
+
+        // Prove the withdrawal
+        optimismPortal2.proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+
+        assertEq(optimismPortal2.numProofSubmitters(withdrawalHash), 1);
+    }
+
+    /// @notice Tests that `numProofSubmitters` increases with multiple proofs.
+    function testFuzz_numProofSubmitters_multipleProofs_succeeds(address _prover) external {
+        vm.assume(_prover != address(0) && _prover != address(this));
+        bytes32 withdrawalHash = Hashing.hashWithdrawal(_defaultTx);
+
+        // First proof by this contract
+        optimismPortal2.proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+
+        // Second proof by different prover
+        vm.prank(_prover);
+        optimismPortal2.proveWithdrawalTransaction({
+            _tx: _defaultTx,
+            _disputeGameIndex: _proposedGameIndex,
+            _outputRootProof: _outputRootProof,
+            _withdrawalProof: _withdrawalProof
+        });
+
+        assertEq(optimismPortal2.numProofSubmitters(withdrawalHash), 2);
     }
 }
 
@@ -2398,5 +2554,68 @@ contract OptimismPortal2_Params_Test is CommonTest {
         bytes32 slot21After = vm.load(address(optimismPortal2), bytes32(uint256(21)));
         bytes32 slot21Expected = NextImpl(address(optimismPortal2)).slot21Init();
         assertEq(slot21Expected, slot21After);
+    }
+}
+
+/// @title OptimismPortal2_CustomGasToken_Test
+/// @notice Test suite for OptimismPortal2 with custom gas token enabled.
+contract OptimismPortal2_CustomGasToken_Test is OptimismPortal2_TestInit {
+    using stdStorage for StdStorage;
+
+    /// @notice Sets up a portal with custom gas token enabled
+    function setUp() public override {
+        super.setUp();
+
+        // Use stdStorage to handle packed slot for isCustomGasToken
+        stdstore.enable_packed_slots().target(address(optimismPortal2)).sig("isCustomGasToken()").checked_write(true);
+    }
+
+    /// @notice Tests that isCustomGasToken storage is set correctly
+    function test_isCustomGasToken_succeeds() external view {
+        // Check that the public getter returns true
+        assertTrue(OptimismPortal2(payable(address(optimismPortal2))).isCustomGasToken());
+    }
+
+    /// @notice Tests that depositTransaction reverts when value > 0 and custom gas token is enabled
+    function testFuzz_depositTransaction_withValue_reverts(uint256 value) external {
+        value = bound(value, 1, type(uint128).max);
+        vm.deal(depositor, value);
+
+        vm.prank(depositor);
+        vm.expectRevert(IOptimismPortal.OptimismPortal_NotAllowedOnCGTMode.selector);
+        optimismPortal2.depositTransaction{ value: value }({
+            _to: address(0x40),
+            _value: value,
+            _gasLimit: 100_000,
+            _isCreation: false,
+            _data: hex""
+        });
+    }
+
+    /// @notice Tests that depositTransaction succeeds when value = 0 and custom gas token is enabled
+    function test_depositTransaction_withZeroValue_succeeds() external {
+        vm.prank(depositor);
+        optimismPortal2.depositTransaction({
+            _to: address(0x40),
+            _value: 0,
+            _gasLimit: 100_000,
+            _isCreation: false,
+            _data: hex""
+        });
+        // No revert expected
+    }
+
+    /// @notice Tests that receive() reverts when custom gas token is enabled
+    function testFuzz_receive_withCustomGasToken_reverts(uint256 value) external {
+        value = bound(value, 1, type(uint128).max);
+        vm.deal(depositor, value);
+
+        address portal = address(optimismPortal2);
+
+        vm.prank(depositor);
+        vm.expectRevert(IOptimismPortal.OptimismPortal_NotAllowedOnCGTMode.selector);
+        assembly {
+            pop(call(gas(), portal, value, 0, 0, 0, 0))
+        }
     }
 }

@@ -5,13 +5,13 @@ pragma solidity 0.8.15;
 import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Burn } from "src/libraries/Burn.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+
+// Errors
+import { Unauthorized, InvalidAmount } from "src/libraries/errors/CommonErrors.sol";
 
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title NativeAssetLiquidity
@@ -23,8 +23,8 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
 
-    /// @notice Emitted when an address burns native asset liquidity.
-    event LiquidityBurned(address indexed caller, uint256 value);
+    /// @notice Emitted when funds are received.
+    event LiquidityFunded(address indexed funder, uint256 value);
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -47,15 +47,11 @@ contract NativeAssetLiquidity is ISemver {
         emit LiquidityWithdrawn(msg.sender, _amount);
     }
 
-    /// @notice Allows to burn native asset liquidity from this contract.
-    /// @dev Burn an arbitrary amount of native supply forever, ideally to be called only once by
-    ///      the ProxyAdmin owner.
-    /// @param _amount The amount of liquidity to burn.
-    function burn(uint256 _amount) external {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
+    /// @notice Fund the contract by sending native asset.
+    /// @dev The function is payable to accept native asset.
+    function fund() external payable {
+        if (msg.value == 0) revert InvalidAmount();
 
-        Burn.eth(_amount);
-
-        emit LiquidityBurned(msg.sender, _amount);
+        emit LiquidityFunded(msg.sender, msg.value);
     }
 }

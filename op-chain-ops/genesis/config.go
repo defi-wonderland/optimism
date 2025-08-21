@@ -273,20 +273,15 @@ func (d *GasPriceOracleDeployConfig) OperatorFeeParams() [32]byte {
 
 // GasTokenDeployConfig configures the optional custom gas token functionality.
 type GasTokenDeployConfig struct {
-	// UseCustomGasToken is a flag to indicate that a custom gas token should be used
-	UseCustomGasToken bool `json:"isCustomGasToken"`
-	// CustomGasTokenAddress is the address of the ERC20 token to be used to pay for gas on L2.
-	CustomGasTokenAddress common.Address `json:"customGasTokenAddress"`
+	// IsCustomGasToken is a flag to indicate that a custom gas token should be used
+	IsCustomGasToken bool `json:"isCustomGasToken"`
 }
 
 var _ ConfigChecker = (*GasTokenDeployConfig)(nil)
 
 func (d *GasTokenDeployConfig) Check(log log.Logger) error {
-	if d.UseCustomGasToken {
-		if d.CustomGasTokenAddress == (common.Address{}) {
-			return fmt.Errorf("%w: CustomGasTokenAddress cannot be address(0)", ErrInvalidDeployConfig)
-		}
-		log.Info("Using custom gas token", "address", d.CustomGasTokenAddress)
+	if d.IsCustomGasToken {
+		log.Info("Using custom gas token")
 	}
 	return nil
 }
@@ -411,10 +406,10 @@ func (d *UpgradeScheduleDeployConfig) ForkTimeOffset(fork rollup.ForkName) *uint
 		return (*uint64)(d.L2GenesisHoloceneTimeOffset)
 	case rollup.Isthmus:
 		return (*uint64)(d.L2GenesisIsthmusTimeOffset)
-	case rollup.Interop:
-		return (*uint64)(d.L2GenesisInteropTimeOffset)
 	case rollup.Jovian:
 		return (*uint64)(d.L2GenesisJovianTimeOffset)
+	case rollup.Interop:
+		return (*uint64)(d.L2GenesisInteropTimeOffset)
 	default:
 		panic(fmt.Sprintf("unknown fork: %s", fork))
 	}
@@ -438,10 +433,10 @@ func (d *UpgradeScheduleDeployConfig) SetForkTimeOffset(fork rollup.ForkName, of
 		d.L2GenesisHoloceneTimeOffset = (*hexutil.Uint64)(offset)
 	case rollup.Isthmus:
 		d.L2GenesisIsthmusTimeOffset = (*hexutil.Uint64)(offset)
-	case rollup.Interop:
-		d.L2GenesisInteropTimeOffset = (*hexutil.Uint64)(offset)
 	case rollup.Jovian:
 		d.L2GenesisJovianTimeOffset = (*hexutil.Uint64)(offset)
+	case rollup.Interop:
+		d.L2GenesisInteropTimeOffset = (*hexutil.Uint64)(offset)
 	default:
 		panic(fmt.Sprintf("unknown fork: %s", fork))
 	}
@@ -549,8 +544,8 @@ func (d *UpgradeScheduleDeployConfig) forks() []Fork {
 		{L2GenesisTimeOffset: d.L2GenesisGraniteTimeOffset, Name: string(L2AllocsGranite)},
 		{L2GenesisTimeOffset: d.L2GenesisHoloceneTimeOffset, Name: string(L2AllocsHolocene)},
 		{L2GenesisTimeOffset: d.L2GenesisIsthmusTimeOffset, Name: string(L2AllocsIsthmus)},
-		{L2GenesisTimeOffset: d.L2GenesisInteropTimeOffset, Name: string(L2AllocsInterop)},
 		{L2GenesisTimeOffset: d.L2GenesisJovianTimeOffset, Name: string(L2AllocsJovian)},
+		{L2GenesisTimeOffset: d.L2GenesisInteropTimeOffset, Name: string(L2AllocsInterop)},
 	}
 }
 
