@@ -9,7 +9,7 @@ import { TestERC20 } from "test/mocks/TestERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Contracts
-import { L1CGTStandardBridge } from "src/L1/L1CGTStandardBridge.sol";
+import { L1CGTBridge } from "src/L1/L1CGTBridge.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 
 // Interfaces
@@ -17,17 +17,17 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
-/// @title L1CGTStandardBridge_TestInit
-/// @notice Reusable test initialization for `L1CGTStandardBridge` tests.
-contract L1CGTStandardBridge_TestInit is CommonTest {
+/// @title L1CGTBridge_TestInit
+/// @notice Reusable test initialization for `L1CGTBridge` tests.
+contract L1CGTBridge_TestInit is CommonTest {
     using SafeERC20 for IERC20;
 
     event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount);
 
     event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 
-    L1CGTStandardBridge internal l1CGTStandardBridge;
-    L1CGTStandardBridge internal l2CGTStandardBridge;
+    L1CGTBridge internal l1CGTBridge;
+    L1CGTBridge internal l2CGTBridge;
     ICrossDomainMessenger internal messenger;
     IOptimismPortal2 internal optimismPortal;
     TestERC20 internal cgtToken;
@@ -41,19 +41,19 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
 
         // Deploy mock contracts
         cgtToken = new TestERC20();
-        l1CGTStandardBridge = L1CGTStandardBridge(makeAddr("l1CGTStandardBridge"));
-        l2CGTStandardBridge = L1CGTStandardBridge(makeAddr("l2CGTStandardBridge"));
+        l1CGTBridge = L1CGTBridge(makeAddr("l1CGTBridge"));
+        l2CGTBridge = L1CGTBridge(makeAddr("l2CGTBridge"));
         messenger = ICrossDomainMessenger(makeAddr("messenger"));
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
-        // Deploy L1CGTStandardBridge implementation
-        L1CGTStandardBridge impl = new L1CGTStandardBridge();
+        // Deploy L1CGTBridge implementation
+        L1CGTBridge impl = new L1CGTBridge();
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
 
-        // Wrap proxy as L1CGTStandardBridge
-        l1CGTStandardBridge = L1CGTStandardBridge(address(proxy));
+        // Wrap proxy as L1CGTBridge
+        l1CGTBridge = L1CGTBridge(address(proxy));
 
         // Set implementation
         vm.prank(alice);
@@ -64,8 +64,8 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
 
         // Initialize the bridge
         vm.prank(alice);
-        l1CGTStandardBridge.initialize(
-            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig, optimismPortal
+        l1CGTBridge.initialize(
+            address(cgtToken), messenger, address(l2CGTBridge), systemConfig, superchainConfig, optimismPortal
         );
 
         // Give alice some CGT tokens
@@ -73,34 +73,34 @@ contract L1CGTStandardBridge_TestInit is CommonTest {
     }
 }
 
-/// @title L1CGTStandardBridge_Initialize_Test
-/// @notice Tests for the `initialize` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_Initialize_Test is L1CGTStandardBridge_TestInit {
+/// @title L1CGTBridge_Initialize_Test
+/// @notice Tests for the `initialize` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
     /// @notice Tests that initialization sets the correct values.
     function test_initialize_succeeds() external view {
-        assertEq(l1CGTStandardBridge.cgtToken(), address(cgtToken));
-        assertEq(address(l1CGTStandardBridge.messenger()), address(messenger));
-        assertEq(address(l1CGTStandardBridge.otherBridge()), address(l2CGTStandardBridge));
-        assertEq(address(l1CGTStandardBridge.systemConfig()), address(systemConfig));
-        assertEq(address(l1CGTStandardBridge.superchainConfig()), address(superchainConfig));
-        assertEq(address(l1CGTStandardBridge.optimismPortal()), address(optimismPortal));
+        assertEq(l1CGTBridge.cgtToken(), address(cgtToken));
+        assertEq(address(l1CGTBridge.messenger()), address(messenger));
+        assertEq(address(l1CGTBridge.otherBridge()), address(l2CGTBridge));
+        assertEq(address(l1CGTBridge.systemConfig()), address(systemConfig));
+        assertEq(address(l1CGTBridge.superchainConfig()), address(superchainConfig));
+        assertEq(address(l1CGTBridge.optimismPortal()), address(optimismPortal));
     }
 
     /// @notice Tests that the contract cannot be initialized twice.
     function test_initialize_doubleInit_reverts() external {
         vm.expectRevert();
         vm.prank(alice);
-        l1CGTStandardBridge.initialize(
-            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig, optimismPortal
+        l1CGTBridge.initialize(
+            address(cgtToken), messenger, address(l2CGTBridge), systemConfig, superchainConfig, optimismPortal
         );
     }
 
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTStandardBridge newImpl = new L1CGTStandardBridge();
+        L1CGTBridge newImpl = new L1CGTBridge();
         Proxy newProxy = new Proxy(alice);
-        L1CGTStandardBridge newBridge = L1CGTStandardBridge(address(newProxy));
+        L1CGTBridge newBridge = L1CGTBridge(address(newProxy));
 
         vm.prank(alice);
         newProxy.upgradeTo(address(newImpl));
@@ -109,39 +109,39 @@ contract L1CGTStandardBridge_Initialize_Test is L1CGTStandardBridge_TestInit {
         vm.expectRevert();
         vm.prank(bob);
         newBridge.initialize(
-            address(cgtToken), messenger, l2CGTStandardBridge, systemConfig, superchainConfig, optimismPortal
+            address(cgtToken), messenger, address(l2CGTBridge), systemConfig, superchainConfig, optimismPortal
         );
     }
 }
 
-/// @title L1CGTStandardBridge_Version_Test
-/// @notice Tests for the `version` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_Version_Test is L1CGTStandardBridge_TestInit {
+/// @title L1CGTBridge_Version_Test
+/// @notice Tests for the `version` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_Version_Test is L1CGTBridge_TestInit {
     /// @notice Tests that the version is correctly returned.
     function test_version_succeeds() external view {
-        assertEq(l1CGTStandardBridge.version(), "1.0.0");
+        assertEq(l1CGTBridge.version(), "1.0.0");
     }
 }
 
-/// @title L1CGTStandardBridge_Paused_Test
-/// @notice Tests for the `paused` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_Paused_Test is L1CGTStandardBridge_TestInit {
+/// @title L1CGTBridge_Paused_Test
+/// @notice Tests for the `paused` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_Paused_Test is L1CGTBridge_TestInit {
     /// @notice Tests that paused returns the correct value from SuperchainConfig.
     function test_paused_whenNotPaused_succeeds() external view {
-        assertFalse(l1CGTStandardBridge.paused());
+        assertFalse(l1CGTBridge.paused());
     }
 
     /// @notice Tests that paused returns true when SuperchainConfig is paused.
     function test_paused_whenPaused_succeeds() external {
         vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
 
-        assertTrue(l1CGTStandardBridge.paused());
+        assertTrue(l1CGTBridge.paused());
     }
 }
 
-/// @title L1CGTStandardBridge_BridgeCGT_Test
-/// @notice Tests for the `bridgeCGT` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
+/// @title L1CGTBridge_BridgeCGT_Test
+/// @notice Tests for the `bridgeCGT` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
     /// @notice Tests that bridgeCGT succeeds when called properly.
     function test_bridgeCGT_withRecipient_succeeds(uint256 _amount, uint32 _minGasLimit) external {
         // Bound the amount to reasonable values
@@ -150,33 +150,32 @@ contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
 
         // Approve the bridge to spend tokens
         vm.prank(alice);
-        cgtToken.approve(address(l1CGTStandardBridge), _amount);
+        cgtToken.approve(address(l1CGTBridge), _amount);
 
         // Mock the messenger call
         vm.mockCall(
             address(messenger),
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
-                address(l2CGTStandardBridge),
-                abi.encodeWithSelector(L1CGTStandardBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
+                address(l2CGTBridge),
+                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
                 _minGasLimit
             ),
             ""
         );
 
         // Expect the event to be emitted
-        vm.expectEmit(address(l1CGTStandardBridge));
+        vm.expectEmit(address(l1CGTBridge));
         emit CGTBridgeInitiated(alice, bob, _amount);
 
         // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(bob, _amount, _minGasLimit);
+        l1CGTBridge.bridgeCGT(bob, _amount, _minGasLimit);
         vm.stopPrank();
 
-        // Check that tokens were transferred and deposit recorded
+        // Check that tokens were transferred
         assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - _amount);
-        assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), _amount);
-        assertEq(l1CGTStandardBridge.cgtDeposits(), _amount);
+        assertEq(cgtToken.balanceOf(address(l1CGTBridge)), _amount);
     }
 
     /// @notice Tests that bridgeCGT succeeds when recipient is the zero address.
@@ -187,40 +186,39 @@ contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
 
         // Approve the bridge to spend tokens
         vm.prank(alice);
-        cgtToken.approve(address(l1CGTStandardBridge), _amount);
+        cgtToken.approve(address(l1CGTBridge), _amount);
 
         // Mock the messenger call
         vm.mockCall(
             address(messenger),
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
-                address(l2CGTStandardBridge),
-                abi.encodeWithSelector(L1CGTStandardBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
+                address(l2CGTBridge),
+                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
                 _minGasLimit
             ),
             ""
         );
 
         // Expect the event to be emitted
-        vm.expectEmit(address(l1CGTStandardBridge));
+        vm.expectEmit(address(l1CGTBridge));
         emit CGTBridgeInitiated(alice, alice, _amount);
 
         // Call bridgeCGT
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(address(0), _amount, _minGasLimit);
+        l1CGTBridge.bridgeCGT(address(0), _amount, _minGasLimit);
         vm.stopPrank();
 
-        // Check that tokens were transferred and deposit recorded
+        // Check that tokens were transferred
         assertEq(cgtToken.balanceOf(alice), INITIAL_BALANCE - _amount);
-        assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), _amount);
-        assertEq(l1CGTStandardBridge.cgtDeposits(), _amount);
+        assertEq(cgtToken.balanceOf(address(l1CGTBridge)), _amount);
     }
 
     /// @notice Tests that bridgeCGT reverts when amount is zero.
     function test_bridgeCGT_whenAmountIsZero_reverts() external {
-        vm.expectRevert(L1CGTStandardBridge.InvalidAmount.selector);
+        vm.expectRevert(L1CGTBridge.InvalidAmount.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(bob, 0, MIN_GAS_LIMIT);
+        l1CGTBridge.bridgeCGT(bob, 0, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
@@ -229,27 +227,27 @@ contract L1CGTStandardBridge_BridgeCGT_Test is L1CGTStandardBridge_TestInit {
         // Mock paused to return true
         vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
 
-        vm.expectRevert(L1CGTStandardBridge.Paused.selector);
+        vm.expectRevert(L1CGTBridge.Paused.selector);
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        l1CGTBridge.bridgeCGT(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 }
 
-/// @title L1CGTStandardBridge_FinalizeBridgeCGT_Test
-/// @notice Tests for the `finalizeBridgeCGT` function of the `L1CGTStandardBridge` contract.
-contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestInit {
+/// @title L1CGTBridge_FinalizeBridgeCGT_Test
+/// @notice Tests for the `finalizeBridgeCGT` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_FinalizeBridgeCGT_Test is L1CGTBridge_TestInit {
     function setUp() public override {
         super.setUp();
 
         // First, simulate a deposit to set up the contract state
         vm.prank(alice);
-        cgtToken.approve(address(l1CGTStandardBridge), BRIDGE_AMOUNT);
+        cgtToken.approve(address(l1CGTBridge), BRIDGE_AMOUNT);
 
         vm.mockCall(address(messenger), abi.encodeWithSelector(ICrossDomainMessenger.sendMessage.selector), "");
 
         vm.startPrank(alice, alice);
-        l1CGTStandardBridge.bridgeCGT(alice, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        l1CGTBridge.bridgeCGT(alice, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
 
@@ -259,28 +257,27 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
         vm.mockCall(
             address(messenger),
             abi.encodeWithSelector(ICrossDomainMessenger.xDomainMessageSender.selector),
-            abi.encode(address(l2CGTStandardBridge))
+            abi.encode(address(l2CGTBridge))
         );
 
         // Expect the event to be emitted
-        vm.expectEmit(address(l1CGTStandardBridge));
+        vm.expectEmit(address(l1CGTBridge));
         emit CGTBridgeFinalized(alice, bob, BRIDGE_AMOUNT);
 
         // Call finalizeBridgeCGT from the messenger
         vm.prank(address(messenger));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
+        l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
 
-        // Check that tokens were transferred and deposit decreased
+        // Check that tokens were transferred
         assertEq(cgtToken.balanceOf(bob), BRIDGE_AMOUNT);
-        assertEq(cgtToken.balanceOf(address(l1CGTStandardBridge)), 0);
-        assertEq(l1CGTStandardBridge.cgtDeposits(), 0);
+        assertEq(cgtToken.balanceOf(address(l1CGTBridge)), 0);
     }
 
     /// @notice Tests that finalizeBridgeCGT reverts when called from wrong messenger.
     function test_finalizeBridgeCGT_whenWrongMessenger_reverts() external {
-        vm.expectRevert(L1CGTStandardBridge.OnlyOtherBridge.selector);
+        vm.expectRevert(L1CGTBridge.OnlyOtherBridge.selector);
         vm.prank(makeAddr("wrongMessenger"));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
+        l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
 
     /// @notice Tests that finalizeBridgeCGT reverts when wrong xDomainMessageSender.
@@ -292,9 +289,9 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
             abi.encode(makeAddr("wrongSender"))
         );
 
-        vm.expectRevert(L1CGTStandardBridge.OnlyOtherBridge.selector);
+        vm.expectRevert(L1CGTBridge.OnlyOtherBridge.selector);
         vm.prank(address(messenger));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
+        l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
 
     /// @notice Tests that finalizeBridgeCGT reverts when bridge is paused.
@@ -306,11 +303,11 @@ contract L1CGTStandardBridge_FinalizeBridgeCGT_Test is L1CGTStandardBridge_TestI
         vm.mockCall(
             address(messenger),
             abi.encodeWithSelector(ICrossDomainMessenger.xDomainMessageSender.selector),
-            abi.encode(address(l2CGTStandardBridge))
+            abi.encode(address(l2CGTBridge))
         );
 
-        vm.expectRevert(L1CGTStandardBridge.Paused.selector);
+        vm.expectRevert(L1CGTBridge.Paused.selector);
         vm.prank(address(messenger));
-        l1CGTStandardBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
+        l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
 }

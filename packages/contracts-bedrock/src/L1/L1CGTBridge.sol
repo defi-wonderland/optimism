@@ -16,14 +16,15 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 
 /// @custom:proxied true
-/// @title L1CGTStandardBridge
-/// @notice The L1CGTStandardBridge is responsible for transferring Custom Gas Tokens (CGT) from L1
+/// @title L1CGTBridge
+/// @notice The L1CGTBridge is responsible for transferring Custom Gas Tokens (CGT) from L1
 ///         to L2 where they are converted to native assets through the LiquidityController system.
 ///         This bridge escrows CGT tokens on L1 and triggers the minting of equivalent native
 ///         assets on L2.
-contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable, ISemver {
+contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable, ISemver, IL1CGTBridge {
     using SafeERC20 for IERC20;
 
     /// @notice Address of the CGT token.
@@ -34,10 +35,9 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @custom:network-specific
     ICrossDomainMessenger public messenger;
 
-    // TODO: change to L2CGTStandardBridge
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    L1CGTStandardBridge public otherBridge;
+    address public otherBridge;
 
     /// @notice Address of the SystemConfig contract.
     /// @custom:network-specific
@@ -51,27 +51,12 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @custom:network-specific
     IOptimismPortal2 public optimismPortal;
 
-    /// @notice Total amount of CGT tokens deposited.
-    uint256 public cgtDeposits;
-
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant VERSION = "1.0.0";
 
     /// @notice Reserve extra slots in the storage layout for future upgrades.
     uint256[50] private __gap;
-
-    /// @notice Emitted when a CGT bridge is initiated on this chain.
-    /// @param from      Address of the sender.
-    /// @param to        Address of the receiver.
-    /// @param amount    Amount of token sent.
-    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount);
-
-    /// @notice Emitted when a CGT bridge is finalized on this chain.
-    /// @param from      Address of the sender.
-    /// @param to        Address of the receiver.
-    /// @param amount    Amount of token sent.
-    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 
     /// @notice Thrown when the amount to deposit is zero.
     error InvalidAmount();
@@ -109,7 +94,7 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     function initialize(
         address _cgtToken,
         ICrossDomainMessenger _messenger,
-        L1CGTStandardBridge _otherBridge,
+        address _otherBridge,
         ISystemConfig _systemConfig,
         ISuperchainConfig _superchainConfig,
         IOptimismPortal2 _optimismPortal
@@ -132,7 +117,7 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @param _to          Address to bridge the CGT tokens to.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
-    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external {
+    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external virtual {
         if (paused()) {
             revert Paused();
         }
@@ -144,7 +129,6 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
         _to = _to == address(0) ? msg.sender : _to;
 
         IERC20(cgtToken).safeTransferFrom(msg.sender, address(this), _amount);
-        cgtDeposits = cgtDeposits + _amount;
 
         messenger.sendMessage({
             _target: address(otherBridge),
@@ -160,7 +144,7 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
-    function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external {
+    function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
         if (paused()) {
             revert Paused();
         }
@@ -168,11 +152,10 @@ contract L1CGTStandardBridge is ProxyAdminOwnedBase, ReinitializableBase, Initia
         if (msg.sender != address(messenger)) {
             revert OnlyOtherBridge();
         }
-        if (messenger.xDomainMessageSender() != address(otherBridge)) {
+        if (messenger.xDomainMessageSender() != otherBridge) {
             revert OnlyOtherBridge();
         }
 
-        cgtDeposits = cgtDeposits - _amount;
         IERC20(cgtToken).safeTransfer(_to, _amount);
 
         emit CGTBridgeFinalized(_from, _to, _amount);
