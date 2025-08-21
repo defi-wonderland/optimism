@@ -18,8 +18,9 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 ///         are created by the protocol whenever we move to a new epoch.
 contract L1Block is ISemver {
     /// @notice Storage slot for the isCustomGasToken flag
+    /// @dev bytes32(uint256(keccak256("l1block.isCustomGasToken")) - 1)
     bytes32 private constant IS_CUSTOM_GAS_TOKEN_SLOT =
-        bytes32(uint256(keccak256("optimism.l1block.isCustomGasToken")) - 1);
+        0xd2ff82c9b477ff6a09f530b1c627ffb4b0b81e2ae2ba427f824162e8dad020aa;
 
     /// @notice Address of the special depositor account.
     function DEPOSITOR_ACCOUNT() public pure returns (address addr_) {
