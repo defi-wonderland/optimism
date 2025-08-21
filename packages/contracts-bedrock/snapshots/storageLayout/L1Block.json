@@ -89,12 +89,5 @@
     "offset": 8,
     "slot": "8",
     "type": "uint32"
-  },
-  {
-    "bytes": "1",
-    "label": "isCustomGasToken",
-    "offset": 12,
-    "slot": "8",
-    "type": "bool"
   }
 ]

@@ -122,7 +122,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "isCustom_",
         "type": "bool"
       }
     ],

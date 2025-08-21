@@ -74,13 +74,11 @@ contract L1Block is ISemver {
     }
 
     /// @notice Returns whether the gas paying token is custom.
-    function isCustomGasToken() public view returns (bool) {
+    function isCustomGasToken() public view returns (bool isCustom_) {
         bytes32 slot = IS_CUSTOM_GAS_TOKEN_SLOT;
-        bool isCustom;
         assembly {
-            isCustom := sload(slot)
+            isCustom_ := sload(slot)
         }
-        return isCustom;
     }
 
     /// @notice Returns the gas paying token name.

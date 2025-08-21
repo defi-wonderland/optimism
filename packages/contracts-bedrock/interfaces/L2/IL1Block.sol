@@ -16,8 +16,8 @@ interface IL1Block {
     function blobBaseFee() external view returns (uint256);
     function operatorFeeConstant() external view returns (uint64);
     function operatorFeeScalar() external view returns (uint32);
-    function isCustomGasToken() external view returns (bool);
     function version() external pure returns (string memory);
+    function isCustomGasToken() external view returns (bool isCustom_);
     function gasPayingTokenName() external view returns (string memory name_);
     function gasPayingTokenSymbol() external view returns (string memory symbol_);
     function setL1BlockValues(
