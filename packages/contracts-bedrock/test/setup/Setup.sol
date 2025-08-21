@@ -328,7 +328,7 @@ contract Setup {
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
-                isCustomGasToken: isCustomGasToken(),
+                isCustomGasToken: deploy.cfg().isCustomGasToken(),
                 gasPayingTokenName: "Custom Gas Token",
                 gasPayingTokenSymbol: "CGT"
             })
@@ -392,10 +392,5 @@ contract Setup {
 
     function labelPreinstall(address _addr) internal {
         vm.label(_addr, Preinstalls.getName(_addr));
-    }
-
-    /// @dev Returns whether custom gas token is enabled
-    function isCustomGasToken() internal view returns (bool) {
-        return deploy.cfg().isCustomGasToken();
     }
 }
