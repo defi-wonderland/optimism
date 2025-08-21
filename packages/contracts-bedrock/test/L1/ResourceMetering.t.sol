@@ -211,7 +211,7 @@ contract ResourceMetering_Metered_Test is ResourceMetering_TestInit {
     function testFuzz_metered_largeBlockDiff_succeeds(uint64 _amount, uint256 _blockDiff) external {
         // This test fails if the following line is commented out.
         // At 12 seconds per block, this number is effectively unreachable.
-        _blockDiff = uint256(bound(_blockDiff, 0, type(uint64).max - initialBlockNum));
+        _blockDiff = uint256(bound(_blockDiff, 0, 433576281058164217753225238677900874458690));
 
         ResourceMetering.ResourceConfig memory rcfg = meter.resourceConfig();
         uint64 target = uint64(rcfg.maxResourceLimit) / uint64(rcfg.elasticityMultiplier);
@@ -219,7 +219,7 @@ contract ResourceMetering_Metered_Test is ResourceMetering_TestInit {
 
         _amount = uint64(bound(_amount, 0, target * elasticityMultiplier));
 
-        vm.roll(_blockDiff);
+        vm.roll(initialBlockNum + _blockDiff);
         meter.use(_amount);
     }
 

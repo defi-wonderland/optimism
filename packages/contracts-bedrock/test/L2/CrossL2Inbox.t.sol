@@ -167,10 +167,6 @@ contract CrossL2Inbox_ValidateMessage_Test is CrossL2Inbox_TestInit {
         vm.accessList(accessList);
         crossL2Inbox.validateMessage(_idOne, _messageHashOne);
 
-        // Reset the access list to clear any warm slots
-        VmSafe.AccessListItem[] memory emptyAccessList = new VmSafe.AccessListItem[](0);
-        vm.accessList(emptyAccessList);
-
         // Send the tx2 but without any access list and check that it reverts since the slot should not be warmed
         vm.expectRevert(ICrossL2Inbox.NotInAccessList.selector);
         crossL2Inbox.validateMessage(_idTwo, _messageHashTwo);
@@ -199,10 +195,6 @@ contract CrossL2Inbox_ValidateMessage_Test is CrossL2Inbox_TestInit {
         // Validate the message
         vm.accessList(accessList);
         crossL2Inbox.validateMessage(_id, _messageHash);
-
-        // Reset the access list to clear any warm slots
-        VmSafe.AccessListItem[] memory emptyAccessList = new VmSafe.AccessListItem[](0);
-        vm.accessList(emptyAccessList);
 
         // Send the same msg but without any access list and check that it reverts since the
         // slot should not be warmed

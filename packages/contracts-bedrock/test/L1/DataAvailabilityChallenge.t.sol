@@ -362,7 +362,7 @@ contract DataAvailabilityChallenge_Challenge_Test is DataAvailabilityChallenge_T
         challengedBlockNumber = bound(
             challengedBlockNumber,
             0,
-            type(uint64).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
+            type(uint256).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
                 - 1
         );
         uint256 requiredBond = dataAvailabilityChallenge.bondSize();
@@ -418,7 +418,7 @@ contract DataAvailabilityChallenge_Challenge_Test is DataAvailabilityChallenge_T
         challengedBlockNumber = bound(
             challengedBlockNumber,
             0,
-            type(uint64).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
+            type(uint256).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
                 - 1
         );
         uint256 requiredBond = dataAvailabilityChallenge.bondSize();
@@ -540,8 +540,6 @@ contract DataAvailabilityChallenge_Resolve_Test is DataAvailabilityChallenge_Tes
         vm.assume(resolver != address(0));
         vm.assume(challenger != resolver);
 
-        txGasPrice = uint64(bound(txGasPrice, 0, type(uint64).max - 1));
-
         vm.prank(dataAvailabilityChallenge.owner());
         dataAvailabilityChallenge.setBondSize(bondSize);
 
@@ -559,7 +557,7 @@ contract DataAvailabilityChallenge_Resolve_Test is DataAvailabilityChallenge_Tes
         challengedBlockNumber = bound(
             challengedBlockNumber,
             0,
-            type(uint64).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
+            type(uint256).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
                 - 1
         );
         bytes memory challengedCommitment = computeCommitmentKeccak256(preImage);
@@ -628,7 +626,7 @@ contract DataAvailabilityChallenge_Resolve_Test is DataAvailabilityChallenge_Tes
         bytes memory wrongPreImage,
         uint256 challengedBlockNumber,
         uint256 resolverRefundPercentage,
-        uint64 txGasPrice
+        uint128 txGasPrice
     )
         public
     {
@@ -638,8 +636,6 @@ contract DataAvailabilityChallenge_Resolve_Test is DataAvailabilityChallenge_Tes
         vm.assume(resolver != address(0));
         vm.assume(challenger != resolver);
         vm.assume(keccak256(preImage) != keccak256(wrongPreImage));
-
-        txGasPrice = uint64(bound(txGasPrice, 0, type(uint64).max - 1));
 
         // Bound the resolver refund percentage to 100
         resolverRefundPercentage = bound(resolverRefundPercentage, 0, 100);
@@ -655,7 +651,7 @@ contract DataAvailabilityChallenge_Resolve_Test is DataAvailabilityChallenge_Tes
         challengedBlockNumber = bound(
             challengedBlockNumber,
             0,
-            type(uint64).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
+            type(uint256).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
                 - 1
         );
         bytes memory challengedCommitment = computeCommitmentKeccak256(wrongPreImage);
@@ -768,7 +764,7 @@ contract DataAvailabilityChallenge_UnlockBond_Test is DataAvailabilityChallenge_
         challengedBlockNumber = bound(
             challengedBlockNumber,
             0,
-            type(uint64).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
+            type(uint256).max - dataAvailabilityChallenge.challengeWindow() - dataAvailabilityChallenge.resolveWindow()
                 - 1
         );
         bytes memory challengedCommitment = computeCommitmentKeccak256(preImage);
