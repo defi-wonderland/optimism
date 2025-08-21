@@ -1,16 +1,5 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "_isCustomGasToken",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
     "inputs": [],
     "name": "DEPOSITOR_ACCOUNT",
     "outputs": [
@@ -133,7 +122,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
+        "name": "isCustom_",
         "type": "bool"
       }
     ],
@@ -216,6 +205,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "setCustomGasToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
