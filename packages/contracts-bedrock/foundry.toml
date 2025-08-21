@@ -128,9 +128,7 @@ timeout = 300
 ################################################################
 
 [profile.lite]
-optimizer = true
-optimizer_runs = 1000
-via_ir = true
+optimizer = false
 
 # IMPORTANT:
 # See the info in the "DEFAULT" profile to understand this section.
