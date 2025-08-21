@@ -160,7 +160,8 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         testForks();
     }
 
-    function test_run_cgt_succeeds() external {
+    /// @dev Modifier to set up the input for L2Genesis with CGT enabled.
+    modifier setInputCGTEnabled() {
         input = L2Genesis.Input({
             l1ChainID: 1,
             l2ChainID: 2,
@@ -186,6 +187,12 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             gasPayingTokenName: "Custom Gas Token",
             gasPayingTokenSymbol: "CGT"
         });
+        _;
+    }
+
+    /// @notice Tests that the run function succeeds when CGT is enabled.
+    /// @dev Tests that LiquidityController and NativeAssetLiquidity are deployed.
+    function test_run_cgt_succeeds() external setInputCGTEnabled {
         genesis.run(input);
 
         testProxyAdmin();
@@ -195,5 +202,28 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         testFactories();
         testForks();
         testCGT();
+    }
+
+    /// @notice Tests that the run function reverts when CGT is enabled and the withdrawal network type of the FeeVaults
+    /// is L1.
+    function test_run_cgt_reverts() external setInputCGTEnabled {
+        // Expect revert when sequencerFeeVaultWithdrawalNetwork is L1
+        input.sequencerFeeVaultWithdrawalNetwork = 0;
+        vm.expectRevert("SequencerFeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        genesis.run(input);
+        // Reset sequencerFeeVaultWithdrawalNetwork input to L2
+        input.sequencerFeeVaultWithdrawalNetwork = 1;
+
+        // Expect revert when baseFeeVaultWithdrawalNetwork is L1
+        input.baseFeeVaultWithdrawalNetwork = 0;
+        vm.expectRevert("BaseFeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        genesis.run(input);
+        // Reset baseFeeVaultWithdrawalNetwork input to L2
+        input.baseFeeVaultWithdrawalNetwork = 1;
+
+        // Expect revert when l1FeeVaultWithdrawalNetwork is L1
+        input.l1FeeVaultWithdrawalNetwork = 0;
+        vm.expectRevert("L1FeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        genesis.run(input);
     }
 }
