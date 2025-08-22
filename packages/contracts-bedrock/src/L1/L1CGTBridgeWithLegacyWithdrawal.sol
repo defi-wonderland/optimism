@@ -43,8 +43,12 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @notice Mapping of withdrawal hashes to finalization status.
     mapping(bytes32 => bool) public finalizedLegacyWithdrawals;
 
+    /// @notice Reference to the OptimismPortal2 contract.
+    /// @custom:network-specific
+    IOptimismPortal2 public optimismPortal;
+
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    uint256[44] private __gap;
+    uint256[50] private __gap;
 
     /// @notice Thrown when trying to set trusted state more than once.
     error TrustedStateAlreadySet();
@@ -102,6 +106,26 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
     constructor(address _cgtToken, address _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
+
+    /// @notice Initializer.
+    /// @param _messenger        Address of the CrossDomainMessenger on this network.
+    /// @param _superchainConfig Address of the SuperchainConfig contract.
+    /// @param _optimismPortal   Address of the OptimismPortal2 contract.
+    function initialize(
+        ICrossDomainMessenger _messenger,
+        ISuperchainConfig _superchainConfig,
+        IOptimismPortal2 _optimismPortal
+    )
+        external
+        reinitializer(initVersion())
+    {
+        // Initialization transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        messenger = _messenger;
+        superchainConfig = _superchainConfig;
+        optimismPortal = _optimismPortal;
+    }
 
     /// @notice Modifier to check if deposits are enabled.
     modifier whenDepositsEnabled() {

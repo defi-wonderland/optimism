@@ -170,7 +170,7 @@ contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
                 address(l2CGTBridge),
-                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
+                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, address(0), _amount),
                 _minGasLimit
             ),
             ""
@@ -178,7 +178,7 @@ contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
 
         // Expect the event to be emitted
         vm.expectEmit(address(l1CGTBridge));
-        emit CGTBridgeInitiated(alice, alice, _amount);
+        emit CGTBridgeInitiated(alice, address(0), _amount);
 
         // Call bridgeCGT
         vm.startPrank(alice, alice);
