@@ -79,6 +79,7 @@ func run() error {
 			sysgo.WithEmbeddedContractSources(),
 			sysgo.WithCommons(ids.L1.ChainID()),
 			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
+			sysgo.WithCustomGasToken(true, "Custom Gas Token", "CGT"),
 		),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 

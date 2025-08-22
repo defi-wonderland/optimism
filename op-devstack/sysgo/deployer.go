@@ -304,6 +304,16 @@ func WithDisputeGameFinalityDelaySeconds(seconds uint64) DeployerOption {
 	}
 }
 
+func WithCustomGasToken(enabled bool, name, symbol string) DeployerOption {
+	return func(p devtest.P, keys devkeys.Keys, builder intentbuilder.Builder) {
+		builder.WithGlobalOverride("isCustomGasToken", enabled)
+		if enabled {
+			builder.WithGlobalOverride("gasPayingTokenName", name)
+			builder.WithGlobalOverride("gasPayingTokenSymbol", symbol)
+		}
+	}
+}
+
 func (wb *worldBuilder) buildL1Genesis() {
 	wb.require.NotNil(wb.output.L1DevGenesis, "must have L1 genesis outer config")
 	wb.require.NotNil(wb.output.L1StateDump, "must have L1 genesis alloc")
