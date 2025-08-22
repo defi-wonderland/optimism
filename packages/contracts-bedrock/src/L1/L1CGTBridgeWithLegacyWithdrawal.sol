@@ -11,8 +11,6 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
-import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
-import { IL1CGTBridgeWithLegacyWithdrawal } from "interfaces/L1/IL1CGTBridgeWithLegacyWithdrawal.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
@@ -24,7 +22,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice Extension of L1CGTBridge that includes functionality for handling legacy
 ///         withdrawals from before CGT migration, bridge management controls, and trusted state
 ///         management.
-contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge, IL1CGTBridgeWithLegacyWithdrawal {
+contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     using SafeERC20 for IERC20;
     /// @notice Storage slot for the trusted L2ToL1MessagePasser storage root.
 
@@ -72,6 +70,39 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge, IL1CGTBridgeWithLegacyW
     /// @notice Thrown when withdrawal target is the CGT token contract.
     error InvalidWithdrawalTarget();
 
+    /// @notice Emitted when a legacy withdrawal is proven.
+    /// @param withdrawalHash Hash of the withdrawal transaction.
+    /// @param from           Address of the sender.
+    /// @param to             Address of the receiver.
+    event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
+
+    /// @notice Emitted when a legacy withdrawal is proven (extension event).
+    /// @param withdrawalHash Hash of the withdrawal transaction.
+    /// @param proofSubmitter Address that submitted the proof.
+    event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
+
+    /// @notice Emitted when a legacy withdrawal is finalized.
+    /// @param withdrawalHash Hash of the withdrawal transaction.
+    /// @param success        Whether the withdrawal was successful.
+    event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
+
+    /// @notice Emitted when deposits are enabled or disabled.
+    /// @param enabled Whether deposits are enabled.
+    event DepositsToggled(bool enabled);
+
+    /// @notice Emitted when withdrawals are enabled or disabled.
+    /// @param enabled Whether withdrawals are enabled.
+    event WithdrawalsToggled(bool enabled);
+
+    /// @notice Emitted when the trusted state is set.
+    /// @param trustedRoot The trusted L2ToL1MessagePasser storage root.
+    event TrustedStateSet(bytes32 indexed trustedRoot);
+
+    /// @notice Constructs the L1CGTBridgeWithLegacyWithdrawal contract.
+    /// @param _cgtToken    Address of the CGT token.
+    /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
+    constructor(address _cgtToken, address _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
+
     /// @notice Modifier to check if deposits are enabled.
     modifier whenDepositsEnabled() {
         if (!_depositsEnabled) revert DepositsDisabled();
@@ -88,29 +119,13 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge, IL1CGTBridgeWithLegacyW
     /// @param _to          Address to bridge the CGT tokens to.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
-    function bridgeCGT(
-        address _to,
-        uint256 _amount,
-        uint32 _minGasLimit
-    )
-        external
-        override(L1CGTBridge, IL1CGTBridge)
-        whenDepositsEnabled
-    {
-        if (paused()) {
-            revert Paused();
-        }
-
-        if (_amount == 0) {
-            revert InvalidAmount();
-        }
-
-        _to = _to == address(0) ? msg.sender : _to;
+    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external override whenDepositsEnabled {
+        if (superchainConfig.paused(address(this))) revert Paused();
 
         IERC20(cgtToken).safeTransferFrom(msg.sender, address(this), _amount);
 
         messenger.sendMessage({
-            _target: address(otherBridge),
+            _target: address(l2CGTBridge),
             _message: abi.encodeWithSelector(this.finalizeBridgeCGT.selector, msg.sender, _to, _amount),
             _minGasLimit: _minGasLimit
         });
@@ -122,24 +137,11 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge, IL1CGTBridgeWithLegacyW
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
-    function finalizeBridgeCGT(
-        address _from,
-        address _to,
-        uint256 _amount
-    )
-        external
-        override(L1CGTBridge, IL1CGTBridge)
-        whenWithdrawalsEnabled
-    {
-        if (paused()) {
-            revert Paused();
-        }
+    function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external override whenWithdrawalsEnabled {
+        if (superchainConfig.paused(address(this))) revert Paused();
 
-        if (msg.sender != address(messenger)) {
-            revert OnlyOtherBridge();
-        }
-        if (messenger.xDomainMessageSender() != otherBridge) {
-            revert OnlyOtherBridge();
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
+            revert OnlyL2CGTBridge();
         }
 
         IERC20(cgtToken).safeTransfer(_to, _amount);

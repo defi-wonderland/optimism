@@ -13,10 +13,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
-import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTBridge
@@ -24,80 +21,67 @@ import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 ///         to L2 where they are converted to native assets through the LiquidityController system.
 ///         This bridge escrows CGT tokens on L1 and triggers the minting of equivalent native
 ///         assets on L2.
-contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable, ISemver, IL1CGTBridge {
+contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Address of the CGT token.
     /// @custom:network-specific
-    address public cgtToken;
+    address public immutable cgtToken;
+
+    /// @notice Corresponding bridge on the other domain.
+    /// @custom:network-specific
+    address public immutable l2CGTBridge;
 
     /// @notice Messenger contract on this domain.
     /// @custom:network-specific
     ICrossDomainMessenger public messenger;
 
-    /// @notice Corresponding bridge on the other domain.
-    /// @custom:network-specific
-    address public otherBridge;
-
-    /// @notice Address of the SystemConfig contract.
-    /// @custom:network-specific
-    ISystemConfig public systemConfig;
-
     /// @notice Address of the SuperchainConfig contract.
     /// @custom:network-specific
     ISuperchainConfig public superchainConfig;
 
-    /// @notice Reference to the OptimismPortal2 contract.
-    /// @custom:network-specific
-    IOptimismPortal2 public optimismPortal;
-
-    /// @notice Semantic version.
-    /// @custom:semver 1.0.0
-    string public constant VERSION = "1.0.0";
-
     /// @notice Reserve extra slots in the storage layout for future upgrades.
     uint256[50] private __gap;
-
-    /// @notice Thrown when the amount to deposit is zero.
-    error InvalidAmount();
 
     /// @notice Thrown when the bridge is paused.
     error Paused();
 
-    /// @notice Thrown when the function is called from a non-other bridge.
-    error OnlyOtherBridge();
+    /// @notice Thrown when the function is called from a non-L2 CGT bridge.
+    error OnlyL2CGTBridge();
 
-    /// @notice Constructs the L1CGTStandardBridge contract.
-    constructor() ReinitializableBase(1) {
+    /// @notice Emitted when a CGT bridge is initiated on this chain.
+    /// @param from   Address of the sender.
+    /// @param to     Address of the receiver.
+    /// @param amount Amount of token sent.
+    event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount);
+
+    /// @notice Emitted when a CGT bridge is finalized on this chain.
+    /// @param from   Address of the sender.
+    /// @param to     Address of the receiver.
+    /// @param amount Amount of token sent.
+    event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
+
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0
+    function version() public view virtual returns (string memory) {
+        return "1.0.0";
+    }
+
+    /// @notice Constructs the L1CGTBridge contract.
+    /// @param _cgtToken    Address of the CGT token.
+    /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
+    constructor(address _cgtToken, address _l2CGTBridge) ReinitializableBase(1) {
+        cgtToken = _cgtToken;
+        l2CGTBridge = _l2CGTBridge;
         _disableInitializers();
     }
 
-    /// @notice Returns the semantic version of the contract.
-    /// @return Semver contract version as a string.
-    function version() external pure returns (string memory) {
-        return VERSION;
-    }
-
-    /// @notice Returns whether the bridge is paused.
-    /// @return Whether the bridge is paused.
-    function paused() public view returns (bool) {
-        return superchainConfig.paused();
-    }
-
     /// @notice Initializer.
-    /// @param _cgtToken         Address of the CGT token.
     /// @param _messenger        Address of the CrossDomainMessenger on this network.
-    /// @param _otherBridge      Address of the corresponding bridge on the other network.
-    /// @param _systemConfig     Address of the SystemConfig contract.
     /// @param _superchainConfig Address of the SuperchainConfig contract.
-    /// @param _optimismPortal   Address of the OptimismPortal2 contract.
     function initialize(
-        address _cgtToken,
         ICrossDomainMessenger _messenger,
-        address _otherBridge,
-        ISystemConfig _systemConfig,
-        ISuperchainConfig _superchainConfig,
-        IOptimismPortal2 _optimismPortal
+        ISuperchainConfig _superchainConfig
     )
         external
         reinitializer(initVersion())
@@ -105,12 +89,8 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
         // Initialization transactions must come from the ProxyAdmin or its owner.
         _assertOnlyProxyAdminOrProxyAdminOwner();
 
-        cgtToken = _cgtToken;
         messenger = _messenger;
-        otherBridge = _otherBridge;
-        systemConfig = _systemConfig;
         superchainConfig = _superchainConfig;
-        optimismPortal = _optimismPortal;
     }
 
     /// @notice Sends CGT tokens to a receiver's address on the other chain.
@@ -118,20 +98,12 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
     function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external virtual {
-        if (paused()) {
-            revert Paused();
-        }
-
-        if (_amount == 0) {
-            revert InvalidAmount();
-        }
-
-        _to = _to == address(0) ? msg.sender : _to;
+        if (superchainConfig.paused(address(this))) revert Paused();
 
         IERC20(cgtToken).safeTransferFrom(msg.sender, address(this), _amount);
 
         messenger.sendMessage({
-            _target: address(otherBridge),
+            _target: address(l2CGTBridge),
             _message: abi.encodeWithSelector(this.finalizeBridgeCGT.selector, msg.sender, _to, _amount),
             _minGasLimit: _minGasLimit
         });
@@ -145,15 +117,10 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
-        if (paused()) {
-            revert Paused();
-        }
+        if (superchainConfig.paused(address(this))) revert Paused();
 
-        if (msg.sender != address(messenger)) {
-            revert OnlyOtherBridge();
-        }
-        if (messenger.xDomainMessageSender() != otherBridge) {
-            revert OnlyOtherBridge();
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
+            revert OnlyL2CGTBridge();
         }
 
         IERC20(cgtToken).safeTransfer(_to, _amount);

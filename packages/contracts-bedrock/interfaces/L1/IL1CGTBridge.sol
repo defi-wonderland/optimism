@@ -37,7 +37,7 @@ interface IL1CGTBridge {
 
     /// @notice Returns the address of the corresponding bridge on L2.
     /// @return Address of the L2CGTBridge contract.
-    function otherBridge() external view returns (address);
+    function l2CGTBridge() external view returns (address);
 
     /// @notice Returns the address of the CrossDomainMessenger.
     /// @return Address of the CrossDomainMessenger contract.

@@ -47,7 +47,7 @@ contract L1CGTBridge_TestInit is CommonTest {
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridge implementation
-        L1CGTBridge impl = new L1CGTBridge();
+        L1CGTBridge impl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -59,14 +59,12 @@ contract L1CGTBridge_TestInit is CommonTest {
         vm.prank(alice);
         proxy.upgradeTo(address(impl));
 
-        // Mock superchainConfig.paused() to return false by default
-        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(false));
+        // Mock superchainConfig.paused(address) to return false by default
+        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused(address)"), abi.encode(false));
 
         // Initialize the bridge
         vm.prank(alice);
-        l1CGTBridge.initialize(
-            address(cgtToken), messenger, address(l2CGTBridge), systemConfig, superchainConfig, optimismPortal
-        );
+        l1CGTBridge.initialize(messenger, superchainConfig);
 
         // Give alice some CGT tokens
         cgtToken.mint(alice, INITIAL_BALANCE);
@@ -80,25 +78,21 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
     function test_initialize_succeeds() external view {
         assertEq(l1CGTBridge.cgtToken(), address(cgtToken));
         assertEq(address(l1CGTBridge.messenger()), address(messenger));
-        assertEq(address(l1CGTBridge.otherBridge()), address(l2CGTBridge));
-        assertEq(address(l1CGTBridge.systemConfig()), address(systemConfig));
+        assertEq(address(l1CGTBridge.l2CGTBridge()), address(l2CGTBridge));
         assertEq(address(l1CGTBridge.superchainConfig()), address(superchainConfig));
-        assertEq(address(l1CGTBridge.optimismPortal()), address(optimismPortal));
     }
 
     /// @notice Tests that the contract cannot be initialized twice.
     function test_initialize_doubleInit_reverts() external {
         vm.expectRevert();
         vm.prank(alice);
-        l1CGTBridge.initialize(
-            address(cgtToken), messenger, address(l2CGTBridge), systemConfig, superchainConfig, optimismPortal
-        );
+        l1CGTBridge.initialize(messenger, superchainConfig);
     }
 
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridge newImpl = new L1CGTBridge();
+        L1CGTBridge newImpl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
         Proxy newProxy = new Proxy(alice);
         L1CGTBridge newBridge = L1CGTBridge(address(newProxy));
 
@@ -108,9 +102,7 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
         // Try to initialize from unauthorized account
         vm.expectRevert();
         vm.prank(bob);
-        newBridge.initialize(
-            address(cgtToken), messenger, address(l2CGTBridge), systemConfig, superchainConfig, optimismPortal
-        );
+        newBridge.initialize(messenger, superchainConfig);
     }
 }
 
@@ -120,22 +112,6 @@ contract L1CGTBridge_Version_Test is L1CGTBridge_TestInit {
     /// @notice Tests that the version is correctly returned.
     function test_version_succeeds() external view {
         assertEq(l1CGTBridge.version(), "1.0.0");
-    }
-}
-
-/// @title L1CGTBridge_Paused_Test
-/// @notice Tests for the `paused` function of the `L1CGTBridge` contract.
-contract L1CGTBridge_Paused_Test is L1CGTBridge_TestInit {
-    /// @notice Tests that paused returns the correct value from SuperchainConfig.
-    function test_paused_whenNotPaused_succeeds() external view {
-        assertFalse(l1CGTBridge.paused());
-    }
-
-    /// @notice Tests that paused returns true when SuperchainConfig is paused.
-    function test_paused_whenPaused_succeeds() external {
-        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
-
-        assertTrue(l1CGTBridge.paused());
     }
 }
 
@@ -214,18 +190,10 @@ contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
         assertEq(cgtToken.balanceOf(address(l1CGTBridge)), _amount);
     }
 
-    /// @notice Tests that bridgeCGT reverts when amount is zero.
-    function test_bridgeCGT_whenAmountIsZero_reverts() external {
-        vm.expectRevert(L1CGTBridge.InvalidAmount.selector);
-        vm.startPrank(alice, alice);
-        l1CGTBridge.bridgeCGT(bob, 0, MIN_GAS_LIMIT);
-        vm.stopPrank();
-    }
-
     /// @notice Tests that bridgeCGT reverts when bridge is paused.
     function test_bridgeCGT_whenPaused_reverts() external {
         // Mock paused to return true
-        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
+        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused(address)"), abi.encode(true));
 
         vm.expectRevert(L1CGTBridge.Paused.selector);
         vm.startPrank(alice, alice);
@@ -275,7 +243,7 @@ contract L1CGTBridge_FinalizeBridgeCGT_Test is L1CGTBridge_TestInit {
 
     /// @notice Tests that finalizeBridgeCGT reverts when called from wrong messenger.
     function test_finalizeBridgeCGT_whenWrongMessenger_reverts() external {
-        vm.expectRevert(L1CGTBridge.OnlyOtherBridge.selector);
+        vm.expectRevert(L1CGTBridge.OnlyL2CGTBridge.selector);
         vm.prank(makeAddr("wrongMessenger"));
         l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
@@ -289,7 +257,7 @@ contract L1CGTBridge_FinalizeBridgeCGT_Test is L1CGTBridge_TestInit {
             abi.encode(makeAddr("wrongSender"))
         );
 
-        vm.expectRevert(L1CGTBridge.OnlyOtherBridge.selector);
+        vm.expectRevert(L1CGTBridge.OnlyL2CGTBridge.selector);
         vm.prank(address(messenger));
         l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
@@ -297,7 +265,7 @@ contract L1CGTBridge_FinalizeBridgeCGT_Test is L1CGTBridge_TestInit {
     /// @notice Tests that finalizeBridgeCGT reverts when bridge is paused.
     function test_finalizeBridgeCGT_whenPaused_reverts() external {
         // Mock paused to return true
-        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused()"), abi.encode(true));
+        vm.mockCall(address(superchainConfig), abi.encodeWithSignature("paused(address)"), abi.encode(true));
 
         // Mock the messenger to return the correct xDomainMessageSender
         vm.mockCall(
