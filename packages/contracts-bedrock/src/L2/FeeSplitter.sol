@@ -7,6 +7,7 @@ import { FeeVault } from "src/L2/FeeVault.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
+import { SafeCall } from "src/libraries/SafeCall.sol";
 
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
@@ -80,8 +81,8 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The basis point scale which revenue share splits are denominated in.
     uint32 public constant BASIS_POINT_SCALE = 10_000;
 
-    /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
-    uint256 public constant MIN_FEE_DISBURSEMENT_INTERVAL = 24 hours;
+    /// @custom:legacy The minimum amount of time in seconds that must pass between fee disbursal.
+    uint256 public MIN_FEE_DISBURSEMENT_INTERVAL;
 
     /// @notice The payout gate is open. This is the default state and allows for receiving funds.
     uint256 public constant _PAYOUT_OPEN = 1;
@@ -135,13 +136,26 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Emitted when fees are disbursed to the recipients.
     /// @param revenueShareRecipients The recipients of the fee share.
     /// @param feeShareValues The values of the fee share.
-    /// @param totalRevenue The total revenue before disbursement.
-    event FeesDisbursed(address payable[] revenueShareRecipients, uint256[] feeShareValues, uint256 totalRevenue);
+    /// @param grossRevenue The gross revenue before disbursement.
+    event FeesDisbursed(address payable[] revenueShareRecipients, uint256[] feeShareValues, uint256 grossRevenue);
 
     /// @notice Emitted when the share calculator is updated.
     /// @param oldShareCalculator The old share calculator contract.
     /// @param newShareCalculator The new share calculator contract.
     event ShareCalculatorUpdated(address oldShareCalculator, address newShareCalculator);
+
+    /// @notice Emitted when the minimum disbursement interval is updated.
+    /// @param oldMinDisbursementInterval The old minimum disbursement interval.
+    /// @param newMinDisbursementInterval The new minimum disbursement interval.
+    event MinDisbursementIntervalUpdated(uint256 oldMinDisbursementInterval, uint256 newMinDisbursementInterval);
+
+    /// @notice Modifier that restricts access to the ProxyAdmin owner.
+    modifier onlyProxyAdminOwner() {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert FeeSplitter_OnlyProxyAdminOwner();
+        }
+        _;
+    }
 
     constructor() {
         _disableInitializers();
@@ -159,9 +173,7 @@ contract FeeSplitter is ISemver, Initializable {
         onlyProxyAdminOwner
         initializer
     {
-        if (address(_shareCalculator) == address(0)) {
-            revert FeeSplitter_ShareCalculatorCannotBeZero();
-        }
+        if (address(_shareCalculator) == address(0)) revert FeeSplitter_ShareCalculatorCannotBeZero();
         if (_feeDisbursementInterval < MIN_FEE_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_FeeDisbursementIntervalTooShort();
         }
@@ -170,14 +182,6 @@ contract FeeSplitter is ISemver, Initializable {
         feeDisbursementInterval = _feeDisbursementInterval;
 
         emit Initialized(_shareCalculator, _feeDisbursementInterval);
-    }
-
-    /// @notice Modifier that restricts access to the ProxyAdmin owner.
-    modifier onlyProxyAdminOwner() {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
-            revert FeeSplitter_OnlyProxyAdminOwner();
-        }
-        _;
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
@@ -210,10 +214,10 @@ contract FeeSplitter is ISemver, Initializable {
         _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
 
         // Total revenue is the sum of all fees
-        uint256 totalRevenue = address(this).balance;
+        uint256 grossRevenue = address(this).balance;
 
         // Stop execution if no fees were collected
-        if (totalRevenue == 0) {
+        if (grossRevenue == 0) {
             emit NoFeesCollected();
             return;
         }
@@ -225,14 +229,8 @@ contract FeeSplitter is ISemver, Initializable {
         payoutGateState = _PAYOUT_CLOSED;
 
         // Call to the ShareCalculator to determine the fee share recipients, values, withdrawal networks, and data
-        (
-            address payable[] memory _revenueShareRecipients,
-            uint256[] memory _feeShareValues,
-            Types.WithdrawalNetwork[] memory _withdrawalNetworks,
-            bytes[] memory _data
-        ) = shareCalculator.getRecipientsAndValues(
-            sequencerFeeRevenue, baseFeeRevenue, operatorFeeRevenue, l1FeeRevenue
-        );
+        (address payable[] memory _revenueShareRecipients, uint256[] memory _feeShareValues) = shareCalculator
+            .getRecipientsAndValues(sequencerFeeRevenue, baseFeeRevenue, operatorFeeRevenue, l1FeeRevenue);
 
         // Ensure the share calculator returned valid data
         if (_revenueShareRecipients.length == 0) {
@@ -241,38 +239,25 @@ contract FeeSplitter is ISemver, Initializable {
         if (_revenueShareRecipients.length != _feeShareValues.length) {
             revert FeeSplitter_FeeShareRecipientsAndFeeShareValuesLengthMismatch();
         }
-        if (_revenueShareRecipients.length != _withdrawalNetworks.length) {
-            revert FeeSplitter_FeeShareRecipientsAndWithdrawalNetworksLengthMismatch();
-        }
-        if (_revenueShareRecipients.length != _data.length) {
-            revert FeeSplitter_FeeShareRecipientsAndDataLengthMismatch();
-        }
 
         // Loop through the recipients and their corresponding fee shares
-        for (uint256 i = 0; i < _revenueShareRecipients.length; i++) {
+        for (uint256 i; i < _revenueShareRecipients.length; i++) {
             address payable _recipient = _revenueShareRecipients[i];
             uint256 _feeShareValue = _feeShareValues[i];
 
-            // Ensure the recipient is not zero and the fee share is greater than zero
-            if (_recipient == address(0) || _feeShareValue == 0) {
+            // Ensure the fee share is greater than zero
+            if (_feeShareValue == 0) {
                 continue;
             }
 
-            // On the last recipient send the remainder of the balance so no funds are left in this contract
+            /// NOTE: The invariant of no funds left in this contract after disbursement can be bypassed if the value
+            /// for the last recipient is zero.
             if (i == _revenueShareRecipients.length - 1) {
+                // On the last recipient send the remainder xof the balance so no funds are left in this contract
                 uint256 _remainder = address(this).balance;
-                if (_withdrawalNetworks[i] == Types.WithdrawalNetwork.L2) {
-                    _sendL2(_recipient, _remainder, _data[i]);
-                } else {
-                    _sendL1(_recipient, _remainder, _data[i]);
-                }
-            }
-
-            // Send the fee share to the recipient
-            if (_withdrawalNetworks[i] == Types.WithdrawalNetwork.L2) {
-                _sendL2(_recipient, _feeShareValue, _data[i]);
+                SafeCall.send(address(_recipient), _remainder);
             } else {
-                _sendL1(_recipient, _feeShareValue, _data[i]);
+                SafeCall.send(address(_recipient), _feeShareValue);
             }
         }
 
@@ -288,7 +273,7 @@ contract FeeSplitter is ISemver, Initializable {
         emit FeesDisbursed({
             revenueShareRecipients: _revenueShareRecipients,
             feeShareValues: _feeShareValues,
-            totalRevenue: totalRevenue
+            grossRevenue: grossRevenue
         });
     }
 
@@ -314,6 +299,12 @@ contract FeeSplitter is ISemver, Initializable {
         emit ShareCalculatorUpdated(oldShareCalculator, address(_newShareCalculator));
     }
 
+    function setMinDisbursementInterval(uint256 _minDisbursementInterval) external onlyProxyAdminOwner {
+        uint256 oldMinFeeDisbursementInterval = MIN_FEE_DISBURSEMENT_INTERVAL;
+        MIN_FEE_DISBURSEMENT_INTERVAL = _minDisbursementInterval;
+        emit MinDisbursementIntervalUpdated(oldMinFeeDisbursementInterval, _minDisbursementInterval);
+    }
+
     /// @notice Checks & Withdraws fees from a FeeVault.
     /// @dev Withdrawal will only occur if the vault is properly configured and if the FeeVault's balance is greater
     /// than or equal to the minimum
@@ -328,28 +319,5 @@ contract FeeSplitter is ISemver, Initializable {
         if (_feeVault.balance >= FeeVault(_feeVault).MIN_WITHDRAWAL_AMOUNT()) {
             FeeVault(_feeVault).withdraw();
         }
-    }
-
-    /// @notice Sends funds to the recipient on L2.
-    /// @param _recipient The address of the recipient on L2.
-    /// @param _amount The amount of funds to send.
-    /// @param _data The data to send to the recipient.
-    function _sendL2(address payable _recipient, uint256 _amount, bytes memory _data) internal {
-        (bool _success,) = _recipient.call{ value: _amount }(_data);
-        if (!_success) {
-            revert FeeSplitter_FailedToSendToRevenueShareRecipient();
-        }
-    }
-
-    /// @notice Sends funds to the recipient on L1.
-    /// @param _recipient The address of the recipient on L1.
-    /// @param _amount The amount of funds to send.
-    /// @param _data The data to send to the recipient.
-    function _sendL1(address payable _recipient, uint256 _amount, bytes memory _data) internal {
-        IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: _amount }({
-            _target: _recipient,
-            _gasLimit: WITHDRAWAL_MIN_GAS,
-            _data: _data
-        });
     }
 }
