@@ -6,7 +6,6 @@ import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
-import { IShareCalculator } from "interfaces/L2/IShareCalculator.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
@@ -14,11 +13,11 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @custom:proxied
-/// @title SharesCalculator
+/// @title SuperchainRevSharesCalculator
 /// @notice Calculator for Superchain revenue share. It pays a fixed 2.5% on gross revenue and 15%
 ///         on net revenue (gross minus L1 fees) to the configured share recipient. The second
 ///         configured recipient receives the full remainder via FeeSplitter's remainder send.
-contract SharesCalculator is ISemver, Initializable {
+contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @notice Emitted when the share recipient is updated.
     /// @param shareRecipient The new share recipient address.
     event ShareRecipientUpdated(address indexed shareRecipient);
@@ -88,6 +87,7 @@ contract SharesCalculator is ISemver, Initializable {
     /// @param _l1FeeRevenue Revenue from L1 fees.
     /// @return recipients_ Array of recipient addresses.
     /// @return values_ Array of values corresponding to each recipient.
+    // TODO: think about using an array of addresses and values
     function getRecipientsAndValues(
         uint256 _sequencerFeeRevenue,
         uint256 _baseFeeRevenue,
