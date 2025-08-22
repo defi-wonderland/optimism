@@ -56,6 +56,7 @@ contract DeployOPChainInput_Test is Test {
         doi.set(doi.blobBaseFeeScalar.selector, blobBaseFeeScalar);
         doi.set(doi.l2ChainId.selector, l2ChainId);
         doi.set(doi.allowCustomDisputeParameters.selector, true);
+        doi.set(doi.isCustomGasToken.selector, false);
         doi.set(doi.opcm.selector, opcm);
         vm.etch(opcm, hex"01");
 
@@ -71,6 +72,7 @@ contract DeployOPChainInput_Test is Test {
         assertEq(l2ChainId, doi.l2ChainId(), "1000");
         assertEq(opcm, address(doi.opcm()), "1100");
         assertEq(true, doi.allowCustomDisputeParameters(), "1200");
+        assertEq(false, doi.isCustomGasToken(), "1300");
     }
 
     function test_getters_whenNotSet_reverts() public {
@@ -102,6 +104,16 @@ contract DeployOPChainInput_Test is Test {
 
         vm.expectRevert(expectedErr);
         doi.l2ChainId();
+    }
+
+    function test_isCustomGasToken_whenTrue_succeeds() public {
+        doi.set(doi.isCustomGasToken.selector, true);
+        assertEq(true, doi.isCustomGasToken(), "CGT-100");
+    }
+
+    function test_isCustomGasToken_whenFalse_succeeds() public {
+        doi.set(doi.isCustomGasToken.selector, false);
+        assertEq(false, doi.isCustomGasToken(), "CGT-200");
     }
 }
 
@@ -486,6 +498,20 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(doo.permissionedDisputeGame().splitDepth(), disputeSplitDepth + 1);
     }
 
+    function test_isCustomGasToken_whenTrue_succeeds() public {
+        setDOI();
+        doi.set(doi.isCustomGasToken.selector, true);
+        deployOPChain.run(doi, doo);
+        assertEq(doi.isCustomGasToken(), true, "CGT-300");
+    }
+
+    function test_isCustomGasToken_whenFalse_succeeds() public {
+        setDOI();
+        doi.set(doi.isCustomGasToken.selector, false);
+        deployOPChain.run(doi, doo);
+        assertEq(doi.isCustomGasToken(), false, "CGT-400");
+    }
+
     function setDOI() internal {
         doi.set(doi.opChainProxyAdminOwner.selector, opChainProxyAdminOwner);
         doi.set(doi.systemConfigOwner.selector, systemConfigOwner);
@@ -505,5 +531,6 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.disputeSplitDepth.selector, disputeSplitDepth);
         doi.set(doi.disputeClockExtension.selector, disputeClockExtension);
         doi.set(doi.disputeMaxClockDuration.selector, disputeMaxClockDuration);
+        doi.set(doi.isCustomGasToken.selector, false);
     }
 }
