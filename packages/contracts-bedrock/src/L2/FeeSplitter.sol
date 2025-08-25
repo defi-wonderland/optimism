@@ -12,8 +12,7 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
-import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
+import { ISharesCalculator, ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
 
 // OpenZeppelin
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -27,23 +26,14 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the share calculator address is zero.
     error FeeSplitter_ShareCalculatorCannotBeZero();
 
-    /// @notice Thrown when the fee disbursement interval is less than 24 hours.
-    error FeeSplitter_FeeDisbursementIntervalTooShort();
-
     /// @notice Thrown when the disbursement interval has not been reached.
     error FeeSplitter_DisbursementIntervalNotReached();
 
-    /// @notice Thrown when the number of fee share recipients and fee share values do not match.
-    error FeeSplitter_FeeShareRecipientsAndFeeShareValuesLengthMismatch();
-
-    /// @notice Thrown when the number of fee share recipients and withdrawal networks do not match.
-    error FeeSplitter_FeeShareRecipientsAndWithdrawalNetworksLengthMismatch();
-
-    /// @notice Thrown when the number of fee share recipients and data do not match.
-    error FeeSplitter_FeeShareRecipientsAndDataLengthMismatch();
-
     /// @notice Thrown when the fee share recipients are empty.
-    error FeeSplitter_FeeShareRecipientsEmpty();
+    error FeeSplitter_FeeShareInfoEmpty();
+
+    /// @notice Thrown when no fees are collected from vaults during disbursement.
+    error FeeSplitter_NoFeesCollected();
 
     /// @notice Thrown when the FeeVault does not withdraw to L2.
     error FeeSplitter_FeeVaultMustWithdrawToL2();
@@ -51,26 +41,26 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the FeeVault does not withdraw to FeeSplitter contract.
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
 
-    /// @notice Thrown when the new fee recipient address is zero.
-    error FeeSplitter_NewRevenueShareRecipientCannotBeZero();
-
-    /// @notice Thrown when the new fee recipient address is zero.
-    error FeeSplitter_NewRevenueRemainderRecipientCannotBeZero();
-
-    /// @notice Thrown when the new fee disbursement interval is less than 24 hours.
-    error FeeSplitter_NewFeeDisbursementIntervalTooShort();
-
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error FeeSplitter_OnlyProxyAdminOwner();
 
     /// @notice Thrown when sending funds to the fee recipient fails.
     error FeeSplitter_FailedToSendToRevenueShareRecipient();
 
-    /// @notice Thrown when sending funds to the fee recipient fails.
-    error FeeSplitter_FailedToSendToRevenueRemainderRecipient();
+    /// @notice Thrown when the ShareCalculator returns malformed output.
+    error FeeSplitter_ShareCalculatorMalformedOutput();
 
-    /// @notice Thrown when receiving funds is disabled during payout.
-    error FeeSplitter_ReceiveDisabledDuringPayout();
+    /// @notice Thrown when receiving ETH is attempted outside of a disbursement window.
+    error FeeSplitter_ReceiveWindowClosed();
+
+    /// @notice Thrown when a sender other than an approved FeeVault attempts to send ETH.
+    error FeeSplitter_SenderNotApprovedVault();
+
+    /// @notice Transient storage slot key for disbursement-in-progress flag.
+    bytes32 internal constant _T_IS_DISBURSING_SLOT = 0x7c8d1b5e4aa1b1226521ad0b7c9652a590097af3a19dc68cac0f1a5e6a1ab2cd;
+
+    /// @notice Tracks the revenue received by each vault.
+    mapping(address => uint256) internal _revenuePerVault;
 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -84,16 +74,10 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice The minimum amount of time in seconds that must pass between fee disbursal.
     uint128 public feeDisbursementInterval;
 
-    /// @notice Tracks the revenue received by each vault.
-    mapping(address => uint256) internal _revenuePerVault;
-
     /// @notice Emitted when fees are received from FeeVaults.
     /// @param sender The FeeVault that sent the fees.
     /// @param amount The amount of fees received.
     event FeesReceived(address indexed sender, uint256 amount);
-
-    /// @notice Emitted when no fees are collected from FeeVaults at time of disbursement.
-    event NoFeesCollected();
 
     /// @notice Emitted when the fee disbursement interval is updated.
     /// @param oldFeeDisbursementInterval The previous fee disbursement interval.
@@ -106,10 +90,9 @@ contract FeeSplitter is ISemver, Initializable {
     event Initialized(ISharesCalculator shareCalculator, uint128 feeDisbursementInterval);
 
     /// @notice Emitted when fees are disbursed to the recipients.
-    /// @param revenueShareRecipients The recipients of the fee share.
-    /// @param feeShareValues The values of the fee share.
+    /// @param shareInfo The recipients of the fee share.
     /// @param grossRevenue The gross revenue before disbursement.
-    event FeesDisbursed(address payable[] revenueShareRecipients, uint256[] feeShareValues, uint256 grossRevenue);
+    event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
 
     /// @notice Emitted when the share calculator is updated.
     /// @param oldShareCalculator The old share calculator contract.
@@ -150,9 +133,13 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
     receive() external payable virtual {
-        // TODO: Should we keep this function open, or enforce only allowed vaults to send fees?
-        // TODO: Is there any edge case possible with this funciton allowing fees to be receied on a disbursement
-        // context?
+        if (!_isTransientDisbursing()) revert FeeSplitter_ReceiveWindowClosed();
+        if (
+            msg.sender != Predeploys.SEQUENCER_FEE_WALLET && msg.sender != Predeploys.BASE_FEE_VAULT
+                && msg.sender != Predeploys.L1_FEE_VAULT && msg.sender != Predeploys.OPERATOR_FEE_VAULT
+        ) {
+            revert FeeSplitter_SenderNotApprovedVault();
+        }
         _revenuePerVault[msg.sender] += msg.value;
         emit FeesReceived({ sender: msg.sender, amount: msg.value });
     }
@@ -164,36 +151,23 @@ contract FeeSplitter is ISemver, Initializable {
         }
 
         // Pull fees into the contract
+        _setTransientDisbursing(true);
         _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
         _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
         _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
         _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
+        _setTransientDisbursing(false);
 
         // Total revenue is the sum of all fees
-        uint256 grossRevenue = address(this).balance;
+        uint256 _sequencerFees = _revenuePerVault[Predeploys.SEQUENCER_FEE_WALLET];
+        uint256 _baseFees = _revenuePerVault[Predeploys.BASE_FEE_VAULT];
+        uint256 _operatorFees = _revenuePerVault[Predeploys.OPERATOR_FEE_VAULT];
+        uint256 _l1Fees = _revenuePerVault[Predeploys.L1_FEE_VAULT];
 
-        // Stop execution if no fees were collected
-        if (grossRevenue == 0) {
-            emit NoFeesCollected();
-            return;
-        }
-
-        // Update the last disbursement time
-        lastDisbursementTime = uint128(block.timestamp);
-
-        // Call to the ShareCalculator to determine the fee share recipients, values, withdrawal networks, and data
-        (address payable[] memory _revenueShareRecipients, uint256[] memory _feeShareValues) = shareCalculator
-            .getRecipientsAndValues(
-            _revenuePerVault[Predeploys.SEQUENCER_FEE_WALLET],
-            _revenuePerVault[Predeploys.BASE_FEE_VAULT],
-            _revenuePerVault[Predeploys.OPERATOR_FEE_VAULT],
-            _revenuePerVault[Predeploys.L1_FEE_VAULT]
-        );
-
-        // Ensure the share calculator returned valid data
-        if (_revenueShareRecipients.length == 0) revert FeeSplitter_FeeShareRecipientsEmpty();
-        if (_revenueShareRecipients.length != _feeShareValues.length) {
-            revert FeeSplitter_FeeShareRecipientsAndFeeShareValuesLengthMismatch();
+        uint256 _grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
+        // Revert if no fees were collected
+        if (_grossRevenue == 0) {
+            revert FeeSplitter_NoFeesCollected();
         }
 
         // Reset individual fee revenue tracking
@@ -202,23 +176,37 @@ contract FeeSplitter is ISemver, Initializable {
         _revenuePerVault[Predeploys.OPERATOR_FEE_VAULT] = 0;
         _revenuePerVault[Predeploys.L1_FEE_VAULT] = 0;
 
+        // Update the last disbursement time
+        lastDisbursementTime = uint128(block.timestamp);
+
+        // Call to the ShareCalculator to determine the fee share recipients, values, withdrawal networks, and data
+        (ShareInfo[] memory _shareInfo) =
+            shareCalculator.getRecipientsAndValues(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
+
+        // Ensure the share calculator returned valid data
+        if (_shareInfo.length == 0) revert FeeSplitter_FeeShareInfoEmpty();
+
         // Loop through the recipients and their corresponding fee shares
-        for (uint256 i; i < _revenueShareRecipients.length; i++) {
-            address payable _recipient = _revenueShareRecipients[i];
-            uint256 _feeShareValue = _feeShareValues[i];
+        uint256 _totalFeesDisbursed;
+        for (uint256 i; i < _shareInfo.length; i++) {
+            address payable _recipient = _shareInfo[i].recipient;
+            uint256 _feeShareValue = _shareInfo[i].value;
 
             // Ensure the fee share is greater than zero
             if (_feeShareValue == 0) continue;
 
-            /// NOTE: Contract can hold some balance after disbursement if the shares calculator is not perfect.
-            SafeCall.send(address(_recipient), _feeShareValue);
+            bool success = SafeCall.send(address(_recipient), _feeShareValue);
+            if (!success) {
+                revert FeeSplitter_FailedToSendToRevenueShareRecipient();
+            }
+            _totalFeesDisbursed += _feeShareValue;
         }
 
-        emit FeesDisbursed({
-            revenueShareRecipients: _revenueShareRecipients,
-            feeShareValues: _feeShareValues,
-            grossRevenue: grossRevenue
-        });
+        // Ensure the total fees disbursed is equal to the gross revenue
+        /// NOTE: Contract can hold some balance after disbursement if tokens are force sent.
+        if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_ShareCalculatorMalformedOutput();
+
+        emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
     }
 
     /// @notice Updates the fee disbursement interval.
@@ -252,5 +240,23 @@ contract FeeSplitter is ISemver, Initializable {
         if (_feeVault.balance >= FeeVault(_feeVault).MIN_WITHDRAWAL_AMOUNT()) {
             FeeVault(_feeVault).withdraw();
         }
+    }
+
+    /// @notice Sets the transient disbursing flag.
+    /// @param _enabled True to enable, false to disable.
+    function _setTransientDisbursing(bool _enabled) internal {
+        assembly {
+            tstore(_T_IS_DISBURSING_SLOT, _enabled)
+        }
+    }
+
+    /// @notice Reads the transient disbursing flag.
+    /// @return isDisbursing_ True if disbursement is in progress.
+    function _isTransientDisbursing() internal view returns (bool isDisbursing_) {
+        uint256 _disbursing;
+        assembly {
+            _disbursing := tload(_T_IS_DISBURSING_SLOT)
+        }
+        isDisbursing_ = _disbursing != 0;
     }
 }

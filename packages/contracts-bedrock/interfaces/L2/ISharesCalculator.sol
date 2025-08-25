@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+    struct ShareInfo {
+        address payable recipient;
+        uint256 value;
+    }
+    
 interface ISharesCalculator {
+
+
     function getRecipientsAndValues(
         uint256 _sequencerFeeVaultBalance,
         uint256 _baseFeeVaultBalance,
@@ -10,5 +17,5 @@ interface ISharesCalculator {
     )
         external
         view
-        returns (address payable[] memory recipients, uint256[] memory values);
-}
+        returns (ShareInfo[] memory shareInfo);
+    }

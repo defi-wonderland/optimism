@@ -2,12 +2,12 @@
 pragma solidity 0.8.25;
 
 // Libraries
-import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
 
 // OpenZeppelin
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -28,9 +28,6 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
 
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error SharesCalculator_OnlyProxyAdminOwner();
-
-    /// @notice Thrown when a configured recipient is the zero address.
-    error SharesCalculator_RecipientZeroAddress();
 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -85,9 +82,7 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @param _baseFeeRevenue Revenue from base fees.
     /// @param _operatorFeeRevenue Revenue from operator fees.
     /// @param _l1FeeRevenue Revenue from L1 fees.
-    /// @return recipients_ Array of recipient addresses.
-    /// @return values_ Array of values corresponding to each recipient.
-    // TODO: think about using an array of addresses and values
+    /// @return shareInfo Array of ShareInfo structs containing recipients and values.
     function getRecipientsAndValues(
         uint256 _sequencerFeeRevenue,
         uint256 _baseFeeRevenue,
@@ -96,16 +91,16 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     )
         external
         view
-        returns (address payable[] memory recipients_, uint256[] memory values_)
+        returns (ShareInfo[] memory shareInfo)
     {
         // Two recipients: share recipient first (explicit amount), remainder recipient second (0; FeeSplitter sends
         // remainder)
-        recipients_ = new address payable[](2);
-        recipients_[0] = shareRecipient;
-        recipients_[1] = remainderRecipient;
+        shareInfo = new ShareInfo[](2);
+        shareInfo[0] = ShareInfo({ recipient: shareRecipient, value: 0 });
+        shareInfo[1] = ShareInfo({ recipient: remainderRecipient, value: 0 });
 
         // Gross component: 2.5% of total revenue.
-        uint256 grossRevenue = address(FEE_SPLITTER).balance;
+        uint256 grossRevenue = _sequencerFeeRevenue + _baseFeeRevenue + _operatorFeeRevenue + _l1FeeRevenue;
         uint256 grossShare = (grossRevenue * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE;
 
         // Net component: 15% of (total - L1 fees), floored at zero.
@@ -115,9 +110,8 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
         uint256 amountToShareRecipient = grossShare > netShare ? grossShare : netShare;
 
         // Set the share amount and the remainder to 0.
-        values_ = new uint256[](2);
-        values_[0] = amountToShareRecipient;
-        values_[1] = grossRevenue - amountToShareRecipient;
+        shareInfo[0].value = amountToShareRecipient;
+        shareInfo[1].value = grossRevenue - amountToShareRecipient;
     }
 
     function setShareRecipient(address payable _shareRecipient) external onlyProxyAdminOwner {
