@@ -127,16 +127,12 @@ library Predeploys {
         if (_addr == GAS_PRICE_ORACLE) return "GasPriceOracle";
         if (_addr == L2_STANDARD_BRIDGE) return "L2StandardBridge";
         if (_addr == SEQUENCER_FEE_WALLET) return "SequencerFeeVault";
-        if (_addr == OPTIMISM_MINTABLE_ERC20_FACTORY) {
-            return "OptimismMintableERC20Factory";
-        }
+        if (_addr == OPTIMISM_MINTABLE_ERC20_FACTORY) return "OptimismMintableERC20Factory";
         if (_addr == L1_BLOCK_NUMBER) return "L1BlockNumber";
         if (_addr == L2_ERC721_BRIDGE) return "L2ERC721Bridge";
         if (_addr == L1_BLOCK_ATTRIBUTES) return "L1Block";
         if (_addr == L2_TO_L1_MESSAGE_PASSER) return "L2ToL1MessagePasser";
-        if (_addr == OPTIMISM_MINTABLE_ERC721_FACTORY) {
-            return "OptimismMintableERC721Factory";
-        }
+        if (_addr == OPTIMISM_MINTABLE_ERC721_FACTORY) return "OptimismMintableERC721Factory";
         if (_addr == PROXY_ADMIN) return "ProxyAdmin";
         if (_addr == BASE_FEE_VAULT) return "BaseFeeVault";
         if (_addr == L1_FEE_VAULT) return "L1FeeVault";
@@ -146,17 +142,11 @@ library Predeploys {
         if (_addr == GOVERNANCE_TOKEN) return "GovernanceToken";
         if (_addr == LEGACY_ERC20_ETH) return "LegacyERC20ETH";
         if (_addr == CROSS_L2_INBOX) return "CrossL2Inbox";
-        if (_addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER) {
-            return "L2ToL2CrossDomainMessenger";
-        }
+        if (_addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER) return "L2ToL2CrossDomainMessenger";
         if (_addr == SUPERCHAIN_ETH_BRIDGE) return "SuperchainETHBridge";
         if (_addr == ETH_LIQUIDITY) return "ETHLiquidity";
-        if (_addr == OPTIMISM_SUPERCHAIN_ERC20_FACTORY) {
-            return "OptimismSuperchainERC20Factory";
-        }
-        if (_addr == OPTIMISM_SUPERCHAIN_ERC20_BEACON) {
-            return "OptimismSuperchainERC20Beacon";
-        }
+        if (_addr == OPTIMISM_SUPERCHAIN_ERC20_FACTORY) return "OptimismSuperchainERC20Factory";
+        if (_addr == OPTIMISM_SUPERCHAIN_ERC20_BEACON) return "OptimismSuperchainERC20Beacon";
         if (_addr == SUPERCHAIN_TOKEN_BRIDGE) return "SuperchainTokenBridge";
         if (_addr == FEE_SPLITTER) return "FeeSplitter";
         revert("Predeploys: unnamed predeploy");
@@ -199,7 +189,7 @@ library Predeploys {
             isPredeployNamespace(_addr), "Predeploys: can only derive code-namespace address for predeploy addresses"
         );
         return address(
-            uint160((uint256(uint160(_addr)) & 0xffff) | uint256(uint160(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000)))
+            uint160(uint256(uint160(_addr)) & 0xffff | uint256(uint160(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000)))
         );
     }
 }
