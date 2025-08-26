@@ -52,19 +52,11 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @notice Address that receives the remainder of the revenue.
     address payable public remainderRecipient;
 
-    /// @notice Modifier that restricts access to the ProxyAdmin owner.
-    modifier onlyProxyAdminOwner() {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
-            revert SharesCalculator_OnlyProxyAdminOwner();
-        }
-        _;
-    }
-
     constructor() {
         _disableInitializers();
     }
 
-    /// @notice Initializes the contract with an initial configuration.
+    /// @notice Initializes the contract with an initial configuration. Only callable by the ProxyAdmin owner.
     /// @param _shareRecipient Recipient of the Superchain revenue share.
     /// @param _remainderRecipient Recipient of the remainder.
     function initialize(
@@ -73,8 +65,10 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     )
         external
         initializer
-        onlyProxyAdminOwner
     {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert SharesCalculator_OnlyProxyAdminOwner();
+        }
         shareRecipient = _shareRecipient;
         remainderRecipient = _remainderRecipient;
     }
@@ -116,13 +110,23 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
         shareInfo[1].value = grossRevenue - amountToShareRecipient;
     }
 
-    function setShareRecipient(address payable _shareRecipient) external onlyProxyAdminOwner {
+    /// @notice Sets the share recipient. Only callable by the ProxyAdmin owner.
+    /// @param _shareRecipient The new share recipient address.
+    function setShareRecipient(address payable _shareRecipient) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert SharesCalculator_OnlyProxyAdminOwner();
+        }
         address oldShareRecipient = shareRecipient;
         shareRecipient = _shareRecipient;
         emit ShareRecipientUpdated(_shareRecipient, oldShareRecipient);
     }
 
-    function setRemainderRecipient(address payable _remainderRecipient) external onlyProxyAdminOwner {
+    /// @notice Sets the remainder recipient. Only callable by the ProxyAdmin owner.
+    /// @param _remainderRecipient The new remainder recipient address.
+    function setRemainderRecipient(address payable _remainderRecipient) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert SharesCalculator_OnlyProxyAdminOwner();
+        }
         address oldRemainderRecipient = remainderRecipient;
         remainderRecipient = _remainderRecipient;
         emit RemainderRecipientUpdated(_remainderRecipient, oldRemainderRecipient);

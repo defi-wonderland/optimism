@@ -99,14 +99,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param newShareCalculator The new share calculator contract.
     event ShareCalculatorUpdated(address oldShareCalculator, address newShareCalculator);
 
-    /// @notice Modifier that restricts access to the ProxyAdmin owner.
-    modifier onlyProxyAdminOwner() {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
-            revert FeeSplitter_OnlyProxyAdminOwner();
-        }
-        _;
-    }
-
     constructor() {
         _disableInitializers();
     }
@@ -120,9 +112,11 @@ contract FeeSplitter is ISemver, Initializable {
         uint128 _feeDisbursementInterval
     )
         external
-        onlyProxyAdminOwner
         initializer
     {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert FeeSplitter_OnlyProxyAdminOwner();
+        }
         if (address(_shareCalculator) == address(0)) revert FeeSplitter_ShareCalculatorCannotBeZero();
 
         shareCalculator = _shareCalculator;
@@ -209,17 +203,23 @@ contract FeeSplitter is ISemver, Initializable {
         emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
     }
 
-    /// @notice Updates the fee disbursement interval.
+    /// @notice Updates the fee disbursement interval. Only callable by the ProxyAdmin owner.
     /// @param _newFeeDisbursementInterval The new fee disbursement interval in seconds.
-    function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external onlyProxyAdminOwner {
+    function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert FeeSplitter_OnlyProxyAdminOwner();
+        }
         uint128 oldFeeDisbursementInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
         emit FeeDisbursementIntervalUpdated(oldFeeDisbursementInterval, _newFeeDisbursementInterval);
     }
 
-    /// @notice Updates the share calculator contract.
+    /// @notice Updates the share calculator contract. Only callable by the ProxyAdmin owner.
     /// @param _newShareCalculator The new share calculator contract.
-    function setShareCalculator(ISharesCalculator _newShareCalculator) external onlyProxyAdminOwner {
+    function setShareCalculator(ISharesCalculator _newShareCalculator) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert FeeSplitter_OnlyProxyAdminOwner();
+        }
         if (address(_newShareCalculator) == address(0)) revert FeeSplitter_ShareCalculatorCannotBeZero();
         address oldShareCalculator = address(shareCalculator);
         shareCalculator = _newShareCalculator;
