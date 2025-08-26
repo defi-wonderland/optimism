@@ -57,7 +57,8 @@ contract FeeSplitter is ISemver, Initializable {
     error FeeSplitter_SenderNotApprovedVault();
 
     /// @notice Transient storage slot key for disbursement-in-progress flag.
-    bytes32 internal constant _T_IS_DISBURSING_SLOT = 0x7c8d1b5e4aa1b1226521ad0b7c9652a590097af3a19dc68cac0f1a5e6a1ab2cd;
+    ///         Equal to bytes32(uint256(keccak256("feesplitter.isDisbursing")) - 1)
+    bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT = 0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
 
     /// @notice Tracks the revenue received by each vault.
     mapping(address => uint256) internal _revenuePerVault;
@@ -246,17 +247,15 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param _enabled True to enable, false to disable.
     function _setTransientDisbursing(bool _enabled) internal {
         assembly {
-            tstore(_T_IS_DISBURSING_SLOT, _enabled)
+            tstore(_FEE_SPLITTER_IS_DISBURSING_SLOT, _enabled)
         }
     }
 
     /// @notice Reads the transient disbursing flag.
     /// @return isDisbursing_ True if disbursement is in progress.
     function _isTransientDisbursing() internal view returns (bool isDisbursing_) {
-        uint256 _disbursing;
         assembly {
-            _disbursing := tload(_T_IS_DISBURSING_SLOT)
+            isDisbursing_ := tload(_FEE_SPLITTER_IS_DISBURSING_SLOT)
         }
-        isDisbursing_ = _disbursing != 0;
     }
 }
