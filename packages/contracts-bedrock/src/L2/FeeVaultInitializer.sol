@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import { FeeVault } from "src/L2/FeeVault.sol";
 import { BaseFeeVault } from "src/L2/BaseFeeVault.sol";
 import { SequencerFeeVault } from "src/L2/SequencerFeeVault.sol";
 import { L1FeeVault } from "src/L2/L1FeeVault.sol";
@@ -14,64 +13,26 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 /// @title FeeVaultInitializer
 /// @notice This contract deploys new fee vault implementations with current configurations as immutables.
+///         It reads the current configuration from existing fee vault proxies and deploys new implementations
+///         with those values set as immutable parameters, ensuring consistent behavior across deployments.
 contract FeeVaultInitializer is ISemver {
-
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
-    /// @notice Emitted when the Base Fee Vault is deployed.
+    /// @notice Emitted when a fee vault implementation is deployed.
+    /// @param vaultType The type of fee vault being deployed.
     /// @param oldImplementation The previous implementation address.
     /// @param newImplementation The deployed implementation address.
     /// @param recipient The recipient address for the implementation.
     /// @param network The withdrawal network for the implementation.
     /// @param minWithdrawalAmount The minimum withdrawal amount for the implementation.
-    event BaseFeeVaultDeployed(
-        address indexed oldImplementation,
-        address indexed newImplementation,
-        address recipient,
-        Types.WithdrawalNetwork network,
-        uint256 minWithdrawalAmount
-    );
-
-    /// @notice Emitted when the Sequencer Fee Vault is deployed.
-    /// @param oldImplementation The previous implementation address.
-    /// @param newImplementation The deployed implementation address.
-    /// @param recipient The recipient address for the implementation.
-    /// @param network The withdrawal network for the implementation.
-    /// @param minWithdrawalAmount The minimum withdrawal amount for the implementation.
-    event SequencerFeeVaultDeployed(
-        address indexed oldImplementation,
-        address indexed newImplementation,
-        address recipient,
-        Types.WithdrawalNetwork network,
-        uint256 minWithdrawalAmount
-    );
-
-    /// @notice Emitted when the L1 Fee Vault is deployed.
-    /// @param oldImplementation The previous implementation address.
-    /// @param newImplementation The deployed implementation address.
-    /// @param recipient The recipient address for the implementation.
-    /// @param network The withdrawal network for the implementation.
-    /// @param minWithdrawalAmount The minimum withdrawal amount for the implementation.
-    event L1FeeVaultDeployed(
-        address indexed oldImplementation,
-        address indexed newImplementation,
-        address recipient,
-        Types.WithdrawalNetwork network,
-        uint256 minWithdrawalAmount
-    );
-
-    /// @notice Emitted when the Operator Fee Vault is deployed.
-    /// @param oldImplementation The previous implementation address.
-    /// @param newImplementation The deployed implementation address.
-    /// @param recipient The recipient address for the implementation.
-    /// @param network The withdrawal network for the implementation.
-    /// @param minWithdrawalAmount The minimum withdrawal amount for the implementation.
-    event OperatorFeeVaultDeployed(
+    event FeeVaultDeployed(
+        string indexed vaultType,
         address indexed oldImplementation,
         address indexed newImplementation,
         address recipient,
@@ -87,39 +48,39 @@ contract FeeVaultInitializer is ISemver {
         _deployOperatorFeeVault();
     }
 
+    /// @notice Helper function to get current fee vault configuration.
+    /// @param _feeVaultAddress The address of the fee vault to get configuration from.
+    /// @return recipient_ The recipient address.
+    /// @return network_ The withdrawal network.
+    /// @return minWithdrawalAmount_ The minimum withdrawal amount.
+    /// @return currentImplementation_ The current implementation address.
+    function _getFeeVaultConfig(address _feeVaultAddress)
+        internal
+        returns (address recipient_, Types.WithdrawalNetwork network_, uint256 minWithdrawalAmount_, address currentImplementation_)
+    {
+        currentImplementation_ = IProxy(payable(_feeVaultAddress)).implementation();
+
+        // Make sure to use legacy functions to avoid failure on upgrade.
+        recipient_ = IFeeVault(payable(_feeVaultAddress)).RECIPIENT();
+        minWithdrawalAmount_ = IFeeVault(payable(_feeVaultAddress)).MIN_WITHDRAWAL_AMOUNT();
+        // Use low level call to check for WITHDRAWAL_NETWORK, default to L2 if it doesn't exist
+        (bool success, bytes memory data) = _feeVaultAddress.staticcall(abi.encodeCall(IFeeVault.WITHDRAWAL_NETWORK, ()));
+        network_ =
+            success && data.length >= 32 ? abi.decode(data, (Types.WithdrawalNetwork)) : Types.WithdrawalNetwork.L2;
+    }
+
+    /// @notice Deploys a new Base Fee Vault implementation with current configuration as immutables.
+    ///         Reads the current configuration from the existing proxy and deploys a new implementation
+    ///         with those values set as immutable parameters.
     function _deployBaseFeeVault() internal {
-        // Get current values from the existing fee vault
-        address recipient;
-        Types.WithdrawalNetwork network;
-        uint256 minWithdrawalAmount;
-        address currentImplementation = IProxy(payable(Predeploys.BASE_FEE_VAULT)).implementation();
-
-        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
-        try FeeVault(payable(Predeploys.BASE_FEE_VAULT)).recipient() returns (address _recipient) {
-            recipient = _recipient;
-        } catch {
-            // Legacy implementation - try snake_case function
-            recipient = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).RECIPIENT();
-        }
-
-        try FeeVault(payable(Predeploys.BASE_FEE_VAULT)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
-            network = _network;
-        } catch {
-            // Legacy implementation - try snake_case function
-            network = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).WITHDRAWAL_NETWORK();
-        }
-
-        try FeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
-            minWithdrawalAmount = _minWithdrawalAmount;
-        } catch {
-            // Legacy implementation - try snake_case function
-            minWithdrawalAmount = FeeVault(payable(Predeploys.BASE_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
-        }
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+            _getFeeVaultConfig(Predeploys.BASE_FEE_VAULT);
 
         // Deploy new implementation with current values as immutables
         BaseFeeVault newBaseFeeVault = new BaseFeeVault(recipient, minWithdrawalAmount, network);
 
-        emit BaseFeeVaultDeployed(
+        emit FeeVaultDeployed(
+            "BaseFeeVault",
             currentImplementation,
             address(newBaseFeeVault),
             recipient,
@@ -128,39 +89,18 @@ contract FeeVaultInitializer is ISemver {
         );
     }
 
+    /// @notice Deploys a new Sequencer Fee Vault implementation with current configuration as immutables.
+    ///         Reads the current configuration from the existing proxy and deploys a new implementation
+    ///         with those values set as immutable parameters.
     function _deploySequencerFeeVault() internal {
-        // Get current values from the existing fee vault
-        address recipient;
-        Types.WithdrawalNetwork network;
-        uint256 minWithdrawalAmount;
-        address currentImplementation = IProxy(payable(Predeploys.SEQUENCER_FEE_WALLET)).implementation();
-
-        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
-        try FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).recipient() returns (address _recipient) {
-            recipient = _recipient;
-        } catch {
-            // Legacy implementation - try snake_case function
-            recipient = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).RECIPIENT();
-        }
-
-        try FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
-            network = _network;
-        } catch {
-            // Legacy implementation - try snake_case function
-            network = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).WITHDRAWAL_NETWORK();
-        }
-
-        try FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
-            minWithdrawalAmount = _minWithdrawalAmount;
-        } catch {
-            // Legacy implementation - try snake_case function
-            minWithdrawalAmount = FeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).MIN_WITHDRAWAL_AMOUNT();
-        }
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+            _getFeeVaultConfig(Predeploys.SEQUENCER_FEE_WALLET);
 
         // Deploy new implementation with current values as immutables
         SequencerFeeVault newSequencerFeeVault = new SequencerFeeVault(recipient, minWithdrawalAmount, network);
 
-        emit SequencerFeeVaultDeployed(
+        emit FeeVaultDeployed(
+            "SequencerFeeVault",
             currentImplementation,
             address(newSequencerFeeVault),
             recipient,
@@ -169,39 +109,18 @@ contract FeeVaultInitializer is ISemver {
         );
     }
 
+    /// @notice Deploys a new L1 Fee Vault implementation with current configuration as immutables.
+    ///         Reads the current configuration from the existing proxy and deploys a new implementation
+    ///         with those values set as immutable parameters.
     function _deployL1FeeVault() internal {
-        // Get current values from the existing fee vault
-        address recipient;
-        Types.WithdrawalNetwork network;
-        uint256 minWithdrawalAmount;
-        address currentImplementation = IProxy(payable(Predeploys.L1_FEE_VAULT)).implementation();
-
-        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
-        try FeeVault(payable(Predeploys.L1_FEE_VAULT)).recipient() returns (address _recipient) {
-            recipient = _recipient;
-        } catch {
-            // Legacy implementation - try snake_case function
-            recipient = FeeVault(payable(Predeploys.L1_FEE_VAULT)).RECIPIENT();
-        }
-
-        try FeeVault(payable(Predeploys.L1_FEE_VAULT)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
-            network = _network;
-        } catch {
-            // Legacy implementation - try snake_case function
-            network = FeeVault(payable(Predeploys.L1_FEE_VAULT)).WITHDRAWAL_NETWORK();
-        }
-
-        try FeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
-            minWithdrawalAmount = _minWithdrawalAmount;
-        } catch {
-            // Legacy implementation - try snake_case function
-            minWithdrawalAmount = FeeVault(payable(Predeploys.L1_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
-        }
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+            _getFeeVaultConfig(Predeploys.L1_FEE_VAULT);
 
         // Deploy new implementation with current values as immutables
         L1FeeVault newL1FeeVault = new L1FeeVault(recipient, minWithdrawalAmount, network);
 
-        emit L1FeeVaultDeployed(
+        emit FeeVaultDeployed(
+            "L1FeeVault",
             currentImplementation,
             address(newL1FeeVault),
             recipient,
@@ -210,39 +129,18 @@ contract FeeVaultInitializer is ISemver {
         );
     }
 
+    /// @notice Deploys a new Operator Fee Vault implementation with current configuration as immutables.
+    ///         Reads the current configuration from the existing proxy and deploys a new implementation
+    ///         with those values set as immutable parameters.
     function _deployOperatorFeeVault() internal {
-        // Get current values from the existing fee vault
-        address recipient;
-        Types.WithdrawalNetwork network;
-        uint256 minWithdrawalAmount;
-        address currentImplementation = IProxy(payable(Predeploys.OPERATOR_FEE_VAULT)).implementation();
-
-        // Try to get values using new camelCase functions, fallback to legacy snake_case if it fails
-        try FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).recipient() returns (address _recipient) {
-            recipient = _recipient;
-        } catch {
-            // Legacy implementation - try snake_case function
-            recipient = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).RECIPIENT();
-        }
-
-        try FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).withdrawalNetwork() returns (Types.WithdrawalNetwork _network) {
-            network = _network;
-        } catch {
-            // Legacy implementation - try snake_case function
-            network = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).WITHDRAWAL_NETWORK();
-        }
-
-        try FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount() returns (uint256 _minWithdrawalAmount) {
-            minWithdrawalAmount = _minWithdrawalAmount;
-        } catch {
-            // Legacy implementation - try snake_case function
-            minWithdrawalAmount = FeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).MIN_WITHDRAWAL_AMOUNT();
-        }
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+            _getFeeVaultConfig(Predeploys.OPERATOR_FEE_VAULT);
 
         // Deploy new implementation with current values as immutables
         OperatorFeeVault newOperatorFeeVault = new OperatorFeeVault(recipient, minWithdrawalAmount, network);
 
-        emit OperatorFeeVaultDeployed(
+        emit FeeVaultDeployed(
+            "OperatorFeeVault",
             currentImplementation,
             address(newOperatorFeeVault),
             recipient,
