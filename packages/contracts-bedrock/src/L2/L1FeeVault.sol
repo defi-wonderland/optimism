@@ -20,9 +20,14 @@ contract L1FeeVault is FeeVault, ISemver {
     string public constant version = "1.5.2";
 
     /// @notice Constructs the L1FeeVault contract.
-    /// @param _currentRecipient           Wallet that will receive the fees.
-    /// @param _currentMinWithdrawalAmount Minimum balance for withdrawals.
-    /// @param _currentWithdrawalNetwork   Network which the recipient will receive fees on.
-    constructor(address _currentRecipient, uint256 _currentMinWithdrawalAmount, Types.WithdrawalNetwork _currentWithdrawalNetwork) FeeVault(_currentRecipient, _currentMinWithdrawalAmount, _currentWithdrawalNetwork) { }
-
+    /// @param _recipient           Wallet that will receive the fees.
+    /// @param _minWithdrawalAmount Minimum balance for withdrawals.
+    /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
+    constructor(
+        address _recipient,
+        uint256 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
+    )
+        FeeVault(_recipient, _minWithdrawalAmount, _withdrawalNetwork)
+    { }
 }

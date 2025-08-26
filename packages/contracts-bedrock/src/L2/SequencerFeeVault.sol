@@ -20,11 +20,16 @@ contract SequencerFeeVault is FeeVault, ISemver {
     string public constant version = "1.5.2";
 
     /// @notice Constructs the SequencerFeeVault contract.
-    /// @param _currentRecipient         Wallet that will receive the fees.
-    /// @param _currentMinWithdrawAmount Minimum balance for withdrawals.
-    /// @param _currentWithdrawNetwork   Network which the recipient will receive fees on.
-    constructor(address _currentRecipient, uint256 _currentMinWithdrawAmount, Types.WithdrawalNetwork _currentWithdrawNetwork) FeeVault(_currentRecipient, _currentMinWithdrawAmount, _currentWithdrawNetwork) { }
-
+    /// @param _recipient           Wallet that will receive the fees.
+    /// @param _minWithdrawalAmount Minimum balance for withdrawals.
+    /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
+    constructor(
+        address _recipient,
+        uint256 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
+    )
+        FeeVault(_recipient, _minWithdrawalAmount, _withdrawalNetwork)
+    { }
 
     /// @custom:legacy
     /// @notice Legacy getter for the recipient address.
