@@ -9,9 +9,11 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -174,6 +176,19 @@ func runSysgo() error {
 	go func() {
 		if err := proxyEL(elNode.L2EthClient().RPC()); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v", err)
+		}
+	}()
+
+	// Wait a bit for the HTTP server to be ready, then save contract addresses
+	go func() {
+		time.Sleep(2 * time.Second) // Wait for HTTP server to start
+		l1Networks := sys.L1Networks()
+		if len(l1Networks) > 0 {
+			homeDir, _ := os.UserHomeDir()
+			opUpDirPath := filepath.Join(homeDir, ".op-up")
+			if err := saveContractAddresses(opUpDirPath, l1Networks[0], l2Net); err != nil {
+				fmt.Printf("Warning: failed to save contract addresses: %v\n", err)
+			}
 		}
 	}()
 
@@ -421,4 +436,59 @@ func (t *testingT) WithCtx(ctx context.Context) devtest.T {
 
 // _TestOnly implements devtest.T.
 func (t *testingT) TestOnly() {
+}
+
+func saveContractAddresses(opUpDir string, l1Net stack.L1Network, l2Net stack.L2Network) error {
+	// Get L1CrossDomainMessenger from L2CrossDomainMessenger
+	l2CDM := "0x4200000000000000000000000000000000000007"
+	l1CDM := getAddressFromContract("http://127.0.0.1:8545", l2CDM, "otherMessenger()(address)")
+	
+	// Get OptimismPortal and SystemConfig from L1CrossDomainMessenger
+	var optimismPortal, systemConfig string
+	if l1CDM != "" {
+		optimismPortal = getAddressFromContract("http://127.0.0.1:8544", l1CDM, "portal()(address)")
+		systemConfig = getAddressFromContract("http://127.0.0.1:8544", l1CDM, "systemConfig()(address)")
+	}
+	
+	addresses := map[string]interface{}{
+		"l1ChainId": 900,
+		"l2ChainId": 901,
+		"l1RpcUrl":  "http://127.0.0.1:8544",
+		"l2RpcUrl":  "http://127.0.0.1:8545",
+		"contracts": map[string]interface{}{
+			"l1": map[string]string{
+				"crossDomainMessenger": l1CDM,
+				"optimismPortal":       optimismPortal,
+				"systemConfig":         systemConfig,
+			},
+			"l2": map[string]string{
+				"crossDomainMessenger": l2CDM,
+			},
+		},
+	}
+
+	jsonData, err := json.MarshalIndent(addresses, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal addresses: %w", err)
+	}
+
+	addressesFile := filepath.Join(opUpDir, "contract-addresses.json")
+	if err := os.WriteFile(addressesFile, jsonData, 0644); err != nil {
+		return fmt.Errorf("write addresses file: %w", err)
+	}
+
+	fmt.Printf("Contract addresses saved to: %s\n", addressesFile)
+	return nil
+}
+
+func getAddressFromContract(rpcUrl, contractAddr, signature string) string {
+	cmd := exec.Command("cast", "call", contractAddr, signature, "--rpc-url", rpcUrl)
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Printf("Debug: cast call failed for %s.%s: %v\n", contractAddr, signature, err)
+		return ""
+	}
+	result := strings.TrimSpace(string(output))
+	fmt.Printf("Debug: %s.%s = %s\n", contractAddr, signature, result)
+	return result
 }
