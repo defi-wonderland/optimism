@@ -124,6 +124,13 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 	overrides := defaultOverrides()
 	// Special case for FundDevAccounts since it's both an intent value and an override.
 	overrides.FundDevAccounts = intent.FundDevAccounts
+	
+	// Configure custom gas token from intent
+	if thisIntent.CustomGasToken != nil {
+		overrides.IsCustomGasToken = thisIntent.CustomGasToken.Enabled
+		overrides.GasPayingTokenName = thisIntent.CustomGasToken.Name
+		overrides.GasPayingTokenSymbol = thisIntent.CustomGasToken.Symbol
+	}
 
 	var err error
 	if len(intent.GlobalDeployOverrides) > 0 {

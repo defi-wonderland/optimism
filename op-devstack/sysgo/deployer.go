@@ -306,10 +306,8 @@ func WithDisputeGameFinalityDelaySeconds(seconds uint64) DeployerOption {
 
 func WithCustomGasToken(enabled bool, name, symbol string) DeployerOption {
 	return func(p devtest.P, keys devkeys.Keys, builder intentbuilder.Builder) {
-		builder.WithGlobalOverride("isCustomGasToken", enabled)
-		if enabled {
-			builder.WithGlobalOverride("gasPayingTokenName", name)
-			builder.WithGlobalOverride("gasPayingTokenSymbol", symbol)
+		for _, l2Cfg := range builder.L2s() {
+			l2Cfg.WithCustomGasToken(enabled, name, symbol)
 		}
 	}
 }
