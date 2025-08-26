@@ -14,17 +14,19 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 
 /// @custom:proxied
 /// @title SuperchainRevSharesCalculator
-/// @notice Calculator for Superchain revenue share. It pays a fixed 2.5% on gross revenue and 15%
-///         on net revenue (gross minus L1 fees) to the configured share recipient. The second
-///         configured recipient receives the full remainder via FeeSplitter's remainder send.
+/// @notice Calculator for Superchain revenue share. It pays the greater amount between 2.5% of 
+///         gross revenue or 15% of net revenue (gross minus L1 fees) to the configured share recipient. 
+///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
 contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @notice Emitted when the share recipient is updated.
     /// @param shareRecipient The new share recipient address.
-    event ShareRecipientUpdated(address indexed shareRecipient);
+    /// @param oldSHareRecipient The old share recipient address.
+    event ShareRecipientUpdated(address indexed shareRecipient, address indexed oldSHareRecipient);
 
     /// @notice Emitted when the remainder recipient is updated.
     /// @param remainderRecipient The new remainder recipient address.
-    event RemainderRecipientUpdated(address indexed remainderRecipient);
+    /// @param oldRemainderRecipient The old remainder recipient address.
+    event RemainderRecipientUpdated(address indexed remainderRecipient, address indexed oldRemainderRecipient);
 
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error SharesCalculator_OnlyProxyAdminOwner();
@@ -42,7 +44,7 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     uint32 public constant NET_SHARE_BPS = 1_500;
 
     /// @notice Address of the FeeSplitter contract.
-    address public constant FEE_SPLITTER = 0x4200000000000000000000000000000000000029;
+    address public constant FEE_SPLITTER = Predeploys.FEE_SPLITTER;
 
     /// @notice Address that receives the Superchain revenue share.
     address payable public shareRecipient;
@@ -115,12 +117,14 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     }
 
     function setShareRecipient(address payable _shareRecipient) external onlyProxyAdminOwner {
+        address oldShareRecipient = shareRecipient;
         shareRecipient = _shareRecipient;
-        emit ShareRecipientUpdated(_shareRecipient);
+        emit ShareRecipientUpdated(_shareRecipient, oldShareRecipient);
     }
 
     function setRemainderRecipient(address payable _remainderRecipient) external onlyProxyAdminOwner {
+        address oldRemainderRecipient = remainderRecipient;
         remainderRecipient = _remainderRecipient;
-        emit RemainderRecipientUpdated(_remainderRecipient);
+        emit RemainderRecipientUpdated(_remainderRecipient, oldRemainderRecipient);
     }
 }
