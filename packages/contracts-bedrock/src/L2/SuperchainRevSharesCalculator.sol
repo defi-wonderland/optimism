@@ -43,9 +43,6 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @notice Net revenue share in basis points (15%).
     uint32 public constant NET_SHARE_BPS = 1_500;
 
-    /// @notice Address of the FeeSplitter contract.
-    address public constant FEE_SPLITTER = Predeploys.FEE_SPLITTER;
-
     /// @notice Address that receives the Superchain revenue share.
     address payable public shareRecipient;
 
