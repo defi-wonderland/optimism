@@ -1,74 +1,43 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IFeeSplitter {
+import { ISemver } from "interfaces/universal/ISemver.sol";
+import { ISharesCalculator, ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
 
-    error FeeSplitter_RevenueShareRecipientCannotBeZero();
-    error FeeSplitter_RevenueRemainderRecipientCannotBeZero();
-    error FeeSplitter_FeeDisbursementIntervalTooShort();
+interface IFeeSplitter is ISemver {
+
+    error FeeSplitter_ShareCalculatorCannotBeZero();
     error FeeSplitter_DisbursementIntervalNotReached();
+    error FeeSplitter_FeeShareInfoEmpty();
+    error FeeSplitter_NoFeesCollected();
     error FeeSplitter_FeeVaultMustWithdrawToL2();
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
-    error FeeSplitter_NewRevenueShareRecipientCannotBeZero();
-    error FeeSplitter_NewRevenueRemainderRecipientCannotBeZero();
-    error FeeSplitter_NewFeeDisbursementIntervalTooShort();
     error FeeSplitter_OnlyProxyAdminOwner();
     error FeeSplitter_FailedToSendToRevenueShareRecipient();
-    error FeeSplitter_FailedToSendToRevenueRemainderRecipient();
+    error FeeSplitter_ShareCalculatorMalformedOutput();
+    error FeeSplitter_ReceiveWindowClosed();
+    error FeeSplitter_SenderNotApprovedVault();
 
-    event FeesDisbursed(
-        address indexed revenueShareRecipient,
-        address indexed remainderRecipient,
-        uint256 revenueShareRecipientAmount,
-        uint256 revenueRemainderRecipientAmount
-    );
     event FeesReceived(address indexed sender, uint256 amount);
-    event NoFeesCollected();
-    event RevenueShareRecipientUpdated(
-        address indexed oldRevenueShareRecipient,
-        address indexed newRevenueShareRecipient
-    );
-    event RevenueRemainderRecipientUpdated(
-        address indexed oldRevenueRemainderRecipient,
-        address indexed newRevenueRemainderRecipient
-    );
-    event FeeDisbursementIntervalUpdated(
-        uint40 oldFeeDisbursementInterval,
-        uint40 newFeeDisbursementInterval
-    );
-    event Initialized(
-        address payable revenueShareRecipient,
-        address payable revenueRemainderRecipient,
-        uint40 feeDisbursementInterval,
-        uint16 netFeeShareBP,
-        uint16 grossFeeShareBP
-    );
+    event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
+    event Initialized(ISharesCalculator shareCalculator, uint128 feeDisbursementInterval);
+    event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
+    event ShareCalculatorUpdated(address oldShareCalculator, address newShareCalculator);
 
-    function version() external view returns (string memory);
-    function BASIS_POINT_SCALE() external view returns (uint32);
-    function MIN_FEE_DISBURSEMENT_INTERVAL() external view returns (uint256);
-    function NET_FEE_SHARE_BP() external view returns (uint16);
-    function GROSS_FEE_SHARE_BP() external view returns(uint16); 
-    function revenueShareRecipient() external view returns (address payable);
-    function revenueRemainderRecipient() external view returns (address payable);
-    function lastDisbursementTime() external view returns (uint40);
-    function netFeeRevenue() external view returns (uint144);
-    function feeDisbursementInterval() external view returns (uint40);
+    function shareCalculator() external view returns (ISharesCalculator);
+    function lastDisbursementTime() external view returns (uint128);
+    function feeDisbursementInterval() external view returns (uint128);
+
     function initialize(
-        address payable _revenueShareRecipient,
-        address payable _revenueRemainderRecipient,
-        uint40 _feeDisbursementInterval
+        ISharesCalculator _shareCalculator,
+        uint128 _feeDisbursementInterval
     ) external;
+
     function disburseFees() external;
-    function setRevenueShareRecipient(
-        address _newRevenueShareRecipient
-    ) external;
-    function setRevenueRemainderRecipient(
-        address payable _newRevenueRemainderRecipient
-    ) external;
-    function setFeeDisbursementInterval(
-        uint40 _newFeeDisbursementInterval
-    ) external;
+
+    function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external;
+
+    function setShareCalculator(ISharesCalculator _newShareCalculator) external;
 
     receive() external payable;
 }
