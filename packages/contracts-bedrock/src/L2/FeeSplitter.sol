@@ -234,10 +234,10 @@ contract FeeSplitter is ISemver, Initializable {
         if (IFeeVault(_feeVault).withdrawalNetwork() != Types.WithdrawalNetwork.L2) {
             revert FeeSplitter_FeeVaultMustWithdrawToL2();
         }
-        if (IFeeVault(_feeVault).RECIPIENT() != address(this)) {
+        if (IFeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
-        if (_feeVault.balance >= IFeeVault(_feeVault).MIN_WITHDRAWAL_AMOUNT()) {
+        if (_feeVault.balance >= IFeeVault(_feeVault).minWithdrawalAmount()) {
             IFeeVault(_feeVault).withdraw();
         }
     }
