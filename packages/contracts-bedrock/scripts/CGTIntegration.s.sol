@@ -28,6 +28,9 @@ contract CGTIntegration is Script {
         IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER));
     IProxyAdmin public immutable proxyAdmin = IProxyAdmin(Predeploys.PROXY_ADMIN);
 
+    // Config
+    uint256 public l2Fork;
+
     // Users
     address public testUser1 = makeAddr("testUser1");
     address public testUser2 = makeAddr("testUser2");
@@ -39,6 +42,8 @@ contract CGTIntegration is Script {
     event LiquidityBurned(address indexed burner, uint256 amount);
 
     function run() public {
+        l2Fork = vm.createFork("http://127.0.0.1:8545"); // chainId 901
+        vm.selectFork(l2Fork);
         console.log("=== CGT Integration Script Started ===");
 
         _validateCGTMode();
