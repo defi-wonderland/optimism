@@ -131,7 +131,8 @@ func runSysgo() error {
 
 	fmt.Printf("Test Account Address: %s\n", funderAddress)
 	fmt.Printf("Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
-	fmt.Printf("EL Node URL: %s\n", "http://localhost:8545")
+	fmt.Printf("L1 RPC URL: %s\n", "http://localhost:8544")
+	fmt.Printf("L2 RPC URL: %s\n", "http://localhost:8545")
 
 	orch := presets.Orchestrator()
 	t := &testingT{
