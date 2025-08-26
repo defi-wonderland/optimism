@@ -102,7 +102,7 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
 
         uint256 amountToShareRecipient = grossShare > netShare ? grossShare : netShare;
 
-        // Set the share amount and the remainder to 0.
+        // Set the share amount and the remainder.
         shareInfo[0].value = amountToShareRecipient;
         shareInfo[1].value = grossRevenue - amountToShareRecipient;
     }
