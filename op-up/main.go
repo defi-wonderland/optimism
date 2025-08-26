@@ -186,7 +186,7 @@ func runSysgo() error {
 		if len(l1Networks) > 0 {
 			homeDir, _ := os.UserHomeDir()
 			opUpDirPath := filepath.Join(homeDir, ".op-up")
-			if err := saveContractAddresses(opUpDirPath, l1Networks[0], l2Net); err != nil {
+			if err := saveContractAddresses(opUpDirPath); err != nil {
 				fmt.Printf("Warning: failed to save contract addresses: %v\n", err)
 			}
 		}
@@ -438,7 +438,7 @@ func (t *testingT) WithCtx(ctx context.Context) devtest.T {
 func (t *testingT) TestOnly() {
 }
 
-func saveContractAddresses(opUpDir string, l1Net stack.L1Network, l2Net stack.L2Network) error {
+func saveContractAddresses(opUpDir string) error {
 	// Get L1CrossDomainMessenger from L2CrossDomainMessenger
 	l2CDM := "0x4200000000000000000000000000000000000007"
 	l1CDM := getAddressFromContract("http://127.0.0.1:8545", l2CDM, "otherMessenger()(address)")
@@ -450,21 +450,10 @@ func saveContractAddresses(opUpDir string, l1Net stack.L1Network, l2Net stack.L2
 		systemConfig = getAddressFromContract("http://127.0.0.1:8544", l1CDM, "systemConfig()(address)")
 	}
 	
-	addresses := map[string]interface{}{
-		"l1ChainId": 900,
-		"l2ChainId": 901,
-		"l1RpcUrl":  "http://127.0.0.1:8544",
-		"l2RpcUrl":  "http://127.0.0.1:8545",
-		"contracts": map[string]interface{}{
-			"l1": map[string]string{
-				"crossDomainMessenger": l1CDM,
-				"optimismPortal":       optimismPortal,
-				"systemConfig":         systemConfig,
-			},
-			"l2": map[string]string{
-				"crossDomainMessenger": l2CDM,
-			},
-		},
+	addresses := map[string]string{
+		"crossDomainMessenger": l1CDM,
+		"optimismPortal":       optimismPortal,
+		"systemConfig":         systemConfig,
 	}
 
 	jsonData, err := json.MarshalIndent(addresses, "", "  ")
