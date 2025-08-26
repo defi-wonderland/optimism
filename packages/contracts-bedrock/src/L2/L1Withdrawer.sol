@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.25;
 
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
@@ -14,10 +14,10 @@ contract L1Withdrawer is ISemver {
     uint256 internal constant WITHDRAWAL_GAS_LIMIT = 100_000;
 
     /// @notice The minimum amount of ETH that must be accumulated before a withdrawal is initiated.
-    uint256 public immutable MIN_WITHDRAWAL_AMOUNT;
+    uint256 public MIN_WITHDRAWAL_AMOUNT;
 
     /// @notice The L1 address that will receive the withdrawn ETH.
-    address public immutable RECIPIENT;
+    address public RECIPIENT;
 
     /// @notice Emitted when a withdrawal to L1 is initiated.
     /// @param amount The amount of ETH being withdrawn.
@@ -39,14 +39,12 @@ contract L1Withdrawer is ISemver {
     /// @notice Receives ETH and initiates a withdrawal to L1 if the balance meets the threshold.
     receive() external payable {
         uint256 balance = address(this).balance;
-        
+
         if (balance >= MIN_WITHDRAWAL_AMOUNT) {
             emit WithdrawalInitiated(balance, RECIPIENT);
-            
-            IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{value: balance}(
-                RECIPIENT,
-                WITHDRAWAL_GAS_LIMIT,
-                bytes("")
+
+            IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: balance }(
+                RECIPIENT, WITHDRAWAL_GAS_LIMIT, bytes("")
             );
         }
     }
