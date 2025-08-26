@@ -87,6 +87,17 @@ func TestValidateStandardValues(t *testing.T) {
 			},
 			ErrIncompatibleValue,
 		},
+		{
+			"CustomGasToken",
+			func(intent *Intent) {
+				intent.Chains[0].CustomGasToken = &CustomGasToken{
+					Enabled: true,
+					Name:    "Test Token",
+					Symbol:  "TEST",
+				}
+			},
+			ErrNonStandardValue,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -210,4 +221,69 @@ func setFeeAddresses(intent *Intent) {
 	intent.Chains[0].BaseFeeVaultRecipient = common.HexToAddress("0x08")
 	intent.Chains[0].L1FeeVaultRecipient = common.HexToAddress("0x09")
 	intent.Chains[0].SequencerFeeVaultRecipient = common.HexToAddress("0x0A")
+}
+
+func TestCustomGasTokenValidation(t *testing.T) {
+	intent, err := NewIntentCustom(11155111, []common.Hash{common.HexToHash("0x336")})
+	require.NoError(t, err)
+
+	setSuperchainRoles(&intent)
+	setChainRoles(&intent)
+	setEip1559Params(&intent)
+	setFeeAddresses(&intent)
+
+	// Test valid custom gas token
+	intent.Chains[0].CustomGasToken = &CustomGasToken{
+		Enabled: true,
+		Name:    "Test Token",
+		Symbol:  "TEST",
+	}
+	err = intent.Check()
+	require.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		mutator func(intent *Intent)
+		err     error
+	}{
+		{
+			"empty name when enabled",
+			func(intent *Intent) {
+				intent.Chains[0].CustomGasToken = &CustomGasToken{
+					Enabled: true,
+					Name:    "",
+					Symbol:  "TEST",
+				}
+			},
+			ErrIncompatibleValue,
+		},
+		{
+			"empty symbol when enabled",
+			func(intent *Intent) {
+				intent.Chains[0].CustomGasToken = &CustomGasToken{
+					Enabled: true,
+					Name:    "Test Token",
+					Symbol:  "",
+				}
+			},
+			ErrIncompatibleValue,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			intent, err := NewIntentCustom(11155111, []common.Hash{common.HexToHash("0x336")})
+			require.NoError(t, err)
+
+			setSuperchainRoles(&intent)
+			setChainRoles(&intent)
+			setEip1559Params(&intent)
+			setFeeAddresses(&intent)
+
+			tt.mutator(&intent)
+
+			err = intent.Check()
+			require.Error(t, err)
+			require.ErrorIs(t, err, tt.err)
+		})
+	}
 }
