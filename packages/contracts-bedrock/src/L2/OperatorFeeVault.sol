@@ -6,7 +6,6 @@ import { FeeVault } from "src/L2/FeeVault.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";

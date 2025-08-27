@@ -12,7 +12,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 /// @title FeeVaultInitializer
