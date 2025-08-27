@@ -19,11 +19,18 @@ contract MockL2ToL1MessagePasser {
 contract L1Withdrawer_Init is Test {
     L1Withdrawer l1Withdrawer;
 
-    function testFuzz_constructor_succeeds(uint256 _minWithdrawalAmount, address _recipient) external {
-        l1Withdrawer = new L1Withdrawer(_minWithdrawalAmount, _recipient);
+    function testFuzz_constructor_succeeds(
+        uint256 _minWithdrawalAmount,
+        address _recipient,
+        uint256 _withdrawalGasLimit,
+        bytes memory _withdrawalData
+    ) external {
+        l1Withdrawer = new L1Withdrawer(_minWithdrawalAmount, _recipient, _withdrawalGasLimit, _withdrawalData);
 
         assertEq(l1Withdrawer.MIN_WITHDRAWAL_AMOUNT(), _minWithdrawalAmount);
         assertEq(l1Withdrawer.RECIPIENT(), _recipient);
+        assertEq(l1Withdrawer.WITHDRAWAL_GAS_LIMIT(), _withdrawalGasLimit);
+        assertEq(l1Withdrawer.WITHDRAWAL_DATA(), _withdrawalData);
     }
 }
 
@@ -34,6 +41,8 @@ contract L1Withdrawer_Receive_Test is Test {
 
     address recipient = makeAddr("recipient");
     uint256 minWithdrawalAmount = 1 ether;
+    uint256 withdrawalGasLimit = 150_000;
+    bytes withdrawalData = hex"1234";
 
     event WithdrawalInitiated(uint256 amount, address indexed recipient);
     event MessagePassed(
@@ -47,7 +56,7 @@ contract L1Withdrawer_Receive_Test is Test {
     );
 
     function setUp() public {
-        l1Withdrawer = new L1Withdrawer(minWithdrawalAmount, recipient);
+        l1Withdrawer = new L1Withdrawer(minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData);
 
         // Deploy mock at predeploy address
         vm.etch(Predeploys.L2_TO_L1_MESSAGE_PASSER, address(new MockL2ToL1MessagePasser()).code);
@@ -109,5 +118,27 @@ contract L1Withdrawer_Receive_Test is Test {
         // Verify withdrawal occurred
         assertEq(address(l1Withdrawer).balance, 0);
         assertEq(address(Predeploys.L2_TO_L1_MESSAGE_PASSER).balance, totalAmount);
+    }
+
+    function test_receive_verifyWithdrawalCall_succeeds() external {
+        uint256 sendAmount = 1.5 ether;
+        
+        // Expect the specific call to initiateWithdrawal with custom parameters
+        vm.expectCall(
+            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            sendAmount,
+            abi.encodeWithSelector(
+                IL2ToL1MessagePasser.initiateWithdrawal.selector,
+                recipient,
+                withdrawalGasLimit,
+                withdrawalData
+            )
+        );
+        
+        vm.deal(address(this), sendAmount);
+        (bool success,) = address(l1Withdrawer).call{value: sendAmount}("");
+        
+        assertTrue(success);
+        assertEq(address(l1Withdrawer).balance, 0);
     }
 }
