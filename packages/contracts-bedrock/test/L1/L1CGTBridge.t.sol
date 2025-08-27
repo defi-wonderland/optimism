@@ -49,7 +49,7 @@ contract L1CGTBridge_TestInit is CommonTest {
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridge implementation
-        L1CGTBridge impl = new L1CGTBridge(address(cgtToken), IL2CGTBridge(address(l2CGTBridge)));
+        L1CGTBridge impl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -94,7 +94,7 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridge newImpl = new L1CGTBridge(address(cgtToken), IL2CGTBridge(address(l2CGTBridge)));
+        L1CGTBridge newImpl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
         Proxy newProxy = new Proxy(alice);
         L1CGTBridge newBridge = L1CGTBridge(address(newProxy));
 

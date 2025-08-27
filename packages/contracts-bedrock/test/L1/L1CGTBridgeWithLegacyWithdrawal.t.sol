@@ -58,8 +58,7 @@ contract L1CGTBridgeLegacy_TestInit is CommonTest {
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridgeWithLegacyWithdrawal implementation
-        L1CGTBridgeWithLegacyWithdrawal impl =
-            new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), IL2CGTBridge(l2CGTBridge));
+        L1CGTBridgeWithLegacyWithdrawal impl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), (l2CGTBridge));
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -126,8 +125,7 @@ contract L1CGTBridgeLegacy_Initialize_Test is L1CGTBridgeLegacy_TestInit {
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridgeWithLegacyWithdrawal newImpl =
-            new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), IL2CGTBridge(l2CGTBridge));
+        L1CGTBridgeWithLegacyWithdrawal newImpl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
         Proxy newProxy = new Proxy(alice);
         L1CGTBridgeWithLegacyWithdrawal newBridge = L1CGTBridgeWithLegacyWithdrawal(address(newProxy));
 
@@ -521,8 +519,7 @@ contract L1CGTBridgeLegacy_LegacyFinalizeWithdrawalTransaction_Test is L1CGTBrid
     /// @dev This test verifies that without trusted state, withdrawals cannot be proven and thus cannot be finalized.
     function test_legacyFinalizeWithdrawalTransaction_whenTrustedStateNotSet_reverts() external {
         // Deploy a fresh contract without trusted state
-        L1CGTBridgeWithLegacyWithdrawal freshImpl =
-            new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), IL2CGTBridge(l2CGTBridge));
+        L1CGTBridgeWithLegacyWithdrawal freshImpl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
         Proxy freshProxy = new Proxy(alice);
         L1CGTBridgeWithLegacyWithdrawal freshBridge = L1CGTBridgeWithLegacyWithdrawal(address(freshProxy));
 

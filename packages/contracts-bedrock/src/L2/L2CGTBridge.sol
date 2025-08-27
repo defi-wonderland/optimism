@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.0;
 
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { L1CGTBridge } from "src/L1/L1CGTBridge.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
-import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L2CGTBridge
@@ -18,7 +18,7 @@ import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 contract L2CGTBridge is Initializable, ISemver {
     /// @notice Address of the corresponding L1 CGT bridge.
     /// @custom:network-specific
-    IL1CGTBridge public immutable l1CGTBridge;
+    address public immutable l1CGTBridge;
 
     /// @notice Address of the LiquidityController contract.
     /// @custom:network-specific
@@ -55,7 +55,7 @@ contract L2CGTBridge is Initializable, ISemver {
     /// @notice Constructs the L2CGTBridge contract.
     /// @param _l1CGTBridge      Address of the corresponding L1 bridge.
     /// @param _liquidityController Address of the LiquidityController contract.
-    constructor(IL1CGTBridge _l1CGTBridge, ILiquidityController _liquidityController) {
+    constructor(address _l1CGTBridge, ILiquidityController _liquidityController) {
         l1CGTBridge = _l1CGTBridge;
         liquidityController = _liquidityController;
         _disableInitializers();
@@ -76,7 +76,7 @@ contract L2CGTBridge is Initializable, ISemver {
 
         messenger.sendMessage({
             _target: address(l1CGTBridge),
-            _message: abi.encodeCall(IL1CGTBridge.finalizeBridgeCGT, (msg.sender, _to, msg.value)),
+            _message: abi.encodeCall(L1CGTBridge.finalizeBridgeCGT, (msg.sender, _to, msg.value)),
             _minGasLimit: _minGasLimit
         });
 

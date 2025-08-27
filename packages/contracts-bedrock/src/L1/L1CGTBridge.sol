@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.0;
 
 // Contracts
 import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
 import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { L2CGTBridge } from "src/L2/L2CGTBridge.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -14,7 +15,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTBridge
@@ -31,7 +31,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
 
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    IL2CGTBridge public immutable l2CGTBridge;
+    address public immutable l2CGTBridge;
 
     /// @notice Messenger contract on this domain.
     /// @custom:network-specific
@@ -71,7 +71,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @notice Constructs the L1CGTBridge contract.
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
-    constructor(address _cgtToken, IL2CGTBridge _l2CGTBridge) ReinitializableBase(1) {
+    constructor(address _cgtToken, address _l2CGTBridge) ReinitializableBase(1) {
         cgtToken = _cgtToken;
         l2CGTBridge = _l2CGTBridge;
         _disableInitializers();
@@ -105,7 +105,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
 
         messenger.sendMessage({
             _target: address(l2CGTBridge),
-            _message: abi.encodeCall(IL2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
+            _message: abi.encodeCall(L2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
             _minGasLimit: _minGasLimit
         });
 

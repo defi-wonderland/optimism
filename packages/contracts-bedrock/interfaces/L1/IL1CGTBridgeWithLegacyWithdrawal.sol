@@ -48,7 +48,8 @@ interface IL1CGTBridgeWithLegacyWithdrawal is IL1CGTBridge {
     function legacyProveWithdrawalTransaction(
         Types.WithdrawalTransaction memory _tx,
         bytes[] calldata _withdrawalProof
-    ) external;
+    )
+        external;
 
     /// @notice Finalizes a proven legacy withdrawal transaction.
     /// @param _tx The withdrawal transaction to finalize.

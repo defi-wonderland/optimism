@@ -15,7 +15,7 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
+import { L2CGTBridge } from "src/L2/L2CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTBridgeWithLegacyWithdrawal
@@ -132,7 +132,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @notice Constructs the L1CGTBridgeWithLegacyWithdrawal contract.
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
-    constructor(address _cgtToken, IL2CGTBridge _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
+    constructor(address _cgtToken, address _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
 
     /// @notice Initializer.
     /// @param _messenger        Address of the CrossDomainMessenger on this network.
@@ -170,7 +170,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
 
         messenger.sendMessage({
             _target: address(l2CGTBridge),
-            _message: abi.encodeCall(IL2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
+            _message: abi.encodeCall(L2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
             _minGasLimit: _minGasLimit
         });
 
