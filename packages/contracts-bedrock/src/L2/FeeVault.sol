@@ -96,17 +96,13 @@ abstract contract FeeVault {
         Types.WithdrawalNetwork oldWithdrawalNetwork, Types.WithdrawalNetwork newWithdrawalNetwork
     );
 
-    /// @param _currentRecipient           Wallet that will receive the fees.
-    /// @param _currentMinWithdrawalAmount Minimum balance for withdrawals.
-    /// @param _currentWithdrawalNetwork   Network which the recipient will receive fees on.
-    constructor(
-        address _currentRecipient,
-        uint256 _currentMinWithdrawalAmount,
-        Types.WithdrawalNetwork _currentWithdrawalNetwork
-    ) {
-        RECIPIENT = _currentRecipient;
-        MIN_WITHDRAWAL_AMOUNT = _currentMinWithdrawalAmount;
-        WITHDRAWAL_NETWORK = _currentWithdrawalNetwork;
+    /// @param _recipient           Wallet that will receive the fees.
+    /// @param _minWithdrawalAmount Minimum balance for withdrawals.
+    /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
+    constructor(address _recipient, uint256 _minWithdrawalAmount, Types.WithdrawalNetwork _withdrawalNetwork) {
+        RECIPIENT = _recipient;
+        MIN_WITHDRAWAL_AMOUNT = _minWithdrawalAmount;
+        WITHDRAWAL_NETWORK = _withdrawalNetwork;
     }
 
     /// @notice Sets a configuration flag to indicate a value has been set by the owner.
