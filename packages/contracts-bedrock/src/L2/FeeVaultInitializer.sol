@@ -26,14 +26,12 @@ contract FeeVaultInitializer is ISemver {
 
     /// @notice Emitted when a fee vault implementation is deployed.
     /// @param vaultType The type of fee vault being deployed.
-    /// @param oldImplementation The previous implementation address.
     /// @param newImplementation The deployed implementation address.
     /// @param recipient The recipient address for the implementation.
     /// @param network The withdrawal network for the implementation.
     /// @param minWithdrawalAmount The minimum withdrawal amount for the implementation.
     event FeeVaultDeployed(
         string indexed vaultType,
-        address indexed oldImplementation,
         address indexed newImplementation,
         address recipient,
         Types.WithdrawalNetwork network,
@@ -53,13 +51,11 @@ contract FeeVaultInitializer is ISemver {
     /// @return recipient_ The recipient address.
     /// @return network_ The withdrawal network.
     /// @return minWithdrawalAmount_ The minimum withdrawal amount.
-    /// @return currentImplementation_ The current implementation address.
     function _getFeeVaultConfig(address _feeVaultAddress)
         internal
-        returns (address recipient_, Types.WithdrawalNetwork network_, uint256 minWithdrawalAmount_, address currentImplementation_)
+        view
+        returns (address recipient_, Types.WithdrawalNetwork network_, uint256 minWithdrawalAmount_)
     {
-        currentImplementation_ = IProxy(payable(_feeVaultAddress)).implementation();
-
         // Make sure to use legacy functions to avoid failure on upgrade.
         recipient_ = IFeeVault(payable(_feeVaultAddress)).RECIPIENT();
         minWithdrawalAmount_ = IFeeVault(payable(_feeVaultAddress)).MIN_WITHDRAWAL_AMOUNT();
@@ -73,7 +69,7 @@ contract FeeVaultInitializer is ISemver {
     ///         Reads the current configuration from the existing proxy and deploys a new implementation
     ///         with those values set as immutable parameters.
     function _deployBaseFeeVault() internal {
-        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount) =
             _getFeeVaultConfig(Predeploys.BASE_FEE_VAULT);
 
         // Deploy new implementation with current values as immutables
@@ -81,7 +77,6 @@ contract FeeVaultInitializer is ISemver {
 
         emit FeeVaultDeployed(
             "BaseFeeVault",
-            currentImplementation,
             address(newBaseFeeVault),
             recipient,
             network,
@@ -93,7 +88,7 @@ contract FeeVaultInitializer is ISemver {
     ///         Reads the current configuration from the existing proxy and deploys a new implementation
     ///         with those values set as immutable parameters.
     function _deploySequencerFeeVault() internal {
-        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount) =
             _getFeeVaultConfig(Predeploys.SEQUENCER_FEE_WALLET);
 
         // Deploy new implementation with current values as immutables
@@ -101,7 +96,6 @@ contract FeeVaultInitializer is ISemver {
 
         emit FeeVaultDeployed(
             "SequencerFeeVault",
-            currentImplementation,
             address(newSequencerFeeVault),
             recipient,
             network,
@@ -113,7 +107,7 @@ contract FeeVaultInitializer is ISemver {
     ///         Reads the current configuration from the existing proxy and deploys a new implementation
     ///         with those values set as immutable parameters.
     function _deployL1FeeVault() internal {
-        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount) =
             _getFeeVaultConfig(Predeploys.L1_FEE_VAULT);
 
         // Deploy new implementation with current values as immutables
@@ -121,7 +115,6 @@ contract FeeVaultInitializer is ISemver {
 
         emit FeeVaultDeployed(
             "L1FeeVault",
-            currentImplementation,
             address(newL1FeeVault),
             recipient,
             network,
@@ -133,7 +126,7 @@ contract FeeVaultInitializer is ISemver {
     ///         Reads the current configuration from the existing proxy and deploys a new implementation
     ///         with those values set as immutable parameters.
     function _deployOperatorFeeVault() internal {
-        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount, address currentImplementation) =
+        (address recipient, Types.WithdrawalNetwork network, uint256 minWithdrawalAmount) =
             _getFeeVaultConfig(Predeploys.OPERATOR_FEE_VAULT);
 
         // Deploy new implementation with current values as immutables
@@ -141,7 +134,6 @@ contract FeeVaultInitializer is ISemver {
 
         emit FeeVaultDeployed(
             "OperatorFeeVault",
-            currentImplementation,
             address(newOperatorFeeVault),
             recipient,
             network,
