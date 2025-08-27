@@ -7,13 +7,9 @@ import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 contract MockL2ToL1MessagePasser {
-    receive() external payable {}
-    
-    function initiateWithdrawal(
-        address _target,
-        uint256 _gasLimit,
-        bytes memory _data
-    ) external payable {
+    receive() external payable { }
+
+    function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) external payable {
         // Mock implementation - just accept the call and ETH
     }
 }
