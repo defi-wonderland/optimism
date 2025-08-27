@@ -18,11 +18,10 @@ import { Proxy } from "src/universal/Proxy.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
-import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
-/// @title L1CGTBridgeLegacy_TestInit
+/// @title L1CGTBridgeWithLegacyWithdrawal_TestInit
 /// @notice Reusable test initialization for `L1CGTBridgeWithLegacyWithdrawal` tests.
-contract L1CGTBridgeLegacy_TestInit is CommonTest {
+contract L1CGTBridgeWithLegacyWithdrawal_TestInit is CommonTest {
     using SafeERC20 for IERC20;
 
     event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount);
@@ -101,12 +100,12 @@ contract L1CGTBridgeLegacy_TestInit is CommonTest {
     }
 }
 
-/// @title L1CGTBridgeLegacy_Initialize_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_Initialize_Test
 /// @notice Tests for the `initialize` function of the `L1CGTBridgeWithLegacyWithdrawal` contract.
-contract L1CGTBridgeLegacy_Initialize_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_Initialize_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
     /// @notice Tests that initialization sets the correct values.
     function test_initialize_succeeds() external view {
-        assertEq(l1CGTBridge.cgtToken(), address(cgtToken));
+        assertEq(address(l1CGTBridge.cgtToken()), address(cgtToken));
         assertEq(address(l1CGTBridge.messenger()), address(messenger));
         assertEq(address(l1CGTBridge.l2CGTBridge()), l2CGTBridge);
         assertEq(address(l1CGTBridge.superchainConfig()), address(superchainConfig));
@@ -139,18 +138,18 @@ contract L1CGTBridgeLegacy_Initialize_Test is L1CGTBridgeLegacy_TestInit {
     }
 }
 
-/// @title L1CGTBridgeLegacy_Version_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_Version_Test
 /// @notice Tests for the `version` function of the `L1CGTBridgeWithLegacyWithdrawal` contract.
-contract L1CGTBridgeLegacy_Version_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_Version_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
     /// @notice Tests that the version is correctly returned.
     function test_version_succeeds() external view {
         assertEq(l1CGTBridge.version(), "1.1.0");
     }
 }
 
-/// @title L1CGTBridgeLegacy_SetTrustedStateOnce_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_SetTrustedStateOnce_Test
 /// @notice Tests for the `setTrustedStateOnce` function.
-contract L1CGTBridgeLegacy_SetTrustedStateOnce_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_SetTrustedStateOnce_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
     /// @notice Tests that setTrustedStateOnce succeeds when called properly.
     function test_setTrustedStateOnce_succeeds() external {
         // Expect the event to be emitted
@@ -185,7 +184,7 @@ contract L1CGTBridgeLegacy_SetTrustedStateOnce_Test is L1CGTBridgeLegacy_TestIni
     }
 
     /// @notice Tests the trusted state getter functions.
-    function test_trustedStateGetters_work() external {
+    function test_trustedStateGetters_succeeds() external {
         // Initially, trusted state should not be set
         assertEq(l1CGTBridge.trustedMessagePasserStorageRoot(), bytes32(0));
 
@@ -197,11 +196,11 @@ contract L1CGTBridgeLegacy_SetTrustedStateOnce_Test is L1CGTBridgeLegacy_TestIni
     }
 }
 
-/// @title L1CGTBridgeLegacy_BridgeControls_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test
 /// @notice Tests for bridge control functions (enable/disable deposits/withdrawals).
-contract L1CGTBridgeLegacy_BridgeControls_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
     /// @notice Tests that deposits can be disabled and enabled.
-    function test_depositControls_work() external {
+    function test_depositControls_succeeds() external {
         // Initially deposits should be enabled
         assertTrue(l1CGTBridge.depositsEnabled());
 
@@ -221,7 +220,7 @@ contract L1CGTBridgeLegacy_BridgeControls_Test is L1CGTBridgeLegacy_TestInit {
     }
 
     /// @notice Tests that withdrawals can be disabled and enabled.
-    function test_withdrawalControls_work() external {
+    function test_withdrawalControls_succeeds() external {
         // Initially withdrawals should be enabled
         assertTrue(l1CGTBridge.withdrawalsEnabled());
 
@@ -241,7 +240,7 @@ contract L1CGTBridgeLegacy_BridgeControls_Test is L1CGTBridgeLegacy_TestInit {
     }
 
     /// @notice Tests that control functions revert when called by non-owner.
-    function test_bridgeControls_whenNotOwner_reverts() external {
+    function test_controlFunctions_whenNotOwner_reverts() external {
         vm.expectRevert();
         vm.prank(bob);
         l1CGTBridge.disableDeposits();
@@ -260,9 +259,9 @@ contract L1CGTBridgeLegacy_BridgeControls_Test is L1CGTBridgeLegacy_TestInit {
     }
 }
 
-/// @title L1CGTBridgeLegacy_BridgeCGT_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_BridgeCGT_Test
 /// @notice Tests for the `bridgeCGT` function with deposit controls.
-contract L1CGTBridgeLegacy_BridgeCGT_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_BridgeCGT_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
     /// @notice Tests that bridgeCGT succeeds when deposits are enabled.
     function test_bridgeCGT_whenDepositsEnabled_succeeds() external {
         // Approve the bridge to spend tokens
@@ -313,9 +312,9 @@ contract L1CGTBridgeLegacy_BridgeCGT_Test is L1CGTBridgeLegacy_TestInit {
     }
 }
 
-/// @title L1CGTBridgeLegacy_FinalizeBridgeCGT_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_FinalizeBridgeCGT_Test
 /// @notice Tests for the `finalizeBridgeCGT` function with withdrawal controls.
-contract L1CGTBridgeLegacy_FinalizeBridgeCGT_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_FinalizeBridgeCGT_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
     function setUp() public override {
         super.setUp();
 
@@ -371,9 +370,11 @@ contract L1CGTBridgeLegacy_FinalizeBridgeCGT_Test is L1CGTBridgeLegacy_TestInit 
     }
 }
 
-/// @title L1CGTBridgeLegacy_LegacyProveWithdrawalTransaction_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_LegacyProveWithdrawalTransaction_Test
 /// @notice Tests for the `legacyProveWithdrawalTransaction` function.
-contract L1CGTBridgeLegacy_LegacyProveWithdrawalTransaction_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_LegacyProveWithdrawalTransaction_Test is
+    L1CGTBridgeWithLegacyWithdrawal_TestInit
+{
     /// @notice Tests that legacyProveWithdrawalTransaction succeeds with valid proof.
     function test_legacyProveWithdrawalTransaction_succeeds() external {
         // We can't directly mock the library call, so we'll test the integration
@@ -428,9 +429,11 @@ contract L1CGTBridgeLegacy_LegacyProveWithdrawalTransaction_Test is L1CGTBridgeL
     }
 }
 
-/// @title L1CGTBridgeLegacy_LegacyFinalizeWithdrawalTransaction_Test
+/// @title L1CGTBridgeWithLegacyWithdrawal_LegacyFinalizeWithdrawalTransaction_Test
 /// @notice Tests for the `legacyFinalizeWithdrawalTransaction` function.
-contract L1CGTBridgeLegacy_LegacyFinalizeWithdrawalTransaction_Test is L1CGTBridgeLegacy_TestInit {
+contract L1CGTBridgeWithLegacyWithdrawal_LegacyFinalizeWithdrawalTransaction_Test is
+    L1CGTBridgeWithLegacyWithdrawal_TestInit
+{
     function setUp() public override {
         super.setUp();
 

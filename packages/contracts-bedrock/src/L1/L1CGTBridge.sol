@@ -27,7 +27,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
 
     /// @notice Address of the CGT token.
     /// @custom:network-specific
-    address public immutable cgtToken;
+    IERC20 public immutable cgtToken;
 
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
@@ -47,7 +47,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @notice Thrown when the bridge is paused.
     error Paused();
 
-    /// @notice Thrown when the function is called from a non-L2 CGT bridge.
+    /// @notice Thrown when caller is not the authorized L2 CGT Bridge.
     error OnlyL2CGTBridge();
 
     /// @notice Emitted when a CGT bridge is initiated on this chain.
@@ -72,7 +72,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
     constructor(address _cgtToken, address _l2CGTBridge) ReinitializableBase(1) {
-        cgtToken = _cgtToken;
+        cgtToken = IERC20(_cgtToken);
         l2CGTBridge = _l2CGTBridge;
         _disableInitializers();
     }
@@ -101,7 +101,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external virtual {
         if (superchainConfig.paused(address(this))) revert Paused();
 
-        IERC20(cgtToken).safeTransferFrom(msg.sender, address(this), _amount);
+        cgtToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         messenger.sendMessage({
             _target: address(l2CGTBridge),
@@ -124,7 +124,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
             revert OnlyL2CGTBridge();
         }
 
-        IERC20(cgtToken).safeTransfer(_to, _amount);
+        cgtToken.safeTransfer(_to, _amount);
 
         emit CGTBridgeFinalized(_from, _to, _amount);
     }

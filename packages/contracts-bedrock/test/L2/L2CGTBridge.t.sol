@@ -12,7 +12,6 @@ import { Proxy } from "src/universal/Proxy.sol";
 // Interfaces
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
-import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 
 /// @title L2CGTBridge_TestInit
 /// @notice Reusable test initialization for `L2CGTBridge` tests.
@@ -145,7 +144,7 @@ contract L2CGTBridge_BridgeCGT_Test is L2CGTBridge_TestInit {
     }
 
     /// @notice Tests bridgeCGT with different amounts and gas limits.
-    function test_bridgeCGT_fuzz(uint256 _amount, uint32 _minGasLimit) external {
+    function testFuzz_bridgeCGT_succeeds(uint256 _amount, uint32 _minGasLimit) external {
         // Bound the amount to reasonable values
         _amount = bound(_amount, 1, 100 ether);
         _minGasLimit = uint32(bound(_minGasLimit, 21000, 1000000));
@@ -228,7 +227,7 @@ contract L2CGTBridge_FinalizeBridgeCGT_Test is L2CGTBridge_TestInit {
     }
 
     /// @notice Tests finalizeBridgeCGT with different amounts.
-    function test_finalizeBridgeCGT_fuzz(uint256 _amount) external {
+    function testFuzz_finalizeBridgeCGT_succeeds(uint256 _amount) external {
         // Bound the amount to reasonable values
         _amount = bound(_amount, 1, 1000000 ether);
 

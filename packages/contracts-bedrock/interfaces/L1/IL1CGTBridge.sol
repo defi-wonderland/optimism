@@ -15,6 +15,9 @@ interface IL1CGTBridge {
     /// @notice Thrown when the function is called from a non-L2 CGT bridge.
     error OnlyL2CGTBridge();
 
+    /// @notice Thrown when the recipient address is invalid.
+    error InvalidRecipient();
+
     /// @notice Thrown when the caller is not the proxy admin or proxy admin owner.
     error ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner();
 

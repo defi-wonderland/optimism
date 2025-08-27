@@ -224,7 +224,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         if (_tx.value == 0) revert InvalidWithdrawalValue();
 
         // Prevent withdrawals to the CGT token contract
-        if (_tx.target == cgtToken) revert InvalidWithdrawalTarget();
+        if (_tx.target == address(cgtToken)) revert InvalidWithdrawalTarget();
 
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
@@ -255,7 +255,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         if (_tx.value == 0) revert InvalidWithdrawalValue();
 
         // Prevent withdrawals to the CGT token contract
-        if (_tx.target == cgtToken) revert InvalidWithdrawalTarget();
+        if (_tx.target == address(cgtToken)) revert InvalidWithdrawalTarget();
 
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 

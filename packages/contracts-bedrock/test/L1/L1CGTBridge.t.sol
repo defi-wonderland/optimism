@@ -17,7 +17,6 @@ import { Proxy } from "src/universal/Proxy.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
-import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
 /// @title L1CGTBridge_TestInit
 /// @notice Reusable test initialization for `L1CGTBridge` tests.
@@ -78,7 +77,7 @@ contract L1CGTBridge_TestInit is CommonTest {
 contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
     /// @notice Tests that initialization sets the correct values.
     function test_initialize_succeeds() external view {
-        assertEq(l1CGTBridge.cgtToken(), address(cgtToken));
+        assertEq(address(l1CGTBridge.cgtToken()), address(cgtToken));
         assertEq(address(l1CGTBridge.messenger()), address(messenger));
         assertEq(address(l1CGTBridge.l2CGTBridge()), address(l2CGTBridge));
         assertEq(address(l1CGTBridge.superchainConfig()), address(superchainConfig));
