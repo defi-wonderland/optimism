@@ -44,9 +44,7 @@ contract L2ToL1 is Script {
 
     function run() public {
         setUp();
-        (Types.WithdrawalTransaction memory _tx, bytes32 txHash) = _initiateWithdrawal();
-        // _proveWithdrawal(_tx);
-        // _finalizeWithdrawal(_tx);
+        _initiateWithdrawal();
     }
 
     function setUp() public {
@@ -123,37 +121,5 @@ contract L2ToL1 is Script {
         require(withdrawalHash == computedHash, "Withdrawal hash mismatch");
 
         return (_tx, txHash);
-    }
-
-    function _proveWithdrawal(Types.WithdrawalTransaction memory _tx) public {
-        // deploy ffi
-        FFIInterface ffi = new FFIInterface();
-
-        (
-            bytes32 stateRoot,
-            bytes32 storageRoot,
-            bytes32 outputRoot,
-            bytes32 _withdrawalHash,
-            bytes[] memory withdrawalProof
-        ) = ffi.getProveWithdrawalTransactionInputs(_tx);
-
-        console.log("State root:", vm.toString(stateRoot));
-        console.log("Storage root:", vm.toString(storageRoot));
-        console.log("Output root:", vm.toString(outputRoot));
-        console.log("Withdrawal hash:", vm.toString(_withdrawalHash));
-        console.log("Withdrawal proof:", vm.toString(withdrawalProof[0]));
-
-        // Wait for proof maturity delay
-        vm.selectFork(l1Fork);
-        uint256 maturityDelay = optimismPortal.proofMaturityDelaySeconds();
-        console.log("Waiting for proof maturity delay:", maturityDelay, "seconds");
-        vm.warp(block.timestamp + maturityDelay + 1);
-    }
-
-    function _finalizeWithdrawal(Types.WithdrawalTransaction memory _tx) public {
-        vm.selectFork(l1Fork);
-        optimismPortal.finalizeWithdrawalTransaction(_tx);
-
-        console.log("Withdrawal finalized successfully!");
     }
 }

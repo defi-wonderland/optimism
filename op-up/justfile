@@ -15,3 +15,69 @@ artifacts:
 # Clean target
 clean:
     rm -f {{ BINARY }}
+
+# L2 to L1 withdrawal flow
+l2-to-l1-withdrawal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "Step 1: Running L2ToL1 script..."
+    cd ../packages/contracts-bedrock
+    output=$(forge script scripts/L2ToL1.s.sol --private-key 0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 --broadcast 2>&1)
+    echo "$output"
+
+    # Extract values from output
+    portal_address=$(echo "$output" | grep "Optimism portal address:" | head -1 | awk '{print $4}')
+    dgf_address=$(echo "$output" | grep "DisputeGameFactory address:" | head -1 | awk '{print $3}')
+
+    # Get transaction hash from broadcast file
+    tx_hash=$(jq -r '.transactions[0].hash' broadcast/L2ToL1.s.sol/901/run-latest.json)
+
+    echo "Extracted values:"
+    echo "Portal address: $portal_address"
+    echo "DisputeGameFactory address: $dgf_address"
+    echo "Transaction hash: $tx_hash"
+
+    # Check if values are empty
+    if [[ -z "$portal_address" ]]; then
+        echo "ERROR: Portal address is empty"
+        exit 1
+    fi
+    if [[ -z "$dgf_address" ]]; then
+        echo "ERROR: DisputeGameFactory address is empty"
+        exit 1
+    fi
+    if [[ -z "$tx_hash" ]]; then
+        echo "ERROR: Transaction hash is empty"
+        exit 1
+    fi
+
+    echo "Waiting for withdrawal to be provable..."
+    while true; do
+        # Try to run withdrawer to check if provable
+        set +e  # Disable exit on error
+        result=$(~/go/bin/withdrawer \
+          --fault-proofs \
+          --withdrawal $tx_hash \
+          --rpc http://127.0.0.1:8544 \
+          --l2-rpc http://127.0.0.1:8545 \
+          --portal-address $portal_address \
+          --dgf-address $dgf_address \
+          --private-key d9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 2>&1)
+        exit_code=$?
+        set -e  # Re-enable exit on error
+
+        # Check if withdrawal is ready, if not, wait 12s
+        if [[ $result == *"is not past L2 block"* ]] || [[ $result == *"Withdrawal is not provable"* ]]; then
+            sleep 12
+            continue
+        fi
+
+        # Check if withdrawal succeeded
+        if [[ $exit_code -eq 0 ]]; then
+            echo "================================"
+            echo "$result"
+            echo "================================"
+            break
+        fi
+    done
