@@ -196,11 +196,11 @@ contract L1CGTBridgeWithLegacyWithdrawal_SetTrustedStateOnce_Test is L1CGTBridge
     }
 }
 
-/// @title L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test
-/// @notice Tests for bridge control functions (enable/disable deposits/withdrawals).
-contract L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
-    /// @notice Tests that deposits can be disabled and enabled.
-    function test_depositControls_succeeds() external {
+/// @title L1CGTBridgeWithLegacyWithdrawal_DisableDeposits_Test
+/// @notice Tests for the `disableDeposits` function.
+contract L1CGTBridgeWithLegacyWithdrawal_DisableDeposits_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
+    /// @notice Tests that disableDeposits succeeds when called by owner.
+    function test_disableDeposits_succeeds() external {
         // Initially deposits should be enabled
         assertTrue(l1CGTBridge.depositsEnabled());
 
@@ -209,6 +209,30 @@ contract L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test is L1CGTBridgeWithL
         emit DepositsToggled(false);
         vm.prank(alice);
         l1CGTBridge.disableDeposits();
+        assertFalse(l1CGTBridge.depositsEnabled());
+    }
+
+    /// @notice Tests that disableDeposits reverts when called by non-owner.
+    function test_disableDeposits_whenNotOwner_reverts() external {
+        vm.expectRevert();
+        vm.prank(bob);
+        l1CGTBridge.disableDeposits();
+    }
+}
+
+/// @title L1CGTBridgeWithLegacyWithdrawal_EnableDeposits_Test
+/// @notice Tests for the `enableDeposits` function.
+contract L1CGTBridgeWithLegacyWithdrawal_EnableDeposits_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
+    function setUp() public override {
+        super.setUp();
+        // Disable deposits first for testing enableDeposits
+        vm.prank(alice);
+        l1CGTBridge.disableDeposits();
+    }
+
+    /// @notice Tests that enableDeposits succeeds when called by owner.
+    function test_enableDeposits_succeeds() external {
+        // Deposits should be disabled from setUp
         assertFalse(l1CGTBridge.depositsEnabled());
 
         // Enable deposits
@@ -219,8 +243,19 @@ contract L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test is L1CGTBridgeWithL
         assertTrue(l1CGTBridge.depositsEnabled());
     }
 
-    /// @notice Tests that withdrawals can be disabled and enabled.
-    function test_withdrawalControls_succeeds() external {
+    /// @notice Tests that enableDeposits reverts when called by non-owner.
+    function test_enableDeposits_whenNotOwner_reverts() external {
+        vm.expectRevert();
+        vm.prank(bob);
+        l1CGTBridge.enableDeposits();
+    }
+}
+
+/// @title L1CGTBridgeWithLegacyWithdrawal_DisableWithdrawals_Test
+/// @notice Tests for the `disableWithdrawals` function.
+contract L1CGTBridgeWithLegacyWithdrawal_DisableWithdrawals_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
+    /// @notice Tests that disableWithdrawals succeeds when called by owner.
+    function test_disableWithdrawals_succeeds() external {
         // Initially withdrawals should be enabled
         assertTrue(l1CGTBridge.withdrawalsEnabled());
 
@@ -229,6 +264,30 @@ contract L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test is L1CGTBridgeWithL
         emit WithdrawalsToggled(false);
         vm.prank(alice);
         l1CGTBridge.disableWithdrawals();
+        assertFalse(l1CGTBridge.withdrawalsEnabled());
+    }
+
+    /// @notice Tests that disableWithdrawals reverts when called by non-owner.
+    function test_disableWithdrawals_whenNotOwner_reverts() external {
+        vm.expectRevert();
+        vm.prank(bob);
+        l1CGTBridge.disableWithdrawals();
+    }
+}
+
+/// @title L1CGTBridgeWithLegacyWithdrawal_EnableWithdrawals_Test
+/// @notice Tests for the `enableWithdrawals` function.
+contract L1CGTBridgeWithLegacyWithdrawal_EnableWithdrawals_Test is L1CGTBridgeWithLegacyWithdrawal_TestInit {
+    function setUp() public override {
+        super.setUp();
+        // Disable withdrawals first for testing enableWithdrawals
+        vm.prank(alice);
+        l1CGTBridge.disableWithdrawals();
+    }
+
+    /// @notice Tests that enableWithdrawals succeeds when called by owner.
+    function test_enableWithdrawals_succeeds() external {
+        // Withdrawals should be disabled from setUp
         assertFalse(l1CGTBridge.withdrawalsEnabled());
 
         // Enable withdrawals
@@ -239,20 +298,8 @@ contract L1CGTBridgeWithLegacyWithdrawal_BridgeControls_Test is L1CGTBridgeWithL
         assertTrue(l1CGTBridge.withdrawalsEnabled());
     }
 
-    /// @notice Tests that control functions revert when called by non-owner.
-    function test_controlFunctions_whenNotOwner_reverts() external {
-        vm.expectRevert();
-        vm.prank(bob);
-        l1CGTBridge.disableDeposits();
-
-        vm.expectRevert();
-        vm.prank(bob);
-        l1CGTBridge.enableDeposits();
-
-        vm.expectRevert();
-        vm.prank(bob);
-        l1CGTBridge.disableWithdrawals();
-
+    /// @notice Tests that enableWithdrawals reverts when called by non-owner.
+    function test_enableWithdrawals_whenNotOwner_reverts() external {
         vm.expectRevert();
         vm.prank(bob);
         l1CGTBridge.enableWithdrawals();
