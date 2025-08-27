@@ -59,7 +59,8 @@ contract FeeVaultInitializer is ISemver {
         recipient_ = IFeeVault(payable(_feeVaultAddress)).RECIPIENT();
         minWithdrawalAmount_ = IFeeVault(payable(_feeVaultAddress)).MIN_WITHDRAWAL_AMOUNT();
         // Use low level call to check for WITHDRAWAL_NETWORK, default to L2 if it doesn't exist
-        (bool success, bytes memory data) = _feeVaultAddress.staticcall(abi.encodeCall(IFeeVault.WITHDRAWAL_NETWORK, ()));
+        (bool success, bytes memory data) =
+            _feeVaultAddress.staticcall(abi.encodeCall(IFeeVault.WITHDRAWAL_NETWORK, ()));
         network_ =
             success && data.length >= 32 ? abi.decode(data, (Types.WithdrawalNetwork)) : Types.WithdrawalNetwork.L2;
     }
@@ -74,13 +75,7 @@ contract FeeVaultInitializer is ISemver {
         // Deploy new implementation with current values as immutables
         BaseFeeVault newBaseFeeVault = new BaseFeeVault(recipient, minWithdrawalAmount, network);
 
-        emit FeeVaultDeployed(
-            "BaseFeeVault",
-            address(newBaseFeeVault),
-            recipient,
-            network,
-            minWithdrawalAmount
-        );
+        emit FeeVaultDeployed("BaseFeeVault", address(newBaseFeeVault), recipient, network, minWithdrawalAmount);
     }
 
     /// @notice Deploys a new Sequencer Fee Vault implementation with current configuration as immutables.
@@ -94,11 +89,7 @@ contract FeeVaultInitializer is ISemver {
         SequencerFeeVault newSequencerFeeVault = new SequencerFeeVault(recipient, minWithdrawalAmount, network);
 
         emit FeeVaultDeployed(
-            "SequencerFeeVault",
-            address(newSequencerFeeVault),
-            recipient,
-            network,
-            minWithdrawalAmount
+            "SequencerFeeVault", address(newSequencerFeeVault), recipient, network, minWithdrawalAmount
         );
     }
 
@@ -112,13 +103,7 @@ contract FeeVaultInitializer is ISemver {
         // Deploy new implementation with current values as immutables
         L1FeeVault newL1FeeVault = new L1FeeVault(recipient, minWithdrawalAmount, network);
 
-        emit FeeVaultDeployed(
-            "L1FeeVault",
-            address(newL1FeeVault),
-            recipient,
-            network,
-            minWithdrawalAmount
-        );
+        emit FeeVaultDeployed("L1FeeVault", address(newL1FeeVault), recipient, network, minWithdrawalAmount);
     }
 
     /// @notice Deploys a new Operator Fee Vault implementation with current configuration as immutables.
@@ -131,12 +116,6 @@ contract FeeVaultInitializer is ISemver {
         // Deploy new implementation with current values as immutables
         OperatorFeeVault newOperatorFeeVault = new OperatorFeeVault(recipient, minWithdrawalAmount, network);
 
-        emit FeeVaultDeployed(
-            "OperatorFeeVault",
-            address(newOperatorFeeVault),
-            recipient,
-            network,
-            minWithdrawalAmount
-        );
+        emit FeeVaultDeployed("OperatorFeeVault", address(newOperatorFeeVault), recipient, network, minWithdrawalAmount);
     }
 }

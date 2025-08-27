@@ -582,14 +582,12 @@ contract L2Genesis is Script {
         vm.startPrank(_input.opChainProxyAdminOwner);
         // Initialize the implementation with address(0) for addresses
         IFeeSplitter(payable(impl)).initialize(
-            ISharesCalculator(address(0)),
-            uint128(_input.feeSplitterFeeDisbursementInterval)
+            ISharesCalculator(address(0)), uint128(_input.feeSplitterFeeDisbursementInterval)
         );
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
-            ISharesCalculator(_input.feeSplitterSharesCalculator),
-            uint128(_input.feeSplitterFeeDisbursementInterval)
+            ISharesCalculator(_input.feeSplitterSharesCalculator), uint128(_input.feeSplitterFeeDisbursementInterval)
         );
         vm.stopPrank();
     }
