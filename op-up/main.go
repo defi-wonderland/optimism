@@ -80,6 +80,8 @@ func run() error {
 			sysgo.WithCommons(ids.L1.ChainID()),
 			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
 			sysgo.WithCustomGasToken(true, "Custom Gas Token", "CGT"),
+			sysgo.WithDisputeGameFinalityDelaySeconds(1),
+			sysgo.WithProofMaturityDelaySeconds(1),
 		),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 

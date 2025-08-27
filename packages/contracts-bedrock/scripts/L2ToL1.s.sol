@@ -77,7 +77,7 @@ contract L2ToL1 is Script {
         // Record logs and broadcast the transaction
         vm.recordLogs();
         vm.broadcast();
-        l2CrossDomainMessenger.sendMessage(address(optimismPortal), message, gasLimit);
+        l2CrossDomainMessenger.sendMessage(address(0x1), message, gasLimit);
         console.log("Block number:", block.number);
 
         Vm.Log[] memory logs = vm.getRecordedLogs();

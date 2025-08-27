@@ -62,10 +62,11 @@ l2-to-l1-withdrawal:
         exit 1
     fi
 
-    i=0
-    echo "Waiting for withdrawal to be provable..."
-    while [[ $i -lt 2 ]]; do
-        # Try to run withdrawer to check if provable
+    echo "Step 2: Proving withdrawal..."
+    withdrawal_proved=false
+    
+    # Try to prove withdrawal (with retry logic)
+    while true; do
         set +e  # Disable exit on error
         result=$(~/go/bin/withdrawer \
           --fault-proofs \
@@ -78,24 +79,64 @@ l2-to-l1-withdrawal:
         exit_code=$?
         set -e  # Re-enable exit on error
 
-        # Check if withdrawal is ready, if not, wait 12s
-        if [[ $result == *"Withdrawal is not provable"* ]] || [[ $result == *"Error completing withdrawal"* ]]; then
-            echo "Waiting 12 sec..."
-            echo "result: $result"
-            echo "exit_code: $exit_code"
+        # Check if withdrawal is not ready yet
+        if [[ $result == *"Withdrawal is not provable"* ]] || [[ $result == *"Error proving withdrawal"* ]]; then
+            echo "Waiting for L2 block to be processed by L1... (12s)"
             sleep 12
             continue
         fi
 
-        # Check if withdrawal succeeded
-        if [[ $exit_code -eq 0 ]]; then
-            echo "================================"
+        # Check if withdrawal was proved successfully
+        if [[ $result == *"Proved withdrawal"* ]]; then
+            echo "✅ Withdrawal proved successfully!"
             echo "$result"
-            echo "================================"
-            i=$((i+1))
-            if [[ $i -eq 1 ]]; then
-                echo "Waiting for proof maturity..."
-            fi
+            withdrawal_proved=true
+            break
+        else
+            echo "❌ Failed to prove withdrawal:"
+            echo "$result"
+            exit 1
         fi
     done
+
+    if [[ $withdrawal_proved == true ]]; then
+        # Extract dispute game address from portal
+        withdrawal_hash=$(echo "$output" | grep "Withdrawal hash:" | awk '{print $3}')
+        
+        echo "Getting dispute game address..."
+        dispute_game_data=$(cast call $portal_address "provenWithdrawals(bytes32,address)(address,uint64)" $withdrawal_hash 0x5D284fe6D6AEb73857960a0D041CF394b1198392 --rpc-url http://127.0.0.1:8544)
+        dispute_game_address=$(echo "$dispute_game_data" | head -1)
+        
+        echo "Dispute game address: $dispute_game_address"
+        
+        echo "Step 3: Resolving dispute game..."
+        echo "Resolving claim 0..."
+        cast send $dispute_game_address "resolveClaim(uint256,uint256)" 0 0 --private-key 0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 --rpc-url http://127.0.0.1:8544 > /dev/null
+        
+        echo "Resolving dispute game..."
+        cast send $dispute_game_address "resolve()" --private-key 0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 --rpc-url http://127.0.0.1:8544 > /dev/null
+        
+        # Check game status
+        game_status=$(cast call $dispute_game_address "status()" --rpc-url http://127.0.0.1:8544)
+        echo "Dispute game status: $((game_status)) (2 = DEFENDER_WINS)"
+        
+        echo "Step 4: Finalizing withdrawal..."
+        
+        final_result=$(~/go/bin/withdrawer \
+          --fault-proofs \
+          --withdrawal $tx_hash \
+          --rpc http://127.0.0.1:8544 \
+          --l2-rpc http://127.0.0.1:8545 \
+          --portal-address $portal_address \
+          --dgf-address $dgf_address \
+          --private-key d9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 2>&1)
+        
+        if [[ $final_result == *"Completed withdrawal"* ]]; then
+            echo "🎉 WITHDRAWAL COMPLETED SUCCESSFULLY! 🎉"
+            echo "$final_result"
+        else
+            echo "❌ Failed to finalize withdrawal:"
+            echo "$final_result"
+        fi
+    fi
 
