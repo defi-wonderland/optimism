@@ -63,12 +63,13 @@ contract L2ToL1 is Script {
         disputeGameFactory = IDisputeGameFactory(payable(address(optimismPortal.disputeGameFactory())));
         console.log("Optimism portal address:", address(optimismPortal));
         console.log("DisputeGameFactory address:", address(disputeGameFactory));
+        console.log("Proof maturity delay seconds:", optimismPortal.proofMaturityDelaySeconds());
     }
 
     function _initiateWithdrawal() public returns (Types.WithdrawalTransaction memory, bytes32 txHash) {
         vm.selectFork(l2Fork);
 
-        bytes memory message = bytes("Hello from L2!");
+        bytes memory message = abi.encodeCall(optimismPortal.isCustomGasToken, ());
         uint32 gasLimit = 1000000;
 
         console.log("Initiating withdrawal on L2...");
@@ -76,7 +77,7 @@ contract L2ToL1 is Script {
         // Record logs and broadcast the transaction
         vm.recordLogs();
         vm.broadcast();
-        l2CrossDomainMessenger.sendMessage(address(testAddress), message, gasLimit);
+        l2CrossDomainMessenger.sendMessage(address(optimismPortal), message, gasLimit);
         console.log("Block number:", block.number);
 
         Vm.Log[] memory logs = vm.getRecordedLogs();

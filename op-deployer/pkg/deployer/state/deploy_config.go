@@ -107,7 +107,7 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 			FaultGameWithdrawalDelay:        604800,
 			PreimageOracleMinProposalSize:   126000,
 			PreimageOracleChallengePeriod:   86400,
-			ProofMaturityDelaySeconds:       604800,
+			ProofMaturityDelaySeconds:       12,
 			DisputeGameFinalityDelaySeconds: 302400,
 		},
 	}

@@ -15,6 +15,11 @@ artifacts:
 # Clean target
 clean:
     rm -f {{ BINARY }}
+    rm -rf ./bin/{{ BINARY }}
+
+# run
+run:
+    ./bin/{{ BINARY }}
 
 # L2 to L1 withdrawal flow
 l2-to-l1-withdrawal:
@@ -33,10 +38,15 @@ l2-to-l1-withdrawal:
     # Get transaction hash from broadcast file
     tx_hash=$(jq -r '.transactions[0].hash' broadcast/L2ToL1.s.sol/901/run-latest.json)
 
+    # Get proof maturity delay
+    proof_maturity_delay=$(cast call $portal_address "proofMaturityDelaySeconds()" --rpc-url http://127.0.0.1:8544)
+    proof_maturity_delay_decimal=$((proof_maturity_delay))
+
     echo "Extracted values:"
     echo "Portal address: $portal_address"
     echo "DisputeGameFactory address: $dgf_address"
     echo "Transaction hash: $tx_hash"
+    echo "Proof maturity delay: ${proof_maturity_delay_decimal}s"
 
     # Check if values are empty
     if [[ -z "$portal_address" ]]; then
@@ -52,8 +62,9 @@ l2-to-l1-withdrawal:
         exit 1
     fi
 
+    i=0
     echo "Waiting for withdrawal to be provable..."
-    while true; do
+    while [[ $i -lt 2 ]]; do
         # Try to run withdrawer to check if provable
         set +e  # Disable exit on error
         result=$(~/go/bin/withdrawer \
@@ -68,7 +79,10 @@ l2-to-l1-withdrawal:
         set -e  # Re-enable exit on error
 
         # Check if withdrawal is ready, if not, wait 12s
-        if [[ $result == *"is not past L2 block"* ]] || [[ $result == *"Withdrawal is not provable"* ]]; then
+        if [[ $result == *"Withdrawal is not provable"* ]] || [[ $result == *"Error completing withdrawal"* ]]; then
+            echo "Waiting 12 sec..."
+            echo "result: $result"
+            echo "exit_code: $exit_code"
             sleep 12
             continue
         fi
@@ -78,6 +92,10 @@ l2-to-l1-withdrawal:
             echo "================================"
             echo "$result"
             echo "================================"
-            break
+            i=$((i+1))
+            if [[ $i -eq 1 ]]; then
+                echo "Waiting for proof maturity..."
+            fi
         fi
     done
+
