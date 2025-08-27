@@ -48,11 +48,8 @@ contract DeployConfig is Script {
     uint256 public sequencerFeeVaultMinimumWithdrawalAmount;
     uint256 public sequencerFeeVaultWithdrawalNetwork;
     address public governanceTokenOwner;
-    address public feeSplitterRevenueShareRecipient;
-    address public feeSplitterRevenueRemainderRecipient;
+    address public feeSplitterSharesCalculator;
     uint256 public feeSplitterFeeDisbursementInterval;
-    uint256 public feeSplitterNetFeeShareBP;
-    uint256 public feeSplitterGrossFeeShareBP;
     uint256 public l2GenesisBlockGasLimit;
     uint32 public basefeeScalar;
     uint32 public blobbasefeeScalar;
@@ -121,14 +118,8 @@ contract DeployConfig is Script {
         sequencerFeeVaultMinimumWithdrawalAmount = stdJson.readUint(_json, "$.sequencerFeeVaultMinimumWithdrawalAmount");
         sequencerFeeVaultWithdrawalNetwork = stdJson.readUint(_json, "$.sequencerFeeVaultWithdrawalNetwork");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
-        feeSplitterRevenueShareRecipient =
-            _readOr(_json, "$.feeSplitterRevenueShareRecipient", address(0x1234567890123456789012345678901234567890));
-        feeSplitterRevenueRemainderRecipient = _readOr(
-            _json, "$.feeSplitterRevenueRemainderRecipient", address(0x0987654321098765432109876543210987654321)
-        );
+        feeSplitterSharesCalculator = _readOr(_json, "$.feeSplitterSharesCalculator", address(0));
         feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(86400));
-        feeSplitterNetFeeShareBP = _readOr(_json, "$.feeSplitterNetFeeShareBP", uint256(1500));
-        feeSplitterGrossFeeShareBP = _readOr(_json, "$.feeSplitterGrossFeeShareBP", uint256(250));
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
         basefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBaseFeeScalar", 1368));
         blobbasefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBlobBaseFeeScalar", 810949));

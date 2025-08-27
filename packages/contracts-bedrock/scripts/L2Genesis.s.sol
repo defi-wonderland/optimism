@@ -31,6 +31,7 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -61,8 +62,7 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
-        address feeSplitterRevenueShareRecipient;
-        address feeSplitterRevenueRemainderRecipient;
+        address feeSplitterSharesCalculator;
         uint256 feeSplitterFeeDisbursementInterval;
     }
 
@@ -582,16 +582,14 @@ contract L2Genesis is Script {
         vm.startPrank(_input.opChainProxyAdminOwner);
         // Initialize the implementation with address(0) for addresses
         IFeeSplitter(payable(impl)).initialize(
-            payable(address(0x0123456789012345678901234567890123456789)),
-            payable(address(0x0123456789012345678901234567890123456789)),
-            uint40(_input.feeSplitterFeeDisbursementInterval)
+            ISharesCalculator(address(0)),
+            uint128(_input.feeSplitterFeeDisbursementInterval)
         );
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
-            payable(_input.feeSplitterRevenueShareRecipient),
-            payable(_input.feeSplitterRevenueRemainderRecipient),
-            uint40(_input.feeSplitterFeeDisbursementInterval)
+            ISharesCalculator(_input.feeSplitterSharesCalculator),
+            uint128(_input.feeSplitterFeeDisbursementInterval)
         );
         vm.stopPrank();
     }
