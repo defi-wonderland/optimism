@@ -12,6 +12,7 @@ import { Proxy } from "src/universal/Proxy.sol";
 // Interfaces
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 
 /// @title L2CGTBridge_TestInit
 /// @notice Reusable test initialization for `L2CGTBridge` tests.
@@ -38,7 +39,7 @@ contract L2CGTBridge_TestInit is CommonTest {
         mockLiquidityController = ILiquidityController(makeAddr("liquidityController"));
 
         // Deploy L2CGTBridge implementation
-        L2CGTBridge impl = new L2CGTBridge(l1CGTBridge, mockLiquidityController);
+        L2CGTBridge impl = new L2CGTBridge(IL1CGTBridge(l1CGTBridge), mockLiquidityController);
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -64,7 +65,7 @@ contract L2CGTBridge_TestInit is CommonTest {
 contract L2CGTBridge_Constructor_Test is L2CGTBridge_TestInit {
     /// @notice Tests that constructor sets the correct immutable values.
     function test_constructor_succeeds() external view {
-        assertEq(l2CGTBridge.l1CGTBridge(), l1CGTBridge);
+        assertEq(address(l2CGTBridge.l1CGTBridge()), address(l1CGTBridge));
         assertEq(address(l2CGTBridge.liquidityController()), address(mockLiquidityController));
     }
 }
@@ -75,7 +76,7 @@ contract L2CGTBridge_Initialize_Test is L2CGTBridge_TestInit {
     /// @notice Tests that initialization sets the correct values.
     function test_initialize_succeeds() external view {
         assertEq(address(l2CGTBridge.messenger()), address(messenger));
-        assertEq(l2CGTBridge.l1CGTBridge(), l1CGTBridge);
+        assertEq(address(l2CGTBridge.l1CGTBridge()), address(l1CGTBridge));
         assertEq(address(l2CGTBridge.liquidityController()), address(mockLiquidityController));
     }
 
@@ -89,7 +90,7 @@ contract L2CGTBridge_Initialize_Test is L2CGTBridge_TestInit {
     /// @notice Tests initialization with new messenger.
     function test_initialize_withDifferentMessenger_succeeds() external {
         // Deploy new bridge for testing
-        L2CGTBridge newImpl = new L2CGTBridge(l1CGTBridge, mockLiquidityController);
+        L2CGTBridge newImpl = new L2CGTBridge(IL1CGTBridge(l1CGTBridge), mockLiquidityController);
         Proxy newProxy = new Proxy(alice);
         L2CGTBridge newBridge = L2CGTBridge(address(newProxy));
 

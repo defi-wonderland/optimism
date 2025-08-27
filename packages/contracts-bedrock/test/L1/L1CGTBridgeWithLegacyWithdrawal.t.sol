@@ -18,6 +18,7 @@ import { Proxy } from "src/universal/Proxy.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
 /// @title L1CGTBridgeLegacy_TestInit
 /// @notice Reusable test initialization for `L1CGTBridgeWithLegacyWithdrawal` tests.
@@ -57,7 +58,8 @@ contract L1CGTBridgeLegacy_TestInit is CommonTest {
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridgeWithLegacyWithdrawal implementation
-        L1CGTBridgeWithLegacyWithdrawal impl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
+        L1CGTBridgeWithLegacyWithdrawal impl =
+            new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), IL2CGTBridge(l2CGTBridge));
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -107,7 +109,7 @@ contract L1CGTBridgeLegacy_Initialize_Test is L1CGTBridgeLegacy_TestInit {
     function test_initialize_succeeds() external view {
         assertEq(l1CGTBridge.cgtToken(), address(cgtToken));
         assertEq(address(l1CGTBridge.messenger()), address(messenger));
-        assertEq(l1CGTBridge.l2CGTBridge(), l2CGTBridge);
+        assertEq(address(l1CGTBridge.l2CGTBridge()), l2CGTBridge);
         assertEq(address(l1CGTBridge.superchainConfig()), address(superchainConfig));
         assertEq(address(l1CGTBridge.optimismPortal()), address(optimismPortal));
         assertTrue(l1CGTBridge.depositsEnabled());
@@ -124,7 +126,8 @@ contract L1CGTBridgeLegacy_Initialize_Test is L1CGTBridgeLegacy_TestInit {
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridgeWithLegacyWithdrawal newImpl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
+        L1CGTBridgeWithLegacyWithdrawal newImpl =
+            new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), IL2CGTBridge(l2CGTBridge));
         Proxy newProxy = new Proxy(alice);
         L1CGTBridgeWithLegacyWithdrawal newBridge = L1CGTBridgeWithLegacyWithdrawal(address(newProxy));
 
@@ -518,7 +521,8 @@ contract L1CGTBridgeLegacy_LegacyFinalizeWithdrawalTransaction_Test is L1CGTBrid
     /// @dev This test verifies that without trusted state, withdrawals cannot be proven and thus cannot be finalized.
     function test_legacyFinalizeWithdrawalTransaction_whenTrustedStateNotSet_reverts() external {
         // Deploy a fresh contract without trusted state
-        L1CGTBridgeWithLegacyWithdrawal freshImpl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
+        L1CGTBridgeWithLegacyWithdrawal freshImpl =
+            new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), IL2CGTBridge(l2CGTBridge));
         Proxy freshProxy = new Proxy(alice);
         L1CGTBridgeWithLegacyWithdrawal freshBridge = L1CGTBridgeWithLegacyWithdrawal(address(freshProxy));
 

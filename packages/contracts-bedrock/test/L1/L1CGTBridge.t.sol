@@ -10,12 +10,14 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 // Contracts
 import { L1CGTBridge } from "src/L1/L1CGTBridge.sol";
+import { L2CGTBridge } from "src/L2/L2CGTBridge.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
 /// @title L1CGTBridge_TestInit
 /// @notice Reusable test initialization for `L1CGTBridge` tests.
@@ -27,7 +29,7 @@ contract L1CGTBridge_TestInit is CommonTest {
     event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 
     L1CGTBridge internal l1CGTBridge;
-    L1CGTBridge internal l2CGTBridge;
+    L2CGTBridge internal l2CGTBridge;
     ICrossDomainMessenger internal messenger;
     IOptimismPortal2 internal optimismPortal;
     TestERC20 internal cgtToken;
@@ -42,12 +44,12 @@ contract L1CGTBridge_TestInit is CommonTest {
         // Deploy mock contracts
         cgtToken = new TestERC20();
         l1CGTBridge = L1CGTBridge(makeAddr("l1CGTBridge"));
-        l2CGTBridge = L1CGTBridge(makeAddr("l2CGTBridge"));
+        l2CGTBridge = L2CGTBridge(makeAddr("l2CGTBridge"));
         messenger = ICrossDomainMessenger(makeAddr("messenger"));
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridge implementation
-        L1CGTBridge impl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
+        L1CGTBridge impl = new L1CGTBridge(address(cgtToken), IL2CGTBridge(address(l2CGTBridge)));
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -92,7 +94,7 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridge newImpl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
+        L1CGTBridge newImpl = new L1CGTBridge(address(cgtToken), IL2CGTBridge(address(l2CGTBridge)));
         Proxy newProxy = new Proxy(alice);
         L1CGTBridge newBridge = L1CGTBridge(address(newProxy));
 

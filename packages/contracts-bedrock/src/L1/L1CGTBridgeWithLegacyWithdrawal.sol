@@ -132,7 +132,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @notice Constructs the L1CGTBridgeWithLegacyWithdrawal contract.
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
-    constructor(address _cgtToken, address _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
+    constructor(address _cgtToken, IL2CGTBridge _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
 
     /// @notice Initializer.
     /// @param _messenger        Address of the CrossDomainMessenger on this network.
@@ -185,7 +185,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         if (!_withdrawalsEnabled) revert WithdrawalsDisabled();
         if (superchainConfig.paused(address(this))) revert Paused();
 
-        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(l2CGTBridge)) {
             revert OnlyL2CGTBridge();
         }
 

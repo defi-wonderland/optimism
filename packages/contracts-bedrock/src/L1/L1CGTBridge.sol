@@ -31,7 +31,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
 
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    address public immutable l2CGTBridge;
+    IL2CGTBridge public immutable l2CGTBridge;
 
     /// @notice Messenger contract on this domain.
     /// @custom:network-specific
@@ -71,7 +71,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @notice Constructs the L1CGTBridge contract.
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
-    constructor(address _cgtToken, address _l2CGTBridge) ReinitializableBase(1) {
+    constructor(address _cgtToken, IL2CGTBridge _l2CGTBridge) ReinitializableBase(1) {
         cgtToken = _cgtToken;
         l2CGTBridge = _l2CGTBridge;
         _disableInitializers();
@@ -120,7 +120,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
         if (superchainConfig.paused(address(this))) revert Paused();
 
-        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(l2CGTBridge)) {
             revert OnlyL2CGTBridge();
         }
 

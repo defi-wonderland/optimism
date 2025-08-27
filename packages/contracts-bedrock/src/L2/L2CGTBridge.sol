@@ -8,6 +8,7 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IL1CGTBridge } from "interfaces/L1/IL1CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L2CGTBridge
@@ -17,7 +18,7 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 contract L2CGTBridge is Initializable, ISemver {
     /// @notice Address of the corresponding L1 CGT bridge.
     /// @custom:network-specific
-    address public immutable l1CGTBridge;
+    IL1CGTBridge public immutable l1CGTBridge;
 
     /// @notice Address of the LiquidityController contract.
     /// @custom:network-specific
@@ -54,7 +55,7 @@ contract L2CGTBridge is Initializable, ISemver {
     /// @notice Constructs the L2CGTBridge contract.
     /// @param _l1CGTBridge      Address of the corresponding L1 bridge.
     /// @param _liquidityController Address of the LiquidityController contract.
-    constructor(address _l1CGTBridge, ILiquidityController _liquidityController) {
+    constructor(IL1CGTBridge _l1CGTBridge, ILiquidityController _liquidityController) {
         l1CGTBridge = _l1CGTBridge;
         liquidityController = _liquidityController;
         _disableInitializers();
@@ -75,7 +76,7 @@ contract L2CGTBridge is Initializable, ISemver {
 
         messenger.sendMessage({
             _target: address(l1CGTBridge),
-            _message: abi.encodeWithSelector(this.finalizeBridgeCGT.selector, msg.sender, _to, msg.value),
+            _message: abi.encodeCall(IL1CGTBridge.finalizeBridgeCGT, (msg.sender, _to, msg.value)),
             _minGasLimit: _minGasLimit
         });
 
@@ -87,7 +88,7 @@ contract L2CGTBridge is Initializable, ISemver {
     /// @param _to     Address of the receiver.
     /// @param _amount Amount of native assets being bridged.
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
-        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l1CGTBridge) {
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(l1CGTBridge)) {
             revert OnlyL1CGTBridge();
         }
 
