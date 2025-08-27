@@ -129,9 +129,8 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             deployCrossL2Inbox: true,
             enableGovernance: true,
             fundDevAccounts: true,
-            feeSplitterRevenueShareRecipient: address(0x0000000000000000000000000000000000000009),
-            feeSplitterRevenueRemainderRecipient: address(0x000000000000000000000000000000000000000A),
-            feeSplitterFeeDisbursementInterval: 86400
+            feeSplitterFeeDisbursementInterval: 86400,
+            feeSplitterSharesCalculator: address(0x0000000000000000000000000000000000000009)
         });
         genesis.run(input);
 

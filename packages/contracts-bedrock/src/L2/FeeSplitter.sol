@@ -114,11 +114,6 @@ contract FeeSplitter is ISemver, Initializable {
         external
         initializer
     {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
-            revert FeeSplitter_OnlyProxyAdminOwner();
-        }
-        if (address(_shareCalculator) == address(0)) revert FeeSplitter_ShareCalculatorCannotBeZero();
-
         shareCalculator = _shareCalculator;
         feeDisbursementInterval = _feeDisbursementInterval;
 
