@@ -12,10 +12,10 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 // Interfaces
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTBridgeWithLegacyWithdrawal
@@ -24,18 +24,18 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///         management.
 contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     using SafeERC20 for IERC20;
-    /// @notice Storage slot for the trusted L2ToL1MessagePasser storage root.
 
+    /// @notice Storage slot for the trusted L2ToL1MessagePasser storage root
     bytes32 private _trustedMessagePasserStorageRoot;
 
     /// @notice Flag indicating if the trusted state has been set.
     bool private _trustedStateSet;
 
     /// @notice Flag indicating if deposits are enabled.
-    bool private _depositsEnabled = true;
+    bool private _depositsEnabled;
 
     /// @notice Flag indicating if withdrawals are enabled.
-    bool private _withdrawalsEnabled = true;
+    bool private _withdrawalsEnabled;
 
     /// @notice Mapping of withdrawal hashes to proof submitters to finalization status.
     mapping(bytes32 => mapping(address => bool)) public provenLegacyWithdrawals;
@@ -74,6 +74,9 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @notice Thrown when withdrawal target is the CGT token contract.
     error InvalidWithdrawalTarget();
 
+    /// @notice Thrown when trusted root is zero.
+    error InvalidTrustedRoot();
+
     /// @notice Emitted when a legacy withdrawal is proven.
     /// @param withdrawalHash Hash of the withdrawal transaction.
     /// @param from           Address of the sender.
@@ -102,6 +105,30 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @param trustedRoot The trusted L2ToL1MessagePasser storage root.
     event TrustedStateSet(bytes32 indexed trustedRoot);
 
+    /// @notice Returns the trusted L2ToL1MessagePasser storage root.
+    /// @return The trusted storage root, or zero if not set.
+    function trustedMessagePasserStorageRoot() external view returns (bytes32) {
+        return _trustedMessagePasserStorageRoot;
+    }
+
+    /// @notice Returns whether deposits are currently enabled.
+    /// @return True if deposits are enabled, false otherwise.
+    function depositsEnabled() external view returns (bool) {
+        return _depositsEnabled;
+    }
+
+    /// @notice Returns whether withdrawals are currently enabled.
+    /// @return True if withdrawals are enabled, false otherwise.
+    function withdrawalsEnabled() external view returns (bool) {
+        return _withdrawalsEnabled;
+    }
+
+    /// @notice Semantic version.
+    /// @custom:semver 1.1.0
+    function version() public pure override returns (string memory) {
+        return "1.1.0";
+    }
+
     /// @notice Constructs the L1CGTBridgeWithLegacyWithdrawal contract.
     /// @param _cgtToken    Address of the CGT token.
     /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
@@ -125,32 +152,25 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         messenger = _messenger;
         superchainConfig = _superchainConfig;
         optimismPortal = _optimismPortal;
-    }
 
-    /// @notice Modifier to check if deposits are enabled.
-    modifier whenDepositsEnabled() {
-        if (!_depositsEnabled) revert DepositsDisabled();
-        _;
-    }
-
-    /// @notice Modifier to check if withdrawals are enabled.
-    modifier whenWithdrawalsEnabled() {
-        if (!_withdrawalsEnabled) revert WithdrawalsDisabled();
-        _;
+        // Initialize state variables
+        _depositsEnabled = true;
+        _withdrawalsEnabled = true;
     }
 
     /// @notice Sends CGT tokens to a receiver's address on the other chain.
     /// @param _to          Address to bridge the CGT tokens to.
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
-    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external override whenDepositsEnabled {
+    function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external override {
+        if (!_depositsEnabled) revert DepositsDisabled();
         if (superchainConfig.paused(address(this))) revert Paused();
 
         IERC20(cgtToken).safeTransferFrom(msg.sender, address(this), _amount);
 
         messenger.sendMessage({
             _target: address(l2CGTBridge),
-            _message: abi.encodeWithSelector(this.finalizeBridgeCGT.selector, msg.sender, _to, _amount),
+            _message: abi.encodeCall(IL2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
             _minGasLimit: _minGasLimit
         });
 
@@ -161,7 +181,8 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @param _from        Address of the sender.
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
-    function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external override whenWithdrawalsEnabled {
+    function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external override {
+        if (!_withdrawalsEnabled) revert WithdrawalsDisabled();
         if (superchainConfig.paused(address(this))) revert Paused();
 
         if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
@@ -175,16 +196,17 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
 
     /// @notice Sets the trusted L2ToL1MessagePasser storage root for legacy withdrawal verification.
     ///         This function can only be called once during migration.
-    /// @param trustedRoot The trusted storage root to set.
-    function setTrustedStateOnce(bytes32 trustedRoot) external {
+    /// @param _trustedRoot The trusted storage root to set.
+    function setTrustedStateOnce(bytes32 _trustedRoot) external {
         _assertOnlyProxyAdminOrProxyAdminOwner();
 
         if (_trustedStateSet) revert TrustedStateAlreadySet();
+        if (_trustedRoot == bytes32(0)) revert InvalidTrustedRoot();
 
-        _trustedMessagePasserStorageRoot = trustedRoot;
+        _trustedMessagePasserStorageRoot = _trustedRoot;
         _trustedStateSet = true;
 
-        emit TrustedStateSet(trustedRoot);
+        emit TrustedStateSet(_trustedRoot);
     }
 
     /// @notice Proves a legacy withdrawal transaction using the trusted storage root.
@@ -197,6 +219,12 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         external
     {
         if (!_trustedStateSet) revert TrustedStateNotSet();
+
+        // Only process withdrawals with native asset value (CGT conversions)
+        if (_tx.value == 0) revert InvalidWithdrawalValue();
+
+        // Prevent withdrawals to the CGT token contract
+        if (_tx.target == cgtToken) revert InvalidWithdrawalTarget();
 
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
@@ -221,6 +249,14 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @notice Finalizes a proven legacy withdrawal transaction.
     /// @param _tx The withdrawal transaction to finalize.
     function legacyFinalizeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external {
+        if (!_trustedStateSet) revert TrustedStateNotSet();
+
+        // Only process withdrawals with native asset value (CGT conversions)
+        if (_tx.value == 0) revert InvalidWithdrawalValue();
+
+        // Prevent withdrawals to the CGT token contract
+        if (_tx.target == cgtToken) revert InvalidWithdrawalTarget();
+
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // Check that the withdrawal has been proven by the caller
@@ -232,12 +268,6 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         if (finalizedLegacyWithdrawals[withdrawalHash]) {
             revert WithdrawalAlreadyFinalized();
         }
-
-        // Only process withdrawals with native asset value (CGT conversions)
-        if (_tx.value == 0) revert InvalidWithdrawalValue();
-
-        // Prevent withdrawals to the CGT token contract
-        if (_tx.target == cgtToken) revert InvalidWithdrawalTarget();
 
         // Check that OptimismPortal hasn't finalized this withdrawal
         if (optimismPortal.finalizedWithdrawals(withdrawalHash)) {
@@ -285,23 +315,5 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         _assertOnlyProxyAdminOrProxyAdminOwner();
         _withdrawalsEnabled = false;
         emit WithdrawalsToggled(false);
-    }
-
-    /// @notice Returns the trusted L2ToL1MessagePasser storage root.
-    /// @return The trusted storage root, or zero if not set.
-    function trustedMessagePasserStorageRoot() external view returns (bytes32) {
-        return _trustedMessagePasserStorageRoot;
-    }
-
-    /// @notice Returns whether deposits are currently enabled.
-    /// @return True if deposits are enabled, false otherwise.
-    function depositsEnabled() external view returns (bool) {
-        return _depositsEnabled;
-    }
-
-    /// @notice Returns whether withdrawals are currently enabled.
-    /// @return True if withdrawals are enabled, false otherwise.
-    function withdrawalsEnabled() external view returns (bool) {
-        return _withdrawalsEnabled;
     }
 }

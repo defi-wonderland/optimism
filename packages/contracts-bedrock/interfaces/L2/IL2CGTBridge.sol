@@ -8,6 +8,13 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 /// @notice Interface for the L2CGTBridge contract, responsible for bridging native assets
 ///         between L2 and L1 ERC20 tokens through cross-chain messaging.
 interface IL2CGTBridge {
+    /// @notice Thrown when the function is called from a non-L1 CGT bridge.
+    error OnlyL1CGTBridge();
+
+    /// @notice Emitted when the contract is initialized.
+    /// @param version The version of the initializer.
+    event Initialized(uint8 version);
+
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from   Address of the sender.
     /// @param to     Address of the receiver.
@@ -19,6 +26,14 @@ interface IL2CGTBridge {
     /// @param to     Address of the receiver.
     /// @param amount Amount of native assets sent.
     event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
+
+    /// @notice Initializes the contract with the messenger address.
+    /// @param _messenger Address of the CrossDomainMessenger on this network.
+    function initialize(ICrossDomainMessenger _messenger) external;
+
+    /// @notice Returns the semantic version of the contract.
+    /// @return The version string.
+    function version() external view returns (string memory);
 
     /// @notice Initiates a native asset transfer from L2 to L1.
     /// @param _to          Address to receive the ERC20 tokens on L1.

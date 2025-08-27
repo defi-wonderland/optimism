@@ -17,6 +17,7 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 /// @notice Reusable test initialization for `L2CGTBridge` tests.
 contract L2CGTBridge_TestInit is CommonTest {
     using stdStorage for StdStorage;
+
     event CGTBridgeInitiated(address indexed from, address indexed to, uint256 amount);
     event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 

@@ -14,6 +14,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IL2CGTBridge } from "interfaces/L2/IL2CGTBridge.sol";
 
 /// @custom:proxied true
 /// @title L1CGTBridge
@@ -104,7 +105,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
 
         messenger.sendMessage({
             _target: address(l2CGTBridge),
-            _message: abi.encodeWithSelector(this.finalizeBridgeCGT.selector, msg.sender, _to, _amount),
+            _message: abi.encodeCall(IL2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
             _minGasLimit: _minGasLimit
         });
 

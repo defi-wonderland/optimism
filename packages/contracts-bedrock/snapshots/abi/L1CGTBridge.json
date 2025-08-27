@@ -1,21 +1,19 @@
 [
   {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "VERSION",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
+        "internalType": "address",
+        "name": "_cgtToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_l2CGTBridge",
+        "type": "address"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
     "inputs": [
@@ -38,19 +36,6 @@
     "name": "bridgeCGT",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "cgtDeposits",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -105,33 +90,13 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_cgtToken",
-        "type": "address"
-      },
-      {
         "internalType": "contract ICrossDomainMessenger",
         "name": "_messenger",
         "type": "address"
       },
       {
-        "internalType": "contract L1CGTStandardBridge",
-        "name": "_otherBridge",
-        "type": "address"
-      },
-      {
-        "internalType": "contract ISystemConfig",
-        "name": "_systemConfig",
-        "type": "address"
-      },
-      {
         "internalType": "contract ISuperchainConfig",
         "name": "_superchainConfig",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IOptimismPortal2",
-        "name": "_optimismPortal",
         "type": "address"
       }
     ],
@@ -142,51 +107,25 @@
   },
   {
     "inputs": [],
+    "name": "l2CGTBridge",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "messenger",
     "outputs": [
       {
         "internalType": "contract ICrossDomainMessenger",
         "name": "",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "optimismPortal",
-    "outputs": [
-      {
-        "internalType": "contract IOptimismPortal2",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "otherBridge",
-    "outputs": [
-      {
-        "internalType": "contract L1CGTStandardBridge",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "paused",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -233,19 +172,6 @@
   },
   {
     "inputs": [],
-    "name": "systemConfig",
-    "outputs": [
-      {
-        "internalType": "contract ISystemConfig",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "version",
     "outputs": [
       {
@@ -254,7 +180,7 @@
         "type": "string"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -322,12 +248,7 @@
   },
   {
     "inputs": [],
-    "name": "InvalidAmount",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyOtherBridge",
+    "name": "OnlyL2CGTBridge",
     "type": "error"
   },
   {
