@@ -53,7 +53,7 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
         _disableInitializers();
     }
 
-    /// @notice Initializes the contract with an initial configuration. Only callable by the ProxyAdmin owner.
+    /// @notice Initializes the contract with an initial configuration.
     /// @param _shareRecipient Recipient of the Superchain revenue share.
     /// @param _remainderRecipient Recipient of the remainder.
     function initialize(
@@ -63,9 +63,6 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
         external
         initializer
     {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
-            revert SharesCalculator_OnlyProxyAdminOwner();
-        }
         shareRecipient = _shareRecipient;
         remainderRecipient = _remainderRecipient;
     }
