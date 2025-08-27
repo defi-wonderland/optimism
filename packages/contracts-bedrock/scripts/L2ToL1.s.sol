@@ -62,7 +62,9 @@ contract L2ToL1 is Script {
 
         vm.selectFork(l1Fork);
         optimismPortal = IOptimismPortal2(payable(address(l1CrossDomainMessenger.portal())));
+        disputeGameFactory = IDisputeGameFactory(payable(address(optimismPortal.disputeGameFactory())));
         console.log("Optimism portal address:", address(optimismPortal));
+        console.log("DisputeGameFactory address:", address(disputeGameFactory));
     }
 
     function _initiateWithdrawal() public returns (Types.WithdrawalTransaction memory, bytes32 txHash) {
@@ -75,7 +77,7 @@ contract L2ToL1 is Script {
 
         // Record logs and broadcast the transaction
         vm.recordLogs();
-        // vm.broadcast();
+        vm.broadcast();
         l2CrossDomainMessenger.sendMessage(address(testAddress), message, gasLimit);
         console.log("Block number:", block.number);
 
