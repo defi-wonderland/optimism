@@ -394,14 +394,14 @@
                         <div class="chain-id">Block: <span>{{ l2CurrentBlock }}</span></div>
                     </div>
                 </div>
-                
+
                 <!-- Balance Checker -->
                 <div class="balance-checker">
                     <div class="balance-form">
-                        <input 
-                            v-model="l2BalanceAddress" 
+                        <input
+                            v-model="l2BalanceAddress"
                             @keyup.enter="checkBalance('L2')"
-                            class="balance-input" 
+                            class="balance-input"
                             placeholder="Address to check L2 balance"
                             :disabled="checkingBalance"
                         >
@@ -487,14 +487,14 @@
                         <div class="chain-id">Block: <span>{{ l1CurrentBlock }}</span></div>
                     </div>
                 </div>
-                
+
                 <!-- Balance Checker -->
                 <div class="balance-checker">
                     <div class="balance-form">
-                        <input 
-                            v-model="l1BalanceAddress" 
+                        <input
+                            v-model="l1BalanceAddress"
                             @keyup.enter="checkBalance('L1')"
-                            class="balance-input" 
+                            class="balance-input"
                             placeholder="Address to check L1 balance"
                             :disabled="checkingBalance"
                         >
@@ -611,7 +611,7 @@
                 async checkBalance(chain) {
                     const address = chain === 'L1' ? this.l1BalanceAddress.trim() : this.l2BalanceAddress.trim();
                     if (!address) return;
-                    
+
                     // Reset previous results for the specific chain
                     if (chain === 'L1') {
                         this.l1Balance = null;
@@ -636,7 +636,7 @@
                         });
 
                         const data = await response.json();
-                        
+
                         if (data.error) {
                             throw new Error(data.error.message || 'RPC Error');
                         }
@@ -644,7 +644,7 @@
                         // Convert wei to ether
                         const weiBalance = BigInt(data.result);
                         const etherBalance = Number(weiBalance) / Math.pow(10, 18);
-                        
+
                         if (chain === 'L1') {
                             this.l1Balance = etherBalance.toFixed(6);
                         } else {
@@ -770,7 +770,7 @@
                         '0x2810e1d6': 'resolve',
                         '0xfa24f743': 'gameData',
                         '0x250e69bd': 'wasRespectedGameTypeWhenCreated',
-                        
+
                         // IOptimismPortal2 functions
                         '0x5c0cba33': 'anchorStateRegistry',
                         '0xb682c444': 'ethLockbox',
@@ -806,7 +806,7 @@
                         '0x99a88ec4': 'upgrade',
                         '0x54fd4d50': 'version',
                         '0xbda204bb': 'migrateLiquidity',
-                        
+
                         // IL2ToL2CrossDomainMessenger functions
                         '0x54fd4d50': 'version',
                         '0xb1b1b209': 'successfulMessages',
@@ -819,7 +819,7 @@
                         '0x6b0c3c5e': 'resendMessage',
                         '0x28f7b5ed': 'relayMessage',
                         '0x52617f3c': 'messageVersion',
-                        
+
                         // IL2ToL1MessagePasser functions
                         '0x3f827a5a': 'MESSAGE_VERSION',
                         '0x44df8e70': 'burn',
@@ -827,16 +827,30 @@
                         '0xecc70428': 'messageNonce',
                         '0x82e3702d': 'sentMessages',
                         '0x54fd4d50': 'version',
-                        
+
                         // Additional CrossDomainMessenger functions
                         '0x3dbb202b': 'sendMessage',
-                        
+
                         // FaultDisputeGame functions
                         '0x03c2924d': 'resolveClaim',
-                        
+
                         // Additional selectors found in justfile
                         '0xfe2bbeb2': 'resolvedSubgames',
                         '0x005b92dd': 'unknown_005b92dd',
+
+                        // LiquidityController functions
+                        '0x0c984832': 'authorizeMinter',
+                        '0x44df8e70': 'burn',
+                        '0xd8444715': 'gasPayingTokenName',
+                        '0x550fcdc9': 'gasPayingTokenSymbol',
+                        '0x4cd88b76': 'initialize',
+                        '0x40c10f19': 'mint',
+                        '0xf46eccc4': 'minters',
+
+                        // NativeAssetLiquidity functions
+                        '0xd0e30db0': 'deposit',
+                        '0xb60d4288': 'fund',
+                        '0x2e1a7d4d': 'withdraw',
 
                     };
 
@@ -849,7 +863,7 @@
 
                 getAddressName(address) {
                     if (!address) return '';
-                    
+
                     const knownAddresses = {
                         // L2 Predeploys from Predeploys.sol
                         '0x4200000000000000000000000000000000000000': 'LegacyMessagePasser',
@@ -907,20 +921,20 @@
 
                 extractExternalCalls(tx) {
                     if (!tx || !tx.receipt) return [];
-                    
+
                     const calls = [];
                     const logs = tx.receipt.logs;
                     if (!logs || !Array.isArray(logs) || logs.length === 0) return [];
-                    
+
                     // Track unique contract addresses that emitted events (excluding the main contract)
                     const contractAddresses = new Set();
-                    
+
                     logs.forEach(log => {
                         if (log.address && log.address.toLowerCase() !== tx.to.toLowerCase()) {
                             contractAddresses.add(log.address.toLowerCase());
                         }
                     });
-                    
+
                     // Convert addresses to contract names if we know them
                     const knownContracts = {
                         '0x4200000000000000000000000000000000000016': 'L2ToL1MessagePasser',
@@ -933,15 +947,15 @@
                         '0xc6d77236bb78125437213a065d4ce8933acd99ee': 'OptimismPortal2_OLD',
                         '0x021b4e7c5649d0c4144aff6db9ed4692d7acc61f': 'DisputeGameFactory_OLD'
                     };
-                    
+
                     // Sort addresses to have a consistent order
                     const sortedAddresses = Array.from(contractAddresses).sort();
-                    
+
                     sortedAddresses.forEach(address => {
                         const contractName = knownContracts[address] || `Contract ${address.slice(0, 8)}...`;
                         calls.push(contractName);
                     });
-                    
+
                     return calls;
                 },
 
@@ -998,7 +1012,7 @@
 
                                     if (userTransactions.length > 0) {
                                         console.log(`Adding ${userTransactions.length} user transactions from L1 block ${l1Block}`);
-                                        
+
                                         // Get receipts for each transaction
                                         const txsWithReceipts = await Promise.all(userTransactions.map(async tx => {
                                             try {
@@ -1009,7 +1023,7 @@
                                                 return tx;
                                             }
                                         }));
-                                        
+
                                         txsWithReceipts.forEach(tx => {
                                             this.l1Transactions.unshift(tx);
                                         });
@@ -1051,7 +1065,7 @@
 
                                     if (userTransactions.length > 0) {
                                         console.log(`Adding ${userTransactions.length} user transactions from L2 block ${l2Block}`);
-                                        
+
                                         // Get receipts for each transaction
                                         const txsWithReceipts = await Promise.all(userTransactions.map(async tx => {
                                             try {
@@ -1062,7 +1076,7 @@
                                                 return tx;
                                             }
                                         }));
-                                        
+
                                         txsWithReceipts.forEach(tx => {
                                             this.l2Transactions.unshift(tx);
                                         });
