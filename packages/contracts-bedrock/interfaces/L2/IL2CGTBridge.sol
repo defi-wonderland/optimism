@@ -11,9 +11,8 @@ interface IL2CGTBridge {
     /// @notice Thrown when the function is called from a non-L1 CGT bridge.
     error OnlyL1CGTBridge();
 
-    /// @notice Emitted when the contract is initialized.
-    /// @param version The version of the initializer.
-    event Initialized(uint8 version);
+    /// @notice Thrown when the recipient address is invalid.
+    error InvalidRecipient();
 
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from   Address of the sender.
@@ -27,9 +26,15 @@ interface IL2CGTBridge {
     /// @param amount Amount of native assets sent.
     event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 
-    /// @notice Initializes the contract with the messenger address.
+    /// @notice Initializes the contract.
     /// @param _messenger Address of the CrossDomainMessenger on this network.
-    function initialize(ICrossDomainMessenger _messenger) external;
+    /// @param _liquidityController Address of the LiquidityController contract.
+    /// @param _l1CGTBridge Address of the corresponding L1 bridge.
+    function initialize(
+        ICrossDomainMessenger _messenger,
+        ILiquidityController _liquidityController,
+        address _l1CGTBridge
+    ) external;
 
     /// @notice Returns the semantic version of the contract.
     /// @return The version string.

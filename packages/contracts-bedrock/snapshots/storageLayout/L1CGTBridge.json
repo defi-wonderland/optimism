@@ -15,23 +15,37 @@
   },
   {
     "bytes": "20",
-    "label": "messenger",
+    "label": "l2CGTBridge",
     "offset": 2,
     "slot": "0",
+    "type": "address"
+  },
+  {
+    "bytes": "20",
+    "label": "cgtToken",
+    "offset": 0,
+    "slot": "1",
+    "type": "contract IERC20"
+  },
+  {
+    "bytes": "20",
+    "label": "messenger",
+    "offset": 0,
+    "slot": "2",
     "type": "contract ICrossDomainMessenger"
   },
   {
     "bytes": "20",
     "label": "superchainConfig",
     "offset": 0,
-    "slot": "1",
+    "slot": "3",
     "type": "contract ISuperchainConfig"
   },
   {
     "bytes": "1600",
     "label": "__gap",
     "offset": 0,
-    "slot": "2",
+    "slot": "4",
     "type": "uint256[50]"
   }
 ]

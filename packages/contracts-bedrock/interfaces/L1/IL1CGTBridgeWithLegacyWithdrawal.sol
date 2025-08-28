@@ -3,16 +3,43 @@ pragma solidity ^0.8.0;
 
 import { IL1CGTBridge } from "./IL1CGTBridge.sol";
 import { Types } from "src/libraries/Types.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @title IL1CGTBridgeWithLegacyWithdrawal
 /// @notice Interface for the L1CGTBridge contract with additional legacy withdrawal functionality.
 ///         This extension includes functionality for handling legacy withdrawals from before CGT
 ///         migration, bridge management controls, and trusted state management.
 interface IL1CGTBridgeWithLegacyWithdrawal is IL1CGTBridge {
+    /// @notice Thrown when trying to set trusted state more than once.
+    error TrustedStateAlreadySet();
+
+    /// @notice Thrown when trying to use legacy functions before setting trusted state.
+    error TrustedStateNotSet();
+
+    /// @notice Thrown when deposits are disabled.
+    error DepositsDisabled();
+
+    /// @notice Thrown when withdrawals are disabled.
+    error WithdrawalsDisabled();
+
+    /// @notice Thrown when withdrawal has already been finalized.
+    error WithdrawalAlreadyFinalized();
+
+    /// @notice Thrown when withdrawal has not been proven.
+    error WithdrawalNotProven();
+
+    /// @notice Thrown when trying to finalize a withdrawal with zero value.
+    error InvalidWithdrawalValue();
+
+    /// @notice Thrown when trusted root is zero.
+    error InvalidTrustedRoot();
     /// @notice Emitted when a legacy withdrawal is proven.
     /// @param withdrawalHash Hash of the withdrawal transaction.
     /// @param from           Address of the sender.
     /// @param to             Address of the receiver.
+
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
 
     /// @notice Emitted when a legacy withdrawal is proven (extension event).
@@ -36,6 +63,17 @@ interface IL1CGTBridgeWithLegacyWithdrawal is IL1CGTBridge {
     /// @notice Emitted when the trusted state is set.
     /// @param trustedRoot The trusted L2ToL1MessagePasser storage root.
     event TrustedStateSet(bytes32 indexed trustedRoot);
+
+    /// @notice Initializes the contract.
+    /// @param _messenger        Address of the CrossDomainMessenger on this network.
+    /// @param _superchainConfig Address of the SuperchainConfig contract.
+    /// @param _optimismPortal   Address of the OptimismPortal2 contract.
+    function initialize(
+        ICrossDomainMessenger _messenger,
+        ISuperchainConfig _superchainConfig,
+        IOptimismPortal2 _optimismPortal
+    )
+        external;
 
     /// @notice Sets the trusted L2ToL1MessagePasser storage root for legacy withdrawal verification.
     ///         This function can only be called once during migration.
@@ -78,4 +116,8 @@ interface IL1CGTBridgeWithLegacyWithdrawal is IL1CGTBridge {
     /// @notice Returns whether withdrawals are currently enabled.
     /// @return True if withdrawals are enabled, false otherwise.
     function withdrawalsEnabled() external view returns (bool);
+
+    /// @notice Returns the address of the OptimismPortal2 contract.
+    /// @return Address of the OptimismPortal2 contract.
+    function optimismPortal() external view returns (IOptimismPortal2);
 }

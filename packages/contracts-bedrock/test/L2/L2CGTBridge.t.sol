@@ -7,6 +7,7 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 // Contracts
 import { L2CGTBridge } from "src/L2/L2CGTBridge.sol";
+import { L1CGTBridge } from "src/L1/L1CGTBridge.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 
 // Interfaces
@@ -38,7 +39,7 @@ contract L2CGTBridge_TestInit is CommonTest {
         mockLiquidityController = ILiquidityController(makeAddr("liquidityController"));
 
         // Deploy L2CGTBridge implementation
-        L2CGTBridge impl = new L2CGTBridge(l1CGTBridge, mockLiquidityController);
+        L2CGTBridge impl = new L2CGTBridge();
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -52,7 +53,7 @@ contract L2CGTBridge_TestInit is CommonTest {
 
         // Initialize the bridge
         vm.prank(alice);
-        l2CGTBridge.initialize(messenger);
+        l2CGTBridge.initialize(messenger, mockLiquidityController, l1CGTBridge);
 
         // Give alice some ETH for bridging
         vm.deal(alice, 1000 ether);
@@ -83,13 +84,13 @@ contract L2CGTBridge_Initialize_Test is L2CGTBridge_TestInit {
     function test_initialize_doubleInit_reverts() external {
         vm.expectRevert();
         vm.prank(alice);
-        l2CGTBridge.initialize(messenger);
+        l2CGTBridge.initialize(messenger, mockLiquidityController, l1CGTBridge);
     }
 
     /// @notice Tests initialization with new messenger.
     function test_initialize_withDifferentMessenger_succeeds() external {
         // Deploy new bridge for testing
-        L2CGTBridge newImpl = new L2CGTBridge(l1CGTBridge, mockLiquidityController);
+        L2CGTBridge newImpl = new L2CGTBridge();
         Proxy newProxy = new Proxy(alice);
         L2CGTBridge newBridge = L2CGTBridge(address(newProxy));
 
@@ -99,7 +100,7 @@ contract L2CGTBridge_Initialize_Test is L2CGTBridge_TestInit {
         ICrossDomainMessenger newMessenger = ICrossDomainMessenger(makeAddr("newMessenger"));
 
         vm.prank(alice);
-        newBridge.initialize(newMessenger);
+        newBridge.initialize(newMessenger, mockLiquidityController, l1CGTBridge);
 
         assertEq(address(newBridge.messenger()), address(newMessenger));
     }
@@ -128,7 +129,7 @@ contract L2CGTBridge_BridgeCGT_Test is L2CGTBridge_TestInit {
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
                 address(l1CGTBridge),
-                abi.encodeWithSelector(L2CGTBridge.finalizeBridgeCGT.selector, alice, bob, BRIDGE_AMOUNT),
+                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, bob, BRIDGE_AMOUNT),
                 MIN_GAS_LIMIT
             ),
             ""
@@ -161,7 +162,7 @@ contract L2CGTBridge_BridgeCGT_Test is L2CGTBridge_TestInit {
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
                 address(l1CGTBridge),
-                abi.encodeWithSelector(L2CGTBridge.finalizeBridgeCGT.selector, alice, bob, _amount),
+                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, bob, _amount),
                 _minGasLimit
             ),
             ""

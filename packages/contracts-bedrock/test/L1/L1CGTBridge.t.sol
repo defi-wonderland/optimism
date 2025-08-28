@@ -48,7 +48,7 @@ contract L1CGTBridge_TestInit is CommonTest {
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridge implementation
-        L1CGTBridge impl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
+        L1CGTBridge impl = new L1CGTBridge();
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -65,7 +65,7 @@ contract L1CGTBridge_TestInit is CommonTest {
 
         // Initialize the bridge
         vm.prank(alice);
-        l1CGTBridge.initialize(messenger, superchainConfig);
+        l1CGTBridge.initialize(messenger, superchainConfig, IERC20(address(cgtToken)), address(l2CGTBridge));
 
         // Give alice some CGT tokens
         cgtToken.mint(alice, INITIAL_BALANCE);
@@ -87,13 +87,13 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
     function test_initialize_doubleInit_reverts() external {
         vm.expectRevert();
         vm.prank(alice);
-        l1CGTBridge.initialize(messenger, superchainConfig);
+        l1CGTBridge.initialize(messenger, superchainConfig, IERC20(address(cgtToken)), address(l2CGTBridge));
     }
 
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridge newImpl = new L1CGTBridge(address(cgtToken), address(l2CGTBridge));
+        L1CGTBridge newImpl = new L1CGTBridge();
         Proxy newProxy = new Proxy(alice);
         L1CGTBridge newBridge = L1CGTBridge(address(newProxy));
 
@@ -103,7 +103,7 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
         // Try to initialize from unauthorized account
         vm.expectRevert();
         vm.prank(bob);
-        newBridge.initialize(messenger, superchainConfig);
+        newBridge.initialize(messenger, superchainConfig, IERC20(address(cgtToken)), address(l2CGTBridge));
     }
 }
 
@@ -135,7 +135,7 @@ contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
                 address(l2CGTBridge),
-                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
+                abi.encodeWithSelector(L2CGTBridge.finalizeBridgeCGT.selector, alice, alice, _amount),
                 _minGasLimit
             ),
             ""
@@ -171,7 +171,7 @@ contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
             abi.encodeWithSelector(
                 ICrossDomainMessenger.sendMessage.selector,
                 address(l2CGTBridge),
-                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, address(0), _amount),
+                abi.encodeWithSelector(L2CGTBridge.finalizeBridgeCGT.selector, alice, address(0), _amount),
                 _minGasLimit
             ),
             ""

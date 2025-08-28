@@ -1,17 +1,6 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_l1CGTBridge",
-        "type": "address"
-      },
-      {
-        "internalType": "contract ILiquidityController",
-        "name": "_liquidityController",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -61,6 +50,16 @@
       {
         "internalType": "contract ICrossDomainMessenger",
         "name": "_messenger",
+        "type": "address"
+      },
+      {
+        "internalType": "contract ILiquidityController",
+        "name": "_liquidityController",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_l1CGTBridge",
         "type": "address"
       }
     ],

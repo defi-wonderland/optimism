@@ -15,16 +15,30 @@
   },
   {
     "bytes": "20",
-    "label": "messenger",
+    "label": "l1CGTBridge",
     "offset": 2,
     "slot": "0",
+    "type": "address"
+  },
+  {
+    "bytes": "20",
+    "label": "liquidityController",
+    "offset": 0,
+    "slot": "1",
+    "type": "contract ILiquidityController"
+  },
+  {
+    "bytes": "20",
+    "label": "messenger",
+    "offset": 0,
+    "slot": "2",
     "type": "contract ICrossDomainMessenger"
   },
   {
     "bytes": "1600",
     "label": "__gap",
     "offset": 0,
-    "slot": "1",
+    "slot": "3",
     "type": "uint256[50]"
   }
 ]

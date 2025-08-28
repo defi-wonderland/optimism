@@ -3,7 +3,6 @@ pragma solidity ^0.8.15;
 
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
-import { TestERC20 } from "test/mocks/TestERC20.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -13,6 +12,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 // Contracts
 import { L1CGTBridgeWithLegacyWithdrawal } from "src/L1/L1CGTBridgeWithLegacyWithdrawal.sol";
 import { Proxy } from "src/universal/Proxy.sol";
+import { TestERC20 } from "test/mocks/TestERC20.sol";
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -57,7 +57,7 @@ contract L1CGTBridgeWithLegacyWithdrawal_TestInit is CommonTest {
         optimismPortal = IOptimismPortal2(payable(makeAddr("optimismPortal2")));
 
         // Deploy L1CGTBridgeWithLegacyWithdrawal implementation
-        L1CGTBridgeWithLegacyWithdrawal impl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), (l2CGTBridge));
+        L1CGTBridgeWithLegacyWithdrawal impl = new L1CGTBridgeWithLegacyWithdrawal();
 
         // Deploy proxy
         Proxy proxy = new Proxy(alice);
@@ -124,7 +124,7 @@ contract L1CGTBridgeWithLegacyWithdrawal_Initialize_Test is L1CGTBridgeWithLegac
     /// @notice Tests that only ProxyAdmin or its owner can initialize.
     function test_initialize_whenNotProxyAdminOrOwner_reverts() external {
         // Deploy new bridge for testing
-        L1CGTBridgeWithLegacyWithdrawal newImpl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
+        L1CGTBridgeWithLegacyWithdrawal newImpl = new L1CGTBridgeWithLegacyWithdrawal();
         Proxy newProxy = new Proxy(alice);
         L1CGTBridgeWithLegacyWithdrawal newBridge = L1CGTBridgeWithLegacyWithdrawal(address(newProxy));
 
@@ -501,7 +501,12 @@ contract L1CGTBridgeWithLegacyWithdrawal_LegacyFinalizeWithdrawalTransaction_Tes
     /// @notice Tests that legacyFinalizeWithdrawalTransaction succeeds when withdrawal was proven.
     function test_legacyFinalizeWithdrawalTransaction_succeeds() external {
         // Setup: Give the bridge some CGT tokens to withdraw
-        cgtToken.mint(address(l1CGTBridge), sampleWithdrawal.value);
+        // Mock bridge CGT token balance for withdrawal
+        vm.mockCall(
+            address(cgtToken),
+            abi.encodeWithSelector(IERC20.balanceOf.selector, address(l1CGTBridge)),
+            abi.encode(sampleWithdrawal.value)
+        );
 
         // Mock the optimismPortal.finalizedWithdrawals call to return false
         vm.mockCall(
@@ -546,7 +551,12 @@ contract L1CGTBridgeWithLegacyWithdrawal_LegacyFinalizeWithdrawalTransaction_Tes
     /// @notice Tests that legacyFinalizeWithdrawalTransaction reverts when already finalized.
     function test_legacyFinalizeWithdrawalTransaction_whenAlreadyFinalized_reverts() external {
         // Setup: Give the bridge some CGT tokens to withdraw
-        cgtToken.mint(address(l1CGTBridge), sampleWithdrawal.value * 2); // Double amount for two attempts
+        // Mock bridge CGT token balance for double withdrawal attempt
+        vm.mockCall(
+            address(cgtToken),
+            abi.encodeWithSelector(IERC20.balanceOf.selector, address(l1CGTBridge)),
+            abi.encode(sampleWithdrawal.value * 2)
+        );
 
         // Mock the optimismPortal.finalizedWithdrawals call to return false
         vm.mockCall(
@@ -569,7 +579,7 @@ contract L1CGTBridgeWithLegacyWithdrawal_LegacyFinalizeWithdrawalTransaction_Tes
     /// @dev This test verifies that without trusted state, withdrawals cannot be proven and thus cannot be finalized.
     function test_legacyFinalizeWithdrawalTransaction_whenTrustedStateNotSet_reverts() external {
         // Deploy a fresh contract without trusted state
-        L1CGTBridgeWithLegacyWithdrawal freshImpl = new L1CGTBridgeWithLegacyWithdrawal(address(cgtToken), l2CGTBridge);
+        L1CGTBridgeWithLegacyWithdrawal freshImpl = new L1CGTBridgeWithLegacyWithdrawal();
         Proxy freshProxy = new Proxy(alice);
         L1CGTBridgeWithLegacyWithdrawal freshBridge = L1CGTBridgeWithLegacyWithdrawal(address(freshProxy));
 

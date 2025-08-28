@@ -1,17 +1,6 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_cgtToken",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_l2CGTBridge",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -158,6 +147,11 @@
         "internalType": "contract ISuperchainConfig",
         "name": "_superchainConfig",
         "type": "address"
+      },
+      {
+        "internalType": "contract IOptimismPortal2",
+        "name": "_optimismPortal",
+        "type": "address"
       }
     ],
     "name": "initialize",
@@ -178,8 +172,13 @@
         "type": "address"
       },
       {
-        "internalType": "contract IOptimismPortal2",
-        "name": "_optimismPortal",
+        "internalType": "contract IERC20",
+        "name": "_cgtToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_l2CGTBridge",
         "type": "address"
       }
     ],
@@ -630,11 +629,6 @@
   {
     "inputs": [],
     "name": "InvalidTrustedRoot",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidWithdrawalTarget",
     "type": "error"
   },
   {

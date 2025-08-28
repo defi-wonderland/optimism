@@ -71,9 +71,6 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     /// @notice Thrown when trying to finalize a withdrawal with zero value.
     error InvalidWithdrawalValue();
 
-    /// @notice Thrown when withdrawal target is the CGT token contract.
-    error InvalidWithdrawalTarget();
-
     /// @notice Thrown when trusted root is zero.
     error InvalidTrustedRoot();
 
@@ -130,9 +127,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
     }
 
     /// @notice Constructs the L1CGTBridgeWithLegacyWithdrawal contract.
-    /// @param _cgtToken    Address of the CGT token.
-    /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
-    constructor(address _cgtToken, address _l2CGTBridge) L1CGTBridge(_cgtToken, _l2CGTBridge) { }
+    constructor() L1CGTBridge() { }
 
     /// @notice Initializer.
     /// @param _messenger        Address of the CrossDomainMessenger on this network.
@@ -169,7 +164,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         IERC20(cgtToken).safeTransferFrom(msg.sender, address(this), _amount);
 
         messenger.sendMessage({
-            _target: address(l2CGTBridge),
+            _target: l2CGTBridge,
             _message: abi.encodeCall(L2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
             _minGasLimit: _minGasLimit
         });
@@ -185,7 +180,7 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         if (!_withdrawalsEnabled) revert WithdrawalsDisabled();
         if (superchainConfig.paused(address(this))) revert Paused();
 
-        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(l2CGTBridge)) {
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
             revert OnlyL2CGTBridge();
         }
 
@@ -223,9 +218,6 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         // Only process withdrawals with native asset value (CGT conversions)
         if (_tx.value == 0) revert InvalidWithdrawalValue();
 
-        // Prevent withdrawals to the CGT token contract
-        if (_tx.target == address(cgtToken)) revert InvalidWithdrawalTarget();
-
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // Verify the inclusion proof using the trusted storage root
@@ -253,9 +245,6 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
 
         // Only process withdrawals with native asset value (CGT conversions)
         if (_tx.value == 0) revert InvalidWithdrawalValue();
-
-        // Prevent withdrawals to the CGT token contract
-        if (_tx.target == address(cgtToken)) revert InvalidWithdrawalTarget();
 
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 

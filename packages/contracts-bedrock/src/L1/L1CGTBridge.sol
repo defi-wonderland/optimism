@@ -25,13 +25,13 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable, ISemver {
     using SafeERC20 for IERC20;
 
-    /// @notice Address of the CGT token.
-    /// @custom:network-specific
-    IERC20 public immutable cgtToken;
-
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    address public immutable l2CGTBridge;
+    address public l2CGTBridge;
+
+    /// @notice Address of the CGT token.
+    /// @custom:network-specific
+    IERC20 public cgtToken;
 
     /// @notice Messenger contract on this domain.
     /// @custom:network-specific
@@ -68,21 +68,21 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
         return "1.0.0";
     }
 
-    /// @notice Constructs the L1CGTBridge contract.
-    /// @param _cgtToken    Address of the CGT token.
-    /// @param _l2CGTBridge Address of the corresponding bridge on the other network.
-    constructor(address _cgtToken, address _l2CGTBridge) ReinitializableBase(1) {
-        cgtToken = IERC20(_cgtToken);
-        l2CGTBridge = _l2CGTBridge;
+    /// @notice Constructs the L1CGTBridge contract
+    constructor() ReinitializableBase(1) {
         _disableInitializers();
     }
 
     /// @notice Initializer.
     /// @param _messenger        Address of the CrossDomainMessenger on this network.
     /// @param _superchainConfig Address of the SuperchainConfig contract.
+    /// @param _cgtToken         Address of the CGT token.
+    /// @param _l2CGTBridge      Address of the corresponding bridge on the other network.
     function initialize(
         ICrossDomainMessenger _messenger,
-        ISuperchainConfig _superchainConfig
+        ISuperchainConfig _superchainConfig,
+        IERC20 _cgtToken,
+        address _l2CGTBridge
     )
         external
         reinitializer(initVersion())
@@ -92,6 +92,8 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
 
         messenger = _messenger;
         superchainConfig = _superchainConfig;
+        cgtToken = _cgtToken;
+        l2CGTBridge = _l2CGTBridge;
     }
 
     /// @notice Sends CGT tokens to a receiver's address on the other chain.
@@ -104,7 +106,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
         cgtToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         messenger.sendMessage({
-            _target: address(l2CGTBridge),
+            _target: l2CGTBridge,
             _message: abi.encodeCall(L2CGTBridge.finalizeBridgeCGT, (msg.sender, _to, _amount)),
             _minGasLimit: _minGasLimit
         });
@@ -120,7 +122,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
         if (superchainConfig.paused(address(this))) revert Paused();
 
-        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(l2CGTBridge)) {
+        if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
             revert OnlyL2CGTBridge();
         }
 
