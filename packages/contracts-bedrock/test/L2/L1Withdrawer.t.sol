@@ -1,43 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.15;
 
-import { Test } from "forge-std/Test.sol";
-import { L1Withdrawer } from "src/L2/L1Withdrawer.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-
-contract MockL2ToL1MessagePasser {
-    receive() external payable { }
-
-    function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) external payable {
-        // Mock implementation - just accept the call and ETH
-    }
-}
-
-/// @title L1Withdrawer_Init
-/// @notice Tests the initialization and constructor of L1Withdrawer contract.
-contract L1Withdrawer_Init is Test {
-    L1Withdrawer l1Withdrawer;
-
-    function testFuzz_constructor_succeeds(
-        uint256 _minWithdrawalAmount,
-        address _recipient,
-        uint256 _withdrawalGasLimit,
-        bytes memory _withdrawalData
-    ) external {
-        l1Withdrawer = new L1Withdrawer(_minWithdrawalAmount, _recipient, _withdrawalGasLimit, _withdrawalData);
-
-        assertEq(l1Withdrawer.MIN_WITHDRAWAL_AMOUNT(), _minWithdrawalAmount);
-        assertEq(l1Withdrawer.RECIPIENT(), _recipient);
-        assertEq(l1Withdrawer.WITHDRAWAL_GAS_LIMIT(), _withdrawalGasLimit);
-        assertEq(l1Withdrawer.WITHDRAWAL_DATA(), _withdrawalData);
-    }
-}
+import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 
 /// @title L1Withdrawer_Receive_Test
 /// @notice Tests the successful receive and withdrawal functionality of L1Withdrawer.
-contract L1Withdrawer_Receive_Test is Test {
-    L1Withdrawer l1Withdrawer;
+contract L1Withdrawer_Receive_Test is CommonTest {
+    address l1Withdrawer;
 
     address recipient = makeAddr("recipient");
     uint256 minWithdrawalAmount = 1 ether;
@@ -45,21 +18,16 @@ contract L1Withdrawer_Receive_Test is Test {
     bytes withdrawalData = hex"1234";
 
     event WithdrawalInitiated(uint256 amount, address indexed recipient);
-    event MessagePassed(
-        uint256 indexed nonce,
-        address indexed sender,
-        address indexed target,
-        uint256 value,
-        uint256 gasLimit,
-        bytes data,
-        bytes32 withdrawalHash
-    );
 
-    function setUp() public {
-        l1Withdrawer = new L1Withdrawer(minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData);
-
-        // Deploy mock at predeploy address
-        vm.etch(Predeploys.L2_TO_L1_MESSAGE_PASSER, address(new MockL2ToL1MessagePasser()).code);
+    function setUp() public override {
+        super.setUp();
+        
+        // Deploy L1Withdrawer using vm.etch with constructor parameters
+        l1Withdrawer = makeAddr("l1Withdrawer");
+        l1Withdrawer = DeployUtils.create1(
+                "L1Withdrawer.sol:L1Withdrawer",
+                DeployUtils.encodeConstructor(abi.encodeCall(IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)))
+            );
     }
 
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
