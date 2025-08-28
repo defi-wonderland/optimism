@@ -23,7 +23,7 @@ const (
 	WithdrawalDelaySeconds          uint64 = 302400
 	MinProposalSizeBytes            uint64 = 126000
 	ChallengePeriodSeconds          uint64 = 86400
-	ProofMaturityDelaySeconds       uint64 = 12
+	ProofMaturityDelaySeconds       uint64 = 604800
 	DisputeGameFinalityDelaySeconds uint64 = 302400
 	MIPSVersion                     uint64 = 7
 	DisputeGameType                 uint32 = 1 // PERMISSIONED game type
