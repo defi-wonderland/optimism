@@ -186,6 +186,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidRecipient",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OnlyL1CGTBridge",
     "type": "error"
   }
