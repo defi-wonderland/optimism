@@ -189,6 +189,10 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
             revert OnlyL2CGTBridge();
         }
 
+        if (_to == address(this) || _to == address(messenger)) {
+            revert InvalidRecipient();
+        }
+
         IERC20(cgtToken).safeTransfer(_to, _amount);
 
         emit CGTBridgeFinalized(_from, _to, _amount);
@@ -226,6 +230,11 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
         // Prevent withdrawals to the CGT token contract
         if (_tx.target == address(cgtToken)) revert InvalidWithdrawalTarget();
 
+        // Prevent withdrawals to this contract or the messenger
+        if (_tx.target == address(this) || _tx.target == address(messenger)) {
+            revert InvalidRecipient();
+        }
+
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 
         // Verify the inclusion proof using the trusted storage root
@@ -256,6 +265,11 @@ contract L1CGTBridgeWithLegacyWithdrawal is L1CGTBridge {
 
         // Prevent withdrawals to the CGT token contract
         if (_tx.target == address(cgtToken)) revert InvalidWithdrawalTarget();
+
+        // Prevent withdrawals to this contract or the messenger
+        if (_tx.target == address(this) || _tx.target == address(messenger)) {
+            revert InvalidRecipient();
+        }
 
         bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
 

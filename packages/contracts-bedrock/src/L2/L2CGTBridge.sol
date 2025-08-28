@@ -34,6 +34,9 @@ contract L2CGTBridge is Initializable, ISemver {
     /// @notice Thrown when the function is called from a non-L1 CGT bridge.
     error OnlyL1CGTBridge();
 
+    /// @notice Thrown when the recipient address is invalid.
+    error InvalidRecipient();
+
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from   Address of the sender.
     /// @param to     Address of the receiver.
@@ -90,6 +93,10 @@ contract L2CGTBridge is Initializable, ISemver {
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
         if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != address(l1CGTBridge)) {
             revert OnlyL1CGTBridge();
+        }
+
+        if (_to == address(this) || _to == address(messenger)) {
+            revert InvalidRecipient();
         }
 
         liquidityController.mint(_to, _amount);
