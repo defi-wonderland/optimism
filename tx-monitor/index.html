@@ -847,9 +847,57 @@
                     };
                 },
 
+                getAddressName(address) {
+                    if (!address) return '';
+                    
+                    const knownAddresses = {
+                        // L2 Predeploys from Predeploys.sol
+                        '0x4200000000000000000000000000000000000000': 'LegacyMessagePasser',
+                        '0x4200000000000000000000000000000000000001': 'L1MessageSender',
+                        '0x4200000000000000000000000000000000000002': 'DeployerWhitelist',
+                        '0x4200000000000000000000000000000000000006': 'WETH',
+                        '0x4200000000000000000000000000000000000007': 'L2CrossDomainMessenger',
+                        '0x420000000000000000000000000000000000000f': 'GasPriceOracle',
+                        '0x4200000000000000000000000000000000000010': 'L2StandardBridge',
+                        '0x4200000000000000000000000000000000000011': 'SequencerFeeVault',
+                        '0x4200000000000000000000000000000000000012': 'OptimismMintableERC20Factory',
+                        '0x4200000000000000000000000000000000000013': 'L1BlockNumber',
+                        '0x4200000000000000000000000000000000000014': 'L2ERC721Bridge',
+                        '0x4200000000000000000000000000000000000015': 'L1Block',
+                        '0x4200000000000000000000000000000000000016': 'L2ToL1MessagePasser',
+                        '0x4200000000000000000000000000000000000017': 'OptimismMintableERC721Factory',
+                        '0x4200000000000000000000000000000000000018': 'ProxyAdmin',
+                        '0x4200000000000000000000000000000000000019': 'BaseFeeVault',
+                        '0x420000000000000000000000000000000000001a': 'L1FeeVault',
+                        '0x420000000000000000000000000000000000001b': 'OperatorFeeVault',
+                        '0x4200000000000000000000000000000000000020': 'SchemaRegistry',
+                        '0x4200000000000000000000000000000000000021': 'EAS',
+                        '0x4200000000000000000000000000000000000022': 'CrossL2Inbox',
+                        '0x4200000000000000000000000000000000000023': 'L2ToL2CrossDomainMessenger',
+                        '0x4200000000000000000000000000000000000024': 'SuperchainETHBridge',
+                        '0x4200000000000000000000000000000000000025': 'ETHLiquidity',
+                        '0x4200000000000000000000000000000000000026': 'OptimismSuperchainERC20Factory',
+                        '0x4200000000000000000000000000000000000027': 'OptimismSuperchainERC20Beacon',
+                        '0x4200000000000000000000000000000000000028': 'SuperchainTokenBridge',
+                        '0x4200000000000000000000000000000000000029': 'NativeAssetLiquidity',
+                        '0x420000000000000000000000000000000000002a': 'LiquidityController',
+                        '0x4200000000000000000000000000000000000042': 'GovernanceToken',
+                        '0xb9415c6ca93bdc545d4c5177512fcc22efa38f28': 'OptimismSuperchainERC20',
+                        '0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead': 'LegacyERC20ETH',
+                        // Common test addresses
+                        '0x5d284fe6d6aeb73857960a0d041cf394b1198392': 'TestAccount',
+                        // Add more known addresses as needed
+                    };
+
+                    const lowerAddress = address.toLowerCase();
+                    return knownAddresses[lowerAddress] || null;
+                },
+
                 formatAddress(address) {
                     if (!address) return '';
-                    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+                    const name = this.getAddressName(address);
+                    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+                    return name ? `${name} (${shortAddress})` : shortAddress;
                 },
 
                 formatTxHash(hash) {
