@@ -22,7 +22,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 ///         sends the remaining funds to the fee router.
 contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the share calculator address is zero.
-    error FeeSplitter_ShareCalculatorCannotBeZero();
+    error FeeSplitter_SharesCalculatorCannotBeZero();
 
     /// @notice Thrown when the disbursement interval has not been reached.
     error FeeSplitter_DisbursementIntervalNotReached();
@@ -45,8 +45,8 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when sending funds to the fee recipient fails.
     error FeeSplitter_FailedToSendToRevenueShareRecipient();
 
-    /// @notice Thrown when the ShareCalculator returns malformed output.
-    error FeeSplitter_ShareCalculatorMalformedOutput();
+    /// @notice Thrown when the sharesCalculator returns malformed output.
+    error FeeSplitter_SharesCalculatorMalformedOutput();
 
     /// @notice Thrown when receiving ETH is attempted outside of a disbursement window.
     error FeeSplitter_ReceiveWindowClosed();
@@ -66,7 +66,7 @@ contract FeeSplitter is ISemver, Initializable {
     string public constant version = "1.0.0";
 
     /// @notice The contract which determines the recipients and their weights for fee disbursement.
-    ISharesCalculator public shareCalculator;
+    ISharesCalculator public sharesCalculator;
 
     /// @notice The timestamp of the last disbursal.
     uint128 public lastDisbursementTime;
@@ -85,9 +85,9 @@ contract FeeSplitter is ISemver, Initializable {
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
 
     /// @notice Emitted when the contract is initialized with its initial configuration.
-    /// @param shareCalculator           The share calculator contract.
+    /// @param sharesCalculator           The share calculator contract.
     /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
-    event Initialized(ISharesCalculator shareCalculator, uint128 feeDisbursementInterval);
+    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
 
     /// @notice Emitted when fees are disbursed to the recipients.
     /// @param shareInfo The recipients of the fee share.
@@ -95,9 +95,9 @@ contract FeeSplitter is ISemver, Initializable {
     event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
 
     /// @notice Emitted when the share calculator is updated.
-    /// @param oldShareCalculator The old share calculator contract.
-    /// @param newShareCalculator The new share calculator contract.
-    event ShareCalculatorUpdated(address oldShareCalculator, address newShareCalculator);
+    /// @param oldSharesCalculator The old share calculator contract.
+    /// @param newSharesCalculator The new share calculator contract.
+    event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
     constructor() {
         _disableInitializers();
@@ -105,13 +105,19 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
-    /// @param _shareCalculator            The share calculator contract.
+    /// @param _sharesCalculator            The share calculator contract.
     /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(ISharesCalculator _shareCalculator, uint128 _feeDisbursementInterval) external initializer {
-        shareCalculator = _shareCalculator;
+    function initialize(
+        ISharesCalculator _sharesCalculator,
+        uint128 _feeDisbursementInterval
+    )
+        external
+        initializer
+    {
+        sharesCalculator = _sharesCalculator;
         feeDisbursementInterval = _feeDisbursementInterval;
 
-        emit Initialized(_shareCalculator, _feeDisbursementInterval);
+        emit Initialized(_sharesCalculator, _feeDisbursementInterval);
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
@@ -162,9 +168,9 @@ contract FeeSplitter is ISemver, Initializable {
         // Update the last disbursement time
         lastDisbursementTime = uint128(block.timestamp);
 
-        // Call to the ShareCalculator to determine the fee share recipients, values, withdrawal networks, and data
+        // Call to the sharesCalculator to determine the fee share recipients, values, withdrawal networks, and data
         (ShareInfo[] memory _shareInfo) =
-            shareCalculator.getRecipientsAndValues(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
+            sharesCalculator.getRecipientsAndValues(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
         // Ensure the share calculator returned valid data
         if (_shareInfo.length == 0) revert FeeSplitter_FeeShareInfoEmpty();
@@ -187,7 +193,7 @@ contract FeeSplitter is ISemver, Initializable {
 
         // Ensure the total fees disbursed is equal to the gross revenue
         /// NOTE: Contract can hold some balance after disbursement if tokens are force sent.
-        if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_ShareCalculatorMalformedOutput();
+        if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
 
         emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
     }
@@ -204,15 +210,15 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Updates the share calculator contract. Only callable by the ProxyAdmin owner.
-    /// @param _newShareCalculator The new share calculator contract.
-    function setShareCalculator(ISharesCalculator _newShareCalculator) external {
+    /// @param _newSharesCalculator The new share calculator contract.
+    function setSharesCalculator(ISharesCalculator _newSharesCalculator) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
         }
-        if (address(_newShareCalculator) == address(0)) revert FeeSplitter_ShareCalculatorCannotBeZero();
-        address oldShareCalculator = address(shareCalculator);
-        shareCalculator = _newShareCalculator;
-        emit ShareCalculatorUpdated(oldShareCalculator, address(_newShareCalculator));
+        if (address(_newSharesCalculator) == address(0)) revert FeeSplitter_SharesCalculatorCannotBeZero();
+        address oldSharesCalculator = address(sharesCalculator);
+        sharesCalculator = _newSharesCalculator;
+        emit SharesCalculatorUpdated(oldSharesCalculator, address(_newSharesCalculator));
     }
 
     /// @notice Checks & Withdraws fees from a FeeVault.

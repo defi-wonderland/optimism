@@ -6,7 +6,7 @@ import { ISharesCalculator, ShareInfo } from "interfaces/L2/ISharesCalculator.so
 
 interface IFeeSplitter is ISemver {
 
-    error FeeSplitter_ShareCalculatorCannotBeZero();
+    error FeeSplitter_SharesCalculatorCannotBeZero();
     error FeeSplitter_DisbursementIntervalNotReached();
     error FeeSplitter_FeeShareInfoEmpty();
     error FeeSplitter_NoFeesCollected();
@@ -14,22 +14,22 @@ interface IFeeSplitter is ISemver {
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
     error FeeSplitter_OnlyProxyAdminOwner();
     error FeeSplitter_FailedToSendToRevenueShareRecipient();
-    error FeeSplitter_ShareCalculatorMalformedOutput();
+    error FeeSplitter_SharesCalculatorMalformedOutput();
     error FeeSplitter_ReceiveWindowClosed();
     error FeeSplitter_SenderNotApprovedVault();
 
     event FeesReceived(address indexed sender, uint256 amount);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
-    event Initialized(ISharesCalculator shareCalculator, uint128 feeDisbursementInterval);
+    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
     event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
-    event ShareCalculatorUpdated(address oldShareCalculator, address newShareCalculator);
+    event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
-    function shareCalculator() external view returns (ISharesCalculator);
+    function sharesCalculator() external view returns (ISharesCalculator);
     function lastDisbursementTime() external view returns (uint128);
     function feeDisbursementInterval() external view returns (uint128);
 
     function initialize(
-        ISharesCalculator _shareCalculator,
+        ISharesCalculator _sharesCalculator,
         uint128 _feeDisbursementInterval
     ) external;
 
@@ -37,7 +37,7 @@ interface IFeeSplitter is ISemver {
 
     function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external;
 
-    function setShareCalculator(ISharesCalculator _newShareCalculator) external;
+    function setSharesCalculator(ISharesCalculator _newSharesCalculator) external;
 
     receive() external payable;
 }
