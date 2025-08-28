@@ -579,7 +579,6 @@ contract L2Genesis is Script {
     /// @notice This predeploy is following the safety invariant #1.
     function setFeeSplitter(Input memory _input) internal {
         address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
-        vm.startPrank(_input.opChainProxyAdminOwner);
         // Initialize the implementation with address(0) for addresses
         IFeeSplitter(payable(impl)).initialize(
             ISharesCalculator(address(0)), uint128(_input.feeSplitterFeeDisbursementInterval)
@@ -589,7 +588,6 @@ contract L2Genesis is Script {
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
             ISharesCalculator(_input.feeSplitterSharesCalculator), uint128(_input.feeSplitterFeeDisbursementInterval)
         );
-        vm.stopPrank();
     }
 
     /// @notice Sets the bytecode in state
