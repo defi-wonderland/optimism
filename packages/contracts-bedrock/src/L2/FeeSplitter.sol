@@ -12,7 +12,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISharesCalculator, ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
-
 // OpenZeppelin
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
@@ -57,7 +56,8 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @notice Transient storage slot key for disbursement-in-progress flag.
     ///         Equal to bytes32(uint256(keccak256("feesplitter.isDisbursing")) - 1)
-    bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT = 0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
+    bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT =
+        0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
 
     /// @notice Tracks the revenue received by each vault.
     mapping(address => uint256) internal _revenuePerVault;
@@ -107,13 +107,7 @@ contract FeeSplitter is ISemver, Initializable {
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     /// @param _shareCalculator            The share calculator contract.
     /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(
-        ISharesCalculator _shareCalculator,
-        uint128 _feeDisbursementInterval
-    )
-        external
-        initializer
-    {
+    function initialize(ISharesCalculator _shareCalculator, uint128 _feeDisbursementInterval) external initializer {
         shareCalculator = _shareCalculator;
         feeDisbursementInterval = _feeDisbursementInterval;
 

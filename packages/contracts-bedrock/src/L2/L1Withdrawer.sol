@@ -11,16 +11,16 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 ///         recipient for the FeeSplitter contract and is part of the revenue sharing standard contracts.
 contract L1Withdrawer is ISemver {
     /// @notice The minimum amount of ETH that must be accumulated before a withdrawal is initiated.
-    uint256 public MIN_WITHDRAWAL_AMOUNT;
+    uint256 public immutable MIN_WITHDRAWAL_AMOUNT;
 
     /// @notice The L1 address that will receive the withdrawn ETH.
-    address public RECIPIENT;
+    address public immutable RECIPIENT;
 
     /// @notice The L1 gas limit set when initiating withdrawals.
-    uint256 public WITHDRAWAL_GAS_LIMIT;
+    uint256 public immutable WITHDRAWAL_GAS_LIMIT;
 
     /// @notice The data to be sent with the withdrawal transaction.
-    bytes public WITHDRAWAL_DATA;
+    bytes public WITHDRAWAL_DATA; // non-value type, not possible to make immutable
 
     /// @notice Emitted when a withdrawal to L1 is initiated.
     /// @param amount The amount of ETH being withdrawn.

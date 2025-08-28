@@ -21,13 +21,17 @@ contract L1Withdrawer_Receive_Test is CommonTest {
 
     function setUp() public override {
         super.setUp();
-        
+
         // Deploy L1Withdrawer using vm.etch with constructor parameters
         l1Withdrawer = makeAddr("l1Withdrawer");
         l1Withdrawer = DeployUtils.create1(
-                "L1Withdrawer.sol:L1Withdrawer",
-                DeployUtils.encodeConstructor(abi.encodeCall(IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)))
-            );
+            "L1Withdrawer.sol:L1Withdrawer",
+            DeployUtils.encodeConstructor(
+                abi.encodeCall(
+                    IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)
+                )
+            )
+        );
     }
 
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
@@ -90,22 +94,19 @@ contract L1Withdrawer_Receive_Test is CommonTest {
 
     function test_receive_verifyWithdrawalCall_succeeds() external {
         uint256 sendAmount = 1.5 ether;
-        
+
         // Expect the specific call to initiateWithdrawal with custom parameters
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             sendAmount,
             abi.encodeWithSelector(
-                IL2ToL1MessagePasser.initiateWithdrawal.selector,
-                recipient,
-                withdrawalGasLimit,
-                withdrawalData
+                IL2ToL1MessagePasser.initiateWithdrawal.selector, recipient, withdrawalGasLimit, withdrawalData
             )
         );
-        
+
         vm.deal(address(this), sendAmount);
-        (bool success,) = address(l1Withdrawer).call{value: sendAmount}("");
-        
+        (bool success,) = address(l1Withdrawer).call{ value: sendAmount }("");
+
         assertTrue(success);
         assertEq(address(l1Withdrawer).balance, 0);
     }
