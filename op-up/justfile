@@ -26,27 +26,23 @@ l2-to-l1-withdrawal:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    L1_RPC_URL="http://127.0.0.1:8544"
+    L2_RPC_URL="http://127.0.0.1:8545"
+    PRIVATE_KEY="0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+
     echo "Step 1: Running L2ToL1 script..."
     cd ../packages/contracts-bedrock
-    output=$(forge script scripts/L2ToL1.s.sol --private-key 0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 --broadcast 2>&1)
+    output=$(forge script scripts/L2ToL1.s.sol --private-key $PRIVATE_KEY --broadcast)
     echo "$output"
 
     # Extract values from output
     portal_address=$(echo "$output" | grep "Optimism portal address:" | head -1 | awk '{print $4}')
     dgf_address=$(echo "$output" | grep "DisputeGameFactory address:" | head -1 | awk '{print $3}')
-
-    # Get transaction hash from broadcast file
     tx_hash=$(jq -r '.transactions[0].hash' broadcast/L2ToL1.s.sol/901/run-latest.json)
 
-    # Get proof maturity delay
-    proof_maturity_delay=$(cast call $portal_address "proofMaturityDelaySeconds()" --rpc-url http://127.0.0.1:8544)
-    proof_maturity_delay_decimal=$((proof_maturity_delay))
-
-    echo "Extracted values:"
     echo "Portal address: $portal_address"
     echo "DisputeGameFactory address: $dgf_address"
-    echo "Transaction hash: $tx_hash"
-    echo "Proof maturity delay: ${proof_maturity_delay_decimal}s"
+    echo "Withdrawal tx hash: $tx_hash"
 
     # Check if values are empty
     if [[ -z "$portal_address" ]]; then
@@ -62,81 +58,100 @@ l2-to-l1-withdrawal:
         exit 1
     fi
 
-    echo "Step 2: Proving withdrawal..."
-    withdrawal_proved=false
-    
-    # Try to prove withdrawal (with retry logic)
+    echo "Step 2: Waiting for withdrawal to be provable..."
     while true; do
-        set +e  # Disable exit on error
+        set +e
         result=$(~/go/bin/withdrawer \
           --fault-proofs \
           --withdrawal $tx_hash \
-          --rpc http://127.0.0.1:8544 \
-          --l2-rpc http://127.0.0.1:8545 \
+          --rpc $L1_RPC_URL \
+          --l2-rpc $L2_RPC_URL \
           --portal-address $portal_address \
           --dgf-address $dgf_address \
-          --private-key d9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 2>&1)
+          --private-key ${PRIVATE_KEY#0x} 2>&1)
         exit_code=$?
-        set -e  # Re-enable exit on error
+        set -e
 
-        # Check if withdrawal is not ready yet
-        if [[ $result == *"Withdrawal is not provable"* ]] || [[ $result == *"Error proving withdrawal"* ]]; then
-            echo "Waiting for L2 block to be processed by L1... (12s)"
+        if [[ $result == *"Withdrawal is not provable"* ]] || [[ $result == *"Error completing withdrawal"* ]]; then
             sleep 12
             continue
         fi
 
-        # Check if withdrawal was proved successfully
-        if [[ $result == *"Proved withdrawal"* ]]; then
-            echo "✅ Withdrawal proved successfully!"
+        if [[ $exit_code -eq 0 ]]; then
+            echo "================================"
             echo "$result"
-            withdrawal_proved=true
+            echo "================================"
             break
-        else
-            echo "❌ Failed to prove withdrawal:"
-            echo "$result"
-            exit 1
         fi
     done
 
-    if [[ $withdrawal_proved == true ]]; then
-        # Extract dispute game address from portal
-        withdrawal_hash=$(echo "$output" | grep "Withdrawal hash:" | awk '{print $3}')
-        
-        echo "Getting dispute game address..."
-        dispute_game_data=$(cast call $portal_address "provenWithdrawals(bytes32,address)(address,uint64)" $withdrawal_hash 0x5D284fe6D6AEb73857960a0D041CF394b1198392 --rpc-url http://127.0.0.1:8544)
-        dispute_game_address=$(echo "$dispute_game_data" | head -1)
-        
+    # Get withdrawal hash and dispute game address for finalization
+    withdrawal_hash=$(echo "$output" | grep "Withdrawal hash:" | awk '{print $3}')
+    proven_timestamp=$(cast call $portal_address "provenWithdrawals(bytes32,address)(address,uint64)" $withdrawal_hash 0x5D284fe6D6AEb73857960a0D041CF394b1198392 --rpc-url http://127.0.0.1:8544)
+    dispute_game_address=$(echo "$proven_timestamp" | head -1)
+
+    echo "Step 3: Resolving dispute game..."
+    if [[ -n "$dispute_game_address" && "$dispute_game_address" != "0x0000000000000000000000000000000000000000" ]]; then
         echo "Dispute game address: $dispute_game_address"
-        
-        echo "Step 3: Resolving dispute game..."
-        echo "Resolving claim 0..."
-        cast send $dispute_game_address "resolveClaim(uint256,uint256)" 0 0 --private-key 0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 --rpc-url http://127.0.0.1:8544 > /dev/null
-        
-        echo "Resolving dispute game..."
-        cast send $dispute_game_address "resolve()" --private-key 0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 --rpc-url http://127.0.0.1:8544 > /dev/null
-        
-        # Check game status
-        game_status=$(cast call $dispute_game_address "status()" --rpc-url http://127.0.0.1:8544)
-        echo "Dispute game status: $((game_status)) (2 = DEFENDER_WINS)"
-        
-        echo "Step 4: Finalizing withdrawal..."
-        
-        final_result=$(~/go/bin/withdrawer \
-          --fault-proofs \
-          --withdrawal $tx_hash \
-          --rpc http://127.0.0.1:8544 \
-          --l2-rpc http://127.0.0.1:8545 \
-          --portal-address $portal_address \
-          --dgf-address $dgf_address \
-          --private-key d9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11 2>&1)
-        
-        if [[ $final_result == *"Completed withdrawal"* ]]; then
-            echo "🎉 WITHDRAWAL COMPLETED SUCCESSFULLY! 🎉"
-            echo "$final_result"
-        else
-            echo "❌ Failed to finalize withdrawal:"
-            echo "$final_result"
+
+        sleep 2
+
+        # Resolve root claim if needed
+        root_resolved=$(cast call $dispute_game_address "resolvedSubgames(uint256)(bool)" 0 --rpc-url $L1_RPC_URL 2>/dev/null || echo "false")
+        if [[ "$root_resolved" == "false" ]]; then
+            echo "Resolving root claim..."
+            set +e
+            resolve_result=$(cast send $dispute_game_address "resolveClaim(uint256,uint256)" 0 0 --private-key $PRIVATE_KEY --rpc-url $L1_RPC_URL 2>&1)
+            resolve_exit_code=$?
+            set -e
+
+            if [[ $resolve_exit_code -eq 0 ]]; then
+                resolve_tx_hash=$(echo "$resolve_result" | grep "transactionHash" | awk '{print $2}')
+                echo "Root claim resolved - TX: $resolve_tx_hash"
+            fi
         fi
+
+        # Resolve dispute game
+        echo "Resolving dispute game..."
+        dispute_resolve_result=$(cast send $dispute_game_address "resolve()" --private-key $PRIVATE_KEY --rpc-url $L1_RPC_URL 2>&1)
+        dispute_resolve_exit_code=$?
+        dispute_tx_hash=$(echo "$dispute_resolve_result" | grep "transactionHash" | awk '{print $2}')
+        if [[ $dispute_resolve_exit_code -eq 0 ]]; then
+            echo "Dispute game resolved - TX: $dispute_tx_hash"
+        else
+            echo "ERROR: Failed to resolve dispute game"
+            exit 1
+        fi
+
+        sleep 2
+
+        # Check final status
+        game_status=$(cast call $dispute_game_address "status()(uint8)" --rpc-url $L1_RPC_URL)
+        case $game_status in
+            0) status_text="IN_PROGRESS" ;;
+            1) status_text="CHALLENGER_WINS" ;;
+            2) status_text="DEFENDER_WINS" ;;
+            *) status_text="UNKNOWN" ;;
+        esac
+        echo "Dispute game status: $status_text"
+    else
+        echo "ERROR: Invalid dispute game address"
+        exit 1
     fi
+
+
+    echo "Step 4: Finalizing withdrawal..."
+    sleep 10
+    result=$(~/go/bin/withdrawer \
+        --fault-proofs \
+        --withdrawal $tx_hash \
+        --rpc $L1_RPC_URL \
+        --l2-rpc $L2_RPC_URL \
+        --portal-address $portal_address \
+        --dgf-address $dgf_address \
+        --private-key ${PRIVATE_KEY#0x} 2>&1)
+    exit_code=$?
+    echo "================================"
+    echo "$result"
+    echo "================================"
 
