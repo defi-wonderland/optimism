@@ -283,6 +283,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     /// @notice Test disburseFees reverts when interval not reached
     function test_feeSplitterDisburseFees_WhenIntervalNotReached_Reverts() public {
+        vm.prank(_owner);
+        feeSplitter.setFeeDisbursementInterval(48 hours);
+        
         vm.expectRevert(IFeeSplitter.FeeSplitter_DisbursementIntervalNotReached.selector);
         feeSplitter.disburseFees();
     }
