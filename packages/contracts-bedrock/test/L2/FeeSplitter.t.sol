@@ -20,9 +20,9 @@ contract FeeSplitter_TestInit is CommonTest {
     // Events
     event FeesReceived(address indexed sender, uint256 amount);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
-    event Initialized(ISharesCalculator shareCalculator, uint128 feeDisbursementInterval);
+    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
     event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
-    event ShareCalculatorUpdated(address oldShareCalculator, address newShareCalculator);
+    event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
     // Test constants
     address internal _owner;
@@ -89,7 +89,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 
         vm.expectEmit(address(impl));
         emit Initialized({
-            shareCalculator: ISharesCalculator(address(_defaultSharesCalculator)),
+            sharesCalculator: ISharesCalculator(address(_defaultSharesCalculator)),
             feeDisbursementInterval: _defaultFeeDisbursementInterval
         });
 
@@ -99,7 +99,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
             _defaultFeeDisbursementInterval
         );
 
-        assertEq(address(IFeeSplitter(payable(impl)).shareCalculator()), address(_defaultSharesCalculator));
+        assertEq(address(IFeeSplitter(payable(impl)).sharesCalculator()), address(_defaultSharesCalculator));
         assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), _defaultFeeDisbursementInterval);
     }
 }
@@ -156,7 +156,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
         
         // Get the actual shares calculator from the FeeSplitter
-        address actualSharesCalculator = address(feeSplitter.shareCalculator());
+        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
             abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (_amount, 0, 0, 0)),
@@ -190,7 +190,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
         
         // Get the actual shares calculator from the FeeSplitter
-        address actualSharesCalculator = address(feeSplitter.shareCalculator());
+        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
             abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (0, _amount, 0, 0)),
@@ -224,7 +224,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
         
         // Get the actual shares calculator from the FeeSplitter
-        address actualSharesCalculator = address(feeSplitter.shareCalculator());
+        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
             abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (0, 0, 0, _amount)),
@@ -258,7 +258,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
         
         // Get the actual shares calculator from the FeeSplitter
-        address actualSharesCalculator = address(feeSplitter.shareCalculator());
+        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
             abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (0, 0, _amount, 0)),
@@ -336,7 +336,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         expectedShareInfo[1] = ShareInfo(payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue);
         
         // Get the actual shares calculator from the FeeSplitter
-        address actualSharesCalculator = address(feeSplitter.shareCalculator());
+        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
             abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (_sequencerAmount, _baseAmount, _operatorAmount, _l1Amount)),
@@ -371,36 +371,36 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     }
 }
 
-/// @title FeeSplitter_SetShareCalculator_Test
-/// @notice Tests the setShareCalculator function of the `FeeSplitter` contract.
-contract FeeSplitter_SetShareCalculator_Test is FeeSplitter_TestInit {
-    /// @notice Test setShareCalculator reverts when caller is not owner
-    function testFuzz_feeSplitterSetShareCalculator_WhenNotOwner_Reverts(address _caller) public {
+/// @title FeeSplitter_SetSharesCalculator_Test
+/// @notice Tests the setSharesCalculator function of the `FeeSplitter` contract.
+contract FeeSplitter_SetSharesCalculator_Test is FeeSplitter_TestInit {
+    /// @notice Test setSharesCalculator reverts when caller is not owner
+    function testFuzz_feeSplitterSetSharesCalculator_WhenNotOwner_Reverts(address _caller) public {
         vm.assume(_caller != _owner);
 
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_OnlyProxyAdminOwner.selector);
-        feeSplitter.setShareCalculator(ISharesCalculator(address(0x123)));
+        feeSplitter.setSharesCalculator(ISharesCalculator(address(0x123)));
     }
 
-    /// @notice Test setShareCalculator reverts with zero address
-    function test_feeSplitterSetShareCalculator_WhenZeroAddress_Reverts() public {
+    /// @notice Test setSharesCalculator reverts with zero address
+    function test_feeSplitterSetSharesCalculator_WhenZeroAddress_Reverts() public {
         vm.prank(_owner);
-        vm.expectRevert(IFeeSplitter.FeeSplitter_ShareCalculatorCannotBeZero.selector);
-        feeSplitter.setShareCalculator(ISharesCalculator(address(0)));
+        vm.expectRevert(IFeeSplitter.FeeSplitter_SharesCalculatorCannotBeZero.selector);
+        feeSplitter.setSharesCalculator(ISharesCalculator(address(0)));
     }
 
-    /// @notice Test successful setShareCalculator
-    function test_feeSplitterSetShareCalculator_succeeds(address _newSharesCalculator) public {
+    /// @notice Test successful setSharesCalculator
+    function test_feeSplitterSetSharesCalculator_succeeds(address _newSharesCalculator) public {
         vm.assume(_newSharesCalculator != address(0));
 
         vm.expectEmit(address(feeSplitter));
-        emit ShareCalculatorUpdated(address(feeSplitter.shareCalculator()), _newSharesCalculator);
+        emit SharesCalculatorUpdated(address(feeSplitter.sharesCalculator()), _newSharesCalculator);
 
         vm.prank(_owner);
-        feeSplitter.setShareCalculator(ISharesCalculator(_newSharesCalculator));
+        feeSplitter.setSharesCalculator(ISharesCalculator(_newSharesCalculator));
 
-        assertEq(address(feeSplitter.shareCalculator()), _newSharesCalculator);
+        assertEq(address(feeSplitter.sharesCalculator()), _newSharesCalculator);
     }
 }
 
