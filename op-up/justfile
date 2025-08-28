@@ -21,8 +21,30 @@ clean:
 run:
     ./bin/{{ BINARY }}
 
+# run the monitor
+monitor:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cd ../tx-monitor
+    npm run dev
+
+l2-interactions:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    PRIVATE_KEY="0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+
+    cd ../packages/contracts-bedrock
+    forge script scripts/CGTIntegration.s.sol --private-key $PRIVATE_KEY
+
+# L1 to L2 deposit flow
+deposit:
+    cd ../packages/contracts-bedrock
+    forge script scripts/L1ToL2.s.sol
+
 # L2 to L1 withdrawal flow
-l2-to-l1-withdrawal:
+withdrawal:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -155,3 +177,25 @@ l2-to-l1-withdrawal:
     echo "$result"
     echo "================================"
 
+
+auth-minter:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    PRIVATE_KEY="0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+    L2_RPC_URL="http://127.0.0.1:8545"
+    LIQUIDITY_CONTROLLER="0x420000000000000000000000000000000000002a"
+
+    cd ../packages/contracts-bedrock
+    output=$(forge script scripts/AuthDeposit.s.sol --private-key $PRIVATE_KEY --broadcast)
+    echo "$output"
+
+    # extract minter address
+    minter_address=$(echo "$output" | grep "Minter to authorize:" | awk '{print $4}')
+    echo "Minter address: $minter_address"
+
+    sleep 20
+
+    # check if minter is authorized on L2 LiquidityController
+    minter_authorized=$(cast call $LIQUIDITY_CONTROLLER "minters(address)(bool)" $minter_address --rpc-url $L2_RPC_URL)
+    echo "Minter authorized: $minter_authorized"
