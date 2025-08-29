@@ -587,8 +587,7 @@ contract L2Genesis is Script {
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
-            ISharesCalculator(_input.feeSplitterSharesCalculator),
-            uint128(_input.feeSplitterFeeDisbursementInterval)
+            ISharesCalculator(_input.feeSplitterSharesCalculator), uint128(_input.feeSplitterFeeDisbursementInterval)
         );
     }
 

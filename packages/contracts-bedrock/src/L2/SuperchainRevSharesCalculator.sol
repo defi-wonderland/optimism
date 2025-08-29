@@ -14,8 +14,8 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 
 /// @custom:proxied
 /// @title SuperchainRevSharesCalculator
-/// @notice Calculator for Superchain revenue share. It pays the greater amount between 2.5% of 
-///         gross revenue or 15% of net revenue (gross minus L1 fees) to the configured share recipient. 
+/// @notice Calculator for Superchain revenue share. It pays the greater amount between 2.5% of
+///         gross revenue or 15% of net revenue (gross minus L1 fees) to the configured share recipient.
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
 contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @notice Emitted when the share recipient is updated.
@@ -56,13 +56,7 @@ contract SuperchainRevSharesCalculator is ISemver, Initializable {
     /// @notice Initializes the contract with an initial configuration.
     /// @param _shareRecipient Recipient of the Superchain revenue share.
     /// @param _remainderRecipient Recipient of the remainder.
-    function initialize(
-        address payable _shareRecipient,
-        address payable _remainderRecipient
-    )
-        external
-        initializer
-    {
+    function initialize(address payable _shareRecipient, address payable _remainderRecipient) external initializer {
         shareRecipient = _shareRecipient;
         remainderRecipient = _remainderRecipient;
     }
