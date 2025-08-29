@@ -59,7 +59,7 @@ contract AuthDeposit is Script {
 
         vm.selectFork(l1Fork);
 
-        address minterToAuthorize = 0xE948AfBDAa779Eafb4E608e9281e5e4e19ACDD1e;
+        address minterToAuthorize = 0xe1Ba284CC77AD2FB7BC7C225d4A559B8D403Be32;
         console.log("Minter to authorize:", minterToAuthorize);
 
         // Send the deposit transaction with ProxyAdmin as the sender

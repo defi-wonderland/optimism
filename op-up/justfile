@@ -234,7 +234,7 @@ bridge-l1-to-l2:
     SENDER=$(cast wallet address --private-key $PRIVATE_KEY)
 
     # Test user address (this should match the one from deployment script)
-    TEST_USER="0x3e2e813b872b8e1e6A2e57b4Fa4D3B3A8F4c2e1F"
+    TEST_USER="0x2Def9f34f2b68B667Df303D23EDe392BD36Fb177"
 
     echo "=== CGT Bridge L1 to L2 ==="
     echo "CGT Token: $CGT_TOKEN"
@@ -249,7 +249,8 @@ bridge-l1-to-l2:
     echo ""
     echo "Step 1: Checking initial balances..."
     SENDER_BALANCE=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $SENDER --rpc-url $L1_RPC_URL)
-    echo "Sender CGT balance: $(echo "scale=2; $SENDER_BALANCE / 10^18" | bc) CGT"
+    SENDER_BALANCE_CLEAN=$(echo $SENDER_BALANCE | cut -d' ' -f1)
+    echo "Sender CGT balance: $(echo "scale=2; $SENDER_BALANCE_CLEAN / 10^18" | bc) CGT"
 
     echo ""
     echo "Step 2: Approving $BRIDGE_AMOUNT CGT to L1 Bridge..."
@@ -258,7 +259,8 @@ bridge-l1-to-l2:
 
     # Check allowance
     ALLOWANCE=$(cast call $CGT_TOKEN "allowance(address,address)(uint256)" $SENDER $L1_BRIDGE --rpc-url $L1_RPC_URL)
-    echo "Allowance confirmed: $(echo "scale=2; $ALLOWANCE / 10^18" | bc) CGT"
+    ALLOWANCE_CLEAN=$(echo $ALLOWANCE | cut -d' ' -f1)
+    echo "Allowance confirmed: $(echo "scale=2; $ALLOWANCE_CLEAN / 10^18" | bc) CGT"
 
     echo ""
     echo "Step 3: Bridging CGT from L1 to L2..."
@@ -268,16 +270,221 @@ bridge-l1-to-l2:
     echo ""
     echo "Step 4: Checking post-bridge balances..."
     SENDER_BALANCE_AFTER=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $SENDER --rpc-url $L1_RPC_URL)
+    SENDER_BALANCE_AFTER_CLEAN=$(echo $SENDER_BALANCE_AFTER | cut -d' ' -f1)
     BRIDGE_BALANCE=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $L1_BRIDGE --rpc-url $L1_RPC_URL)
+    BRIDGE_BALANCE_CLEAN=$(echo $BRIDGE_BALANCE | cut -d' ' -f1)
 
-    echo "Sender CGT balance after: $(echo "scale=2; $SENDER_BALANCE_AFTER / 10^18" | bc) CGT"
-    echo "Bridge escrowed CGT: $(echo "scale=2; $BRIDGE_BALANCE / 10^18" | bc) CGT"
+    echo "Sender CGT balance after: $(echo "scale=2; $SENDER_BALANCE_AFTER_CLEAN / 10^18" | bc) CGT"
+    echo "Bridge escrowed CGT: $(echo "scale=2; $BRIDGE_BALANCE_CLEAN / 10^18" | bc) CGT"
 
     echo ""
     echo "Step 5: Checking L2 native balance (after cross-domain message processing)..."
     echo "Waiting for L2 message processing..."
-    sleep 20
+    sleep 30
 
     # Check L2 native balance of test user
     TEST_USER_L2_BALANCE=$(cast balance $TEST_USER --rpc-url $L2_RPC_URL)
     echo "Test user L2 native balance: $(echo "scale=4; $TEST_USER_L2_BALANCE / 10^18" | bc) ETH"
+
+bridge-l2-to-l1:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    PRIVATE_KEY_L2="0xc24de1e962c31c8341cdae2b25b3e435d374b433a429d42c8c2398af1ffca3f9"
+    PRIVATE_KEY_L1="0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+    L1_RPC_URL="http://127.0.0.1:8544"
+    L2_RPC_URL="http://127.0.0.1:8545"
+
+    # Extract addresses from latest deployment
+    BROADCAST_FILE="../packages/contracts-bedrock/broadcast/multi/DeployBridges.s.sol-latest/run.json"
+
+    if [[ ! -f "$BROADCAST_FILE" ]]; then
+        echo "ERROR: Deployment file not found. Please run 'just deploy-bridges' first."
+        exit 1
+    fi
+
+    # Extract contract addresses from broadcast file
+    CGT_TOKEN=$(jq -r '.deployments[0].transactions[] | select(.contractName == "CGT") | .contractAddress' "$BROADCAST_FILE")
+    L2_BRIDGE=$(jq -r '.deployments[1].transactions[] | select(.contractName == "L1CGTBridge") | .contractAddress' "$BROADCAST_FILE" | head -1)
+
+
+    # Get sender and test user addresses
+    TEST_USER="0x2Def9f34f2b68B667Df303D23EDe392BD36Fb177"
+
+    echo "=== CGT Bridge L2 to L1 ==="
+    echo "CGT Token: $CGT_TOKEN"
+    echo "L2 Bridge: $L2_BRIDGE"
+    echo "Test User: $TEST_USER"
+
+    # Amount to bridge (50 native assets = 50 * 10^18 wei)
+    BRIDGE_AMOUNT="50000000000000000000"
+    GAS_LIMIT="1000000"
+
+    echo ""
+    echo "Step 1: Checking initial balances..."
+    TEST_USER_L2_BALANCE=$(cast balance $TEST_USER --rpc-url $L2_RPC_URL)
+    TEST_USER_L1_BALANCE=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $TEST_USER --rpc-url $L1_RPC_URL)
+    echo "Test user L2 native balance: $(echo "scale=4; $TEST_USER_L2_BALANCE / 10^18" | bc) ETH"
+    echo "Test user L1 CGT balance: $(echo "scale=2; $TEST_USER_L1_BALANCE / 10^18" | bc) CGT"
+
+    echo ""
+    echo "Step 2: Bridging native assets from L2 to L1..."
+    BRIDGE_RESULT=$(cast send $L2_BRIDGE "bridgeCGT(address,uint32)" $TEST_USER $GAS_LIMIT --value $BRIDGE_AMOUNT --private-key $PRIVATE_KEY_L2 --rpc-url $L2_RPC_URL)
+
+    BRIDGE_TX=$(echo "$BRIDGE_RESULT" | grep -o '"transactionHash":"0x[0-9a-fA-F]\+' | head -n1 | cut -d'"' -f4)
+
+    echo "Bridge TX: $BRIDGE_TX"
+
+
+    echo ""
+    echo "Step 3: Checking post-bridge L2 balance..."
+    TEST_USER_L2_BALANCE_AFTER=$(cast balance $TEST_USER --rpc-url $L2_RPC_URL)
+    echo "Test user L2 native balance after: $(echo "scale=4; $TEST_USER_L2_BALANCE_AFTER / 10^18" | bc) ETH"
+
+    echo ""
+    echo "Step 4: Starting L2 to L1 withdrawal process..."
+    echo "Using withdrawal TX hash: $BRIDGE_TX"
+
+    # 1. Get L1CrossDomainMessenger address from L2CrossDomainMessenger
+    L2_MESSENGER="0x4200000000000000000000000000000000000007"
+    L1_MESSENGER=$(cast call $L2_MESSENGER "l1CrossDomainMessenger()(address)" --rpc-url $L2_RPC_URL)
+
+    # 2. Get portal address from L1CrossDomainMessenger
+    portal_address=$(cast call $L1_MESSENGER "portal()(address)" --rpc-url $L1_RPC_URL)
+
+    # 3. Get dispute game factory address from portal
+    dgf_address=$(cast call $portal_address "disputeGameFactory()(address)" --rpc-url $L1_RPC_URL)
+
+    echo "Portal address: $portal_address"
+    echo "DisputeGameFactory address: $dgf_address"
+
+    echo ""
+    echo "Step 5: Waiting for withdrawal to be provable..."
+    sleep 30  # Give more time for L2 to L1 message processing
+
+    while true; do
+        set +e
+        result=$(~/go/bin/withdrawer \
+          --fault-proofs \
+          --withdrawal $BRIDGE_TX \
+          --rpc $L1_RPC_URL \
+          --l2-rpc $L2_RPC_URL \
+          --portal-address $portal_address \
+          --dgf-address $dgf_address \
+          --private-key ${PRIVATE_KEY_L1#0x} 2>&1)
+        exit_code=$?
+        set -e
+
+        if [[ $result == *"Withdrawal is not provable"* ]] || [[ $result == *"Error completing withdrawal"* ]]; then
+            echo "Withdrawal not ready, waiting 12 seconds..."
+            sleep 12
+            continue
+        fi
+
+        if [[ $exit_code -eq 0 ]]; then
+            echo "================================"
+            echo "$result"
+            echo "================================"
+            break
+        else
+            echo "Withdrawer error: $result"
+            sleep 12
+        fi
+    done
+
+
+    # Get withdrawal hash from the withdrawer output
+    withdrawal_hash=$(echo "$result" | grep -o "Withdrawal hash: 0x[a-fA-F0-9]*" | awk '{print $3}' || echo "$BRIDGE_TX")
+    echo "Using withdrawal hash for proven check: $withdrawal_hash"
+
+    proven_timestamp=$(cast call $portal_address "provenWithdrawals(bytes32,address)(address,uint64)" $withdrawal_hash $TEST_USER --rpc-url $L1_RPC_URL 2>/dev/null || echo "0x0000000000000000000000000000000000000000,0")
+    dispute_game_address=$(echo "$proven_timestamp" | cut -d',' -f1)
+
+    echo ""
+    echo "Step 6: Resolving dispute game..."
+    if [[ -n "$dispute_game_address" && "$dispute_game_address" != "0x0000000000000000000000000000000000000000" ]]; then
+        echo "Dispute game address: $dispute_game_address"
+
+        sleep 2
+
+        # Resolve root claim if needed
+        root_resolved=$(cast call $dispute_game_address "resolvedSubgames(uint256)(bool)" 0 --rpc-url $L1_RPC_URL 2>/dev/null || echo "false")
+        if [[ "$root_resolved" == "false" ]]; then
+            echo "Resolving root claim..."
+            set +e
+            resolve_result=$(cast send $dispute_game_address "resolveClaim(uint256,uint256)" 0 0 --private-key $PRIVATE_KEY_L1 --rpc-url $L1_RPC_URL 2>&1)
+            resolve_exit_code=$?
+            set -e
+
+            if [[ $resolve_exit_code -eq 0 ]]; then
+                resolve_tx_hash=$(echo "$resolve_result" | grep "transactionHash" | awk '{print $2}')
+                echo "Root claim resolved - TX: $resolve_tx_hash"
+            fi
+        fi
+
+        # Resolve dispute game
+        echo "Resolving dispute game..."
+        dispute_resolve_result=$(cast send $dispute_game_address "resolve()" --private-key $PRIVATE_KEY_L1 --rpc-url $L1_RPC_URL 2>&1)
+        dispute_resolve_exit_code=$?
+        dispute_tx_hash=$(echo "$dispute_resolve_result" | grep "transactionHash" | awk '{print $2}')
+        if [[ $dispute_resolve_exit_code -eq 0 ]]; then
+            echo "Dispute game resolved - TX: $dispute_tx_hash"
+        else
+            echo "ERROR: Failed to resolve dispute game"
+            exit 1
+        fi
+
+        sleep 2
+
+        # Check final status
+        game_status=$(cast call $dispute_game_address "status()(uint8)" --rpc-url $L1_RPC_URL)
+        case $game_status in
+            0) status_text="IN_PROGRESS" ;;
+            1) status_text="CHALLENGER_WINS" ;;
+            2) status_text="DEFENDER_WINS" ;;
+            *) status_text="UNKNOWN" ;;
+        esac
+        echo "Dispute game status: $status_text"
+    else
+        echo "ERROR: Invalid dispute game address"
+        exit 1
+    fi
+
+    echo ""
+    echo "Step 7: Finalizing withdrawal..."
+    sleep 10
+    final_result=$(~/go/bin/withdrawer \
+        --fault-proofs \
+        --withdrawal $BRIDGE_TX \
+        --rpc $L1_RPC_URL \
+        --l2-rpc $L2_RPC_URL \
+        --portal-address $portal_address \
+        --dgf-address $dgf_address \
+        --private-key ${PRIVATE_KEY_L1#0x} 2>&1)
+    final_exit_code=$?
+    echo "================================"
+    echo "$final_result"
+    echo "================================"
+
+    echo ""
+    echo "Step 8: Checking final L1 CGT balance..."
+    sleep 5
+    TEST_USER_L1_BALANCE_AFTER=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $TEST_USER --rpc-url $L1_RPC_URL)
+    echo "Test user L1 CGT balance after: $(echo "scale=2; $TEST_USER_L1_BALANCE_AFTER / 10^18" | bc) CGT"
+
+    # Calculate difference
+    BALANCE_DIFF=$((TEST_USER_L1_BALANCE_AFTER - TEST_USER_L1_BALANCE))
+    echo "CGT balance increase: $(echo "scale=2; $BALANCE_DIFF / 10^18" | bc) CGT"
+
+    echo ""
+    echo "=== L2 to L1 Bridge Complete ==="
+    echo "Bridged $(echo "scale=2; $BRIDGE_AMOUNT / 10^18" | bc) native assets from L2"
+    echo "Received $(echo "scale=2; $BALANCE_DIFF / 10^18" | bc) CGT tokens on L1"
+
+    if [[ $final_exit_code -eq 0 ]]; then
+        echo "✅ Withdrawal completed successfully"
+    else
+        echo "❌ Withdrawal may have failed"
+        exit 1
+    fi
+
