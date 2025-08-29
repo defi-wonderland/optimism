@@ -1,0 +1,175 @@
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+}
+
+/* Pinned Overlay */
+.pinned-overlay {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 0;
+    min-width: 250px;
+    max-height: 80vh;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    cursor: move;
+    overflow: hidden;
+}
+
+.pinned-title {
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0;
+    padding: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px 8px 0 0;
+    user-select: none;
+}
+
+.pinned-title:active {
+    cursor: grabbing;
+}
+
+.pinned-content {
+    padding: 12px;
+    overflow-y: auto;
+    height: calc(100% - 45px);
+}
+
+.close-pinned {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
+}
+
+.close-pinned:hover {
+    color: rgba(255, 255, 255, 1);
+}
+
+.pinned-toggle {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: rgba(255, 165, 0, 0.8);
+    border: none;
+    border-radius: 20px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 8px 12px;
+    z-index: 99;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.pinned-toggle:hover {
+    background: rgba(255, 165, 0, 1);
+    transform: scale(1.05);
+}
+
+.pin-btn {
+    padding: 4px 8px;
+    background: rgba(255, 165, 0, 0.8);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background-color 0.3s;
+    margin-left: 8px;
+}
+
+.pin-btn:hover {
+    background: rgba(255, 165, 0, 1);
+}
+
+.pinned-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 6px 8px;
+    margin: 4px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 11px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.pinned-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.pinned-address-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-family: monospace;
+    font-size: 10px;
+}
+
+.pinned-balance {
+    color: #00ffff;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.l2-side .pinned-balance {
+    color: #ffff00;
+}
+
+.unpin-btn {
+    background: rgba(255, 0, 0, 0.6);
+    border: none;
+    border-radius: 2px;
+    color: white;
+    cursor: pointer;
+    font-size: 9px;
+    padding: 2px 4px;
+    transition: background-color 0.3s;
+    margin-left: 8px;
+}
+
+.unpin-btn:hover {
+    background: rgba(255, 0, 0, 0.8);
+}
+
+/* Buttons */
+.copy-btn {
+    background: rgba(0, 150, 255, 0.6);
+    border: none;
+    border-radius: 3px;
+    color: white;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 6px;
+    margin-left: 5px;
+    transition: background-color 0.3s;
+}
+
+.copy-btn:hover {
+    background: rgba(0, 150, 255, 0.8);
+}
+
+.copy-btn:active {
+    background: rgba(0, 150, 255, 1);
+}
