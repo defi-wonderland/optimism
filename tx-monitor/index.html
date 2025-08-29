@@ -99,8 +99,9 @@
             position: relative;
             overflow: hidden;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            padding-top: 20px;
         }
 
         .tx-card {
@@ -136,13 +137,13 @@
         }
 
         .tx-card.old {
-            transform: translateY(-120px) scale(0.9);
+            transform: translateY(120px) scale(0.9);
             opacity: 0.6;
             z-index: 5;
         }
 
         .tx-card.older {
-            transform: translateY(-240px) scale(0.8);
+            transform: translateY(240px) scale(0.8);
             opacity: 0.3;
             z-index: 1;
         }
@@ -298,8 +299,18 @@
 
         .balance-form {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 6px;
             margin-bottom: 8px;
+        }
+
+        .balance-input-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .token-input {
+            font-size: 11px;
         }
 
         .balance-input {
@@ -336,11 +347,6 @@
             cursor: not-allowed;
         }
 
-        .balance-result {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.9);
-            margin-top: 4px;
-        }
 
         .balance-error {
             color: #ff6b6b;
@@ -377,6 +383,160 @@
             min-width: 80px;
             text-align: center;
         }
+
+        .pinned-overlay {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 0;
+            min-width: 250px;
+            max-height: 80vh;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            cursor: move;
+            overflow: hidden;
+        }
+
+        .pinned-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0;
+            padding: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px 8px 0 0;
+            user-select: none;
+        }
+
+        .pinned-title:active {
+            cursor: grabbing;
+        }
+
+        .pinned-content {
+            padding: 12px;
+            overflow-y: auto;
+            height: calc(100% - 45px);
+        }
+
+
+        .close-pinned {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .close-pinned:hover {
+            color: rgba(255, 255, 255, 1);
+        }
+
+        .pinned-toggle {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 165, 0, 0.8);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 8px 12px;
+            z-index: 99;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .pinned-toggle:hover {
+            background: rgba(255, 165, 0, 1);
+            transform: scale(1.05);
+        }
+
+        .pin-btn {
+            padding: 4px 8px;
+            background: rgba(255, 165, 0, 0.8);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background-color 0.3s;
+            margin-left: 8px;
+        }
+
+        .pin-btn:hover {
+            background: rgba(255, 165, 0, 1);
+        }
+
+        .balance-result {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pinned-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 6px 8px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 11px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .pinned-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+        }
+
+
+        .pinned-address-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+        .pinned-balance {
+            color: #00ffff;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .l2-side .pinned-balance {
+            color: #ffff00;
+        }
+
+        .unpin-btn {
+            background: rgba(255, 0, 0, 0.6);
+            border: none;
+            border-radius: 2px;
+            color: white;
+            cursor: pointer;
+            font-size: 9px;
+            padding: 2px 4px;
+            transition: background-color 0.3s;
+            margin-left: 8px;
+        }
+
+        .unpin-btn:hover {
+            background: rgba(255, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body>
@@ -398,29 +558,44 @@
                 <!-- Balance Checker -->
                 <div class="balance-checker">
                     <div class="balance-form">
+                        <div class="balance-input-row">
+                            <input
+                                v-model="l2BalanceAddress"
+                                @keyup.enter="checkBalance('L2')"
+                                class="balance-input"
+                                placeholder="Address to check L2 balance"
+                                :disabled="checkingBalance"
+                            >
+                            <button @click="checkBalance('L2')" class="balance-btn" :disabled="checkingBalance">
+                                {{ checkingBalance ? '...' : 'Get Balance' }}
+                            </button>
+                        </div>
                         <input
-                            v-model="l2BalanceAddress"
+                            v-model="l2TokenAddress"
                             @keyup.enter="checkBalance('L2')"
-                            class="balance-input"
-                            placeholder="Address to check L2 balance"
+                            class="balance-input token-input"
+                            placeholder="ERC20 token address (optional)"
                             :disabled="checkingBalance"
                         >
-                        <button @click="checkBalance('L2')" class="balance-btn" :disabled="checkingBalance">
-                            {{ checkingBalance ? '...' : 'Get Balance' }}
-                        </button>
                     </div>
                     <div v-if="l2Balance !== null" class="balance-result">
-                        Balance: {{ l2Balance }} CGT
+                        <span>Balance: {{ l2Balance }} {{ l2TokenSymbol || 'CGT' }}</span>
+                        <button @click="pinCurrentAddress('L2')" class="pin-btn" v-if="!isAddressPinned('L2', l2BalanceAddress, l2TokenAddress)">
+                            📌 Pin
+                        </button>
+
                     </div>
                     <div v-if="l2BalanceError" class="balance-result balance-error">
                         {{ l2BalanceError }}
                     </div>
                 </div>
 
+
                 <div class="tx-container">
                     <div v-if="l2Transactions.length === 0" class="loading">Monitoring L2 transactions...</div>
                     <div class="scroll-controls" v-if="l2Transactions.length > 1">
                         <button @click="scrollL2Up" :disabled="l2ScrollIndex === 0" class="scroll-btn">↑</button>
+                        <div class="scroll-indicator">{{ l2ScrollIndex + 1 }} / {{ l2Transactions.length }}</div>
                         <button @click="scrollL2Down" :disabled="l2ScrollIndex >= l2Transactions.length - 1" class="scroll-btn">↓</button>
                     </div>
                     <div
@@ -491,29 +666,44 @@
                 <!-- Balance Checker -->
                 <div class="balance-checker">
                     <div class="balance-form">
+                        <div class="balance-input-row">
+                            <input
+                                v-model="l1BalanceAddress"
+                                @keyup.enter="checkBalance('L1')"
+                                class="balance-input"
+                                placeholder="Address to check L1 balance"
+                                :disabled="checkingBalance"
+                            >
+                            <button @click="checkBalance('L1')" class="balance-btn" :disabled="checkingBalance">
+                                {{ checkingBalance ? '...' : 'Get Balance' }}
+                            </button>
+                        </div>
                         <input
-                            v-model="l1BalanceAddress"
+                            v-model="l1TokenAddress"
                             @keyup.enter="checkBalance('L1')"
-                            class="balance-input"
-                            placeholder="Address to check L1 balance"
+                            class="balance-input token-input"
+                            placeholder="ERC20 token address (optional)"
                             :disabled="checkingBalance"
                         >
-                        <button @click="checkBalance('L1')" class="balance-btn" :disabled="checkingBalance">
-                            {{ checkingBalance ? '...' : 'Get Balance' }}
-                        </button>
                     </div>
                     <div v-if="l1Balance !== null" class="balance-result">
-                        Balance: {{ l1Balance }} ETH
+                        <span>Balance: {{ l1Balance }} {{ l1TokenSymbol || 'ETH' }}</span>
+                        <button @click="pinCurrentAddress('L1')" class="pin-btn" v-if="!isAddressPinned('L1', l1BalanceAddress, l1TokenAddress)">
+                            📌 Pin
+                        </button>
+
                     </div>
                     <div v-if="l1BalanceError" class="balance-result balance-error">
                         {{ l1BalanceError }}
                     </div>
                 </div>
 
+
                 <div class="tx-container">
                     <div v-if="l1Transactions.length === 0" class="loading">Monitoring L1 transactions...</div>
                     <div class="scroll-controls" v-if="l1Transactions.length > 1">
                         <button @click="scrollL1Up" :disabled="l1ScrollIndex === 0" class="scroll-btn">↑</button>
+                        <div class="scroll-indicator">{{ l1ScrollIndex + 1 }} / {{ l1Transactions.length }}</div>
                         <button @click="scrollL1Down" :disabled="l1ScrollIndex >= l1Transactions.length - 1" class="scroll-btn">↓</button>
                     </div>
                     <div
@@ -568,6 +758,76 @@
                 </div>
             </div>
         </div>
+
+        <!-- Pinned Toggle Button -->
+        <button
+            v-if="(l1PinnedAddresses.length > 0 || l2PinnedAddresses.length > 0) && !showPinnedOverlay"
+            @click="showPinnedOverlay = true"
+            class="pinned-toggle"
+        >
+            📌 {{ l1PinnedAddresses.length + l2PinnedAddresses.length }}
+        </button>
+
+        <!-- Pinned Addresses Overlay -->
+        <div 
+            v-if="(l1PinnedAddresses.length > 0 || l2PinnedAddresses.length > 0) && showPinnedOverlay" 
+            class="pinned-overlay"
+:style="{ 
+                top: overlayPosition.top + 'px', 
+                left: overlayPosition.left + 'px',
+                width: overlaySize.width + 'px'
+            }"
+        >
+            <div class="pinned-title" @mousedown="startOverlayDrag">
+                <span>📌 Pinned Addresses</span>
+                <button @click="showPinnedOverlay = false" class="close-pinned" @mousedown.stop>✕</button>
+            </div>
+            <div class="pinned-content">
+
+            <!-- L1 Pinned -->
+            <div v-if="l1PinnedAddresses.length > 0" style="margin-bottom: 12px;">
+                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">L1 Addresses</div>
+                <div 
+                    v-for="(pinned, index) in l1PinnedAddresses" 
+                    :key="pinned.address + '-' + (pinned.tokenAddress || 'native')" 
+                    class="pinned-item"
+                >
+                    <div style="display: flex; align-items: center;">
+                        <div>
+                            <span class="pinned-address-text">{{ formatAddress(pinned.address) }}</span>
+                            <div v-if="pinned.tokenAddress" style="font-size: 9px; opacity: 0.7; color: #4a9eff;">{{ formatAddress(pinned.tokenAddress) }}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="pinned-balance" v-if="pinned.balance !== null">{{ pinned.balance }} {{ pinned.tokenSymbol }}</span>
+                        <span class="pinned-balance" v-else style="opacity: 0.6;">...</span>
+                        <button @click="unpinAddress('L1', pinned.address, pinned.tokenAddress)" class="unpin-btn">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- L2 Pinned -->
+            <div v-if="l2PinnedAddresses.length > 0">
+                <div style="font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px;">L2 Addresses</div>
+                <div 
+                    v-for="(pinned, index) in l2PinnedAddresses" 
+                    :key="pinned.address + '-' + (pinned.tokenAddress || 'native')" 
+                    class="pinned-item"
+                >
+                    <div style="display: flex; align-items: center;">
+                        <div>
+                            <span class="pinned-address-text">{{ formatAddress(pinned.address) }}</span>
+                            <div v-if="pinned.tokenAddress" style="font-size: 9px; opacity: 0.7; color: #4a9eff;">{{ formatAddress(pinned.tokenAddress) }}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="pinned-balance" v-if="pinned.balance !== null">{{ pinned.balance }} {{ pinned.tokenSymbol }}</span>
+                        <span class="pinned-balance" v-else style="opacity: 0.6;">...</span>
+                        <button @click="unpinAddress('L2', pinned.address, pinned.tokenAddress)" class="unpin-btn">✕</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -592,11 +852,25 @@
                     // Balance checker
                     l1BalanceAddress: '',
                     l2BalanceAddress: '',
+                    l1TokenAddress: '',
+                    l2TokenAddress: '',
                     checkingBalance: false,
                     l1Balance: null,
                     l2Balance: null,
+                    l1TokenSymbol: '',
+                    l2TokenSymbol: '',
                     l1BalanceError: '',
-                    l2BalanceError: ''
+                    l2BalanceError: '',
+                    // Pinned addresses
+                    l1PinnedAddresses: [],
+                    l2PinnedAddresses: [],
+                    showPinnedOverlay: false,
+                    // Overlay positioning
+                    overlayPosition: { top: 80, left: Math.max(50, window.innerWidth * 0.25) },
+                    isDraggingOverlay: false,
+                    overlayDragOffset: { x: 0, y: 0 },
+                    // Overlay sizing
+                    overlaySize: { width: Math.floor(window.innerWidth * 0.5), height: 'auto' }
                 }
             },
             computed: {
@@ -610,45 +884,64 @@
             methods: {
                 async checkBalance(chain) {
                     const address = chain === 'L1' ? this.l1BalanceAddress.trim() : this.l2BalanceAddress.trim();
+                    const tokenAddress = chain === 'L1' ? this.l1TokenAddress.trim() : this.l2TokenAddress.trim();
                     if (!address) return;
 
                     // Reset previous results for the specific chain
                     if (chain === 'L1') {
                         this.l1Balance = null;
                         this.l1BalanceError = '';
+                        this.l1TokenSymbol = '';
                     } else {
                         this.l2Balance = null;
                         this.l2BalanceError = '';
+                        this.l2TokenSymbol = '';
                     }
                     this.checkingBalance = true;
 
                     try {
                         const endpoint = chain === 'L1' ? '/api/l1' : '/api/l2';
-                        const response = await fetch(endpoint, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                jsonrpc: '2.0',
-                                method: 'eth_getBalance',
-                                params: [address, 'latest'],
-                                id: Date.now()
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.error) {
-                            throw new Error(data.error.message || 'RPC Error');
-                        }
-
-                        // Convert wei to ether
-                        const weiBalance = BigInt(data.result);
-                        const etherBalance = Number(weiBalance) / Math.pow(10, 18);
-
-                        if (chain === 'L1') {
-                            this.l1Balance = etherBalance.toFixed(6);
+                        
+                        if (tokenAddress) {
+                            // ERC20 token balance
+                            const [balance, symbol] = await Promise.all([
+                                this.getERC20Balance(endpoint, tokenAddress, address),
+                                this.getERC20Symbol(endpoint, tokenAddress)
+                            ]);
+                            
+                            if (chain === 'L1') {
+                                this.l1Balance = balance;
+                                this.l1TokenSymbol = symbol;
+                            } else {
+                                this.l2Balance = balance;
+                                this.l2TokenSymbol = symbol;
+                            }
                         } else {
-                            this.l2Balance = etherBalance.toFixed(6);
+                            // Native token balance
+                            const response = await fetch(endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    jsonrpc: '2.0',
+                                    method: 'eth_getBalance',
+                                    params: [address, 'latest'],
+                                    id: Date.now()
+                                })
+                            });
+
+                            const data = await response.json();
+                            if (data.error) {
+                                throw new Error(data.error.message || 'RPC Error');
+                            }
+
+                            const weiBalance = BigInt(data.result);
+                            const etherBalance = Number(weiBalance) / Math.pow(10, 18);
+
+                            if (chain === 'L1') {
+                                this.l1Balance = etherBalance.toFixed(6);
+                            } else {
+                                this.l2Balance = etherBalance.toFixed(6);
+                            }
                         }
                     } catch (error) {
                         console.error(`Error checking ${chain} balance:`, error);
@@ -659,6 +952,107 @@
                         }
                     } finally {
                         this.checkingBalance = false;
+                    }
+                },
+
+                async getERC20Balance(endpoint, tokenAddress, holderAddress) {
+                    // balanceOf(address) function selector: 0x70a08231
+                    const data = '0x70a08231' + holderAddress.slice(2).padStart(64, '0');
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            method: 'eth_call',
+                            params: [{
+                                to: tokenAddress,
+                                data: data
+                            }, 'latest'],
+                            id: Date.now()
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) {
+                        throw new Error(result.error.message || 'RPC Error');
+                    }
+
+                    // Check if the result is valid (contract exists and returned data)
+                    if (!result.result || result.result === '0x') {
+                        throw new Error('Token contract not found or invalid');
+                    }
+
+                    const balance = BigInt(result.result);
+                    const decimals = await this.getERC20Decimals(endpoint, tokenAddress);
+                    return (Number(balance) / Math.pow(10, decimals)).toFixed(6);
+                },
+
+                async getERC20Symbol(endpoint, tokenAddress) {
+                    // symbol() function selector: 0x95d89b41
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            method: 'eth_call',
+                            params: [{
+                                to: tokenAddress,
+                                data: '0x95d89b41'
+                            }, 'latest'],
+                            id: Date.now()
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) {
+                        return 'TOKEN'; // fallback
+                    }
+
+                    try {
+                        // Decode string from ABI encoded result
+                        const hex = result.result;
+                        const offset = parseInt(hex.slice(2, 66), 16) * 2 + 2;
+                        const length = parseInt(hex.slice(offset, offset + 64), 16);
+                        const symbolHex = hex.slice(offset + 64, offset + 64 + length * 2);
+                        
+                        // Convert hex to string manually (browser compatible)
+                        let symbol = '';
+                        for (let i = 0; i < symbolHex.length; i += 2) {
+                            const byte = parseInt(symbolHex.substr(i, 2), 16);
+                            if (byte > 0) symbol += String.fromCharCode(byte);
+                        }
+                        return symbol || 'TOKEN';
+                    } catch {
+                        return 'TOKEN'; // fallback
+                    }
+                },
+
+                async getERC20Decimals(endpoint, tokenAddress) {
+                    // decimals() function selector: 0x313ce567
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            method: 'eth_call',
+                            params: [{
+                                to: tokenAddress,
+                                data: '0x313ce567'
+                            }, 'latest'],
+                            id: Date.now()
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.error) {
+                        return 18; // default fallback
+                    }
+
+                    try {
+                        return parseInt(result.result, 16);
+                    } catch {
+                        return 18; // default fallback
                     }
                 },
 
@@ -677,6 +1071,164 @@
                         document.body.removeChild(textArea);
                     }
                 },
+
+                pinCurrentAddress(chain) {
+                    const address = (chain === 'L1' ? this.l1BalanceAddress : this.l2BalanceAddress).trim();
+                    const tokenAddress = (chain === 'L1' ? this.l1TokenAddress : this.l2TokenAddress).trim();
+                    if (!address) return;
+
+                    const pinnedArray = chain === 'L1' ? this.l1PinnedAddresses : this.l2PinnedAddresses;
+
+                    // Check if this specific combination is already pinned
+                    if (pinnedArray.some(p => p.address.toLowerCase() === address.toLowerCase() && 
+                                            (p.tokenAddress || '') === tokenAddress)) {
+                        return;
+                    }
+
+                    // Add to pinned list
+                    const currentBalance = chain === 'L1' ? this.l1Balance : this.l2Balance;
+                    const tokenSymbol = chain === 'L1' ? this.l1TokenSymbol : this.l2TokenSymbol;
+                    const pinnedAddress = {
+                        address: address,
+                        tokenAddress: tokenAddress || null,
+                        tokenSymbol: tokenSymbol || (chain === 'L1' ? 'ETH' : 'CGT'),
+                        balance: currentBalance,
+                        lastChecked: Date.now()
+                    };
+
+                    if (chain === 'L1') {
+                        this.l1PinnedAddresses.push(pinnedAddress);
+                    } else {
+                        this.l2PinnedAddresses.push(pinnedAddress);
+                    }
+
+                    // Show pinned overlay
+                    this.showPinnedOverlay = true;
+                },
+
+                isAddressPinned(chain, address, tokenAddress = '') {
+                    if (!address) return false;
+                    const pinnedArray = chain === 'L1' ? this.l1PinnedAddresses : this.l2PinnedAddresses;
+                    return pinnedArray.some(p => p.address.toLowerCase() === address.toLowerCase() &&
+                                                (p.tokenAddress || '') === tokenAddress);
+                },
+
+                unpinAddress(chain, address, tokenAddress = null) {
+                    if (chain === 'L1') {
+                        this.l1PinnedAddresses = this.l1PinnedAddresses.filter(p => 
+                            !(p.address.toLowerCase() === address.toLowerCase() && 
+                              (p.tokenAddress || null) === tokenAddress));
+                    } else {
+                        this.l2PinnedAddresses = this.l2PinnedAddresses.filter(p => 
+                            !(p.address.toLowerCase() === address.toLowerCase() && 
+                              (p.tokenAddress || null) === tokenAddress));
+                    }
+                },
+
+                async checkPinnedBalance(chain, pinnedAddress) {
+                    try {
+                        const endpoint = chain === 'L1' ? '/api/l1' : '/api/l2';
+                        
+                        if (pinnedAddress.tokenAddress) {
+                            // ERC20 token balance
+                            const balance = await this.getERC20Balance(endpoint, pinnedAddress.tokenAddress, pinnedAddress.address);
+                            pinnedAddress.balance = balance;
+                        } else {
+                            // Native token balance
+                            const response = await fetch(endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    jsonrpc: '2.0',
+                                    method: 'eth_getBalance',
+                                    params: [pinnedAddress.address, 'latest'],
+                                    id: Date.now()
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (data.error) {
+                                console.error(`Error checking balance for ${pinnedAddress.address}:`, data.error);
+                                pinnedAddress.balance = 'Error';
+                                return;
+                            }
+
+                            const weiBalance = BigInt(data.result);
+                            const etherBalance = Number(weiBalance) / Math.pow(10, 18);
+                            pinnedAddress.balance = etherBalance.toFixed(6);
+                        }
+                        
+                        pinnedAddress.lastChecked = Date.now();
+                    } catch (error) {
+                        console.error(`Error checking balance for ${pinnedAddress.address}:`, error);
+                        pinnedAddress.balance = 'Error';
+                    }
+                },
+
+                async updatePinnedBalances() {
+                    // Update L1 pinned addresses
+                    for (const pinned of this.l1PinnedAddresses) {
+                        await this.checkPinnedBalance('L1', pinned);
+                    }
+
+                    // Update L2 pinned addresses
+                    for (const pinned of this.l2PinnedAddresses) {
+                        await this.checkPinnedBalance('L2', pinned);
+                    }
+                },
+
+                async updatePinnedBalancesForTransaction(tx, chain) {
+                    // Get all pinned addresses for the specific chain
+                    const pinnedAddresses = chain === 'L1' ? this.l1PinnedAddresses : this.l2PinnedAddresses;
+                    
+                    // Check if the transaction affects any pinned addresses
+                    const affectedAddresses = pinnedAddresses.filter(pinned => {
+                        const address = pinned.address.toLowerCase();
+                        return tx.from.toLowerCase() === address || 
+                               (tx.to && tx.to.toLowerCase() === address);
+                    });
+
+                    // Update balances only for affected addresses
+                    for (const pinnedAddress of affectedAddresses) {
+                        await this.checkPinnedBalance(chain, pinnedAddress);
+                    }
+                },
+
+
+
+                // Overlay drag methods
+                startOverlayDrag(event) {
+                    this.isDraggingOverlay = true;
+                    this.overlayDragOffset.x = event.clientX - this.overlayPosition.left;
+                    this.overlayDragOffset.y = event.clientY - this.overlayPosition.top;
+                    
+                    document.addEventListener('mousemove', this.dragOverlay);
+                    document.addEventListener('mouseup', this.endOverlayDrag);
+                    
+                    event.preventDefault();
+                },
+
+                dragOverlay(event) {
+                    if (!this.isDraggingOverlay) return;
+                    
+                    const newLeft = event.clientX - this.overlayDragOffset.x;
+                    const newTop = event.clientY - this.overlayDragOffset.y;
+                    
+                    // Keep overlay within viewport bounds
+                    const maxLeft = window.innerWidth - 250; // min overlay width
+                    const maxTop = window.innerHeight - 100; // approximate min overlay height
+                    
+                    this.overlayPosition.left = Math.max(0, Math.min(maxLeft, newLeft));
+                    this.overlayPosition.top = Math.max(0, Math.min(maxTop, newTop));
+                },
+
+                endOverlayDrag() {
+                    this.isDraggingOverlay = false;
+                    document.removeEventListener('mousemove', this.dragOverlay);
+                    document.removeEventListener('mouseup', this.endOverlayDrag);
+                },
+
 
                 scrollL1Up() {
                     if (this.l1ScrollIndex > 0) {
@@ -900,6 +1452,8 @@
                         '0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead': 'LegacyERC20ETH',
                         // Common test addresses
                         '0x5d284fe6d6aeb73857960a0d041cf394b1198392': 'TestAccount',
+                        // System addresses
+                        '0xe6fb5f4cc65d6bf7fd10c394caee2891bd4e964f': 'SequencerBatcher',
                         // Add more known addresses as needed
                     };
 
@@ -1001,8 +1555,6 @@
 
                                     // Filter out system transactions (skip first transaction which is usually block reward/system)
                                     const userTransactions = block.transactions.slice(1).filter(tx => {
-                                        // Skip transactions with no input data (simple transfers)
-                                        if (!tx.input || tx.input === '0x') return false;
                                         // Skip transactions with very low gas (likely system txs)
                                         if (parseInt(tx.gas, 16) < 21000) return false;
                                         // Skip transactions from system account ending in 9f2a
@@ -1026,6 +1578,8 @@
 
                                         txsWithReceipts.forEach(tx => {
                                             this.l1Transactions.unshift(tx);
+                                            // Update pinned balances for affected addresses
+                                            this.updatePinnedBalancesForTransaction(tx, 'L1');
                                         });
 
                                         // Reset scroll to top when new transactions arrive
@@ -1054,8 +1608,6 @@
 
                                     // Filter out system transactions (skip first transaction which is usually block reward/system)
                                     const userTransactions = block.transactions.slice(1).filter(tx => {
-                                        // Skip transactions with no input data (simple transfers)
-                                        if (!tx.input || tx.input === '0x') return false;
                                         // Skip transactions with very low gas (likely system txs)
                                         if (parseInt(tx.gas, 16) < 21000) return false;
                                         // Skip transactions from system account ending in 9f2a
@@ -1079,6 +1631,8 @@
 
                                         txsWithReceipts.forEach(tx => {
                                             this.l2Transactions.unshift(tx);
+                                            // Update pinned balances for affected addresses
+                                            this.updatePinnedBalancesForTransaction(tx, 'L2');
                                         });
 
                                         // Reset scroll to top when new transactions arrive
