@@ -109,3 +109,138 @@ contract L1Withdrawer_Receive_Test is CommonTest {
         assertEq(address(l1Withdrawer).balance, 0);
     }
 }
+
+/// @title L1Withdrawer_Setters_Test
+/// @notice Tests all setter functions and access control of L1Withdrawer.
+contract L1Withdrawer_Setters_Test is CommonTest {
+    address l1Withdrawer;
+    IL1Withdrawer l1WithdrawerInterface;
+
+    address recipient = makeAddr("recipient");
+    uint256 minWithdrawalAmount = 1 ether;
+    uint256 withdrawalGasLimit = 150_000;
+    bytes withdrawalData = hex"1234";
+
+    event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
+    event RecipientUpdated(address oldRecipient, address newRecipient);
+    event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
+    event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
+
+    function setUp() public override {
+        super.setUp();
+
+        l1Withdrawer = makeAddr("l1Withdrawer");
+        l1Withdrawer = DeployUtils.create1(
+            "L1Withdrawer.sol:L1Withdrawer",
+            DeployUtils.encodeConstructor(
+                abi.encodeCall(
+                    IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)
+                )
+            )
+        );
+        l1WithdrawerInterface = IL1Withdrawer(l1Withdrawer);
+    }
+
+    // setMinWithdrawalAmount tests
+    function testFuzz_setMinWithdrawalAmount_asOwner_succeeds(uint256 _newMinWithdrawalAmount) external {
+        address owner = proxyAdmin.owner();
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit MinWithdrawalAmountUpdated(minWithdrawalAmount, _newMinWithdrawalAmount);
+
+        vm.prank(owner);
+        l1WithdrawerInterface.setMinWithdrawalAmount(_newMinWithdrawalAmount);
+
+        assertEq(l1WithdrawerInterface.minWithdrawalAmount(), _newMinWithdrawalAmount);
+    }
+
+    function testFuzz_setMinWithdrawalAmount_asNonOwner_reverts(address _caller) external {
+        address owner = proxyAdmin.owner();
+        vm.assume(_caller != owner);
+
+        uint256 newMinWithdrawalAmount = 2 ether;
+
+        vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
+        vm.prank(_caller);
+        l1WithdrawerInterface.setMinWithdrawalAmount(newMinWithdrawalAmount);
+
+        assertEq(l1WithdrawerInterface.minWithdrawalAmount(), minWithdrawalAmount);
+    }
+
+    // setRecipient tests
+    function testFuzz_setRecipient_asOwner_succeeds(address _newRecipient) external {
+        address owner = proxyAdmin.owner();
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit RecipientUpdated(recipient, _newRecipient);
+
+        vm.prank(owner);
+        l1WithdrawerInterface.setRecipient(_newRecipient);
+
+        assertEq(l1WithdrawerInterface.recipient(), _newRecipient);
+    }
+
+    function testFuzz_setRecipient_asNonOwner_reverts(address _caller) external {
+        address owner = proxyAdmin.owner();
+        vm.assume(_caller != owner);
+
+        address newRecipient = makeAddr("newRecipient");
+
+        vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
+        vm.prank(_caller);
+        l1WithdrawerInterface.setRecipient(newRecipient);
+
+        assertEq(l1WithdrawerInterface.recipient(), recipient);
+    }
+
+    // setWithdrawalGasLimit tests
+    function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint256 _newWithdrawalGasLimit) external {
+        address owner = proxyAdmin.owner();
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit WithdrawalGasLimitUpdated(withdrawalGasLimit, _newWithdrawalGasLimit);
+
+        vm.prank(owner);
+        l1WithdrawerInterface.setWithdrawalGasLimit(_newWithdrawalGasLimit);
+
+        assertEq(l1WithdrawerInterface.withdrawalGasLimit(), _newWithdrawalGasLimit);
+    }
+
+    function testFuzz_setWithdrawalGasLimit_asNonOwner_reverts(address _caller) external {
+        address owner = proxyAdmin.owner();
+        vm.assume(_caller != owner);
+
+        uint256 newWithdrawalGasLimit = 200_000;
+
+        vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
+        vm.prank(_caller);
+        l1WithdrawerInterface.setWithdrawalGasLimit(newWithdrawalGasLimit);
+
+        assertEq(l1WithdrawerInterface.withdrawalGasLimit(), withdrawalGasLimit);
+    }
+
+    function testFuzz_setWithdrawalData_asOwner_succeeds(bytes memory _newWithdrawalData) external {
+        address owner = proxyAdmin.owner();
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit WithdrawalDataUpdated(withdrawalData, _newWithdrawalData);
+
+        vm.prank(owner);
+        l1WithdrawerInterface.setWithdrawalData(_newWithdrawalData);
+
+        assertEq(l1WithdrawerInterface.withdrawalData(), _newWithdrawalData);
+    }
+
+    function testFuzz_setWithdrawalData_asNonOwner_reverts(address _caller) external {
+        address owner = proxyAdmin.owner();
+        vm.assume(_caller != owner);
+
+        bytes memory newWithdrawalData = hex"5678";
+
+        vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
+        vm.prank(_caller);
+        l1WithdrawerInterface.setWithdrawalData(newWithdrawalData);
+
+        assertEq(l1WithdrawerInterface.withdrawalData(), withdrawalData);
+    }
+}
