@@ -578,13 +578,6 @@
                             :disabled="checkingBalance"
                         >
                     </div>
-                    <div v-if="l2Balance !== null" class="balance-result">
-                        <span>Balance: {{ l2Balance }} {{ l2TokenSymbol || 'CGT' }}</span>
-                        <button @click="pinCurrentAddress('L2')" class="pin-btn" v-if="!isAddressPinned('L2', l2BalanceAddress, l2TokenAddress)">
-                            📌 Pin
-                        </button>
-
-                    </div>
                     <div v-if="l2BalanceError" class="balance-result balance-error">
                         {{ l2BalanceError }}
                     </div>
@@ -685,13 +678,6 @@
                             placeholder="ERC20 token address (optional)"
                             :disabled="checkingBalance"
                         >
-                    </div>
-                    <div v-if="l1Balance !== null" class="balance-result">
-                        <span>Balance: {{ l1Balance }} {{ l1TokenSymbol || 'ETH' }}</span>
-                        <button @click="pinCurrentAddress('L1')" class="pin-btn" v-if="!isAddressPinned('L1', l1BalanceAddress, l1TokenAddress)">
-                            📌 Pin
-                        </button>
-
                     </div>
                     <div v-if="l1BalanceError" class="balance-result balance-error">
                         {{ l1BalanceError }}
@@ -916,6 +902,9 @@
                                 this.l2Balance = balance;
                                 this.l2TokenSymbol = symbol;
                             }
+                            
+                            // Auto-pin the address
+                            this.pinCurrentAddress(chain);
                         } else {
                             // Native token balance
                             const response = await fetch(endpoint, {
@@ -942,6 +931,9 @@
                             } else {
                                 this.l2Balance = etherBalance.toFixed(6);
                             }
+                            
+                            // Auto-pin the address
+                            this.pinCurrentAddress(chain);
                         }
                     } catch (error) {
                         console.error(`Error checking ${chain} balance:`, error);
