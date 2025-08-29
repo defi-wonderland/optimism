@@ -124,13 +124,16 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             l1FeeVaultRecipient: address(0x0000000000000000000000000000000000000007),
             l1FeeVaultMinimumWithdrawalAmount: 1,
             l1FeeVaultWithdrawalNetwork: 1,
-            governanceTokenOwner: address(0x0000000000000000000000000000000000000008),
+            operatorFeeVaultRecipient: address(0x0000000000000000000000000000000000000008),
+            operatorFeeVaultMinimumWithdrawalAmount: 1,
+            operatorFeeVaultWithdrawalNetwork: 1,
+            governanceTokenOwner: address(0x0000000000000000000000000000000000000009),
             fork: uint256(LATEST_FORK),
             deployCrossL2Inbox: true,
             enableGovernance: true,
             fundDevAccounts: true,
             feeSplitterFeeDisbursementInterval: 86400,
-            feeSplitterSharesCalculator: address(0x0000000000000000000000000000000000000009)
+            feeSplitterSharesCalculator: address(0x000000000000000000000000000000000000000A)
         });
         genesis.run(input);
 

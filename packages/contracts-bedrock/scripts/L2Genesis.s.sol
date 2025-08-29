@@ -57,6 +57,9 @@ contract L2Genesis is Script {
         address l1FeeVaultRecipient;
         uint256 l1FeeVaultMinimumWithdrawalAmount;
         uint256 l1FeeVaultWithdrawalNetwork;
+        address operatorFeeVaultRecipient;
+        uint256 operatorFeeVaultMinimumWithdrawalAmount;
+        uint256 operatorFeeVaultWithdrawalNetwork;
         address governanceTokenOwner;
         uint256 fork;
         bool deployCrossL2Inbox;
@@ -229,7 +232,7 @@ contract L2Genesis is Script {
         setProxyAdmin(_input); // 18
         setBaseFeeVault(_input); // 19
         setL1FeeVault(_input); // 1A
-        setOperatorFeeVault(); // 1B
+        setOperatorFeeVault(_input); // 1B
         // 1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
@@ -437,11 +440,20 @@ contract L2Genesis is Script {
     }
 
     /// @notice This predeploy is following the safety invariant #2.
-    function setOperatorFeeVault() internal {
+    function setOperatorFeeVault(Input memory _input) internal {
         IOperatorFeeVault vault = IOperatorFeeVault(
             DeployUtils.create1({
                 _name: "OperatorFeeVault",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IOperatorFeeVault.__constructor__, ()))
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(
+                        IOperatorFeeVault.__constructor__,
+                        (
+                            _input.operatorFeeVaultRecipient,
+                            _input.operatorFeeVaultMinimumWithdrawalAmount,
+                            Types.WithdrawalNetwork(_input.operatorFeeVaultWithdrawalNetwork)
+                        )
+                    )
+                )
             })
         );
 
