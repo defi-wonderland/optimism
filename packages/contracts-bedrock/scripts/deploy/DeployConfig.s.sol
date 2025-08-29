@@ -119,7 +119,7 @@ contract DeployConfig is Script {
         sequencerFeeVaultWithdrawalNetwork = stdJson.readUint(_json, "$.sequencerFeeVaultWithdrawalNetwork");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
         feeSplitterSharesCalculator = _readOr(_json, "$.feeSplitterSharesCalculator", address(0));
-        feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(86400));
+        feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(0));
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
         basefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBaseFeeScalar", 1368));
         blobbasefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBlobBaseFeeScalar", 810949));
