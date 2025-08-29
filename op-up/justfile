@@ -284,7 +284,7 @@ bridge-l1-to-l2:
 
     # Check L2 native balance of test user
     TEST_USER_L2_BALANCE=$(cast balance $TEST_USER --rpc-url $L2_RPC_URL)
-    echo "Test user L2 native balance: $(echo "scale=4; $TEST_USER_L2_BALANCE / 10^18" | bc) ETH"
+    echo "Test user L2 native balance: $(echo "scale=4; $TEST_USER_L2_BALANCE / 10^18" | bc) CGT"
 
 bridge-l2-to-l1:
     #!/usr/bin/env bash

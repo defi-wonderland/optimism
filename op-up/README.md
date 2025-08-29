@@ -18,11 +18,15 @@ Open a new tab and run the script to deploy bridges on both chains and deploy a 
 just deploy-bridges
 ```
 
+check false
+
 Then authorize the `L2CGTBridge` as a minter on L2 sending a deposit tx from L1:
 
 ```bash
 just auth-minter
 ```
+
+check true
 
 Finally, bridge the tokens from L1 to L2:
 

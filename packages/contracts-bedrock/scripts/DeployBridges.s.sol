@@ -46,9 +46,6 @@ contract DeployBridges is Script {
     address public l2CGTBridge;
     address public cgtToken;
 
-    // Test user address
-    address public testUser = makeAddr("testUser");
-
     function run() public {
         setUp();
         deployCGTToken();
@@ -70,7 +67,6 @@ contract DeployBridges is Script {
         console.log("=== Bridge Deployment Started ===");
         console.log("L1 Fork ID:", l1Fork);
         console.log("L2 Fork ID:", l2Fork);
-        console.log("Test user:", testUser);
         vm.selectFork(l2Fork);
         l2CrossDomainMessenger = IL2CrossDomainMessenger(payable(Predeploys.L2_CROSS_DOMAIN_MESSENGER));
         l1CrossDomainMessenger =
