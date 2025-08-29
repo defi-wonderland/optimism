@@ -224,7 +224,7 @@ contract L2Genesis is Script {
         setOptimismMintableERC20Factory(); // 12
         setL1BlockNumber(); // 13
         setL2ERC721Bridge(_input.l1ERC721BridgeProxy); // 14
-        setL1Block(_input.isCustomGasToken); // 15
+        setL1Block(); // 15
         setL2ToL1MessagePasser(); // 16
         setOptimismMintableERC721Factory(_input); // 17
         setProxyAdmin(_input); // 18
@@ -298,6 +298,12 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #2,
     function setSequencerFeeVault(Input memory _input) internal {
+        Types.WithdrawalNetwork withdrawalNetwork = Types.WithdrawalNetwork(_input.sequencerFeeVaultWithdrawalNetwork);
+
+        if (_input.isCustomGasToken && withdrawalNetwork == Types.WithdrawalNetwork.L1) {
+            revert("SequencerFeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        }
+
         ISequencerFeeVault vault = ISequencerFeeVault(
             DeployUtils.create1({
                 _name: "SequencerFeeVault",
@@ -307,7 +313,7 @@ contract L2Genesis is Script {
                         (
                             _input.sequencerFeeVaultRecipient,
                             _input.sequencerFeeVaultMinimumWithdrawalAmount,
-                            Types.WithdrawalNetwork(_input.sequencerFeeVaultWithdrawalNetwork)
+                            withdrawalNetwork
                         )
                     )
                 )
@@ -355,22 +361,8 @@ contract L2Genesis is Script {
     }
 
     /// @notice This predeploy is following the safety invariant #1.
-    function setL1Block(bool _isCustomGasToken) internal {
-        IL1Block l1Block = IL1Block(
-            DeployUtils.create1({
-                _name: "L1Block",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IL1Block.__constructor__, (_isCustomGasToken)))
-            })
-        );
-
-        // Note: L1 block attributes are set to 0.
-        // Before the first user-tx the state is overwritten with actual L1 attributes.
-        address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
-        vm.etch(impl, address(l1Block).code);
-
-        /// Reset so its not included state dump
-        vm.etch(address(l1Block), "");
-        vm.resetNonce(address(l1Block));
+    function setL1Block() internal {
+        _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
     }
 
     /// @notice This predeploy is following the safety invariant #1.
@@ -402,17 +394,19 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #2.
     function setBaseFeeVault(Input memory _input) internal {
+        Types.WithdrawalNetwork withdrawalNetwork = Types.WithdrawalNetwork(_input.baseFeeVaultWithdrawalNetwork);
+
+        if (_input.isCustomGasToken && withdrawalNetwork == Types.WithdrawalNetwork.L1) {
+            revert("BaseFeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        }
+
         IBaseFeeVault vault = IBaseFeeVault(
             DeployUtils.create1({
                 _name: "BaseFeeVault",
                 _args: DeployUtils.encodeConstructor(
                     abi.encodeCall(
                         IBaseFeeVault.__constructor__,
-                        (
-                            _input.baseFeeVaultRecipient,
-                            _input.baseFeeVaultMinimumWithdrawalAmount,
-                            Types.WithdrawalNetwork(_input.baseFeeVaultWithdrawalNetwork)
-                        )
+                        (_input.baseFeeVaultRecipient, _input.baseFeeVaultMinimumWithdrawalAmount, withdrawalNetwork)
                     )
                 )
             })
@@ -428,17 +422,19 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #2.
     function setL1FeeVault(Input memory _input) internal {
+        Types.WithdrawalNetwork withdrawalNetwork = Types.WithdrawalNetwork(_input.l1FeeVaultWithdrawalNetwork);
+
+        if (_input.isCustomGasToken && withdrawalNetwork == Types.WithdrawalNetwork.L1) {
+            revert("L1FeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        }
+
         IL1FeeVault vault = IL1FeeVault(
             DeployUtils.create1({
                 _name: "L1FeeVault",
                 _args: DeployUtils.encodeConstructor(
                     abi.encodeCall(
                         IL1FeeVault.__constructor__,
-                        (
-                            _input.l1FeeVaultRecipient,
-                            _input.l1FeeVaultMinimumWithdrawalAmount,
-                            Types.WithdrawalNetwork(_input.l1FeeVaultWithdrawalNetwork)
-                        )
+                        (_input.l1FeeVaultRecipient, _input.l1FeeVaultMinimumWithdrawalAmount, withdrawalNetwork)
                     )
                 )
             })
