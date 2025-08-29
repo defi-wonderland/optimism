@@ -49,6 +49,7 @@ const Formatters = {
     "0x2Def9f34f2b68B667Df303D23EDe392BD36Fb177": "Test account",
     // System addresses
     "0xe6fb5f4cc65d6bf7fd10c394caee2891bd4e964f": "SequencerBatcher",
+    "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001": "Depositor account",
   },
 
   // Function selectors

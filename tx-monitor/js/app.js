@@ -33,6 +33,9 @@ const TxMonitorApp = createApp({
             l1PinnedAddresses: [],
             l2PinnedAddresses: [],
             showPinnedOverlay: false,
+            // Hidden addresses
+            l1HiddenAddresses: [],
+            l2HiddenAddresses: [],
             // Overlay positioning
             overlayPosition: { top: 80, left: Math.max(50, window.innerWidth * 0.25) },
             isDraggingOverlay: false,
@@ -43,11 +46,27 @@ const TxMonitorApp = createApp({
     },
 
     computed: {
+        filteredL1Transactions() {
+            return this.l1Transactions.filter(tx => {
+                return !this.l1HiddenAddresses.some(hiddenAddr => 
+                    hiddenAddr.toLowerCase() === tx.from.toLowerCase() ||
+                    (tx.to && hiddenAddr.toLowerCase() === tx.to.toLowerCase())
+                );
+            });
+        },
+        filteredL2Transactions() {
+            return this.l2Transactions.filter(tx => {
+                return !this.l2HiddenAddresses.some(hiddenAddr => 
+                    hiddenAddr.toLowerCase() === tx.from.toLowerCase() ||
+                    (tx.to && hiddenAddr.toLowerCase() === tx.to.toLowerCase())
+                );
+            });
+        },
         visibleL1Transactions() {
-            return this.l1Transactions.slice(this.l1ScrollIndex, this.l1ScrollIndex + 3);
+            return this.filteredL1Transactions.slice(this.l1ScrollIndex, this.l1ScrollIndex + 3);
         },
         visibleL2Transactions() {
-            return this.l2Transactions.slice(this.l2ScrollIndex, this.l2ScrollIndex + 3);
+            return this.filteredL2Transactions.slice(this.l2ScrollIndex, this.l2ScrollIndex + 3);
         }
     },
 
@@ -302,6 +321,38 @@ const TxMonitorApp = createApp({
             document.removeEventListener('mouseup', this.endOverlayDrag);
         },
 
+        // Hidden addresses methods
+        hideAddress(address, chain) {
+            if (!address || !chain) return;
+            
+            const cleanAddress = address.trim().toLowerCase();
+            const hiddenArray = chain === 'L1' ? this.l1HiddenAddresses : this.l2HiddenAddresses;
+            
+            if (!hiddenArray.some(addr => addr.toLowerCase() === cleanAddress)) {
+                hiddenArray.push(address.trim());
+            }
+        },
+
+        unhideAddress(address, chain) {
+            if (chain === 'L1') {
+                this.l1HiddenAddresses = this.l1HiddenAddresses.filter(addr => 
+                    addr.toLowerCase() !== address.toLowerCase()
+                );
+            } else {
+                this.l2HiddenAddresses = this.l2HiddenAddresses.filter(addr => 
+                    addr.toLowerCase() !== address.toLowerCase()
+                );
+            }
+        },
+
+        isAddressHidden(address, chain) {
+            if (!address || !chain) return false;
+            const hiddenArray = chain === 'L1' ? this.l1HiddenAddresses : this.l2HiddenAddresses;
+            return hiddenArray.some(hiddenAddr => 
+                hiddenAddr.toLowerCase() === address.toLowerCase()
+            );
+        },
+
         // Scroll methods
         scrollL1Up() {
             if (this.l1ScrollIndex > 0) {
@@ -309,7 +360,7 @@ const TxMonitorApp = createApp({
             }
         },
         scrollL1Down() {
-            if (this.l1ScrollIndex < this.l1Transactions.length - 1) {
+            if (this.l1ScrollIndex < this.filteredL1Transactions.length - 1) {
                 this.l1ScrollIndex++;
             }
         },
@@ -319,7 +370,7 @@ const TxMonitorApp = createApp({
             }
         },
         scrollL2Down() {
-            if (this.l2ScrollIndex < this.l2Transactions.length - 1) {
+            if (this.l2ScrollIndex < this.filteredL2Transactions.length - 1) {
                 this.l2ScrollIndex++;
             }
         },
@@ -408,12 +459,8 @@ const TxMonitorApp = createApp({
                         if (block && block.transactions && block.transactions.length > 0) {
                             console.log(`L1 Block ${l1Block} has ${block.transactions.length} transactions`);
 
-                            // Filter out system transactions
-                            const userTransactions = block.transactions.slice(1).filter(tx => {
-                                if (parseInt(tx.gas, 16) < 21000) return false;
-                                if (tx.from && tx.from.toLowerCase().endsWith('9f2a')) return false;
-                                return true;
-                            });
+                            // Show ALL transactions - no filters
+                            const userTransactions = block.transactions;
 
                             if (userTransactions.length > 0) {
                                 console.log(`Adding ${userTransactions.length} user transactions from L1 block ${l1Block}`);
@@ -456,12 +503,8 @@ const TxMonitorApp = createApp({
                         if (block && block.transactions && block.transactions.length > 0) {
                             console.log(`L2 Block ${l2Block} has ${block.transactions.length} transactions`);
 
-                            // Filter out system transactions
-                            const userTransactions = block.transactions.slice(1).filter(tx => {
-                                if (parseInt(tx.gas, 16) < 21000) return false;
-                                if (tx.from && tx.from.toLowerCase().endsWith('9f2a')) return false;
-                                return true;
-                            });
+                            // Show ALL transactions - no filters
+                            const userTransactions = block.transactions;
 
                             if (userTransactions.length > 0) {
                                 console.log(`Adding ${userTransactions.length} user transactions from L2 block ${l2Block}`);

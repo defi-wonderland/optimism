@@ -269,3 +269,86 @@
     opacity: 0.7;
     animation: fadeInOut 2s infinite;
 }
+
+/* Address Filter */
+.address-filter {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 0;
+    backdrop-filter: blur(10px);
+}
+
+.filter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.filter-input-row {
+    display: flex;
+    gap: 6px;
+}
+
+.filter-input {
+    flex: 1;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: white;
+    font-size: 12px;
+}
+
+.filter-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.filter-btn {
+    padding: 6px 12px;
+    background: rgba(255, 100, 100, 0.8);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 100, 100, 1);
+}
+
+.hidden-addresses {
+    margin-top: 8px;
+}
+
+.hidden-address-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    margin: 2px 0;
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+}
+
+.unhide-btn {
+    background: rgba(255, 0, 0, 0.6);
+    border: none;
+    border-radius: 2px;
+    color: white;
+    cursor: pointer;
+    font-size: 9px;
+    padding: 2px 4px;
+    transition: background-color 0.3s;
+}
+
+.unhide-btn:hover {
+    background: rgba(255, 0, 0, 0.8);
+}

@@ -57,12 +57,13 @@
                     </div>
                 </div>
 
+
                 <div class="tx-container">
                     <div v-if="l2Transactions.length === 0" class="loading">Monitoring L2 transactions...</div>
-                    <div class="scroll-controls" v-if="l2Transactions.length > 1">
+                    <div class="scroll-controls" v-if="filteredL2Transactions.length > 1">
                         <button @click="scrollL2Up" :disabled="l2ScrollIndex === 0" class="scroll-btn">↑</button>
-                        <div class="scroll-indicator">{{ l2ScrollIndex + 1 }} / {{ l2Transactions.length }}</div>
-                        <button @click="scrollL2Down" :disabled="l2ScrollIndex >= l2Transactions.length - 1" class="scroll-btn">↓</button>
+                        <div class="scroll-indicator">{{ l2ScrollIndex + 1 }} / {{ filteredL2Transactions.length }}</div>
+                        <button @click="scrollL2Down" :disabled="l2ScrollIndex >= filteredL2Transactions.length - 1" class="scroll-btn">↓</button>
                     </div>
                     <div
                         v-for="(tx, index) in visibleL2Transactions"
@@ -78,6 +79,7 @@
                                 <div class="tx-field-value">
                                     {{ formatAddress(tx.from) }}
                                     <button @click="copyToClipboard(tx.from)" class="copy-btn" title="Copy address">📋</button>
+                                    <button @click="hideAddress(tx.from, 'L2')" class="copy-btn" style="background: rgba(255, 100, 100, 0.6);" title="Hide this address">🚫</button>
                                 </div>
                             </div>
                             <div class="tx-field">
@@ -85,6 +87,7 @@
                                 <div class="tx-field-value">
                                     <span>{{ tx.to ? formatAddress(tx.to) : 'Contract Creation' }}</span>
                                     <button v-if="tx.to" @click="copyToClipboard(tx.to)" class="copy-btn" title="Copy address">📋</button>
+                                    <button v-if="tx.to" @click="hideAddress(tx.to, 'L2')" class="copy-btn" style="background: rgba(255, 100, 100, 0.6);" title="Hide this address">🚫</button>
                                 </div>
                             </div>
                             <div class="tx-field">
@@ -157,12 +160,13 @@
                     </div>
                 </div>
 
+
                 <div class="tx-container">
                     <div v-if="l1Transactions.length === 0" class="loading">Monitoring L1 transactions...</div>
-                    <div class="scroll-controls" v-if="l1Transactions.length > 1">
+                    <div class="scroll-controls" v-if="filteredL1Transactions.length > 1">
                         <button @click="scrollL1Up" :disabled="l1ScrollIndex === 0" class="scroll-btn">↑</button>
-                        <div class="scroll-indicator">{{ l1ScrollIndex + 1 }} / {{ l1Transactions.length }}</div>
-                        <button @click="scrollL1Down" :disabled="l1ScrollIndex >= l1Transactions.length - 1" class="scroll-btn">↓</button>
+                        <div class="scroll-indicator">{{ l1ScrollIndex + 1 }} / {{ filteredL1Transactions.length }}</div>
+                        <button @click="scrollL1Down" :disabled="l1ScrollIndex >= filteredL1Transactions.length - 1" class="scroll-btn">↓</button>
                     </div>
                     <div
                         v-for="(tx, index) in visibleL1Transactions"
@@ -178,6 +182,7 @@
                                 <div class="tx-field-value">
                                     {{ formatAddress(tx.from) }}
                                     <button @click="copyToClipboard(tx.from)" class="copy-btn" title="Copy address">📋</button>
+                                    <button @click="hideAddress(tx.from, 'L1')" class="copy-btn" style="background: rgba(255, 100, 100, 0.6);" title="Hide this address">🚫</button>
                                 </div>
                             </div>
                             <div class="tx-field">
@@ -185,6 +190,7 @@
                                 <div class="tx-field-value">
                                     <span>{{ tx.to ? formatAddress(tx.to) : 'Contract Creation' }}</span>
                                     <button v-if="tx.to" @click="copyToClipboard(tx.to)" class="copy-btn" title="Copy address">📋</button>
+                                    <button v-if="tx.to" @click="hideAddress(tx.to, 'L1')" class="copy-btn" style="background: rgba(255, 100, 100, 0.6);" title="Hide this address">🚫</button>
                                 </div>
                             </div>
                             <div class="tx-field">
