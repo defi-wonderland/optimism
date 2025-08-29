@@ -59,9 +59,6 @@ contract FeeSplitter is ISemver, Initializable {
     bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT =
         0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
 
-    /// @notice Tracks the revenue received by each vault.
-    mapping(address => uint256) internal _revenuePerVault;
-
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
@@ -107,13 +104,7 @@ contract FeeSplitter is ISemver, Initializable {
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     /// @param _sharesCalculator            The share calculator contract.
     /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(
-        ISharesCalculator _sharesCalculator,
-        uint128 _feeDisbursementInterval
-    )
-        external
-        initializer
-    {
+    function initialize(ISharesCalculator _sharesCalculator, uint128 _feeDisbursementInterval) external initializer {
         sharesCalculator = _sharesCalculator;
         feeDisbursementInterval = _feeDisbursementInterval;
 
@@ -129,7 +120,6 @@ contract FeeSplitter is ISemver, Initializable {
         ) {
             revert FeeSplitter_SenderNotApprovedVault();
         }
-        _revenuePerVault[msg.sender] += msg.value;
         emit FeesReceived({ sender: msg.sender, amount: msg.value });
     }
 
@@ -141,29 +131,18 @@ contract FeeSplitter is ISemver, Initializable {
 
         // Pull fees into the contract
         _setTransientDisbursing(true);
-        _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
-        _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
-        _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
-        _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
+        uint256 _sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
+        uint256 _baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
+        uint256 _l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
+        uint256 _operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
         _setTransientDisbursing(false);
 
-        // Total revenue is the sum of all fees
-        uint256 _sequencerFees = _revenuePerVault[Predeploys.SEQUENCER_FEE_WALLET];
-        uint256 _baseFees = _revenuePerVault[Predeploys.BASE_FEE_VAULT];
-        uint256 _operatorFees = _revenuePerVault[Predeploys.OPERATOR_FEE_VAULT];
-        uint256 _l1Fees = _revenuePerVault[Predeploys.L1_FEE_VAULT];
-
         uint256 _grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
+
         // Revert if no fees were collected
         if (_grossRevenue == 0) {
             revert FeeSplitter_NoFeesCollected();
         }
-
-        // Reset individual fee revenue tracking
-        _revenuePerVault[Predeploys.SEQUENCER_FEE_WALLET] = 0;
-        _revenuePerVault[Predeploys.BASE_FEE_VAULT] = 0;
-        _revenuePerVault[Predeploys.OPERATOR_FEE_VAULT] = 0;
-        _revenuePerVault[Predeploys.L1_FEE_VAULT] = 0;
 
         // Update the last disbursement time
         lastDisbursementTime = uint128(block.timestamp);
@@ -225,7 +204,8 @@ contract FeeSplitter is ISemver, Initializable {
     /// @dev Withdrawal will only occur if the vault is properly configured and if the FeeVault's balance is greater
     /// than or equal to the minimum
     /// @param _feeVault The address of the FeeVault to withdraw from.
-    function _feeVaultWithdrawal(address payable _feeVault) internal {
+    /// @return value_ The amount of ETH that was withdrawn from the vault.
+    function _feeVaultWithdrawal(address payable _feeVault) internal returns (uint256 value_) {
         if (IFeeVault(_feeVault).withdrawalNetwork() != Types.WithdrawalNetwork.L2) {
             revert FeeSplitter_FeeVaultMustWithdrawToL2();
         }
@@ -233,7 +213,7 @@ contract FeeSplitter is ISemver, Initializable {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
         if (_feeVault.balance >= IFeeVault(_feeVault).minWithdrawalAmount()) {
-            IFeeVault(_feeVault).withdraw();
+            value_ = IFeeVault(_feeVault).withdraw();
         }
     }
 

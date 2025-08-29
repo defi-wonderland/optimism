@@ -10,7 +10,9 @@ interface IFeeVault {
     event Withdrawal(uint256 value, address to, address from, Types.WithdrawalNetwork withdrawalNetwork);
     event MinWithdrawalAmountUpdated(uint256 oldWithdrawalAmount, uint256 newWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
-    event WithdrawalNetworkUpdated(Types.WithdrawalNetwork oldWithdrawalNetwork, Types.WithdrawalNetwork newWithdrawalNetwork);
+    event WithdrawalNetworkUpdated(
+        Types.WithdrawalNetwork oldWithdrawalNetwork, Types.WithdrawalNetwork newWithdrawalNetwork
+    );
 
     receive() external payable;
 
@@ -20,7 +22,7 @@ interface IFeeVault {
     function minWithdrawalAmount() external view returns (uint256);
     function recipient() external view returns (address);
     function totalProcessed() external view returns (uint256);
-    function withdraw() external;
+    function withdraw() external returns (uint256 value_);
     function withdrawalNetwork() external view returns (Types.WithdrawalNetwork);
     function setMinWithdrawalAmount(uint256 _newMinWithdrawalAmount) external;
     function setRecipient(address _newRecipient) external;

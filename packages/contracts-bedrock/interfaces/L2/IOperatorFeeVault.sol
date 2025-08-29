@@ -15,11 +15,10 @@ interface IOperatorFeeVault {
     function minWithdrawalAmount() external view returns (uint256 amount_);
     function recipient() external view returns (address recipient_);
     function totalProcessed() external view returns (uint256);
-    function withdraw() external;
+    function withdraw() external returns (uint256 value_);
     function withdrawalNetwork() external view returns (Types.WithdrawalNetwork network_);
 
     function version() external view returns (string memory);
 
-    function __constructor__()
-        external;
+    function __constructor__() external;
 }
