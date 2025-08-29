@@ -199,3 +199,85 @@ auth-minter:
     # check if minter is authorized on L2 LiquidityController
     minter_authorized=$(cast call $LIQUIDITY_CONTROLLER "minters(address)(bool)" $minter_address --rpc-url $L2_RPC_URL)
     echo "Minter authorized: $minter_authorized"
+
+deploy-bridges:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    PRIVATE_KEY="0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+
+    echo "Deploying L1 and L2 CGT Bridges..."
+    cd ../packages/contracts-bedrock
+    forge script scripts/DeployBridges.s.sol --private-key $PRIVATE_KEY --broadcast
+
+bridge-l1-to-l2:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    PRIVATE_KEY="0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+    L1_RPC_URL="http://127.0.0.1:8544"
+    L2_RPC_URL="http://127.0.0.1:8545"
+
+    # Extract addresses from latest deployment
+    BROADCAST_FILE="../packages/contracts-bedrock/broadcast/multi/DeployBridges.s.sol-latest/run.json"
+
+    if [[ ! -f "$BROADCAST_FILE" ]]; then
+        echo "ERROR: Deployment file not found. Please run 'just deploy-bridges' first."
+        exit 1
+    fi
+
+    # Extract contract addresses from broadcast file
+    CGT_TOKEN=$(jq -r '.deployments[0].transactions[] | select(.contractName == "CGT") | .contractAddress' "$BROADCAST_FILE")
+    L1_BRIDGE=$(jq -r '.deployments[0].transactions[] | select(.contractName == "Proxy") | .contractAddress' "$BROADCAST_FILE" | head -1)
+
+    # Get sender address from private key
+    SENDER=$(cast wallet address --private-key $PRIVATE_KEY)
+
+    # Test user address (this should match the one from deployment script)
+    TEST_USER="0x3e2e813b872b8e1e6A2e57b4Fa4D3B3A8F4c2e1F"
+
+    echo "=== CGT Bridge L1 to L2 ==="
+    echo "CGT Token: $CGT_TOKEN"
+    echo "L1 Bridge: $L1_BRIDGE"
+    echo "Sender: $SENDER"
+    echo "Test User: $TEST_USER"
+
+    # Amount to bridge (1000 CGT = 1000 * 10^18)
+    BRIDGE_AMOUNT="1000000000000000000000"
+    GAS_LIMIT="1000000"
+
+    echo ""
+    echo "Step 1: Checking initial balances..."
+    SENDER_BALANCE=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $SENDER --rpc-url $L1_RPC_URL)
+    echo "Sender CGT balance: $(echo "scale=2; $SENDER_BALANCE / 10^18" | bc) CGT"
+
+    echo ""
+    echo "Step 2: Approving $BRIDGE_AMOUNT CGT to L1 Bridge..."
+    APPROVE_TX=$(cast send $CGT_TOKEN "approve(address,uint256)" $L1_BRIDGE $BRIDGE_AMOUNT --private-key $PRIVATE_KEY --rpc-url $L1_RPC_URL)
+    echo "Approve TX: $APPROVE_TX"
+
+    # Check allowance
+    ALLOWANCE=$(cast call $CGT_TOKEN "allowance(address,address)(uint256)" $SENDER $L1_BRIDGE --rpc-url $L1_RPC_URL)
+    echo "Allowance confirmed: $(echo "scale=2; $ALLOWANCE / 10^18" | bc) CGT"
+
+    echo ""
+    echo "Step 3: Bridging CGT from L1 to L2..."
+    BRIDGE_TX=$(cast send $L1_BRIDGE "bridgeCGT(address,uint256,uint32)" $TEST_USER $BRIDGE_AMOUNT $GAS_LIMIT --private-key $PRIVATE_KEY --rpc-url $L1_RPC_URL)
+    echo "Bridge TX: $BRIDGE_TX"
+
+    echo ""
+    echo "Step 4: Checking post-bridge balances..."
+    SENDER_BALANCE_AFTER=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $SENDER --rpc-url $L1_RPC_URL)
+    BRIDGE_BALANCE=$(cast call $CGT_TOKEN "balanceOf(address)(uint256)" $L1_BRIDGE --rpc-url $L1_RPC_URL)
+
+    echo "Sender CGT balance after: $(echo "scale=2; $SENDER_BALANCE_AFTER / 10^18" | bc) CGT"
+    echo "Bridge escrowed CGT: $(echo "scale=2; $BRIDGE_BALANCE / 10^18" | bc) CGT"
+
+    echo ""
+    echo "Step 5: Checking L2 native balance (after cross-domain message processing)..."
+    echo "Waiting for L2 message processing..."
+    sleep 20
+
+    # Check L2 native balance of test user
+    TEST_USER_L2_BALANCE=$(cast balance $TEST_USER --rpc-url $L2_RPC_URL)
+    echo "Test user L2 native balance: $(echo "scale=4; $TEST_USER_L2_BALANCE / 10^18" | bc) ETH"
