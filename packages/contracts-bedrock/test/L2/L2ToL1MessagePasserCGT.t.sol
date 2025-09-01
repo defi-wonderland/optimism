@@ -10,6 +10,7 @@ import { Hashing } from "src/libraries/Hashing.sol";
 
 // Interfaces
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
+import { IL1BlockCGT } from "interfaces/L2/IL1BlockCGT.sol";
 
 /// @title L2ToL1MessagePasserCGT_TestInit
 /// @notice Tests the `L2ToL1MessagePasser` contract with a custom gas token enabled.
@@ -22,7 +23,7 @@ contract L2ToL1MessagePasserCGT_TestInit is CommonTest {
         // Manually activate custom gas token since we removed the constructor parameter
         address depositor = l1Block.DEPOSITOR_ACCOUNT();
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }
 

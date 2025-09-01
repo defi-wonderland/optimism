@@ -12,6 +12,9 @@ import {
 // Libraries
 import "src/libraries/L1BlockErrors.sol";
 
+// Interfaces
+import { IL1BlockCGT } from "interfaces/L2/IL1BlockCGT.sol";
+
 /// @title L1BlockCGT_TestInit
 /// @notice Reusable test initialization for `L1Block` tests with custom gas token enabled.
 contract L1BlockCGT_TestInit is CommonTest {
@@ -25,7 +28,7 @@ contract L1BlockCGT_TestInit is CommonTest {
 
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }
 
@@ -71,7 +74,7 @@ contract L1Block_CGT_SetL1BlockValues_Test is L1Block_SetL1BlockValues_Test {
         super.setUp();
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }
 
@@ -86,7 +89,7 @@ contract L1Block_CGT_SetL1BlockValuesEcotone_Test is L1Block_SetL1BlockValuesEco
         super.setUp();
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }
 
@@ -101,7 +104,7 @@ contract L1Block_CGT_SetL1BlockValuesIsthmus_Test is L1Block_SetL1BlockValuesIst
         super.setUp();
         // Manually activate custom gas token since we removed the constructor parameter
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }
 
@@ -115,18 +118,18 @@ contract L1Block_CGT_SetCustomGasToken_Test is L1BlockCGT_TestInit {
 
         vm.expectRevert("L1Block: CustomGasToken already active");
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }
 
 /// @title L1Block_SetCustomGasToken_Test
-/// @notice Tests the `setCustomGasToken` function of the `L1Block` contract without CGT enabled.
+/// @notice Tests the `setCustomGasToken` function of the `L1Block` contract.
 contract L1Block_SetCustomGasToken_Test is CommonTest {
     address depositor;
 
     /// @notice Sets up the test suite.
     function setUp() public virtual override {
-        // Don't enable custom gas token - test the activation process
+        super.enableCustomGasToken();
         super.setUp();
         depositor = l1Block.DEPOSITOR_ACCOUNT();
     }
@@ -136,7 +139,7 @@ contract L1Block_SetCustomGasToken_Test is CommonTest {
         assertFalse(l1Block.isCustomGasToken());
 
         vm.prank(depositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
 
         assertTrue(l1Block.isCustomGasToken());
     }
@@ -146,6 +149,6 @@ contract L1Block_SetCustomGasToken_Test is CommonTest {
         vm.assume(nonDepositor != depositor);
         vm.expectRevert("L1Block: only the depositor account can set isCustomGasToken flag");
         vm.prank(nonDepositor);
-        l1Block.setCustomGasToken();
+        IL1BlockCGT(address(l1Block)).setCustomGasToken();
     }
 }

@@ -224,7 +224,7 @@ contract L2Genesis is Script {
         setOptimismMintableERC20Factory(); // 12
         setL1BlockNumber(); // 13
         setL2ERC721Bridge(_input.l1ERC721BridgeProxy); // 14
-        setL1Block(); // 15
+        setL1Block(_input.isCustomGasToken); // 15
         setL2ToL1MessagePasser(); // 16
         setOptimismMintableERC721Factory(_input); // 17
         setProxyAdmin(_input); // 18
@@ -361,8 +361,15 @@ contract L2Genesis is Script {
     }
 
     /// @notice This predeploy is following the safety invariant #1.
-    function setL1Block() internal {
-        _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
+    function setL1Block(bool _isCustomGasToken) internal {
+        address impl;
+        if (_isCustomGasToken) {
+            string memory cname = "L1BlockCGT";
+            impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
+            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
+        } else {
+            _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
+        }
     }
 
     /// @notice This predeploy is following the safety invariant #1.
