@@ -24,6 +24,10 @@ contract LiquidityController is ISemver, Initializable {
     /// @param minter The address that was authorized
     event MinterAuthorized(address indexed minter);
 
+    /// @notice Emitted when an address is deauthorized to mint/burn liquidity
+    /// @param minter The address that was deauthorized
+    event MinterDeauthorized(address indexed minter);
+
     /// @notice Emitted when liquidity is minted
     /// @param minter The address that minted the liquidity
     /// @param to The address that received the minted liquidity
@@ -66,6 +70,14 @@ contract LiquidityController is ISemver, Initializable {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
         minters[_minter] = true;
         emit MinterAuthorized(_minter);
+    }
+
+    /// @notice Deauthorizes an address from performing liquidity control operations
+    /// @param _minter The address to deauthorize as a minter
+    function deauthorizeMinter(address _minter) external {
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
+        minters[_minter] = false;
+        emit MinterDeauthorized(_minter);
     }
 
     /// @notice Mints native asset liquidity and sends it to a specified address
