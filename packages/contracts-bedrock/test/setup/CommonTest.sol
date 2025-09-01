@@ -72,6 +72,9 @@ contract CommonTest is Test, Setup, Events {
         }
         if (useCustomGasToken) {
             deploy.cfg().setIsCustomGasToken(true);
+            deploy.cfg().setBaseFeeVaultWithdrawalNetwork(1);
+            deploy.cfg().setL1FeeVaultWithdrawalNetwork(1);
+            deploy.cfg().setSequencerFeeVaultWithdrawalNetwork(1);
         }
 
         if (isForkTest()) {
