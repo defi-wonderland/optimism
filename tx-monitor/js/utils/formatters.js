@@ -190,6 +190,8 @@ const Formatters = {
     "0x3dbb202b": "sendMessage",
     "0xb1b1b209": "successfulMessages",
     "0x6e296e45": "xDomainMessageSender",
+    // ERC20
+    "0x095ea7b3": "approve",
   },
 
   getAddressName(address) {
