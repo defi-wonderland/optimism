@@ -9,7 +9,7 @@ import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 
 // Interfaces
-import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
+import { IL2ToL1MessagePasserCGT } from "interfaces/L2/IL2ToL1MessagePasserCGT.sol";
 import { IL1BlockCGT } from "interfaces/L2/IL1BlockCGT.sol";
 
 /// @title L2ToL1MessagePasserCGT_TestInit
@@ -76,7 +76,7 @@ contract L2ToL1MessagePasserCGT_InitiateWithdrawal_Test is L2ToL1MessagePasserCG
 
         // Expect revert with NotAllowedOnCGTMode
         vm.prank(_randomAddress);
-        vm.expectRevert(IL2ToL1MessagePasser.NotAllowedOnCGTMode.selector);
+        vm.expectRevert(IL2ToL1MessagePasserCGT.NotAllowedOnCGTMode.selector);
         l2ToL1MessagePasser.initiateWithdrawal{ value: _value }({ _target: address(0), _gasLimit: 1, _data: "" });
     }
 }
