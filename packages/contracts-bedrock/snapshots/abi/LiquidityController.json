@@ -25,6 +25,19 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_minter",
+        "type": "address"
+      }
+    ],
+    "name": "deauthorizeMinter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "gasPayingTokenName",
     "outputs": [
@@ -186,6 +199,19 @@
       }
     ],
     "name": "MinterAuthorized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "minter",
+        "type": "address"
+      }
+    ],
+    "name": "MinterDeauthorized",
     "type": "event"
   },
   {

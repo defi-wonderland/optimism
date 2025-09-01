@@ -9,10 +9,12 @@ interface ILiquidityController is ISemver {
     event Initialized(uint8 version);
 
     event MinterAuthorized(address indexed minter);
+    event MinterDeauthorized(address indexed minter);
     event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
     event LiquidityBurned(address indexed minter, uint256 amount);
 
     function authorizeMinter(address _minter) external;
+    function deauthorizeMinter(address _minter) external;
     function mint(address _to, uint256 _amount) external;
     function burn() external payable;
     function minters(address) external view returns (bool);

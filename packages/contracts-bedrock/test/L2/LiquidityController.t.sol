@@ -25,6 +25,9 @@ contract LiquidityController_TestInit is CommonTest {
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
 
+    /// @notice Emitted when an address is deauthorized to mint/burn liquidity
+    event MinterDeauthorized(address indexed minter);
+
     /// @notice Emitted when an address is authorized to mint/burn liquidity
     event MinterAuthorized(address indexed minter);
 
@@ -83,6 +86,46 @@ contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestIni
 
         // Assert minter is not authorized
         assertFalse(liquidityController.minters(_minter));
+    }
+}
+
+/// @title LiquidityController_DeauthorizeMinter_Test
+/// @notice Tests the `deauthorizeMinter` function of the `LiquidityController` contract.
+contract LiquidityController_DeauthorizeMinter_Test is LiquidityController_TestInit {
+    using stdStorage for StdStorage;
+
+    /// @notice Tests that the deauthorizeMinter function can be called by the owner.
+    function testFuzz_deauthorizeMinter_fromOwner_succeeds(address _minter) public {
+        // Set minter to authorized
+        stdstore.target(address(liquidityController)).sig(liquidityController.minters.selector).with_key(_minter)
+            .checked_write(true);
+
+        // Expect emit MinterDeauthorized event
+        vm.expectEmit(address(liquidityController));
+        emit MinterDeauthorized(_minter);
+        // Call the deauthorizeMinter function with owner as the caller
+        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+        liquidityController.deauthorizeMinter(_minter);
+
+        // Assert minter is deauthorized
+        assertFalse(liquidityController.minters(_minter));
+    }
+
+    /// @notice Tests that the deauthorizeMinter function reverts when called by non-owner.
+    function testFuzz_deauthorizeMinter_fromNonOwner_fails(address _caller, address _minter) public {
+        vm.assume(_caller != IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+
+        // Set minter to authorized
+        stdstore.target(address(liquidityController)).sig(liquidityController.minters.selector).with_key(_minter)
+            .checked_write(true);
+
+        // Call the deauthorizeMinter function with non-owner as the caller
+        vm.prank(_caller);
+        vm.expectRevert(Unauthorized.selector);
+        liquidityController.deauthorizeMinter(_minter);
+
+        // Assert minter is still authorized
+        assertTrue(liquidityController.minters(_minter));
     }
 }
 
