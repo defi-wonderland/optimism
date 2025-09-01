@@ -13,11 +13,17 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 contract OperatorFeeVault_Constructor_Test is CommonTest {
     /// @notice Tests that the constructor sets the correct values.
     function test_constructor_operatorFeeVault_succeeds() external view {
-        assertEq(operatorFeeVault.RECIPIENT(), Predeploys.BASE_FEE_VAULT);
-        assertEq(operatorFeeVault.recipient(), Predeploys.BASE_FEE_VAULT);
-        assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), 0);
-        assertEq(operatorFeeVault.minWithdrawalAmount(), 0);
-        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
-        assertEq(uint8(operatorFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
+        assertEq(operatorFeeVault.RECIPIENT(), deploy.cfg().operatorFeeVaultRecipient());
+        assertEq(operatorFeeVault.recipient(), deploy.cfg().operatorFeeVaultRecipient());
+        assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), deploy.cfg().operatorFeeVaultMinimumWithdrawalAmount());
+        assertEq(operatorFeeVault.minWithdrawalAmount(), deploy.cfg().operatorFeeVaultMinimumWithdrawalAmount());
+        assertEq(
+            uint8(operatorFeeVault.WITHDRAWAL_NETWORK()),
+            uint8(Types.WithdrawalNetwork(deploy.cfg().operatorFeeVaultWithdrawalNetwork()))
+        );
+        assertEq(
+            uint8(operatorFeeVault.withdrawalNetwork()),
+            uint8(Types.WithdrawalNetwork(deploy.cfg().operatorFeeVaultWithdrawalNetwork()))
+        );
     }
 }
