@@ -76,7 +76,7 @@ contract LiquidityController is ISemver, Initializable {
     /// @param _minter The address to deauthorize as a minter
     function deauthorizeMinter(address _minter) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert Unauthorized();
-        minters[_minter] = false;
+        delete minters[_minter];
         emit MinterDeauthorized(_minter);
     }
 
