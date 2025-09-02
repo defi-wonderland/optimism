@@ -32,7 +32,7 @@
     "inputs": [
       {
         "internalType": "contract ISharesCalculator",
-        "name": "_shareCalculator",
+        "name": "_sharesCalculator",
         "type": "address"
       },
       {
@@ -76,18 +76,18 @@
     "inputs": [
       {
         "internalType": "contract ISharesCalculator",
-        "name": "_newShareCalculator",
+        "name": "_newSharesCalculator",
         "type": "address"
       }
     ],
-    "name": "setShareCalculator",
+    "name": "setSharesCalculator",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "shareCalculator",
+    "name": "sharesCalculator",
     "outputs": [
       {
         "internalType": "contract ISharesCalculator",
@@ -199,7 +199,7 @@
       {
         "indexed": false,
         "internalType": "contract ISharesCalculator",
-        "name": "shareCalculator",
+        "name": "sharesCalculator",
         "type": "address"
       },
       {
@@ -218,17 +218,17 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "oldShareCalculator",
+        "name": "oldSharesCalculator",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "address",
-        "name": "newShareCalculator",
+        "name": "newSharesCalculator",
         "type": "address"
       }
     ],
-    "name": "ShareCalculatorUpdated",
+    "name": "SharesCalculatorUpdated",
     "type": "event"
   },
   {
@@ -278,12 +278,12 @@
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_ShareCalculatorCannotBeZero",
+    "name": "FeeSplitter_SharesCalculatorCannotBeZero",
     "type": "error"
   },
   {
     "inputs": [],
-    "name": "FeeSplitter_ShareCalculatorMalformedOutput",
+    "name": "FeeSplitter_SharesCalculatorMalformedOutput",
     "type": "error"
   }
 ]

@@ -6,7 +6,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
 import { Types } from "src/libraries/Types.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @title OperatorFeeVault_Constructor_Test
 /// @notice Tests the `constructor` of the `OperatorFeeVault` contract.

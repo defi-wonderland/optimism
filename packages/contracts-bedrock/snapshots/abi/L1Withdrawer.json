@@ -31,7 +31,7 @@
   },
   {
     "inputs": [],
-    "name": "MIN_WITHDRAWAL_AMOUNT",
+    "name": "minWithdrawalAmount",
     "outputs": [
       {
         "internalType": "uint256",
@@ -44,7 +44,7 @@
   },
   {
     "inputs": [],
-    "name": "RECIPIENT",
+    "name": "recipient",
     "outputs": [
       {
         "internalType": "address",
@@ -56,29 +56,55 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "WITHDRAWAL_DATA",
-    "outputs": [
-      {
-        "internalType": "bytes",
-        "name": "",
-        "type": "bytes"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "WITHDRAWAL_GAS_LIMIT",
-    "outputs": [
+    "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_newMinWithdrawalAmount",
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "name": "setMinWithdrawalAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_newRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "setRecipient",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "_newWithdrawalData",
+        "type": "bytes"
+      }
+    ],
+    "name": "setWithdrawalData",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_newWithdrawalGasLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "setWithdrawalGasLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -93,6 +119,108 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawalData",
+    "outputs": [
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawalGasLimit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldMinWithdrawalAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newMinWithdrawalAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "MinWithdrawalAmountUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "oldRecipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newRecipient",
+        "type": "address"
+      }
+    ],
+    "name": "RecipientUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "oldWithdrawalData",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "newWithdrawalData",
+        "type": "bytes"
+      }
+    ],
+    "name": "WithdrawalDataUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldWithdrawalGasLimit",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newWithdrawalGasLimit",
+        "type": "uint256"
+      }
+    ],
+    "name": "WithdrawalGasLimitUpdated",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -112,5 +240,10 @@
     ],
     "name": "WithdrawalInitiated",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "L1Withdrawer_OnlyProxyAdminOwner",
+    "type": "error"
   }
 ]

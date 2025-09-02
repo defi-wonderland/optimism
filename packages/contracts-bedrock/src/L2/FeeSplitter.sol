@@ -107,13 +107,7 @@ contract FeeSplitter is ISemver, Initializable {
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     /// @param _sharesCalculator            The share calculator contract.
     /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(
-        ISharesCalculator _sharesCalculator,
-        uint128 _feeDisbursementInterval
-    )
-        external
-        initializer
-    {
+    function initialize(ISharesCalculator _sharesCalculator, uint128 _feeDisbursementInterval) external initializer {
         sharesCalculator = _sharesCalculator;
         feeDisbursementInterval = _feeDisbursementInterval;
 

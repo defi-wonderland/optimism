@@ -22,7 +22,7 @@
   },
   {
     "bytes": "20",
-    "label": "shareCalculator",
+    "label": "sharesCalculator",
     "offset": 0,
     "slot": "2",
     "type": "contract ISharesCalculator"
