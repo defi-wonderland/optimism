@@ -58,8 +58,9 @@ contract L1Withdrawer_Test is CommonTest {
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             _sendAmount,
-            abi.encodeWithSelector(
-                IL2ToL1MessagePasser.initiateWithdrawal.selector, recipient, withdrawalGasLimit, withdrawalData
+            abi.encodeCall(
+                IL2ToL1MessagePasser.initiateWithdrawal,
+                (recipient, withdrawalGasLimit, withdrawalData)
             )
         );
         emit WithdrawalInitiated(_sendAmount, recipient);
@@ -94,8 +95,9 @@ contract L1Withdrawer_Test is CommonTest {
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             totalAmount,
-            abi.encodeWithSelector(
-                IL2ToL1MessagePasser.initiateWithdrawal.selector, recipient, withdrawalGasLimit, withdrawalData
+            abi.encodeCall(
+                IL2ToL1MessagePasser.initiateWithdrawal,
+                (recipient, withdrawalGasLimit, withdrawalData)
             )
         );
         emit WithdrawalInitiated(totalAmount, recipient);
