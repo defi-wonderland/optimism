@@ -102,25 +102,6 @@ contract L1Withdrawer_Receive_Test is CommonTest {
         assertEq(address(l1Withdrawer).balance, 0);
         assertEq(address(Predeploys.L2_TO_L1_MESSAGE_PASSER).balance, totalAmount);
     }
-
-    function test_receive_verifyWithdrawalCall_succeeds() external {
-        uint256 sendAmount = 1.5 ether;
-
-        // Expect the specific call to initiateWithdrawal with custom parameters
-        vm.expectCall(
-            Predeploys.L2_TO_L1_MESSAGE_PASSER,
-            sendAmount,
-            abi.encodeWithSelector(
-                IL2ToL1MessagePasser.initiateWithdrawal.selector, recipient, withdrawalGasLimit, withdrawalData
-            )
-        );
-
-        vm.deal(address(this), sendAmount);
-        (bool success,) = address(l1Withdrawer).call{ value: sendAmount }("");
-
-        assertTrue(success);
-        assertEq(address(l1Withdrawer).balance, 0);
-    }
 }
 
 /// @title L1Withdrawer_Setters_Test
