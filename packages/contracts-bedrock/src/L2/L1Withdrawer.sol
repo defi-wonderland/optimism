@@ -91,7 +91,6 @@ contract L1Withdrawer is ISemver {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert L1Withdrawer_OnlyProxyAdminOwner();
         }
-        // TODO: consider sanity checks to avoid DoS with very high minWithdrawalAmount
         uint256 oldMinWithdrawalAmount = minWithdrawalAmount;
         minWithdrawalAmount = _newMinWithdrawalAmount;
         emit MinWithdrawalAmountUpdated(oldMinWithdrawalAmount, _newMinWithdrawalAmount);
