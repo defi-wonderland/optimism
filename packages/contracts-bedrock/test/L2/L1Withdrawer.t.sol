@@ -7,10 +7,11 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 
-/// @title L1Withdrawer_Receive_Test
-/// @notice Tests the successful receive and withdrawal functionality of L1Withdrawer.
-contract L1Withdrawer_Receive_Test is CommonTest {
+/// @title L1Withdrawer_Test
+/// @notice Tests all functionality of L1Withdrawer including receive, withdrawal, and setters.
+contract L1Withdrawer_Test is CommonTest {
     address l1Withdrawer;
+    IL1Withdrawer l1WithdrawerInterface;
 
     address recipient = makeAddr("recipient");
     uint256 minWithdrawalAmount = 1 ether;
@@ -18,11 +19,14 @@ contract L1Withdrawer_Receive_Test is CommonTest {
     bytes withdrawalData = hex"1234";
 
     event WithdrawalInitiated(uint256 amount, address indexed recipient);
+    event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
+    event RecipientUpdated(address oldRecipient, address newRecipient);
+    event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
+    event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
 
     function setUp() public override {
         super.setUp();
 
-        // Deploy L1Withdrawer
         l1Withdrawer = DeployUtils.create1(
             "L1Withdrawer.sol:L1Withdrawer",
             DeployUtils.encodeConstructor(
@@ -31,6 +35,7 @@ contract L1Withdrawer_Receive_Test is CommonTest {
                 )
             )
         );
+        l1WithdrawerInterface = IL1Withdrawer(l1Withdrawer);
     }
 
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
@@ -102,39 +107,7 @@ contract L1Withdrawer_Receive_Test is CommonTest {
         assertEq(address(l1Withdrawer).balance, 0);
         assertEq(address(Predeploys.L2_TO_L1_MESSAGE_PASSER).balance, totalAmount);
     }
-}
 
-/// @title L1Withdrawer_Setters_Test
-/// @notice Tests all setter functions and access control of L1Withdrawer.
-contract L1Withdrawer_Setters_Test is CommonTest {
-    address l1Withdrawer;
-    IL1Withdrawer l1WithdrawerInterface;
-
-    address recipient = makeAddr("recipient");
-    uint256 minWithdrawalAmount = 1 ether;
-    uint256 withdrawalGasLimit = 150_000;
-    bytes withdrawalData = hex"1234";
-
-    event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
-    event RecipientUpdated(address oldRecipient, address newRecipient);
-    event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
-    event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
-
-    function setUp() public override {
-        super.setUp();
-
-        l1Withdrawer = DeployUtils.create1(
-            "L1Withdrawer.sol:L1Withdrawer",
-            DeployUtils.encodeConstructor(
-                abi.encodeCall(
-                    IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)
-                )
-            )
-        );
-        l1WithdrawerInterface = IL1Withdrawer(l1Withdrawer);
-    }
-
-    // setMinWithdrawalAmount tests
     function testFuzz_setMinWithdrawalAmount_asOwner_succeeds(uint256 _newMinWithdrawalAmount) external {
         address owner = proxyAdmin.owner();
 
@@ -160,7 +133,6 @@ contract L1Withdrawer_Setters_Test is CommonTest {
         assertEq(l1WithdrawerInterface.minWithdrawalAmount(), minWithdrawalAmount);
     }
 
-    // setRecipient tests
     function testFuzz_setRecipient_asOwner_succeeds(address _newRecipient) external {
         address owner = proxyAdmin.owner();
 
@@ -186,7 +158,6 @@ contract L1Withdrawer_Setters_Test is CommonTest {
         assertEq(l1WithdrawerInterface.recipient(), recipient);
     }
 
-    // setWithdrawalGasLimit tests
     function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint256 _newWithdrawalGasLimit) external {
         address owner = proxyAdmin.owner();
 
