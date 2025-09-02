@@ -34,7 +34,7 @@ contract L1Withdrawer_Receive_Test is CommonTest {
     }
 
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
-        _amount = bound(_amount, 1, minWithdrawalAmount - 1);
+        _amount = bound(_amount, 0, minWithdrawalAmount - 1);
 
         vm.deal(address(this), _amount);
         (bool success,) = address(l1Withdrawer).call{ value: _amount }("");
@@ -45,7 +45,7 @@ contract L1Withdrawer_Receive_Test is CommonTest {
     }
 
     function testFuzz_receive_atOrAboveThreshold_succeeds(uint256 _sendAmount) external {
-        _sendAmount = bound(_sendAmount, minWithdrawalAmount, type(uint128).max - 1);
+        _sendAmount = bound(_sendAmount, minWithdrawalAmount, type(uint256).max);
 
         vm.deal(address(this), _sendAmount);
 
@@ -61,10 +61,10 @@ contract L1Withdrawer_Receive_Test is CommonTest {
 
     function testFuzz_receive_multipleDeposits_succeeds(uint256 _firstAmount, uint256 _secondAmount) external {
         // First amount should not exceed minWithdrawalAmount (so it doesn't trigger withdrawal)
-        _firstAmount = bound(_firstAmount, 1, minWithdrawalAmount - 1);
+        _firstAmount = bound(_firstAmount, 0, minWithdrawalAmount - 1);
 
         // Second amount should ensure total reaches threshold to trigger withdrawal
-        _secondAmount = bound(_secondAmount, minWithdrawalAmount - _firstAmount, type(uint128).max - _firstAmount);
+        _secondAmount = bound(_secondAmount, minWithdrawalAmount - _firstAmount, type(uint256).max - _firstAmount);
 
         uint256 totalAmount = _firstAmount + _secondAmount;
 
