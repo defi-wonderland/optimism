@@ -79,7 +79,6 @@ func run() error {
 			sysgo.WithEmbeddedContractSources(),
 			sysgo.WithCommons(ids.L1.ChainID()),
 			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
-			sysgo.WithCustomGasToken(true, "Custom Gas Token", "CGT"),
 		),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 
@@ -131,8 +130,7 @@ func runSysgo() error {
 
 	fmt.Printf("Test Account Address: %s\n", funderAddress)
 	fmt.Printf("Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
-	fmt.Printf("L1 RPC URL: %s\n", "http://localhost:8544")
-	fmt.Printf("L2 RPC URL: %s\n", "http://localhost:8545")
+	fmt.Printf("EL Node URL: %s\n", "http://localhost:8545")
 
 	orch := presets.Orchestrator()
 	t := &testingT{
