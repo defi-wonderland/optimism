@@ -159,9 +159,10 @@ contract SequencerFeeVault_Withdraw_Test is SequencerFeeVault_TestInit {
         // The entire vault's balance is withdrawn
         vm.expectCall(recipient, address(sequencerFeeVault).balance, bytes(""));
 
-        sequencerFeeVault.withdraw();
+        uint256 withdrawnAmount = sequencerFeeVault.withdraw();
 
         // The withdrawal was successful
+        assertEq(withdrawnAmount, amount);
         assertEq(sequencerFeeVault.totalProcessed(), amount);
         assertEq(address(sequencerFeeVault).balance, 0);
         assertEq(recipient.balance, amount);

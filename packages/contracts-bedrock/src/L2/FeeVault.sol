@@ -166,23 +166,24 @@ abstract contract FeeVault {
     }
 
     /// @notice Triggers a withdrawal of funds to the fee wallet on L1 or L2.
-    function withdraw() external {
+    /// @return value_ The amount of ETH that was withdrawn.
+    function withdraw() external returns (uint256 value_) {
         require(
             address(this).balance >= minWithdrawalAmount(),
             "FeeVault: withdrawal amount must be greater than minimum withdrawal amount"
         );
 
-        uint256 value = address(this).balance;
-        totalProcessed += value;
+        value_ = address(this).balance;
+        totalProcessed += value_;
 
-        emit Withdrawal(value, recipient(), msg.sender);
-        emit Withdrawal(value, recipient(), msg.sender, withdrawalNetwork());
+        emit Withdrawal(value_, recipient(), msg.sender);
+        emit Withdrawal(value_, recipient(), msg.sender, withdrawalNetwork());
 
         if (withdrawalNetwork() == Types.WithdrawalNetwork.L2) {
-            bool success = SafeCall.send(recipient(), value);
+            bool success = SafeCall.send(recipient(), value_);
             require(success, "FeeVault: failed to send ETH to L2 fee recipient");
         } else {
-            IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: value }({
+            IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: value_ }({
                 _target: recipient(),
                 _gasLimit: WITHDRAWAL_MIN_GAS,
                 _data: hex""

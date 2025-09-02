@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
+import { LegacyFeeSplitter } from "test/mocks/LegacyFeeSplitter.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -50,8 +51,20 @@ contract FeeSplitter_TestInit is CommonTest {
 
     /// @notice Helper to mock fee vault calls for successful withdrawal scenarios
     function _mockFeeVaultForSuccessfulWithdrawal(address _vault, uint256 _balance) internal {
+        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(address(feeSplitter), _vault, _balance);
+    }
+
+    /// @notice Helper to mock fee vault calls for successful withdrawal scenarios with a splitter different from the
+    /// Predeploy FeeSplitter
+    function _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
+        address _splitter,
+        address _vault,
+        uint256 _balance
+    )
+        internal
+    {
         // Deploy a simple mock vault that can transfer ETH when withdraw() is called
-        MockFeeVault mockVault = new MockFeeVault(payable(address(feeSplitter)), 1 ether, Types.WithdrawalNetwork.L2);
+        MockFeeVault mockVault = new MockFeeVault(payable(address(_splitter)), 1 ether, Types.WithdrawalNetwork.L2);
         vm.deal(address(mockVault), _balance);
         vm.etch(_vault, address(mockVault).code);
         vm.deal(_vault, _balance);
@@ -283,7 +296,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     function test_feeSplitterDisburseFees_WhenIntervalNotReached_Reverts() public {
         vm.prank(_owner);
         feeSplitter.setFeeDisbursementInterval(48 hours);
-        
+
         vm.expectRevert(IFeeSplitter.FeeSplitter_DisbursementIntervalNotReached.selector);
         feeSplitter.disburseFees();
     }
@@ -447,6 +460,69 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
     }
 }
 
+contract LegacyFeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
+    LegacyFeeSplitter public legacyFeeSplitter;
+
+    function setUp() public override {
+        super.setUp();
+
+        legacyFeeSplitter = new LegacyFeeSplitter();
+
+        // Setup the legacy splitter as the recipient in the vaults
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+
+        vm.startPrank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(address(legacyFeeSplitter));
+        IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).setRecipient(address(legacyFeeSplitter));
+        IFeeVault(payable(Predeploys.L1_FEE_VAULT)).setRecipient(address(legacyFeeSplitter));
+        IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).setRecipient(address(legacyFeeSplitter));
+        vm.stopPrank();
+    }
+
+    function test_legacyFeeSplitterDisburseFees_succeeds(
+        uint256 _sequencerBalance,
+        uint256 _baseBalance,
+        uint256 _l1Balance,
+        uint256 _operatorBalance
+    )
+        public
+    {
+        _sequencerBalance = bound(
+            _sequencerBalance,
+            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount(),
+            type(uint128).max
+        );
+
+        _baseBalance =
+            bound(_baseBalance, IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount(), type(uint128).max);
+
+        _l1Balance =
+            bound(_l1Balance, IFeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount(), type(uint128).max);
+
+        _operatorBalance = bound(
+            _operatorBalance, IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount(), type(uint128).max
+        );
+
+        // Setup mock fee vaults
+        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
+            address(legacyFeeSplitter), Predeploys.SEQUENCER_FEE_WALLET, uint256(_sequencerBalance)
+        );
+        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
+            address(legacyFeeSplitter), Predeploys.BASE_FEE_VAULT, uint256(_baseBalance)
+        );
+        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
+            address(legacyFeeSplitter), Predeploys.L1_FEE_VAULT, uint256(_l1Balance)
+        );
+        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
+            address(legacyFeeSplitter), Predeploys.OPERATOR_FEE_VAULT, uint256(_operatorBalance)
+        );
+
+        assertEq(address(legacyFeeSplitter).balance, 0);
+        legacyFeeSplitter.disburseFees();
+        assertEq(address(legacyFeeSplitter).balance, _sequencerBalance + _baseBalance + _l1Balance + _operatorBalance);
+    }
+}
+
 /// @notice Simple mock FeeVault for testing that actually transfers ETH
 contract MockFeeVault {
     uint256 public immutable MIN_WITHDRAWAL_AMOUNT;
@@ -476,7 +552,7 @@ contract MockFeeVault {
         return RECIPIENT;
     }
 
-    function withdraw() external {
+    function withdraw() external returns (uint256) {
         require(
             address(this).balance >= MIN_WITHDRAWAL_AMOUNT,
             "FeeVault: withdrawal amount must be greater than minimum withdrawal amount"
@@ -491,5 +567,7 @@ contract MockFeeVault {
             (bool success,) = RECIPIENT.call{ value: value }("");
             require(success, "FeeVault: failed to send ETH to L2 fee recipient");
         }
+
+        return value;
     }
 }
