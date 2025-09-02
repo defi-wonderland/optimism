@@ -154,7 +154,7 @@ func (c *Intent) validateStandardValues() error {
 		if len(chain.AdditionalDisputeGames) > 0 {
 			return fmt.Errorf("%w: chainId=%s additionalDisputeGames must be nil", ErrNonStandardValue, chain.ID)
 		}
-		if chain.CustomGasToken != nil && chain.CustomGasToken.Enabled {
+		if chain.CustomGasToken != nil && (chain.CustomGasToken.Enabled != standard.CustomGasTokenEnabled) {
 			return fmt.Errorf("%w: chainId=%s custom gas token not allowed in standard configuration", ErrNonStandardValue, chain.ID)
 		}
 	}
@@ -298,9 +298,9 @@ func NewIntentCustom(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, error)
 		intent.Chains = append(intent.Chains, &ChainIntent{
 			ID: l2ChainID,
 			CustomGasToken: &CustomGasToken{
-				Enabled: false,
-				Name:    "",
-				Symbol:  "",
+				Enabled: standard.CustomGasTokenEnabled,
+				Name:    standard.CustomGasTokenName,
+				Symbol:  standard.CustomGasTokenSymbol,
 			},
 		})
 	}
@@ -346,9 +346,9 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 				L2ProxyAdminOwner: l2ProxyAdminOwner,
 			},
 			CustomGasToken: &CustomGasToken{
-				Enabled: false,
-				Name:    "",
-				Symbol:  "",
+				Enabled: standard.CustomGasTokenEnabled,
+				Name:    standard.CustomGasTokenName,
+				Symbol:  standard.CustomGasTokenSymbol,
 			},
 		})
 	}

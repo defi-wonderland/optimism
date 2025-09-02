@@ -142,6 +142,10 @@ func TestValidateCustomValues(t *testing.T) {
 	err = intent.Check()
 	require.NoError(t, err)
 
+	setCustomGasToken(&intent)
+	err = intent.Check()
+	require.NoError(t, err)
+
 	tests := []struct {
 		name    string
 		mutator func(intent *Intent)
@@ -243,4 +247,12 @@ func setFeeAddresses(intent *Intent) {
 	intent.Chains[0].BaseFeeVaultRecipient = common.HexToAddress("0x08")
 	intent.Chains[0].L1FeeVaultRecipient = common.HexToAddress("0x09")
 	intent.Chains[0].SequencerFeeVaultRecipient = common.HexToAddress("0x0A")
+}
+
+func setCustomGasToken(intent *Intent) {
+	intent.Chains[0].CustomGasToken = &CustomGasToken{
+		Enabled: true,
+		Name:    "Custom Gas Token",
+		Symbol:  "CGT",
+	}
 }
