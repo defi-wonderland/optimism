@@ -285,7 +285,6 @@ var _ ConfigChecker = (*GasTokenDeployConfig)(nil)
 
 func (d *GasTokenDeployConfig) Check(log log.Logger) error {
 	if d.IsCustomGasToken {
-		log.Info("Using custom gas token")
 		if d.GasPayingTokenName == "" {
 			return fmt.Errorf("%w: GasPayingTokenName cannot be empty", ErrInvalidDeployConfig)
 		}
