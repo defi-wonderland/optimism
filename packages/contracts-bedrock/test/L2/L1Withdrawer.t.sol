@@ -50,6 +50,13 @@ contract L1Withdrawer_Receive_Test is CommonTest {
         vm.deal(address(this), _sendAmount);
 
         vm.expectEmit(address(l1Withdrawer));
+        vm.expectCall(
+            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            _sendAmount,
+            abi.encodeWithSelector(
+                IL2ToL1MessagePasser.initiateWithdrawal.selector, recipient, withdrawalGasLimit, withdrawalData
+            )
+        );
         emit WithdrawalInitiated(_sendAmount, recipient);
 
         (bool success,) = address(l1Withdrawer).call{ value: _sendAmount }("");
@@ -79,6 +86,13 @@ contract L1Withdrawer_Receive_Test is CommonTest {
         vm.deal(address(this), _secondAmount);
 
         vm.expectEmit(address(l1Withdrawer));
+        vm.expectCall(
+            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            totalAmount,
+            abi.encodeWithSelector(
+                IL2ToL1MessagePasser.initiateWithdrawal.selector, recipient, withdrawalGasLimit, withdrawalData
+            )
+        );
         emit WithdrawalInitiated(totalAmount, recipient);
 
         (bool success2,) = address(l1Withdrawer).call{ value: _secondAmount }("");
