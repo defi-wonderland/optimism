@@ -97,9 +97,9 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		DeployCrossL2Inbox:                       len(intent.Chains) > 1,
 		EnableGovernance:                         overrides.EnableGovernance,
 		FundDevAccounts:                          overrides.FundDevAccounts,
-		IsCustomGasToken:                         overrides.IsCustomGasToken,
-		GasPayingTokenName:                       overrides.GasPayingTokenName,
-		GasPayingTokenSymbol:                     overrides.GasPayingTokenSymbol,
+		IsCustomGasToken:                         thisIntent.CustomGasToken.Enabled,
+		GasPayingTokenName:                       thisIntent.CustomGasToken.Name,
+		GasPayingTokenSymbol:                     thisIntent.CustomGasToken.Symbol,
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}
@@ -124,13 +124,6 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 	overrides := defaultOverrides()
 	// Special case for FundDevAccounts since it's both an intent value and an override.
 	overrides.FundDevAccounts = intent.FundDevAccounts
-	
-	// Configure custom gas token from intent
-	if thisIntent.CustomGasToken != nil {
-		overrides.IsCustomGasToken = thisIntent.CustomGasToken.Enabled
-		overrides.GasPayingTokenName = thisIntent.CustomGasToken.Name
-		overrides.GasPayingTokenSymbol = thisIntent.CustomGasToken.Symbol
-	}
 
 	var err error
 	if len(intent.GlobalDeployOverrides) > 0 {
