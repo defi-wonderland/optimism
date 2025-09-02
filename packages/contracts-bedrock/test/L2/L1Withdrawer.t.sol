@@ -22,8 +22,7 @@ contract L1Withdrawer_Receive_Test is CommonTest {
     function setUp() public override {
         super.setUp();
 
-        // Deploy L1Withdrawer using vm.etch with constructor parameters
-        l1Withdrawer = makeAddr("l1Withdrawer");
+        // Deploy L1Withdrawer
         l1Withdrawer = DeployUtils.create1(
             "L1Withdrawer.sol:L1Withdrawer",
             DeployUtils.encodeConstructor(
@@ -129,7 +128,6 @@ contract L1Withdrawer_Setters_Test is CommonTest {
     function setUp() public override {
         super.setUp();
 
-        l1Withdrawer = makeAddr("l1Withdrawer");
         l1Withdrawer = DeployUtils.create1(
             "L1Withdrawer.sol:L1Withdrawer",
             DeployUtils.encodeConstructor(
