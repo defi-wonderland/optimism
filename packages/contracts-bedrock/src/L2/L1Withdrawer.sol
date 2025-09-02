@@ -14,6 +14,10 @@ contract L1Withdrawer is ISemver {
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error L1Withdrawer_OnlyProxyAdminOwner();
 
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0
+    string public constant version = "1.0.0";
+
     /// @notice The minimum amount of ETH that must be accumulated before a withdrawal is initiated.
     uint256 public minWithdrawalAmount;
 
@@ -50,10 +54,6 @@ contract L1Withdrawer is ISemver {
     /// @param oldWithdrawalData The previous withdrawal data.
     /// @param newWithdrawalData The new withdrawal data.
     event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
-
-    /// @notice Semantic version.
-    /// @custom:semver 1.0.0
-    string public constant version = "1.0.0";
 
     /// @notice Constructs the L1Withdrawer contract.
     /// @param _minWithdrawalAmount The minimum amount of ETH required to trigger a withdrawal.
