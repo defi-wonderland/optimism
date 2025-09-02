@@ -105,16 +105,6 @@ contract DeployOPChainInput_Test is Test {
         vm.expectRevert(expectedErr);
         doi.l2ChainId();
     }
-
-    function test_isCustomGasToken_whenTrue_succeeds() public {
-        doi.set(doi.isCustomGasToken.selector, true);
-        assertEq(true, doi.isCustomGasToken(), "CGT-100");
-    }
-
-    function test_isCustomGasToken_whenFalse_succeeds() public {
-        doi.set(doi.isCustomGasToken.selector, false);
-        assertEq(false, doi.isCustomGasToken(), "CGT-200");
-    }
 }
 
 contract DeployOPChainOutput_Test is Test {
@@ -340,6 +330,7 @@ contract DeployOPChain_TestBase is Test {
     IOPContractsManager opcm = IOPContractsManager(address(0));
     string saltMixer = "defaultSaltMixer";
     uint64 gasLimit = 60_000_000;
+    bool isCustomGasToken = false;
     // Configurable dispute game parameters.
     uint32 disputeGameType = GameType.unwrap(GameTypes.PERMISSIONED_CANNON);
     bytes32 disputeAbsolutePrestate = hex"038512e02c4c3f7bdaec27d00edf55b7155e0905301e1a88083e4e0a6764d54c";
@@ -412,6 +403,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         basefeeScalar = uint32(uint256(hash(_seed, 6)));
         blobBaseFeeScalar = uint32(uint256(hash(_seed, 7)));
         l2ChainId = uint256(hash(_seed, 8));
+        isCustomGasToken = bool(uint256(hash(_seed, 9)) % 2 == 0);
 
         doi.set(doi.opChainProxyAdminOwner.selector, opChainProxyAdminOwner);
         doi.set(doi.systemConfigOwner.selector, systemConfigOwner);
@@ -431,6 +423,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.disputeSplitDepth.selector, disputeSplitDepth);
         doi.set(doi.disputeClockExtension.selector, disputeClockExtension);
         doi.set(doi.disputeMaxClockDuration.selector, disputeMaxClockDuration);
+        doi.set(doi.isCustomGasToken.selector, isCustomGasToken);
 
         deployOPChain.run(doi, doo);
 
@@ -454,6 +447,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(disputeSplitDepth, doi.disputeSplitDepth(), "1500");
         assertEq(disputeClockExtension, Duration.unwrap(doi.disputeClockExtension()), "1600");
         assertEq(disputeMaxClockDuration, Duration.unwrap(doi.disputeMaxClockDuration()), "1700");
+        assertEq(isCustomGasToken, doi.isCustomGasToken(), "1800");
 
         // Assert inputs were properly passed through to the contract initializers.
         assertEq(address(doo.opChainProxyAdmin().owner()), opChainProxyAdminOwner, "2100");
