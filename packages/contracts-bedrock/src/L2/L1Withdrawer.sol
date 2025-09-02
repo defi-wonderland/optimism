@@ -77,11 +77,11 @@ contract L1Withdrawer is ISemver {
         uint256 balance = address(this).balance;
 
         if (balance >= minWithdrawalAmount) {
-            emit WithdrawalInitiated(balance, recipient);
-
             IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: balance }(
                 recipient, withdrawalGasLimit, withdrawalData
             );
+
+            emit WithdrawalInitiated(balance, recipient);
         }
     }
 
