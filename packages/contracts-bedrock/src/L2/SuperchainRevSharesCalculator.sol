@@ -27,6 +27,9 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error SharesCalculator_OnlyProxyAdminOwner();
 
+    /// @notice Thrown when the gross share is zero.
+    error SharesCalculator_ZeroGrossShare();
+
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
@@ -79,7 +82,12 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
         uint256 grossRevenue = _sequencerFeeRevenue + _baseFeeRevenue + _operatorFeeRevenue + _l1FeeRevenue;
         uint256 grossShare = (grossRevenue * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE;
 
-        // Net component: 15% of (total - L1 fees), floored at zero.
+        // Ensure gross share is greater than zero
+        if (grossShare == 0) {
+            revert SharesCalculator_ZeroGrossShare();
+        }
+
+        // Net component: 15% of (total - L1 fees).
         uint256 netRevenue = grossRevenue - _l1FeeRevenue;
         uint256 netShare = (netRevenue * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;
 
