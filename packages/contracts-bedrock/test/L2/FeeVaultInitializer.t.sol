@@ -87,31 +87,31 @@ contract FeeVaultInitializer_Test is CommonTest {
         _testNewImplementations(predictedInitializerAddress);
     }
     
-    function _testEventEmissions(address predictedInitializerAddress) internal {
-        address predictedBaseFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 1);
-        address predictedSequencerFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 2);
-        address predictedL1FeeVault = vm.computeCreateAddress(predictedInitializerAddress, 3);
-        address predictedOperatorFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 4);
+    function _testEventEmissions(address _predictedInitializerAddress) internal {
+        address predictedBaseFeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 1);
+        address predictedSequencerFeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 2);
+        address predictedL1FeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 3);
+        address predictedOperatorFeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 4);
 
         // Expect the FeeVaultDeployed events from the FeeVaultInitializer contract using the original values
-        vm.expectEmit(predictedInitializerAddress);
+        vm.expectEmit(_predictedInitializerAddress);
         emit FeeVaultDeployed("BaseFeeVault", predictedBaseFeeVault, originalBaseRecipient, originalBaseNetwork, originalBaseMinWithdrawal);
 
-        vm.expectEmit(predictedInitializerAddress);
+        vm.expectEmit(_predictedInitializerAddress);
         emit FeeVaultDeployed("SequencerFeeVault", predictedSequencerFeeVault, originalSequencerRecipient, originalSequencerNetwork, originalSequencerMinWithdrawal);
 
-        vm.expectEmit(predictedInitializerAddress);
+        vm.expectEmit(_predictedInitializerAddress);
         emit FeeVaultDeployed("L1FeeVault", predictedL1FeeVault, originalL1Recipient, originalL1Network, originalL1MinWithdrawal);
 
-        vm.expectEmit(predictedInitializerAddress);
+        vm.expectEmit(_predictedInitializerAddress);
         emit FeeVaultDeployed("OperatorFeeVault", predictedOperatorFeeVault, originalOperatorRecipient, originalOperatorNetwork, originalOperatorMinWithdrawal);
     }
     
-    function _testNewImplementations(address predictedInitializerAddress) internal {
-        address predictedBaseFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 1);
-        address predictedSequencerFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 2);
-        address predictedL1FeeVault = vm.computeCreateAddress(predictedInitializerAddress, 3);
-        address predictedOperatorFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 4);
+    function _testNewImplementations(address _predictedInitializerAddress) internal view {
+        address predictedBaseFeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 1);
+        address predictedSequencerFeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 2);
+        address predictedL1FeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 3);
+        address predictedOperatorFeeVault = vm.computeCreateAddress(_predictedInitializerAddress, 4);
         
         _testBaseFeeVaultImplementation(predictedBaseFeeVault);
         _testSequencerFeeVaultImplementation(predictedSequencerFeeVault);
@@ -119,8 +119,8 @@ contract FeeVaultInitializer_Test is CommonTest {
         _testOperatorFeeVaultImplementation(predictedOperatorFeeVault);
     }
     
-    function _testBaseFeeVaultImplementation(address newImplementation) internal {
-        IBaseFeeVault newBaseFeeVault = IBaseFeeVault(payable(newImplementation));
+    function _testBaseFeeVaultImplementation(address _newImplementation) internal view {
+        IBaseFeeVault newBaseFeeVault = IBaseFeeVault(payable(_newImplementation));
         // Test against the original stored values
         assertEq(newBaseFeeVault.RECIPIENT(), originalBaseRecipient);
         assertEq(newBaseFeeVault.MIN_WITHDRAWAL_AMOUNT(), originalBaseMinWithdrawal);
@@ -132,8 +132,8 @@ contract FeeVaultInitializer_Test is CommonTest {
         assertEq(uint8(newBaseFeeVault.withdrawalNetwork()), uint8(originalBaseNetwork));
     }
     
-    function _testSequencerFeeVaultImplementation(address newImplementation) internal {
-        ISequencerFeeVault newSequencerFeeVault = ISequencerFeeVault(payable(newImplementation));
+    function _testSequencerFeeVaultImplementation(address _newImplementation) internal view {
+        ISequencerFeeVault newSequencerFeeVault = ISequencerFeeVault(payable(_newImplementation));
         // Test against the original stored values
         assertEq(newSequencerFeeVault.RECIPIENT(), originalSequencerRecipient);
         assertEq(newSequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), originalSequencerMinWithdrawal);
@@ -145,8 +145,8 @@ contract FeeVaultInitializer_Test is CommonTest {
         assertEq(uint8(newSequencerFeeVault.withdrawalNetwork()), uint8(originalSequencerNetwork));
     }
     
-    function _testL1FeeVaultImplementation(address newImplementation) internal {
-        IL1FeeVault newL1FeeVault = IL1FeeVault(payable(newImplementation));
+    function _testL1FeeVaultImplementation(address _newImplementation) internal view {
+        IL1FeeVault newL1FeeVault = IL1FeeVault(payable(_newImplementation));
         // Test against the original stored values
         assertEq(newL1FeeVault.RECIPIENT(), originalL1Recipient);
         assertEq(newL1FeeVault.MIN_WITHDRAWAL_AMOUNT(), originalL1MinWithdrawal);
@@ -158,8 +158,8 @@ contract FeeVaultInitializer_Test is CommonTest {
         assertEq(uint8(newL1FeeVault.withdrawalNetwork()), uint8(originalL1Network));
     }
     
-    function _testOperatorFeeVaultImplementation(address newImplementation) internal {
-        IOperatorFeeVault newOperatorFeeVault = IOperatorFeeVault(payable(newImplementation));
+    function _testOperatorFeeVaultImplementation(address _newImplementation) internal view {
+        IOperatorFeeVault newOperatorFeeVault = IOperatorFeeVault(payable(_newImplementation));
         // Test against the original stored values
         assertEq(newOperatorFeeVault.RECIPIENT(), originalOperatorRecipient);
         assertEq(newOperatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), originalOperatorMinWithdrawal);
