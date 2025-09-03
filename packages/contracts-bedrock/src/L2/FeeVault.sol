@@ -40,11 +40,6 @@ abstract contract FeeVault {
     /// @notice The minimum gas limit for the FeeVault withdrawal transaction.
     uint32 internal constant WITHDRAWAL_MIN_GAS = 400_000;
 
-    /// @notice Flag positions for configuration tracking.
-    uint8 internal constant RECIPIENT_FLAG = 0;
-    uint8 internal constant MIN_WITHDRAWAL_AMOUNT_FLAG = 1;
-    uint8 internal constant WITHDRAWAL_NETWORK_FLAG = 2;
-
     /// @notice Total amount of wei processed by the contract.
     uint256 public totalProcessed;
 
@@ -57,9 +52,14 @@ abstract contract FeeVault {
     /// @notice Network which the recipient will receive fees on.
     Types.WithdrawalNetwork internal _withdrawalNetwork;
 
-    /// @notice Configuration flags to track which values have been set by the owner.
-    /// @dev Bit 0: ownerSetRecipient, Bit 1: ownerSetMinWithdrawalAmount, Bit 2: ownerSetWithdrawalNetwork
-    uint8 private _configFlags;
+    /// @notice Boolean flag tracking if the recipient has been set by the owner.
+    bool private _ownerSetRecipient;
+
+    /// @notice Boolean flag tracking if the minimum withdrawal amount has been set by the owner.
+    bool private _ownerSetMinWithdrawalAmount;
+
+    /// @notice Boolean flag tracking if the withdrawal network has been set by the owner.
+    bool private _ownerSetWithdrawalNetwork;
 
     /// @notice Reserve extra slots in the storage layout for future upgrades, 50 in total.
     uint256[46] private __gap;
@@ -104,18 +104,6 @@ abstract contract FeeVault {
         WITHDRAWAL_NETWORK = _withdrawalNetwork;
     }
 
-    /// @notice Sets a configuration flag to indicate a value has been set by the owner.
-    /// @param flagPosition The bit position of the flag to set.
-    function _setConfigFlag(uint8 flagPosition) internal {
-        _configFlags |= uint8(1 << flagPosition);
-    }
-
-    /// @notice Checks if a configuration flag is set.
-    /// @param flagPosition The bit position of the flag to check.
-    /// @return True if the flag is set, false otherwise.
-    function _isConfigFlagSet(uint8 flagPosition) internal view returns (bool) {
-        return (_configFlags & uint8(1 << flagPosition)) != 0;
-    }
 
     /// @notice Allow the contract to receive ETH.
     receive() external payable { }
@@ -130,7 +118,7 @@ abstract contract FeeVault {
 
         uint256 oldWithdrawalAmount = _minWithdrawalAmount;
         _minWithdrawalAmount = _newMinWithdrawalAmount;
-        _setConfigFlag(MIN_WITHDRAWAL_AMOUNT_FLAG);
+        _ownerSetMinWithdrawalAmount = true;
 
         emit MinWithdrawalAmountUpdated(oldWithdrawalAmount, _newMinWithdrawalAmount);
     }
@@ -144,7 +132,7 @@ abstract contract FeeVault {
 
         address oldRecipient = _recipient;
         _recipient = _newRecipient;
-        _setConfigFlag(RECIPIENT_FLAG);
+        _ownerSetRecipient = true;
 
         emit RecipientUpdated(oldRecipient, _newRecipient);
     }
@@ -160,7 +148,7 @@ abstract contract FeeVault {
 
         Types.WithdrawalNetwork oldWithdrawalNetwork = _withdrawalNetwork;
         _withdrawalNetwork = _newWithdrawalNetwork;
-        _setConfigFlag(WITHDRAWAL_NETWORK_FLAG);
+        _ownerSetWithdrawalNetwork = true;
 
         emit WithdrawalNetworkUpdated(oldWithdrawalNetwork, _newWithdrawalNetwork);
     }
@@ -194,33 +182,33 @@ abstract contract FeeVault {
     /// @notice Returns the minimum withdrawal amount for the vault.
     /// @return The minimum withdrawal amount.
     function minWithdrawalAmount() public view returns (uint256) {
-        if (_isConfigFlagSet(MIN_WITHDRAWAL_AMOUNT_FLAG)) {
-            // If the flag is set, use the storage variable
+        if (_ownerSetMinWithdrawalAmount) {
+            // If the owner has set a value, use the storage variable
             return _minWithdrawalAmount;
         }
-        // If the flag is not set, use the immutable
+        // If the owner has not set a value, use the immutable
         return MIN_WITHDRAWAL_AMOUNT;
     }
 
     /// @notice Returns the recipient of the fees.
     /// @return The recipient address.
     function recipient() public view returns (address) {
-        if (_isConfigFlagSet(RECIPIENT_FLAG)) {
-            // If the flag is set, use the storage variable
+        if (_ownerSetRecipient) {
+            // If the owner has set a value, use the storage variable
             return _recipient;
         }
-        // If the flag is not set, use the immutable
+        // If the owner has not set a value, use the immutable
         return RECIPIENT;
     }
 
     /// @notice Returns the withdrawal network for the vault.
     /// @return The withdrawal network.
     function withdrawalNetwork() public view returns (Types.WithdrawalNetwork) {
-        if (_isConfigFlagSet(WITHDRAWAL_NETWORK_FLAG)) {
-            // If the flag is set, use the storage variable
+        if (_ownerSetWithdrawalNetwork) {
+            // If the owner has set a value, use the storage variable
             return _withdrawalNetwork;
         }
-        // If the flag is not set, use the immutable
+        // If the owner has not set a value, use the immutable
         return WITHDRAWAL_NETWORK;
     }
 }
