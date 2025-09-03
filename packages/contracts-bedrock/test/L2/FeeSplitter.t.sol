@@ -11,7 +11,7 @@ import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
-import { ISharesCalculator, ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
@@ -22,7 +22,7 @@ contract FeeSplitter_TestInit is CommonTest {
     event FeesReceived(address indexed sender, uint256 amount);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
     event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
-    event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
+    event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
     // Test constants
@@ -163,8 +163,8 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, 0);
 
         // Mock shares calculator to return valid shares
-        ShareInfo[] memory shareInfo = new ShareInfo[](1);
-        shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
+        ISharesCalculator.ShareInfo[] memory shareInfo = new ISharesCalculator.ShareInfo[](1);
+        shareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
@@ -197,8 +197,8 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, 0);
 
         // Mock shares calculator to return valid shares
-        ShareInfo[] memory shareInfo = new ShareInfo[](1);
-        shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
+        ISharesCalculator.ShareInfo[] memory shareInfo = new ISharesCalculator.ShareInfo[](1);
+        shareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
@@ -231,8 +231,8 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, 0);
 
         // Mock shares calculator to return valid shares
-        ShareInfo[] memory shareInfo = new ShareInfo[](1);
-        shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
+        ISharesCalculator.ShareInfo[] memory shareInfo = new ISharesCalculator.ShareInfo[](1);
+        shareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
@@ -265,8 +265,8 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, _amount);
 
         // Mock shares calculator to return valid shares
-        ShareInfo[] memory shareInfo = new ShareInfo[](1);
-        shareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
+        ISharesCalculator.ShareInfo[] memory shareInfo = new ISharesCalculator.ShareInfo[](1);
+        shareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), _amount);
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
@@ -355,10 +355,10 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
 
         // Setup mock shares calculator to return 50/50 split
         uint256 halfGrossRevenue = expectedGrossRevenue / 2;
-        ShareInfo[] memory expectedShareInfo = new ShareInfo[](2);
-        expectedShareInfo[0] = ShareInfo(payable(_defaultRevenueShareRecipient), halfGrossRevenue);
+        ISharesCalculator.ShareInfo[] memory expectedShareInfo = new ISharesCalculator.ShareInfo[](2);
+        expectedShareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), halfGrossRevenue);
         expectedShareInfo[1] =
-            ShareInfo(payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue);
+            ISharesCalculator.ShareInfo(payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue);
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
