@@ -19,7 +19,7 @@ contract L1Withdrawer_Test is CommonTest {
     bytes withdrawalData = hex"1234";
 
     event WithdrawalInitiated(uint256 amount, address indexed recipient);
-    event FundsReceived(uint256 amount, uint256 newBalance);
+    event FundsReceived(uint256 amount, uint256 newBalance, address indexed sender);
     event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
     event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
@@ -45,7 +45,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _amount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_amount, _amount);
+        emit FundsReceived(_amount, _amount, address(this));
 
         (bool success,) = address(l1Withdrawer).call{ value: _amount }("");
 
@@ -60,7 +60,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _sendAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_sendAmount, _sendAmount);
+        emit FundsReceived(_sendAmount, _sendAmount, address(this));
 
         vm.expectEmit(address(l1Withdrawer));
         emit WithdrawalInitiated(_sendAmount, recipient);
@@ -91,7 +91,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _firstAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_firstAmount, _firstAmount);
+        emit FundsReceived(_firstAmount, _firstAmount, address(this));
 
         (bool success1,) = address(l1Withdrawer).call{ value: _firstAmount }("");
         assertTrue(success1);
@@ -102,7 +102,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _secondAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_secondAmount, totalAmount);
+        emit FundsReceived(_secondAmount, totalAmount, address(this));
 
         vm.expectEmit(address(l1Withdrawer));
         emit WithdrawalInitiated(totalAmount, recipient);
