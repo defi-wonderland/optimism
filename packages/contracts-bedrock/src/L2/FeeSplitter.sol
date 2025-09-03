@@ -16,7 +16,7 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @custom:proxied
-/// @custom:predeploy 0x4200000000000000000000000000000000000029
+/// @custom:predeploy 0x420000000000000000000000000000000000002B
 /// @title FeeSplitter
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.

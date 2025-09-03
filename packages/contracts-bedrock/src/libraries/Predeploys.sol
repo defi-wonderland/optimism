@@ -114,7 +114,7 @@ library Predeploys {
     address internal constant SUPERCHAIN_TOKEN_BRIDGE = 0x4200000000000000000000000000000000000028;
 
     /// @notice Address of the FeeSplitter predeploy.
-    address internal constant FEE_SPLITTER = 0x4200000000000000000000000000000000000029;
+    address internal constant FEE_SPLITTER = 0x420000000000000000000000000000000000002B;
 
     /// @notice Returns the name of the predeploy at the given address.
     function getName(address _addr) internal pure returns (string memory out_) {
