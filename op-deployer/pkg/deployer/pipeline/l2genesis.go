@@ -171,8 +171,8 @@ func wdNetworkToBig(wd genesis.WithdrawalNetwork) *big.Int {
 func defaultOverrides() l2GenesisOverrides {
 	return l2GenesisOverrides{
 		IsCustomGasToken:                         false,
-		GasPayingTokenName:                       "Custom Gas Token",
-		GasPayingTokenSymbol:                     "CGT",
+		GasPayingTokenName:                       "",
+		GasPayingTokenSymbol:                     "",
 		FundDevAccounts:                          false,
 		BaseFeeVaultMinimumWithdrawalAmount:      standard.VaultMinWithdrawalAmount,
 		L1FeeVaultMinimumWithdrawalAmount:        standard.VaultMinWithdrawalAmount,
