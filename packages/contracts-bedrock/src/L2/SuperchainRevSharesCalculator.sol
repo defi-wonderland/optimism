@@ -61,13 +61,13 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
         remainderRecipient = _remainderRecipient;
     }
 
-    /// @notice Returns the recipients and values for fee distribution.
+    /// @notice Returns the recipients and amounts for fee distribution.
     /// @param _sequencerFeeRevenue Revenue from sequencer fees.
     /// @param _baseFeeRevenue Revenue from base fees.
     /// @param _operatorFeeRevenue Revenue from operator fees.
     /// @param _l1FeeRevenue Revenue from L1 fees.
-    /// @return shareInfo Array of ShareInfo structs containing recipients and values.
-    function getRecipientsAndValues(
+    /// @return shareInfo Array of ShareInfo structs containing recipients and amounts.
+    function getRecipientsAndAmounts(
         uint256 _sequencerFeeRevenue,
         uint256 _baseFeeRevenue,
         uint256 _operatorFeeRevenue,
@@ -80,8 +80,8 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
         // Two recipients: share recipient first (explicit amount), remainder recipient second (0; FeeSplitter sends
         // remainder)
         shareInfo = new ShareInfo[](2);
-        shareInfo[0] = ShareInfo({ recipient: shareRecipient, value: 0 });
-        shareInfo[1] = ShareInfo({ recipient: remainderRecipient, value: 0 });
+        shareInfo[0] = ShareInfo({ recipient: shareRecipient, amount: 0 });
+        shareInfo[1] = ShareInfo({ recipient: remainderRecipient, amount: 0 });
 
         // Gross component: 2.5% of total revenue.
         uint256 grossRevenue = _sequencerFeeRevenue + _baseFeeRevenue + _operatorFeeRevenue + _l1FeeRevenue;
@@ -94,8 +94,8 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
         uint256 amountToShareRecipient = grossShare > netShare ? grossShare : netShare;
 
         // Set the share amount and the remainder.
-        shareInfo[0].value = amountToShareRecipient;
-        shareInfo[1].value = grossRevenue - amountToShareRecipient;
+        shareInfo[0].amount = amountToShareRecipient;
+        shareInfo[1].amount = grossRevenue - amountToShareRecipient;
     }
 
     /// @notice Sets the share recipient. Only callable by the ProxyAdmin owner.
