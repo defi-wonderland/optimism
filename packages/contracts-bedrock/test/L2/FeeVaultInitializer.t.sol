@@ -101,7 +101,7 @@ contract FeeVaultInitializer_Test is CommonTest {
         _testNewImplementations(predictedInitializerAddress);
     }
 
-    function test_constructor_withLegacyVault_succeeds() public {
+    function test_constructor_withLegacyBaseFeeVault_succeeds() public {
         // Deploy the legacy mock vault
         MockLegacyFeeVault legacyVault = new MockLegacyFeeVault();
 
@@ -137,6 +137,119 @@ contract FeeVaultInitializer_Test is CommonTest {
         assertEq(newBaseFeeVault.recipient(), legacyVault.RECIPIENT());
         assertEq(newBaseFeeVault.minWithdrawalAmount(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
         assertEq(uint8(newBaseFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
+    }
+
+    function test_constructor_withLegacySequencerFeeVault_succeeds() public {
+        // Deploy the legacy mock vault
+        MockLegacyFeeVault legacyVault = new MockLegacyFeeVault();
+
+        // Use vm.etch to replace the sequencer fee wallet predeploy with our legacy mock
+        // This simulates an old vault that doesn't have the WITHDRAWAL_NETWORK function
+        vm.etch(Predeploys.SEQUENCER_FEE_WALLET, address(legacyVault).code);
+
+        // Get the current nonce and predicted initializer address
+        uint64 currentNonce = vm.getNonce(address(this));
+        address predictedInitializerAddress = vm.computeCreateAddress(address(this), currentNonce);
+        address predictedSequencerFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 2);
+
+        // Expect the FeeVaultDeployed event with default L2 network for the legacy vault
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed(
+            "SequencerFeeVault",
+            predictedSequencerFeeVault,
+            legacyVault.RECIPIENT(),
+            Types.WithdrawalNetwork.L2, // Should default to L2
+            legacyVault.MIN_WITHDRAWAL_AMOUNT()
+        );
+
+        // Deploy the FeeVaultInitializer - this should handle the legacy vault gracefully
+        feeVaultInitializer = new FeeVaultInitializer();
+
+        // Verify the implementation was deployed correctly with default L2 network
+        ISequencerFeeVault newSequencerFeeVault = ISequencerFeeVault(payable(predictedSequencerFeeVault));
+        assertEq(newSequencerFeeVault.RECIPIENT(), legacyVault.RECIPIENT());
+        assertEq(newSequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
+        assertEq(uint8(newSequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+
+        // Check new getter functions also return the correct values
+        assertEq(newSequencerFeeVault.recipient(), legacyVault.RECIPIENT());
+        assertEq(newSequencerFeeVault.minWithdrawalAmount(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
+        assertEq(uint8(newSequencerFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
+    }
+    function test_constructor_withLegacyL1FeeVault_succeeds() public {
+        // Deploy the legacy mock vault
+        MockLegacyFeeVault legacyVault = new MockLegacyFeeVault();
+
+        // Use vm.etch to replace the l1 fee vault predeploy with our legacy mock
+        // This simulates an old vault that doesn't have the WITHDRAWAL_NETWORK function
+        vm.etch(Predeploys.L1_FEE_VAULT, address(legacyVault).code);
+
+        // Get the current nonce and predicted initializer address
+        uint64 currentNonce = vm.getNonce(address(this));
+        address predictedInitializerAddress = vm.computeCreateAddress(address(this), currentNonce);
+        address predictedL1FeeVault = vm.computeCreateAddress(predictedInitializerAddress, 3);
+
+        // Expect the FeeVaultDeployed event with default L2 network for the legacy vault
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed(
+            "L1FeeVault",
+            predictedL1FeeVault,
+            legacyVault.RECIPIENT(),
+            Types.WithdrawalNetwork.L2, // Should default to L2
+            legacyVault.MIN_WITHDRAWAL_AMOUNT()
+        );
+
+        // Deploy the FeeVaultInitializer - this should handle the legacy vault gracefully
+        feeVaultInitializer = new FeeVaultInitializer();
+
+        // Verify the implementation was deployed correctly with default L2 network
+        IL1FeeVault newL1FeeVault = IL1FeeVault(payable(predictedL1FeeVault));
+        assertEq(newL1FeeVault.RECIPIENT(), legacyVault.RECIPIENT());
+        assertEq(newL1FeeVault.MIN_WITHDRAWAL_AMOUNT(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
+        assertEq(uint8(newL1FeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+
+        // Check new getter functions also return the correct values
+        assertEq(newL1FeeVault.recipient(), legacyVault.RECIPIENT());
+        assertEq(newL1FeeVault.minWithdrawalAmount(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
+        assertEq(uint8(newL1FeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
+    }
+
+    function test_constructor_withLegacyOperatorFeeVault_succeeds() public {
+        // Deploy the legacy mock vault
+        MockLegacyFeeVault legacyVault = new MockLegacyFeeVault();
+
+        // Use vm.etch to replace the operator fee vault predeploy with our legacy mock
+        // This simulates an old vault that doesn't have the WITHDRAWAL_NETWORK function
+        vm.etch(Predeploys.OPERATOR_FEE_VAULT, address(legacyVault).code);
+
+        // Get the current nonce and predicted initializer address
+        uint64 currentNonce = vm.getNonce(address(this));
+        address predictedInitializerAddress = vm.computeCreateAddress(address(this), currentNonce);
+        address predictedOperatorFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 4);
+
+        // Expect the FeeVaultDeployed event with default L2 network for the legacy vault
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed(
+            "OperatorFeeVault",
+            predictedOperatorFeeVault,
+            legacyVault.RECIPIENT(),
+            Types.WithdrawalNetwork.L2, // Should default to L2
+            legacyVault.MIN_WITHDRAWAL_AMOUNT()
+        );
+
+        // Deploy the FeeVaultInitializer - this should handle the legacy vault gracefully
+        feeVaultInitializer = new FeeVaultInitializer();
+
+        // Verify the implementation was deployed correctly with default L2 network
+        IOperatorFeeVault newOperatorFeeVault = IOperatorFeeVault(payable(predictedOperatorFeeVault));
+        assertEq(newOperatorFeeVault.RECIPIENT(), legacyVault.RECIPIENT());
+        assertEq(newOperatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
+        assertEq(uint8(newOperatorFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+
+        // Check new getter functions also return the correct values
+        assertEq(newOperatorFeeVault.recipient(), legacyVault.RECIPIENT());
+        assertEq(newOperatorFeeVault.minWithdrawalAmount(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
+        assertEq(uint8(newOperatorFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
     }
 
     function _testEventEmissions(address _predictedInitializerAddress) internal {
