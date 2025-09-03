@@ -148,6 +148,14 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 		}
 	}
 
+	if thisIntent.CustomGasToken == nil {
+		thisIntent.CustomGasToken = &state.CustomGasToken{
+			Enabled: overrides.IsCustomGasToken,
+			Name:    overrides.GasPayingTokenName,
+			Symbol:  overrides.GasPayingTokenSymbol,
+		}
+	}
+
 	return overrides, schedule, nil
 }
 
