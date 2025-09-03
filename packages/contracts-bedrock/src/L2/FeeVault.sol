@@ -108,9 +108,11 @@ abstract contract FeeVault {
     /// @notice Allow the contract to receive ETH.
     receive() external payable { }
 
-    /// @notice Updates the minimum amount of funds the SequencerFeeVault contract must hold before they can be
+    /// @notice Updates the minimum amount of funds the FeeVault contract must hold before they can be
     /// withdrawn.
     /// @param _newMinWithdrawalAmount The new minimum withdrawal amount.
+    /// @dev If integrating the FeeSplitter contract, the minimum withdrawal amount must be set to 0 to
+    /// avoid blocking withdrawals and disbursements for all vaults if one vault doesn't reach the threshold.
     function setMinWithdrawalAmount(uint256 _newMinWithdrawalAmount) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
@@ -123,7 +125,7 @@ abstract contract FeeVault {
         emit MinWithdrawalAmountUpdated(oldWithdrawalAmount, _newMinWithdrawalAmount);
     }
 
-    /// @notice Updates the recipient of sequencer fees when they are withdrawn from the vault.
+    /// @notice Updates the recipient of vault fees when they are withdrawn from the vault.
     /// @param _newRecipient The new recipient address.
     function setRecipient(address _newRecipient) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
@@ -137,7 +139,7 @@ abstract contract FeeVault {
         emit RecipientUpdated(oldRecipient, _newRecipient);
     }
 
-    /// @notice Updates the network to which sequencer fees will be withdrawn. This can be either WithdrawalNetwork.L1
+    /// @notice Updates the network to which vault fees will be withdrawn. This can be either WithdrawalNetwork.L1
     /// to withdraw them to an address on L1 by using the L2ToL1MessagePasser predeploy, or WithdrawalNetwork.L2 to
     /// withdraw them to an address on the same chain.
     /// @param _newWithdrawalNetwork The new withdrawal network.

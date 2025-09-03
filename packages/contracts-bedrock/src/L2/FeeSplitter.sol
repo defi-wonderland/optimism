@@ -9,7 +9,7 @@ import { SafeCall } from "src/libraries/SafeCall.sol";
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ISharesCalculator, ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 // OpenZeppelin
@@ -89,7 +89,7 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Emitted when fees are disbursed to the recipients.
     /// @param shareInfo The recipients of the fee share.
     /// @param grossRevenue The gross revenue before disbursement.
-    event FeesDisbursed(ShareInfo[] shareInfo, uint256 grossRevenue);
+    event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
 
     /// @notice Emitted when the share calculator is updated.
     /// @param oldSharesCalculator The old share calculator contract.
@@ -148,7 +148,8 @@ contract FeeSplitter is ISemver, Initializable {
         lastDisbursementTime = uint128(block.timestamp);
 
         // Call to the sharesCalculator to determine the fee share recipients, values, withdrawal networks, and data
-        (ShareInfo[] memory _shareInfo) =
+        // DoS risk if array size is too large.
+        (ISharesCalculator.ShareInfo[] memory _shareInfo) =
             sharesCalculator.getRecipientsAndValues(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
         // Ensure the share calculator returned valid data
@@ -171,7 +172,7 @@ contract FeeSplitter is ISemver, Initializable {
         }
 
         // Ensure the total fees disbursed is equal to the gross revenue
-        /// NOTE: Contract can hold some balance after disbursement if tokens are force sent.
+        /// NOTE: Contract can hold some balance after disbursement if tokens are force sent (using SELFDESTRUCT).
         if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
 
         emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
