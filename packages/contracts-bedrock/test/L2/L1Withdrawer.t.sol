@@ -18,8 +18,8 @@ contract L1Withdrawer_Test is CommonTest {
     uint256 withdrawalGasLimit = 150_000;
     bytes withdrawalData = hex"1234";
 
-    event WithdrawalInitiated(uint256 amount, address indexed recipient);
-    event FundsReceived(uint256 amount, uint256 newBalance, address indexed sender);
+    event WithdrawalInitiated(address indexed recipient, uint256 amount);
+    event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
     event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
@@ -45,7 +45,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _amount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_amount, _amount, address(this));
+        emit FundsReceived(address(this), _amount, _amount);
 
         (bool success,) = address(l1Withdrawer).call{ value: _amount }("");
 
@@ -60,10 +60,10 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _sendAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_sendAmount, _sendAmount, address(this));
+        emit FundsReceived(address(this), _sendAmount, _sendAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit WithdrawalInitiated(_sendAmount, recipient);
+        emit WithdrawalInitiated(recipient, _sendAmount);
 
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
@@ -91,7 +91,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _firstAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_firstAmount, _firstAmount, address(this));
+        emit FundsReceived(address(this), _firstAmount, _firstAmount);
 
         (bool success1,) = address(l1Withdrawer).call{ value: _firstAmount }("");
         assertTrue(success1);
@@ -102,10 +102,10 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _secondAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit FundsReceived(_secondAmount, totalAmount, address(this));
+        emit FundsReceived(address(this), _secondAmount, totalAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit WithdrawalInitiated(totalAmount, recipient);
+        emit WithdrawalInitiated(recipient, totalAmount);
 
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
