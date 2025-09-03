@@ -237,7 +237,7 @@ contract L2Genesis is Script {
         setSchemaRegistry(); // 20
         setEAS(); // 21
         setGovernanceToken(_input); // 42: OP (not behind a proxy)
-        setFeeSplitter(_input); // 29: FeeSplitter
+        setFeeSplitter(_input); // 2B: FeeSplitter
         if (_input.fork >= uint256(Fork.INTEROP)) {
             if (_input.deployCrossL2Inbox) {
                 setCrossL2Inbox(); // 22
