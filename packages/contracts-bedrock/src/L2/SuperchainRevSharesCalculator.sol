@@ -9,15 +9,11 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
-// OpenZeppelin
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
-/// @custom:proxied
 /// @title SuperchainRevSharesCalculator
 /// @notice Calculator for Superchain revenue share. It pays the greater amount between 2.5% of
 ///         gross revenue or 15% of net revenue (gross minus L1 fees) to the configured share recipient.
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
-contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializable {
+contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
     /// @notice Emitted when the share recipient is updated.
     /// @param newShareRecipient The new share recipient address.
     /// @param oldShareRecipient The old share recipient address.
@@ -49,14 +45,10 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
     /// @notice Address that receives the remainder of the revenue.
     address payable public remainderRecipient;
 
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract with an initial configuration.
+    /// @notice Constructs the contract with an initial configuration.
     /// @param _shareRecipient Recipient of the Superchain revenue share.
     /// @param _remainderRecipient Recipient of the remainder.
-    function initialize(address payable _shareRecipient, address payable _remainderRecipient) external initializer {
+    constructor(address payable _shareRecipient, address payable _remainderRecipient) {
         shareRecipient = _shareRecipient;
         remainderRecipient = _remainderRecipient;
     }
