@@ -10,8 +10,31 @@ import { FeeVaultInitializer } from "src/L2/FeeVaultInitializer.sol";
 // Libraries
 import { Types } from "src/libraries/Types.sol";
 
+// Interfaces
+import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
+import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
+import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
+import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
+
 contract FeeVaultInitializer_Test is CommonTest {
     FeeVaultInitializer feeVaultInitializer;
+
+    // Store original vault configurations
+    address originalBaseRecipient;
+    uint256 originalBaseMinWithdrawal;
+    Types.WithdrawalNetwork originalBaseNetwork;
+    
+    address originalSequencerRecipient;
+    uint256 originalSequencerMinWithdrawal;
+    Types.WithdrawalNetwork originalSequencerNetwork;
+    
+    address originalL1Recipient;
+    uint256 originalL1MinWithdrawal;
+    Types.WithdrawalNetwork originalL1Network;
+    
+    address originalOperatorRecipient;
+    uint256 originalOperatorMinWithdrawal;
+    Types.WithdrawalNetwork originalOperatorNetwork;
 
     event FeeVaultDeployed(
         string indexed vaultType,
@@ -23,63 +46,128 @@ contract FeeVaultInitializer_Test is CommonTest {
 
     function setUp() public override {
         super.setUp();
+
+        // Capture original Base Fee Vault configuration
+        originalBaseRecipient = baseFeeVault.RECIPIENT();
+        originalBaseMinWithdrawal = baseFeeVault.MIN_WITHDRAWAL_AMOUNT();
+        originalBaseNetwork = baseFeeVault.WITHDRAWAL_NETWORK();
+        
+        // Capture original Sequencer Fee Vault configuration
+        originalSequencerRecipient = sequencerFeeVault.RECIPIENT();
+        originalSequencerMinWithdrawal = sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT();
+        originalSequencerNetwork = sequencerFeeVault.WITHDRAWAL_NETWORK();
+        
+        // Capture original L1 Fee Vault configuration
+        originalL1Recipient = l1FeeVault.RECIPIENT();
+        originalL1MinWithdrawal = l1FeeVault.MIN_WITHDRAWAL_AMOUNT();
+        originalL1Network = l1FeeVault.WITHDRAWAL_NETWORK();
+        
+        // Capture original Operator Fee Vault configuration
+        originalOperatorRecipient = operatorFeeVault.RECIPIENT();
+        originalOperatorMinWithdrawal = operatorFeeVault.MIN_WITHDRAWAL_AMOUNT();
+        originalOperatorNetwork = operatorFeeVault.WITHDRAWAL_NETWORK();
     }
 
-    function test_constructor_succeeds() public {
-        // Store original fee vault configurations before deploying the initializer
-        address baseRecipient = baseFeeVault.RECIPIENT();
-        uint256 baseMinWithdrawal = baseFeeVault.MIN_WITHDRAWAL_AMOUNT();
-        Types.WithdrawalNetwork baseNetwork = baseFeeVault.WITHDRAWAL_NETWORK();
-
-        address sequencerRecipient = sequencerFeeVault.RECIPIENT();
-        uint256 sequencerMinWithdrawal = sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT();
-        Types.WithdrawalNetwork sequencerNetwork = sequencerFeeVault.WITHDRAWAL_NETWORK();
-
-        address l1Recipient = l1FeeVault.RECIPIENT();
-        uint256 l1MinWithdrawal = l1FeeVault.MIN_WITHDRAWAL_AMOUNT();
-        Types.WithdrawalNetwork l1Network = l1FeeVault.WITHDRAWAL_NETWORK();
-
-        address operatorRecipient = operatorFeeVault.RECIPIENT();
-        uint256 operatorMinWithdrawal = operatorFeeVault.MIN_WITHDRAWAL_AMOUNT();
-        Types.WithdrawalNetwork operatorNetwork = operatorFeeVault.WITHDRAWAL_NETWORK();
-
-        // Expect the FeeVaultDeployed events for each vault type (ignoring implementation addresses)
-        vm.expectEmit(true, false, false, true);
-        emit FeeVaultDeployed("BaseFeeVault", address(0), baseRecipient, baseNetwork, baseMinWithdrawal);
-
-        vm.expectEmit(true, false, false, true);
-        emit FeeVaultDeployed(
-            "SequencerFeeVault", address(0), sequencerRecipient, sequencerNetwork, sequencerMinWithdrawal
-        );
-
-        vm.expectEmit(true, false, false, true);
-        emit FeeVaultDeployed("L1FeeVault", address(0), l1Recipient, l1Network, l1MinWithdrawal);
-
-        vm.expectEmit(true, false, false, true);
-        emit FeeVaultDeployed("OperatorFeeVault", address(0), operatorRecipient, operatorNetwork, operatorMinWithdrawal);
-
+    function test_constructor_succeeds() public {      
+        // Get the current nonce and predicted initializer address to predict the vault addresses
+        uint64 currentNonce = vm.getNonce(address(this));
+        address predictedInitializerAddress = vm.computeCreateAddress(address(this), currentNonce);
+        
+        // Test event emissions before fee vault initializer deployment
+        _testEventEmissions(predictedInitializerAddress);
+        
         // Deploy the FeeVaultInitializer
         feeVaultInitializer = new FeeVaultInitializer();
 
-        // The constructor should have completed successfully
-        // Version should be accessible to verify deployment
+        // Can now read the fee vault initializer version
         assertEq(feeVaultInitializer.version(), "1.0.0");
+        assertEq(address(feeVaultInitializer), predictedInitializerAddress);
+        
+        // Test the new implementations have correct configurations against the original values
+        _testNewImplementations(predictedInitializerAddress);
+    }
+    
+    function _testEventEmissions(address predictedInitializerAddress) internal {
+        address predictedBaseFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 1);
+        address predictedSequencerFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 2);
+        address predictedL1FeeVault = vm.computeCreateAddress(predictedInitializerAddress, 3);
+        address predictedOperatorFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 4);
 
-        // Verify the fee vaults were deployed with the correct configuration
-        assertEq(baseFeeVault.RECIPIENT(), baseRecipient);
-        assertEq(baseFeeVault.MIN_WITHDRAWAL_AMOUNT(), baseMinWithdrawal);
-        assertEq(uint8(baseFeeVault.WITHDRAWAL_NETWORK()), uint8(baseNetwork));
+        // Expect the FeeVaultDeployed events from the FeeVaultInitializer contract using the original values
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed("BaseFeeVault", predictedBaseFeeVault, originalBaseRecipient, originalBaseNetwork, originalBaseMinWithdrawal);
 
-        assertEq(sequencerFeeVault.RECIPIENT(), sequencerRecipient);
-        assertEq(sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), sequencerMinWithdrawal);
-        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(sequencerNetwork));
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed("SequencerFeeVault", predictedSequencerFeeVault, originalSequencerRecipient, originalSequencerNetwork, originalSequencerMinWithdrawal);
 
-        assertEq(l1FeeVault.RECIPIENT(), l1Recipient);
-        assertEq(l1FeeVault.MIN_WITHDRAWAL_AMOUNT(), l1MinWithdrawal);
-        assertEq(uint8(l1FeeVault.WITHDRAWAL_NETWORK()), uint8(l1Network));
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed("L1FeeVault", predictedL1FeeVault, originalL1Recipient, originalL1Network, originalL1MinWithdrawal);
 
-        assertEq(operatorFeeVault.RECIPIENT(), operatorRecipient);
-        assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), operatorMinWithdrawal);
-        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(operatorNetwork));
+        vm.expectEmit(predictedInitializerAddress);
+        emit FeeVaultDeployed("OperatorFeeVault", predictedOperatorFeeVault, originalOperatorRecipient, originalOperatorNetwork, originalOperatorMinWithdrawal);
+    }
+    
+    function _testNewImplementations(address predictedInitializerAddress) internal {
+        address predictedBaseFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 1);
+        address predictedSequencerFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 2);
+        address predictedL1FeeVault = vm.computeCreateAddress(predictedInitializerAddress, 3);
+        address predictedOperatorFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 4);
+        
+        _testBaseFeeVaultImplementation(predictedBaseFeeVault);
+        _testSequencerFeeVaultImplementation(predictedSequencerFeeVault);
+        _testL1FeeVaultImplementation(predictedL1FeeVault);
+        _testOperatorFeeVaultImplementation(predictedOperatorFeeVault);
+    }
+    
+    function _testBaseFeeVaultImplementation(address newImplementation) internal {
+        IBaseFeeVault newBaseFeeVault = IBaseFeeVault(payable(newImplementation));
+        // Test against the original stored values
+        assertEq(newBaseFeeVault.RECIPIENT(), originalBaseRecipient);
+        assertEq(newBaseFeeVault.MIN_WITHDRAWAL_AMOUNT(), originalBaseMinWithdrawal);
+        assertEq(uint8(newBaseFeeVault.WITHDRAWAL_NETWORK()), uint8(originalBaseNetwork));
+
+        // Check new getter functions return the same original values
+        assertEq(newBaseFeeVault.recipient(), originalBaseRecipient);
+        assertEq(newBaseFeeVault.minWithdrawalAmount(), originalBaseMinWithdrawal);
+        assertEq(uint8(newBaseFeeVault.withdrawalNetwork()), uint8(originalBaseNetwork));
+    }
+    
+    function _testSequencerFeeVaultImplementation(address newImplementation) internal {
+        ISequencerFeeVault newSequencerFeeVault = ISequencerFeeVault(payable(newImplementation));
+        // Test against the original stored values
+        assertEq(newSequencerFeeVault.RECIPIENT(), originalSequencerRecipient);
+        assertEq(newSequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), originalSequencerMinWithdrawal);
+        assertEq(uint8(newSequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(originalSequencerNetwork));
+
+        // Check new getter functions return the same original values
+        assertEq(newSequencerFeeVault.recipient(), originalSequencerRecipient);
+        assertEq(newSequencerFeeVault.minWithdrawalAmount(), originalSequencerMinWithdrawal);
+        assertEq(uint8(newSequencerFeeVault.withdrawalNetwork()), uint8(originalSequencerNetwork));
+    }
+    
+    function _testL1FeeVaultImplementation(address newImplementation) internal {
+        IL1FeeVault newL1FeeVault = IL1FeeVault(payable(newImplementation));
+        // Test against the original stored values
+        assertEq(newL1FeeVault.RECIPIENT(), originalL1Recipient);
+        assertEq(newL1FeeVault.MIN_WITHDRAWAL_AMOUNT(), originalL1MinWithdrawal);
+        assertEq(uint8(newL1FeeVault.WITHDRAWAL_NETWORK()), uint8(originalL1Network));
+
+        // Check new getter functions return the same original values
+        assertEq(newL1FeeVault.recipient(), originalL1Recipient);
+        assertEq(newL1FeeVault.minWithdrawalAmount(), originalL1MinWithdrawal);
+        assertEq(uint8(newL1FeeVault.withdrawalNetwork()), uint8(originalL1Network));
+    }
+    
+    function _testOperatorFeeVaultImplementation(address newImplementation) internal {
+        IOperatorFeeVault newOperatorFeeVault = IOperatorFeeVault(payable(newImplementation));
+        // Test against the original stored values
+        assertEq(newOperatorFeeVault.RECIPIENT(), originalOperatorRecipient);
+        assertEq(newOperatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), originalOperatorMinWithdrawal);
+        assertEq(uint8(newOperatorFeeVault.WITHDRAWAL_NETWORK()), uint8(originalOperatorNetwork));
+
+        // Check new getter functions return the same original values
+        assertEq(newOperatorFeeVault.recipient(), originalOperatorRecipient);
+        assertEq(newOperatorFeeVault.minWithdrawalAmount(), originalOperatorMinWithdrawal);
+        assertEq(uint8(newOperatorFeeVault.withdrawalNetwork()), uint8(originalOperatorNetwork));
     }
 }
