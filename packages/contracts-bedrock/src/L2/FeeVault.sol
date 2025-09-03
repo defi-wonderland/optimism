@@ -124,7 +124,7 @@ abstract contract FeeVault {
     /// withdrawn.
     /// @param _newMinWithdrawalAmount The new minimum withdrawal amount.
     /// @dev If integrating the FeeSplitter contract, the minimum withdrawal amount must be set to 0 to
-    /// avoid partial disbursement issues.
+    /// avoid blocking withdrawals and disbursements for all vaults if one vault doesn't reach the threshold.
     function setMinWithdrawalAmount(uint256 _newMinWithdrawalAmount) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
