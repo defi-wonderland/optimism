@@ -173,7 +173,7 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             enableGovernance: true,
             fundDevAccounts: true,
             feeSplitterFeeDisbursementInterval: 86400,
-            feeSplitterSharesCalculator: address(0x000000000000000000000000000000000000000A),
+            feeSplitterSharesCalculator: Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR,
             useRevenueShare: true,
             chainFeesRecipient: address(0x000000000000000000000000000000000000000b)
         });
@@ -186,5 +186,58 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         testFactories();
         testForks();
         testFeeSplitter();
+    }
+
+    function test_run_withoutRevenueShare_succeeds() external {
+        input = L2Genesis.Input({
+            l1ChainID: 1,
+            l2ChainID: 2,
+            l1CrossDomainMessengerProxy: payable(address(0x0000000000000000000000000000000000000001)),
+            l1StandardBridgeProxy: payable(address(0x0000000000000000000000000000000000000002)),
+            l1ERC721BridgeProxy: payable(address(0x0000000000000000000000000000000000000003)),
+            opChainProxyAdminOwner: address(0x0000000000000000000000000000000000000004),
+            sequencerFeeVaultRecipient: address(0x0000000000000000000000000000000000000005),
+            sequencerFeeVaultMinimumWithdrawalAmount: 1,
+            sequencerFeeVaultWithdrawalNetwork: 1,
+            baseFeeVaultRecipient: address(0x0000000000000000000000000000000000000006),
+            baseFeeVaultMinimumWithdrawalAmount: 1,
+            baseFeeVaultWithdrawalNetwork: 1,
+            l1FeeVaultRecipient: address(0x0000000000000000000000000000000000000007),
+            l1FeeVaultMinimumWithdrawalAmount: 1,
+            l1FeeVaultWithdrawalNetwork: 1,
+            operatorFeeVaultRecipient: address(0x0000000000000000000000000000000000000008),
+            operatorFeeVaultMinimumWithdrawalAmount: 1,
+            operatorFeeVaultWithdrawalNetwork: 1,
+            governanceTokenOwner: address(0x0000000000000000000000000000000000000009),
+            fork: uint256(LATEST_FORK),
+            deployCrossL2Inbox: true,
+            enableGovernance: true,
+            fundDevAccounts: true,
+            feeSplitterFeeDisbursementInterval: 86400,
+            feeSplitterSharesCalculator: address(0), // No custom shares calculator when revenue share is disabled
+            useRevenueShare: false,
+            chainFeesRecipient: address(0) // Not used when revenue share is disabled
+         });
+        genesis.run(input);
+
+        testProxyAdmin();
+        testPredeploys();
+        testVaults();
+        testGovernance();
+        testFactories();
+        testForks();
+
+        // Test that FeeSplitter is initialized with address(0) when revenue share is disabled
+        IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
+        assertEq(address(feeSplitter.sharesCalculator()), address(0), "sharesCalculator should be zero address");
+        assertEq(feeSplitter.feeDisbursementInterval(), 1 days, "feeDisbursementInterval should be 1 day");
+
+        // Verify that SuperchainRevSharesCalculator and L1Withdrawer have no code
+        assertEq(
+            Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR.code.length,
+            0,
+            "SuperchainRevSharesCalculator should have no code"
+        );
+        assertEq(Predeploys.L1_WITHDRAWER.code.length, 0, "L1Withdrawer should have no code");
     }
 }

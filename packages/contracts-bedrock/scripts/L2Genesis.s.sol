@@ -32,6 +32,7 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 
@@ -607,21 +608,61 @@ contract L2Genesis is Script {
             );
             vm.etch(Predeploys.L1_WITHDRAWER, _l1WithdrawerDeployed.code);
 
-            // Deploy SuperchainRevSharesCalculator with recipients, then etch runtime to fixed address
+            // Manually set the storage values since constructor storage isn't copied with etch
+            // minWithdrawalAmount is at slot 0
+            vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(0)), bytes32(thresholdAmount));
+            // recipient is at slot 1
+            vm.store(
+                Predeploys.L1_WITHDRAWER, bytes32(uint256(1)), bytes32(uint256(uint160(Constants.OP_FEES_MULTISIG)))
+            );
+            // withdrawalGasLimit is at slot 2
+            vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(2)), bytes32(withdrawalMinGasLimit));
+            // withdrawalData is at slot 3 (bytes data)
+            // Since depositData.length is 132 bytes (> 32), use long form encoding
+            // Store length * 2 + 1 at slot 3 for long form
+            vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(3)), bytes32((depositData.length * 2) + 1));
+            // Store data starting at keccak256(slot 3)
+            bytes32 dataSlot = keccak256(abi.encode(uint256(3)));
+            for (uint256 i = 0; i < (depositData.length + 31) / 32; i++) {
+                bytes32 chunk;
+                assembly {
+                    chunk := mload(add(add(depositData, 0x20), mul(i, 0x20)))
+                }
+                vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(dataSlot) + i), chunk);
+            }
+
+            // Deploy SuperchainRevSharesCalculator with constructor args
             address _calcDeployed = vm.deployCode(
                 "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
                 abi.encode(payable(Predeploys.L1_WITHDRAWER), payable(_input.chainFeesRecipient))
             );
+
+            // Etch the deployed code to the predeploy address
             vm.etch(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR, _calcDeployed.code);
+
+            // Manually set the storage values since constructor storage isn't copied with etch
+            // shareRecipient is at slot 0
+            vm.store(
+                Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR,
+                bytes32(uint256(0)),
+                bytes32(uint256(uint160(Predeploys.L1_WITHDRAWER)))
+            );
+            // remainderRecipient is at slot 1
+            vm.store(
+                Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR,
+                bytes32(uint256(1)),
+                bytes32(uint256(uint160(_input.chainFeesRecipient)))
+            );
         }
         // Initialize the implementation with dummy values
         address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
         IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(0)));
 
         // Initialize the proxy with the actual values
-        IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
-            ISharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR)
-        );
+        // Only set the shares calculator if revenue sharing is enabled
+        address sharesCalculator = _input.useRevenueShare ? Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR : address(0);
+
+        IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(ISharesCalculator(sharesCalculator));
     }
 
     /// @notice Sets the bytecode in state
