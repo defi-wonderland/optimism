@@ -171,7 +171,7 @@ contract FeeSplitter is ISemver, Initializable {
         }
 
         // Ensure the total fees disbursed is equal to the gross revenue
-        /// NOTE: Contract can hold some balance after disbursement if tokens are force sent.
+        /// NOTE: Contract can hold some balance after disbursement if tokens are force sent (using SELFDESTRUCT).
         if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
 
         emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
