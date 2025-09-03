@@ -9,15 +9,11 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
-// OpenZeppelin
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
-/// @custom:proxied
 /// @title SuperchainRevSharesCalculator
 /// @notice Calculator for Superchain revenue share. It pays the greater amount between 2.5% of
 ///         gross revenue or 15% of net revenue (gross minus L1 fees) to the configured share recipient.
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
-contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializable {
+contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
     /// @notice Emitted when the share recipient is updated.
     /// @param newShareRecipient The new share recipient address.
     /// @param oldShareRecipient The old share recipient address.
@@ -49,25 +45,21 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
     /// @notice Address that receives the remainder of the revenue.
     address payable public remainderRecipient;
 
-    constructor() {
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the contract with an initial configuration.
+    /// @notice Constructs the contract with an initial configuration.
     /// @param _shareRecipient Recipient of the Superchain revenue share.
     /// @param _remainderRecipient Recipient of the remainder.
-    function initialize(address payable _shareRecipient, address payable _remainderRecipient) external initializer {
+    constructor(address payable _shareRecipient, address payable _remainderRecipient) {
         shareRecipient = _shareRecipient;
         remainderRecipient = _remainderRecipient;
     }
 
-    /// @notice Returns the recipients and values for fee distribution.
+    /// @notice Returns the recipients and amounts for fee distribution.
     /// @param _sequencerFeeRevenue Revenue from sequencer fees.
     /// @param _baseFeeRevenue Revenue from base fees.
     /// @param _operatorFeeRevenue Revenue from operator fees.
     /// @param _l1FeeRevenue Revenue from L1 fees.
-    /// @return shareInfo Array of ShareInfo structs containing recipients and values.
-    function getRecipientsAndValues(
+    /// @return shareInfo Array of ShareInfo structs containing recipients and amounts.
+    function getRecipientsAndAmounts(
         uint256 _sequencerFeeRevenue,
         uint256 _baseFeeRevenue,
         uint256 _operatorFeeRevenue,
@@ -80,8 +72,8 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
         // Two recipients: share recipient first (explicit amount), remainder recipient second (0; FeeSplitter sends
         // remainder)
         shareInfo = new ShareInfo[](2);
-        shareInfo[0] = ShareInfo({ recipient: shareRecipient, value: 0 });
-        shareInfo[1] = ShareInfo({ recipient: remainderRecipient, value: 0 });
+        shareInfo[0] = ShareInfo({ recipient: shareRecipient, amount: 0 });
+        shareInfo[1] = ShareInfo({ recipient: remainderRecipient, amount: 0 });
 
         // Gross component: 2.5% of total revenue.
         uint256 grossRevenue = _sequencerFeeRevenue + _baseFeeRevenue + _operatorFeeRevenue + _l1FeeRevenue;
@@ -94,8 +86,8 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializa
         uint256 amountToShareRecipient = grossShare > netShare ? grossShare : netShare;
 
         // Set the share amount and the remainder.
-        shareInfo[0].value = amountToShareRecipient;
-        shareInfo[1].value = grossRevenue - amountToShareRecipient;
+        shareInfo[0].amount = amountToShareRecipient;
+        shareInfo[1].amount = grossRevenue - amountToShareRecipient;
     }
 
     /// @notice Sets the share recipient. Only callable by the ProxyAdmin owner.

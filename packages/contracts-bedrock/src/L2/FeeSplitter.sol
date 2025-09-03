@@ -147,10 +147,10 @@ contract FeeSplitter is ISemver, Initializable {
         // Update the last disbursement time
         lastDisbursementTime = uint128(block.timestamp);
 
-        // Call to the sharesCalculator to determine the fee share recipients, values, withdrawal networks, and data
+        // Call to the sharesCalculator to determine the fee share recipients, amounts, withdrawal networks, and data
         // DoS risk if array size is too large.
         (ISharesCalculator.ShareInfo[] memory _shareInfo) =
-            sharesCalculator.getRecipientsAndValues(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
+            sharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
         // Ensure the share calculator returned valid data
         if (_shareInfo.length == 0) revert FeeSplitter_FeeShareInfoEmpty();
@@ -159,16 +159,16 @@ contract FeeSplitter is ISemver, Initializable {
         uint256 _totalFeesDisbursed;
         for (uint256 i; i < _shareInfo.length; i++) {
             address payable _recipient = _shareInfo[i].recipient;
-            uint256 _feeShareValue = _shareInfo[i].value;
+            uint256 _feeShareAmount = _shareInfo[i].amount;
 
             // Ensure the fee share is greater than zero
-            if (_feeShareValue == 0) continue;
+            if (_feeShareAmount == 0) continue;
 
-            bool success = SafeCall.send(address(_recipient), _feeShareValue);
+            bool success = SafeCall.send(address(_recipient), _feeShareAmount);
             if (!success) {
                 revert FeeSplitter_FailedToSendToRevenueShareRecipient();
             }
-            _totalFeesDisbursed += _feeShareValue;
+            _totalFeesDisbursed += _feeShareAmount;
         }
 
         // Ensure the total fees disbursed is equal to the gross revenue
