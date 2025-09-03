@@ -19,14 +19,14 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
 contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializable {
     /// @notice Emitted when the share recipient is updated.
-    /// @param _newShareRecipient The new share recipient address.
-    /// @param oldSHareRecipient The old share recipient address.
-    event ShareRecipientUpdated(address indexed _newShareRecipient, address indexed oldSHareRecipient);
+    /// @param newShareRecipient The new share recipient address.
+    /// @param oldShareRecipient The old share recipient address.
+    event ShareRecipientUpdated(address indexed newShareRecipient, address indexed oldShareRecipient);
 
     /// @notice Emitted when the remainder recipient is updated.
-    /// @param _newRemainderRecipient The new remainder recipient address.
+    /// @param newRemainderRecipient The new remainder recipient address.
     /// @param oldRemainderRecipient The old remainder recipient address.
-    event RemainderRecipientUpdated(address indexed _newRemainderRecipient, address indexed oldRemainderRecipient);
+    event RemainderRecipientUpdated(address indexed newRemainderRecipient, address indexed oldRemainderRecipient);
 
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error SharesCalculator_OnlyProxyAdminOwner();
