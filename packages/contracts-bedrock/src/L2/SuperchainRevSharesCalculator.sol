@@ -7,7 +7,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { ShareInfo } from "interfaces/L2/ISharesCalculator.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
 // OpenZeppelin
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -17,7 +17,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @notice Calculator for Superchain revenue share. It pays the greater amount between 2.5% of
 ///         gross revenue or 15% of net revenue (gross minus L1 fees) to the configured share recipient.
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
-contract SuperchainRevSharesCalculator is ISemver, Initializable {
+contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator, Initializable {
     /// @notice Emitted when the share recipient is updated.
     /// @param _newShareRecipient The new share recipient address.
     /// @param oldSHareRecipient The old share recipient address.
