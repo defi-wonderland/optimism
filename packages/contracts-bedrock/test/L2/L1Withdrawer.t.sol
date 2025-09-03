@@ -18,7 +18,8 @@ contract L1Withdrawer_Test is CommonTest {
     uint256 withdrawalGasLimit = 150_000;
     bytes withdrawalData = hex"1234";
 
-    event WithdrawalInitiated(uint256 amount, address indexed recipient);
+    event WithdrawalInitiated(address indexed recipient, uint256 amount);
+    event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
     event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
@@ -42,6 +43,10 @@ contract L1Withdrawer_Test is CommonTest {
         _amount = bound(_amount, 0, minWithdrawalAmount - 1);
 
         vm.deal(address(this), _amount);
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit FundsReceived(address(this), _amount, _amount);
+
         (bool success,) = address(l1Withdrawer).call{ value: _amount }("");
 
         assertTrue(success);
@@ -55,15 +60,16 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _sendAmount);
 
         vm.expectEmit(address(l1Withdrawer));
+        emit FundsReceived(address(this), _sendAmount, _sendAmount);
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit WithdrawalInitiated(recipient, _sendAmount);
+
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             _sendAmount,
-            abi.encodeCall(
-                IL2ToL1MessagePasser.initiateWithdrawal,
-                (recipient, withdrawalGasLimit, withdrawalData)
-            )
+            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, withdrawalData))
         );
-        emit WithdrawalInitiated(_sendAmount, recipient);
 
         (bool success,) = address(l1Withdrawer).call{ value: _sendAmount }("");
 
@@ -83,6 +89,10 @@ contract L1Withdrawer_Test is CommonTest {
 
         // First deposit (should not trigger withdrawal)
         vm.deal(address(this), _firstAmount);
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit FundsReceived(address(this), _firstAmount, _firstAmount);
+
         (bool success1,) = address(l1Withdrawer).call{ value: _firstAmount }("");
         assertTrue(success1);
         assertEq(address(l1Withdrawer).balance, _firstAmount);
@@ -92,15 +102,16 @@ contract L1Withdrawer_Test is CommonTest {
         vm.deal(address(this), _secondAmount);
 
         vm.expectEmit(address(l1Withdrawer));
+        emit FundsReceived(address(this), _secondAmount, totalAmount);
+
+        vm.expectEmit(address(l1Withdrawer));
+        emit WithdrawalInitiated(recipient, totalAmount);
+
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             totalAmount,
-            abi.encodeCall(
-                IL2ToL1MessagePasser.initiateWithdrawal,
-                (recipient, withdrawalGasLimit, withdrawalData)
-            )
+            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, withdrawalData))
         );
-        emit WithdrawalInitiated(totalAmount, recipient);
 
         (bool success2,) = address(l1Withdrawer).call{ value: _secondAmount }("");
         assertTrue(success2);

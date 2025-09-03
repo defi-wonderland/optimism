@@ -31,9 +31,15 @@ contract L1Withdrawer is ISemver {
     bytes public withdrawalData;
 
     /// @notice Emitted when a withdrawal to L1 is initiated.
-    /// @param amount The amount of ETH being withdrawn.
     /// @param recipient The L1 address receiving the withdrawal.
-    event WithdrawalInitiated(uint256 amount, address indexed recipient);
+    /// @param amount The amount of ETH being withdrawn.
+    event WithdrawalInitiated(address indexed recipient, uint256 amount);
+
+    /// @notice Emitted when the contract receives funds.
+    /// @param sender The address that sent the funds.
+    /// @param amount The amount of ETH received.
+    /// @param newBalance The new balance after receiving funds.
+    event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
 
     /// @notice Emitted when the minimum withdrawal amount is updated.
     /// @param oldMinWithdrawalAmount The previous minimum withdrawal amount.
@@ -75,13 +81,14 @@ contract L1Withdrawer is ISemver {
     /// @notice Receives ETH and initiates a withdrawal to L1 if the balance meets the threshold.
     receive() external payable {
         uint256 balance = address(this).balance;
+        emit FundsReceived(msg.sender, msg.value, balance);
 
         if (balance >= minWithdrawalAmount) {
             IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: balance }(
                 recipient, withdrawalGasLimit, withdrawalData
             );
 
-            emit WithdrawalInitiated(balance, recipient);
+            emit WithdrawalInitiated(recipient, balance);
         }
     }
 
