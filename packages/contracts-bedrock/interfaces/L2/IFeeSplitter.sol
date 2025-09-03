@@ -5,7 +5,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
 interface IFeeSplitter is ISemver {
-
     error FeeSplitter_SharesCalculatorCannotBeZero();
     error FeeSplitter_DisbursementIntervalNotReached();
     error FeeSplitter_FeeShareInfoEmpty();
@@ -28,10 +27,7 @@ interface IFeeSplitter is ISemver {
     function lastDisbursementTime() external view returns (uint128);
     function feeDisbursementInterval() external view returns (uint128);
 
-    function initialize(
-        ISharesCalculator _sharesCalculator,
-        uint128 _feeDisbursementInterval
-    ) external;
+    function initialize(ISharesCalculator _sharesCalculator) external;
 
     function disburseFees() external;
 

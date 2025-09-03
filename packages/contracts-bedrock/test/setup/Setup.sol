@@ -325,7 +325,9 @@ contract Setup {
                 enableGovernance: deploy.cfg().enableGovernance(),
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
                 feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval(),
-                feeSplitterSharesCalculator: deploy.cfg().feeSplitterSharesCalculator()
+                feeSplitterSharesCalculator: deploy.cfg().feeSplitterSharesCalculator(),
+                useRevenueShare: deploy.cfg().useRevenueShare(),
+                chainFeesRecipient: deploy.cfg().chainFeesRecipient()
             })
         );
 

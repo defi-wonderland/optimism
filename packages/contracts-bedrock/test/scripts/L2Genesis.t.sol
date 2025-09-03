@@ -6,7 +6,11 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { L2Genesis } from "scripts/L2Genesis.s.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { LATEST_FORK } from "scripts/libraries/Config.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
 import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
@@ -15,6 +19,8 @@ import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableE
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
 /// @title L2Genesis_TestInit
 /// @notice Reusable test initialization for `L2Genesis` tests.
@@ -102,6 +108,40 @@ contract L2Genesis_TestInit is Test {
         assertEq(gasPriceOracle.isFjord(), true);
         assertEq(gasPriceOracle.isIsthmus(), true);
     }
+
+    function testFeeSplitter() internal view {
+        // Check that the shares calculator and fee disbursement interval are set on the fee splitter
+        IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
+        assertEq(address(feeSplitter.sharesCalculator()), input.feeSplitterSharesCalculator);
+        assertEq(feeSplitter.feeDisbursementInterval(), 1 days);
+
+        // Only test if revenue share is not enabled
+        if (!input.useRevenueShare) {
+            // Check the shares calculator and l1 withdrawer addresses have no code
+            assertEq(input.feeSplitterSharesCalculator.code.length, 0);
+            assertEq(address(Predeploys.L1_WITHDRAWER).code.length, 0);
+            return;
+        }
+
+        // Check that the superchain rev shares calculator is properly set
+        assertEq(
+            ISuperchainRevSharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR).shareRecipient(),
+            Predeploys.L1_WITHDRAWER
+        );
+        assertEq(
+            ISuperchainRevSharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR).remainderRecipient(),
+            input.chainFeesRecipient
+        );
+
+        // Check the L1Withdrawer is properly set
+        assertEq(IL1Withdrawer(Predeploys.L1_WITHDRAWER).minWithdrawalAmount(), 10 ether);
+        assertEq(IL1Withdrawer(Predeploys.L1_WITHDRAWER).recipient(), Constants.OP_FEES_MULTISIG);
+        assertEq(IL1Withdrawer(Predeploys.L1_WITHDRAWER).withdrawalGasLimit(), 300_000);
+        assertEq(
+            IL1Withdrawer(Predeploys.L1_WITHDRAWER).withdrawalData(),
+            abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, 200_000, ""))
+        );
+    }
 }
 
 /// @title L2Genesis_Run_Test
@@ -133,7 +173,9 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             enableGovernance: true,
             fundDevAccounts: true,
             feeSplitterFeeDisbursementInterval: 86400,
-            feeSplitterSharesCalculator: address(0x000000000000000000000000000000000000000A)
+            feeSplitterSharesCalculator: address(0x000000000000000000000000000000000000000A),
+            useRevenueShare: true,
+            chainFeesRecipient: address(0x000000000000000000000000000000000000000b)
         });
         genesis.run(input);
 
@@ -143,5 +185,6 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         testGovernance();
         testFactories();
         testForks();
+        testFeeSplitter();
     }
 }

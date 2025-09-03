@@ -82,6 +82,8 @@ contract DeployConfig is Script {
 
     bool public useInterop;
     bool public useUpgradedFork;
+    bool public useRevenueShare;
+    address public chainFeesRecipient;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -159,7 +161,9 @@ contract DeployConfig is Script {
         daResolverRefundPercentage = _readOr(_json, "$.daResolverRefundPercentage", 0);
 
         useInterop = _readOr(_json, "$.useInterop", false);
-        useUpgradedFork;
+        useUpgradedFork = _readOr(_json, "$.useUpgradedFork", false);
+        useRevenueShare = _readOr(_json, "$.useRevenueShare", false);
+        chainFeesRecipient = _readOr(_json, "$.chainFeesRecipient", address(0));
     }
 
     function fork() public view returns (Fork fork_) {

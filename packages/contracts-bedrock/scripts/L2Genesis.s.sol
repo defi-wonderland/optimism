@@ -6,7 +6,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
 import { Script } from "forge-std/Script.sol";
-import { OutputMode, OutputModeUtils, Fork, ForkUtils } from "scripts/libraries/Config.sol";
+import { OutputMode, OutputModeUtils, Fork, ForkUtils, Config } from "scripts/libraries/Config.sol";
 import { SetPreinstalls } from "scripts/SetPreinstalls.s.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
@@ -14,6 +14,7 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Types } from "src/libraries/Types.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
@@ -32,6 +33,7 @@ import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
+import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -67,6 +69,8 @@ contract L2Genesis is Script {
         bool fundDevAccounts;
         address feeSplitterSharesCalculator;
         uint256 feeSplitterFeeDisbursementInterval;
+        bool useRevenueShare;
+        address chainFeesRecipient;
     }
 
     using ForkUtils for Fork;
@@ -590,15 +594,33 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setFeeSplitter(Input memory _input) internal {
-        address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
+        if (_input.useRevenueShare) {
+            // Deploy L1Withdrawer with constructor args, then etch runtime to fixed address
+            uint256 withdrawalMinGasLimit = 300_000;
+            uint32 depositMinGasLimit = 200_000;
+            uint256 thresholdAmount = 10 ether;
+            bytes memory depositData =
+                abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, depositMinGasLimit, ""));
+            address _l1WithdrawerDeployed = vm.deployCode(
+                "L1Withdrawer.sol:L1Withdrawer",
+                abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData)
+            );
+            vm.etch(Predeploys.L1_WITHDRAWER, _l1WithdrawerDeployed.code);
+
+            // Deploy SuperchainRevSharesCalculator with recipients, then etch runtime to fixed address
+            address _calcDeployed = vm.deployCode(
+                "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
+                abi.encode(payable(Predeploys.L1_WITHDRAWER), payable(_input.chainFeesRecipient))
+            );
+            vm.etch(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR, _calcDeployed.code);
+        }
         // Initialize the implementation with dummy values
-        IFeeSplitter(payable(impl)).initialize(
-            ISharesCalculator(address(0)), uint128(0)
-        );
+        address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
+        IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(0)));
 
         // Initialize the proxy with the actual values
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(
-            ISharesCalculator(_input.feeSplitterSharesCalculator), uint128(_input.feeSplitterFeeDisbursementInterval)
+            ISharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR)
         );
     }
 

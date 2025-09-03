@@ -21,7 +21,6 @@ contract FeeSplitter_TestInit is CommonTest {
     // Events
     event FeesReceived(address indexed sender, uint256 amount);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
-    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
@@ -29,7 +28,7 @@ contract FeeSplitter_TestInit is CommonTest {
     address internal _owner;
     address internal _defaultRevenueShareRecipient = makeAddr("RevenueShareRecipient");
     address internal _defaultRevenueRemainderRecipient = makeAddr("RemainderRecipient");
-    uint128 internal _defaultFeeDisbursementInterval = 24 hours;
+    uint128 internal _defaultFeeDisbursementInterval = 1 days;
     address internal _defaultSharesCalculator = makeAddr("SharesCalculator");
 
     /// @notice Test setup.
@@ -93,7 +92,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
     function test_constructor_succeeds() public {
         vm.prank(_owner);
         vm.expectRevert("Initializable: contract is already initialized");
-        feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)), _defaultFeeDisbursementInterval);
+        feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)));
     }
 
     /// @notice Test successful initialization with proper event emission
@@ -102,19 +101,10 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
         address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl3"))));
         vm.etch(impl, vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
 
-        vm.expectEmit(address(impl));
-        emit Initialized({
-            sharesCalculator: ISharesCalculator(address(_defaultSharesCalculator)),
-            feeDisbursementInterval: _defaultFeeDisbursementInterval
-        });
-
         vm.prank(_owner);
-        IFeeSplitter(payable(impl)).initialize(
-            ISharesCalculator(address(_defaultSharesCalculator)), _defaultFeeDisbursementInterval
-        );
+        IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(_defaultSharesCalculator)));
 
         assertEq(address(IFeeSplitter(payable(impl)).sharesCalculator()), address(_defaultSharesCalculator));
-        assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), _defaultFeeDisbursementInterval);
     }
 }
 
@@ -127,7 +117,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_ReceiveWindowClosed.selector);
-        (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
+        payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
     /// @notice Test receive function from non-approved vault reverts even during disbursement
@@ -147,9 +137,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.deal(_caller, _amount);
 
         vm.prank(_caller);
-        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotApprovedVault.selector); // Now we test the actual sender
-            // validation
-        (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
+        // Now we test the actual sender validation
+        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotApprovedVault.selector);
+        payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
     /// @notice Test receive function works during disbursement from SequencerFeeVault
@@ -357,8 +347,9 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         uint256 halfGrossRevenue = expectedGrossRevenue / 2;
         ISharesCalculator.ShareInfo[] memory expectedShareInfo = new ISharesCalculator.ShareInfo[](2);
         expectedShareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), halfGrossRevenue);
-        expectedShareInfo[1] =
-            ISharesCalculator.ShareInfo(payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue);
+        expectedShareInfo[1] = ISharesCalculator.ShareInfo(
+            payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue
+        );
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());

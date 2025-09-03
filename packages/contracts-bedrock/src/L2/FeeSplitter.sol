@@ -103,12 +103,10 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     /// @param _sharesCalculator            The share calculator contract.
-    /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(ISharesCalculator _sharesCalculator, uint128 _feeDisbursementInterval) external initializer {
+    function initialize(ISharesCalculator _sharesCalculator) external initializer {
         sharesCalculator = _sharesCalculator;
-        feeDisbursementInterval = _feeDisbursementInterval;
-
-        emit Initialized(_sharesCalculator, _feeDisbursementInterval);
+        // As default, the fee disbursement interval is 1 day
+        feeDisbursementInterval = 1 days;
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
