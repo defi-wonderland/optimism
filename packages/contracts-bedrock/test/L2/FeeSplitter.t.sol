@@ -170,7 +170,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
-            abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (_amount, 0, 0, 0)),
+            abi.encodeCall(ISharesCalculator.getRecipientsAndAmounts, (_amount, 0, 0, 0)),
             abi.encode(shareInfo)
         );
 
@@ -204,7 +204,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
-            abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (0, _amount, 0, 0)),
+            abi.encodeCall(ISharesCalculator.getRecipientsAndAmounts, (0, _amount, 0, 0)),
             abi.encode(shareInfo)
         );
 
@@ -238,7 +238,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
-            abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (0, 0, 0, _amount)),
+            abi.encodeCall(ISharesCalculator.getRecipientsAndAmounts, (0, 0, 0, _amount)),
             abi.encode(shareInfo)
         );
 
@@ -272,7 +272,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
         vm.mockCall(
             actualSharesCalculator,
-            abi.encodeCall(ISharesCalculator.getRecipientsAndValues, (0, 0, _amount, 0)),
+            abi.encodeCall(ISharesCalculator.getRecipientsAndAmounts, (0, 0, _amount, 0)),
             abi.encode(shareInfo)
         );
 
@@ -365,7 +365,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         vm.mockCall(
             actualSharesCalculator,
             abi.encodeCall(
-                ISharesCalculator.getRecipientsAndValues, (_sequencerAmount, _baseAmount, _operatorAmount, _l1Amount)
+                ISharesCalculator.getRecipientsAndAmounts, (_sequencerAmount, _baseAmount, _operatorAmount, _l1Amount)
             ),
             abi.encode(expectedShareInfo)
         );

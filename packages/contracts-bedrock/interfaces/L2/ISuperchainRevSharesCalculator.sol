@@ -26,7 +26,7 @@ interface ISuperchainRevSharesCalculator is ISemver {
         address payable _remainderRecipient
     ) external;
 
-    function getRecipientsAndValues(
+    function getRecipientsAndAmounts(
         uint256 _sequencerFeeRevenue,
         uint256 _baseFeeRevenue,
         uint256 _operatorFeeRevenue,
