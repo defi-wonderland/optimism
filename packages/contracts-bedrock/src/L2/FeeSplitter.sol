@@ -148,6 +148,7 @@ contract FeeSplitter is ISemver, Initializable {
         lastDisbursementTime = uint128(block.timestamp);
 
         // Call to the sharesCalculator to determine the fee share recipients, values, withdrawal networks, and data
+        // DoS risk if array size is too large.
         (ShareInfo[] memory _shareInfo) =
             sharesCalculator.getRecipientsAndValues(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
