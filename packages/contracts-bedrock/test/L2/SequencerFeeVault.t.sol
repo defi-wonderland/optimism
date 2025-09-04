@@ -9,6 +9,10 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 // Contracts
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 
+// Interfaces
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
+
 // Libraries
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Types } from "src/libraries/Types.sol";
@@ -187,5 +191,171 @@ contract SequencerFeeVault_Withdraw_Test is SequencerFeeVault_TestInit {
         vm.expectRevert("FeeVault: failed to send ETH to L2 fee recipient");
         sequencerFeeVault.withdraw();
         assertEq(sequencerFeeVault.totalProcessed(), 0);
+    }
+}
+
+/// @title SequencerFeeVault_Setters_Test
+/// @notice Tests the setter functions of the `SequencerFeeVault` contract.
+contract SequencerFeeVault_Setters_Test is SequencerFeeVault_TestInit {
+    /// @notice Tests that the owner can successfully set minimum withdrawal amount with fuzz testing.
+    function testFuzz_setMinWithdrawalAmount_succeeds(uint256 newAmount) external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        
+        // Store initial values to verify boolean flag behavior
+        uint256 initialAmount = sequencerFeeVault.minWithdrawalAmount();
+        vm.assume(newAmount != initialAmount);
+        
+        vm.prank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(newAmount);
+
+        // Verify the value was updated
+        assertEq(sequencerFeeVault.minWithdrawalAmount(), newAmount);
+        
+        // Should no longer return the immutable value
+        assertNotEq(sequencerFeeVault.minWithdrawalAmount(), initialAmount);
+    }
+
+    /// @notice Tests that non-owner cannot set minimum withdrawal amount with fuzz testing.
+    function testFuzz_setMinWithdrawalAmount_onlyOwner_reverts(address caller, uint256 newAmount) external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        vm.assume(caller != owner);
+        
+        uint256 initialAmount = sequencerFeeVault.minWithdrawalAmount();
+
+        vm.prank(caller);
+        vm.expectRevert();
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(newAmount);
+        
+        // Verify the value and boolean flag were NOT changed
+        assertEq(sequencerFeeVault.minWithdrawalAmount(), initialAmount);
+    }
+
+    /// @notice Tests that the owner can successfully set recipient with fuzz testing.
+    function testFuzz_setRecipient_succeeds(address newRecipient) external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        
+        // Store initial value
+        address initialRecipient = sequencerFeeVault.recipient();
+
+        vm.prank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(newRecipient);
+
+        // Verify the value was updated
+        assertEq(sequencerFeeVault.recipient(), newRecipient);
+        
+        // Should no longer return the immutable value
+        assertNotEq(sequencerFeeVault.recipient(), initialRecipient);
+    }
+
+    /// @notice Tests that non-owner cannot set recipient with fuzz testing.
+    function testFuzz_setRecipient_onlyOwner_reverts(address caller, address newRecipient) external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        vm.assume(caller != owner);
+        
+        address initialRecipient = sequencerFeeVault.recipient();
+
+        vm.prank(caller);
+        vm.expectRevert();
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(newRecipient);
+        
+        // Verify the value and boolean flag were NOT changed
+        assertEq(sequencerFeeVault.recipient(), initialRecipient);
+    }
+
+    /// @notice Tests that the owner can successfully set withdrawal network with fuzz testing.
+    function testFuzz_setWithdrawalNetwork_succeeds(uint8 networkValue) external {
+        // Bound to valid enum values (0 = L1, 1 = L2)
+        networkValue = uint8(bound(networkValue, 0, 1));
+        Types.WithdrawalNetwork newNetwork = Types.WithdrawalNetwork(networkValue);
+        
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        
+        vm.prank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setWithdrawalNetwork(newNetwork);
+
+        // Verify the value was updated
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(newNetwork));
+    }
+
+    /// @notice Tests that non-owner cannot set withdrawal network with fuzz testing.
+    function testFuzz_setWithdrawalNetwork_onlyOwner_reverts(address caller, uint8 networkValue) external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        vm.assume(caller != owner);
+        
+        // Bound to valid enum values
+        networkValue = uint8(bound(networkValue, 0, 1));
+        Types.WithdrawalNetwork newNetwork = Types.WithdrawalNetwork(networkValue);
+        
+        Types.WithdrawalNetwork initialNetwork = sequencerFeeVault.withdrawalNetwork();
+
+        vm.prank(caller);
+        vm.expectRevert();
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setWithdrawalNetwork(newNetwork);
+        
+        // Verify the value and boolean flag were NOT changed
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(initialNetwork));
+    }
+}
+
+/// @title SequencerFeeVault_Getters_Test
+/// @notice Tests the getter functions of the `SequencerFeeVault` contract.
+contract SequencerFeeVault_Getters_Test is SequencerFeeVault_TestInit {
+    /// @notice Tests that minWithdrawalAmount returns immutable by default, then storage after being set.
+    function test_minWithdrawalAmount_returnsImmutableThenStorage_succeeds() external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        
+        // Initially should return the immutable value
+        uint256 immutableValue = sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT();
+        assertEq(sequencerFeeVault.minWithdrawalAmount(), immutableValue);
+        
+        // Set a different value via owner
+        uint256 newValue = immutableValue + 1 ether;
+        vm.prank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(newValue);
+        
+        // Now should return the storage value, not the immutable
+        assertEq(sequencerFeeVault.minWithdrawalAmount(), newValue);
+        assertNotEq(sequencerFeeVault.minWithdrawalAmount(), immutableValue);
+        assertEq(sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), immutableValue); // immutable unchanged
+    }
+
+    /// @notice Tests that recipient returns immutable by default, then storage after being set.
+    function test_recipient_returnsImmutableThenStorage_succeeds() external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        
+        // Initially should return the immutable value
+        address immutableValue = sequencerFeeVault.RECIPIENT();
+        assertEq(sequencerFeeVault.recipient(), immutableValue);
+        
+        // Set a different value via owner
+        address newValue = address(0x123);
+        vm.prank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(newValue);
+        
+        // Now should return the storage value, not the immutable
+        assertEq(sequencerFeeVault.recipient(), newValue);
+        assertNotEq(sequencerFeeVault.recipient(), immutableValue);
+        assertEq(sequencerFeeVault.RECIPIENT(), immutableValue); // immutable unchanged
+    }
+
+    /// @notice Tests that withdrawalNetwork returns immutable by default, then storage after being set.
+    function test_withdrawalNetwork_returnsImmutableThenStorage_succeeds() external {
+        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        
+        // Initially should return the immutable value
+        Types.WithdrawalNetwork immutableValue = sequencerFeeVault.WITHDRAWAL_NETWORK();
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(immutableValue));
+        
+        // Set a different value via owner (toggle between L1 and L2)
+        Types.WithdrawalNetwork newValue = immutableValue == Types.WithdrawalNetwork.L1 
+            ? Types.WithdrawalNetwork.L2 
+            : Types.WithdrawalNetwork.L1;
+        vm.prank(owner);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setWithdrawalNetwork(newValue);
+        
+        // Now should return the storage value, not the immutable
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(newValue));
+        assertNotEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(immutableValue));
+        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(immutableValue)); // immutable unchanged
     }
 }

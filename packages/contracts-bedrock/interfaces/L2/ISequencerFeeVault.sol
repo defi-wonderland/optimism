@@ -17,6 +17,9 @@ interface ISequencerFeeVault {
     function totalProcessed() external view returns (uint256);
     function withdraw() external returns (uint256 value_);
     function withdrawalNetwork() external view returns (Types.WithdrawalNetwork network_);
+    function setMinWithdrawalAmount(uint256 _newMinWithdrawalAmount) external;
+    function setRecipient(address _newRecipient) external;
+    function setWithdrawalNetwork(Types.WithdrawalNetwork _newWithdrawalNetwork) external;
 
     function version() external view returns (string memory);
     function l1FeeWallet() external view returns (address);
