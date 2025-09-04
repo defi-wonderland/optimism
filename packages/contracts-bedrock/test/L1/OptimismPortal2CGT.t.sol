@@ -29,9 +29,6 @@ import {
     OptimismPortal2_Params_Test
 } from "test/L1/OptimismPortal2.t.sol";
 
-// Contracts
-import { OptimismPortal2 } from "src/L1/OptimismPortal2.sol";
-
 // Scripts
 import { ForgeArtifacts, StorageSlot } from "scripts/libraries/ForgeArtifacts.sol";
 
