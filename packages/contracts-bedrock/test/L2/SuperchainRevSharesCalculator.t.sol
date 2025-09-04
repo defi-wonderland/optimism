@@ -106,21 +106,29 @@ contract SuperchainRevSharesCalculator_SetRemainderRecipient_Test is SuperchainR
 contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is SuperchainRevSharesCalculator_TestInit {
     
     /// @notice Test that getRecipientsAndAmounts reverts when gross share is calculated to be 0.
-    function test_getRecipientsAndAmounts_zeroGrossShare_reverts() external {
-        // Set all revenue components to 0 to make gross share = 0
-        uint256 sequencerFees = 0;
-        uint256 baseFees = 0;
-        uint256 operatorFees = 0;
-        uint256 l1Fees = 0;
+    function testFuzz_getRecipientsAndAmounts_zeroGrossShare_reverts(
+        uint256 _sequencerFees,
+        uint256 _baseFees,
+        uint256 _operatorFees,
+        uint256 _l1Fees
+    ) external {
+        // Bound each fee to ensure total revenue < 40 to make gross share = 0
+        // With GROSS_SHARE_BPS = 250 and BASIS_POINT_SCALE = 10_000:
+        // grossShare = (totalRevenue * 250) / 10_000 = 0 when totalRevenue < 40
+        _sequencerFees = bound(_sequencerFees, 1, 10);
+        _baseFees = bound(_baseFees, 1, 10);
+        _operatorFees = bound(_operatorFees, 1, 10);
+        _l1Fees = bound(_l1Fees, 1, 10);
         
-        // Verify that gross share would be 0
-        uint256 totalRevenue = sequencerFees + baseFees + operatorFees + l1Fees;
+        // Verify that gross share would be 0 due to integer division
+        uint256 totalRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
         uint256 grossShare = (totalRevenue * uint256(calculator.GROSS_SHARE_BPS())) / uint256(calculator.BASIS_POINT_SCALE());
         assertEq(grossShare, 0, "Gross share should be 0");
+        assertLt(totalRevenue, 40, "Total revenue should be less than 40 for zero gross share");
         
         // Expect the function to revert with the correct error
         vm.expectRevert(ISuperchainRevSharesCalculator.SharesCalculator_ZeroGrossShare.selector);
-        calculator.getRecipientsAndAmounts(sequencerFees, baseFees, operatorFees, l1Fees);
+        calculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
     }
     
     /// @notice Fuzz test for cases where gross share is higher than net share.
