@@ -596,7 +596,7 @@ contract L2Genesis is Script {
     /// @notice This predeploy is following the safety invariant #1.
     function setFeeSplitter(Input memory _input) internal {
         if (_input.useRevenueShare) {
-            // Deploy L1Withdrawer with constructor args, then etch runtime to fixed address
+            // Deploy L1Withdrawer with constructor args
             uint256 withdrawalMinGasLimit = 300_000;
             uint32 depositMinGasLimit = 200_000;
             uint256 thresholdAmount = 10 ether;
@@ -606,30 +606,10 @@ contract L2Genesis is Script {
                 "L1Withdrawer.sol:L1Withdrawer",
                 abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData)
             );
-            vm.etch(Predeploys.L1_WITHDRAWER, _l1WithdrawerDeployed.code);
 
-            // Manually set the storage values since constructor storage isn't copied with etch
-            // minWithdrawalAmount is at slot 0
-            vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(0)), bytes32(thresholdAmount));
-            // recipient is at slot 1
-            vm.store(
-                Predeploys.L1_WITHDRAWER, bytes32(uint256(1)), bytes32(uint256(uint160(Constants.OP_FEES_MULTISIG)))
-            );
-            // withdrawalGasLimit is at slot 2
-            vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(2)), bytes32(withdrawalMinGasLimit));
-            // withdrawalData is at slot 3 (bytes data)
-            // Since depositData.length is 132 bytes (> 32), use long form encoding
-            // Store length * 2 + 1 at slot 3 for long form
-            vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(3)), bytes32((depositData.length * 2) + 1));
-            // Store data starting at keccak256(slot 3)
-            bytes32 dataSlot = keccak256(abi.encode(uint256(3)));
-            for (uint256 i = 0; i < (depositData.length + 31) / 32; i++) {
-                bytes32 chunk;
-                assembly {
-                    chunk := mload(add(add(depositData, 0x20), mul(i, 0x20)))
-                }
-                vm.store(Predeploys.L1_WITHDRAWER, bytes32(uint256(dataSlot) + i), chunk);
-            }
+            // Etch the deployed code to the predeploy address and copy the storage
+            vm.etch(Predeploys.L1_WITHDRAWER, _l1WithdrawerDeployed.code);
+            vm.copyStorage(_l1WithdrawerDeployed, Predeploys.L1_WITHDRAWER);
 
             // Deploy SuperchainRevSharesCalculator with constructor args
             address _calcDeployed = vm.deployCode(
@@ -637,22 +617,9 @@ contract L2Genesis is Script {
                 abi.encode(payable(Predeploys.L1_WITHDRAWER), payable(_input.chainFeesRecipient))
             );
 
-            // Etch the deployed code to the predeploy address
+            // Etch the deployed code to the predeploy address and copy the storage
             vm.etch(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR, _calcDeployed.code);
-
-            // Manually set the storage values since constructor storage isn't copied with etch
-            // shareRecipient is at slot 0
-            vm.store(
-                Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR,
-                bytes32(uint256(0)),
-                bytes32(uint256(uint160(Predeploys.L1_WITHDRAWER)))
-            );
-            // remainderRecipient is at slot 1
-            vm.store(
-                Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR,
-                bytes32(uint256(1)),
-                bytes32(uint256(uint160(_input.chainFeesRecipient)))
-            );
+            vm.copyStorage(_calcDeployed, Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR);
         }
         // Initialize the implementation with dummy values
         address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
