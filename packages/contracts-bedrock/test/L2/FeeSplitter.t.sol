@@ -105,6 +105,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
         IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(_defaultSharesCalculator)));
 
         assertEq(address(IFeeSplitter(payable(impl)).sharesCalculator()), address(_defaultSharesCalculator));
+        assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), 1 days);
     }
 }
 

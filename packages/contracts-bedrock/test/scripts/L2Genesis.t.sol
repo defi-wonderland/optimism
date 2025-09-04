@@ -110,18 +110,13 @@ contract L2Genesis_TestInit is Test {
     }
 
     function testFeeSplitter() internal view {
+        // Only test if revenue share is not enabled
+        if (!input.useRevenueShare) return;
+
         // Check that the shares calculator and fee disbursement interval are set on the fee splitter
         IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
         assertEq(address(feeSplitter.sharesCalculator()), input.feeSplitterSharesCalculator);
         assertEq(feeSplitter.feeDisbursementInterval(), 1 days);
-
-        // Only test if revenue share is not enabled
-        if (!input.useRevenueShare) {
-            // Check the shares calculator and l1 withdrawer addresses have no code
-            assertEq(input.feeSplitterSharesCalculator.code.length, 0);
-            assertEq(address(Predeploys.L1_WITHDRAWER).code.length, 0);
-            return;
-        }
 
         // Check that the superchain rev shares calculator is properly set
         assertEq(

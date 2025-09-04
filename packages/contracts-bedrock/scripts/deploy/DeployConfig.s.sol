@@ -161,7 +161,7 @@ contract DeployConfig is Script {
         daResolverRefundPercentage = _readOr(_json, "$.daResolverRefundPercentage", 0);
 
         useInterop = _readOr(_json, "$.useInterop", false);
-        useUpgradedFork = _readOr(_json, "$.useUpgradedFork", false);
+        useUpgradedFork;
         useRevenueShare = _readOr(_json, "$.useRevenueShare", false);
         chainFeesRecipient = _readOr(_json, "$.chainFeesRecipient", address(0));
     }

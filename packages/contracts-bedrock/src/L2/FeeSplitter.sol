@@ -81,11 +81,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param newFeeDisbursementInterval The new fee disbursement interval.
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
 
-    /// @notice Emitted when the contract is initialized with its initial configuration.
-    /// @param sharesCalculator           The share calculator contract.
-    /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
-    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
-
     /// @notice Emitted when fees are disbursed to the recipients.
     /// @param shareInfo The recipients of the fee share.
     /// @param grossRevenue The gross revenue before disbursement.
