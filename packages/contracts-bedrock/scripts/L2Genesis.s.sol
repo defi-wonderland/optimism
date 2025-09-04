@@ -31,6 +31,7 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IL1BlockCGT } from "interfaces/L2/IL1BlockCGT.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -362,11 +363,18 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setL1Block(bool _isCustomGasToken) internal {
-        _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
         if (_isCustomGasToken) {
-            vm.startPrank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
-            IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).setCustomGasToken();
+            // Set the implementation code for L1BlockCGT
+            string memory cname = "L1BlockCGT";
+            address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
+            vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
+
+            // Set the custom gas token flag
+            vm.startPrank(IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
+            IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES).setCustomGasToken();
             vm.stopPrank();
+        } else {
+            _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);
         }
     }
 
