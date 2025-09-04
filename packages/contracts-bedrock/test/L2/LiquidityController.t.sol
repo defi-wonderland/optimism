@@ -142,6 +142,7 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
         public
         isAuthorizedMinter(authorizedMinter)
     {
+        vm.assume(_to != address(nativeAssetLiquidity));
         _amount = bound(_amount, 1, address(nativeAssetLiquidity).balance);
 
         // Record initial balances
@@ -164,6 +165,7 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
 
     /// @notice Tests that the mint function reverts when called by unauthorized address.
     function testFuzz_mint_fromUnauthorizedCaller_fails(address _caller, address _to, uint256 _amount) public {
+        vm.assume(_to != address(nativeAssetLiquidity));
         _amount = bound(_amount, 1, type(uint248).max);
 
         uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;
