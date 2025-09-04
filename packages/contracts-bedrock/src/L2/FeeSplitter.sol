@@ -129,6 +129,9 @@ contract FeeSplitter is ISemver, Initializable {
             revert FeeSplitter_DisbursementIntervalNotReached();
         }
 
+        // Update the last disbursement time
+        lastDisbursementTime = uint128(block.timestamp);
+
         // Pull fees into the contract
         _setTransientDisbursing(true);
         uint256 _sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
@@ -143,9 +146,6 @@ contract FeeSplitter is ISemver, Initializable {
         if (_grossRevenue == 0) {
             revert FeeSplitter_NoFeesCollected();
         }
-
-        // Update the last disbursement time
-        lastDisbursementTime = uint128(block.timestamp);
 
         // Call to the sharesCalculator to determine the fee share recipients, amounts, withdrawal networks, and data
         // DoS risk if array size is too large.
