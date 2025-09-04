@@ -92,7 +92,6 @@ contract SuperchainRevSharesCalculator_SetRemainderRecipient_Test is SuperchainR
 
     /// @notice Tests that setRemainderRecipient updates recipient and emits event.
     function testFuzz_setRemainderRecipient_succeeds(address payable _newRemainderRecipient) external {
-        
         vm.expectEmit(address(calculator));
         emit RemainderRecipientUpdated(remainderRecipient, _newRemainderRecipient);
         
@@ -132,9 +131,9 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         uint256 _l1Fees
     ) external view {
         // Use smaller bounds to prevent overflow
-        _sequencerFees = bound(_sequencerFees, 10000, type(uint64).max);
-        _baseFees = bound(_baseFees, 10000, type(uint64).max);
-        _operatorFees = bound(_operatorFees, 10000, type(uint64).max);
+        _sequencerFees = bound(_sequencerFees, 10000, type(uint112).max);
+        _baseFees = bound(_baseFees, 10000, type(uint112).max);
+        _operatorFees = bound(_operatorFees, 10000, type(uint112).max);
         
         // Calculate other fees (without L1 fees)
         uint256 otherFees = _sequencerFees + _baseFees + _operatorFees;
@@ -178,9 +177,9 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         uint256 _l1Fees
     ) external view {
         // Use smaller bounds to prevent overflow
-        _sequencerFees = bound(_sequencerFees, 10000, type(uint64).max);
-        _baseFees = bound(_baseFees, 10000, type(uint64).max);
-        _operatorFees = bound(_operatorFees, 10000, type(uint64).max);
+        _sequencerFees = bound(_sequencerFees, 10000, type(uint112).max);
+        _baseFees = bound(_baseFees, 10000, type(uint112).max);
+        _operatorFees = bound(_operatorFees, 10000, type(uint112).max);
         
         // Calculate other fees (without L1 fees)
         uint256 otherFees = _sequencerFees + _baseFees + _operatorFees;
@@ -223,11 +222,11 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         uint256 _operatorFees,
         uint256 _l1Fees
     ) external view {
-        // Use uint64 to prevent overflow when adding & 10000 to prevent 0 fee revert
-        _sequencerFees = bound(_sequencerFees, 10000, type(uint64).max);
-        _baseFees = bound(_baseFees, 10000, type(uint64).max);
-        _operatorFees = bound(_operatorFees, 10000, type(uint64).max);
-        _l1Fees = bound(_l1Fees, 10000, type(uint64).max);
+        // Use uint112 to prevent overflow when adding & 10000 to prevent 0 fee revert
+        _sequencerFees = bound(_sequencerFees, 10000, type(uint112).max);
+        _baseFees = bound(_baseFees, 10000, type(uint112).max);
+        _operatorFees = bound(_operatorFees, 10000, type(uint112).max);
+        _l1Fees = bound(_l1Fees, 10000, type(uint112).max);
         
         ISharesCalculator.ShareInfo[] memory result = calculator.getRecipientsAndAmounts(
             _sequencerFees, _baseFees, _operatorFees, _l1Fees
