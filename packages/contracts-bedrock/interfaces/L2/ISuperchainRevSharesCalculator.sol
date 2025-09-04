@@ -11,7 +11,8 @@ interface ISuperchainRevSharesCalculator is ISemver {
 
     // Errors
     error SharesCalculator_OnlyProxyAdminOwner();
-
+    error SharesCalculator_ZeroGrossShare();
+    
     // State variables
     function BASIS_POINT_SCALE() external view returns (uint32);
     function GROSS_SHARE_BPS() external view returns (uint32);
@@ -21,11 +22,6 @@ interface ISuperchainRevSharesCalculator is ISemver {
     function remainderRecipient() external view returns (address payable);
 
     // Functions
-    function initialize(
-        address payable _shareRecipient,
-        address payable _remainderRecipient
-    ) external;
-
     function getRecipientsAndAmounts(
         uint256 _sequencerFeeRevenue,
         uint256 _baseFeeRevenue,
@@ -35,4 +31,6 @@ interface ISuperchainRevSharesCalculator is ISemver {
 
     function setShareRecipient(address payable _shareRecipient) external;
     function setRemainderRecipient(address payable _remainderRecipient) external;
+
+    function __constructor__(address payable _shareRecipient, address payable _remainderRecipient) external;
 }
