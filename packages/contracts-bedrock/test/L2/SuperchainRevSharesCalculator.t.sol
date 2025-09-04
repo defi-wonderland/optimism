@@ -18,8 +18,8 @@ contract SuperchainRevSharesCalculator_TestInit is CommonTest {
     address payable shareRecipient;
     address payable remainderRecipient;
 
-    event ShareRecipientUpdated(address indexed newShareRecipient, address indexed oldShareRecipient);
-    event RemainderRecipientUpdated(address indexed newRemainderRecipient, address indexed oldRemainderRecipient);
+    event ShareRecipientUpdated(address indexed oldShareRecipient, address indexed newShareRecipient);
+    event RemainderRecipientUpdated(address indexed oldRemainderRecipient, address indexed newRemainderRecipient);
 
     function setUp() public virtual override {
         super.setUp();
@@ -69,7 +69,7 @@ contract SuperchainRevSharesCalculator_SetShareRecipient_Test is SuperchainRevSh
     function testFuzz_setShareRecipient_succeeds(address payable _newShareRecipient) external {
         
         vm.expectEmit(address(calculator));
-        emit ShareRecipientUpdated(_newShareRecipient, shareRecipient);
+        emit ShareRecipientUpdated(shareRecipient, _newShareRecipient);
         
         vm.prank(proxyAdminOwner);
         calculator.setShareRecipient(_newShareRecipient);
@@ -94,7 +94,7 @@ contract SuperchainRevSharesCalculator_SetRemainderRecipient_Test is SuperchainR
     function testFuzz_setRemainderRecipient_succeeds(address payable _newRemainderRecipient) external {
         
         vm.expectEmit(address(calculator));
-        emit RemainderRecipientUpdated(_newRemainderRecipient, remainderRecipient);
+        emit RemainderRecipientUpdated(remainderRecipient, _newRemainderRecipient);
         
         vm.prank(proxyAdminOwner);
         calculator.setRemainderRecipient(_newRemainderRecipient);

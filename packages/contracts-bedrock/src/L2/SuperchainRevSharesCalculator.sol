@@ -15,14 +15,14 @@ import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
 contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
     /// @notice Emitted when the share recipient is updated.
-    /// @param newShareRecipient The new share recipient address.
     /// @param oldShareRecipient The old share recipient address.
-    event ShareRecipientUpdated(address indexed newShareRecipient, address indexed oldShareRecipient);
+    /// @param newShareRecipient The new share recipient address.
+    event ShareRecipientUpdated(address indexed oldShareRecipient, address indexed newShareRecipient);
 
     /// @notice Emitted when the remainder recipient is updated.
-    /// @param newRemainderRecipient The new remainder recipient address.
     /// @param oldRemainderRecipient The old remainder recipient address.
-    event RemainderRecipientUpdated(address indexed newRemainderRecipient, address indexed oldRemainderRecipient);
+    /// @param newRemainderRecipient The new remainder recipient address.
+    event RemainderRecipientUpdated(address indexed oldRemainderRecipient, address indexed newRemainderRecipient);
 
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error SharesCalculator_OnlyProxyAdminOwner();
@@ -106,7 +106,7 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
         }
         address oldShareRecipient = shareRecipient;
         shareRecipient = _newShareRecipient;
-        emit ShareRecipientUpdated(_newShareRecipient, oldShareRecipient);
+        emit ShareRecipientUpdated(oldShareRecipient, _newShareRecipient);
     }
 
     /// @notice Sets the remainder recipient. Only callable by the ProxyAdmin owner.
@@ -117,6 +117,6 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
         }
         address oldRemainderRecipient = remainderRecipient;
         remainderRecipient = _newRemainderRecipient;
-        emit RemainderRecipientUpdated(_newRemainderRecipient, oldRemainderRecipient);
+        emit RemainderRecipientUpdated(oldRemainderRecipient, _newRemainderRecipient);
     }
 }
