@@ -33,10 +33,9 @@ contract FeeSplitter_TestInit is CommonTest {
 
     /// @notice Test setup.
     function setUp() public virtual override {
+        // Enable revenue sharing before calling parent setUp
+        super.enableRevenueShare();
         super.setUp();
-
-        // Etch the FeeSplitter contract
-        vm.etch(address(feeSplitter), vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
 
         // Get the owner from ProxyAdmin
         _owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -88,14 +87,15 @@ contract FeeSplitter_TestInit is CommonTest {
 /// @title FeeSplitter_Initialize_Test
 /// @notice Tests the initialization functions of the `FeeSplitter` contract.
 contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
-    /// @notice Test that re-initialization fails
-    function test_constructor_succeeds() public {
+    /// @notice Test that re-initialization fails on the already-initialized predeploy
+    function test_reinitialization_reverts() public {
+        // The FeeSplitter at the predeploy address is already initialized through genesis
         vm.prank(_owner);
         vm.expectRevert("Initializable: contract is already initialized");
         feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)));
     }
 
-    /// @notice Test successful initialization with proper event emission
+    /// @notice Test successful initialization with proper event emission on a fresh instance
     function test_feeSplitter_initialization_succeeds() public {
         // Deploy a fresh instance for testing initialization
         address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl3"))));

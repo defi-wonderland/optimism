@@ -34,6 +34,7 @@ contract CommonTest is Test, Setup, Events {
 
     bool useAltDAOverride;
     bool useInteropOverride;
+    bool useRevenueShareOverride;
 
     /// @dev This value is only used in forked tests. During forked tests, the default is to perform the upgrade before
     ///      running the tests.
@@ -65,6 +66,9 @@ contract CommonTest is Test, Setup, Events {
         }
         if (useInteropOverride) {
             deploy.cfg().setUseInterop(true);
+        }
+        if (useRevenueShareOverride) {
+            deploy.cfg().setUseRevenueShare(true);
         }
         if (useUpgradedFork) {
             deploy.cfg().setUseUpgradedFork(true);
@@ -193,6 +197,12 @@ contract CommonTest is Test, Setup, Events {
     function enableInterop() public {
         _checkNotDeployed("interop");
         useInteropOverride = true;
+    }
+
+    /// @dev Enables revenue sharing mode for testing
+    function enableRevenueShare() public {
+        _checkNotDeployed("revenue share");
+        useRevenueShareOverride = true;
     }
 
     /// @dev Disables upgrade mode for testing. By default the fork testing env will be upgraded to the latest

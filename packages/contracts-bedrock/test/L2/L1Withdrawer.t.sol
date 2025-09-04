@@ -6,17 +6,17 @@ import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 /// @title L1Withdrawer_Test
 /// @notice Tests all functionality of L1Withdrawer including receive, withdrawal, and setters.
 contract L1Withdrawer_Test is CommonTest {
-    address l1Withdrawer;
-    IL1Withdrawer l1WithdrawerInterface;
-
-    address recipient = makeAddr("recipient");
-    uint256 minWithdrawalAmount = 1 ether;
-    uint256 withdrawalGasLimit = 150_000;
-    bytes withdrawalData = hex"1234";
+    // Test-specific parameters (the actual L1Withdrawer from genesis has different values)
+    address recipient = Constants.OP_FEES_MULTISIG;
+    uint256 minWithdrawalAmount = 10 ether;
+    uint256 withdrawalGasLimit = 300_000;
+    bytes withdrawalData = abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, 200_000, ""));
 
     event WithdrawalInitiated(address indexed recipient, uint256 amount);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
@@ -26,17 +26,9 @@ contract L1Withdrawer_Test is CommonTest {
     event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
 
     function setUp() public override {
+        // Enable revenue sharing before calling parent setUp
+        super.enableRevenueShare();
         super.setUp();
-
-        l1Withdrawer = DeployUtils.create1(
-            "L1Withdrawer.sol:L1Withdrawer",
-            DeployUtils.encodeConstructor(
-                abi.encodeCall(
-                    IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)
-                )
-            )
-        );
-        l1WithdrawerInterface = IL1Withdrawer(l1Withdrawer);
     }
 
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
@@ -128,9 +120,9 @@ contract L1Withdrawer_Test is CommonTest {
         emit MinWithdrawalAmountUpdated(minWithdrawalAmount, _newMinWithdrawalAmount);
 
         vm.prank(owner);
-        l1WithdrawerInterface.setMinWithdrawalAmount(_newMinWithdrawalAmount);
+        l1Withdrawer.setMinWithdrawalAmount(_newMinWithdrawalAmount);
 
-        assertEq(l1WithdrawerInterface.minWithdrawalAmount(), _newMinWithdrawalAmount);
+        assertEq(l1Withdrawer.minWithdrawalAmount(), _newMinWithdrawalAmount);
     }
 
     function testFuzz_setMinWithdrawalAmount_asNonOwner_reverts(address _caller) external {
@@ -141,9 +133,9 @@ contract L1Withdrawer_Test is CommonTest {
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
-        l1WithdrawerInterface.setMinWithdrawalAmount(newMinWithdrawalAmount);
+        l1Withdrawer.setMinWithdrawalAmount(newMinWithdrawalAmount);
 
-        assertEq(l1WithdrawerInterface.minWithdrawalAmount(), minWithdrawalAmount);
+        assertEq(l1Withdrawer.minWithdrawalAmount(), minWithdrawalAmount);
     }
 
     function testFuzz_setRecipient_asOwner_succeeds(address _newRecipient) external {
@@ -153,9 +145,9 @@ contract L1Withdrawer_Test is CommonTest {
         emit RecipientUpdated(recipient, _newRecipient);
 
         vm.prank(owner);
-        l1WithdrawerInterface.setRecipient(_newRecipient);
+        l1Withdrawer.setRecipient(_newRecipient);
 
-        assertEq(l1WithdrawerInterface.recipient(), _newRecipient);
+        assertEq(l1Withdrawer.recipient(), _newRecipient);
     }
 
     function testFuzz_setRecipient_asNonOwner_reverts(address _caller) external {
@@ -166,9 +158,9 @@ contract L1Withdrawer_Test is CommonTest {
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
-        l1WithdrawerInterface.setRecipient(newRecipient);
+        l1Withdrawer.setRecipient(newRecipient);
 
-        assertEq(l1WithdrawerInterface.recipient(), recipient);
+        assertEq(l1Withdrawer.recipient(), recipient);
     }
 
     function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint256 _newWithdrawalGasLimit) external {
@@ -178,9 +170,9 @@ contract L1Withdrawer_Test is CommonTest {
         emit WithdrawalGasLimitUpdated(withdrawalGasLimit, _newWithdrawalGasLimit);
 
         vm.prank(owner);
-        l1WithdrawerInterface.setWithdrawalGasLimit(_newWithdrawalGasLimit);
+        l1Withdrawer.setWithdrawalGasLimit(_newWithdrawalGasLimit);
 
-        assertEq(l1WithdrawerInterface.withdrawalGasLimit(), _newWithdrawalGasLimit);
+        assertEq(l1Withdrawer.withdrawalGasLimit(), _newWithdrawalGasLimit);
     }
 
     function testFuzz_setWithdrawalGasLimit_asNonOwner_reverts(address _caller) external {
@@ -191,9 +183,9 @@ contract L1Withdrawer_Test is CommonTest {
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
-        l1WithdrawerInterface.setWithdrawalGasLimit(newWithdrawalGasLimit);
+        l1Withdrawer.setWithdrawalGasLimit(newWithdrawalGasLimit);
 
-        assertEq(l1WithdrawerInterface.withdrawalGasLimit(), withdrawalGasLimit);
+        assertEq(l1Withdrawer.withdrawalGasLimit(), withdrawalGasLimit);
     }
 
     function testFuzz_setWithdrawalData_asOwner_succeeds(bytes memory _newWithdrawalData) external {
@@ -203,9 +195,9 @@ contract L1Withdrawer_Test is CommonTest {
         emit WithdrawalDataUpdated(withdrawalData, _newWithdrawalData);
 
         vm.prank(owner);
-        l1WithdrawerInterface.setWithdrawalData(_newWithdrawalData);
+        l1Withdrawer.setWithdrawalData(_newWithdrawalData);
 
-        assertEq(l1WithdrawerInterface.withdrawalData(), _newWithdrawalData);
+        assertEq(l1Withdrawer.withdrawalData(), _newWithdrawalData);
     }
 
     function testFuzz_setWithdrawalData_asNonOwner_reverts(address _caller) external {
@@ -216,8 +208,8 @@ contract L1Withdrawer_Test is CommonTest {
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
-        l1WithdrawerInterface.setWithdrawalData(newWithdrawalData);
+        l1Withdrawer.setWithdrawalData(newWithdrawalData);
 
-        assertEq(l1WithdrawerInterface.withdrawalData(), withdrawalData);
+        assertEq(l1Withdrawer.withdrawalData(), withdrawalData);
     }
 }

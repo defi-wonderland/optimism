@@ -61,6 +61,8 @@ import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisput
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 
 /// @title Setup
 /// @dev This contact is responsible for setting up the contracts in state. It currently
@@ -144,6 +146,9 @@ contract Setup {
     IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
     IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
+    IL1Withdrawer l1Withdrawer = IL1Withdrawer(Predeploys.L1_WITHDRAWER);
+    ISuperchainRevSharesCalculator superchainRevSharesCalculator = 
+        ISuperchainRevSharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR);
 
     /// @notice Indicates whether a test is running against a forked production network.
     function isForkTest() public view returns (bool) {
