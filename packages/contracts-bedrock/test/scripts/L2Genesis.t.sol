@@ -124,9 +124,9 @@ contract L2Genesis_TestInit is Test {
 
         // Check the L1Withdrawer is properly set
         IL1Withdrawer l1Withdrawer = IL1Withdrawer(superchainRevSharesCalculator.shareRecipient());
-        assertEq(l1Withdrawer.minWithdrawalAmount(), 10 ether);
+        assertEq(l1Withdrawer.minWithdrawalAmount(), uint216(10 ether));
         assertEq(l1Withdrawer.recipient(), Constants.OP_FEES_MULTISIG);
-        assertEq(l1Withdrawer.withdrawalGasLimit(), 300_000);
+        assertEq(l1Withdrawer.withdrawalGasLimit(), uint40(300_000));
         assertEq(
             l1Withdrawer.withdrawalData(),
             abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, 200_000, ""))

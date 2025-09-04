@@ -6,7 +6,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
 import { Script } from "forge-std/Script.sol";
-import { OutputMode, OutputModeUtils, Fork, ForkUtils, Config } from "scripts/libraries/Config.sol";
+import { OutputMode, OutputModeUtils, Fork, ForkUtils } from "scripts/libraries/Config.sol";
 import { SetPreinstalls } from "scripts/SetPreinstalls.s.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
@@ -33,7 +33,6 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
-import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 
@@ -600,15 +599,15 @@ contract L2Genesis is Script {
         address revSharesCalculator;
         if (_input.useRevenueShare) {
             // Deploy L1Withdrawer with constructor args
-            uint256 withdrawalMinGasLimit = 300_000;
+            uint40 withdrawalMinGasLimit = 300_000;
             uint32 depositMinGasLimit = 200_000;
-            uint256 thresholdAmount = 10 ether;
+            uint216 thresholdAmount = 10 ether;
             bytes memory depositData =
                 abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, depositMinGasLimit, ""));
             bytes32 l1WithdrawerSalt = keccak256("L1Withdrawer");
             address l1Withdrawer = DeployUtils.create2(
                 "L1Withdrawer.sol:L1Withdrawer",
-                abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData),
+                abi.encode(thresholdAmount, withdrawalMinGasLimit, Constants.OP_FEES_MULTISIG, depositData),
                 l1WithdrawerSalt
             );
             // Save to artifacts if available
