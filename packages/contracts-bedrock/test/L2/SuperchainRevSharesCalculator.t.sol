@@ -27,7 +27,7 @@ contract SuperchainRevSharesCalculator_TestInit is CommonTest {
         super.enableRevenueShare();
         super.setUp();
 
-        shareRecipient = payable(Predeploys.L1_WITHDRAWER);
+        shareRecipient = payable(address(l1Withdrawer));
         remainderRecipient = payable(deploy.cfg().chainFeesRecipient());
     }
 }

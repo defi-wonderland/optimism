@@ -17,6 +17,7 @@ import { Config } from "scripts/libraries/Config.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Constants } from "src/libraries/Constants.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Chains } from "scripts/libraries/Chains.sol";
@@ -146,9 +147,8 @@ contract Setup {
     IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
     IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
-    IL1Withdrawer l1Withdrawer = IL1Withdrawer(Predeploys.L1_WITHDRAWER);
-    ISuperchainRevSharesCalculator superchainRevSharesCalculator = 
-        ISuperchainRevSharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR);
+    IL1Withdrawer l1Withdrawer;
+    ISuperchainRevSharesCalculator superchainRevSharesCalculator;
 
     /// @notice Indicates whether a test is running against a forked production network.
     function isForkTest() public view returns (bool) {
@@ -330,11 +330,17 @@ contract Setup {
                 enableGovernance: deploy.cfg().enableGovernance(),
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
                 feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval(),
-                feeSplitterSharesCalculator: deploy.cfg().feeSplitterSharesCalculator(),
                 useRevenueShare: deploy.cfg().useRevenueShare(),
                 chainFeesRecipient: deploy.cfg().chainFeesRecipient()
             })
         );
+
+        // Initialize revenue sharing contracts if enabled
+        if (deploy.cfg().useRevenueShare()) {
+            // Get the addresses from artifacts that were saved during L2Genesis
+            l1Withdrawer = IL1Withdrawer(artifacts.mustGetAddress("L1Withdrawer"));
+            superchainRevSharesCalculator = ISuperchainRevSharesCalculator(artifacts.mustGetAddress("SuperchainRevSharesCalculator"));
+        }
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();

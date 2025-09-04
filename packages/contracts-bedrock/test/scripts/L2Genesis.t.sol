@@ -20,7 +20,7 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
-import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 
 /// @title L2Genesis_TestInit
 /// @notice Reusable test initialization for `L2Genesis` tests.
@@ -115,25 +115,20 @@ contract L2Genesis_TestInit is Test {
 
         // Check that the shares calculator and fee disbursement interval are set on the fee splitter
         IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
-        assertEq(address(feeSplitter.sharesCalculator()), input.feeSplitterSharesCalculator);
         assertEq(feeSplitter.feeDisbursementInterval(), 1 days);
 
+        ISuperchainRevSharesCalculator superchainRevSharesCalculator =
+            ISuperchainRevSharesCalculator(address(feeSplitter.sharesCalculator()));
         // Check that the superchain rev shares calculator is properly set
-        assertEq(
-            ISuperchainRevSharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR).shareRecipient(),
-            Predeploys.L1_WITHDRAWER
-        );
-        assertEq(
-            ISuperchainRevSharesCalculator(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR).remainderRecipient(),
-            input.chainFeesRecipient
-        );
+        assertEq(superchainRevSharesCalculator.remainderRecipient(), input.chainFeesRecipient);
 
         // Check the L1Withdrawer is properly set
-        assertEq(IL1Withdrawer(Predeploys.L1_WITHDRAWER).minWithdrawalAmount(), 10 ether);
-        assertEq(IL1Withdrawer(Predeploys.L1_WITHDRAWER).recipient(), Constants.OP_FEES_MULTISIG);
-        assertEq(IL1Withdrawer(Predeploys.L1_WITHDRAWER).withdrawalGasLimit(), 300_000);
+        IL1Withdrawer l1Withdrawer = IL1Withdrawer(superchainRevSharesCalculator.shareRecipient());
+        assertEq(l1Withdrawer.minWithdrawalAmount(), 10 ether);
+        assertEq(l1Withdrawer.recipient(), Constants.OP_FEES_MULTISIG);
+        assertEq(l1Withdrawer.withdrawalGasLimit(), 300_000);
         assertEq(
-            IL1Withdrawer(Predeploys.L1_WITHDRAWER).withdrawalData(),
+            l1Withdrawer.withdrawalData(),
             abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, 200_000, ""))
         );
     }
@@ -168,7 +163,6 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             enableGovernance: true,
             fundDevAccounts: true,
             feeSplitterFeeDisbursementInterval: 86400,
-            feeSplitterSharesCalculator: Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR,
             useRevenueShare: true,
             chainFeesRecipient: address(0x000000000000000000000000000000000000000b)
         });
@@ -209,7 +203,6 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             enableGovernance: true,
             fundDevAccounts: true,
             feeSplitterFeeDisbursementInterval: 86400,
-            feeSplitterSharesCalculator: address(0), // No custom shares calculator when revenue share is disabled
             useRevenueShare: false,
             chainFeesRecipient: address(0) // Not used when revenue share is disabled
          });
@@ -226,13 +219,5 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
         assertEq(address(feeSplitter.sharesCalculator()), address(0), "sharesCalculator should be zero address");
         assertEq(feeSplitter.feeDisbursementInterval(), 1 days, "feeDisbursementInterval should be 1 day");
-
-        // Verify that SuperchainRevSharesCalculator and L1Withdrawer have no code
-        assertEq(
-            Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR.code.length,
-            0,
-            "SuperchainRevSharesCalculator should have no code"
-        );
-        assertEq(Predeploys.L1_WITHDRAWER.code.length, 0, "L1Withdrawer should have no code");
     }
 }

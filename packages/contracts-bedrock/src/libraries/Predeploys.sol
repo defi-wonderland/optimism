@@ -116,10 +116,6 @@ library Predeploys {
     /// @notice Address of the FeeSplitter predeploy.
     address internal constant FEE_SPLITTER = 0x420000000000000000000000000000000000002B;
 
-    // TODO: Prec addresses
-    address internal constant L1_WITHDRAWER = 0x1000000000000000000000000000000000000000;
-    address internal constant SUPERCHAIN_REV_SHARES_CALCULATOR = 0x1000000000000000000000000000000000000001;
-
     /// @notice Returns the name of the predeploy at the given address.
     function getName(address _addr) internal pure returns (string memory out_) {
         require(isPredeployNamespace(_addr), "Predeploys: address must be a predeploy");

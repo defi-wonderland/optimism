@@ -15,6 +15,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { Artifacts } from "scripts/Artifacts.s.sol";
 
 // Interfaces
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
@@ -68,7 +69,6 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
-        address feeSplitterSharesCalculator;
         uint256 feeSplitterFeeDisbursementInterval;
         bool useRevenueShare;
         address chainFeesRecipient;
@@ -595,6 +595,9 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setFeeSplitter(Input memory _input) internal {
+        Artifacts artifacts = Artifacts(address(uint160(uint256(keccak256(abi.encode("optimism.artifacts"))))));
+
+        address revSharesCalculator;
         if (_input.useRevenueShare) {
             // Deploy L1Withdrawer with constructor args
             uint256 withdrawalMinGasLimit = 300_000;
@@ -602,24 +605,30 @@ contract L2Genesis is Script {
             uint256 thresholdAmount = 10 ether;
             bytes memory depositData =
                 abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, depositMinGasLimit, ""));
-            address _l1WithdrawerDeployed = vm.deployCode(
+            bytes32 l1WithdrawerSalt = keccak256("L1Withdrawer");
+            address l1Withdrawer = DeployUtils.create2(
                 "L1Withdrawer.sol:L1Withdrawer",
-                abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData)
+                abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData),
+                l1WithdrawerSalt
             );
-
-            // Etch the deployed code to the predeploy address and copy the storage
-            vm.etch(Predeploys.L1_WITHDRAWER, _l1WithdrawerDeployed.code);
-            vm.copyStorage(_l1WithdrawerDeployed, Predeploys.L1_WITHDRAWER);
+            // Save to artifacts if available (not in test context)
+            if (address(artifacts).code.length > 0) {
+                artifacts.save("L1Withdrawer", l1Withdrawer);
+            }
+            console.log("l1Withdrawer", l1Withdrawer);
 
             // Deploy SuperchainRevSharesCalculator with constructor args
-            address _calcDeployed = vm.deployCode(
+            bytes32 calcSalt = keccak256("SuperchainRevSharesCalculator");
+            revSharesCalculator = DeployUtils.create2(
                 "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
-                abi.encode(payable(Predeploys.L1_WITHDRAWER), payable(_input.chainFeesRecipient))
+                abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient)),
+                calcSalt
             );
-
-            // Etch the deployed code to the predeploy address and copy the storage
-            vm.etch(Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR, _calcDeployed.code);
-            vm.copyStorage(_calcDeployed, Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR);
+            // Save to artifacts if available (not in test context)
+            if (address(artifacts).code.length > 0) {
+                artifacts.save("SuperchainRevSharesCalculator", revSharesCalculator);
+            }
+            console.log("revSharesCalculator", revSharesCalculator);
         }
         // Initialize the implementation with dummy values
         address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
@@ -627,7 +636,7 @@ contract L2Genesis is Script {
 
         // Initialize the proxy with the actual values
         // Only set the shares calculator if revenue sharing is enabled
-        address sharesCalculator = _input.useRevenueShare ? Predeploys.SUPERCHAIN_REV_SHARES_CALCULATOR : address(0);
+        address sharesCalculator = revSharesCalculator;
 
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(ISharesCalculator(sharesCalculator));
     }
@@ -647,3 +656,5 @@ contract L2Genesis is Script {
         }
     }
 }
+
+import { console } from "forge-std/console.sol";

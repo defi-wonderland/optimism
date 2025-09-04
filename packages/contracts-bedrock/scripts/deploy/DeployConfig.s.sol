@@ -51,7 +51,6 @@ contract DeployConfig is Script {
     uint256 public operatorFeeVaultMinimumWithdrawalAmount;
     uint256 public operatorFeeVaultWithdrawalNetwork;
     address public governanceTokenOwner;
-    address public feeSplitterSharesCalculator;
     uint256 public feeSplitterFeeDisbursementInterval;
     uint256 public l2GenesisBlockGasLimit;
     uint32 public basefeeScalar;
@@ -126,7 +125,6 @@ contract DeployConfig is Script {
         operatorFeeVaultMinimumWithdrawalAmount = stdJson.readUint(_json, "$.operatorFeeVaultMinimumWithdrawalAmount");
         operatorFeeVaultWithdrawalNetwork = stdJson.readUint(_json, "$.operatorFeeVaultWithdrawalNetwork");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
-        feeSplitterSharesCalculator = _readOr(_json, "$.feeSplitterSharesCalculator", address(0));
         feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(0));
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
         basefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBaseFeeScalar", 1368));
