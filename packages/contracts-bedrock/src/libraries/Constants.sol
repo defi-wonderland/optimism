@@ -38,8 +38,8 @@ library Constants {
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
 
-    // TODO: set address
-    address internal constant OP_FEES_MULTISIG = 0x876235EFb64d7F43E682502c61b381e9050D2AA4;
+    // TODO: IMPORTANT!! Update address
+    address internal constant OP_FEES_MULTISIG = 0x4200000000000000000000000000000000000018;
 
     /// @notice Returns the default values for the ResourceConfig. These are the recommended values
     ///         for a production network.

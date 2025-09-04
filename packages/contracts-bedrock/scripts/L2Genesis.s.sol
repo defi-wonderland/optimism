@@ -611,7 +611,7 @@ contract L2Genesis is Script {
                 abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData),
                 l1WithdrawerSalt
             );
-            // Save to artifacts if available (not in test context)
+            // Save to artifacts if available
             if (address(artifacts).code.length > 0) {
                 artifacts.save("L1Withdrawer", l1Withdrawer);
             }
@@ -623,7 +623,7 @@ contract L2Genesis is Script {
                 abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient)),
                 calcSalt
             );
-            // Save to artifacts if available (not in test context)
+            // Save to artifacts if available
             if (address(artifacts).code.length > 0) {
                 artifacts.save("SuperchainRevSharesCalculator", revSharesCalculator);
             }
@@ -635,7 +635,6 @@ contract L2Genesis is Script {
         // Initialize the proxy with the actual values
         // Only set the shares calculator if revenue sharing is enabled
         address sharesCalculator = revSharesCalculator;
-
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(ISharesCalculator(sharesCalculator));
     }
 
