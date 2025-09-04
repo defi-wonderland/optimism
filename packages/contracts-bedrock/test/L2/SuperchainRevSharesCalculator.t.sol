@@ -132,9 +132,9 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         uint256 _l1Fees
     ) external view {
         // Use smaller bounds to prevent overflow
-        _sequencerFees = bound(_sequencerFees, 1, type(uint64).max);
-        _baseFees = bound(_baseFees, 1, type(uint64).max);
-        _operatorFees = bound(_operatorFees, 1, type(uint64).max);
+        _sequencerFees = bound(_sequencerFees, 10000, type(uint64).max);
+        _baseFees = bound(_baseFees, 10000, type(uint64).max);
+        _operatorFees = bound(_operatorFees, 10000, type(uint64).max);
         
         // Calculate other fees (without L1 fees)
         uint256 otherFees = _sequencerFees + _baseFees + _operatorFees;
@@ -142,7 +142,7 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         // For gross > net: we need L1 fees to be very high relative to other fees
         // Set L1 fees to be 90% of total revenue to ensure gross > net
         uint256 minL1Fees = otherFees * 9; // L1 fees = 90% of other fees, so total = 10 * otherFees, L1 = 9 * otherFees
-        _l1Fees = bound(_l1Fees, minL1Fees, minL1Fees + 1000);
+        _l1Fees = bound(_l1Fees, minL1Fees, minL1Fees + 10000);
         
         ISharesCalculator.ShareInfo[] memory result = calculator.getRecipientsAndAmounts(
             _sequencerFees, _baseFees, _operatorFees, _l1Fees
@@ -178,9 +178,9 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         uint256 _l1Fees
     ) external view {
         // Use smaller bounds to prevent overflow
-        _sequencerFees = bound(_sequencerFees, 1, type(uint64).max);
-        _baseFees = bound(_baseFees, 1, type(uint64).max);
-        _operatorFees = bound(_operatorFees, 1, type(uint64).max);
+        _sequencerFees = bound(_sequencerFees, 10000, type(uint64).max);
+        _baseFees = bound(_baseFees, 10000, type(uint64).max);
+        _operatorFees = bound(_operatorFees, 10000, type(uint64).max);
         
         // Calculate other fees (without L1 fees)
         uint256 otherFees = _sequencerFees + _baseFees + _operatorFees;
@@ -223,11 +223,11 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         uint256 _operatorFees,
         uint256 _l1Fees
     ) external view {
-        // Use uint128 to prevent overflow when adding
-        _sequencerFees = bound(_sequencerFees, 0, type(uint64).max);
-        _baseFees = bound(_baseFees, 0, type(uint64).max);
-        _operatorFees = bound(_operatorFees, 0, type(uint64).max);
-        _l1Fees = bound(_l1Fees, 0, type(uint64).max);
+        // Use uint64 to prevent overflow when adding & 10000 to prevent 0 fee revert
+        _sequencerFees = bound(_sequencerFees, 10000, type(uint64).max);
+        _baseFees = bound(_baseFees, 10000, type(uint64).max);
+        _operatorFees = bound(_operatorFees, 10000, type(uint64).max);
+        _l1Fees = bound(_l1Fees, 10000, type(uint64).max);
         
         ISharesCalculator.ShareInfo[] memory result = calculator.getRecipientsAndAmounts(
             _sequencerFees, _baseFees, _operatorFees, _l1Fees
