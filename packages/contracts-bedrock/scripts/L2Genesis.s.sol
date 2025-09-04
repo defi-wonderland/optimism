@@ -615,7 +615,6 @@ contract L2Genesis is Script {
             if (address(artifacts).code.length > 0) {
                 artifacts.save("L1Withdrawer", l1Withdrawer);
             }
-            console.log("l1Withdrawer", l1Withdrawer);
 
             // Deploy SuperchainRevSharesCalculator with constructor args
             bytes32 calcSalt = keccak256("SuperchainRevSharesCalculator");
@@ -628,7 +627,6 @@ contract L2Genesis is Script {
             if (address(artifacts).code.length > 0) {
                 artifacts.save("SuperchainRevSharesCalculator", revSharesCalculator);
             }
-            console.log("revSharesCalculator", revSharesCalculator);
         }
         // Initialize the implementation with dummy values
         address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
@@ -656,5 +654,3 @@ contract L2Genesis is Script {
         }
     }
 }
-
-import { console } from "forge-std/console.sol";

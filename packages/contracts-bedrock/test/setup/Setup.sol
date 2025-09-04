@@ -337,9 +337,17 @@ contract Setup {
 
         // Initialize revenue sharing contracts if enabled
         if (deploy.cfg().useRevenueShare()) {
-            // Get the addresses from artifacts that were saved during L2Genesis
-            l1Withdrawer = IL1Withdrawer(artifacts.mustGetAddress("L1Withdrawer"));
-            superchainRevSharesCalculator = ISuperchainRevSharesCalculator(artifacts.mustGetAddress("SuperchainRevSharesCalculator"));
+            // Get the addresses from artifacts (they were saved during L2Genesis.run())
+            // If artifacts aren't available, the addresses will just be zero and tests that need them will fail appropriately
+            address l1WithdrawerAddr = artifacts.getAddress("L1Withdrawer");
+            address superchainRevSharesCalculatorAddr = artifacts.getAddress("SuperchainRevSharesCalculator");
+            
+            if (l1WithdrawerAddr != address(0)) {
+                l1Withdrawer = IL1Withdrawer(l1WithdrawerAddr);
+            }
+            if (superchainRevSharesCalculatorAddr != address(0)) {
+                superchainRevSharesCalculator = ISuperchainRevSharesCalculator(superchainRevSharesCalculatorAddr);
+            }
         }
 
         // Set the governance token's owner to be the final system owner

@@ -110,7 +110,7 @@ contract L2Genesis_TestInit is Test {
     }
 
     function testFeeSplitter() internal view {
-        // Only test if revenue share is not enabled
+        // Only test if revenue share is enabled
         if (!input.useRevenueShare) return;
 
         // Check that the shares calculator and fee disbursement interval are set on the fee splitter
