@@ -21,6 +21,9 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.
 contract FeeSplitter is ISemver, Initializable {
+    /// @notice Thrown when the fee disbursement interval exceeds the maximum allowed.
+    error FeeSplitter_ExceedsMaxFeeDisbursementTime();
+
     /// @notice Thrown when the share calculator address is zero.
     error FeeSplitter_SharesCalculatorCannotBeZero();
 
@@ -61,6 +64,9 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
+
+    /// @notice max time between fee disbursements
+    uint128 public constant MAX_DISBURSEMENT_INTERVAL = 365 days;
 
     /// @notice The contract which determines the recipients and their weights for fee disbursement.
     ISharesCalculator public sharesCalculator;
@@ -105,6 +111,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param _sharesCalculator            The share calculator contract.
     /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
     function initialize(ISharesCalculator _sharesCalculator, uint128 _feeDisbursementInterval) external initializer {
+        if (_feeDisbursementInterval > MAX_DISBURSEMENT_INTERVAL) {
+            revert FeeSplitter_ExceedsMaxFeeDisbursementTime();
+        }
         sharesCalculator = _sharesCalculator;
         feeDisbursementInterval = _feeDisbursementInterval;
 
@@ -183,6 +192,9 @@ contract FeeSplitter is ISemver, Initializable {
     function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
+        }
+        if (_newFeeDisbursementInterval > MAX_DISBURSEMENT_INTERVAL) {
+            revert FeeSplitter_ExceedsMaxFeeDisbursementTime();
         }
         uint128 oldFeeDisbursementInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
