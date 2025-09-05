@@ -198,75 +198,75 @@ contract SequencerFeeVault_Withdraw_Test is SequencerFeeVault_TestInit {
 /// @notice Tests the setter functions of the `SequencerFeeVault` contract.
 contract SequencerFeeVault_Setters_Test is SequencerFeeVault_TestInit {
     /// @notice Tests that the owner can successfully set minimum withdrawal amount with fuzz testing.
-    function testFuzz_setMinWithdrawalAmount_succeeds(uint256 newAmount) external {
+    function testFuzz_setMinWithdrawalAmount_succeeds(uint256 _newAmount) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
         
         // Store initial values to verify boolean flag behavior
         uint256 initialAmount = sequencerFeeVault.minWithdrawalAmount();
-        vm.assume(newAmount != initialAmount);
+        vm.assume(_newAmount != initialAmount);
         
         vm.prank(owner);
-        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(newAmount);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(_newAmount);
 
         // Verify the value was updated
-        assertEq(sequencerFeeVault.minWithdrawalAmount(), newAmount);
+        assertEq(sequencerFeeVault.minWithdrawalAmount(), _newAmount);
         
         // Should no longer return the immutable value
         assertNotEq(sequencerFeeVault.minWithdrawalAmount(), initialAmount);
     }
 
     /// @notice Tests that non-owner cannot set minimum withdrawal amount with fuzz testing.
-    function testFuzz_setMinWithdrawalAmount_onlyOwner_reverts(address caller, uint256 newAmount) external {
+    function testFuzz_setMinWithdrawalAmount_onlyOwner_reverts(address _caller, uint256 _newAmount) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
-        vm.assume(caller != owner);
+        vm.assume(_caller != owner);
         
         uint256 initialAmount = sequencerFeeVault.minWithdrawalAmount();
 
-        vm.prank(caller);
+        vm.prank(_caller);
         vm.expectRevert();
-        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(newAmount);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(_newAmount);
         
         // Verify the value and boolean flag were NOT changed
         assertEq(sequencerFeeVault.minWithdrawalAmount(), initialAmount);
     }
 
     /// @notice Tests that the owner can successfully set recipient with fuzz testing.
-    function testFuzz_setRecipient_succeeds(address newRecipient) external {
+    function testFuzz_setRecipient_succeeds(address _newRecipient) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
         
         // Store initial value
         address initialRecipient = sequencerFeeVault.recipient();
 
         vm.prank(owner);
-        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(newRecipient);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(_newRecipient);
 
         // Verify the value was updated
-        assertEq(sequencerFeeVault.recipient(), newRecipient);
+        assertEq(sequencerFeeVault.recipient(), _newRecipient);
         
         // Should no longer return the immutable value
         assertNotEq(sequencerFeeVault.recipient(), initialRecipient);
     }
 
     /// @notice Tests that non-owner cannot set recipient with fuzz testing.
-    function testFuzz_setRecipient_onlyOwner_reverts(address caller, address newRecipient) external {
+    function testFuzz_setRecipient_onlyOwner_reverts(address _caller, address _newRecipient) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
-        vm.assume(caller != owner);
+        vm.assume(_caller != owner);
         
         address initialRecipient = sequencerFeeVault.recipient();
 
-        vm.prank(caller);
+        vm.prank(_caller);
         vm.expectRevert();
-        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(newRecipient);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(_newRecipient);
         
         // Verify the value and boolean flag were NOT changed
         assertEq(sequencerFeeVault.recipient(), initialRecipient);
     }
 
     /// @notice Tests that the owner can successfully set withdrawal network with fuzz testing.
-    function testFuzz_setWithdrawalNetwork_succeeds(uint8 networkValue) external {
+    function testFuzz_setWithdrawalNetwork_succeeds(uint8 _networkValue) external {
         // Bound to valid enum values (0 = L1, 1 = L2)
-        networkValue = uint8(bound(networkValue, 0, 1));
-        Types.WithdrawalNetwork newNetwork = Types.WithdrawalNetwork(networkValue);
+        _networkValue = uint8(bound(_networkValue, 0, 1));
+        Types.WithdrawalNetwork newNetwork = Types.WithdrawalNetwork(_networkValue);
         
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
         
@@ -278,17 +278,17 @@ contract SequencerFeeVault_Setters_Test is SequencerFeeVault_TestInit {
     }
 
     /// @notice Tests that non-owner cannot set withdrawal network with fuzz testing.
-    function testFuzz_setWithdrawalNetwork_onlyOwner_reverts(address caller, uint8 networkValue) external {
+    function testFuzz_setWithdrawalNetwork_onlyOwner_reverts(address _caller, uint8 _networkValue) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
-        vm.assume(caller != owner);
+        vm.assume(_caller != owner);
         
         // Bound to valid enum values
-        networkValue = uint8(bound(networkValue, 0, 1));
-        Types.WithdrawalNetwork newNetwork = Types.WithdrawalNetwork(networkValue);
+        _networkValue = uint8(bound(_networkValue, 0, 1));
+        Types.WithdrawalNetwork newNetwork = Types.WithdrawalNetwork(_networkValue);
         
         Types.WithdrawalNetwork initialNetwork = sequencerFeeVault.withdrawalNetwork();
 
-        vm.prank(caller);
+        vm.prank(_caller);
         vm.expectRevert();
         IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setWithdrawalNetwork(newNetwork);
         
