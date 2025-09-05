@@ -202,8 +202,8 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Checks & Withdraws fees from a FeeVault.
-    /// @dev Withdrawal will only occur if the vault is properly configured and if the FeeVault's balance is greater
-    /// than or equal to the minimum
+    /// @dev Withdrawal will only occur if the vault is properly configured.
+    ///      The FeeVault itself will enforce minimum withdrawal requirements.
     /// @param _feeVault The address of the FeeVault to withdraw from.
     /// @return value_ The amount of ETH that was withdrawn from the vault.
     function _feeVaultWithdrawal(address payable _feeVault) internal returns (uint256 value_) {
@@ -213,9 +213,7 @@ contract FeeSplitter is ISemver, Initializable {
         if (IFeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
-        if (_feeVault.balance >= IFeeVault(_feeVault).minWithdrawalAmount()) {
-            value_ = IFeeVault(_feeVault).withdraw();
-        }
+        value_ = IFeeVault(_feeVault).withdraw();
     }
 
     /// @notice Sets the transient disbursing flag.

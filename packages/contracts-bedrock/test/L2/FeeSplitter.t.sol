@@ -64,7 +64,7 @@ contract FeeSplitter_TestInit is CommonTest {
         internal
     {
         // Deploy a simple mock vault that can transfer ETH when withdraw() is called
-        MockFeeVault mockVault = new MockFeeVault(payable(address(_splitter)), 1 ether, Types.WithdrawalNetwork.L2);
+        MockFeeVault mockVault = new MockFeeVault(payable(address(_splitter)), 0, Types.WithdrawalNetwork.L2);
         vm.deal(address(mockVault), _balance);
         vm.etch(_vault, address(mockVault).code);
         vm.deal(_vault, _balance);
@@ -457,6 +457,62 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
         feeSplitter.setFeeDisbursementInterval(_newInterval);
 
         assertEq(feeSplitter.feeDisbursementInterval(), _newInterval);
+    }
+}
+
+/// @title FeeSplitter_DisburseFees_TestFail
+/// @notice Test failure scenario where vaults have insufficient balance for withdrawal
+contract FeeSplitter_DisburseFees_TestFail is FeeSplitter_TestInit {
+    /// @notice Helper to mock fee vault with specific minimum withdrawal amount
+    function _setFeeVaultData(
+        address _vault,
+        uint256 _balance,
+        uint256 _minWithdrawal
+    )
+        internal
+    {
+        MockFeeVault mockVault = new MockFeeVault(payable(address(feeSplitter)), _minWithdrawal, Types.WithdrawalNetwork.L2);
+        vm.deal(address(mockVault), _balance);
+        vm.etch(_vault, address(mockVault).code);
+        vm.deal(_vault, _balance);
+    }
+
+    /// @notice Fuzz test that a vault with balance below minimum causes entire disbursement to revert
+    function test_disburseFees_vaultBelowMinimum_Reverts(uint256 _minWithdrawalAmount, uint256 _vaultIndex) public {
+        // If uint256, the test will revert due to ETH transfer overflow
+        _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint128).max);
+        _vaultIndex = bound(_vaultIndex, 0, 3); // 0-3 for the 4 vaults
+        
+        // Calculate vault balances: one vault will have insufficient balance
+        uint256 insufficientBalance = _minWithdrawalAmount - 1;
+        uint256 sufficientBalance = _minWithdrawalAmount;
+        
+        address[4] memory vaults = [
+            Predeploys.SEQUENCER_FEE_WALLET,
+            Predeploys.BASE_FEE_VAULT, 
+            Predeploys.L1_FEE_VAULT,
+            Predeploys.OPERATOR_FEE_VAULT
+        ];
+        
+        // Setup all vaults with sufficient balance first
+        for (uint256 i = 0; i < 4; i++) {
+            _setFeeVaultData(vaults[i], sufficientBalance, _minWithdrawalAmount);
+        }
+        
+        // Override the selected vault with insufficient balance
+        _setFeeVaultData(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
+
+        vm.warp(block.timestamp + 25 hours);
+        
+        // The entire disbursement should revert because one vault doesn't meet its minimum
+        vm.expectRevert("FeeVault: withdrawal amount must be greater than minimum withdrawal amount");
+        feeSplitter.disburseFees();
+        
+        // Verify no funds were moved (all vaults retain their original balance)
+        for (uint256 i = 0; i < 4; i++) {
+            uint256 expectedBalance = (i == _vaultIndex) ? insufficientBalance : sufficientBalance;
+            assertEq(address(vaults[i]).balance, expectedBalance);
+        }
     }
 }
 
