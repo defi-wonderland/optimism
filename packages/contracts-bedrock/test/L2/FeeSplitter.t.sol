@@ -464,7 +464,7 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
 /// @notice Test failure scenario where vaults have insufficient balance for withdrawal
 contract FeeSplitter_DisburseFees_TestFail is FeeSplitter_TestInit {
     /// @notice Helper to mock fee vault with specific minimum withdrawal amount
-    function _mockFeeVaultWithMinimum(
+    function _setFeeVaultData(
         address _vault,
         uint256 _balance,
         uint256 _minWithdrawal
@@ -496,11 +496,11 @@ contract FeeSplitter_DisburseFees_TestFail is FeeSplitter_TestInit {
         
         // Setup all vaults with sufficient balance first
         for (uint256 i = 0; i < 4; i++) {
-            _mockFeeVaultWithMinimum(vaults[i], sufficientBalance, _minWithdrawalAmount);
+            _setFeeVaultData(vaults[i], sufficientBalance, _minWithdrawalAmount);
         }
         
         // Override the selected vault with insufficient balance
-        _mockFeeVaultWithMinimum(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
+        _setFeeVaultData(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
 
         vm.warp(block.timestamp + 25 hours);
         
