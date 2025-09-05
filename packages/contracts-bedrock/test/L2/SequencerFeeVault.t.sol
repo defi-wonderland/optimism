@@ -236,6 +236,7 @@ contract SequencerFeeVault_Setters_Test is SequencerFeeVault_TestInit {
         
         // Store initial value
         address initialRecipient = sequencerFeeVault.recipient();
+        vm.assume(_newRecipient != initialRecipient);
 
         vm.prank(owner);
         IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(_newRecipient);
