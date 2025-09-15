@@ -5,6 +5,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
 interface IFeeSplitter is ISemver {
+    error FeeSplitter_ExceedsMaxFeeDisbursementTime();
     error FeeSplitter_SharesCalculatorCannotBeZero();
     error FeeSplitter_DisbursementIntervalNotReached();
     error FeeSplitter_FeeShareInfoEmpty();

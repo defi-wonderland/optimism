@@ -32,4 +32,6 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     function setL2Recipient(address _l2Recipient) external;
     function setGasLimit(uint64 _gasLimit) external;
     function setDepositData(bytes memory _depositData) external;
+
+    function __constructor__() external;
 }

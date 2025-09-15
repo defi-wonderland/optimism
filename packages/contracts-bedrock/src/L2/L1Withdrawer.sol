@@ -21,7 +21,7 @@ contract L1Withdrawer is ISemver {
     address public recipient;
 
     /// @notice The L1 gas limit set when initiating withdrawals.
-    uint256 public withdrawalGasLimit;
+    uint96 public withdrawalGasLimit;
 
     /// @notice Emitted when a withdrawal to L1 is initiated.
     /// @param recipient The L1 address receiving the withdrawal.
@@ -47,7 +47,7 @@ contract L1Withdrawer is ISemver {
     /// @notice Emitted when the withdrawal gas limit is updated.
     /// @param oldWithdrawalGasLimit The previous withdrawal gas limit.
     /// @param newWithdrawalGasLimit The new withdrawal gas limit.
-    event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
+    event WithdrawalGasLimitUpdated(uint96 oldWithdrawalGasLimit, uint96 newWithdrawalGasLimit);
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -57,7 +57,7 @@ contract L1Withdrawer is ISemver {
     /// @param _minWithdrawalAmount The minimum amount of ETH required to trigger a withdrawal.
     /// @param _recipient The L1 address that will receive withdrawals.
     /// @param _withdrawalGasLimit The gas limit for the L1 withdrawal transaction.
-    constructor(uint256 _minWithdrawalAmount, address _recipient, uint256 _withdrawalGasLimit) {
+    constructor(uint256 _minWithdrawalAmount, address _recipient, uint96 _withdrawalGasLimit) {
         minWithdrawalAmount = _minWithdrawalAmount;
         recipient = _recipient;
         withdrawalGasLimit = _withdrawalGasLimit;
@@ -101,11 +101,11 @@ contract L1Withdrawer is ISemver {
 
     /// @notice Updates the withdrawal gas limit. Only callable by the ProxyAdmin owner.
     /// @param _newWithdrawalGasLimit The new withdrawal gas limit.
-    function setWithdrawalGasLimit(uint256 _newWithdrawalGasLimit) external {
+    function setWithdrawalGasLimit(uint96 _newWithdrawalGasLimit) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert L1Withdrawer_OnlyProxyAdminOwner();
         }
-        uint256 oldWithdrawalGasLimit = withdrawalGasLimit;
+        uint96 oldWithdrawalGasLimit = withdrawalGasLimit;
         withdrawalGasLimit = _newWithdrawalGasLimit;
         emit WithdrawalGasLimitUpdated(oldWithdrawalGasLimit, _newWithdrawalGasLimit);
     }
