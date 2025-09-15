@@ -32,6 +32,8 @@ abstract contract FeeVault_Test is CommonTest {
 
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
+        // Default to L1
+        expectedWithdrawalNetwork = Types.WithdrawalNetwork.L1;
         super.setUp();
     }
 

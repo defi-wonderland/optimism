@@ -18,7 +18,6 @@ contract BaseFeeVault_Test is FeeVault_Test {
         recipient = deploy.cfg().baseFeeVaultRecipient();
         feeVaultName = "BaseFeeVault";
         minWithdrawalAmount = deploy.cfg().baseFeeVaultMinimumWithdrawalAmount();
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork.L1;
         feeVault = IFeeVault(payable(Predeploys.BASE_FEE_VAULT));
     }
 }

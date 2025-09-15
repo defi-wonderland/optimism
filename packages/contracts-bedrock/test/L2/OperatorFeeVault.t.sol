@@ -18,7 +18,6 @@ contract OperatorFeeVault_Test is FeeVault_Test {
         recipient = deploy.cfg().operatorFeeVaultRecipient();
         feeVaultName = "OperatorFeeVault";
         minWithdrawalAmount = deploy.cfg().operatorFeeVaultMinimumWithdrawalAmount();
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork.L1;
         feeVault = IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT));
     }
 }

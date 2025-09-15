@@ -19,7 +19,6 @@ contract SequencerFeeVault_Test is FeeVault_Test {
         recipient = deploy.cfg().sequencerFeeVaultRecipient();
         feeVaultName = "SequencerFeeVault";
         minWithdrawalAmount = deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount();
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork.L1;
         feeVault = IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
     }
 
