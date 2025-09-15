@@ -11,8 +11,11 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 /// @title FeesDepositor
 /// @notice A contract that deposits fees to the L2 recipient when the deposit threshold is reached.
 contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBase, ISemver {
+    /// @notice The portal contract.
+    IOptimismPortal public portal;
+
     /// @notice The threshold at which fees are deposited.
-    uint256 public depositThreshold;
+    uint96 public minDepositAmount;
 
     /// @notice The L2 recipient of the fees.
     address public l2Recipient;
@@ -20,17 +23,14 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @notice The gas limit for the deposit transaction.
     uint64 public gasLimit;
 
-    /// @notice The portal contract.
-    IOptimismPortal public portal;
-
     /// @notice The data for the deposit transaction.
     bytes public depositData;
 
     /// @notice Emitted when fees are received.
-    /// @param portal The portal contract that is finalizing the withdrawal.
-    /// @param l2Sender The L2 sender of the fees.
+    /// @param sender The sender of the fees.
     /// @param amount The amount of fees received.
-    event FeesReceived(address indexed portal, address indexed l2Sender, uint256 amount);
+    /// @param newBalance The new balance after receiving fees.
+    event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
 
     /// @notice Emitted when fees are deposited.
     /// @param amount The amount of fees deposited.
@@ -38,9 +38,9 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
 
     /// @notice Emitted when the deposit threshold is updated.
-    /// @param oldDepositThreshold The old deposit threshold.
-    /// @param newDepositThreshold The new deposit threshold.
-    event DepositThresholdUpdated(uint256 oldDepositThreshold, uint256 newDepositThreshold);
+    /// @param oldminDepositAmount The old deposit threshold.
+    /// @param newminDepositAmount The new deposit threshold.
+    event MinDepositAmountUpdated(uint96 oldminDepositAmount, uint96 newminDepositAmount);
 
     /// @notice Emitted when the L2 recipient is updated.
     /// @param oldL2Recipient The old L2 recipient.
@@ -67,13 +67,13 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     }
 
     /// @notice Initializes the FeesDepositor contract.
-    /// @param _depositThreshold The threshold at which fees are deposited.
+    /// @param _minDepositAmount The threshold at which fees are deposited.
     /// @param _l2Recipient The L2 recipient of the fees.
     /// @param _portal The portal contract.
     /// @param _gasLimit The gas limit for the deposit transaction.
     /// @param _depositData The deposit data for the deposit transaction.
     function initialize(
-        uint256 _depositThreshold,
+        uint96 _minDepositAmount,
         address _l2Recipient,
         IOptimismPortal _portal,
         uint64 _gasLimit,
@@ -86,7 +86,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
         _assertOnlyProxyAdminOrProxyAdminOwner();
 
         portal = _portal;
-        depositThreshold = _depositThreshold;
+        minDepositAmount = _minDepositAmount;
         l2Recipient = _l2Recipient;
         gasLimit = _gasLimit;
         depositData = _depositData;
@@ -95,9 +95,9 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @notice Receives ETH and deposits it to the L2 recipient through the portal when the threshold is reached.
     receive() external payable {
         uint256 balance = address(this).balance;
-        emit FeesReceived(msg.sender, IOptimismPortal(payable(msg.sender)).l2Sender(), balance);
+        emit FundsReceived(msg.sender, msg.value, balance);
 
-        if (balance >= depositThreshold) {
+        if (balance >= minDepositAmount) {
             address recipient = l2Recipient;
             portal.depositTransaction{ value: balance }(recipient, balance, gasLimit, false, depositData);
             emit FeesDeposited(recipient, balance);
@@ -105,12 +105,12 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     }
 
     /// @notice Updates the deposit threshold.
-    /// @param _depositThreshold The new deposit threshold.
-    function setDepositThreshold(uint256 _depositThreshold) external {
+    /// @param _minDepositAmount The new deposit threshold.
+    function setMinDepositAmount(uint96 _minDepositAmount) external {
         _assertOnlyProxyAdminOwner();
-        uint256 oldDepositThreshold = depositThreshold;
-        depositThreshold = _depositThreshold;
-        emit DepositThresholdUpdated(oldDepositThreshold, _depositThreshold);
+        uint96 oldminDepositAmount = minDepositAmount;
+        minDepositAmount = _minDepositAmount;
+        emit MinDepositAmountUpdated(oldminDepositAmount, _minDepositAmount);
     }
 
     /// @notice Updates the L2 recipient for the deposit transaction.
