@@ -96,6 +96,22 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
         feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)), _defaultFeeDisbursementInterval);
     }
 
+    /// @notice Test revert on initialization when disbursement interval is too long
+    function test_feeSplitter_initializationMaxTime_reverts(uint256 _disbursementInterval) public {
+        _disbursementInterval = bound(_disbursementInterval, 365 days + 1, type(uint128).max);
+
+        // Deploy a fresh instance for testing initialization
+        address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl3"))));
+        vm.etch(impl, vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
+
+        vm.expectRevert(IFeeSplitter.FeeSplitter_ExceedsMaxFeeDisbursementTime.selector);
+
+        vm.prank(_owner);
+        IFeeSplitter(payable(impl)).initialize(
+            ISharesCalculator(address(_defaultSharesCalculator)), uint128(_disbursementInterval)
+        );
+    }
+
     /// @notice Test successful initialization with proper event emission
     function test_feeSplitter_initialization_succeeds() public {
         // Deploy a fresh instance for testing initialization
@@ -446,9 +462,19 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
         feeSplitter.setFeeDisbursementInterval(48 hours);
     }
 
+    /// @notice Test setFeeDisbursementInterval reverts when interval is too long
+    function testFuzz_feeSplitterSetFeeDisbursementInterval_WhenIntervalTooLong_Reverts(uint256 _disbursementInterval) public {
+
+        _disbursementInterval = bound(_disbursementInterval, 365 days + 1, type(uint128).max);
+
+        vm.prank(_owner);
+        vm.expectRevert(IFeeSplitter.FeeSplitter_ExceedsMaxFeeDisbursementTime.selector);
+        feeSplitter.setFeeDisbursementInterval(uint128(_disbursementInterval));
+    }
+
     /// @notice Test successful setFeeDisbursementInterval
     function testFuzz_feeSplitterSetFeeDisbursementInterval_succeeds(uint128 _newInterval) public {
-        _newInterval = uint128(bound(_newInterval, 1, type(uint128).max));
+        _newInterval = uint128(bound(_newInterval, 1, 365 days));
 
         vm.expectEmit(address(feeSplitter));
         emit FeeDisbursementIntervalUpdated(feeSplitter.feeDisbursementInterval(), _newInterval);
