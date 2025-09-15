@@ -7,7 +7,7 @@ import { IReinitializableBase } from "interfaces/universal/IReinitializableBase.
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 
 interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase {
-    event FeesReceived(address indexed portal, address indexed l2Sender, uint256 amount);
+    event FundsReceived(address indexed sender, uint256 amount);
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
     event DepositThresholdUpdated(uint256 oldDepositThreshold, uint256 newDepositThreshold);
     event L2RecipientUpdated(address oldL2Recipient, address newL2Recipient);

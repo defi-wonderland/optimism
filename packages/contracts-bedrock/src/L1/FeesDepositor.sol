@@ -27,10 +27,9 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     bytes public depositData;
 
     /// @notice Emitted when fees are received.
-    /// @param portal The portal contract that is finalizing the withdrawal.
-    /// @param l2Sender The L2 sender of the fees.
+    /// @param sender The sender of the fees.
     /// @param amount The amount of fees received.
-    event FeesReceived(address indexed portal, address indexed l2Sender, uint256 amount);
+    event FundsReceived(address indexed sender, uint256 amount);
 
     /// @notice Emitted when fees are deposited.
     /// @param amount The amount of fees deposited.
@@ -95,7 +94,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @notice Receives ETH and deposits it to the L2 recipient through the portal when the threshold is reached.
     receive() external payable {
         uint256 balance = address(this).balance;
-        emit FeesReceived(msg.sender, IOptimismPortal(payable(msg.sender)).l2Sender(), balance);
+        emit FundsReceived(msg.sender, balance);
 
         if (balance >= depositThreshold) {
             address recipient = l2Recipient;
