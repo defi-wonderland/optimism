@@ -6,7 +6,6 @@ import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
-import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 /// @title L1Withdrawer_Test

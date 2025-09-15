@@ -11,8 +11,8 @@ import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevShar
 // Libraries
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Config } from "scripts/libraries/Config.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @notice Base setup contract for SuperchainRevSharesCalculator tests.
 contract SuperchainRevSharesCalculator_TestInit is CommonTest {

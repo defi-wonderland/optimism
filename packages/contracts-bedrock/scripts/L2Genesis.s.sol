@@ -6,9 +6,9 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
 import { Script } from "forge-std/Script.sol";
-import { OutputMode, OutputModeUtils, Fork, ForkUtils, Config } from "scripts/libraries/Config.sol";
 import { SetPreinstalls } from "scripts/SetPreinstalls.s.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
+import { OutputMode, OutputModeUtils, Fork, ForkUtils, Config } from "scripts/libraries/Config.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -31,9 +31,8 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
-import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
-import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -81,6 +80,8 @@ contract L2Genesis is Script {
     uint256 internal constant PRECOMPILE_COUNT = 256;
 
     uint80 internal constant DEV_ACCOUNT_FUND_AMT = 10_000 ether;
+    uint256 internal constant WITHDRAWAL_MIN_GAS_LIMIT = 300_000;
+    uint256 internal constant MIN_WITHDRAWAL_AMOUNT_THRESHOLD = 10 ether;
 
     /// @notice Default Anvil dev accounts. Only funded if `cfg.fundDevAccounts == true`.
     /// Also known as "test test test test test test test test test test test junk" mnemonic accounts,
@@ -602,12 +603,10 @@ contract L2Genesis is Script {
             if (_input.l1FeesDepositor == address(0)) revert L2Genesis_L1FeesDepositorCannotBeZero();
 
             // Deploy L1Withdrawer with constructor args
-            uint256 withdrawalMinGasLimit = 300_000;
-            uint256 thresholdAmount = 10 ether;
             bytes32 l1WithdrawerSalt = keccak256("L1Withdrawer");
             address l1Withdrawer = DeployUtils.create2(
                 "L1Withdrawer.sol:L1Withdrawer",
-                abi.encode(thresholdAmount, _input.l1FeesDepositor, withdrawalMinGasLimit),
+                abi.encode(MIN_WITHDRAWAL_AMOUNT_THRESHOLD, _input.l1FeesDepositor, WITHDRAWAL_MIN_GAS_LIMIT),
                 l1WithdrawerSalt
             );
 
