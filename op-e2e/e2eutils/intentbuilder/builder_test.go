@@ -73,13 +73,18 @@ func TestBuilder(t *testing.T) {
 	l2Config.WithL1ContractsLocator("http://l1.example.com")
 	l2Config.WithL2ContractsLocator("http://l2.example.com")
 
+	// Test RevenueShareConfigurator methods
+	l2Config.WithRevenueShare(true, common.HexToAddress("0x4444"), common.HexToAddress("0x5555"))
+
 	// Test L2VaultsConfigurator methods
 	baseFeeRecipient := common.HexToAddress("0x1111")
 	sequencerFeeRecipient := common.HexToAddress("0x2222")
 	l1FeeRecipient := common.HexToAddress("0x3333")
+	operatorFeeRecipient := common.HexToAddress("0x4444")
 	l2Config.WithBaseFeeVaultRecipient(baseFeeRecipient)
 	l2Config.WithSequencerFeeVaultRecipient(sequencerFeeRecipient)
 	l2Config.WithL1FeeVaultRecipient(l1FeeRecipient)
+	l2Config.WithOperatorFeeVaultRecipient(operatorFeeRecipient)
 
 	// Test L2RolesConfigurator methods
 	l1ProxyAdminOwner := common.HexToAddress("0x4444")
@@ -145,6 +150,7 @@ func TestBuilder(t *testing.T) {
 				BaseFeeVaultRecipient:      baseFeeRecipient,
 				SequencerFeeVaultRecipient: sequencerFeeRecipient,
 				L1FeeVaultRecipient:        l1FeeRecipient,
+				OperatorFeeVaultRecipient:  operatorFeeRecipient,
 				Roles: state.ChainRoles{
 					L1ProxyAdminOwner: l1ProxyAdminOwner,
 					L2ProxyAdminOwner: l2ProxyAdminOwner,
@@ -174,6 +180,11 @@ func TestBuilder(t *testing.T) {
 					Prefund: map[common.Address]*hexutil.U256{
 						bob: (*hexutil.U256)(bobFunds),
 					},
+				},
+				RevenueShare: &state.RevenueShare{
+					Enabled:             true,
+					ChainFeesRecipient:  common.HexToAddress("0x4444"),
+					L1FeesDepositor:     common.HexToAddress("0x5555"),
 				},
 			},
 		},

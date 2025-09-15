@@ -56,11 +56,18 @@ type L2DevGenesisParams struct {
 	Prefund map[common.Address]*hexutil.U256 `json:"prefund" toml:"prefund"`
 }
 
+type RevenueShare struct {
+	Enabled bool `json:"enabled" toml:"enabled"`
+	ChainFeesRecipient common.Address `json:"chainFeesRecipient" toml:"chainFeesRecipient"`
+	L1FeesDepositor common.Address `json:"l1FeesDepositor" toml:"l1FeesDepositor"`
+}
+
 type ChainIntent struct {
 	ID                         common.Hash               `json:"id" toml:"id"`
 	BaseFeeVaultRecipient      common.Address            `json:"baseFeeVaultRecipient" toml:"baseFeeVaultRecipient"`
 	L1FeeVaultRecipient        common.Address            `json:"l1FeeVaultRecipient" toml:"l1FeeVaultRecipient"`
 	SequencerFeeVaultRecipient common.Address            `json:"sequencerFeeVaultRecipient" toml:"sequencerFeeVaultRecipient"`
+	OperatorFeeVaultRecipient  common.Address            `json:"operatorFeeVaultRecipient" toml:"operatorFeeVaultRecipient"`
 	Eip1559DenominatorCanyon   uint64                    `json:"eip1559DenominatorCanyon" toml:"eip1559DenominatorCanyon"`
 	Eip1559Denominator         uint64                    `json:"eip1559Denominator" toml:"eip1559Denominator"`
 	Eip1559Elasticity          uint64                    `json:"eip1559Elasticity" toml:"eip1559Elasticity"`
@@ -71,6 +78,7 @@ type ChainIntent struct {
 	OperatorFeeScalar          uint32                    `json:"operatorFeeScalar,omitempty" toml:"operatorFeeScalar,omitempty"`
 	OperatorFeeConstant        uint64                    `json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
 	L1StartBlockHash           *common.Hash              `json:"l1StartBlockHash,omitempty" toml:"l1StartBlockHash,omitempty"`
+	RevenueShare               *RevenueShare             `json:"revenueShare" toml:"revenueShare"`
 
 	// Optional. For development purposes only. Only enabled if the operation mode targets a genesis-file output.
 	L2DevGenesisParams *L2DevGenesisParams `json:"l2DevGenesisParams,omitempty" toml:"l2DevGenesisParams,omitempty"`
@@ -90,6 +98,7 @@ var ErrFeeVaultZeroAddress = fmt.Errorf("chain has a fee vault set to zero addre
 var ErrNonStandardValue = fmt.Errorf("chain contains non-standard config value")
 var ErrEip1559ZeroValue = fmt.Errorf("eip1559 param is set to zero value")
 var ErrIncompatibleValue = fmt.Errorf("chain contains incompatible config value")
+var ErrRevenueShareZeroAddress = fmt.Errorf("chain has enabled revenue share but recipient is set to zero address")
 
 func (c *ChainIntent) Check() error {
 	if c.ID == emptyHash {
@@ -107,12 +116,23 @@ func (c *ChainIntent) Check() error {
 	}
 	if c.BaseFeeVaultRecipient == emptyAddress ||
 		c.L1FeeVaultRecipient == emptyAddress ||
-		c.SequencerFeeVaultRecipient == emptyAddress {
+		c.SequencerFeeVaultRecipient == emptyAddress ||
+		c.OperatorFeeVaultRecipient == emptyAddress {
 		return fmt.Errorf("%w: chainId=%s", ErrFeeVaultZeroAddress, c.ID)
 	}
 
 	if c.DangerousAltDAConfig.UseAltDA {
 		return c.DangerousAltDAConfig.Check(nil)
+	}
+
+	if c.RevenueShare != nil && c.RevenueShare.Enabled {
+		if c.RevenueShare.ChainFeesRecipient == emptyAddress {
+			return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, c.ID)
+		}
+
+		if c.RevenueShare.L1FeesDepositor == emptyAddress {
+			return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, c.ID)
+		}
 	}
 
 	return nil

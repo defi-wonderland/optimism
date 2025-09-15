@@ -46,12 +46,15 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				BaseFeeVaultWithdrawalNetwork:            "local",
 				L1FeeVaultWithdrawalNetwork:              "local",
 				SequencerFeeVaultWithdrawalNetwork:       "local",
+				OperatorFeeVaultWithdrawalNetwork:        "local",
 				SequencerFeeVaultMinimumWithdrawalAmount: standard.VaultMinWithdrawalAmount,
 				BaseFeeVaultMinimumWithdrawalAmount:      standard.VaultMinWithdrawalAmount,
 				L1FeeVaultMinimumWithdrawalAmount:        standard.VaultMinWithdrawalAmount,
+				OperatorFeeVaultMinimumWithdrawalAmount:  standard.VaultMinWithdrawalAmount,
 				BaseFeeVaultRecipient:                    chainIntent.BaseFeeVaultRecipient,
 				L1FeeVaultRecipient:                      chainIntent.L1FeeVaultRecipient,
 				SequencerFeeVaultRecipient:               chainIntent.SequencerFeeVaultRecipient,
+				OperatorFeeVaultRecipient:                chainIntent.OperatorFeeVaultRecipient,
 			},
 			GovernanceDeployConfig: genesis.GovernanceDeployConfig{
 				EnableGovernance:      false,
@@ -69,6 +72,11 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				EIP1559Denominator:       chainIntent.Eip1559Denominator,
 				EIP1559DenominatorCanyon: 250,
 				EIP1559Elasticity:        chainIntent.Eip1559Elasticity,
+			},
+			RevenueShareDeployConfig: genesis.RevenueShareDeployConfig{
+				UseRevenueShare: chainIntent.RevenueShare != nil && chainIntent.RevenueShare.Enabled,
+				ChainFeesRecipient: getRevenueShareChainFeesRecipient(chainIntent.RevenueShare),
+				L1FeesDepositor: getRevenueShareL1FeesDepositor(chainIntent.RevenueShare),
 			},
 
 			// STOP! This struct sets the _default_ upgrade schedule for all chains.
@@ -164,6 +172,20 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 	}
 
 	return cfg, nil
+}
+
+func getRevenueShareChainFeesRecipient(revenueShare *RevenueShare) common.Address {
+	if revenueShare != nil {
+		return revenueShare.ChainFeesRecipient
+	}
+	return standard.ChainFeesRecipient
+}
+
+func getRevenueShareL1FeesDepositor(revenueShare *RevenueShare) common.Address {
+	if revenueShare != nil {
+		return revenueShare.L1FeesDepositor
+	}
+	return standard.L1FeesDepositor
 }
 
 func calculateBatchInboxAddr(chainID common.Hash) common.Address {

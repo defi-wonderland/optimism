@@ -87,6 +87,17 @@ func TestValidateStandardValues(t *testing.T) {
 			},
 			ErrIncompatibleValue,
 		},
+		{
+			"RevenueShare",
+			func(intent *Intent) {
+				intent.Chains[0].RevenueShare = &RevenueShare{
+					Enabled: true,
+					ChainFeesRecipient: common.Address{},
+					L1FeesDepositor: common.Address{},
+				}
+			},
+			ErrRevenueShareZeroAddress,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -131,6 +142,10 @@ func TestValidateCustomValues(t *testing.T) {
 	err = intent.Check()
 	require.NoError(t, err)
 
+	setRevenueShare(&intent)
+	err = intent.Check()
+	require.NoError(t, err)
+
 	tests := []struct {
 		name    string
 		mutator func(intent *Intent)
@@ -154,6 +169,28 @@ func TestValidateCustomValues(t *testing.T) {
 				intent.SuperchainRoles = nil
 			},
 			ErrIncompatibleValue,
+		},
+		{
+			"zero address for revenue share chain fees recipient when enabled",
+			func(intent *Intent) {
+				intent.Chains[0].RevenueShare = &RevenueShare{
+					Enabled: true,
+					ChainFeesRecipient: common.Address{},
+					L1FeesDepositor: common.Address{},
+				}
+			},
+			ErrRevenueShareZeroAddress,
+		},
+		{
+			"zero address for revenue share l1 fees depositor when enabled",
+			func(intent *Intent) {
+				intent.Chains[0].RevenueShare = &RevenueShare{
+					Enabled: true,
+					L1FeesDepositor: common.Address{},
+					ChainFeesRecipient: common.HexToAddress("0x123"),
+				}
+			},
+			ErrRevenueShareZeroAddress,
 		},
 	}
 	for _, tt := range tests {
@@ -210,4 +247,13 @@ func setFeeAddresses(intent *Intent) {
 	intent.Chains[0].BaseFeeVaultRecipient = common.HexToAddress("0x08")
 	intent.Chains[0].L1FeeVaultRecipient = common.HexToAddress("0x09")
 	intent.Chains[0].SequencerFeeVaultRecipient = common.HexToAddress("0x0A")
+	intent.Chains[0].OperatorFeeVaultRecipient = common.HexToAddress("0x0B")
+}
+
+func setRevenueShare(intent *Intent) {
+	intent.Chains[0].RevenueShare = &RevenueShare{
+		Enabled: true,
+		ChainFeesRecipient: common.HexToAddress("0x0C"),
+		L1FeesDepositor: common.HexToAddress("0x0D"),
+	}
 }

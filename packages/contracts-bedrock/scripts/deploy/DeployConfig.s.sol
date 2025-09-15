@@ -82,6 +82,9 @@ contract DeployConfig is Script {
 
     bool public useInterop;
     bool public useUpgradedFork;
+    bool public useRevenueShare;
+    address public chainFeesRecipient;
+    address public l1FeesDepositor;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -160,6 +163,8 @@ contract DeployConfig is Script {
 
         useInterop = _readOr(_json, "$.useInterop", false);
         useUpgradedFork;
+        useRevenueShare = _readOr(_json, "$.useRevenueShare", true);
+        chainFeesRecipient = _readOr(_json, "$.chainFeesRecipient", address(0));
     }
 
     function fork() public view returns (Fork fork_) {

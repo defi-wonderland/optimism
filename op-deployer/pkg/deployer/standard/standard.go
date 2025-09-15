@@ -37,6 +37,8 @@ const (
 	Eip1559Denominator              uint64 = 50
 	Eip1559Elasticity               uint64 = 6
 
+	UseRevenueShare = false
+
 	ContractsV160Tag        = "op-contracts/v1.6.0"
 	ContractsV180Tag        = "op-contracts/v1.8.0-rc.4"
 	ContractsV170Beta1L2Tag = "op-contracts/v1.7.0-beta.1+l2-contracts"
@@ -44,6 +46,10 @@ const (
 	ContractsV300Tag        = "op-contracts/v3.0.0"
 	ContractsV400Tag        = "op-contracts/v4.0.0-rc.7"
 )
+
+var ChainFeesRecipient = 	common.Address{}
+
+var L1FeesDepositor = common.Address{}
 
 var DisputeAbsolutePrestate = common.HexToHash("0x038512e02c4c3f7bdaec27d00edf55b7155e0905301e1a88083e4e0a6764d54c")
 

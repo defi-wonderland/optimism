@@ -26,11 +26,16 @@ type l2GenesisOverrides struct {
 	BaseFeeVaultMinimumWithdrawalAmount      *hexutil.Big              `json:"baseFeeVaultMinimumWithdrawalAmount"`
 	L1FeeVaultMinimumWithdrawalAmount        *hexutil.Big              `json:"l1FeeVaultMinimumWithdrawalAmount"`
 	SequencerFeeVaultMinimumWithdrawalAmount *hexutil.Big              `json:"sequencerFeeVaultMinimumWithdrawalAmount"`
+	OperatorFeeVaultMinimumWithdrawalAmount  *hexutil.Big              `json:"operatorFeeVaultMinimumWithdrawalAmount"`
 	BaseFeeVaultWithdrawalNetwork            genesis.WithdrawalNetwork `json:"baseFeeVaultWithdrawalNetwork"`
 	L1FeeVaultWithdrawalNetwork              genesis.WithdrawalNetwork `json:"l1FeeVaultWithdrawalNetwork"`
 	SequencerFeeVaultWithdrawalNetwork       genesis.WithdrawalNetwork `json:"sequencerFeeVaultWithdrawalNetwork"`
+	OperatorFeeVaultWithdrawalNetwork        genesis.WithdrawalNetwork `json:"operatorFeeVaultWithdrawalNetwork"`
 	EnableGovernance                         bool                      `json:"enableGovernance"`
 	GovernanceTokenOwner                     common.Address            `json:"governanceTokenOwner"`
+	UseRevenueShare                          bool                      `json:"useRevenueShare"`
+	ChainFeesRecipient						 common.Address            `json:"chainFeesRecipient"`
+	L1FeesDepositor						     common.Address            `json:"l1FeesDepositor"`
 }
 
 func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, st *state.State, chainID common.Hash) error {
@@ -83,17 +88,23 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		BaseFeeVaultWithdrawalNetwork:            wdNetworkToBig(overrides.BaseFeeVaultWithdrawalNetwork),
 		L1FeeVaultWithdrawalNetwork:              wdNetworkToBig(overrides.L1FeeVaultWithdrawalNetwork),
 		SequencerFeeVaultWithdrawalNetwork:       wdNetworkToBig(overrides.SequencerFeeVaultWithdrawalNetwork),
+		OperatorFeeVaultWithdrawalNetwork:        wdNetworkToBig(overrides.OperatorFeeVaultWithdrawalNetwork),
 		SequencerFeeVaultMinimumWithdrawalAmount: overrides.SequencerFeeVaultMinimumWithdrawalAmount.ToInt(),
 		BaseFeeVaultMinimumWithdrawalAmount:      overrides.BaseFeeVaultMinimumWithdrawalAmount.ToInt(),
 		L1FeeVaultMinimumWithdrawalAmount:        overrides.L1FeeVaultMinimumWithdrawalAmount.ToInt(),
+		OperatorFeeVaultMinimumWithdrawalAmount:  overrides.OperatorFeeVaultMinimumWithdrawalAmount.ToInt(),
 		BaseFeeVaultRecipient:                    thisIntent.BaseFeeVaultRecipient,
 		L1FeeVaultRecipient:                      thisIntent.L1FeeVaultRecipient,
 		SequencerFeeVaultRecipient:               thisIntent.SequencerFeeVaultRecipient,
+		OperatorFeeVaultRecipient:                thisIntent.OperatorFeeVaultRecipient,
 		GovernanceTokenOwner:                     overrides.GovernanceTokenOwner,
 		Fork:                                     big.NewInt(schedule.SolidityForkNumber(1)),
 		DeployCrossL2Inbox:                       len(intent.Chains) > 1,
 		EnableGovernance:                         overrides.EnableGovernance,
 		FundDevAccounts:                          overrides.FundDevAccounts,
+		UseRevenueShare:                          thisIntent.RevenueShare != nil && thisIntent.RevenueShare.Enabled,
+		ChainFeesRecipient:                       getChainFeesRecipient(thisIntent.RevenueShare),
+		L1FeesDepositor:                          getL1FeesDepositor(thisIntent.RevenueShare),
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}
@@ -154,16 +165,35 @@ func wdNetworkToBig(wd genesis.WithdrawalNetwork) *big.Int {
 	return big.NewInt(int64(n))
 }
 
+func getChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
+	if revenueShare != nil {
+		return revenueShare.ChainFeesRecipient
+	}
+	return standard.ChainFeesRecipient
+}
+
+func getL1FeesDepositor(revenueShare *state.RevenueShare) common.Address {
+	if revenueShare != nil {
+		return revenueShare.L1FeesDepositor
+	}
+	return standard.L1FeesDepositor
+}
+
 func defaultOverrides() l2GenesisOverrides {
 	return l2GenesisOverrides{
 		FundDevAccounts:                          false,
 		BaseFeeVaultMinimumWithdrawalAmount:      standard.VaultMinWithdrawalAmount,
 		L1FeeVaultMinimumWithdrawalAmount:        standard.VaultMinWithdrawalAmount,
 		SequencerFeeVaultMinimumWithdrawalAmount: standard.VaultMinWithdrawalAmount,
+		OperatorFeeVaultMinimumWithdrawalAmount:  standard.VaultMinWithdrawalAmount,
 		BaseFeeVaultWithdrawalNetwork:            "local",
 		L1FeeVaultWithdrawalNetwork:              "local",
 		SequencerFeeVaultWithdrawalNetwork:       "local",
+		OperatorFeeVaultWithdrawalNetwork:        "local",
 		EnableGovernance:                         false,
 		GovernanceTokenOwner:                     standard.GovernanceTokenOwner,
+		UseRevenueShare:                          true,
+		ChainFeesRecipient:                       standard.ChainFeesRecipient,
+		L1FeesDepositor:                          standard.L1FeesDepositor,
 	}
 }
