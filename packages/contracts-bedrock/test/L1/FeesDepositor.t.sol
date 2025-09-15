@@ -65,6 +65,14 @@ contract FeesDepositor_Test is CommonTest {
         vm.expectEmit(address(feesDepositor));
         emit FundsReceived(address(this), _amount, _amount);
 
+        // Expect call to the portal not to be done
+        vm.expectCall(
+            address(optimismPortal2),
+            _amount,
+            abi.encodeCall(IOptimismPortal.depositTransaction, (l2Recipient, _amount, gasLimit, false, depositData)),
+            0
+        );
+
         (bool success,) = address(feesDepositor).call{ value: _amount }("");
 
         assertTrue(success);
