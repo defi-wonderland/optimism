@@ -40,7 +40,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @notice Emitted when the deposit threshold is updated.
     /// @param oldminDepositAmount The old deposit threshold.
     /// @param newminDepositAmount The new deposit threshold.
-    event MinDepositAmountUpdated(uint256 oldminDepositAmount, uint256 newminDepositAmount);
+    event MinDepositAmountUpdated(uint96 oldminDepositAmount, uint96 newminDepositAmount);
 
     /// @notice Emitted when the L2 recipient is updated.
     /// @param oldL2Recipient The old L2 recipient.
@@ -73,7 +73,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @param _gasLimit The gas limit for the deposit transaction.
     /// @param _depositData The deposit data for the deposit transaction.
     function initialize(
-        uint256 _minDepositAmount,
+        uint96 _minDepositAmount,
         address _l2Recipient,
         IOptimismPortal _portal,
         uint64 _gasLimit,
@@ -106,9 +106,9 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
 
     /// @notice Updates the deposit threshold.
     /// @param _minDepositAmount The new deposit threshold.
-    function setMinDepositAmount(uint256 _minDepositAmount) external {
+    function setMinDepositAmount(uint96 _minDepositAmount) external {
         _assertOnlyProxyAdminOwner();
-        uint256 oldminDepositAmount = minDepositAmount;
+        uint96 oldminDepositAmount = minDepositAmount;
         minDepositAmount = _minDepositAmount;
         emit MinDepositAmountUpdated(oldminDepositAmount, _minDepositAmount);
     }
