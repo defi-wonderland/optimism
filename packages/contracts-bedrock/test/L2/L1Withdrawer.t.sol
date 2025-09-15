@@ -16,14 +16,12 @@ contract L1Withdrawer_Test is CommonTest {
     address recipient = makeAddr("recipient");
     uint256 minWithdrawalAmount = 1 ether;
     uint256 withdrawalGasLimit = 150_000;
-    bytes withdrawalData = hex"1234";
 
     event WithdrawalInitiated(address indexed recipient, uint256 amount);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
     event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
-    event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
 
     function setUp() public override {
         super.setUp();
@@ -31,9 +29,7 @@ contract L1Withdrawer_Test is CommonTest {
         l1Withdrawer = DeployUtils.create1(
             "L1Withdrawer.sol:L1Withdrawer",
             DeployUtils.encodeConstructor(
-                abi.encodeCall(
-                    IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit, withdrawalData)
-                )
+                abi.encodeCall(IL1Withdrawer.__constructor__, (minWithdrawalAmount, recipient, withdrawalGasLimit))
             )
         );
         l1WithdrawerInterface = IL1Withdrawer(l1Withdrawer);
@@ -68,7 +64,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             _sendAmount,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, withdrawalData))
+            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, hex""))
         );
 
         (bool success,) = address(l1Withdrawer).call{ value: _sendAmount }("");
@@ -110,7 +106,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             totalAmount,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, withdrawalData))
+            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, hex""))
         );
 
         (bool success2,) = address(l1Withdrawer).call{ value: _secondAmount }("");
@@ -194,30 +190,5 @@ contract L1Withdrawer_Test is CommonTest {
         l1WithdrawerInterface.setWithdrawalGasLimit(newWithdrawalGasLimit);
 
         assertEq(l1WithdrawerInterface.withdrawalGasLimit(), withdrawalGasLimit);
-    }
-
-    function testFuzz_setWithdrawalData_asOwner_succeeds(bytes memory _newWithdrawalData) external {
-        address owner = proxyAdmin.owner();
-
-        vm.expectEmit(address(l1Withdrawer));
-        emit WithdrawalDataUpdated(withdrawalData, _newWithdrawalData);
-
-        vm.prank(owner);
-        l1WithdrawerInterface.setWithdrawalData(_newWithdrawalData);
-
-        assertEq(l1WithdrawerInterface.withdrawalData(), _newWithdrawalData);
-    }
-
-    function testFuzz_setWithdrawalData_asNonOwner_reverts(address _caller) external {
-        address owner = proxyAdmin.owner();
-        vm.assume(_caller != owner);
-
-        bytes memory newWithdrawalData = hex"5678";
-
-        vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
-        vm.prank(_caller);
-        l1WithdrawerInterface.setWithdrawalData(newWithdrawalData);
-
-        assertEq(l1WithdrawerInterface.withdrawalData(), withdrawalData);
     }
 }
