@@ -38,6 +38,9 @@ library Constants {
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
 
+    // TODO: IMPORTANT!! Update address
+    address internal constant OP_FEES_MULTISIG = 0x4200000000000000000000000000000000000018;
+
     /// @notice Returns the default values for the ResourceConfig. These are the recommended values
     ///         for a production network.
     function DEFAULT_RESOURCE_CONFIG() internal pure returns (IResourceMetering.ResourceConfig memory) {

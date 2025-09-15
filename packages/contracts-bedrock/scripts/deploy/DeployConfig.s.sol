@@ -51,7 +51,6 @@ contract DeployConfig is Script {
     uint256 public operatorFeeVaultMinimumWithdrawalAmount;
     uint256 public operatorFeeVaultWithdrawalNetwork;
     address public governanceTokenOwner;
-    address public feeSplitterSharesCalculator;
     uint256 public feeSplitterFeeDisbursementInterval;
     uint256 public l2GenesisBlockGasLimit;
     uint32 public basefeeScalar;
@@ -82,6 +81,8 @@ contract DeployConfig is Script {
 
     bool public useInterop;
     bool public useUpgradedFork;
+    bool public useRevenueShare;
+    address public chainFeesRecipient;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -124,7 +125,6 @@ contract DeployConfig is Script {
         operatorFeeVaultMinimumWithdrawalAmount = stdJson.readUint(_json, "$.operatorFeeVaultMinimumWithdrawalAmount");
         operatorFeeVaultWithdrawalNetwork = stdJson.readUint(_json, "$.operatorFeeVaultWithdrawalNetwork");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
-        feeSplitterSharesCalculator = _readOr(_json, "$.feeSplitterSharesCalculator", address(0));
         feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(0));
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
         basefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBaseFeeScalar", 1368));
@@ -160,6 +160,8 @@ contract DeployConfig is Script {
 
         useInterop = _readOr(_json, "$.useInterop", false);
         useUpgradedFork;
+        useRevenueShare = _readOr(_json, "$.useRevenueShare", false);
+        chainFeesRecipient = _readOr(_json, "$.chainFeesRecipient", address(0));
     }
 
     function fork() public view returns (Fork fork_) {
@@ -209,6 +211,11 @@ contract DeployConfig is Script {
     /// @notice Allow the `useInterop` config to be overridden in testing environments
     function setUseInterop(bool _useInterop) public {
         useInterop = _useInterop;
+    }
+
+    /// @notice Allow the `useRevenueShare` config to be overridden in testing environments
+    function setUseRevenueShare(bool _useRevenueShare) public {
+        useRevenueShare = _useRevenueShare;
     }
 
     /// @notice Allow the `fundDevAccounts` config to be overridden.
