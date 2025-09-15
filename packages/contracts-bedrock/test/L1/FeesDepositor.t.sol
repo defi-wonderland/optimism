@@ -13,7 +13,6 @@ import { Proxy } from "src/universal/Proxy.sol";
 /// @notice Tests all functionality of FeesDepositor including receive, deposit, and setters.
 contract FeesDepositor_Test is CommonTest {
     FeesDepositor feesDepositor;
-    IOptimismPortal mockPortal;
 
     address l2Recipient = makeAddr("l2Recipient");
     uint96 minDepositAmount = 1 ether;
@@ -29,11 +28,6 @@ contract FeesDepositor_Test is CommonTest {
 
     function setUp() public override {
         super.setUp();
-
-        // Create a mock portal for testing
-        address mockPortalAddress = makeAddr("mockPortal");
-        vm.etch(mockPortalAddress, hex"00");
-        mockPortal = IOptimismPortal(payable(mockPortalAddress));
 
         // Deploy FeesDepositor implementation
         address implementation = DeployUtils.create1(
@@ -56,7 +50,7 @@ contract FeesDepositor_Test is CommonTest {
         feesDepositor.initialize(
             minDepositAmount,
             l2Recipient,
-            mockPortal,
+            optimismPortal2,
             gasLimit,
             depositData
         );
@@ -74,7 +68,7 @@ contract FeesDepositor_Test is CommonTest {
 
         assertTrue(success);
         assertEq(address(feesDepositor).balance, _amount);
-        assertEq(address(mockPortal).balance, 0);
+        assertEq(address(ethLockbox).balance, 0);
     }
 
     function testFuzz_receive_atOrAboveThreshold_succeeds(uint256 _sendAmount) external {
@@ -89,7 +83,7 @@ contract FeesDepositor_Test is CommonTest {
         emit FeesDeposited(l2Recipient, _sendAmount);
 
         vm.expectCall(
-            address(mockPortal),
+            address(optimismPortal2),
             _sendAmount,
             abi.encodeCall(IOptimismPortal.depositTransaction, (l2Recipient, _sendAmount, gasLimit, false, depositData))
         );
@@ -98,7 +92,7 @@ contract FeesDepositor_Test is CommonTest {
 
         assertTrue(success);
         assertEq(address(feesDepositor).balance, 0);
-        assertEq(address(mockPortal).balance, _sendAmount);
+        assertEq(address(ethLockbox).balance, _sendAmount);
     }
 
     function testFuzz_receive_multipleDeposits_succeeds(uint256 _firstAmount, uint256 _secondAmount) external {
@@ -119,7 +113,7 @@ contract FeesDepositor_Test is CommonTest {
         (bool success1,) = address(feesDepositor).call{ value: _firstAmount }("");
         assertTrue(success1);
         assertEq(address(feesDepositor).balance, _firstAmount);
-        assertEq(address(mockPortal).balance, 0);
+        assertEq(address(ethLockbox).balance, 0);
 
         // Second deposit (will trigger portal deposit since total >= minDepositAmount)
         vm.deal(address(this), _secondAmount);
@@ -131,7 +125,7 @@ contract FeesDepositor_Test is CommonTest {
         emit FeesDeposited(l2Recipient, totalAmount);
 
         vm.expectCall(
-            address(mockPortal),
+            address(optimismPortal2),
             totalAmount,
             abi.encodeCall(IOptimismPortal.depositTransaction, (l2Recipient, totalAmount, gasLimit, false, depositData))
         );
@@ -141,7 +135,7 @@ contract FeesDepositor_Test is CommonTest {
 
         // Verify deposit occurred
         assertEq(address(feesDepositor).balance, 0);
-        assertEq(address(mockPortal).balance, totalAmount);
+        assertEq(address(ethLockbox).balance, totalAmount);
     }
 
     function testFuzz_setMinDepositAmount_asOwner_succeeds(uint96 _newMinDepositAmount) external {
