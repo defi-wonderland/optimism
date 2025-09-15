@@ -51,7 +51,6 @@ contract DeployConfig is Script {
     uint256 public operatorFeeVaultMinimumWithdrawalAmount;
     uint256 public operatorFeeVaultWithdrawalNetwork;
     address public governanceTokenOwner;
-    uint256 public feeSplitterFeeDisbursementInterval;
     uint256 public l2GenesisBlockGasLimit;
     uint32 public basefeeScalar;
     uint32 public blobbasefeeScalar;
@@ -126,7 +125,6 @@ contract DeployConfig is Script {
         operatorFeeVaultMinimumWithdrawalAmount = stdJson.readUint(_json, "$.operatorFeeVaultMinimumWithdrawalAmount");
         operatorFeeVaultWithdrawalNetwork = stdJson.readUint(_json, "$.operatorFeeVaultWithdrawalNetwork");
         governanceTokenOwner = stdJson.readAddress(_json, "$.governanceTokenOwner");
-        feeSplitterFeeDisbursementInterval = _readOr(_json, "$.feeSplitterFeeDisbursementInterval", uint256(0));
         l2GenesisBlockGasLimit = stdJson.readUint(_json, "$.l2GenesisBlockGasLimit");
         basefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBaseFeeScalar", 1368));
         blobbasefeeScalar = uint32(_readOr(_json, "$.gasPriceOracleBlobBaseFeeScalar", 810949));
@@ -163,7 +161,6 @@ contract DeployConfig is Script {
         useUpgradedFork;
         useRevenueShare = _readOr(_json, "$.useRevenueShare", false);
         chainFeesRecipient = _readOr(_json, "$.chainFeesRecipient", address(0));
-        l1FeesDepositor = _readOr(_json, "$.l1FeesDepositor", address(0));
     }
 
     function fork() public view returns (Fork fork_) {

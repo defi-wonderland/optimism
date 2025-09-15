@@ -14,7 +14,6 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Types } from "src/libraries/Types.sol";
-import { Artifacts } from "scripts/Artifacts.s.sol";
 
 // Interfaces
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
@@ -597,8 +596,6 @@ contract L2Genesis is Script {
 
     /// @notice This predeploy is following the safety invariant #1.
     function setFeeSplitter(Input memory _input) internal {
-        Artifacts artifacts = Artifacts(address(uint160(uint256(keccak256(abi.encode("optimism.artifacts"))))));
-
         address revSharesCalculator;
         if (_input.useRevenueShare) {
             if (_input.chainFeesRecipient == address(0)) revert L2Genesis_ChainFeesRecipientCannotBeZero();
@@ -613,10 +610,6 @@ contract L2Genesis is Script {
                 abi.encode(thresholdAmount, _input.l1FeesDepositor, withdrawalMinGasLimit),
                 l1WithdrawerSalt
             );
-            // Save to artifacts if available
-            if (address(artifacts).code.length > 0) {
-                artifacts.save("L1Withdrawer", l1Withdrawer);
-            }
 
             // Deploy SuperchainRevSharesCalculator with constructor args
             bytes32 calcSalt = keccak256("SuperchainRevSharesCalculator");
@@ -625,11 +618,8 @@ contract L2Genesis is Script {
                 abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient)),
                 calcSalt
             );
-            // Save to artifacts if available
-            if (address(artifacts).code.length > 0) {
-                artifacts.save("SuperchainRevSharesCalculator", revSharesCalculator);
-            }
         }
+
         // Initialize the implementation with dummy values
         address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
         IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(0)));
