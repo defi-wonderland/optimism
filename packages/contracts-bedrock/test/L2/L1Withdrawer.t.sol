@@ -15,13 +15,13 @@ contract L1Withdrawer_Test is CommonTest {
 
     address recipient = makeAddr("recipient");
     uint256 minWithdrawalAmount = 1 ether;
-    uint256 withdrawalGasLimit = 150_000;
+    uint96 withdrawalGasLimit = 150_000;
 
     event WithdrawalInitiated(address indexed recipient, uint256 amount);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
-    event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
+    event WithdrawalGasLimitUpdated(uint96 oldWithdrawalGasLimit, uint96 newWithdrawalGasLimit);
 
     function setUp() public override {
         super.setUp();
@@ -167,7 +167,7 @@ contract L1Withdrawer_Test is CommonTest {
         assertEq(l1WithdrawerInterface.recipient(), recipient);
     }
 
-    function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint256 _newWithdrawalGasLimit) external {
+    function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint96 _newWithdrawalGasLimit) external {
         address owner = proxyAdmin.owner();
 
         vm.expectEmit(address(l1Withdrawer));
@@ -183,7 +183,7 @@ contract L1Withdrawer_Test is CommonTest {
         address owner = proxyAdmin.owner();
         vm.assume(_caller != owner);
 
-        uint256 newWithdrawalGasLimit = 200_000;
+        uint96 newWithdrawalGasLimit = 200_000;
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
