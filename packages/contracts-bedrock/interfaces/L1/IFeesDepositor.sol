@@ -14,6 +14,11 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
     event DepositDataUpdated(bytes oldDepositData, bytes newDepositData);
 
+    function minDepositAmount() external view returns (uint256);
+    function portal() external view returns (IOptimismPortal);
+    function l2Recipient() external view returns (address);
+    function gasLimit() external view returns (uint64);
+    function depositData() external view returns (bytes memory);
     function initialize(
         uint256 _minDepositAmount,
         address _l2Recipient,
@@ -22,13 +27,8 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
         bytes memory _depositData
     )
         external;
-    function portal() external view returns (IOptimismPortal);
-    function minDepositAmount() external view returns (uint256);
-    function l2Recipient() external view returns (address);
-    function gasLimit() external view returns (uint64);
-    function depositData() external view returns (bytes memory);
 
-    function setminDepositAmount(uint256 _minDepositAmount) external;
+    function setMinDepositAmount(uint256 _minDepositAmount) external;
     function setL2Recipient(address _l2Recipient) external;
     function setGasLimit(uint64 _gasLimit) external;
     function setDepositData(bytes memory _depositData) external;

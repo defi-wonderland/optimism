@@ -11,17 +11,17 @@ import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable
 /// @title FeesDepositor
 /// @notice A contract that deposits fees to the L2 recipient when the deposit threshold is reached.
 contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBase, ISemver {
+    /// @notice The portal contract.
+    IOptimismPortal public portal;
+
     /// @notice The threshold at which fees are deposited.
-    uint256 public minDepositAmount;
+    uint96 public minDepositAmount;
 
     /// @notice The L2 recipient of the fees.
     address public l2Recipient;
 
     /// @notice The gas limit for the deposit transaction.
     uint64 public gasLimit;
-
-    /// @notice The portal contract.
-    IOptimismPortal public portal;
 
     /// @notice The data for the deposit transaction.
     bytes public depositData;
@@ -105,7 +105,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
 
     /// @notice Updates the deposit threshold.
     /// @param _minDepositAmount The new deposit threshold.
-    function setminDepositAmount(uint256 _minDepositAmount) external {
+    function setMinDepositAmount(uint256 _minDepositAmount) external {
         _assertOnlyProxyAdminOwner();
         uint256 oldminDepositAmount = minDepositAmount;
         minDepositAmount = _minDepositAmount;
