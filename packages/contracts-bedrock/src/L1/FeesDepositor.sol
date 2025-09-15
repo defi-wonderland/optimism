@@ -28,9 +28,9 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
 
     /// @notice Emitted when fees are received.
     /// @param portal The portal contract that is finalizing the withdrawal.
-    /// @param l2sender The L2 sender of the fees.
+    /// @param l2Sender The L2 sender of the fees.
     /// @param amount The amount of fees received.
-    event FeesReceived(address indexed portal, address indexed l2sender, uint256 amount);
+    event FeesReceived(address indexed portal, address indexed l2Sender, uint256 amount);
 
     /// @notice Emitted when fees are deposited.
     /// @param amount The amount of fees deposited.
