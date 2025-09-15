@@ -29,7 +29,7 @@ contract L2Genesis_TestInit is Test {
 
     L2Genesis internal genesis;
 
-    function setUp() public {
+    function setUp() public virtual {
         genesis = new L2Genesis();
     }
 
@@ -125,19 +125,16 @@ contract L2Genesis_TestInit is Test {
         // Check the L1Withdrawer is properly set
         IL1Withdrawer l1Withdrawer = IL1Withdrawer(superchainRevSharesCalculator.shareRecipient());
         assertEq(l1Withdrawer.minWithdrawalAmount(), 10 ether);
-        assertEq(l1Withdrawer.recipient(), Constants.OP_FEES_MULTISIG);
+        assertEq(l1Withdrawer.recipient(), input.l1FeesDepositor);
         assertEq(l1Withdrawer.withdrawalGasLimit(), 300_000);
-        assertEq(
-            l1Withdrawer.withdrawalData(),
-            abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, 200_000, ""))
-        );
     }
 }
 
 /// @title L2Genesis_Run_Test
 /// @notice Tests the `run` function of the `L2Genesis` contract.
 contract L2Genesis_Run_Test is L2Genesis_TestInit {
-    function test_run_succeeds() external {
+    function setUp() public override {
+        super.setUp();
         input = L2Genesis.Input({
             l1ChainID: 1,
             l2ChainID: 2,
@@ -162,10 +159,13 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             deployCrossL2Inbox: true,
             enableGovernance: true,
             fundDevAccounts: true,
-            feeSplitterFeeDisbursementInterval: 86400,
             useRevenueShare: true,
-            chainFeesRecipient: address(0x000000000000000000000000000000000000000b)
+            chainFeesRecipient: address(0x000000000000000000000000000000000000000b),
+            l1FeesDepositor: address(0x000000000000000000000000000000000000000C)
         });
+    }
+
+    function test_run_succeeds() external {
         genesis.run(input);
 
         testProxyAdmin();
@@ -178,34 +178,7 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
     }
 
     function test_run_withoutRevenueShare_succeeds() external {
-        input = L2Genesis.Input({
-            l1ChainID: 1,
-            l2ChainID: 2,
-            l1CrossDomainMessengerProxy: payable(address(0x0000000000000000000000000000000000000001)),
-            l1StandardBridgeProxy: payable(address(0x0000000000000000000000000000000000000002)),
-            l1ERC721BridgeProxy: payable(address(0x0000000000000000000000000000000000000003)),
-            opChainProxyAdminOwner: address(0x0000000000000000000000000000000000000004),
-            sequencerFeeVaultRecipient: address(0x0000000000000000000000000000000000000005),
-            sequencerFeeVaultMinimumWithdrawalAmount: 1,
-            sequencerFeeVaultWithdrawalNetwork: 1,
-            baseFeeVaultRecipient: address(0x0000000000000000000000000000000000000006),
-            baseFeeVaultMinimumWithdrawalAmount: 1,
-            baseFeeVaultWithdrawalNetwork: 1,
-            l1FeeVaultRecipient: address(0x0000000000000000000000000000000000000007),
-            l1FeeVaultMinimumWithdrawalAmount: 1,
-            l1FeeVaultWithdrawalNetwork: 1,
-            operatorFeeVaultRecipient: address(0x0000000000000000000000000000000000000008),
-            operatorFeeVaultMinimumWithdrawalAmount: 1,
-            operatorFeeVaultWithdrawalNetwork: 1,
-            governanceTokenOwner: address(0x0000000000000000000000000000000000000009),
-            fork: uint256(LATEST_FORK),
-            deployCrossL2Inbox: true,
-            enableGovernance: true,
-            fundDevAccounts: true,
-            feeSplitterFeeDisbursementInterval: 86400,
-            useRevenueShare: false,
-            chainFeesRecipient: address(0) // Not used when revenue share is disabled
-         });
+        input.useRevenueShare = false;
         genesis.run(input);
 
         testProxyAdmin();
@@ -219,5 +192,21 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
         assertEq(address(feeSplitter.sharesCalculator()), address(0), "sharesCalculator should be zero address");
         assertEq(feeSplitter.feeDisbursementInterval(), 1 days, "feeDisbursementInterval should be 1 day");
+    }
+
+    function test_runWithRevenueShare_zeroChainFeesRecipient_reverts() external {
+        input.useRevenueShare = true;
+        input.chainFeesRecipient = address(0);
+
+        vm.expectRevert(L2Genesis.L2Genesis_ChainFeesRecipientCannotBeZero.selector);
+        genesis.run(input);
+    }
+
+    function test_runWithRevenueShare_zeroL1FeesDepositor_reverts() external {
+        input.useRevenueShare = true;
+        input.l1FeesDepositor = address(0);
+
+        vm.expectRevert(L2Genesis.L2Genesis_L1FeesDepositorCannotBeZero.selector);
+        genesis.run(input);
     }
 }

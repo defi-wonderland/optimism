@@ -329,19 +329,20 @@ contract Setup {
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
-                feeSplitterFeeDisbursementInterval: deploy.cfg().feeSplitterFeeDisbursementInterval(),
                 useRevenueShare: deploy.cfg().useRevenueShare(),
-                chainFeesRecipient: deploy.cfg().chainFeesRecipient()
+                chainFeesRecipient: deploy.cfg().chainFeesRecipient(),
+                l1FeesDepositor: deploy.cfg().l1FeesDepositor()
             })
         );
 
         // Initialize revenue sharing contracts if enabled
         if (deploy.cfg().useRevenueShare()) {
             // Get the addresses from artifacts (they were saved during L2Genesis.run())
-            // If artifacts aren't available, the addresses will just be zero and tests that need them will fail appropriately
+            // If artifacts aren't available, the addresses will just be zero and tests that need them will fail
+            // appropriately
             address l1WithdrawerAddr = artifacts.getAddress("L1Withdrawer");
             address superchainRevSharesCalculatorAddr = artifacts.getAddress("SuperchainRevSharesCalculator");
-            
+
             if (l1WithdrawerAddr != address(0)) {
                 l1Withdrawer = IL1Withdrawer(l1WithdrawerAddr);
             }

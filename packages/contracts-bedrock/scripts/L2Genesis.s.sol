@@ -14,7 +14,6 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Types } from "src/libraries/Types.sol";
-import { Constants } from "src/libraries/Constants.sol";
 import { Artifacts } from "scripts/Artifacts.s.sol";
 
 // Interfaces
@@ -45,6 +44,9 @@ import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Script {
+    error L2Genesis_ChainFeesRecipientCannotBeZero();
+    error L2Genesis_L1FeesDepositorCannotBeZero();
+
     struct Input {
         uint256 l1ChainID;
         uint256 l2ChainID;
@@ -69,9 +71,9 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
-        uint256 feeSplitterFeeDisbursementInterval;
         bool useRevenueShare;
         address chainFeesRecipient;
+        address l1FeesDepositor;
     }
 
     using ForkUtils for Fork;
@@ -599,16 +601,16 @@ contract L2Genesis is Script {
 
         address revSharesCalculator;
         if (_input.useRevenueShare) {
+            if (_input.chainFeesRecipient == address(0)) revert L2Genesis_ChainFeesRecipientCannotBeZero();
+            if (_input.l1FeesDepositor == address(0)) revert L2Genesis_L1FeesDepositorCannotBeZero();
+
             // Deploy L1Withdrawer with constructor args
             uint256 withdrawalMinGasLimit = 300_000;
-            uint32 depositMinGasLimit = 200_000;
             uint256 thresholdAmount = 10 ether;
-            bytes memory depositData =
-                abi.encodeCall(IL1StandardBridge.depositETHTo, (Constants.OP_FEES_MULTISIG, depositMinGasLimit, ""));
             bytes32 l1WithdrawerSalt = keccak256("L1Withdrawer");
             address l1Withdrawer = DeployUtils.create2(
                 "L1Withdrawer.sol:L1Withdrawer",
-                abi.encode(thresholdAmount, Constants.OP_FEES_MULTISIG, withdrawalMinGasLimit, depositData),
+                abi.encode(thresholdAmount, _input.l1FeesDepositor, withdrawalMinGasLimit),
                 l1WithdrawerSalt
             );
             // Save to artifacts if available

@@ -83,6 +83,7 @@ contract DeployConfig is Script {
     bool public useUpgradedFork;
     bool public useRevenueShare;
     address public chainFeesRecipient;
+    address public l1FeesDepositor;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -162,6 +163,7 @@ contract DeployConfig is Script {
         useUpgradedFork;
         useRevenueShare = _readOr(_json, "$.useRevenueShare", false);
         chainFeesRecipient = _readOr(_json, "$.chainFeesRecipient", address(0));
+        l1FeesDepositor = _readOr(_json, "$.l1FeesDepositor", address(0));
     }
 
     function fork() public view returns (Fork fork_) {
@@ -216,6 +218,16 @@ contract DeployConfig is Script {
     /// @notice Allow the `useRevenueShare` config to be overridden in testing environments
     function setUseRevenueShare(bool _useRevenueShare) public {
         useRevenueShare = _useRevenueShare;
+    }
+
+    /// @notice Allow the `l1FeesDepositor` config to be overridden in testing environments
+    function setL1FeesDepositor(address _l1FeesDepositor) public {
+        l1FeesDepositor = _l1FeesDepositor;
+    }
+
+    /// @notice Allow the `chainFeesRecipient` config to be overridden in testing environments
+    function setChainFeesRecipient(address _chainFeesRecipient) public {
+        chainFeesRecipient = _chainFeesRecipient;
     }
 
     /// @notice Allow the `fundDevAccounts` config to be overridden.

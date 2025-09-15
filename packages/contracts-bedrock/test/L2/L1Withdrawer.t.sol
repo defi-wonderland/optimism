@@ -12,8 +12,6 @@ import { Constants } from "src/libraries/Constants.sol";
 /// @title L1Withdrawer_Test
 /// @notice Tests all functionality of L1Withdrawer including receive, withdrawal, and setters.
 contract L1Withdrawer_Test is CommonTest {
-    // Test-specific parameters (the actual L1Withdrawer from genesis has different values)
-    address recipient = Constants.OP_FEES_MULTISIG;
     uint256 minWithdrawalAmount = 10 ether;
     uint256 withdrawalGasLimit = 300_000;
 
@@ -53,12 +51,12 @@ contract L1Withdrawer_Test is CommonTest {
         emit FundsReceived(address(this), _sendAmount, _sendAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit WithdrawalInitiated(recipient, _sendAmount);
+        emit WithdrawalInitiated(l1FeesDepositor, _sendAmount);
 
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             _sendAmount,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, hex""))
+            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (l1FeesDepositor, withdrawalGasLimit, hex""))
         );
 
         (bool success,) = address(l1Withdrawer).call{ value: _sendAmount }("");
@@ -95,12 +93,12 @@ contract L1Withdrawer_Test is CommonTest {
         emit FundsReceived(address(this), _secondAmount, totalAmount);
 
         vm.expectEmit(address(l1Withdrawer));
-        emit WithdrawalInitiated(recipient, totalAmount);
+        emit WithdrawalInitiated(l1FeesDepositor, totalAmount);
 
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             totalAmount,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (recipient, withdrawalGasLimit, hex""))
+            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (l1FeesDepositor, withdrawalGasLimit, hex""))
         );
 
         (bool success2,) = address(l1Withdrawer).call{ value: _secondAmount }("");
@@ -140,7 +138,7 @@ contract L1Withdrawer_Test is CommonTest {
         address owner = proxyAdmin.owner();
 
         vm.expectEmit(address(l1Withdrawer));
-        emit RecipientUpdated(recipient, _newRecipient);
+        emit RecipientUpdated(l1FeesDepositor, _newRecipient);
 
         vm.prank(owner);
         l1Withdrawer.setRecipient(_newRecipient);
@@ -158,7 +156,7 @@ contract L1Withdrawer_Test is CommonTest {
         vm.prank(_caller);
         l1Withdrawer.setRecipient(newRecipient);
 
-        assertEq(l1Withdrawer.recipient(), recipient);
+        assertEq(l1Withdrawer.recipient(), l1FeesDepositor);
     }
 
     function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint256 _newWithdrawalGasLimit) external {

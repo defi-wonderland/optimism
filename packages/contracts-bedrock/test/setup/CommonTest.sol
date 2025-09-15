@@ -42,6 +42,9 @@ contract CommonTest is Test, Setup, Events {
     ///      itself, rather than simply ensuring that the tests pass after the upgrade.
     bool useUpgradedFork = true;
 
+    address chainFeesRecipient = makeAddr("chainFeesRecipient");
+    address l1FeesDepositor = makeAddr("l1FeesDepositor");
+
     ERC20 L1Token;
     ERC20 BadL1Token;
     IOptimismMintableERC20Full L2Token;
@@ -69,6 +72,8 @@ contract CommonTest is Test, Setup, Events {
         }
         if (useRevenueShareOverride) {
             deploy.cfg().setUseRevenueShare(true);
+            deploy.cfg().setChainFeesRecipient(chainFeesRecipient);
+            deploy.cfg().setL1FeesDepositor(l1FeesDepositor);
         }
         if (useUpgradedFork) {
             deploy.cfg().setUseUpgradedFork(true);
