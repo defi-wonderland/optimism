@@ -10,7 +10,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { FeeVault_Test } from "test/L2/FeeVault.t.sol";
 
 /// @title OperatorFeeVault_Test
-/// @notice Reusable test initialization for `L1FeeVault` tests.
+/// @notice Test contract for the OperatorFeeVault contract's functionality
 contract OperatorFeeVault_Test is FeeVault_Test {
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
