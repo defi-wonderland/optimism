@@ -3,15 +3,14 @@ pragma solidity 0.8.15;
 
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
+import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /// @custom:proxied true
 /// @title FeesDepositor
 /// @notice A contract that deposits fees to the L2 recipient when the deposit threshold is reached.
-contract FeesDepositor is ProxyAdminOwnedBase, ISemver {
-    /// @notice The portal contract.
-    IOptimismPortal public immutable PORTAL;
-
+contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBase, ISemver {
     /// @notice The threshold at which fees are deposited.
     uint256 public depositThreshold;
 
@@ -20,6 +19,9 @@ contract FeesDepositor is ProxyAdminOwnedBase, ISemver {
 
     /// @notice The gas limit for the deposit transaction.
     uint64 public gasLimit;
+
+    /// @notice The portal contract.
+    IOptimismPortal public portal;
 
     /// @notice The data for the deposit transaction.
     bytes public depositData;
@@ -60,19 +62,30 @@ contract FeesDepositor is ProxyAdminOwnedBase, ISemver {
     string public constant version = "1.0.0";
 
     /// @notice Constructs the FeesDepositor contract.
+    constructor() ReinitializableBase(1) {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the FeesDepositor contract.
     /// @param _depositThreshold The threshold at which fees are deposited.
     /// @param _l2Recipient The L2 recipient of the fees.
     /// @param _portal The portal contract.
     /// @param _gasLimit The gas limit for the deposit transaction.
     /// @param _depositData The deposit data for the deposit transaction.
-    constructor(
+    function initialize(
         uint256 _depositThreshold,
         address _l2Recipient,
         IOptimismPortal _portal,
         uint64 _gasLimit,
         bytes memory _depositData
-    ) {
-        PORTAL = _portal;
+    )
+        external
+        reinitializer(initVersion())
+    {
+        // Initialization transactions must come from the ProxyAdmin or its owner.
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        portal = _portal;
         depositThreshold = _depositThreshold;
         l2Recipient = _l2Recipient;
         gasLimit = _gasLimit;
@@ -86,7 +99,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, ISemver {
 
         if (balance >= depositThreshold) {
             address recipient = l2Recipient;
-            PORTAL.depositTransaction{ value: balance }(recipient, balance, gasLimit, false, depositData);
+            portal.depositTransaction{ value: balance }(recipient, balance, gasLimit, false, depositData);
             emit FeesDeposited(recipient, balance);
         }
     }

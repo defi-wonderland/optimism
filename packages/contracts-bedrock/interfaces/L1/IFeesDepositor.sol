@@ -3,9 +3,10 @@ pragma solidity ^0.8.0;
 
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
+import { IReinitializableBase } from "interfaces/universal/IReinitializableBase.sol";
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 
-interface IFeesDepositor is ISemver, IProxyAdminOwnedBase {
+interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase {
     event FeesReceived(address indexed portal, address indexed l2sender, uint256 amount);
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
     event DepositThresholdUpdated(uint256 oldDepositThreshold, uint256 newDepositThreshold);
@@ -13,7 +14,15 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase {
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
     event DepositDataUpdated(bytes oldDepositData, bytes newDepositData);
 
-    function PORTAL() external view returns (IOptimismPortal);
+    function initialize(
+        uint256 _depositThreshold,
+        address _l2Recipient,
+        IOptimismPortal _portal,
+        uint64 _gasLimit,
+        bytes memory _depositData
+    )
+        external;
+    function portal() external view returns (IOptimismPortal);
     function depositThreshold() external view returns (uint256);
     function l2Recipient() external view returns (address);
     function gasLimit() external view returns (uint64);
