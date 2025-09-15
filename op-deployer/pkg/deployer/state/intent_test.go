@@ -1,10 +1,12 @@
 package state
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -239,9 +241,11 @@ func setFeeAddresses(intent *Intent) {
 }
 
 func setCustomGasToken(intent *Intent) {
+	maxUint248, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	intent.Chains[0].CustomGasToken = &CustomGasToken{
-		Enabled: true,
-		Name:    "Custom Gas Token",
-		Symbol:  "CGT",
+		Enabled:                    true,
+		Name:                       "Custom Gas Token",
+		Symbol:                     "CGT",
+		NativeAssetLiquidityAmount: (*hexutil.Big)(maxUint248),
 	}
 }
