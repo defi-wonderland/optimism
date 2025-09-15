@@ -7,6 +7,7 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IFeesDepositor } from "interfaces/L1/IFeesDepositor.sol";
 import { FeesDepositor } from "src/L1/FeesDepositor.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 
 /// @title FeesDepositor_Test
@@ -156,7 +157,7 @@ contract FeesDepositor_Test is CommonTest {
 
         uint96 newMinDepositAmount = 2 ether;
 
-        vm.expectRevert();
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOwner.selector);
         vm.prank(_caller);
         feesDepositor.setMinDepositAmount(newMinDepositAmount);
 
@@ -181,7 +182,7 @@ contract FeesDepositor_Test is CommonTest {
 
         address newL2Recipient = makeAddr("newL2Recipient");
 
-        vm.expectRevert();
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOwner.selector);
         vm.prank(_caller);
         feesDepositor.setL2Recipient(newL2Recipient);
 
@@ -206,7 +207,7 @@ contract FeesDepositor_Test is CommonTest {
 
         uint64 newGasLimit = 200_000;
 
-        vm.expectRevert();
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOwner.selector);
         vm.prank(_caller);
         feesDepositor.setGasLimit(newGasLimit);
 
@@ -231,7 +232,7 @@ contract FeesDepositor_Test is CommonTest {
 
         bytes memory newDepositData = hex"5678";
 
-        vm.expectRevert();
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOwner.selector);
         vm.prank(_caller);
         feesDepositor.setDepositData(newDepositData);
 
