@@ -260,7 +260,7 @@ func setCustomGasToken(intent *Intent) {
 		Enabled: true,
 		Name:    "Custom Gas Token",
 		Symbol:  "CGT",
-		CustomGasTokenLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
 	}
 }
 
@@ -273,7 +273,7 @@ func setCustomGasTokenWithHighLiquidity(intent *Intent) {
 		Enabled: true,
 		Name:    "High Volume Token",
 		Symbol:  "HVT",
-		CustomGasTokenLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
 	}
 }
 
@@ -285,6 +285,6 @@ func setCustomGasTokenWithLowLiquidity(intent *Intent) {
 		Enabled: true,
 		Name:    "Small Chain Token",
 		Symbol:  "SCT",
-		CustomGasTokenLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
 	}
 }

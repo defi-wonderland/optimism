@@ -85,10 +85,10 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				}
 				return ""
 			}(),
-			CustomGasTokenLiquidityAmount: func() *hexutil.Big {
+			NativeAssetLiquidityAmount: func() *hexutil.Big {
 				if chainIntent.CustomGasToken != nil && chainIntent.CustomGasToken.Enabled {
 					// Each chain must explicitly configure this value
-					return chainIntent.CustomGasToken.CustomGasTokenLiquidityAmount
+					return chainIntent.CustomGasToken.NativeAssetLiquidityAmount
 				}
 				return nil
 			}(),

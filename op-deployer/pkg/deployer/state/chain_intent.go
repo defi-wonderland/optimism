@@ -62,7 +62,7 @@ type CustomGasToken struct {
 	Enabled                        bool         `json:"enabled" toml:"enabled"`
 	Name                           string       `json:"name" toml:"name"`
 	Symbol                         string       `json:"symbol" toml:"symbol"`
-	CustomGasTokenLiquidityAmount  *hexutil.Big `json:"customGasTokenLiquidityAmount,omitempty" toml:"customGasTokenLiquidityAmount,omitempty"`
+	NativeAssetLiquidityAmount  *hexutil.Big `json:"customGasTokenLiquidityAmount,omitempty" toml:"customGasTokenLiquidityAmount,omitempty"`
 }
 
 type ChainIntent struct {
@@ -135,8 +135,8 @@ func (c *ChainIntent) Check() error {
 		if c.CustomGasToken.Symbol == "" {
 			return fmt.Errorf("%w: CustomGasToken.Symbol cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
-		if c.CustomGasToken.CustomGasTokenLiquidityAmount == nil {
-			return fmt.Errorf("%w: CustomGasToken.CustomGasTokenLiquidityAmount must be set when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		if c.CustomGasToken.NativeAssetLiquidityAmount == nil {
+			return fmt.Errorf("%w: CustomGasToken.NativeAssetLiquidityAmount must be set when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
 	}
 
@@ -147,29 +147,29 @@ func (c *ChainIntent) Check() error {
 	return nil
 }
 
-// GetCustomGasTokenLiquidityAmount returns the custom gas token liquidity amount for the chain.
+// GetNativeAssetLiquidityAmount returns the custom gas token liquidity amount for the chain.
 // This value must be explicitly set by each chain when using custom gas tokens.
 // Returns nil if not configured, which will cause validation to fail.
-func (c *ChainIntent) GetCustomGasTokenLiquidityAmount() *big.Int {
-	if c.CustomGasToken != nil && c.CustomGasToken.CustomGasTokenLiquidityAmount != nil {
-		return c.CustomGasToken.CustomGasTokenLiquidityAmount.ToInt()
+func (c *ChainIntent) GetNativeAssetLiquidityAmount() *big.Int {
+	if c.CustomGasToken != nil && c.CustomGasToken.NativeAssetLiquidityAmount != nil {
+		return c.CustomGasToken.NativeAssetLiquidityAmount.ToInt()
 	}
 	// No default value - each chain must explicitly configure this
 	return nil
 }
 
-// SetCustomGasTokenLiquidityAmount sets the native asset liquidity amount for custom gas token chains.
+// SetNativeAssetLiquidityAmount sets the native asset liquidity amount for custom gas token chains.
 // The amount should be specified in wei (e.g., use EtherToWei for ETH amounts).
-func (c *ChainIntent) SetCustomGasTokenLiquidityAmount(amount *big.Int) error {
+func (c *ChainIntent) SetNativeAssetLiquidityAmount(amount *big.Int) error {
 	if c.CustomGasToken == nil {
 		return fmt.Errorf("custom gas token must be configured before setting liquidity amount")
 	}
-	c.CustomGasToken.CustomGasTokenLiquidityAmount = (*hexutil.Big)(amount)
+	c.CustomGasToken.NativeAssetLiquidityAmount = (*hexutil.Big)(amount)
 	return nil
 }
 
 // EtherToWei converts ETH amount to wei for easier configuration.
-// Usage: chain.SetCustomGasTokenLiquidityAmount(EtherToWei(1000)) // Sets 1000 ETH
+// Usage: chain.SetNativeAssetLiquidityAmount(EtherToWei(1000)) // Sets 1000 ETH
 func EtherToWei(ethAmount int64) *big.Int {
 	wei := new(big.Int)
 	wei.Mul(big.NewInt(ethAmount), big.NewInt(1e18))

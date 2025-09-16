@@ -306,7 +306,7 @@ func NewIntentCustom(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, error)
 				Enabled:                       false,
 				Name:                          "",
 				Symbol:                        "",
-				CustomGasTokenLiquidityAmount: nil,
+				NativeAssetLiquidityAmount: nil,
 			},
 		})
 	}
