@@ -168,10 +168,3 @@ func (c *ChainIntent) SetNativeAssetLiquidityAmount(amount *big.Int) error {
 	return nil
 }
 
-// EtherToWei converts ETH amount to wei for easier configuration.
-// Usage: chain.SetNativeAssetLiquidityAmount(EtherToWei(1000)) // Sets 1000 ETH
-func EtherToWei(ethAmount int64) *big.Int {
-	wei := new(big.Int)
-	wei.Mul(big.NewInt(ethAmount), big.NewInt(1e18))
-	return wei
-}
