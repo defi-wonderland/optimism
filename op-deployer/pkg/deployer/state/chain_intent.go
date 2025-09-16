@@ -62,7 +62,7 @@ type CustomGasToken struct {
 	Enabled                        bool         `json:"enabled" toml:"enabled"`
 	Name                           string       `json:"name" toml:"name"`
 	Symbol                         string       `json:"symbol" toml:"symbol"`
-	NativeAssetLiquidityAmount  *hexutil.Big `json:"customGasTokenLiquidityAmount,omitempty" toml:"customGasTokenLiquidityAmount,omitempty"`
+	NativeAssetLiquidityAmount     *hexutil.Big `json:nativeAssetLiquidityAmount,omitempty" toml:"customGasTokenLiquidityAmount,omitempty"`
 }
 
 type ChainIntent struct {
