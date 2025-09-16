@@ -20,7 +20,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
     uint32 internal constant BASIS_POINT_SCALE = 10_000;
     uint32 internal constant GROSS_SHARE_BPS = 250; // 2.5%
     uint32 internal constant NET_SHARE_BPS = 1_500; // 15%
-    address internal opTreasury;
 
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event FeesReceived(address indexed sender, uint256 amount);
@@ -31,7 +30,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Enable revenue sharing before calling parent setUp
         super.enableRevenueShare();
         super.setUp();
-        opTreasury = makeAddr("OPTreasury");
     }
 
     /// @notice Configure all vaults to withdraw to FeeSplitter on L2
@@ -118,7 +116,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
     /// @param l1WithdrawerBalance Expected balance of L1Withdrawer
     /// @param chainFeesRecipientBalance Expected balance of ChainFeesRecipient
     /// @param feesDepositorBalance Expected balance of FeesDepositor
-    /// @param opTreasuryBalance Expected balance of OP Treasury
     function _assertFullFlowState(
         uint256 sequencerFeeBalance,
         uint256 baseFeeBalance,
@@ -127,7 +124,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 l1WithdrawerBalance,
         uint256 chainFeesRecipientBalance,
         uint256 feesDepositorBalance,
-        uint256 opTreasuryBalance
     ) private {
         // Assert vault balances
         assertEq(address(sequencerFeeVault).balance, sequencerFeeBalance, "Incorrect sequencer fee vault balance");
@@ -139,7 +135,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         assertEq(address(l1Withdrawer).balance, l1WithdrawerBalance, "Incorrect L1Withdrawer balance");
         assertEq(address(chainFeesRecipient).balance, chainFeesRecipientBalance, "Incorrect ChainFeesRecipient balance");
         assertEq(address(l1FeesDepositor).balance, feesDepositorBalance, "Incorrect FeesDepositor balance");
-        assertEq(address(opTreasury).balance, opTreasuryBalance, "Incorrect OP Treasury balance");
     }
 
     // Full Revenue Sharing Integration Flow Test
@@ -147,41 +142,41 @@ contract RevenueSharingIntegration_Test is CommonTest {
     // RevSharesCalculator recipients: L1Withdrawer (share), ChainFeesRecipient (remainder)
     // Thresholds: L1Withdrawer=10 ETH, FeesDepositor=20 ETH
     //  ________________________________________________________________________________________________
-    // | Vaults (S/B/L/O) | L1Withdrawer | ChainFeesRec | FeesDepositor | OP Treasury | Notes          |
+    // | Vaults (S/B/L/O) | L1Withdrawer | ChainFeesRec | FeesDepositor | Notes          |
     // |===============================================================================================|
     // | Initial state                                                                                 |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 0            | 0            | 0             | 0           |                |
+    // | 0/0/0/0          | 0            | 0            | 0             |                |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
     // | 1. Fund vaults: S=10, B=8, L=2, O=5 ETH                                                       |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 10/8/2/5         | 0            | 0            | 0             | 0           |                |
+    // | 10/8/2/5         | 0            | 0            | 0             |                |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
     // | 2. Call feeSplitter.disburseFees()                                                            |
     // |    L1Withdrawer receives 3.45 ETH < 10 ETH threshold                                          |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 3.45         | 21.55        | 0             | 0           | Accumulating   |
+    // | 0/0/0/0          | 3.45         | 21.55        | 0             |                | Accumulating   |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
     // | 3. Fund vaults: S=40, B=30, L=10, O=20 ETH                                                    |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 40/30/10/20      | 3.45         | 21.55        | 0             | 0           |                |
+    // | 40/30/10/20      | 3.45         | 21.55        | 0             |                |                |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
     // | 4. Call feeSplitter.disburseFees()                                                            |
     // |    L1Withdrawer balance: 3.45 + 13.5 = 16.95 ETH > 10 ETH                                     |
     // |    Triggers withdrawal to FeesDepositor                                                       |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 0            | 108.05       | 16.95         | 0           | L2→L1 triggered|
+    // | 0/0/0/0          | 0            | 108.05       | 16.95         |                | L2→L1 triggered|
     // |------------------|--------------|--------------|---------------|-------------|----------------|
     // | 5. Fund vaults: S=50, B=35, L=5, O=30 ETH                                                     |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 50/35/5/30       | 0            | 108.05       | 16.95         | 0           |                |
+    // | 50/35/5/30       | 0            | 108.05       | 16.95         |                |                |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
     // | 6. Call feeSplitter.disburseFees()                                                            |
     // |    L1Withdrawer receives 17.25 ETH > 10 ETH threshold                                         |
     // |    FeesDepositor balance: 16.95 + 17.25 = 34.2 ETH > 20 ETH                                   |
     // |    Triggers deposit to OP Treasury                                                            |
     // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 0            | 210.8        | 0             | 34.2        | L1→L2 deposit  |
+    // | 0/0/0/0          | 0            | 210.8        | 0             |                | L1→L2 deposit  |
     // |__________________|______________|______________|_______________|_____________|________________|
     function test_revenueSharing_fullFlow_succeeds() public {
 
@@ -214,7 +209,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         //L1Withdrawer: 3.45
         //ChainFeesRecipient: 21.55
         //FeesDepositor: 0
-        //OP Treasury: 0
         _assertFullFlowState(0, 0, 0, 0, expectedShare1, expectedRemainder1, 0, 0);
 
         // Store remainder balance for later comparison
@@ -255,7 +249,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         //L1Withdrawer: 3.45
         //ChainFeesRecipient: 21.55
         //FeesDepositor: 16.95
-        //OP Treasury: 0
         _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterFirst + expectedRemainder2, expectedTotalWithdrawal, 0);
 
         // Store remainder balance for final comparison
@@ -285,7 +278,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         vm.deal(address(l2ToL1MessagePasser), address(l2ToL1MessagePasser).balance - expectedShare3);
         address(l1FeesDepositor).call{ value: expectedShare3 }("");
 
-        // Final assertions: 0/0/0/0 | 0 | 210.8 | 34.2 | 0
+        // Final assertions: 0/0/0/0 | 0 | 210.8 | 34.2 |
         _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3, expectedFeesDepositorTotal, 0);
 
         // TODO: When l1FeesDepositor has code, add a step to simulate the deposit to OP Treasury
