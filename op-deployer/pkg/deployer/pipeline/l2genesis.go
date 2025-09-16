@@ -60,14 +60,6 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 
 	lgr.Info("generating L2 genesis", "id", chainID.Hex())
 
-	// Validate CGT configuration before proceeding
-	if thisIntent.CustomGasToken != nil && thisIntent.CustomGasToken.Enabled {
-		if thisIntent.CustomGasToken.NativeAssetLiquidityAmount == nil ||
-			thisIntent.CustomGasToken.NativeAssetLiquidityAmount.ToInt().Cmp(big.NewInt(0)) <= 0 {
-			return fmt.Errorf("custom gas token is enabled but NativeAssetLiquidityAmount must be configured with a value > 0 for chain %s", chainID.Hex())
-		}
-	}
-
 	host, err := env.DefaultScriptHost(
 		broadcaster.NoopBroadcaster(),
 		pEnv.Logger,
@@ -110,10 +102,10 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		EnableGovernance:                         overrides.EnableGovernance,
 		FundDevAccounts:                          overrides.FundDevAccounts,
 		// Custom Gas Token (CGT) configuration passed to L2Genesis script
-		UseCustomGasToken:          thisIntent.CustomGasToken.Enabled,          // CGT: Enable/disable custom gas token
-		GasPayingTokenName:         thisIntent.CustomGasToken.Name,             // CGT: Token name (e.g., "Custom Gas Token")
-		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,           // CGT: Token symbol (e.g., "CGT")
-		NativeAssetLiquidityAmount: thisIntent.GetNativeAssetLiquidityAmount(), // CGT: Liquidity amount for NativeAssetLiquidity contract
+		UseCustomGasToken:          thisIntent.CustomGasToken.Enabled,                            // CGT: Enable/disable custom gas token
+		GasPayingTokenName:         thisIntent.CustomGasToken.Name,                               // CGT: Token name (e.g., "Custom Gas Token")
+		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,                             // CGT: Token symbol (e.g., "CGT")
+		NativeAssetLiquidityAmount: thisIntent.CustomGasToken.NativeAssetLiquidityAmount.ToInt(), // CGT: Liquidity amount for NativeAssetLiquidity contract
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}

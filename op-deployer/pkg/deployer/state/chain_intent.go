@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -145,15 +144,4 @@ func (c *ChainIntent) Check() error {
 	}
 
 	return nil
-}
-
-// GetNativeAssetLiquidityAmount returns the custom gas token liquidity amount for the chain.
-// This value must be explicitly set by each chain when using custom gas tokens.
-// Returns 0 if not configured, validation will fail if CGT is enabled with amount <= 0.
-func (c *ChainIntent) GetNativeAssetLiquidityAmount() *big.Int {
-	if c.CustomGasToken != nil && c.CustomGasToken.NativeAssetLiquidityAmount != nil {
-		return c.CustomGasToken.NativeAssetLiquidityAmount.ToInt()
-	}
-	// Return 0 by default when CGT is disabled or not configured (consistent with "" and false)
-	return big.NewInt(0)
 }

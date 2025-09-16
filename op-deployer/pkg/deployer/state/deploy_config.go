@@ -75,7 +75,7 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				UseCustomGasToken:          chainIntent.CustomGasToken.Enabled,
 				GasPayingTokenName:         chainIntent.CustomGasToken.Name,
 				GasPayingTokenSymbol:       chainIntent.CustomGasToken.Symbol,
-				NativeAssetLiquidityAmount: (*hexutil.Big)(chainIntent.GetNativeAssetLiquidityAmount()),
+				NativeAssetLiquidityAmount: chainIntent.CustomGasToken.NativeAssetLiquidityAmount,
 			},
 
 			// STOP! This struct sets the _default_ upgrade schedule for all chains.
