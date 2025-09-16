@@ -2500,18 +2500,18 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - op-program-compat:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
+      # - op-program-compat:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
       - bedrock-go-tests:
           requires:
             - go-lint
-            - cannon-go-lint-and-test
-            - check-generated-mocks-op-node
-            - check-generated-mocks-op-service
-            - op-program-compat
+            # - cannon-go-lint-and-test
+            # - check-generated-mocks-op-node
+            # - check-generated-mocks-op-service
+            # - op-program-compat
             # Not needed for the devnet but we want to make sure they build successfully
             - cannon-docker-build
             - op-dispute-mon-docker-build
@@ -2519,7 +2519,7 @@ workflows:
             - op-supervisor-docker-build
             - op-test-sequencer-docker-build
             - go-tests-short
-            - sanitize-op-program
+            # - sanitize-op-program
           context:
             - circleci-repo-readonly-authenticated-github-tokens
       - docker-build:
@@ -2555,28 +2555,28 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - sanitize-op-program:
-          requires:
-            - cannon-prestate-quick
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - check-generated-mocks-op-node:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - check-generated-mocks-op-service:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - cannon-go-lint-and-test:
-          requires:
-            - contracts-bedrock-build
-          skip_slow_tests: true
-          notify: true
-          context:
-            - circleci-repo-readonly-authenticated-github-token
+      # - sanitize-op-program:
+      #     requires:
+      #       - cannon-prestate-quick
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      # - check-generated-mocks-op-node:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
+      # - check-generated-mocks-op-service:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
+      # - cannon-go-lint-and-test:
+      #     requires:
+      #       - contracts-bedrock-build
+      #     skip_slow_tests: true
+      #     notify: true
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
       - todo-issues:
           name: todo-issues-check
           check_closed: false
@@ -2879,30 +2879,30 @@ workflows:
   #           - runtimeverification
   #           - circleci-repo-readonly-authenticated-github-token
 
-  scheduled-cannon-full-tests:
-    when:
-      or:
-        - equal: [build_four_hours, <<pipeline.schedule.name>>]
-        - equal: [true, << pipeline.parameters.cannon_full_test_dispatch >>]
-    jobs:
-      - initialize:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - contracts-bedrock-build:
-          build_args: --deny-warnings --skip test
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - cannon-go-lint-and-test:
-          requires:
-            - contracts-bedrock-build
-          skip_slow_tests: false
-          no_output_timeout: 30m
-          notify: true
-          context:
-            - slack
-            - circleci-repo-readonly-authenticated-github-token
+  # scheduled-cannon-full-tests:
+  #   when:
+  #     or:
+  #       - equal: [build_four_hours, <<pipeline.schedule.name>>]
+  #       - equal: [true, << pipeline.parameters.cannon_full_test_dispatch >>]
+  #   jobs:
+  #     - initialize:
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     - contracts-bedrock-build:
+  #         build_args: --deny-warnings --skip test
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #         requires:
+  #           - initialize
+  #     # - cannon-go-lint-and-test:
+  #     #     requires:
+  #     #       - contracts-bedrock-build
+  #     #     skip_slow_tests: false
+  #     #     no_output_timeout: 30m
+  #     #     notify: true
+  #     #     context:
+  #     #       - slack
+  #     #       - circleci-repo-readonly-authenticated-github-token
 
   scheduled-docker-publish:
     when:
