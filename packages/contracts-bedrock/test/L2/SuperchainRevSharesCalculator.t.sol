@@ -16,6 +16,10 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @notice Base setup contract for SuperchainRevSharesCalculator tests.
 contract SuperchainRevSharesCalculator_TestInit is CommonTest {
+    uint256 internal constant BASIS_POINT_SCALE = 10_000;
+    uint256 internal constant GROSS_SHARE_BPS = 250;
+    uint256 internal constant NET_SHARE_BPS = 1_500;
+
     address payable shareRecipient;
     address payable remainderRecipient;
 
@@ -38,9 +42,9 @@ contract SuperchainRevSharesCalculator_Constructor_Test is SuperchainRevSharesCa
     function test_constructor_succeeds() external view {
         // Verify constants are set correctly on the deployed calculator
         assertEq(superchainRevSharesCalculator.version(), "1.0.0");
-        assertEq(superchainRevSharesCalculator.BASIS_POINT_SCALE(), 10_000);
-        assertEq(superchainRevSharesCalculator.GROSS_SHARE_BPS(), 250);
-        assertEq(superchainRevSharesCalculator.NET_SHARE_BPS(), 1_500);
+        assertEq(superchainRevSharesCalculator.BASIS_POINT_SCALE(), BASIS_POINT_SCALE);
+        assertEq(superchainRevSharesCalculator.GROSS_SHARE_BPS(), GROSS_SHARE_BPS);
+        assertEq(superchainRevSharesCalculator.NET_SHARE_BPS(), NET_SHARE_BPS);
 
         // Verify share and remainder recipients are set
         assertEq(address(superchainRevSharesCalculator.shareRecipient()), address(shareRecipient));
@@ -121,14 +125,13 @@ contract SuperchainRevSharesCalculator_getRecipientsAndAmounts_Test is Superchai
         _sequencerFees = bound(_sequencerFees, 1, 10);
         _baseFees = bound(_baseFees, 1, 10);
         _operatorFees = bound(_operatorFees, 1, 10);
-        _l1Fees = bound(_l1Fees, 1, 10);
+        _l1Fees = bound(_l1Fees, 1, 9);
 
         // Verify that gross share would be 0 due to integer division
         uint256 totalRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
         uint256 grossShare = (totalRevenue * uint256(superchainRevSharesCalculator.GROSS_SHARE_BPS()))
             / uint256(superchainRevSharesCalculator.BASIS_POINT_SCALE());
         assertEq(grossShare, 0, "Gross share should be 0");
-        assertLt(totalRevenue, 40, "Total revenue should be less than 40 for zero gross share");
 
         // Expect the function to revert with the correct error
         vm.expectRevert(ISuperchainRevSharesCalculator.SharesCalculator_ZeroGrossShare.selector);
