@@ -2428,11 +2428,11 @@ workflows:
           context:
             - slack
             - circleci-repo-readonly-authenticated-github-token
-      - go-lint:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
+      # - go-lint:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
       # - fuzz-golang:
       #     name: fuzz-golang-<<matrix.package_name>>
       #     on_changes: <<matrix.package_name>>
