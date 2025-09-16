@@ -21,7 +21,6 @@ contract FeeSplitter_TestInit is CommonTest {
     // Events
     event FeesReceived(address indexed sender, uint256 amount);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
-    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
@@ -29,15 +28,14 @@ contract FeeSplitter_TestInit is CommonTest {
     address internal _owner;
     address internal _defaultRevenueShareRecipient = makeAddr("RevenueShareRecipient");
     address internal _defaultRevenueRemainderRecipient = makeAddr("RemainderRecipient");
-    uint128 internal _defaultFeeDisbursementInterval = 24 hours;
+    uint128 internal _defaultFeeDisbursementInterval = 1 days;
     address internal _defaultSharesCalculator = makeAddr("SharesCalculator");
 
     /// @notice Test setup.
     function setUp() public virtual override {
+        // Enable revenue sharing before calling parent setUp
+        super.enableRevenueShare();
         super.setUp();
-
-        // Etch the FeeSplitter contract
-        vm.etch(address(feeSplitter), vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
 
         // Get the owner from ProxyAdmin
         _owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -89,48 +87,25 @@ contract FeeSplitter_TestInit is CommonTest {
 /// @title FeeSplitter_Initialize_Test
 /// @notice Tests the initialization functions of the `FeeSplitter` contract.
 contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
-    /// @notice Test that re-initialization fails
-    function test_constructor_succeeds() public {
+    /// @notice Test that re-initialization fails on the already-initialized predeploy
+    function test_reinitialization_reverts() public {
+        // The FeeSplitter at the predeploy address is already initialized through genesis
         vm.prank(_owner);
         vm.expectRevert("Initializable: contract is already initialized");
-        feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)), _defaultFeeDisbursementInterval);
+        feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)));
     }
 
-    /// @notice Test revert on initialization when disbursement interval is too long
-    function test_feeSplitter_initializationMaxTime_reverts(uint256 _disbursementInterval) public {
-        _disbursementInterval = bound(_disbursementInterval, 365 days + 1, type(uint128).max);
-
-        // Deploy a fresh instance for testing initialization
-        address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl3"))));
-        vm.etch(impl, vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
-
-        vm.expectRevert(IFeeSplitter.FeeSplitter_ExceedsMaxFeeDisbursementTime.selector);
-
-        vm.prank(_owner);
-        IFeeSplitter(payable(impl)).initialize(
-            ISharesCalculator(address(_defaultSharesCalculator)), uint128(_disbursementInterval)
-        );
-    }
-
-    /// @notice Test successful initialization with proper event emission
+    /// @notice Test successful initialization with proper event emission on a fresh instance
     function test_feeSplitter_initialization_succeeds() public {
         // Deploy a fresh instance for testing initialization
         address impl = address(uint160(uint256(keccak256("FeeSplitterTestImpl3"))));
         vm.etch(impl, vm.getDeployedCode("FeeSplitter.sol:FeeSplitter"));
 
-        vm.expectEmit(address(impl));
-        emit Initialized({
-            sharesCalculator: ISharesCalculator(address(_defaultSharesCalculator)),
-            feeDisbursementInterval: _defaultFeeDisbursementInterval
-        });
-
         vm.prank(_owner);
-        IFeeSplitter(payable(impl)).initialize(
-            ISharesCalculator(address(_defaultSharesCalculator)), _defaultFeeDisbursementInterval
-        );
+        IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(_defaultSharesCalculator)));
 
         assertEq(address(IFeeSplitter(payable(impl)).sharesCalculator()), address(_defaultSharesCalculator));
-        assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), _defaultFeeDisbursementInterval);
+        assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), 1 days);
     }
 }
 
@@ -143,7 +118,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_ReceiveWindowClosed.selector);
-        (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
+        payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
     /// @notice Test receive function from non-approved vault reverts even during disbursement
@@ -163,9 +138,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.deal(_caller, _amount);
 
         vm.prank(_caller);
-        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotApprovedVault.selector); // Now we test the actual sender
-            // validation
-        (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
+        // Now we test the actual sender validation
+        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotApprovedVault.selector);
+        payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
     /// @notice Test receive function works during disbursement from SequencerFeeVault
@@ -373,8 +348,9 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         uint256 halfGrossRevenue = expectedGrossRevenue / 2;
         ISharesCalculator.ShareInfo[] memory expectedShareInfo = new ISharesCalculator.ShareInfo[](2);
         expectedShareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), halfGrossRevenue);
-        expectedShareInfo[1] =
-            ISharesCalculator.ShareInfo(payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue);
+        expectedShareInfo[1] = ISharesCalculator.ShareInfo(
+            payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue
+        );
 
         // Get the actual shares calculator from the FeeSplitter
         address actualSharesCalculator = address(feeSplitter.sharesCalculator());
@@ -463,8 +439,9 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test setFeeDisbursementInterval reverts when interval is too long
-    function testFuzz_feeSplitterSetFeeDisbursementInterval_WhenIntervalTooLong_Reverts(uint256 _disbursementInterval) public {
-
+    function testFuzz_feeSplitterSetFeeDisbursementInterval_WhenIntervalTooLong_Reverts(uint256 _disbursementInterval)
+        public
+    {
         _disbursementInterval = bound(_disbursementInterval, 365 days + 1, type(uint128).max);
 
         vm.prank(_owner);
@@ -490,14 +467,9 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
 /// @notice Test failure scenario where vaults have insufficient balance for withdrawal
 contract FeeSplitter_DisburseFees_TestFail is FeeSplitter_TestInit {
     /// @notice Helper to mock fee vault with specific minimum withdrawal amount
-    function _setFeeVaultData(
-        address _vault,
-        uint256 _balance,
-        uint256 _minWithdrawal
-    )
-        internal
-    {
-        MockFeeVault mockVault = new MockFeeVault(payable(address(feeSplitter)), _minWithdrawal, Types.WithdrawalNetwork.L2);
+    function _setFeeVaultData(address _vault, uint256 _balance, uint256 _minWithdrawal) internal {
+        MockFeeVault mockVault =
+            new MockFeeVault(payable(address(feeSplitter)), _minWithdrawal, Types.WithdrawalNetwork.L2);
         vm.deal(address(mockVault), _balance);
         vm.etch(_vault, address(mockVault).code);
         vm.deal(_vault, _balance);
@@ -508,32 +480,32 @@ contract FeeSplitter_DisburseFees_TestFail is FeeSplitter_TestInit {
         // If uint256, the test will revert due to ETH transfer overflow
         _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint128).max);
         _vaultIndex = bound(_vaultIndex, 0, 3); // 0-3 for the 4 vaults
-        
+
         // Calculate vault balances: one vault will have insufficient balance
         uint256 insufficientBalance = _minWithdrawalAmount - 1;
         uint256 sufficientBalance = _minWithdrawalAmount;
-        
+
         address[4] memory vaults = [
             Predeploys.SEQUENCER_FEE_WALLET,
-            Predeploys.BASE_FEE_VAULT, 
+            Predeploys.BASE_FEE_VAULT,
             Predeploys.L1_FEE_VAULT,
             Predeploys.OPERATOR_FEE_VAULT
         ];
-        
+
         // Setup all vaults with sufficient balance first
         for (uint256 i = 0; i < 4; i++) {
             _setFeeVaultData(vaults[i], sufficientBalance, _minWithdrawalAmount);
         }
-        
+
         // Override the selected vault with insufficient balance
         _setFeeVaultData(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
 
         vm.warp(block.timestamp + 25 hours);
-        
+
         // The entire disbursement should revert because one vault doesn't meet its minimum
         vm.expectRevert("FeeVault: withdrawal amount must be greater than minimum withdrawal amount");
         feeSplitter.disburseFees();
-        
+
         // Verify no funds were moved (all vaults retain their original balance)
         for (uint256 i = 0; i < 4; i++) {
             uint256 expectedBalance = (i == _vaultIndex) ? insufficientBalance : sufficientBalance;

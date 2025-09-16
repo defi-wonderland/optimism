@@ -5,7 +5,6 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 
 interface IFeeSplitter is ISemver {
-
     error FeeSplitter_ExceedsMaxFeeDisbursementTime();
     error FeeSplitter_SharesCalculatorCannotBeZero();
     error FeeSplitter_DisbursementIntervalNotReached();
@@ -21,7 +20,6 @@ interface IFeeSplitter is ISemver {
 
     event FeesReceived(address indexed sender, uint256 amount);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
-    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
 
@@ -29,10 +27,7 @@ interface IFeeSplitter is ISemver {
     function lastDisbursementTime() external view returns (uint128);
     function feeDisbursementInterval() external view returns (uint128);
 
-    function initialize(
-        ISharesCalculator _sharesCalculator,
-        uint128 _feeDisbursementInterval
-    ) external;
+    function initialize(ISharesCalculator _sharesCalculator) external;
 
     function disburseFees() external;
 

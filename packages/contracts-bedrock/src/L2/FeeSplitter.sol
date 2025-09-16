@@ -87,11 +87,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param newFeeDisbursementInterval The new fee disbursement interval.
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
 
-    /// @notice Emitted when the contract is initialized with its initial configuration.
-    /// @param sharesCalculator           The share calculator contract.
-    /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
-    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
-
     /// @notice Emitted when fees are disbursed to the recipients.
     /// @param shareInfo The recipients of the fee share.
     /// @param grossRevenue The gross revenue before disbursement.
@@ -109,15 +104,10 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     /// @param _sharesCalculator            The share calculator contract.
-    /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(ISharesCalculator _sharesCalculator, uint128 _feeDisbursementInterval) external initializer {
-        if (_feeDisbursementInterval > MAX_DISBURSEMENT_INTERVAL) {
-            revert FeeSplitter_ExceedsMaxFeeDisbursementTime();
-        }
+    function initialize(ISharesCalculator _sharesCalculator) external initializer {
         sharesCalculator = _sharesCalculator;
-        feeDisbursementInterval = _feeDisbursementInterval;
-
-        emit Initialized(_sharesCalculator, _feeDisbursementInterval);
+        // As default, the fee disbursement interval is 1 day
+        feeDisbursementInterval = 1 days;
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
