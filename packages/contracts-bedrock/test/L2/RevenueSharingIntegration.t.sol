@@ -142,43 +142,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         assertEq(address(opTreasury).balance, opTreasuryBalance, "Incorrect OP Treasury balance");
     }
 
-    function test_feeSplitter_distributesToL2RecipientAndL1Withdrawer_succeeds() public {
-        // Fund vaults with test amounts (gross revenue = 100 ETH)
-        uint256[4] memory fees;
-        fees[0] = 40 ether; // sequencer
-        fees[1] = 30 ether; // base
-        fees[2] = 10 ether; // l1
-        fees[3] = 20 ether; // operator
-
-        uint256 grossRevenue = fees[0] + fees[1] + fees[2] + fees[3]; // 100 ETH
-        uint256 netRevenue = grossRevenue - fees[2]; // 90 ETH (gross - L1 fees)
-        uint256 grossShare = (grossRevenue * GROSS_SHARE_BPS) / BASIS_POINT_SCALE; // 2.5 ETH
-        uint256 netShare = (netRevenue * NET_SHARE_BPS) / BASIS_POINT_SCALE; // 13.5 ETH
-        uint256 expectedShare = netShare > grossShare ? netShare : grossShare; // max(13.5, 2.5) = 13.5 ETH
-        uint256 expectedRemainderAmount = grossRevenue - expectedShare; // 86.5 ETH
-
-        // Expect call to message passer from the L1Withdrawer
-        vm.expectCall(
-            Predeploys.L2_TO_L1_MESSAGE_PASSER,
-            expectedShare,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex""))
-        );
-
-        _fundVaultsAndDisburse(fees[0], fees[1], fees[2], fees[3]);
-
-        // Get the share and remainder recipients
-        address shareRecipient = superchainRevSharesCalculator.shareRecipient();
-        address remainderRecipient = superchainRevSharesCalculator.remainderRecipient();
-
-        // Note: shareRecipient (L1Withdrawer) balance is 0 because it automatically withdrew to L1
-        // The funds should be in the L2ToL1MessagePasser
-        assertEq(shareRecipient.balance, 0, "L1Withdrawer should have withdrawn funds");
-        assertEq(remainderRecipient.balance, expectedRemainderAmount, "Remainder recipient incorrect amount");
-
-        // Verify L2ToL1MessagePasser received the withdrawal
-        assertEq(address(l2ToL1MessagePasser).balance, expectedShare, "L2ToL1MessagePasser should have withdrawal funds");
-    }
-
     // Full Revenue Sharing Integration Flow Test
     // Vaults: S=Sequencer, B=Base, L=L1, O=Operator
     // RevSharesCalculator recipients: L1Withdrawer (share), ChainFeesRecipient (remainder)
