@@ -311,7 +311,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Calculate expected values: Gross=120, Net=115, Share=max(3, 17.25)=17.25
         uint256 expectedShare3 = (115 ether * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE; // 17.25 ETH (net > gross)
         uint256 expectedRemainder3 = 120 ether - expectedShare3; // 102.75 ETH
-        uint256 expectedFeesDepositorTotal = expectedShare3 + expectedRemainder3; // 34.2 ETH
+        uint256 expectedFeesDepositorTotal = expectedShare3 + expectedShare2 + expectedShare1; // 34.2 ETH
 
         _disburseFees();
 
@@ -322,22 +322,9 @@ contract RevenueSharingIntegration_Test is CommonTest {
         vm.deal(address(l2ToL1MessagePasser), address(l2ToL1MessagePasser).balance - expectedShare3);
         address(l1FeesDepositor).call{ value: expectedShare3 }("");
 
-        // Simulate FeesDepositor receiving funds and triggering deposit to L2
-        // Since 34.2 ETH > 20 ETH threshold, it should deposit to OP Treasury
-        // Note: In a real scenario, this would happen on L1 and cross back to L2
+        // Final assertions: 0/0/0/0 | 0 | 210.8 | 34.2 | 0
+        _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3, expectedFeesDepositorTotal, 0);
 
-        // Final assertions: 0/0/0/0 | 0 | 210.8 | 0 | 34.2
-        /* _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3, expectedFeesDepositorTotal, 0); */
-
-        // Verify the full flow worked:
-        // - Total fees processed: 25 + 100 + 120 = 245 ETH
-        // - Total shares: 3.45 + 13.5 + 17.25 = 34.2 ETH (would go to OP Treasury via L1)
-        // - Total remainder: 21.55 + 86.5 + 102.75 = 210.8 ETH (stays with ChainFeesRecipient)
-        /* uint256 totalShares = expectedShare1 + expectedShare2 + expectedShare3;
-        uint256 totalRemainder = remainderAfterSecond + expectedRemainder3; */
-
-       /*  assertEq(remainderRecipient.balance, totalRemainder, "ChainFeesRecipient final balance should match calculated total");
-        assertEq(totalShares + totalRemainder, 245 ether, "Total shares + remainder should equal total fees");
-        assertEq(totalShares, expectedFeesDepositorTotal, "Total shares should match FeesDepositor total");  */
+        // TODO: When l1FeesDepositor has code, add a step to simulate the deposit to OP Treasury
        }
 }
