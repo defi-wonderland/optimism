@@ -614,6 +614,7 @@ contract L2Genesis is Script {
             bytes32 calcSalt = keccak256("SuperchainRevSharesCalculator");
             revSharesCalculator = DeployUtils.create2(
                 "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
+                // TODO: shouldn't L1Withdrawer be the remainder recipient instead of the share recipient?
                 abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient)),
                 calcSalt
             );
