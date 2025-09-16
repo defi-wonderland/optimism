@@ -552,7 +552,7 @@ jobs:
             - "packages/contracts-bedrock/artifacts"
             - "packages/contracts-bedrock/forge-artifacts"
             - "op-deployer/pkg/deployer/artifacts/forge-artifacts"
-      - notify-failures-on-develop
+      # - notify-failures-on-develop
 
   # check-kontrol-build:
   #   docker:
@@ -713,10 +713,10 @@ jobs:
               <<parameters.docker_name>>
 
           no_output_timeout: 45m
-      - when:
-          condition: "<<parameters.publish>>"
-          steps:
-            - notify-failures-on-develop
+      # - when:
+      #     condition: "<<parameters.publish>>"
+      #     steps:
+      #       - notify-failures-on-develop
       - when:
           condition: "<<parameters.save_image_tag>>"
           steps:
@@ -897,7 +897,7 @@ jobs:
           key: golang-build-cache-contracts-bedrock-tests-{{ checksum "go.sum" }}
           paths:
             - "~/.cache/go-build"
-      - notify-failures-on-develop
+      # - notify-failures-on-develop
 
   contracts-bedrock-heavy-fuzz-nightly:
     circleci_ip_ranges: true
@@ -1155,7 +1155,7 @@ jobs:
       - store_artifacts:
           path: packages/contracts-bedrock/failed-test-traces.log
           when: on_fail
-      - notify-failures-on-develop
+      # - notify-failures-on-develop
 
   contracts-bedrock-checks:
     machine: true
@@ -1212,7 +1212,7 @@ jobs:
       - run:
           name: Check TODO issues
           command: ./ops/scripts/todo-checker.sh --verbose --strict <<#parameters.check_closed>> --check-closed <</parameters.check_closed>>
-      - notify-failures-on-develop
+      # - notify-failures-on-develop
 
   # fuzz-golang:
   #   parameters:
@@ -1517,8 +1517,8 @@ jobs:
           steps:
             - store_artifacts:
                 path: ./op-acceptance-tests/logs
-      - notify-failures-on-develop:
-          mentions: "@changwan <@U08L5U8070U>" # @changwan @Anton Evangelatov
+      # - notify-failures-on-develop:
+      #     mentions: "@changwan <@U08L5U8070U>" # @changwan @Anton Evangelatov
 
   op-acceptance-tests:
     parameters:
@@ -1988,7 +1988,7 @@ jobs:
           command: << parameters.scan_command >>
           # If semgrep hangs, stop the scan after 20m, to prevent a useless 5h job
           no_output_timeout: 20m
-      - notify-failures-on-develop
+      # - notify-failures-on-develop
 
   bedrock-go-tests: # just a helper, that depends on all the actual test jobs
     docker:
