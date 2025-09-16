@@ -1988,7 +1988,7 @@ jobs:
           command: << parameters.scan_command >>
           # If semgrep hangs, stop the scan after 20m, to prevent a useless 5h job
           no_output_timeout: 20m
-      # - notify-failures-on-develop
+      - notify-failures-on-develop
 
   bedrock-go-tests: # just a helper, that depends on all the actual test jobs
     docker:
@@ -2338,11 +2338,11 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      # - check-kontrol-build:
-      #     requires:
-      #       - contracts-bedrock-build
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
+      - check-kontrol-build:
+          requires:
+            - contracts-bedrock-build
+          context:
+            - circleci-repo-readonly-authenticated-github-token
       - contracts-bedrock-tests:
           # Test everything except PreimageOracle.t.sol since it's slow.
           name: contracts-bedrock-tests
