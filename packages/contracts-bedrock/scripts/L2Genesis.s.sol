@@ -598,6 +598,8 @@ contract L2Genesis is Script {
     /// @notice This predeploy is following the safety invariant #1.
     function setFeeSplitter(Input memory _input) internal {
         address revSharesCalculator;
+
+        // Only set the shares calculator if revenue sharing is enabled
         if (_input.useRevenueShare) {
             if (_input.chainFeesRecipient == address(0)) revert L2Genesis_ChainFeesRecipientCannotBeZero();
             if (_input.l1FeesDepositor == address(0)) revert L2Genesis_L1FeesDepositorCannotBeZero();
@@ -624,7 +626,6 @@ contract L2Genesis is Script {
         IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(0)));
 
         // Initialize the proxy with the actual values
-        // Only set the shares calculator if revenue sharing is enabled
         address sharesCalculator = revSharesCalculator;
         IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(ISharesCalculator(sharesCalculator));
     }
