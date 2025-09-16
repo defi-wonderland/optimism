@@ -28,5 +28,9 @@ interface IFeeVault {
     function setRecipient(address _newRecipient) external;
     function setWithdrawalNetwork(Types.WithdrawalNetwork _newWithdrawalNetwork) external;
 
-    function __constructor__() external;
+    function __constructor__(
+        address _recipient,
+        uint256 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
+    ) external;
 }
