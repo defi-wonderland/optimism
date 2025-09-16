@@ -617,7 +617,7 @@ jobs:
         default: medium
     machine:
       image: <<pipeline.parameters.base_image>>
-      resource_class: "<<parameters.resource_class>>"
+      resource_class: medium
       docker_layer_caching: true # we rely on this for faster builds, and actively warm it up for builds with common stages
     steps:
       - checkout-from-workspace
@@ -812,7 +812,7 @@ jobs:
             docker run $image_name <<parameters.op_component>> --version || exit 1
 
   contracts-bedrock-tests:
-    circleci_ip_ranges: true
+    # circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: medium
@@ -988,7 +988,7 @@ jobs:
       - notify-failures-on-develop
 
   contracts-bedrock-coverage:
-    circleci_ip_ranges: true
+    # circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: medium
@@ -1073,7 +1073,7 @@ jobs:
       - notify-failures-on-develop
 
   contracts-bedrock-tests-upgrade:
-    circleci_ip_ranges: true
+    # circleci_ip_ranges: true
     parameters:
       fork_op_chain:
         description: Fork OP Chain
@@ -1375,7 +1375,7 @@ jobs:
         type: string
         default: ""
     machine: true
-    resource_class: <<parameters.resource_class>>
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - run:
@@ -1436,7 +1436,7 @@ jobs:
     resource_class: medium
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    circleci_ip_ranges: true
+    # circleci_ip_ranges: true
     steps:
       - checkout-from-workspace
       # Restore cached Go modules
