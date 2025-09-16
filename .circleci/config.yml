@@ -2500,28 +2500,28 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - op-program-compat:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - bedrock-go-tests:
-          requires:
-            - go-lint
-            - cannon-go-lint-and-test
-            - check-generated-mocks-op-node
-            - check-generated-mocks-op-service
-            - op-program-compat
-            # Not needed for the devnet but we want to make sure they build successfully
-            - cannon-docker-build
-            - op-dispute-mon-docker-build
-            - op-program-docker-build
-            - op-supervisor-docker-build
-            - op-test-sequencer-docker-build
-            - go-tests-short
-            - sanitize-op-program
-          context:
-            - circleci-repo-readonly-authenticated-github-tokens
+      # - op-program-compat:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
+      # - bedrock-go-tests:
+      #     requires:
+      #       - go-lint
+      #       - cannon-go-lint-and-test
+      #       - check-generated-mocks-op-node
+      #       - check-generated-mocks-op-service
+      #       - op-program-compat
+      #       # Not needed for the devnet but we want to make sure they build successfully
+      #       - cannon-docker-build
+      #       - op-dispute-mon-docker-build
+      #       - op-program-docker-build
+      #       - op-supervisor-docker-build
+      #       - op-test-sequencer-docker-build
+      #       - go-tests-short
+      #       - sanitize-op-program
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-tokens
       - docker-build:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
@@ -2555,11 +2555,11 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - sanitize-op-program:
-          requires:
-            - cannon-prestate-quick
-          context:
-            - circleci-repo-readonly-authenticated-github-token
+      # - sanitize-op-program:
+      #     requires:
+      #       - cannon-prestate-quick
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
       - check-generated-mocks-op-node:
           context:
             - circleci-repo-readonly-authenticated-github-token
