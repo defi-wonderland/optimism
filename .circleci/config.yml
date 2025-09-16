@@ -187,22 +187,22 @@ commands:
           working_directory: packages/contracts-bedrock
 
   # Notifies us on Slack a build fails on develop
-  # notify-failures-on-develop:
-  #   description: "Notify Slack"
-  #   parameters:
-  #     channel:
-  #       type: string
-  #       default: C03N11M0BBN
-  #     mentions:
-  #       type: string
-  #       default: ""
-  #   steps:
-  #     - slack/notify:
-  #         channel: << parameters.channel >>
-  #         event: fail
-  #         template: basic_fail_1
-  #         branch_pattern: develop
-  #         mentions: "<< parameters.mentions >>"
+  notify-failures-on-develop:
+    description: "Notify Slack"
+    parameters:
+      channel:
+        type: string
+        default: C03N11M0BBN
+      mentions:
+        type: string
+        default: ""
+    steps:
+      - slack/notify:
+          channel: << parameters.channel >>
+          event: fail
+          template: basic_fail_1
+          branch_pattern: develop
+          mentions: "<< parameters.mentions >>"
 
   get-target-branch:
     description: "Determine the PR target branch and export TARGET_BRANCH for subsequent steps"
@@ -413,104 +413,104 @@ jobs:
           paths:
             - "."
 
-  # cannon-go-lint-and-test:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   parameters:
-  #     skip_slow_tests:
-  #       type: boolean
-  #       default: false
-  #     no_output_timeout:
-  #       description: Timeout for when CircleCI kills the job if there's no output
-  #       type: string
-  #       default: 10m
-  #     notify:
-  #       description: Whether to notify on failure
-  #       type: boolean
-  #       default: false
-  #   steps:
-  #     - checkout-from-workspace
-  #     - check-changed:
-  #         patterns: cannon,packages/contracts-bedrock/src/cannon,op-preimage,go.mod
-  #     - run:
-  #         name: prep Cannon results dir
-  #         command: |
-  #           mkdir -p ./tmp/test-results
-  #           mkdir -p ./tmp/testlogs
-  #     - run:
-  #         name: build Cannon example binaries
-  #         command: make elf # only compile ELF binaries with Go, we do not have MIPS GCC for creating the debug-dumps.
-  #         working_directory: cannon/testdata
-  #     - run:
-  #         name: Cannon Go lint
-  #         command: |
-  #           make lint
-  #         working_directory: cannon
-  #     - run:
-  #         name: Cannon Go 64-bit tests
-  #         no_output_timeout: <<parameters.no_output_timeout>>
-  #         command: |
-  #           export SKIP_SLOW_TESTS="<<parameters.skip_slow_tests>>"
-  #           TIMEOUT="10m"
-  #           if [ "$SKIP_SLOW_TESTS" = "false" ]; then
-  #             TIMEOUT="45m"
-  #           fi
-  #           gotestsum --format=testname --junitfile=../tmp/test-results/cannon-64.xml --jsonfile=../tmp/testlogs/log-64.json \
-  #           -- -timeout=$TIMEOUT -parallel=$(nproc) -coverpkg=github.com/ethereum-optimism/optimism/cannon/... -coverprofile=coverage-64.out ./...
-  #         working_directory: cannon
-  #     - codecov/upload:
-  #         disable_search: true
-  #         files: ./cannon/coverage-64.out
-  #         flags: cannon-go-tests-64
-  #     - store_test_results:
-  #         path: ./tmp/test-results
-  #     - store_artifacts:
-  #         path: ./tmp/testlogs
-  #         when: always
-  #     - when:
-  #         condition: <<parameters.notify>>
-  #         steps:
-  #           - notify-failures-on-develop:
-  #               mentions: "@proofs-team"
+  cannon-go-lint-and-test:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    parameters:
+      skip_slow_tests:
+        type: boolean
+        default: false
+      no_output_timeout:
+        description: Timeout for when CircleCI kills the job if there's no output
+        type: string
+        default: 10m
+      notify:
+        description: Whether to notify on failure
+        type: boolean
+        default: false
+    steps:
+      - checkout-from-workspace
+      - check-changed:
+          patterns: cannon,packages/contracts-bedrock/src/cannon,op-preimage,go.mod
+      - run:
+          name: prep Cannon results dir
+          command: |
+            mkdir -p ./tmp/test-results
+            mkdir -p ./tmp/testlogs
+      - run:
+          name: build Cannon example binaries
+          command: make elf # only compile ELF binaries with Go, we do not have MIPS GCC for creating the debug-dumps.
+          working_directory: cannon/testdata
+      - run:
+          name: Cannon Go lint
+          command: |
+            make lint
+          working_directory: cannon
+      - run:
+          name: Cannon Go 64-bit tests
+          no_output_timeout: <<parameters.no_output_timeout>>
+          command: |
+            export SKIP_SLOW_TESTS="<<parameters.skip_slow_tests>>"
+            TIMEOUT="10m"
+            if [ "$SKIP_SLOW_TESTS" = "false" ]; then
+              TIMEOUT="45m"
+            fi
+            gotestsum --format=testname --junitfile=../tmp/test-results/cannon-64.xml --jsonfile=../tmp/testlogs/log-64.json \
+            -- -timeout=$TIMEOUT -parallel=$(nproc) -coverpkg=github.com/ethereum-optimism/optimism/cannon/... -coverprofile=coverage-64.out ./...
+          working_directory: cannon
+      - codecov/upload:
+          disable_search: true
+          files: ./cannon/coverage-64.out
+          flags: cannon-go-tests-64
+      - store_test_results:
+          path: ./tmp/test-results
+      - store_artifacts:
+          path: ./tmp/testlogs
+          when: always
+      - when:
+          condition: <<parameters.notify>>
+          steps:
+            - notify-failures-on-develop:
+                mentions: "@proofs-team"
 
-  # diff-asterisc-bytecode:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   steps:
-  #     - checkout-from-workspace
-  #     - run:
-  #         name: Check `RISCV.sol` bytecode
-  #         working_directory: packages/contracts-bedrock
-  #         command: |
-  #           # Clone asterisc @ the pinned version to fetch remote `RISCV.sol`
-  #           ASTERISC_REV="v$(yq '.tools.asterisc' ../../mise.toml)"
-  #           REMOTE_ASTERISC_PATH="./src/vendor/asterisc/RISCV_Remote.sol"
-  #           git clone https://github.com/ethereum-optimism/asterisc \
-  #             -b $ASTERISC_REV && \
-  #             cp ./asterisc/rvsol/src/RISCV.sol $REMOTE_ASTERISC_PATH
+  diff-asterisc-bytecode:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - checkout-from-workspace
+      - run:
+          name: Check `RISCV.sol` bytecode
+          working_directory: packages/contracts-bedrock
+          command: |
+            # Clone asterisc @ the pinned version to fetch remote `RISCV.sol`
+            ASTERISC_REV="v$(yq '.tools.asterisc' ../../mise.toml)"
+            REMOTE_ASTERISC_PATH="./src/vendor/asterisc/RISCV_Remote.sol"
+            git clone https://github.com/ethereum-optimism/asterisc \
+              -b $ASTERISC_REV && \
+              cp ./asterisc/rvsol/src/RISCV.sol $REMOTE_ASTERISC_PATH
 
-  #           # Replace import paths
-  #           sed -i -e 's/@optimism\///' $REMOTE_ASTERISC_PATH
-  #           # Replace legacy interface paths
-  #           sed -i -e 's/src\/cannon\/interfaces\//interfaces\/cannon\//g' $REMOTE_ASTERISC_PATH
-  #           sed -i -e 's/src\/dispute\/interfaces\//interfaces\/dispute\//g' $REMOTE_ASTERISC_PATH
-  #           # Replace contract name
-  #           sed -i -e 's/contract RISCV/contract RISCV_Remote/' $REMOTE_ASTERISC_PATH
+            # Replace import paths
+            sed -i -e 's/@optimism\///' $REMOTE_ASTERISC_PATH
+            # Replace legacy interface paths
+            sed -i -e 's/src\/cannon\/interfaces\//interfaces\/cannon\//g' $REMOTE_ASTERISC_PATH
+            sed -i -e 's/src\/dispute\/interfaces\//interfaces\/dispute\//g' $REMOTE_ASTERISC_PATH
+            # Replace contract name
+            sed -i -e 's/contract RISCV/contract RISCV_Remote/' $REMOTE_ASTERISC_PATH
 
-  #           # Install deps
-  #           forge install
+            # Install deps
+            forge install
 
-  #           # Diff bytecode, with both contracts compiled in the local environment.
-  #           REMOTE_ASTERISC_CODE="$(forge inspect RISCV_Remote bytecode | tr -d '\n')"
-  #           LOCAL_ASTERISC_CODE="$(forge inspect RISCV bytecode | tr -d '\n')"
-  #           if [ "$REMOTE_ASTERISC_CODE" != "$LOCAL_ASTERISC_CODE" ]; then
-  #             echo "Asterisc bytecode mismatch. Local version does not match remote. Diff:"
-  #             diff <(echo "$REMOTE_ASTERISC_CODE") <(echo "$LOCAL_ASTERISC_CODE")
-  #           else
-  #             echo "Asterisc version up to date."
-  #           fi
-  #     - notify-failures-on-develop:
-  #         mentions: "@clabby @proofs-team"
+            # Diff bytecode, with both contracts compiled in the local environment.
+            REMOTE_ASTERISC_CODE="$(forge inspect RISCV_Remote bytecode | tr -d '\n')"
+            LOCAL_ASTERISC_CODE="$(forge inspect RISCV bytecode | tr -d '\n')"
+            if [ "$REMOTE_ASTERISC_CODE" != "$LOCAL_ASTERISC_CODE" ]; then
+              echo "Asterisc bytecode mismatch. Local version does not match remote. Diff:"
+              diff <(echo "$REMOTE_ASTERISC_CODE") <(echo "$LOCAL_ASTERISC_CODE")
+            else
+              echo "Asterisc version up to date."
+            fi
+      - notify-failures-on-develop:
+          mentions: "@clabby @proofs-team"
 
   contracts-bedrock-build:
     docker:
@@ -552,7 +552,7 @@ jobs:
             - "packages/contracts-bedrock/artifacts"
             - "packages/contracts-bedrock/forge-artifacts"
             - "op-deployer/pkg/deployer/artifacts/forge-artifacts"
-      # - notify-failures-on-develop
+      - notify-failures-on-develop
 
   # check-kontrol-build:
   #   docker:
@@ -713,10 +713,10 @@ jobs:
               <<parameters.docker_name>>
 
           no_output_timeout: 45m
-      # - when:
-      #     condition: "<<parameters.publish>>"
-      #     steps:
-      #       - notify-failures-on-develop
+      - when:
+          condition: "<<parameters.publish>>"
+          steps:
+            - notify-failures-on-develop
       - when:
           condition: "<<parameters.save_image_tag>>"
           steps:
@@ -767,49 +767,49 @@ jobs:
                       --attestor-key-id="//cloudkms.googleapis.com/v1/projects/$ATTESTOR_PROJECT_NAME/locations/global/keyRings/$ATTESTOR_NAME-key-ring/cryptoKeys/$ATTESTOR_NAME-key/cryptoKeyVersions/1"
 
   # Verify newly published images (built on AMD machine) will run on ARM
-  # check-cross-platform:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: arm.medium
-  #   parameters:
-  #     registry:
-  #       description: Docker registry
-  #       type: string
-  #       default: "us-docker.pkg.dev"
-  #     repo:
-  #       description: Docker repo
-  #       type: string
-  #       default: "oplabs-tools-artifacts/images"
-  #     op_component:
-  #       description: "Name of op-stack component (e.g. op-node)"
-  #       type: string
-  #       default: ""
-  #     docker_tag:
-  #       description: "Tag of docker image"
-  #       type: string
-  #       default: "<<pipeline.git.revision>>"
-  #   steps:
-  #     - setup_remote_docker
-  #     - run:
-  #         name: "Verify Image Platform"
-  #         command: |
-  #           image_name="<<parameters.registry>>/<<parameters.repo>>/<<parameters.op_component>>:<<parameters.docker_tag>>"
-  #           echo "Retrieving Docker image manifest: $image_name"
-  #           MANIFEST=$(docker manifest inspect $image_name)
+  check-cross-platform:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: arm.medium
+    parameters:
+      registry:
+        description: Docker registry
+        type: string
+        default: "us-docker.pkg.dev"
+      repo:
+        description: Docker repo
+        type: string
+        default: "oplabs-tools-artifacts/images"
+      op_component:
+        description: "Name of op-stack component (e.g. op-node)"
+        type: string
+        default: ""
+      docker_tag:
+        description: "Tag of docker image"
+        type: string
+        default: "<<pipeline.git.revision>>"
+    steps:
+      - setup_remote_docker
+      - run:
+          name: "Verify Image Platform"
+          command: |
+            image_name="<<parameters.registry>>/<<parameters.repo>>/<<parameters.op_component>>:<<parameters.docker_tag>>"
+            echo "Retrieving Docker image manifest: $image_name"
+            MANIFEST=$(docker manifest inspect $image_name)
 
-  #           echo "Verifying 'linux/arm64' is supported..."
-  #           SUPPORTED_PLATFORM=$(echo "$MANIFEST" | jq -r '.manifests[] | select(.platform.architecture == "arm64" and .platform.os == "linux")')
-  #           echo $SUPPORT_PLATFORM
-  #           if [ -z "$SUPPORTED_PLATFORM" ]; then
-  #             echo "Platform 'linux/arm64' not supported by this image"
-  #             exit 1
-  #           fi
-  #     - run:
-  #         name: "Pull and run docker image"
-  #         command: |
-  #           image_name="<<parameters.registry>>/<<parameters.repo>>/<<parameters.op_component>>:<<parameters.docker_tag>>"
-  #           docker pull $image_name || exit 1
-  #           docker run $image_name <<parameters.op_component>> --version || exit 1
+            echo "Verifying 'linux/arm64' is supported..."
+            SUPPORTED_PLATFORM=$(echo "$MANIFEST" | jq -r '.manifests[] | select(.platform.architecture == "arm64" and .platform.os == "linux")')
+            echo $SUPPORT_PLATFORM
+            if [ -z "$SUPPORTED_PLATFORM" ]; then
+              echo "Platform 'linux/arm64' not supported by this image"
+              exit 1
+            fi
+      - run:
+          name: "Pull and run docker image"
+          command: |
+            image_name="<<parameters.registry>>/<<parameters.repo>>/<<parameters.op_component>>:<<parameters.docker_tag>>"
+            docker pull $image_name || exit 1
+            docker run $image_name <<parameters.op_component>> --version || exit 1
 
   contracts-bedrock-tests:
     circleci_ip_ranges: true
@@ -1155,7 +1155,7 @@ jobs:
       - store_artifacts:
           path: packages/contracts-bedrock/failed-test-traces.log
           when: on_fail
-      # - notify-failures-on-develop
+      - notify-failures-on-develop
 
   contracts-bedrock-checks:
     machine: true
@@ -1212,45 +1212,45 @@ jobs:
       - run:
           name: Check TODO issues
           command: ./ops/scripts/todo-checker.sh --verbose --strict <<#parameters.check_closed>> --check-closed <</parameters.check_closed>>
-      # - notify-failures-on-develop
+      - notify-failures-on-develop
 
-  # fuzz-golang:
-  #   parameters:
-  #     package_name:
-  #       description: Go package name
-  #       type: string
-  #     on_changes:
-  #       description: changed pattern to fire fuzzer on
-  #       type: string
-  #     uses_artifacts:
-  #       description: should load in foundry artifacts
-  #       type: boolean
-  #       default: false
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: xlarge
-  #   steps:
-  #     - checkout-from-workspace
-  #     - check-changed:
-  #         patterns: "<<parameters.package_name>>"
-  #     - attach_workspace:
-  #         at: "."
-  #         if: ${{ uses_artifacts }}
-  #     - run:
-  #         name: Fuzz
-  #         no_output_timeout: 15m
-  #         command: |
-  #           make fuzz
-  #         working_directory: "<<parameters.package_name>>"
-  #     - run:
-  #         name: Copy fuzz artifacts
-  #         command: |
-  #           mkdir -p fuzzdata
-  #           find ./<<parameters.package_name>> -type d -name "fuzz" -exec sh -c 'cp -r "{}"/* fuzzdata/ 2>/dev/null || true' \;
-  #         when: always
-  #     - store_artifacts:
-  #         path: ./fuzzdata
-  #         when: always
+  fuzz-golang:
+    parameters:
+      package_name:
+        description: Go package name
+        type: string
+      on_changes:
+        description: changed pattern to fire fuzzer on
+        type: string
+      uses_artifacts:
+        description: should load in foundry artifacts
+        type: boolean
+        default: false
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: xlarge
+    steps:
+      - checkout-from-workspace
+      - check-changed:
+          patterns: "<<parameters.package_name>>"
+      - attach_workspace:
+          at: "."
+          if: ${{ uses_artifacts }}
+      - run:
+          name: Fuzz
+          no_output_timeout: 15m
+          command: |
+            make fuzz
+          working_directory: "<<parameters.package_name>>"
+      - run:
+          name: Copy fuzz artifacts
+          command: |
+            mkdir -p fuzzdata
+            find ./<<parameters.package_name>> -type d -name "fuzz" -exec sh -c 'cp -r "{}"/* fuzzdata/ 2>/dev/null || true' \;
+          when: always
+      - store_artifacts:
+          path: ./fuzzdata
+          when: always
 
   go-lint:
     docker:
@@ -1348,71 +1348,71 @@ jobs:
             - notify-failures-on-develop:
                 mentions: "<<parameters.mentions>>"
 
-  # go-tests-with-fault-proof-deps:
-  #   parameters:
-  #     notify:
-  #       description: Whether to notify on failure
-  #       type: boolean
-  #       default: false
-  #     mentions:
-  #       description: Slack user or group to mention when notifying of failures
-  #       type: string
-  #       default: ""
-  #     resource_class:
-  #       description: Machine resource class
-  #       type: string
-  #       default: ethereum-optimism/latitude-1-go-e2e
-  #     no_output_timeout:
-  #       description: Timeout for when CircleCI kills the job if there's no output
-  #       type: string
-  #       default: 60m
-  #     test_timeout:
-  #       description: Timeout for running tests
-  #       type: string
-  #       default: 10m
-  #     environment_overrides:
-  #       description: Environment overrides
-  #       type: string
-  #       default: ""
-  #   machine: true
-  #   resource_class: <<parameters.resource_class>>
-  #   steps:
-  #     - checkout-from-workspace
-  #     - run:
-  #         name: build op-program-client
-  #         command: make op-program-client
-  #         working_directory: op-program
-  #     - run:
-  #         name: build op-program-host
-  #         command: make op-program-host
-  #         working_directory: op-program
-  #     - run:
-  #         name: build cannon
-  #         command: make cannon
-  #     - run:
-  #         name: run tests
-  #         no_output_timeout: <<parameters.no_output_timeout>>
-  #         command: |
-  #           <<parameters.environment_overrides>>
-  #           export TEST_TIMEOUT=<<parameters.test_timeout>>
-  #           make go-tests-fraud-proofs-ci
-  #     - codecov/upload:
-  #         disable_search: true
-  #         files: ./coverage.out
-  #     - store_test_results:
-  #         path: ./tmp/test-results
-  #     - run:
-  #         name: Compress test logs
-  #         command: tar -czf testlogs.tar.gz -C ./tmp testlogs
-  #         when: always
-  #     - store_artifacts:
-  #         path: testlogs.tar.gz
-  #         when: always
-  #     - when:
-  #         condition: "<<parameters.notify>>"
-  #         steps:
-  #           - notify-failures-on-develop:
-  #               mentions: "<<parameters.mentions>>"
+  go-tests-with-fault-proof-deps:
+    parameters:
+      notify:
+        description: Whether to notify on failure
+        type: boolean
+        default: false
+      mentions:
+        description: Slack user or group to mention when notifying of failures
+        type: string
+        default: ""
+      resource_class:
+        description: Machine resource class
+        type: string
+        default: ethereum-optimism/latitude-1-go-e2e
+      no_output_timeout:
+        description: Timeout for when CircleCI kills the job if there's no output
+        type: string
+        default: 60m
+      test_timeout:
+        description: Timeout for running tests
+        type: string
+        default: 10m
+      environment_overrides:
+        description: Environment overrides
+        type: string
+        default: ""
+    machine: true
+    resource_class: <<parameters.resource_class>>
+    steps:
+      - checkout-from-workspace
+      - run:
+          name: build op-program-client
+          command: make op-program-client
+          working_directory: op-program
+      - run:
+          name: build op-program-host
+          command: make op-program-host
+          working_directory: op-program
+      - run:
+          name: build cannon
+          command: make cannon
+      - run:
+          name: run tests
+          no_output_timeout: <<parameters.no_output_timeout>>
+          command: |
+            <<parameters.environment_overrides>>
+            export TEST_TIMEOUT=<<parameters.test_timeout>>
+            make go-tests-fraud-proofs-ci
+      - codecov/upload:
+          disable_search: true
+          files: ./coverage.out
+      - store_test_results:
+          path: ./tmp/test-results
+      - run:
+          name: Compress test logs
+          command: tar -czf testlogs.tar.gz -C ./tmp testlogs
+          when: always
+      - store_artifacts:
+          path: testlogs.tar.gz
+          when: always
+      - when:
+          condition: "<<parameters.notify>>"
+          steps:
+            - notify-failures-on-develop:
+                mentions: "<<parameters.mentions>>"
 
   op-acceptance-sync-tests-docker:
     parameters:
@@ -1517,8 +1517,8 @@ jobs:
           steps:
             - store_artifacts:
                 path: ./op-acceptance-tests/logs
-      # - notify-failures-on-develop:
-      #     mentions: "@changwan <@U08L5U8070U>" # @changwan @Anton Evangelatov
+      - notify-failures-on-develop:
+          mentions: "@changwan <@U08L5U8070U>" # @changwan @Anton Evangelatov
 
   op-acceptance-tests:
     parameters:
@@ -1791,160 +1791,160 @@ jobs:
           retry_delay: 3
           template: SLACK_TEMPLATE
 
-  # sanitize-op-program:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: large
-  #   steps:
-  #     - checkout-from-workspace
-  #     - run:
-  #         name: Install tools
-  #         command: |
-  #           sudo apt-get update
-  #           sudo apt-get install -y binutils-mips-linux-gnu
-  #     - run:
-  #         name: Build cannon
-  #         command: make cannon
-  #     - run:
-  #         name: Build op-program
-  #         command: make op-program
-  #     - run:
-  #         name: Sanitize op-program client
-  #         command: make sanitize-program GUEST_PROGRAM=../op-program/bin/op-program-client64.elf
-  #         working_directory: cannon
+  sanitize-op-program:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: large
+    steps:
+      - checkout-from-workspace
+      - run:
+          name: Install tools
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y binutils-mips-linux-gnu
+      - run:
+          name: Build cannon
+          command: make cannon
+      - run:
+          name: Build op-program
+          command: make op-program
+      - run:
+          name: Sanitize op-program client
+          command: make sanitize-program GUEST_PROGRAM=../op-program/bin/op-program-client64.elf
+          working_directory: cannon
 
-  # cannon-prestate-quick:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   steps:
-  #     - checkout-from-workspace
-  #     - restore_cache:
-  #         name: Restore cannon prestate cache
-  #         key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
-  #     - run:
-  #         name: Build prestates
-  #         command: make cannon-prestates
-  #     - save_cache:
-  #         key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
-  #         name: Save Cannon prestate to cache
-  #         paths:
-  #           - "op-program/bin/prestate*.bin.gz"
-  #           - "op-program/bin/meta*.json"
-  #           - "op-program/bin/prestate-proof*.json"
-  #     - persist_to_workspace:
-  #         root: .
-  #         paths:
-  #           - "op-program/bin/prestate*"
-  #           - "op-program/bin/meta*"
-  #           - "op-program/bin/op-program"
-  #           - "op-program/bin/op-program-client"
-  #           - "cannon/bin"
+  cannon-prestate-quick:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - checkout-from-workspace
+      - restore_cache:
+          name: Restore cannon prestate cache
+          key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
+      - run:
+          name: Build prestates
+          command: make cannon-prestates
+      - save_cache:
+          key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
+          name: Save Cannon prestate to cache
+          paths:
+            - "op-program/bin/prestate*.bin.gz"
+            - "op-program/bin/meta*.json"
+            - "op-program/bin/prestate-proof*.json"
+      - persist_to_workspace:
+          root: .
+          paths:
+            - "op-program/bin/prestate*"
+            - "op-program/bin/meta*"
+            - "op-program/bin/op-program"
+            - "op-program/bin/op-program-client"
+            - "cannon/bin"
 
-  # cannon-prestate:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   steps:
-  #     - checkout-from-workspace
-  #     - setup_remote_docker
-  #     - run:
-  #         name: Build prestates
-  #         command: make reproducible-prestate
-  #     - persist_to_workspace:
-  #         root: .
-  #         paths:
-  #           - "op-program/bin/prestate*"
-  #           - "op-program/bin/meta*"
+  cannon-prestate:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    steps:
+      - checkout-from-workspace
+      - setup_remote_docker
+      - run:
+          name: Build prestates
+          command: make reproducible-prestate
+      - persist_to_workspace:
+          root: .
+          paths:
+            - "op-program/bin/prestate*"
+            - "op-program/bin/meta*"
 
-  # publish-cannon-prestates:
-  #   resource_class: medium
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   steps:
-  #     - utils/checkout-with-mise
-  #     - attach_workspace:
-  #         at: "."
-  #     - gcp-cli/install
-  #     - gcp-oidc-authenticate:
-  #         gcp_cred_config_file_path: /tmp/gcp_cred_config.json
-  #         oidc_token_file_path: /tmp/oidc_token.json
-  #     - run:
-  #         no_output_timeout: 30m
-  #         name: Upload cannon prestates
-  #         command: |
-  #           # Use the actual hash for tags (hash can be found by reading releases.json)
-  #           PRESTATE_MT64_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-mt64.json)
-  #           PRESTATE_MT64NEXT_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-mt64Next.json)
-  #           PRESTATE_INTEROP_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-interop.json)
-  #           PRESTATE_INTEROP_NEXT_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-interopNext.json)
+  publish-cannon-prestates:
+    resource_class: medium
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    steps:
+      - utils/checkout-with-mise
+      - attach_workspace:
+          at: "."
+      - gcp-cli/install
+      - gcp-oidc-authenticate:
+          gcp_cred_config_file_path: /tmp/gcp_cred_config.json
+          oidc_token_file_path: /tmp/oidc_token.json
+      - run:
+          no_output_timeout: 30m
+          name: Upload cannon prestates
+          command: |
+            # Use the actual hash for tags (hash can be found by reading releases.json)
+            PRESTATE_MT64_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-mt64.json)
+            PRESTATE_MT64NEXT_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-mt64Next.json)
+            PRESTATE_INTEROP_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-interop.json)
+            PRESTATE_INTEROP_NEXT_HASH=$(jq -r .pre ./op-program/bin/prestate-proof-interopNext.json)
 
-  #           BRANCH_NAME=$(echo "<< pipeline.git.branch >>" | tr '/' '-')
-  #           echo "Publishing ${PRESTATE_MT64_HASH}, ${PRESTATE_MT64NEXT_HASH}, ${PRESTATE_INTEROP_HASH}, ${PRESTATE_INTEROP_NEXT_HASH} as ${BRANCH_NAME}"
-  #           if [[ "" != "<< pipeline.git.branch >>" ]]
-  #           then
-  #             echo "Publishing commit hash data"
-  #             INFO_FILE=$(mktemp)
-  #             # Upload the git commit info for each prestate since this won't be recorded in releases.json
-  #             (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_MT64_HASH}") > "${INFO_FILE}"
-  #             gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-mt64.bin.gz.txt"
-  #             echo "Published commit hash data successfully" # So we know if any uploads worked
-  #             (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_MT64NEXT_HASH}") > "${INFO_FILE}"
-  #             gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-mt64Next.bin.gz.txt"
-  #             (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_INTEROP_HASH}")  > "${INFO_FILE}"
-  #             gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-interop.bin.gz.txt"
-  #             (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_INTEROP_NEXT_HASH}")  > "${INFO_FILE}"
-  #             gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-interopNext.bin.gz.txt"
-  #             rm "${INFO_FILE}" # keep things tidy
-  #             echo "All commit info published"
+            BRANCH_NAME=$(echo "<< pipeline.git.branch >>" | tr '/' '-')
+            echo "Publishing ${PRESTATE_MT64_HASH}, ${PRESTATE_MT64NEXT_HASH}, ${PRESTATE_INTEROP_HASH}, ${PRESTATE_INTEROP_NEXT_HASH} as ${BRANCH_NAME}"
+            if [[ "" != "<< pipeline.git.branch >>" ]]
+            then
+              echo "Publishing commit hash data"
+              INFO_FILE=$(mktemp)
+              # Upload the git commit info for each prestate since this won't be recorded in releases.json
+              (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_MT64_HASH}") > "${INFO_FILE}"
+              gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-mt64.bin.gz.txt"
+              echo "Published commit hash data successfully" # So we know if any uploads worked
+              (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_MT64NEXT_HASH}") > "${INFO_FILE}"
+              gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-mt64Next.bin.gz.txt"
+              (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_INTEROP_HASH}")  > "${INFO_FILE}"
+              gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-interop.bin.gz.txt"
+              (echo "Commit=<< pipeline.git.revision >>" && echo "Prestate: ${PRESTATE_INTEROP_NEXT_HASH}")  > "${INFO_FILE}"
+              gsutil cp "${INFO_FILE}" "gs://oplabs-network-data/proofs/op-program/cannon/${BRANCH_NAME}-interopNext.bin.gz.txt"
+              rm "${INFO_FILE}" # keep things tidy
+              echo "All commit info published"
 
-  #             # Use the branch name for branches to provide a consistent URL
-  #             PRESTATE_MT64_HASH="${BRANCH_NAME}-mt64"
-  #             PRESTATE_MT64NEXT_HASH="${BRANCH_NAME}-mt64Next"
-  #             PRESTATE_INTEROP_HASH="${BRANCH_NAME}-interop"
-  #             PRESTATE_INTEROP_NEXT_HASH="${BRANCH_NAME}-interopNext"
-  #           fi
-  #           gsutil cp ./op-program/bin/prestate-mt64.bin.gz \
-  #             "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_MT64_HASH}.bin.gz"
+              # Use the branch name for branches to provide a consistent URL
+              PRESTATE_MT64_HASH="${BRANCH_NAME}-mt64"
+              PRESTATE_MT64NEXT_HASH="${BRANCH_NAME}-mt64Next"
+              PRESTATE_INTEROP_HASH="${BRANCH_NAME}-interop"
+              PRESTATE_INTEROP_NEXT_HASH="${BRANCH_NAME}-interopNext"
+            fi
+            gsutil cp ./op-program/bin/prestate-mt64.bin.gz \
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_MT64_HASH}.bin.gz"
 
-  #           gsutil cp ./op-program/bin/prestate-mt64Next.bin.gz \
-  #             "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_MT64NEXT_HASH}.bin.gz"
+            gsutil cp ./op-program/bin/prestate-mt64Next.bin.gz \
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_MT64NEXT_HASH}.bin.gz"
 
-  #           gsutil cp ./op-program/bin/prestate-interop.bin.gz \
-  #             "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_INTEROP_HASH}.bin.gz"
+            gsutil cp ./op-program/bin/prestate-interop.bin.gz \
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_INTEROP_HASH}.bin.gz"
 
-  #           gsutil cp ./op-program/bin/prestate-interopNext.bin.gz \
-  #             "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_INTEROP_NEXT_HASH}.bin.gz"
-  #     - notify-failures-on-develop:
-  #         mentions: "@proofs-team"
+            gsutil cp ./op-program/bin/prestate-interopNext.bin.gz \
+              "gs://oplabs-network-data/proofs/op-program/cannon/${PRESTATE_INTEROP_NEXT_HASH}.bin.gz"
+      - notify-failures-on-develop:
+          mentions: "@proofs-team"
 
-  # preimage-reproducibility:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   steps:
-  #     - utils/checkout-with-mise
-  #     - setup_remote_docker
-  #     - run:
-  #         name: Verify reproducibility
-  #         command: make -C op-program verify-reproducibility
-  #     - store_artifacts:
-  #         path: ./op-program/temp/logs
-  #         when: always
-  #     - notify-failures-on-develop:
-  #         mentions: "@proofs-team"
+  preimage-reproducibility:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    steps:
+      - utils/checkout-with-mise
+      - setup_remote_docker
+      - run:
+          name: Verify reproducibility
+          command: make -C op-program verify-reproducibility
+      - store_artifacts:
+          path: ./op-program/temp/logs
+          when: always
+      - notify-failures-on-develop:
+          mentions: "@proofs-team"
 
-  # cannon-stf-verify:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   steps:
-  #     - utils/checkout-with-mise
-  #     - setup_remote_docker
-  #     - run:
-  #         name: Build cannon
-  #         command: make cannon
-  #     - run:
-  #         name: Verify the Cannon STF
-  #         command: make -C ./cannon cannon-stf-verify
-  #     - notify-failures-on-develop:
-  #         mentions: "@proofs-team"
+  cannon-stf-verify:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    steps:
+      - utils/checkout-with-mise
+      - setup_remote_docker
+      - run:
+          name: Build cannon
+          command: make cannon
+      - run:
+          name: Verify the Cannon STF
+          command: make -C ./cannon cannon-stf-verify
+      - notify-failures-on-develop:
+          mentions: "@proofs-team"
 
   semgrep-scan:
     parameters:
@@ -1997,51 +1997,51 @@ jobs:
     steps:
       - run: echo Done
 
-  # analyze-op-program-client:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: xlarge
-  #   steps:
-  #     - checkout-from-workspace
-  #     - setup_remote_docker
-  #     - run:
-  #         name: Run Analyzer
-  #         command: |
-  #           make run-vm-compat
-  #         working_directory: op-program
+  analyze-op-program-client:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: xlarge
+    steps:
+      - checkout-from-workspace
+      - setup_remote_docker
+      - run:
+          name: Run Analyzer
+          command: |
+            make run-vm-compat
+          working_directory: op-program
 
-  # op-program-compat:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   steps:
-  #     - checkout-from-workspace
-  #     - run:
-  #         name: Verify Compatibility
-  #         command: |
-  #           make verify-compat
-  #         working_directory: op-program
+  op-program-compat:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - checkout-from-workspace
+      - run:
+          name: Verify Compatibility
+          command: |
+            make verify-compat
+          working_directory: op-program
 
-  # check-generated-mocks-op-node:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   steps:
-  #     - checkout-from-workspace
-  #     - check-changed:
-  #         patterns: op-node
-  #     - run:
-  #         name: check-generated-mocks
-  #         command: make generate-mocks-op-node && git diff --exit-code
+  check-generated-mocks-op-node:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - checkout-from-workspace
+      - check-changed:
+          patterns: op-node
+      - run:
+          name: check-generated-mocks
+          command: make generate-mocks-op-node && git diff --exit-code
 
-  # check-generated-mocks-op-service:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   steps:
-  #     - checkout-from-workspace
-  #     - check-changed:
-  #         patterns: op-service
-  #     - run:
-  #         name: check-generated-mocks
-  #         command: make generate-mocks-op-service && git diff --exit-code
+  check-generated-mocks-op-service:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - checkout-from-workspace
+      - check-changed:
+          patterns: op-service
+      - run:
+          name: check-generated-mocks
+          command: make generate-mocks-op-service && git diff --exit-code
 
   op-deployer-forge-version:
     docker:
@@ -2084,176 +2084,176 @@ jobs:
           working_directory: ./packages/contracts-bedrock
       - notify-failures-on-develop
 
-  # publish-contract-artifacts:
-  #   machine: true
-  #   resource_class: ethereum-optimism/latitude-1
-  #   steps:
-  #     - gcp-cli/install
-  #     - gcp-oidc-authenticate:
-  #         gcp_cred_config_file_path: /tmp/gcp_cred_config.json
-  #         oidc_token_file_path: /tmp/oidc_token.json
-  #         project_id: GCP_TOOLS_ARTIFACTS_PROJECT_ID
-  #         service_account_email: GCP_CONTRACTS_PUBLISHER_SERVICE_ACCOUNT_EMAIL
-  #     - utils/checkout-with-mise
-  #     - install-contracts-dependencies
-  #     - run:
-  #         name: Pull artifacts
-  #         command: bash scripts/ops/pull-artifacts.sh
-  #         working_directory: packages/contracts-bedrock
-  #     - run:
-  #         name: Build contracts
-  #         environment:
-  #           FOUNDRY_PROFILE: ci
-  #         command: just forge-build
-  #         working_directory: packages/contracts-bedrock
-  #     - run:
-  #         name: Publish artifacts
-  #         command: bash scripts/ops/publish-artifacts.sh
-  #         working_directory: packages/contracts-bedrock
+  publish-contract-artifacts:
+    machine: true
+    resource_class: ethereum-optimism/latitude-1
+    steps:
+      - gcp-cli/install
+      - gcp-oidc-authenticate:
+          gcp_cred_config_file_path: /tmp/gcp_cred_config.json
+          oidc_token_file_path: /tmp/oidc_token.json
+          project_id: GCP_TOOLS_ARTIFACTS_PROJECT_ID
+          service_account_email: GCP_CONTRACTS_PUBLISHER_SERVICE_ACCOUNT_EMAIL
+      - utils/checkout-with-mise
+      - install-contracts-dependencies
+      - run:
+          name: Pull artifacts
+          command: bash scripts/ops/pull-artifacts.sh
+          working_directory: packages/contracts-bedrock
+      - run:
+          name: Build contracts
+          environment:
+            FOUNDRY_PROFILE: ci
+          command: just forge-build
+          working_directory: packages/contracts-bedrock
+      - run:
+          name: Publish artifacts
+          command: bash scripts/ops/publish-artifacts.sh
+          working_directory: packages/contracts-bedrock
 
-  # go-release:
-  #   parameters:
-  #     module:
-  #       description: Go Module Name
-  #       type: string
-  #     filename:
-  #       description: Goreleaser config file
-  #       default: .goreleaser.yaml
-  #       type: string
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: large
-  #   steps:
-  #     - setup_remote_docker:
-  #         docker_layer_caching: true
-  #     - gcp-cli/install
-  #     - gcp-oidc-authenticate:
-  #         gcp_cred_config_file_path: /tmp/gcp_cred_config.json
-  #         oidc_token_file_path: /tmp/oidc_token.json
-  #     - utils/checkout-with-mise
-  #     - attach_workspace: { at: "." }
-  #     - run:
-  #         name: Configure Docker
-  #         command: |
-  #           gcloud auth configure-docker us-docker.pkg.dev
-  #     - run:
-  #         name: Run goreleaser
-  #         command: |
-  #           goreleaser release --clean -f ./<<parameters.module>>/<<parameters.filename>>
+  go-release:
+    parameters:
+      module:
+        description: Go Module Name
+        type: string
+      filename:
+        description: Goreleaser config file
+        default: .goreleaser.yaml
+        type: string
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: large
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - gcp-cli/install
+      - gcp-oidc-authenticate:
+          gcp_cred_config_file_path: /tmp/gcp_cred_config.json
+          oidc_token_file_path: /tmp/oidc_token.json
+      - utils/checkout-with-mise
+      - attach_workspace: { at: "." }
+      - run:
+          name: Configure Docker
+          command: |
+            gcloud auth configure-docker us-docker.pkg.dev
+      - run:
+          name: Run goreleaser
+          command: |
+            goreleaser release --clean -f ./<<parameters.module>>/<<parameters.filename>>
 
-  # diff-fetcher-forge-artifacts:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: medium
-  #   steps:
-  #     - checkout-from-workspace
-  #     - run:
-  #         name: Build contracts
-  #         command: |
-  #           just build-contracts
-  #         working_directory: op-fetcher
-  #     - run:
-  #         name: Compare forge artifacts
-  #         command: |
-  #           diff -qr "packages/contracts-bedrock/forge-artifacts/FetchChainInfo.s.sol" \
-  #                   "op-fetcher/pkg/fetcher/fetch/forge-artifacts/FetchChainInfo.s.sol"
+  diff-fetcher-forge-artifacts:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: medium
+    steps:
+      - checkout-from-workspace
+      - run:
+          name: Build contracts
+          command: |
+            just build-contracts
+          working_directory: op-fetcher
+      - run:
+          name: Compare forge artifacts
+          command: |
+            diff -qr "packages/contracts-bedrock/forge-artifacts/FetchChainInfo.s.sol" \
+                    "op-fetcher/pkg/fetcher/fetch/forge-artifacts/FetchChainInfo.s.sol"
 
-  #           if [ $? -ne 0 ]; then
-  #             echo "ERROR: The checked-in forge artifacts for FetchChainInfo.s.sol do not match the ci build."
-  #             echo "Please run 'just build-contracts' in the op-fetcher directory and commit the changes."
-  #             exit 1
-  #           fi
+            if [ $? -ne 0 ]; then
+              echo "ERROR: The checked-in forge artifacts for FetchChainInfo.s.sol do not match the ci build."
+              echo "Please run 'just build-contracts' in the op-fetcher directory and commit the changes."
+              exit 1
+            fi
 
-  #           echo "✅ Checked-in forge artifacts match the ci build"
+            echo "✅ Checked-in forge artifacts match the ci build"
 
-  # stale-check:
-  #   machine:
-  #     image: ubuntu-2204:2024.08.1
-  #   steps:
-  #     - utils/github-stale:
-  #         stale-issue-message: "This issue has been automatically marked as stale and will be closed in 5 days if no updates"
-  #         stale-pr-message: "This pr has been automatically marked as stale and will be closed in 5 days if no updates"
-  #         close-issue-message: "This issue was closed as stale.  Please reopen if this is a mistake"
-  #         close-pr-message: "This PR was closed as stale.  Please reopen if this is a mistake"
-  #         days-before-issue-stale: 999
-  #         days-before-pr-stale: 14
-  #         days-before-issue-close: 5
-  #         days-before-pr-close: 5
+  stale-check:
+    machine:
+      image: ubuntu-2204:2024.08.1
+    steps:
+      - utils/github-stale:
+          stale-issue-message: "This issue has been automatically marked as stale and will be closed in 5 days if no updates"
+          stale-pr-message: "This pr has been automatically marked as stale and will be closed in 5 days if no updates"
+          close-issue-message: "This issue was closed as stale.  Please reopen if this is a mistake"
+          close-pr-message: "This PR was closed as stale.  Please reopen if this is a mistake"
+          days-before-issue-stale: 999
+          days-before-pr-stale: 14
+          days-before-issue-close: 5
+          days-before-pr-close: 5
 
-  # close-issue:
-  #   machine:
-  #     image: ubuntu-2204:2024.08.1
-  #   parameters:
-  #     label_name:
-  #       type: string
-  #     message:
-  #       type: string
-  #   steps:
-  #     - github-cli/install
-  #     - utils/github-event-handler-setup:
-  #         github_event_base64: << pipeline.parameters.github-event-base64 >>
-  #         env_prefix: "github_"
-  #     - run:
-  #         name: Close issue if label is added
-  #         command: |
-  #           if [ ! -z "$github_pull_request_number" ] && [ "$github_label_name" = "$LABEL_NAME" ]; then
-  #               echo "Closing issue $github_pull_request_number as label $LABEL_NAME is added on repository ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} "
-  #               export GH_TOKEN=$GITHUB_TOKEN_GOVERNANCE
-  #               gh issue close --repo "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}" "$github_pull_request_number" --comment "$MESSAGE"
-  #           fi
-  #         environment:
-  #           MESSAGE: << parameters.message >>
-  #           LABEL_NAME: << parameters.label_name >>
+  close-issue:
+    machine:
+      image: ubuntu-2204:2024.08.1
+    parameters:
+      label_name:
+        type: string
+      message:
+        type: string
+    steps:
+      - github-cli/install
+      - utils/github-event-handler-setup:
+          github_event_base64: << pipeline.parameters.github-event-base64 >>
+          env_prefix: "github_"
+      - run:
+          name: Close issue if label is added
+          command: |
+            if [ ! -z "$github_pull_request_number" ] && [ "$github_label_name" = "$LABEL_NAME" ]; then
+                echo "Closing issue $github_pull_request_number as label $LABEL_NAME is added on repository ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} "
+                export GH_TOKEN=$GITHUB_TOKEN_GOVERNANCE
+                gh issue close --repo "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}" "$github_pull_request_number" --comment "$MESSAGE"
+            fi
+          environment:
+            MESSAGE: << parameters.message >>
+            LABEL_NAME: << parameters.label_name >>
 
-  # devnet-metrics-collect-authorship:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   steps:
-  #     - utils/checkout-with-mise
-  #     - run:
-  #         name: Collect devnet metrics for op-acceptance-tests
-  #         command: |
-  #           ./devnet-sdk/scripts/metrics-collect-authorship.sh op-acceptance-tests/tests > .metrics--authorship--op-acceptance-tests
-  #           echo "Wrote file .metrics--authorship--op-acceptance-tests"
-  #     - gcp-cli/install
-  #     - gcp-oidc-authenticate:
-  #         gcp_cred_config_file_path: /tmp/gcp_cred_config.json
-  #         oidc_token_file_path: /tmp/oidc_token.json
-  #     - run:
-  #         name: Store artifact in Bucket
-  #         command: |
-  #           CURRENT_DATE=$(date '+%Y-%m-%d')
-  #           FOLDER_NAME="dt=$CURRENT_DATE"
+  devnet-metrics-collect-authorship:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    steps:
+      - utils/checkout-with-mise
+      - run:
+          name: Collect devnet metrics for op-acceptance-tests
+          command: |
+            ./devnet-sdk/scripts/metrics-collect-authorship.sh op-acceptance-tests/tests > .metrics--authorship--op-acceptance-tests
+            echo "Wrote file .metrics--authorship--op-acceptance-tests"
+      - gcp-cli/install
+      - gcp-oidc-authenticate:
+          gcp_cred_config_file_path: /tmp/gcp_cred_config.json
+          oidc_token_file_path: /tmp/oidc_token.json
+      - run:
+          name: Store artifact in Bucket
+          command: |
+            CURRENT_DATE=$(date '+%Y-%m-%d')
+            FOLDER_NAME="dt=$CURRENT_DATE"
 
-  #           # Upload to the date-partitioned folder structure
-  #           gsutil cp .metrics--authorship--op-acceptance-tests gs://oplabs-tools-data-public-metrics/metrics-authorship/$FOLDER_NAME/metrics-$CIRCLE_SHA1.csv
+            # Upload to the date-partitioned folder structure
+            gsutil cp .metrics--authorship--op-acceptance-tests gs://oplabs-tools-data-public-metrics/metrics-authorship/$FOLDER_NAME/metrics-$CIRCLE_SHA1.csv
 
-  # generate-flaky-report:
-  #   machine: true
-  #   resource_class: medium
-  #   steps:
-  #     - utils/checkout-with-mise
-  #     - run:
-  #         name: Generate flaky acceptance tests report
-  #         command: |
-  #           # Create reports directory
-  #           mkdir -p ./op-acceptance-tests/reports
+  generate-flaky-report:
+    machine: true
+    resource_class: medium
+    steps:
+      - utils/checkout-with-mise
+      - run:
+          name: Generate flaky acceptance tests report
+          command: |
+            # Create reports directory
+            mkdir -p ./op-acceptance-tests/reports
 
-  #           # Make the script executable
-  #           chmod +x ./op-acceptance-tests/scripts/generate-flaky-tests-report.sh
+            # Make the script executable
+            chmod +x ./op-acceptance-tests/scripts/generate-flaky-tests-report.sh
 
-  #           # Run the script
-  #           ./op-acceptance-tests/scripts/generate-flaky-tests-report.sh \
-  #             --branch "${CIRCLE_BRANCH:-develop}" \
-  #             --org "${CIRCLE_PROJECT_USERNAME}" \
-  #             --repo "${CIRCLE_PROJECT_REPONAME}" \
-  #             --token "${CIRCLE_API_TOKEN}" \
-  #             --output-dir "./op-acceptance-tests/reports"
+            # Run the script
+            ./op-acceptance-tests/scripts/generate-flaky-tests-report.sh \
+              --branch "${CIRCLE_BRANCH:-develop}" \
+              --org "${CIRCLE_PROJECT_USERNAME}" \
+              --repo "${CIRCLE_PROJECT_REPONAME}" \
+              --token "${CIRCLE_API_TOKEN}" \
+              --output-dir "./op-acceptance-tests/reports"
 
-  #     # Store the flaky test reports
-  #     - store_artifacts:
-  #         path: ./op-acceptance-tests/reports
-  #         destination: flaky-test-reports
+      # Store the flaky test reports
+      - store_artifacts:
+          path: ./op-acceptance-tests/reports
+          destination: flaky-test-reports
 
 workflows:
   # Nightly Kurtosis acceptance tests
@@ -2500,18 +2500,18 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      # - op-program-compat:
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      #     requires:
-      #       - initialize
+      - op-program-compat:
+          context:
+            - circleci-repo-readonly-authenticated-github-token
+          requires:
+            - initialize
       - bedrock-go-tests:
           requires:
             - go-lint
-            # - cannon-go-lint-and-test
-            # - check-generated-mocks-op-node
-            # - check-generated-mocks-op-service
-            # - op-program-compat
+            - cannon-go-lint-and-test
+            - check-generated-mocks-op-node
+            - check-generated-mocks-op-service
+            - op-program-compat
             # Not needed for the devnet but we want to make sure they build successfully
             - cannon-docker-build
             - op-dispute-mon-docker-build
@@ -2519,7 +2519,7 @@ workflows:
             - op-supervisor-docker-build
             - op-test-sequencer-docker-build
             - go-tests-short
-            # - sanitize-op-program
+            - sanitize-op-program
           context:
             - circleci-repo-readonly-authenticated-github-tokens
       - docker-build:
@@ -2555,28 +2555,28 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      # - sanitize-op-program:
-      #     requires:
-      #       - cannon-prestate-quick
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      # - check-generated-mocks-op-node:
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      #     requires:
-      #       - initialize
-      # - check-generated-mocks-op-service:
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      #     requires:
-      #       - initialize
-      # - cannon-go-lint-and-test:
-      #     requires:
-      #       - contracts-bedrock-build
-      #     skip_slow_tests: true
-      #     notify: true
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
+      - sanitize-op-program:
+          requires:
+            - cannon-prestate-quick
+          context:
+            - circleci-repo-readonly-authenticated-github-token
+      - check-generated-mocks-op-node:
+          context:
+            - circleci-repo-readonly-authenticated-github-token
+          requires:
+            - initialize
+      - check-generated-mocks-op-service:
+          context:
+            - circleci-repo-readonly-authenticated-github-token
+          requires:
+            - initialize
+      - cannon-go-lint-and-test:
+          requires:
+            - contracts-bedrock-build
+          skip_slow_tests: true
+          notify: true
+          context:
+            - circleci-repo-readonly-authenticated-github-token
       - todo-issues:
           name: todo-issues-check
           check_closed: false
