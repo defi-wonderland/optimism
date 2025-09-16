@@ -253,39 +253,14 @@ func setFeeAddresses(intent *Intent) {
 }
 
 func setCustomGasToken(intent *Intent) {
-	// Each chain configures its own liquidity amount based on their needs
-	// Example: This test chain decides to use 1000 ETH as their liquidity pool
-	liquidityAmount := EtherToWei(1000) // 1000 ETH
+	// 1000 ETH in wei (1000 * 10^18)
+	amount := new(big.Int)
+	amount.SetString("1000000000000000000000", 10)
 
 	intent.Chains[0].CustomGasToken = &CustomGasToken{
 		Enabled: true,
 		Name:    "Custom Gas Token",
 		Symbol:  "CGT",
-		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
-	}
-}
-
-// Example helper functions showing how different chains might configure liquidity
-func setCustomGasTokenWithHighLiquidity(intent *Intent) {
-	// A high-volume chain might want more liquidity (e.g., 10,000 ETH)
-	liquidityAmount := EtherToWei(10000)
-
-	intent.Chains[0].CustomGasToken = &CustomGasToken{
-		Enabled: true,
-		Name:    "High Volume Token",
-		Symbol:  "HVT",
-		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
-	}
-}
-
-func setCustomGasTokenWithLowLiquidity(intent *Intent) {
-	// A smaller chain might use less liquidity (e.g., 100 ETH)
-	liquidityAmount := EtherToWei(100)
-
-	intent.Chains[0].CustomGasToken = &CustomGasToken{
-		Enabled: true,
-		Name:    "Small Chain Token",
-		Symbol:  "SCT",
-		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+		NativeAssetLiquidityAmount: (*hexutil.Big)(amount),
 	}
 }
