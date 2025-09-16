@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
@@ -19,7 +20,7 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @title LiquidityController
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
 ///         chain.
-contract LiquidityController is ISemver, Initializable {
+contract LiquidityController is ISemver, Initializable, ReentrancyGuard {
     /// @notice Emitted when an address is authorized to mint/burn liquidity
     /// @param minter The address that was authorized
     event MinterAuthorized(address indexed minter);
@@ -83,7 +84,7 @@ contract LiquidityController is ISemver, Initializable {
     /// @notice Mints native asset liquidity and sends it to a specified address
     /// @param _to The address to receive the minted native asset
     /// @param _amount The amount of native asset to mint and send
-    function mint(address _to, uint256 _amount) external {
+    function mint(address _to, uint256 _amount) external nonReentrant {
         if (!minters[msg.sender]) revert Unauthorized();
         INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).withdraw(_amount);
 
