@@ -42,6 +42,7 @@ contract CommonTest is Test, Setup, Events {
     ///      itself, rather than simply ensuring that the tests pass after the upgrade.
     bool useUpgradedFork = true;
 
+    // Needed for testing purposes to check the contracts were properly deployed and setup.
     address chainFeesRecipient = makeAddr("chainFeesRecipient");
     address l1FeesDepositor = makeAddr("l1FeesDepositor");
 
