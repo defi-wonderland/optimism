@@ -15,7 +15,8 @@ contract BaseFeeVault_Test is FeeVault_Test {
     /// @dev Sets up the test suite.
     function setUp() public virtual override {
         super.setUp();
-        recipient = deploy.cfg().baseFeeVaultRecipient();
+        // Not using cfg().baseFeeVaultRecipient() bc the impl address has some logic that reverts when receiving fees
+        recipient = makeAddr("BaseFeeVaultRecipient");
         feeVaultName = "BaseFeeVault";
         minWithdrawalAmount = deploy.cfg().baseFeeVaultMinimumWithdrawalAmount();
         feeVault = IFeeVault(payable(Predeploys.BASE_FEE_VAULT));
