@@ -279,8 +279,8 @@ type GasTokenDeployConfig struct {
 	GasPayingTokenName string `json:"gasPayingTokenName"`
 	// GasPayingTokenSymbol represents the custom gas token symbol.
 	GasPayingTokenSymbol string `json:"gasPayingTokenSymbol"`
-	// NativeAssetLiquidityAmount represents the amount of liquidity to pre-fund the NativeAssetLiquidity contract with
-	NativeAssetLiquidityAmount *hexutil.Big `json:"nativeAssetLiquidityAmount"`
+	// CustomGasTokenLiquidityAmount represents the amount of liquidity to pre-fund the NativeAssetLiquidity contract with
+	CustomGasTokenLiquidityAmount *hexutil.Big `json:"customGasTokenLiquidityAmount"`
 }
 
 var _ ConfigChecker = (*GasTokenDeployConfig)(nil)
@@ -293,9 +293,10 @@ func (d *GasTokenDeployConfig) Check(log log.Logger) error {
 		if d.GasPayingTokenSymbol == "" {
 			return fmt.Errorf("%w: GasPayingTokenSymbol cannot be empty", ErrInvalidDeployConfig)
 		}
-		if d.NativeAssetLiquidityAmount == nil {
-			return fmt.Errorf("%w: NativeAssetLiquidityAmount cannot be nil", ErrInvalidDeployConfig)
+		if d.CustomGasTokenLiquidityAmount == nil {
+			return fmt.Errorf("%w: CustomGasTokenLiquidityAmount cannot be nil", ErrInvalidDeployConfig)
 		}
+		log.Info("Using custom gas token", "name", d.GasPayingTokenName, "symbol", d.GasPayingTokenSymbol)
 	}
 	return nil
 }

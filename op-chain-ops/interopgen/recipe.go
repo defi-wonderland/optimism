@@ -246,7 +246,7 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 				UseCustomGasToken:          false,
 				GasPayingTokenName:         "",
 				GasPayingTokenSymbol:       "",
-				NativeAssetLiquidityAmount: (*hexutil.Big)(big.NewInt(0)),
+				CustomGasTokenLiquidityAmount: (*hexutil.Big)(big.NewInt(0)),
 			},
 			OperatorDeployConfig: genesis.OperatorDeployConfig{
 				P2PSequencerAddress: sequencerP2P,

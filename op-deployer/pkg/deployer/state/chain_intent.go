@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 )
 
+
 type VMType string
 
 const (
@@ -58,10 +59,10 @@ type L2DevGenesisParams struct {
 }
 
 type CustomGasToken struct {
-	Enabled                    bool         `json:"enabled" toml:"enabled"`
-	Name                       string       `json:"name" toml:"name"`
-	Symbol                     string       `json:"symbol" toml:"symbol"`
-	NativeAssetLiquidityAmount *hexutil.Big `json:"nativeAssetLiquidityAmount,omitempty" toml:"nativeAssetLiquidityAmount,omitempty"`
+	Enabled                        bool         `json:"enabled" toml:"enabled"`
+	Name                           string       `json:"name" toml:"name"`
+	Symbol                         string       `json:"symbol" toml:"symbol"`
+	CustomGasTokenLiquidityAmount  *hexutil.Big `json:"customGasTokenLiquidityAmount,omitempty" toml:"customGasTokenLiquidityAmount,omitempty"`
 }
 
 type ChainIntent struct {
@@ -134,6 +135,9 @@ func (c *ChainIntent) Check() error {
 		if c.CustomGasToken.Symbol == "" {
 			return fmt.Errorf("%w: CustomGasToken.Symbol cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
+		if c.CustomGasToken.CustomGasTokenLiquidityAmount == nil {
+			return fmt.Errorf("%w: CustomGasToken.CustomGasTokenLiquidityAmount must be set when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		}
 	}
 
 	if c.DangerousAltDAConfig.UseAltDA {
@@ -143,13 +147,31 @@ func (c *ChainIntent) Check() error {
 	return nil
 }
 
-// GetNativeAssetLiquidityAmount returns the native asset liquidity amount for the chain.
-// If not set, returns the default value of type(uint248).max.
-func (c *ChainIntent) GetNativeAssetLiquidityAmount() *big.Int {
-	if c.CustomGasToken != nil && c.CustomGasToken.NativeAssetLiquidityAmount != nil {
-		return c.CustomGasToken.NativeAssetLiquidityAmount.ToInt()
+// GetCustomGasTokenLiquidityAmount returns the custom gas token liquidity amount for the chain.
+// This value must be explicitly set by each chain when using custom gas tokens.
+// Returns nil if not configured, which will cause validation to fail.
+func (c *ChainIntent) GetCustomGasTokenLiquidityAmount() *big.Int {
+	if c.CustomGasToken != nil && c.CustomGasToken.CustomGasTokenLiquidityAmount != nil {
+		return c.CustomGasToken.CustomGasTokenLiquidityAmount.ToInt()
 	}
-	// Default to type(uint248).max = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-	maxUint248, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	return maxUint248
+	// No default value - each chain must explicitly configure this
+	return nil
+}
+
+// SetCustomGasTokenLiquidityAmount sets the native asset liquidity amount for custom gas token chains.
+// The amount should be specified in wei (e.g., use EtherToWei for ETH amounts).
+func (c *ChainIntent) SetCustomGasTokenLiquidityAmount(amount *big.Int) error {
+	if c.CustomGasToken == nil {
+		return fmt.Errorf("custom gas token must be configured before setting liquidity amount")
+	}
+	c.CustomGasToken.CustomGasTokenLiquidityAmount = (*hexutil.Big)(amount)
+	return nil
+}
+
+// EtherToWei converts ETH amount to wei for easier configuration.
+// Usage: chain.SetCustomGasTokenLiquidityAmount(EtherToWei(1000)) // Sets 1000 ETH
+func EtherToWei(ethAmount int64) *big.Int {
+	wei := new(big.Int)
+	wei.Mul(big.NewInt(ethAmount), big.NewInt(1e18))
+	return wei
 }

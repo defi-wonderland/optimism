@@ -1,10 +1,12 @@
 package state
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,6 +60,17 @@ func TestValidateStandardValues(t *testing.T) {
 					{
 						VMType: VMTypeAlphabet,
 					},
+				}
+			},
+			ErrNonStandardValue,
+		},
+		{
+			"CustomGasToken",
+			func(intent *Intent) {
+				intent.Chains[0].CustomGasToken = &CustomGasToken{
+					Enabled: false,
+					Name:    "",
+					Symbol:  "",
 				}
 			},
 			ErrNonStandardValue,
@@ -239,9 +252,39 @@ func setFeeAddresses(intent *Intent) {
 }
 
 func setCustomGasToken(intent *Intent) {
+	// Each chain configures its own liquidity amount based on their needs
+	// Example: This test chain decides to use 1000 ETH as their liquidity pool
+	liquidityAmount := EtherToWei(1000) // 1000 ETH
+
 	intent.Chains[0].CustomGasToken = &CustomGasToken{
 		Enabled: true,
 		Name:    "Custom Gas Token",
 		Symbol:  "CGT",
+		CustomGasTokenLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+	}
+}
+
+// Example helper functions showing how different chains might configure liquidity
+func setCustomGasTokenWithHighLiquidity(intent *Intent) {
+	// A high-volume chain might want more liquidity (e.g., 10,000 ETH)
+	liquidityAmount := EtherToWei(10000)
+
+	intent.Chains[0].CustomGasToken = &CustomGasToken{
+		Enabled: true,
+		Name:    "High Volume Token",
+		Symbol:  "HVT",
+		CustomGasTokenLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+	}
+}
+
+func setCustomGasTokenWithLowLiquidity(intent *Intent) {
+	// A smaller chain might use less liquidity (e.g., 100 ETH)
+	liquidityAmount := EtherToWei(100)
+
+	intent.Chains[0].CustomGasToken = &CustomGasToken{
+		Enabled: true,
+		Name:    "Small Chain Token",
+		Symbol:  "SCT",
+		CustomGasTokenLiquidityAmount: (*hexutil.Big)(liquidityAmount),
 	}
 }
