@@ -157,14 +157,3 @@ func (c *ChainIntent) GetNativeAssetLiquidityAmount() *big.Int {
 	// Return 0 by default when CGT is disabled or not configured (consistent with "" and false)
 	return big.NewInt(0)
 }
-
-// SetNativeAssetLiquidityAmount sets the native asset liquidity amount for custom gas token chains.
-// The amount should be specified in wei (e.g., use EtherToWei for ETH amounts).
-func (c *ChainIntent) SetNativeAssetLiquidityAmount(amount *big.Int) error {
-	if c.CustomGasToken == nil {
-		return fmt.Errorf("custom gas token must be configured before setting liquidity amount")
-	}
-	c.CustomGasToken.NativeAssetLiquidityAmount = (*hexutil.Big)(amount)
-	return nil
-}
-

@@ -71,28 +71,24 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				EIP1559Elasticity:        chainIntent.Eip1559Elasticity,
 			},
 
-			GasTokenDeployConfig: genesis.GasTokenDeployConfig{
-			UseCustomGasToken: chainIntent.CustomGasToken != nil && chainIntent.CustomGasToken.Enabled,
-			GasPayingTokenName: func() string {
-				if chainIntent.CustomGasToken != nil {
-					return chainIntent.CustomGasToken.Name
+		GasTokenDeployConfig: func() genesis.GasTokenDeployConfig {
+			if chainIntent.CustomGasToken != nil && chainIntent.CustomGasToken.Enabled {
+				// ChainIntent validation guarantees Name, Symbol, and NativeAssetLiquidityAmount are set
+				return genesis.GasTokenDeployConfig{
+					UseCustomGasToken:          true,
+					GasPayingTokenName:         chainIntent.CustomGasToken.Name,
+					GasPayingTokenSymbol:       chainIntent.CustomGasToken.Symbol,
+					NativeAssetLiquidityAmount: chainIntent.CustomGasToken.NativeAssetLiquidityAmount,
 				}
-				return ""
-			}(),
-			GasPayingTokenSymbol: func() string {
-				if chainIntent.CustomGasToken != nil {
-					return chainIntent.CustomGasToken.Symbol
-				}
-				return ""
-			}(),
-			NativeAssetLiquidityAmount: func() *hexutil.Big {
-				if chainIntent.CustomGasToken != nil && chainIntent.CustomGasToken.Enabled {
-					// Each chain must explicitly configure this value
-					return chainIntent.CustomGasToken.NativeAssetLiquidityAmount
-				}
-				return (*hexutil.Big)(big.NewInt(0)) // Default to 0 when CGT disabled (consistent with "" and false)
-			}(),
-			},
+			}
+			// CGT disabled - return defaults
+			return genesis.GasTokenDeployConfig{
+				UseCustomGasToken:          false,
+				GasPayingTokenName:         "",
+				GasPayingTokenSymbol:       "",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(big.NewInt(0)),
+			}
+		}(),
 
 			// STOP! This struct sets the _default_ upgrade schedule for all chains.
 			// Any upgrades you enable here will be enabled for all new deployments.
@@ -190,3 +186,4 @@ func calculateBatchInboxAddr(chainID common.Hash) common.Address {
 	copy(out[1:], crypto.Keccak256(chainID[:])[:19])
 	return out
 }
+
