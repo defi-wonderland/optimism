@@ -30,6 +30,10 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
@@ -39,6 +43,13 @@ import { IL1Block } from "interfaces/L2/IL1Block.sol";
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
 contract L2Genesis is Script {
+    error L2Genesis_ChainFeesRecipientCannotBeZero();
+    error L2Genesis_L1FeesDepositorCannotBeZero();
+    error L2Genesis_MisconfiguredSequencerFeeVault();
+    error L2Genesis_MisconfiguredBaseFeeVault();
+    error L2Genesis_MisconfiguredL1FeeVault();
+    error L2Genesis_MisconfiguredOperatorFeeVault();
+
     struct Input {
         uint256 l1ChainID;
         uint256 l2ChainID;
@@ -457,11 +468,26 @@ contract L2Genesis is Script {
     }
 
     /// @notice This predeploy is following the safety invariant #2.
-    function setOperatorFeeVault() internal {
+    function setOperatorFeeVault(Input memory _input) internal {
+        address recipient;
+        Types.WithdrawalNetwork network;
+        if (_input.useRevenueShare) {
+            recipient = Predeploys.FEE_SPLITTER;
+            network = Types.WithdrawalNetwork.L2;
+        } else {
+            recipient = _input.operatorFeeVaultRecipient;
+            network = Types.WithdrawalNetwork(_input.operatorFeeVaultWithdrawalNetwork);
+        }
+
         IOperatorFeeVault vault = IOperatorFeeVault(
             DeployUtils.create1({
                 _name: "OperatorFeeVault",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IOperatorFeeVault.__constructor__, ()))
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(
+                        IOperatorFeeVault.__constructor__,
+                        (recipient, _input.operatorFeeVaultMinimumWithdrawalAmount, network)
+                    )
+                )
             })
         );
 
@@ -594,6 +620,66 @@ contract L2Genesis is Script {
     function activateIsthmus() internal {
         vm.prank(IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
         IGasPriceOracle(Predeploys.GAS_PRICE_ORACLE).setIsthmus();
+    }
+
+    /// @notice This predeploy is following the safety invariant #1.
+    function setFeeSplitter(Input memory _input) internal {
+        address revSharesCalculator;
+
+        // Only set the shares calculator if revenue sharing is enabled
+        if (_input.useRevenueShare) {
+            if (_input.chainFeesRecipient == address(0)) revert L2Genesis_ChainFeesRecipientCannotBeZero();
+            if (_input.l1FeesDepositor == address(0)) revert L2Genesis_L1FeesDepositorCannotBeZero();
+
+            // Check that the vaults are properly configured
+            IFeeVault baseFeeVault = IFeeVault(payable(Predeploys.BASE_FEE_VAULT));
+            if (
+                baseFeeVault.recipient() != Predeploys.FEE_SPLITTER
+                    || baseFeeVault.withdrawalNetwork() != Types.WithdrawalNetwork.L2
+            ) revert L2Genesis_MisconfiguredBaseFeeVault();
+
+            IFeeVault l1FeeVault = IFeeVault(payable(Predeploys.L1_FEE_VAULT));
+            if (
+                l1FeeVault.recipient() != Predeploys.FEE_SPLITTER
+                    || l1FeeVault.withdrawalNetwork() != Types.WithdrawalNetwork.L2
+            ) revert L2Genesis_MisconfiguredL1FeeVault();
+
+            IFeeVault sequencerFeeVault = IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
+            if (
+                sequencerFeeVault.recipient() != Predeploys.FEE_SPLITTER
+                    || sequencerFeeVault.withdrawalNetwork() != Types.WithdrawalNetwork.L2
+            ) revert L2Genesis_MisconfiguredSequencerFeeVault();
+
+            IFeeVault operatorFeeVault = IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT));
+            if (
+                operatorFeeVault.recipient() != Predeploys.FEE_SPLITTER
+                    || operatorFeeVault.withdrawalNetwork() != Types.WithdrawalNetwork.L2
+            ) revert L2Genesis_MisconfiguredOperatorFeeVault();
+
+            // Deploy L1Withdrawer with constructor args
+            bytes32 l1WithdrawerSalt = keccak256("L1Withdrawer");
+            address l1Withdrawer = DeployUtils.create2(
+                "L1Withdrawer.sol:L1Withdrawer",
+                abi.encode(MIN_WITHDRAWAL_AMOUNT_THRESHOLD, _input.l1FeesDepositor, WITHDRAWAL_MIN_GAS_LIMIT),
+                l1WithdrawerSalt
+            );
+
+            // Deploy SuperchainRevSharesCalculator with constructor args
+            bytes32 calcSalt = keccak256("SuperchainRevSharesCalculator");
+            revSharesCalculator = DeployUtils.create2(
+                "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
+                abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient)),
+                calcSalt
+            );
+        }
+
+        // Initialize the implementation with dummy values
+        address impl = _setImplementationCode(Predeploys.FEE_SPLITTER);
+        IFeeSplitter(payable(impl)).initialize(ISharesCalculator(address(0)));
+
+        // Initialize the proxy with the actual values
+        address sharesCalculator = revSharesCalculator;
+        IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).initialize(ISharesCalculator(sharesCalculator));
     }
 
     /// @notice Sets the bytecode in state
