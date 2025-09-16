@@ -280,7 +280,5 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
         // Final assertions: 0/0/0/0 | 0 | 210.8 | 34.2 |
         _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3, expectedFeesDepositorTotal, 0);
-
-        // TODO: When l1FeesDepositor has code, add a step to simulate the deposit to OP Treasury
        }
 }
