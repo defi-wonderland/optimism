@@ -65,7 +65,7 @@ contract L2ToL1MessagePasser is ISemver {
     ///         ETH on L2 inflating when ETH is withdrawn. Currently only way to do this is to
     ///         create a contract and self-destruct it to itself. Anyone can call this function. Not
     ///         incentivized since this function is very cheap.
-    function burn() external {
+    function burn() public virtual {
         uint256 balance = address(this).balance;
         Burn.eth(balance);
         emit WithdrawerBalanceBurnt(balance);

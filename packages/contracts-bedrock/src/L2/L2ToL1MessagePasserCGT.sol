@@ -33,4 +33,13 @@ contract L2ToL1MessagePasserCGT is L2ToL1MessagePasser {
         }
         super.initiateWithdrawal(_target, _gasLimit, _data);
     }
+
+    /// @notice Burns the balance of this contract.
+    /// @dev    This function is overridden to prevent burning when custom gas token is enabled.
+    function burn() public override {
+        if (IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken()) {
+            revert L2ToL1MessagePasserCGT_NotAllowedOnCGTMode();
+        }
+        super.burn();
+    }
 }

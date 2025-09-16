@@ -74,3 +74,19 @@ contract L2ToL1MessagePasserCGT_InitiateWithdrawal_Test is L2ToL1MessagePasserCG
         l2ToL1MessagePasser.initiateWithdrawal{ value: _value }({ _target: address(0), _gasLimit: 1, _data: "" });
     }
 }
+
+/// @title L2ToL1MessagePasserCGT_Burn_Test
+/// @notice Tests the `burn` function of the `L2ToL1MessagePasser` contract with custom gas token
+///         enabled.
+contract L2ToL1MessagePasserCGT_Burn_Test is L2ToL1MessagePasserCGT_TestInit {
+    /// @notice Tests that `burn` fails when called with custom gas token is enabled.
+    function testFuzz_burn_withCustomGasToken_fails(uint256 _value) external {
+        // Set initial state
+        _value = bound(_value, 1, type(uint256).max);
+        vm.deal(address(l2ToL1MessagePasser), _value);
+
+        // Expect revert with NotAllowedOnCGTMode
+        vm.expectRevert(IL2ToL1MessagePasserCGT.L2ToL1MessagePasserCGT_NotAllowedOnCGTMode.selector);
+        l2ToL1MessagePasser.burn();
+    }
+}
