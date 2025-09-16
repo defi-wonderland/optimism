@@ -21,6 +21,9 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
 ///         sends the remaining funds to the fee router.
 contract FeeSplitter is ISemver, Initializable {
+    /// @notice Thrown when the fee disbursement interval exceeds the maximum allowed.
+    error FeeSplitter_ExceedsMaxFeeDisbursementTime();
+
     /// @notice Thrown when the share calculator address is zero.
     error FeeSplitter_SharesCalculatorCannotBeZero();
 
@@ -62,6 +65,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
+    /// @notice max time between fee disbursements
+    uint128 public constant MAX_DISBURSEMENT_INTERVAL = 365 days;
+
     /// @notice The contract which determines the recipients and their weights for fee disbursement.
     ISharesCalculator public sharesCalculator;
 
@@ -81,11 +87,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @param newFeeDisbursementInterval The new fee disbursement interval.
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
 
-    /// @notice Emitted when the contract is initialized with its initial configuration.
-    /// @param sharesCalculator           The share calculator contract.
-    /// @param feeDisbursementInterval   The minimum amount of time in seconds that must pass between fee disbursals.
-    event Initialized(ISharesCalculator sharesCalculator, uint128 feeDisbursementInterval);
-
     /// @notice Emitted when fees are disbursed to the recipients.
     /// @param shareInfo The recipients of the fee share.
     /// @param grossRevenue The gross revenue before disbursement.
@@ -103,12 +104,10 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Initializes the contract with all required addresses and parameters.
     /// @dev This function can only be called once and must be called by the ProxyAdmin owner.
     /// @param _sharesCalculator            The share calculator contract.
-    /// @param _feeDisbursementInterval    The minimum amount of time in seconds that must pass between fee disbursals.
-    function initialize(ISharesCalculator _sharesCalculator, uint128 _feeDisbursementInterval) external initializer {
+    function initialize(ISharesCalculator _sharesCalculator) external initializer {
         sharesCalculator = _sharesCalculator;
-        feeDisbursementInterval = _feeDisbursementInterval;
-
-        emit Initialized(_sharesCalculator, _feeDisbursementInterval);
+        // As default, the fee disbursement interval is 1 day
+        feeDisbursementInterval = 1 days;
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
@@ -129,6 +128,9 @@ contract FeeSplitter is ISemver, Initializable {
             revert FeeSplitter_DisbursementIntervalNotReached();
         }
 
+        // Update the last disbursement time
+        lastDisbursementTime = uint128(block.timestamp);
+
         // Pull fees into the contract
         _setTransientDisbursing(true);
         uint256 _sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
@@ -143,9 +145,6 @@ contract FeeSplitter is ISemver, Initializable {
         if (_grossRevenue == 0) {
             revert FeeSplitter_NoFeesCollected();
         }
-
-        // Update the last disbursement time
-        lastDisbursementTime = uint128(block.timestamp);
 
         // Call to the sharesCalculator to determine the fee share recipients, amounts, withdrawal networks, and data
         // DoS risk if array size is too large.
@@ -184,6 +183,9 @@ contract FeeSplitter is ISemver, Initializable {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
         }
+        if (_newFeeDisbursementInterval > MAX_DISBURSEMENT_INTERVAL) {
+            revert FeeSplitter_ExceedsMaxFeeDisbursementTime();
+        }
         uint128 oldFeeDisbursementInterval = feeDisbursementInterval;
         feeDisbursementInterval = _newFeeDisbursementInterval;
         emit FeeDisbursementIntervalUpdated(oldFeeDisbursementInterval, _newFeeDisbursementInterval);
@@ -202,8 +204,8 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @notice Checks & Withdraws fees from a FeeVault.
-    /// @dev Withdrawal will only occur if the vault is properly configured and if the FeeVault's balance is greater
-    /// than or equal to the minimum
+    /// @dev Withdrawal will only occur if the vault is properly configured.
+    ///      The FeeVault itself will enforce minimum withdrawal requirements.
     /// @param _feeVault The address of the FeeVault to withdraw from.
     /// @return value_ The amount of ETH that was withdrawn from the vault.
     function _feeVaultWithdrawal(address payable _feeVault) internal returns (uint256 value_) {
@@ -213,9 +215,7 @@ contract FeeSplitter is ISemver, Initializable {
         if (IFeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
-        if (_feeVault.balance >= IFeeVault(_feeVault).minWithdrawalAmount()) {
-            value_ = IFeeVault(_feeVault).withdraw();
-        }
+        value_ = IFeeVault(_feeVault).withdraw();
     }
 
     /// @notice Sets the transient disbursing flag.

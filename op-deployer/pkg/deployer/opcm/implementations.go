@@ -14,13 +14,12 @@ type DeployImplementationsInput struct {
 	ProofMaturityDelaySeconds       *big.Int
 	DisputeGameFinalityDelaySeconds *big.Int
 	MipsVersion                     *big.Int
-	// Release version to set OPCM implementations for, of the format `op-contracts/vX.Y.Z`.
-	L1ContractsRelease    string
-	SuperchainConfigProxy common.Address
-	ProtocolVersionsProxy common.Address
-	SuperchainProxyAdmin  common.Address
-	UpgradeController     common.Address
-	Challenger            common.Address
+	DevFeatureBitmap                common.Hash
+	SuperchainConfigProxy           common.Address
+	ProtocolVersionsProxy           common.Address
+	SuperchainProxyAdmin            common.Address
+	UpgradeController               common.Address
+	Challenger                      common.Address
 }
 
 type DeployImplementationsOutput struct {
@@ -33,6 +32,7 @@ type DeployImplementationsOutput struct {
 	OpcmStandardValidator            common.Address `json:"opcmStandardValidatorAddress"`
 	DelayedWETHImpl                  common.Address `json:"delayedWETHImplAddress"`
 	OptimismPortalImpl               common.Address `json:"optimismPortalImplAddress"`
+	OptimismPortalInteropImpl        common.Address `json:"optimismPortalInteropImplAddress"`
 	ETHLockboxImpl                   common.Address `json:"ethLockboxImplAddress" abi:"ethLockboxImpl"`
 	PreimageOracleSingleton          common.Address `json:"preimageOracleSingletonAddress"`
 	MipsSingleton                    common.Address `json:"mipsSingletonAddress"`

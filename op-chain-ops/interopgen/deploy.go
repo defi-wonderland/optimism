@@ -27,6 +27,10 @@ var (
 	// sysGenesisDeployer is used as tx.origin/msg.sender on system genesis script calls.
 	// At the end we verify none of the deployed contracts persist (there may be temporary ones, to insert bytecode).
 	sysGenesisDeployer = common.Address(crypto.Keccak256([]byte("System genesis deployer"))[12:])
+
+	// OptimismPortalInteropDevFlag is the feature bitmap that enables the OptimismPortalInterop contract.
+	OptimismPortalInteropDevFlag = common.Hash{31: 0x01} // 0x0000000000000000000000000000000000000000000000000000000000000001
+
 )
 
 func Deploy(logger log.Logger, fa *foundry.ArtifactsFS, srcFS *foundry.SourceMapFS, cfg *WorldConfig) (*WorldDeployment, *WorldOutput, error) {
@@ -37,9 +41,6 @@ func Deploy(logger log.Logger, fa *foundry.ArtifactsFS, srcFS *foundry.SourceMap
 		}
 		if !cfg.L1.ChainID.IsUint64() || cfg.L1.ChainID.Uint64() != l2Cfg.L1ChainID {
 			return nil, nil, fmt.Errorf("chain L2 %s declared different L1 chain ID %d in config than global %d", id, l2Cfg.L1ChainID, cfg.L1.ChainID)
-		}
-		if l2Cfg.L2GenesisJovianTimeOffset != nil {
-			return nil, nil, fmt.Errorf("jovian is not compatible with interop, but got fork offset %d", *l2Cfg.L2GenesisJovianTimeOffset)
 		}
 	}
 
@@ -156,7 +157,7 @@ func CreateL2(logger log.Logger, fa *foundry.ArtifactsFS, srcFS *foundry.SourceM
 	}
 	l2Host := script.NewHost(logger.New("role", "l2", "chain", l2Cfg.L2ChainID), fa, srcFS, l2Context)
 	l2Host.SetEnvVar("OUTPUT_MODE", "none") // we don't use the cheatcode, but capture the state outside of EVM execution
-	l2Host.SetEnvVar("FORK", "holocene")    // latest fork
+	l2Host.SetEnvVar("FORK", "jovian")      // latest fork
 	return l2Host
 }
 
@@ -194,7 +195,7 @@ func DeploySuperchainToL1(l1Host *script.Host, opcmScripts *opcm.Scripts, superC
 		ProofMaturityDelaySeconds:       superCfg.Implementations.FaultProof.ProofMaturityDelaySeconds,
 		DisputeGameFinalityDelaySeconds: superCfg.Implementations.FaultProof.DisputeGameFinalityDelaySeconds,
 		MipsVersion:                     superCfg.Implementations.FaultProof.MipsVersion,
-		L1ContractsRelease:              superCfg.Implementations.L1ContractsRelease,
+		DevFeatureBitmap:                OptimismPortalInteropDevFlag,
 		SuperchainProxyAdmin:            superDeployment.SuperchainProxyAdmin,
 		SuperchainConfigProxy:           superDeployment.SuperchainConfigProxy,
 		ProtocolVersionsProxy:           superDeployment.ProtocolVersionsProxy,
@@ -225,25 +226,28 @@ func DeployL2ToL1(l1Host *script.Host, superCfg *SuperchainConfig, superDeployme
 	l1Host.SetTxOrigin(cfg.Deployer)
 
 	output, err := opcm.DeployOPChain(l1Host, opcm.DeployOPChainInput{
-		OpChainProxyAdminOwner:  superCfg.ProxyAdminOwner,
-		SystemConfigOwner:       cfg.SystemConfigOwner,
-		Batcher:                 cfg.BatchSenderAddress,
-		UnsafeBlockSigner:       cfg.P2PSequencerAddress,
-		Proposer:                cfg.Proposer,
-		Challenger:              cfg.Challenger,
-		BasefeeScalar:           cfg.GasPriceOracleBaseFeeScalar,
-		BlobBaseFeeScalar:       cfg.GasPriceOracleBlobBaseFeeScalar,
-		L2ChainId:               new(big.Int).SetUint64(cfg.L2ChainID),
-		Opcm:                    superDeployment.Opcm,
-		SaltMixer:               cfg.SaltMixer,
-		GasLimit:                cfg.GasLimit,
-		DisputeGameType:         cfg.DisputeGameType,
-		DisputeAbsolutePrestate: cfg.DisputeAbsolutePrestate,
-		DisputeMaxGameDepth:     cfg.DisputeMaxGameDepth,
-		DisputeSplitDepth:       cfg.DisputeSplitDepth,
-		DisputeClockExtension:   cfg.DisputeClockExtension,
-		DisputeMaxClockDuration: cfg.DisputeMaxClockDuration,
-		UseRevenueShare:         cfg.UseRevenueShare,
+		OpChainProxyAdminOwner:       superCfg.ProxyAdminOwner,
+		SystemConfigOwner:            cfg.SystemConfigOwner,
+		Batcher:                      cfg.BatchSenderAddress,
+		UnsafeBlockSigner:            cfg.P2PSequencerAddress,
+		Proposer:                     cfg.Proposer,
+		Challenger:                   cfg.Challenger,
+		BasefeeScalar:                cfg.GasPriceOracleBaseFeeScalar,
+		BlobBaseFeeScalar:            cfg.GasPriceOracleBlobBaseFeeScalar,
+		L2ChainId:                    new(big.Int).SetUint64(cfg.L2ChainID),
+		Opcm:                         superDeployment.Opcm,
+		SaltMixer:                    cfg.SaltMixer,
+		GasLimit:                     cfg.GasLimit,
+		DisputeGameType:              cfg.DisputeGameType,
+		DisputeAbsolutePrestate:      cfg.DisputeAbsolutePrestate,
+		DisputeMaxGameDepth:          cfg.DisputeMaxGameDepth,
+		DisputeSplitDepth:            cfg.DisputeSplitDepth,
+		DisputeClockExtension:        cfg.DisputeClockExtension,
+		DisputeMaxClockDuration:      cfg.DisputeMaxClockDuration,
+		AllowCustomDisputeParameters: true,
+		OperatorFeeScalar:            cfg.GasPriceOracleOperatorFeeScalar,
+		OperatorFeeConstant:          cfg.GasPriceOracleOperatorFeeConstant,
+		UseRevenueShare:          	  cfg.UseRevenueShare,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to deploy L2 OP chain: %w", err)

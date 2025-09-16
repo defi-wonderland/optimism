@@ -14,10 +14,6 @@ contract L1Withdrawer is ISemver {
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error L1Withdrawer_OnlyProxyAdminOwner();
 
-    /// @notice Semantic version.
-    /// @custom:semver 1.0.0
-    string public constant version = "1.0.0";
-
     /// @notice The minimum amount of ETH that must be accumulated before a withdrawal is initiated.
     uint256 public minWithdrawalAmount;
 
@@ -25,10 +21,7 @@ contract L1Withdrawer is ISemver {
     address public recipient;
 
     /// @notice The L1 gas limit set when initiating withdrawals.
-    uint256 public withdrawalGasLimit;
-
-    /// @notice The data to be sent with the withdrawal transaction.
-    bytes public withdrawalData;
+    uint96 public withdrawalGasLimit;
 
     /// @notice Emitted when a withdrawal to L1 is initiated.
     /// @param recipient The L1 address receiving the withdrawal.
@@ -54,28 +47,20 @@ contract L1Withdrawer is ISemver {
     /// @notice Emitted when the withdrawal gas limit is updated.
     /// @param oldWithdrawalGasLimit The previous withdrawal gas limit.
     /// @param newWithdrawalGasLimit The new withdrawal gas limit.
-    event WithdrawalGasLimitUpdated(uint256 oldWithdrawalGasLimit, uint256 newWithdrawalGasLimit);
+    event WithdrawalGasLimitUpdated(uint96 oldWithdrawalGasLimit, uint96 newWithdrawalGasLimit);
 
-    /// @notice Emitted when the withdrawal data is updated.
-    /// @param oldWithdrawalData The previous withdrawal data.
-    /// @param newWithdrawalData The new withdrawal data.
-    event WithdrawalDataUpdated(bytes oldWithdrawalData, bytes newWithdrawalData);
+    /// @notice Semantic version.
+    /// @custom:semver 1.0.0
+    string public constant version = "1.0.0";
 
     /// @notice Constructs the L1Withdrawer contract.
     /// @param _minWithdrawalAmount The minimum amount of ETH required to trigger a withdrawal.
     /// @param _recipient The L1 address that will receive withdrawals.
     /// @param _withdrawalGasLimit The gas limit for the L1 withdrawal transaction.
-    /// @param _withdrawalData The data to be sent with the withdrawal transaction.
-    constructor(
-        uint256 _minWithdrawalAmount,
-        address _recipient,
-        uint256 _withdrawalGasLimit,
-        bytes memory _withdrawalData
-    ) {
+    constructor(uint256 _minWithdrawalAmount, address _recipient, uint96 _withdrawalGasLimit) {
         minWithdrawalAmount = _minWithdrawalAmount;
         recipient = _recipient;
         withdrawalGasLimit = _withdrawalGasLimit;
-        withdrawalData = _withdrawalData;
     }
 
     /// @notice Receives ETH and initiates a withdrawal to L1 if the balance meets the threshold.
@@ -85,7 +70,7 @@ contract L1Withdrawer is ISemver {
 
         if (balance >= minWithdrawalAmount) {
             IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: balance }(
-                recipient, withdrawalGasLimit, withdrawalData
+                recipient, withdrawalGasLimit, hex""
             );
 
             emit WithdrawalInitiated(recipient, balance);
@@ -116,23 +101,12 @@ contract L1Withdrawer is ISemver {
 
     /// @notice Updates the withdrawal gas limit. Only callable by the ProxyAdmin owner.
     /// @param _newWithdrawalGasLimit The new withdrawal gas limit.
-    function setWithdrawalGasLimit(uint256 _newWithdrawalGasLimit) external {
+    function setWithdrawalGasLimit(uint96 _newWithdrawalGasLimit) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert L1Withdrawer_OnlyProxyAdminOwner();
         }
-        uint256 oldWithdrawalGasLimit = withdrawalGasLimit;
+        uint96 oldWithdrawalGasLimit = withdrawalGasLimit;
         withdrawalGasLimit = _newWithdrawalGasLimit;
         emit WithdrawalGasLimitUpdated(oldWithdrawalGasLimit, _newWithdrawalGasLimit);
-    }
-
-    /// @notice Updates the withdrawal data. Only callable by the ProxyAdmin owner.
-    /// @param _newWithdrawalData The new withdrawal data.
-    function setWithdrawalData(bytes memory _newWithdrawalData) external {
-        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
-            revert L1Withdrawer_OnlyProxyAdminOwner();
-        }
-        bytes memory oldWithdrawalData = withdrawalData;
-        withdrawalData = _newWithdrawalData;
-        emit WithdrawalDataUpdated(oldWithdrawalData, _newWithdrawalData);
     }
 }

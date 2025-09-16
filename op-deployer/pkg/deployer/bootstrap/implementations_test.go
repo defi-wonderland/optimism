@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var networks = []string{"mainnet", "sepolia"}
+
 func TestImplementations(t *testing.T) {
 	testCacheDir := testutils.IsolatedTestDirWithAutoCleanup(t)
 
@@ -71,13 +73,13 @@ func testImplementations(t *testing.T, forkRPCURL string, cacheDir string) {
 			PrivateKey:                      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 			ArtifactsLocator:                loc,
 			Logger:                          lgr,
-			L1ContractsRelease:              "dev",
 			WithdrawalDelaySeconds:          standard.WithdrawalDelaySeconds,
 			MinProposalSizeBytes:            standard.MinProposalSizeBytes,
 			ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
 			ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
 			DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
 			MIPSVersion:                     int(standard.MIPSVersion),
+			DevFeatureBitmap:                common.Hash{},
 			SuperchainConfigProxy:           superchain.SuperchainConfigAddr,
 			ProtocolVersionsProxy:           superchain.ProtocolVersionsAddr,
 			SuperchainProxyAdmin:            proxyAdminOwner,

@@ -22,6 +22,19 @@ const (
 	defaultAcceptor = "op-acceptor"
 )
 
+// AcceptorConfig holds all configuration for running op-acceptor
+type AcceptorConfig struct {
+	Orchestrator string
+	Devnet       string
+	Gate         string
+	TestDir      string
+	Validators   string
+	LogLevel     string
+	Acceptor     string
+	Serial       bool
+	ShowProgress bool
+}
+
 var (
 	// Command line flags
 	orchestratorFlag = &cli.StringFlag{
@@ -79,6 +92,18 @@ var (
 		Value:   false,
 		EnvVars: []string{"REUSE_DEVNET"},
 	}
+	serialFlag = &cli.BoolFlag{
+		Name:    "serial",
+		Usage:   "Run the acceptance tests in serial mode",
+		Value:   false,
+		EnvVars: []string{"SERIAL"},
+	}
+	showProgressFlag = &cli.BoolFlag{
+		Name:    "show-progress",
+		Usage:   "Show progress information during test execution",
+		Value:   false,
+		EnvVars: []string{"SHOW_PROGRESS"},
+	}
 )
 
 func main() {
@@ -95,6 +120,8 @@ func main() {
 			kurtosisDirFlag,
 			acceptorFlag,
 			reuseDevnetFlag,
+			serialFlag,
+			showProgressFlag,
 		},
 		Action: runAcceptanceTest,
 	}
@@ -116,6 +143,8 @@ func runAcceptanceTest(c *cli.Context) error {
 	kurtosisDir := c.String(kurtosisDirFlag.Name)
 	acceptor := c.String(acceptorFlag.Name)
 	reuseDevnet := c.Bool(reuseDevnetFlag.Name)
+	serial := c.Bool(serialFlag.Name)
+	showProgress := c.Bool(showProgressFlag.Name)
 
 	// Validate inputs based on orchestrator type
 	if orchestrator != "sysgo" && orchestrator != "sysext" {
@@ -185,7 +214,18 @@ func runAcceptanceTest(c *cli.Context) error {
 	// Run acceptance tests
 	steps = append(steps,
 		func(ctx context.Context) error {
-			return runOpAcceptor(ctx, tracer, orchestrator, devnet, gate, absTestDir, absValidators, logLevel, acceptor)
+			config := AcceptorConfig{
+				Orchestrator: orchestrator,
+				Devnet:       devnet,
+				Gate:         gate,
+				TestDir:      absTestDir,
+				Validators:   absValidators,
+				LogLevel:     logLevel,
+				Acceptor:     acceptor,
+				Serial:       serial,
+				ShowProgress: showProgress,
+			}
+			return runOpAcceptor(ctx, tracer, config)
 		},
 	)
 
@@ -216,7 +256,7 @@ func deployDevnet(ctx context.Context, tracer trace.Tracer, devnet string, kurto
 	return nil
 }
 
-func runOpAcceptor(ctx context.Context, tracer trace.Tracer, orchestrator string, devnet string, gate string, testDir string, validators string, logLevel string, acceptor string) error {
+func runOpAcceptor(ctx context.Context, tracer trace.Tracer, config AcceptorConfig) error {
 	ctx, span := tracer.Start(ctx, "run acceptance test")
 	defer span.End()
 
@@ -224,29 +264,41 @@ func runOpAcceptor(ctx context.Context, tracer trace.Tracer, orchestrator string
 
 	// Build the command arguments
 	args := []string{
-		"--testdir", testDir,
-		"--gate", gate,
-		"--validators", validators,
-		"--log.level", logLevel,
-		"--orchestrator", orchestrator,
+		"--testdir", config.TestDir,
+		"--gate", config.Gate,
+		"--validators", config.Validators,
+		"--log.level", config.LogLevel,
+		"--orchestrator", config.Orchestrator,
+	}
+	if config.Serial {
+		args = append(args, "--serial")
+	}
+	if config.ShowProgress {
+		args = append(args, "--show-progress")
+		args = append(args, "--progress-interval", "20s")
 	}
 
 	// Handle devnet parameter based on orchestrator type
-	if orchestrator == "sysext" && devnet != "" {
+	if config.Orchestrator == "sysext" && config.Devnet != "" {
 		var devnetEnvURL string
 
-		if strings.HasPrefix(devnet, "kt://") || strings.HasPrefix(devnet, "ktnative://") {
+		if strings.HasPrefix(config.Devnet, "kt://") || strings.HasPrefix(config.Devnet, "ktnative://") {
 			// Already a URL or file path - use directly
-			devnetEnvURL = devnet
+			devnetEnvURL = config.Devnet
 		} else {
 			// Simple name - wrap as Kurtosis URL
-			devnetEnvURL = fmt.Sprintf("kt://%s-devnet", devnet)
+			devnetEnvURL = fmt.Sprintf("kt://%s-devnet", config.Devnet)
 		}
 
 		args = append(args, "--devnet-env-url", devnetEnvURL)
 	}
 
-	acceptorCmd := exec.CommandContext(ctx, acceptor, args...)
+	// For sysgo, we allow skips
+	if config.Orchestrator == "sysgo" {
+		args = append(args, "--allow-skips")
+	}
+
+	acceptorCmd := exec.CommandContext(ctx, config.Acceptor, args...)
 	acceptorCmd.Env = env
 	acceptorCmd.Stdout = os.Stdout
 	acceptorCmd.Stderr = os.Stderr

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/crossdomain"
@@ -129,7 +130,19 @@ func (b *StandardBridge) RespectedGameType() uint32 {
 	return gameType
 }
 
+func (b *StandardBridge) PortalVersion() string {
+	version, err := contractio.Read(b.l1Portal.Version(), b.ctx)
+	b.require.NoError(err, "Failed to read portal version")
+	return version
+}
+
 func (b *StandardBridge) UsesSuperRoots() bool {
+	// Only interop contracts have SuperRootsActive functionality
+	version := b.PortalVersion()
+	if !strings.HasSuffix(version, "+interop") {
+		return false
+	}
+
 	superRootsActive, err := contractio.Read(b.l1Portal.SuperRootsActive(), b.ctx)
 	b.require.NoError(err, "Failed to read super roots active")
 	return superRootsActive
@@ -554,6 +567,15 @@ func gasCost(rcpt *types.Receipt) eth.ETH {
 	cost := eth.WeiBig(new(big.Int).Mul(new(big.Int).SetUint64(rcpt.GasUsed), rcpt.EffectiveGasPrice))
 	if rcpt.L1Fee != nil {
 		cost = cost.Add(eth.WeiBig(rcpt.L1Fee))
+	}
+	if rcpt.OperatorFeeConstant != nil && rcpt.OperatorFeeScalar != nil {
+		// https://github.com/ethereum-optimism/op-geth/blob/6005dd53e1b50fe5a3f59764e3e2056a639eff2f/core/types/rollup_cost.go#L244-L247
+		// Also see: https://specs.optimism.io/protocol/isthmus/exec-engine.html#operator-operatorCost
+		operatorCost := new(big.Int).SetUint64(rcpt.GasUsed)
+		operatorCost.Mul(operatorCost, new(big.Int).SetUint64(*rcpt.OperatorFeeScalar))
+		operatorCost = operatorCost.Div(operatorCost, big.NewInt(1_000_000))
+		operatorCost = operatorCost.Add(operatorCost, new(big.Int).SetUint64(*rcpt.OperatorFeeConstant))
+		cost = cost.Add(eth.WeiBig(operatorCost))
 	}
 	return cost
 }

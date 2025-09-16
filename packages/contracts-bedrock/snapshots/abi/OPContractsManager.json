@@ -42,11 +42,6 @@
         "type": "address"
       },
       {
-        "internalType": "string",
-        "name": "_l1ContractsRelease",
-        "type": "string"
-      },
-      {
         "internalType": "address",
         "name": "_upgradeController",
         "type": "address"
@@ -449,6 +444,19 @@
   },
   {
     "inputs": [],
+    "name": "devFeatureBitmap",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "implementations",
     "outputs": [
       {
@@ -471,6 +479,11 @@
           {
             "internalType": "address",
             "name": "optimismPortalImpl",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "optimismPortalInteropImpl",
             "type": "address"
           },
           {
@@ -528,26 +541,19 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "isRC",
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_feature",
+        "type": "bytes32"
+      }
+    ],
+    "name": "isDevFeatureEnabled",
     "outputs": [
       {
         "internalType": "bool",
         "name": "",
         "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "l1ContractsRelease",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -733,19 +739,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "_isRC",
-        "type": "bool"
-      }
-    ],
-    "name": "setRC",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "superchainConfig",
     "outputs": [
@@ -842,6 +835,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ISuperchainConfig",
+        "name": "_superchainConfig",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IProxyAdmin",
+        "name": "_superchainProxyAdmin",
+        "type": "address"
+      }
+    ],
+    "name": "upgradeSuperchainConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -967,19 +978,6 @@
     "type": "function"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "_isRC",
-        "type": "bool"
-      }
-    ],
-    "name": "Released",
-    "type": "event"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -1040,11 +1038,6 @@
   {
     "inputs": [],
     "name": "OnlyDelegatecall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OnlyUpgradeController",
     "type": "error"
   },
   {

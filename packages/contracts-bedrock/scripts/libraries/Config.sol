@@ -36,11 +36,11 @@ enum Fork {
     GRANITE,
     HOLOCENE,
     ISTHMUS,
-    INTEROP,
-    JOVIAN
+    JOVIAN,
+    INTEROP
 }
 
-Fork constant LATEST_FORK = Fork.JOVIAN;
+Fork constant LATEST_FORK = Fork.INTEROP;
 
 library ForkUtils {
     function toString(Fork _fork) internal pure returns (string memory) {
@@ -236,18 +236,8 @@ library Config {
         return vm.envOr("FORK_TEST", false);
     }
 
-    /// @notice Returns the revenue share recipient for the FeeSplitter predeploy.
-    function feeSplitterRevenueShareRecipient() internal view returns (address) {
-        return vm.envOr("FEE_SPLITTER_REVENUE_SHARE_RECIPIENT", address(0x1234567890123456789012345678901234567890));
-    }
-
-    /// @notice Returns the revenue remainder recipient for the FeeSplitter predeploy.
-    function feeSplitterRevenueRemainderRecipient() internal view returns (address) {
-        return vm.envOr("FEE_SPLITTER_REVENUE_REMAINDER_RECIPIENT", address(0x0987654321098765432109876543210987654321));
-    }
-
-    /// @notice Returns the fee disbursement interval for the FeeSplitter predeploy.
-    function feeSplitterFeeDisbursementInterval() internal view returns (uint256) {
-        return vm.envOr("FEE_SPLITTER_FEE_DISBURSEMENT_INTERVAL", uint256(86400));
+    /// @notice Returns true if the development feature interop is enabled.
+    function devFeatureInterop() internal view returns (bool) {
+        return vm.envOr("DEV_FEATURE__OPTIMISM_PORTAL_INTEROP", false);
     }
 }

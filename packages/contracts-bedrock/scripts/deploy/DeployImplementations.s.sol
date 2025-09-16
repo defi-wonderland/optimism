@@ -5,7 +5,6 @@ import { Script } from "forge-std/Script.sol";
 
 // Libraries
 import { Chains } from "scripts/libraries/Chains.sol";
-import { LibString } from "@solady/utils/LibString.sol";
 import { Types } from "scripts/libraries/Types.sol";
 
 // Interfaces
@@ -13,8 +12,7 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
-import { IMIPS } from "interfaces/cannon/IMIPS.sol";
-import { IMIPS2 } from "interfaces/cannon/IMIPS2.sol";
+import { IMIPS64 } from "interfaces/cannon/IMIPS64.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import {
@@ -27,6 +25,7 @@ import {
     IOPContractsManagerStandardValidator
 } from "interfaces/L1/IOPContractsManager.sol";
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismPortalInterop } from "interfaces/L1/IOptimismPortalInterop.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
@@ -48,9 +47,7 @@ contract DeployImplementations is Script {
         uint256 proofMaturityDelaySeconds;
         uint256 disputeGameFinalityDelaySeconds;
         uint256 mipsVersion;
-        // This is used in opcm to signal which version of the L1 smart contracts is deployed.
-        // It takes the format of `op-contracts/v*.*.*`.
-        string l1ContractsRelease;
+        bytes32 devFeatureBitmap;
         // Outputs from DeploySuperchain.s.sol.
         ISuperchainConfig superchainConfigProxy;
         IProtocolVersions protocolVersionsProxy;
@@ -69,9 +66,10 @@ contract DeployImplementations is Script {
         IOPContractsManagerStandardValidator opcmStandardValidator;
         IDelayedWETH delayedWETHImpl;
         IOptimismPortal optimismPortalImpl;
+        IOptimismPortalInterop optimismPortalInteropImpl;
         IETHLockbox ethLockboxImpl;
         IPreimageOracle preimageOracleSingleton;
-        IMIPS mipsSingleton;
+        IMIPS64 mipsSingleton;
         ISystemConfig systemConfigImpl;
         IL1CrossDomainMessenger l1CrossDomainMessengerImpl;
         IL1ERC721Bridge l1ERC721BridgeImpl;
@@ -99,6 +97,7 @@ contract DeployImplementations is Script {
         deployL1StandardBridgeImpl(output_);
         deployOptimismMintableERC20FactoryImpl(output_);
         deployOptimismPortalImpl(_input, output_);
+        deployOptimismPortalInteropImpl(_input, output_);
         deployETHLockboxImpl(output_);
         deployDelayedWETHImpl(_input, output_);
         deployPreimageOracleSingleton(_input, output_);
@@ -119,8 +118,7 @@ contract DeployImplementations is Script {
     function createOPCMContract(
         Input memory _input,
         Output memory _output,
-        IOPContractsManager.Blueprints memory _blueprints,
-        string memory _l1ContractsRelease
+        IOPContractsManager.Blueprints memory _blueprints
     )
         private
         returns (IOPContractsManager opcm_)
@@ -130,6 +128,7 @@ contract DeployImplementations is Script {
             protocolVersionsImpl: address(_output.protocolVersionsImpl),
             l1ERC721BridgeImpl: address(_output.l1ERC721BridgeImpl),
             optimismPortalImpl: address(_output.optimismPortalImpl),
+            optimismPortalInteropImpl: address(_output.optimismPortalInteropImpl),
             ethLockboxImpl: address(_output.ethLockboxImpl),
             systemConfigImpl: address(_output.systemConfigImpl),
             optimismMintableERC20FactoryImpl: address(_output.optimismMintableERC20FactoryImpl),
@@ -141,7 +140,7 @@ contract DeployImplementations is Script {
             mipsImpl: address(_output.mipsSingleton)
         });
 
-        deployOPCMBPImplsContainer(_output, _blueprints, implementations);
+        deployOPCMBPImplsContainer(_input, _output, _blueprints, implementations);
         deployOPCMGameTypeAdder(_output);
         deployOPCMDeployer(_input, _output);
         deployOPCMUpgrader(_output);
@@ -153,7 +152,7 @@ contract DeployImplementations is Script {
             // nosemgrep: sol-safety-deployutils-args
             DeployUtils.createDeterministic({
                 _name: "OPContractsManager",
-                _args: encodeOPCMConstructor(_l1ContractsRelease, _input, _output),
+                _args: encodeOPCMConstructor(_input, _output),
                 _salt: _salt
             })
         );
@@ -164,12 +163,10 @@ contract DeployImplementations is Script {
 
     /// @notice Encodes the constructor of the OPContractsManager contract. Used to avoid stack too
     ///         deep errors inside of the createOPCMContract function.
-    /// @param _l1ContractsRelease The release of the L1 contracts.
     /// @param _input The deployment input parameters.
     /// @param _output The deployment output parameters.
     /// @return encoded_ The encoded constructor.
     function encodeOPCMConstructor(
-        string memory _l1ContractsRelease,
         Input memory _input,
         Output memory _output
     )
@@ -189,7 +186,6 @@ contract DeployImplementations is Script {
                     _input.superchainConfigProxy,
                     _input.protocolVersionsProxy,
                     _input.superchainProxyAdmin,
-                    _l1ContractsRelease,
                     _input.upgradeController
                 )
             )
@@ -197,8 +193,6 @@ contract DeployImplementations is Script {
     }
 
     function deployOPContractsManager(Input memory _input, Output memory _output) private {
-        string memory l1ContractsRelease = _input.l1ContractsRelease;
-
         // First we deploy the blueprints for the singletons deployed by OPCM.
         // forgefmt: disable-start
         IOPContractsManager.Blueprints memory blueprints;
@@ -223,7 +217,7 @@ contract DeployImplementations is Script {
         // forgefmt: disable-end
         vm.stopBroadcast();
 
-        IOPContractsManager opcm = createOPCMContract(_input, _output, blueprints, l1ContractsRelease);
+        IOPContractsManager opcm = createOPCMContract(_input, _output, blueprints);
 
         vm.label(address(opcm), "OPContractsManager");
         _output.opcm = opcm;
@@ -361,8 +355,6 @@ contract DeployImplementations is Script {
     // These are:
     // - FaultDisputeGame (not proxied)
     // - PermissionedDisputeGame (not proxied)
-    // - DelayedWeth (proxies only)
-    // - OptimismPortal2 (proxies only)
 
     function deployOptimismPortalImpl(Input memory _input, Output memory _output) private {
         uint256 proofMaturityDelaySeconds = _input.proofMaturityDelaySeconds;
@@ -377,6 +369,21 @@ contract DeployImplementations is Script {
         );
         vm.label(address(impl), "OptimismPortalImpl");
         _output.optimismPortalImpl = impl;
+    }
+
+    function deployOptimismPortalInteropImpl(Input memory _input, Output memory _output) private {
+        uint256 proofMaturityDelaySeconds = _input.proofMaturityDelaySeconds;
+        IOptimismPortalInterop impl = IOptimismPortalInterop(
+            DeployUtils.createDeterministic({
+                _name: "OptimismPortalInterop",
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(IOptimismPortalInterop.__constructor__, (proofMaturityDelaySeconds))
+                ),
+                _salt: _salt
+            })
+        );
+        vm.label(address(impl), "OptimismPortalInteropImpl");
+        _output.optimismPortalInteropImpl = impl;
     }
 
     function deployDelayedWETHImpl(Input memory _input, Output memory _output) private {
@@ -419,10 +426,10 @@ contract DeployImplementations is Script {
             }
         }
 
-        IMIPS singleton = IMIPS(
+        IMIPS64 singleton = IMIPS64(
             DeployUtils.createDeterministic({
                 _name: "MIPS64",
-                _args: DeployUtils.encodeConstructor(abi.encodeCall(IMIPS2.__constructor__, (preimageOracle, mipsVersion))),
+                _args: DeployUtils.encodeConstructor(abi.encodeCall(IMIPS64.__constructor__, (preimageOracle, mipsVersion))),
                 _salt: DeployUtils.DEFAULT_SALT
             })
         );
@@ -458,6 +465,7 @@ contract DeployImplementations is Script {
     }
 
     function deployOPCMBPImplsContainer(
+        Input memory _input,
         Output memory _output,
         IOPContractsManager.Blueprints memory _blueprints,
         IOPContractsManager.Implementations memory _implementations
@@ -468,7 +476,10 @@ contract DeployImplementations is Script {
             DeployUtils.createDeterministic({
                 _name: "OPContractsManager.sol:OPContractsManagerContractsContainer",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IOPContractsManagerContractsContainer.__constructor__, (_blueprints, _implementations))
+                    abi.encodeCall(
+                        IOPContractsManagerContractsContainer.__constructor__,
+                        (_blueprints, _implementations, _input.devFeatureBitmap)
+                    )
                 ),
                 _salt: _salt
             })
@@ -543,6 +554,7 @@ contract DeployImplementations is Script {
         IOPContractsManagerStandardValidator.Implementations memory opcmImplementations;
         opcmImplementations.l1ERC721BridgeImpl = _implementations.l1ERC721BridgeImpl;
         opcmImplementations.optimismPortalImpl = _implementations.optimismPortalImpl;
+        opcmImplementations.optimismPortalInteropImpl = _implementations.optimismPortalInteropImpl;
         opcmImplementations.ethLockboxImpl = _implementations.ethLockboxImpl;
         opcmImplementations.systemConfigImpl = _implementations.systemConfigImpl;
         opcmImplementations.optimismMintableERC20FactoryImpl = _implementations.optimismMintableERC20FactoryImpl;
@@ -564,7 +576,8 @@ contract DeployImplementations is Script {
                             _input.superchainConfigProxy,
                             _input.upgradeController, // Proxy admin owner
                             _input.challenger,
-                            _input.withdrawalDelaySeconds
+                            _input.withdrawalDelaySeconds,
+                            _input.devFeatureBitmap
                         )
                     )
                 ),
@@ -588,7 +601,6 @@ contract DeployImplementations is Script {
             "DeployImplementations: disputeGameFinalityDelaySeconds not set"
         );
         require(_input.mipsVersion != 0, "DeployImplementations: mipsVersion not set");
-        require(!LibString.eq(_input.l1ContractsRelease, ""), "DeployImplementations: l1ContractsRelease not set");
         require(
             address(_input.superchainConfigProxy) != address(0), "DeployImplementations: superchainConfigProxy not set"
         );
@@ -649,7 +661,7 @@ contract DeployImplementations is Script {
             _impls: impls,
             _proxies: proxies,
             _opcm: IOPContractsManager(address(_output.opcm)),
-            _mips: IMIPS(address(_output.mipsSingleton)),
+            _mips: IMIPS64(address(_output.mipsSingleton)),
             _superchainProxyAdmin: _input.superchainProxyAdmin
         });
 

@@ -15,17 +15,20 @@ import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 ///         The second configured recipient receives the full remainder via FeeSplitter's remainder send.
 contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
     /// @notice Emitted when the share recipient is updated.
-    /// @param newShareRecipient The new share recipient address.
     /// @param oldShareRecipient The old share recipient address.
-    event ShareRecipientUpdated(address indexed newShareRecipient, address indexed oldShareRecipient);
+    /// @param newShareRecipient The new share recipient address.
+    event ShareRecipientUpdated(address indexed oldShareRecipient, address indexed newShareRecipient);
 
     /// @notice Emitted when the remainder recipient is updated.
-    /// @param newRemainderRecipient The new remainder recipient address.
     /// @param oldRemainderRecipient The old remainder recipient address.
-    event RemainderRecipientUpdated(address indexed newRemainderRecipient, address indexed oldRemainderRecipient);
+    /// @param newRemainderRecipient The new remainder recipient address.
+    event RemainderRecipientUpdated(address indexed oldRemainderRecipient, address indexed newRemainderRecipient);
 
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error SharesCalculator_OnlyProxyAdminOwner();
+
+    /// @notice Thrown when the gross share is zero.
+    error SharesCalculator_ZeroGrossShare();
 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -79,7 +82,12 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
         uint256 grossRevenue = _sequencerFeeRevenue + _baseFeeRevenue + _operatorFeeRevenue + _l1FeeRevenue;
         uint256 grossShare = (grossRevenue * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE;
 
-        // Net component: 15% of (total - L1 fees), floored at zero.
+        // Ensure gross share is greater than zero
+        if (grossShare == 0) {
+            revert SharesCalculator_ZeroGrossShare();
+        }
+
+        // Net component: 15% of (total - L1 fees).
         uint256 netRevenue = grossRevenue - _l1FeeRevenue;
         uint256 netShare = (netRevenue * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;
 
@@ -98,7 +106,7 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
         }
         address oldShareRecipient = shareRecipient;
         shareRecipient = _newShareRecipient;
-        emit ShareRecipientUpdated(_newShareRecipient, oldShareRecipient);
+        emit ShareRecipientUpdated(oldShareRecipient, _newShareRecipient);
     }
 
     /// @notice Sets the remainder recipient. Only callable by the ProxyAdmin owner.
@@ -109,6 +117,6 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
         }
         address oldRemainderRecipient = remainderRecipient;
         remainderRecipient = _newRemainderRecipient;
-        emit RemainderRecipientUpdated(_newRemainderRecipient, oldRemainderRecipient);
+        emit RemainderRecipientUpdated(oldRemainderRecipient, _newRemainderRecipient);
     }
 }

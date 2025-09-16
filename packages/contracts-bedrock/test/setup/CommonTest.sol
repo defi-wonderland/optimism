@@ -34,12 +34,17 @@ contract CommonTest is Test, Setup, Events {
 
     bool useAltDAOverride;
     bool useInteropOverride;
+    bool useRevenueShareOverride;
 
     /// @dev This value is only used in forked tests. During forked tests, the default is to perform the upgrade before
     ///      running the tests.
     ///      This value should only be set to false in forked tests which are specifically testing the upgrade path
     ///      itself, rather than simply ensuring that the tests pass after the upgrade.
     bool useUpgradedFork = true;
+
+    // Needed for testing purposes to check the contracts were properly deployed and setup.
+    address chainFeesRecipient = makeAddr("chainFeesRecipient");
+    address l1FeesDepositor = makeAddr("l1FeesDepositor");
 
     ERC20 L1Token;
     ERC20 BadL1Token;
@@ -54,6 +59,11 @@ contract CommonTest is Test, Setup, Events {
         // changes will not be persisted into the new network.
         Setup.setUp();
 
+        // Set the code for 0xbeefcafe to a single non-zero byte. We use this address as a signal
+        // that something is running in the testing environment and not production, useful for
+        // forked tests.
+        vm.etch(address(0xbeefcafe), bytes(hex"01"));
+
         alice = makeAddr("alice");
         bob = makeAddr("bob");
         vm.deal(alice, 10000 ether);
@@ -65,6 +75,11 @@ contract CommonTest is Test, Setup, Events {
         }
         if (useInteropOverride) {
             deploy.cfg().setUseInterop(true);
+        }
+        if (useRevenueShareOverride) {
+            deploy.cfg().setUseRevenueShare(true);
+            deploy.cfg().setChainFeesRecipient(chainFeesRecipient);
+            deploy.cfg().setL1FeesDepositor(l1FeesDepositor);
         }
         if (useUpgradedFork) {
             deploy.cfg().setUseUpgradedFork(true);
@@ -193,6 +208,12 @@ contract CommonTest is Test, Setup, Events {
     function enableInterop() public {
         _checkNotDeployed("interop");
         useInteropOverride = true;
+    }
+
+    /// @dev Enables revenue sharing mode for testing
+    function enableRevenueShare() public {
+        _checkNotDeployed("revenue share");
+        useRevenueShareOverride = true;
     }
 
     /// @dev Disables upgrade mode for testing. By default the fork testing env will be upgraded to the latest

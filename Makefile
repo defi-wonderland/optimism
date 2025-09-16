@@ -21,13 +21,12 @@ build-contracts:
 .PHONY: build-contracts
 
 lint-go: ## Lints Go code with specific linters
-	golangci-lint run -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./...
-	golangci-lint run -E err113 --timeout 5m -e "errors.As" -e "errors.Is" ./op-program/client/...
+	golangci-lint run ./...
 	go mod tidy -diff
 .PHONY: lint-go
 
 lint-go-fix: ## Lints Go code with specific linters and fixes reported issues
-	golangci-lint run -E goimports,sqlclosecheck,bodyclose,asciicheck,misspell,errorlint --timeout 5m -e "errors.As" -e "errors.Is" ./... --fix
+	golangci-lint run ./... --fix
 .PHONY: lint-go-fix
 
 golang-docker: ## Builds Docker images for Go components using buildx
@@ -207,7 +206,6 @@ TEST_PKGS := \
 	./packages/contracts-bedrock/scripts/checks/... \
 	./op-dripper/... \
 	./devnet-sdk/... \
-	./op-acceptance-tests/... \
 	./kurtosis-devnet/... \
 	./op-devstack/... \
 	./op-deployer/pkg/deployer/artifacts/... \
@@ -245,7 +243,9 @@ endef
 define CI_ENV_VARS
 export OP_TESTLOG_FILE_LOGGER_OUTDIR=$$(realpath ./tmp/testlogs) && \
 export SEPOLIA_RPC_URL="https://ci-sepolia-l1-archive.optimism.io" && \
-export MAINNET_RPC_URL="https://ci-mainnet-l1-archive.optimism.io"
+export MAINNET_RPC_URL="https://ci-mainnet-l1-archive.optimism.io" && \
+export NAT_INTEROP_LOADTEST_TARGET=10 && \
+export NAT_INTEROP_LOADTEST_TIMEOUT=30s
 endef
 
 # Test timeout (can be overridden via environment)
@@ -264,7 +264,7 @@ go-tests-short: $(TEST_DEPS) ## Runs comprehensive Go tests with -short flag
 go-tests-short-ci: ## Runs short Go tests with gotestsum for CI (assumes deps built by CI)
 	@echo "Setting up test directories..."
 	mkdir -p ./tmp/test-results ./tmp/testlogs
-	@echo "Running Go tests with gotestsum..."
+	@echo 'Running Go tests (short) with gotestsum...'
 	$(DEFAULT_TEST_ENV_VARS) && \
 	$(CI_ENV_VARS) && \
 	gotestsum --format=testname \

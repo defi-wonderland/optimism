@@ -94,6 +94,7 @@ type ReadImplementationAddressesInput struct {
 type ReadImplementationAddressesOutput struct {
 	DelayedWETH                  common.Address
 	OptimismPortal               common.Address
+	OptimismPortalInterop        common.Address
 	ETHLockbox                   common.Address `evm:"ethLockbox"`
 	SystemConfig                 common.Address
 	L1CrossDomainMessenger       common.Address
