@@ -134,6 +134,10 @@ func (c *ChainIntent) Check() error {
 		if c.CustomGasToken.Symbol == "" {
 			return fmt.Errorf("%w: CustomGasToken.Symbol cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
+
+		if c.CustomGasToken.NativeAssetLiquidityAmount == nil {
+			return fmt.Errorf("%w: CustomGasToken.NativeAssetLiquidityAmount must be set when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		}
 	}
 
 	if c.DangerousAltDAConfig.UseAltDA {
@@ -143,13 +147,31 @@ func (c *ChainIntent) Check() error {
 	return nil
 }
 
-// GetNativeAssetLiquidityAmount returns the native asset liquidity amount for the chain.
-// If not set, returns the default value of type(uint248).max.
+// GetNativeAssetLiquidityAmount returns the custom gas token liquidity amount for the chain.
+// This value must be explicitly set by each chain when using custom gas tokens.
+// Returns 0 if not configured, validation will fail if CGT is enabled with amount <= 0.
 func (c *ChainIntent) GetNativeAssetLiquidityAmount() *big.Int {
 	if c.CustomGasToken != nil && c.CustomGasToken.NativeAssetLiquidityAmount != nil {
 		return c.CustomGasToken.NativeAssetLiquidityAmount.ToInt()
 	}
-	// Default to type(uint248).max = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-	maxUint248, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	return maxUint248
+	// Return 0 by default when CGT is disabled or not configured (consistent with "" and false)
+	return big.NewInt(0)
+}
+
+// SetNativeAssetLiquidityAmount sets the native asset liquidity amount for custom gas token chains.
+// The amount should be specified in wei (e.g., use EtherToWei for ETH amounts).
+func (c *ChainIntent) SetNativeAssetLiquidityAmount(amount *big.Int) error {
+	if c.CustomGasToken == nil {
+		return fmt.Errorf("custom gas token must be configured before setting liquidity amount")
+	}
+	c.CustomGasToken.NativeAssetLiquidityAmount = (*hexutil.Big)(amount)
+	return nil
+}
+
+// EtherToWei converts ETH amount to wei for easier configuration.
+// Usage: chain.SetNativeAssetLiquidityAmount(EtherToWei(1000)) // Sets 1000 ETH
+func EtherToWei(ethAmount int64) *big.Int {
+	wei := new(big.Int)
+	wei.Mul(big.NewInt(ethAmount), big.NewInt(1e18))
+	return wei
 }

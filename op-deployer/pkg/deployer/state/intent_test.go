@@ -64,6 +64,18 @@ func TestValidateStandardValues(t *testing.T) {
 			},
 			ErrNonStandardValue,
 		},
+			{
+			"CustomGasToken",
+			func(intent *Intent) {
+				intent.Chains[0].CustomGasToken = &CustomGasToken{
+					Enabled: false,
+					Name:    "",
+					Symbol:  "",
+					NativeAssetLiquidityAmount: (*hexutil.Big)(big.NewInt(0)),
+				}
+			},
+			ErrNonStandardValue,
+		},
 		{
 			"SuperchainConfigProxy",
 			func(intent *Intent) {
@@ -241,11 +253,39 @@ func setFeeAddresses(intent *Intent) {
 }
 
 func setCustomGasToken(intent *Intent) {
-	maxUint248, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	// Each chain configures its own liquidity amount based on their needs
+	// Example: This test chain decides to use 1000 ETH as their liquidity pool
+	liquidityAmount := EtherToWei(1000) // 1000 ETH
+
 	intent.Chains[0].CustomGasToken = &CustomGasToken{
-		Enabled:                    true,
-		Name:                       "Custom Gas Token",
-		Symbol:                     "CGT",
-		NativeAssetLiquidityAmount: (*hexutil.Big)(maxUint248),
+		Enabled: true,
+		Name:    "Custom Gas Token",
+		Symbol:  "CGT",
+		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+	}
+}
+
+// Example helper functions showing how different chains might configure liquidity
+func setCustomGasTokenWithHighLiquidity(intent *Intent) {
+	// A high-volume chain might want more liquidity (e.g., 10,000 ETH)
+	liquidityAmount := EtherToWei(10000)
+
+	intent.Chains[0].CustomGasToken = &CustomGasToken{
+		Enabled: true,
+		Name:    "High Volume Token",
+		Symbol:  "HVT",
+		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
+	}
+}
+
+func setCustomGasTokenWithLowLiquidity(intent *Intent) {
+	// A smaller chain might use less liquidity (e.g., 100 ETH)
+	liquidityAmount := EtherToWei(100)
+
+	intent.Chains[0].CustomGasToken = &CustomGasToken{
+		Enabled: true,
+		Name:    "Small Chain Token",
+		Symbol:  "SCT",
+		NativeAssetLiquidityAmount: (*hexutil.Big)(liquidityAmount),
 	}
 }

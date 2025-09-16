@@ -72,10 +72,26 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 			},
 
 			GasTokenDeployConfig: genesis.GasTokenDeployConfig{
-				UseCustomGasToken:          chainIntent.CustomGasToken.Enabled,
-				GasPayingTokenName:         chainIntent.CustomGasToken.Name,
-				GasPayingTokenSymbol:       chainIntent.CustomGasToken.Symbol,
-				NativeAssetLiquidityAmount: (*hexutil.Big)(chainIntent.GetNativeAssetLiquidityAmount()),
+			UseCustomGasToken: chainIntent.CustomGasToken != nil && chainIntent.CustomGasToken.Enabled,
+			GasPayingTokenName: func() string {
+				if chainIntent.CustomGasToken != nil {
+					return chainIntent.CustomGasToken.Name
+				}
+				return ""
+			}(),
+			GasPayingTokenSymbol: func() string {
+				if chainIntent.CustomGasToken != nil {
+					return chainIntent.CustomGasToken.Symbol
+				}
+				return ""
+			}(),
+			NativeAssetLiquidityAmount: func() *hexutil.Big {
+				if chainIntent.CustomGasToken != nil && chainIntent.CustomGasToken.Enabled {
+					// Each chain must explicitly configure this value
+					return chainIntent.CustomGasToken.NativeAssetLiquidityAmount
+				}
+				return (*hexutil.Big)(big.NewInt(0)) // Default to 0 when CGT disabled (consistent with "" and false)
+			}(),
 			},
 
 			// STOP! This struct sets the _default_ upgrade schedule for all chains.
