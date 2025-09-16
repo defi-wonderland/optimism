@@ -415,7 +415,7 @@ jobs:
 
   cannon-go-lint-and-test:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     parameters:
       skip_slow_tests:
         type: boolean
@@ -475,7 +475,7 @@ jobs:
 
   diff-asterisc-bytecode:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - run:
@@ -991,7 +991,7 @@ jobs:
     circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: 2xlarge
+    resource_class: medium
     parameters:
       test_flags:
         description: Additional flags to pass to the test command
@@ -1228,7 +1228,7 @@ jobs:
         default: false
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -1794,7 +1794,7 @@ jobs:
   sanitize-op-program:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - run:
@@ -1815,7 +1815,7 @@ jobs:
 
   cannon-prestate-quick:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - restore_cache:
@@ -2000,7 +2000,7 @@ jobs:
   analyze-op-program-client:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - setup_remote_docker
@@ -2012,7 +2012,7 @@ jobs:
 
   op-program-compat:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - run:
@@ -2023,7 +2023,7 @@ jobs:
 
   check-generated-mocks-op-node:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -2034,7 +2034,7 @@ jobs:
 
   check-generated-mocks-op-service:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -2055,7 +2055,7 @@ jobs:
   kontrol-tests:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    resource_class: medium
     steps:
       - utils/checkout-with-mise
       - install-contracts-dependencies
@@ -2086,7 +2086,7 @@ jobs:
 
   publish-contract-artifacts:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: medium
     steps:
       - gcp-cli/install
       - gcp-oidc-authenticate:
@@ -2122,7 +2122,7 @@ jobs:
         type: string
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    resource_class: medium
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
