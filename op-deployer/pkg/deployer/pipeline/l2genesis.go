@@ -23,10 +23,10 @@ import (
 
 type l2GenesisOverrides struct {
 	// ===== CUSTOM GAS TOKEN (CGT) CONFIGURATION =====
-	UseCustomGasToken                        bool                      `json:"useCustomGasToken"`        	// CGT: Enable custom gas token mode
-	GasPayingTokenName                       string                    `json:"gasPayingTokenName"`       	// CGT: Name of the custom gas token
-	GasPayingTokenSymbol                     string                    `json:"gasPayingTokenSymbol"`     	// CGT: Symbol of the custom gas token
-	NativeAssetLiquidityAmount               *hexutil.Big              `json:"nativeAssetLiquidityAmount"`	// CGT: Liquidity amount for NativeAssetLiquidity contract
+	UseCustomGasToken          bool         `json:"useCustomGasToken"`          // CGT: Enable custom gas token mode
+	GasPayingTokenName         string       `json:"gasPayingTokenName"`         // CGT: Name of the custom gas token
+	GasPayingTokenSymbol       string       `json:"gasPayingTokenSymbol"`       // CGT: Symbol of the custom gas token
+	NativeAssetLiquidityAmount *hexutil.Big `json:"nativeAssetLiquidityAmount"` // CGT: Liquidity amount for NativeAssetLiquidity contract
 
 	// ===== GENERAL L2 CONFIGURATION (NON-CGT) =====
 	FundDevAccounts                          bool                      `json:"fundDevAccounts"`
@@ -37,7 +37,7 @@ type l2GenesisOverrides struct {
 	L1FeeVaultWithdrawalNetwork              genesis.WithdrawalNetwork `json:"l1FeeVaultWithdrawalNetwork"`
 	SequencerFeeVaultWithdrawalNetwork       genesis.WithdrawalNetwork `json:"sequencerFeeVaultWithdrawalNetwork"`
 	EnableGovernance                         bool                      `json:"enableGovernance"`
-    GovernanceTokenOwner                     common.Address            `json:"governanceTokenOwner"`
+	GovernanceTokenOwner                     common.Address            `json:"governanceTokenOwner"`
 }
 
 func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, st *state.State, chainID common.Hash) error {
@@ -63,7 +63,7 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 	// Validate CGT configuration before proceeding
 	if thisIntent.CustomGasToken != nil && thisIntent.CustomGasToken.Enabled {
 		if thisIntent.CustomGasToken.NativeAssetLiquidityAmount == nil ||
-		   thisIntent.CustomGasToken.NativeAssetLiquidityAmount.ToInt().Cmp(big.NewInt(0)) <= 0 {
+			thisIntent.CustomGasToken.NativeAssetLiquidityAmount.ToInt().Cmp(big.NewInt(0)) <= 0 {
 			return fmt.Errorf("custom gas token is enabled but NativeAssetLiquidityAmount must be configured with a value > 0 for chain %s", chainID.Hex())
 		}
 	}
@@ -110,10 +110,10 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		EnableGovernance:                         overrides.EnableGovernance,
 		FundDevAccounts:                          overrides.FundDevAccounts,
 		// Custom Gas Token (CGT) configuration passed to L2Genesis script
-		UseCustomGasToken:                        thisIntent.CustomGasToken.Enabled,        // CGT: Enable/disable custom gas token
-		GasPayingTokenName:                       thisIntent.CustomGasToken.Name,           // CGT: Token name (e.g., "Custom Gas Token")
-		GasPayingTokenSymbol:                     thisIntent.CustomGasToken.Symbol,         // CGT: Token symbol (e.g., "CGT")
-		NativeAssetLiquidityAmount:            thisIntent.GetNativeAssetLiquidityAmount(), // CGT: Liquidity amount for NativeAssetLiquidity contract
+		UseCustomGasToken:          thisIntent.CustomGasToken.Enabled,          // CGT: Enable/disable custom gas token
+		GasPayingTokenName:         thisIntent.CustomGasToken.Name,             // CGT: Token name (e.g., "Custom Gas Token")
+		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,           // CGT: Token symbol (e.g., "CGT")
+		NativeAssetLiquidityAmount: thisIntent.GetNativeAssetLiquidityAmount(), // CGT: Liquidity amount for NativeAssetLiquidity contract
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}
@@ -196,9 +196,9 @@ func defaultOverrides() l2GenesisOverrides {
 		EnableGovernance:                         false,
 		GovernanceTokenOwner:                     standard.GovernanceTokenOwner,
 		// ===== CGT DEFAULTS =====
-		UseCustomGasToken:                        false,                                   // CGT disabled by default
-		GasPayingTokenName:                       "",                                      // Empty when CGT disabled
-		GasPayingTokenSymbol:                     "",                                      // Empty when CGT disabled
-		NativeAssetLiquidityAmount:               (*hexutil.Big)(big.NewInt(0)),           // Default to 0 when CGT disabled (consistent with "" and false)
-		}
+		UseCustomGasToken:          false,                         // CGT disabled by default
+		GasPayingTokenName:         "",                            // Empty when CGT disabled
+		GasPayingTokenSymbol:       "",                            // Empty when CGT disabled
+		NativeAssetLiquidityAmount: (*hexutil.Big)(big.NewInt(0)), // Default to 0 when CGT disabled (consistent with "" and false)
+	}
 }

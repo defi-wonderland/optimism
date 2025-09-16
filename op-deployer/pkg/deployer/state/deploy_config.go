@@ -71,7 +71,7 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				EIP1559Elasticity:        chainIntent.Eip1559Elasticity,
 			},
 
-		GasTokenDeployConfig: genesis.GasTokenDeployConfig{
+			GasTokenDeployConfig: genesis.GasTokenDeployConfig{
 				UseCustomGasToken:          chainIntent.CustomGasToken.Enabled,
 				GasPayingTokenName:         chainIntent.CustomGasToken.Name,
 				GasPayingTokenSymbol:       chainIntent.CustomGasToken.Symbol,
@@ -174,4 +174,3 @@ func calculateBatchInboxAddr(chainID common.Hash) common.Address {
 	copy(out[1:], crypto.Keccak256(chainID[:])[:19])
 	return out
 }
-

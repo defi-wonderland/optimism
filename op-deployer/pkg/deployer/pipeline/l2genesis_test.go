@@ -151,8 +151,8 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 					"nativeAssetLiquidityAmount": "0x0",
 				},
 			},
-			chainIntent:       &state.ChainIntent{},
-			expectError:       false,
+			chainIntent: &state.ChainIntent{},
+			expectError: false,
 			expectedOverrides: func() l2GenesisOverrides {
 				defaults := defaultOverrides()
 				// Override with the same value that comes from JSON merge to match internal representation
