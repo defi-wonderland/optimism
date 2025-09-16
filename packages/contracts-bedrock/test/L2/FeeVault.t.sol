@@ -47,12 +47,7 @@ abstract contract FeeVault_Test is CommonTest {
                     _name: feeVaultName,
                     _args: DeployUtils.encodeConstructor(
                         abi.encodeCall(
-                            IFeeVault.__constructor__,
-                            (
-                                recipient,
-                                minWithdrawalAmount,
-                                Types.WithdrawalNetwork.L2
-                            )
+                            IFeeVault.__constructor__, (recipient, minWithdrawalAmount, Types.WithdrawalNetwork.L2)
                         )
                     )
                 })
@@ -136,7 +131,7 @@ abstract contract FeeVault_Test is CommonTest {
     }
 
     /// @notice Tests that `withdraw` successfully initiates a withdrawal to L2.
-    function test_withdraw_toL2_succeeds() external {
+    function test_withdraw_toL2_succeeds() public virtual {
         _setupL2Withdrawal();
 
         uint256 amount = feeVault.MIN_WITHDRAWAL_AMOUNT() + 1;
@@ -148,9 +143,7 @@ abstract contract FeeVault_Test is CommonTest {
         vm.expectEmit(address(address(feeVault)));
         emit Withdrawal(address(feeVault).balance, feeVault.RECIPIENT(), address(this));
         vm.expectEmit(address(address(feeVault)));
-        emit Withdrawal(
-            address(feeVault).balance, feeVault.RECIPIENT(), address(this), Types.WithdrawalNetwork.L2
-        );
+        emit Withdrawal(address(feeVault).balance, feeVault.RECIPIENT(), address(this), Types.WithdrawalNetwork.L2);
 
         // The entire feeVault's balance is withdrawn
         vm.expectCall(recipient, address(feeVault).balance, bytes(""));
@@ -318,9 +311,8 @@ abstract contract FeeVault_Test is CommonTest {
         assertEq(uint8(feeVault.withdrawalNetwork()), uint8(immutableValue));
 
         // Set a different value via owner (toggle between L1 and L2)
-        Types.WithdrawalNetwork newValue = immutableValue == Types.WithdrawalNetwork.L1
-            ? Types.WithdrawalNetwork.L2
-            : Types.WithdrawalNetwork.L1;
+        Types.WithdrawalNetwork newValue =
+            immutableValue == Types.WithdrawalNetwork.L1 ? Types.WithdrawalNetwork.L2 : Types.WithdrawalNetwork.L1;
         vm.prank(owner);
         IFeeVault(payable(address(feeVault))).setWithdrawalNetwork(newValue);
 
