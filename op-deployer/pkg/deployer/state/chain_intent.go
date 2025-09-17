@@ -56,11 +56,6 @@ type L2DevGenesisParams struct {
 	Prefund map[common.Address]*hexutil.U256 `json:"prefund" toml:"prefund"`
 }
 
-type RevenueShare struct {
-	Enabled            bool           `json:"enabled" toml:"enabled"`
-	ChainFeesRecipient common.Address `json:"chainFeesRecipient" toml:"chainFeesRecipient"`
-}
-
 type ChainIntent struct {
 	ID                         common.Hash               `json:"id" toml:"id"`
 	BaseFeeVaultRecipient      common.Address            `json:"baseFeeVaultRecipient" toml:"baseFeeVaultRecipient"`
@@ -78,7 +73,8 @@ type ChainIntent struct {
 	OperatorFeeScalar          uint32                    `json:"operatorFeeScalar,omitempty" toml:"operatorFeeScalar,omitempty"`
 	OperatorFeeConstant        uint64                    `json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
 	L1StartBlockHash           *common.Hash              `json:"l1StartBlockHash,omitempty" toml:"l1StartBlockHash,omitempty"`
-	RevenueShare               *RevenueShare             `json:"revenueShare,omitempty" toml:"revenueShare,omitempty"`
+	UseRevenueShare            bool                      `json:"useRevenueShare,omitempty" toml:"useRevenueShare,omitempty"`
+	ChainFeesRecipient         common.Address            `json:"chainFeesRecipient,omitempty" toml:"chainFeesRecipient,omitempty"`
 	MinBaseFee                 uint64                    `json:"minBaseFee,omitempty" toml:"minBaseFee,omitempty"`
 
 	// Optional. For development purposes only. Only enabled if the operation mode targets a genesis-file output.
@@ -132,8 +128,8 @@ func (c *ChainIntent) Check() error {
 		return c.DangerousAltDAConfig.Check(nil)
 	}
 
-	if c.RevenueShare != nil && c.RevenueShare.Enabled {
-		if c.RevenueShare.ChainFeesRecipient == emptyAddress {
+	if c.UseRevenueShare {
+		if c.ChainFeesRecipient == emptyAddress {
 			return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, c.ID)
 		}
 	}

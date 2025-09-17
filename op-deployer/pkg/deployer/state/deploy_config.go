@@ -74,8 +74,8 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				EIP1559Elasticity:        chainIntent.Eip1559Elasticity,
 			},
 			RevenueShareDeployConfig: genesis.RevenueShareDeployConfig{
-				UseRevenueShare:    chainIntent.RevenueShare != nil && chainIntent.RevenueShare.Enabled,
-				ChainFeesRecipient: getRevenueShareChainFeesRecipient(chainIntent.RevenueShare),
+				UseRevenueShare:    chainIntent.UseRevenueShare,
+				ChainFeesRecipient: chainIntent.ChainFeesRecipient,
 			},
 
 			// STOP! This struct sets the _default_ upgrade schedule for all chains.
@@ -171,14 +171,6 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 	}
 
 	return cfg, nil
-}
-
-func getRevenueShareChainFeesRecipient(revenueShare *RevenueShare) common.Address {
-	if revenueShare != nil && revenueShare.Enabled {
-		return revenueShare.ChainFeesRecipient
-	}
-
-	return common.Address{}
 }
 
 func calculateBatchInboxAddr(chainID common.Hash) common.Address {

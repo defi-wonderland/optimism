@@ -34,10 +34,8 @@ func TestCombineDeployConfig(t *testing.T) {
 			UnsafeBlockSigner: common.HexToAddress("0xabc"),
 			Batcher:           common.HexToAddress("0xdef"),
 		},
-		RevenueShare: &RevenueShare{
-			Enabled:            true,
-			ChainFeesRecipient: common.HexToAddress("0x123"),
-		},
+		UseRevenueShare:    true,
+		ChainFeesRecipient: common.HexToAddress("0x123"),
 	}
 	state := State{
 		SuperchainDeployment: &addresses.SuperchainContracts{ProtocolVersionsProxy: common.HexToAddress("0x123")},

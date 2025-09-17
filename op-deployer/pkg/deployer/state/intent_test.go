@@ -90,10 +90,8 @@ func TestValidateStandardValues(t *testing.T) {
 		{
 			"RevenueShare",
 			func(intent *Intent) {
-				intent.Chains[0].RevenueShare = &RevenueShare{
-					Enabled:            true,
-					ChainFeesRecipient: common.Address{},
-				}
+				intent.Chains[0].UseRevenueShare = true
+				intent.Chains[0].ChainFeesRecipient = common.Address{}
 			},
 			ErrRevenueShareZeroAddress,
 		},
@@ -172,10 +170,8 @@ func TestValidateCustomValues(t *testing.T) {
 		{
 			"zero address for revenue share chain fees recipient when enabled",
 			func(intent *Intent) {
-				intent.Chains[0].RevenueShare = &RevenueShare{
-					Enabled:            true,
-					ChainFeesRecipient: common.Address{},
-				}
+				intent.Chains[0].UseRevenueShare = true
+				intent.Chains[0].ChainFeesRecipient = common.Address{}
 			},
 			ErrRevenueShareZeroAddress,
 		},
@@ -238,8 +234,6 @@ func setFeeAddresses(intent *Intent) {
 }
 
 func setRevenueShare(intent *Intent) {
-	intent.Chains[0].RevenueShare = &RevenueShare{
-		Enabled:            true,
-		ChainFeesRecipient: common.HexToAddress("0x0C"),
-	}
+	intent.Chains[0].UseRevenueShare = true
+	intent.Chains[0].ChainFeesRecipient = common.HexToAddress("0x0C")
 }

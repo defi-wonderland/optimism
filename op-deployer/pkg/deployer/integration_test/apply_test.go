@@ -712,10 +712,8 @@ func newChainIntent(t *testing.T, dk *devkeys.MnemonicDevKeys, l1ChainID *big.In
 			Proposer:          addrFor(t, dk, devkeys.ProposerRole.Key(l1ChainID)),
 			Challenger:        addrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainID)),
 		},
-		RevenueShare: &state.RevenueShare{
-			Enabled:            false,
-			ChainFeesRecipient: common.Address{},
-		},
+		UseRevenueShare:    false,
+		ChainFeesRecipient: common.Address{},
 	}
 }
 

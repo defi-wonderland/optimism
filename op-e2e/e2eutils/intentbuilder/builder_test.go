@@ -183,10 +183,8 @@ func TestBuilder(t *testing.T) {
 						bob: (*hexutil.U256)(bobFunds),
 					},
 				},
-				RevenueShare: &state.RevenueShare{
-					Enabled:            true,
-					ChainFeesRecipient: common.HexToAddress("0x4444"),
-				},
+				UseRevenueShare:    true,
+				ChainFeesRecipient: common.HexToAddress("0x4444"),
 			},
 		},
 	}

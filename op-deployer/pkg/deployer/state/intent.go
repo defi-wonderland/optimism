@@ -158,8 +158,8 @@ func (c *Intent) validateStandardValues() error {
 		if len(chain.AdditionalDisputeGames) > 0 {
 			return fmt.Errorf("%w: chainId=%s additionalDisputeGames must be nil", ErrNonStandardValue, chain.ID)
 		}
-		if chain.RevenueShare != nil && chain.RevenueShare.Enabled {
-			if chain.RevenueShare.ChainFeesRecipient == emptyAddress {
+		if chain.UseRevenueShare {
+			if chain.ChainFeesRecipient == emptyAddress {
 				return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, chain.ID)
 			}
 		}
@@ -336,7 +336,7 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 		return Intent{}, fmt.Errorf("error getting OpChainProxyAdminOwner: %w", err)
 	}
 
-	for i, l2ChainID := range l2ChainIds {
+	for _, l2ChainID := range l2ChainIds {
 		intent.Chains = append(intent.Chains, &ChainIntent{
 			ID:                       l2ChainID,
 			Eip1559DenominatorCanyon: standard.Eip1559DenominatorCanyon,
@@ -348,10 +348,7 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 				L1ProxyAdminOwner: l1ProxyAdminOwner,
 				L2ProxyAdminOwner: l2ProxyAdminOwner,
 			},
-			RevenueShare: &RevenueShare{
-				Enabled:            standard.UseRevenueShare,
-				ChainFeesRecipient: intent.Chains[i].RevenueShare.ChainFeesRecipient,
-			},
+			UseRevenueShare: standard.UseRevenueShare,
 		})
 	}
 	return intent, nil

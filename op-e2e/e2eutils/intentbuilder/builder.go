@@ -438,10 +438,8 @@ func (c *l2Configurator) WithForkAtOffset(fork rollup.ForkName, offset *uint64) 
 }
 
 func (c *l2Configurator) WithRevenueShare(enabled bool, chainFeesRecipient common.Address) {
-	c.builder.intent.Chains[c.chainIndex].RevenueShare = &state.RevenueShare{
-		Enabled:            enabled,
-		ChainFeesRecipient: chainFeesRecipient,
-	}
+	c.builder.intent.Chains[c.chainIndex].UseRevenueShare = enabled
+	c.builder.intent.Chains[c.chainIndex].ChainFeesRecipient = chainFeesRecipient
 }
 
 func (c *l2Configurator) initL2DevGenesisParams() *state.L2DevGenesisParams {
