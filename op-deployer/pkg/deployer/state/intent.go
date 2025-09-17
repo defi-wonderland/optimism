@@ -336,7 +336,7 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 		return Intent{}, fmt.Errorf("error getting OpChainProxyAdminOwner: %w", err)
 	}
 
-	for _, l2ChainID := range l2ChainIds {
+	for i, l2ChainID := range l2ChainIds {
 		intent.Chains = append(intent.Chains, &ChainIntent{
 			ID:                       l2ChainID,
 			Eip1559DenominatorCanyon: standard.Eip1559DenominatorCanyon,
@@ -349,7 +349,8 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 				L2ProxyAdminOwner: l2ProxyAdminOwner,
 			},
 			RevenueShare: &RevenueShare{
-				Enabled: standard.UseRevenueShare,
+				Enabled:            standard.UseRevenueShare,
+				ChainFeesRecipient: intent.Chains[i].RevenueShare.ChainFeesRecipient,
 			},
 		})
 	}

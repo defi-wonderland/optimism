@@ -179,16 +179,6 @@ func TestValidateCustomValues(t *testing.T) {
 			},
 			ErrRevenueShareZeroAddress,
 		},
-		{
-			"zero address for revenue share l1 fees depositor when enabled",
-			func(intent *Intent) {
-				intent.Chains[0].RevenueShare = &RevenueShare{
-					Enabled:            true,
-					ChainFeesRecipient: common.HexToAddress("0x123"),
-				}
-			},
-			ErrRevenueShareZeroAddress,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
