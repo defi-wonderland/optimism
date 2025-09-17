@@ -68,12 +68,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
     }
 
     /// @notice Helper to fund vaults
-    function _fundVaults(
-        uint256 _sequencerFees,
-        uint256 _baseFees,
-        uint256 _l1Fees,
-        uint256 _operatorFees
-    ) private {
+    function _fundVaults(uint256 _sequencerFees, uint256 _baseFees, uint256 _l1Fees, uint256 _operatorFees) private {
         vm.deal(address(sequencerFeeVault), _sequencerFees);
         vm.deal(address(baseFeeVault), _baseFees);
         vm.deal(address(l1FeeVault), _l1Fees);
@@ -82,7 +77,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
     /// @notice Helper to assert the state of all accounts in the revenue sharing flow
     /// @param sequencerFeeBalance Expected balance of sequencer fee vault
-    /// @param baseFeeBalance Expected balance of base fee vault  
+    /// @param baseFeeBalance Expected balance of base fee vault
     /// @param l1FeeBalance Expected balance of L1 fee vault
     /// @param operatorFeeBalance Expected balance of operator fee vault
     /// @param l1WithdrawerBalance Expected balance of L1Withdrawer
@@ -94,7 +89,9 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 operatorFeeBalance,
         uint256 l1WithdrawerBalance,
         uint256 chainFeesRecipientBalance
-    ) private {
+    )
+        private
+    {
         // Assert vault balances
         assertEq(address(sequencerFeeVault).balance, sequencerFeeBalance, "Incorrect sequencer fee vault balance");
         assertEq(address(baseFeeVault).balance, baseFeeBalance, "Incorrect base fee vault balance");
@@ -146,7 +143,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
     // | 0/0/0/0          | 2.5          | 205.55       | Accumulating                   |
     // |__________________|______________|______________|________________________________|
     function test_revenueSharing_fullFlow_succeeds() public {
-
         // Configure vaults to withdraw to FeeSplitter
         _configureVaultsForFeeSplitter();
 
@@ -173,7 +169,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 expectedRemainder1 = 25 ether - expectedShare1; // 21.55 ETH
 
         // Assert state
-        // Vaults: 0/0/0/0 
+        // Vaults: 0/0/0/0
         //L1Withdrawer: 3.45
         //ChainFeesRecipient: 21.55
         _assertFullFlowState(0, 0, 0, 0, expectedShare1, expectedRemainder1);
@@ -198,7 +194,10 @@ contract RevenueSharingIntegration_Test is CommonTest {
         vm.expectCall(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
             expectedTotalWithdrawal,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex""))
+            abi.encodeCall(
+                IL2ToL1MessagePasser.initiateWithdrawal,
+                (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex"")
+            )
         );
 
         // Step 4: Second disbursement - should trigger L2→L1 withdrawal
@@ -206,12 +205,14 @@ contract RevenueSharingIntegration_Test is CommonTest {
         feeSplitter.disburseFees();
 
         // L2ToL1MessagePasser should hold the withdrawn funds
-        assertEq(address(l2ToL1MessagePasser).balance, expectedTotalWithdrawal, "L2ToL1MessagePasser should hold 16.95 ETH");
+        assertEq(
+            address(l2ToL1MessagePasser).balance, expectedTotalWithdrawal, "L2ToL1MessagePasser should hold 16.95 ETH"
+        );
 
         // Assert state
-        // Vaults: 0/0/0/0 
-        //L1Withdrawer: 3.45
-        //ChainFeesRecipient: 21.55
+        // Vaults: 0/0/0/0
+        // L1Withdrawer: 3.45
+        // ChainFeesRecipient: 21.55
         _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterFirst + expectedRemainder2);
 
         // Store remainder balance for final comparison
@@ -225,7 +226,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
         _fundVaults(fees[0], fees[1], fees[2], fees[3]);
 
-       // Step 6: Third disbursement - gross share should be chosen, no withdrawal triggered
+        // Step 6: Third disbursement - gross share should be chosen, no withdrawal triggered
 
         // Calculate expected values: Gross=100, Net=10, Share=max(2.5, 1.5)=2.5
         uint256 expectedShare3 = (100 ether * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE; // 2.5 ETH
@@ -233,14 +234,18 @@ contract RevenueSharingIntegration_Test is CommonTest {
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
         feeSplitter.disburseFees();
 
-        //L2ToL1MessagePasser should still hold only the previous withdrawal (16.95 ETH)
+        // L2ToL1MessagePasser should still hold only the previous withdrawal (16.95 ETH)
         // The 2.5 ETH stays in L1Withdrawer as it's below threshold
-        assertEq(address(l2ToL1MessagePasser).balance, expectedTotalWithdrawal, "L2ToL1MessagePasser should still hold 16.95 ETH");
+        assertEq(
+            address(l2ToL1MessagePasser).balance,
+            expectedTotalWithdrawal,
+            "L2ToL1MessagePasser should still hold 16.95 ETH"
+        );
         assertEq(shareRecipient.balance, expectedShare3, "L1Withdrawer should have 2.5 ETH");
 
         // Final assertions: 0/0/0/0 | 2.5 | 205.55 |
         // Total remainder: 21.55 + 86.5 + 97.5 = 205.55 ETH
         uint256 finalRemainder = remainderAfterSecond + (100 ether - expectedShare3);
         _assertFullFlowState(0, 0, 0, 0, expectedShare3, finalRemainder);
-       }
+    }
 }
