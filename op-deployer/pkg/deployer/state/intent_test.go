@@ -23,7 +23,8 @@ func TestValidateStandardValues(t *testing.T) {
 
 	setFeeAddresses(&intent)
 	err = intent.Check()
-	require.NoError(t, err)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrRevenueShareZeroAddress)
 
 	tests := []struct {
 		name    string
@@ -102,6 +103,7 @@ func TestValidateStandardValues(t *testing.T) {
 			require.NoError(t, err)
 			setChainRoles(&intent)
 			setFeeAddresses(&intent)
+			setRevenueShare(&intent)
 
 			tt.mutator(&intent)
 
