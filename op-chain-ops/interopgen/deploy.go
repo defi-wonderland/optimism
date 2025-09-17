@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/script"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/manage"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
@@ -335,6 +336,7 @@ func GenesisL2(l2Host *script.Host, cfg *L2Config, deployment *L2Deployment, mul
 		FundDevAccounts:                          cfg.FundDevAccounts,
 		UseRevenueShare:                          cfg.UseRevenueShare,
 		ChainFeesRecipient:                       cfg.ChainFeesRecipient,
+		L1FeesDepositor:                          standard.L1FeesDepositor,
 	}); err != nil {
 		return fmt.Errorf("failed L2 genesis: %w", err)
 	}

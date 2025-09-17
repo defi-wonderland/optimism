@@ -56,7 +56,6 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 				EnableGovernance:                         false,
 				GovernanceTokenOwner:                     standard.GovernanceTokenOwner,
 				UseRevenueShare:                          true,
-				ChainFeesRecipient:                       common.HexToAddress("0x0000000000000000000000000000000000000001"),
 			},
 			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
 				return standard.DefaultHardforkScheduleForTag("")
@@ -98,7 +97,6 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 				EnableGovernance:                         true,
 				GovernanceTokenOwner:                     common.HexToAddress("0x1111111111111111111111111111111111111111"),
 				UseRevenueShare:                          false,
-				ChainFeesRecipient:                       common.HexToAddress("0x0000000000000000000000000000000000005678"),
 			},
 			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
 				sched := standard.DefaultHardforkScheduleForTag("")
