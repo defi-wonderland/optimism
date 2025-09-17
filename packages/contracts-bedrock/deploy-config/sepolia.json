@@ -59,6 +59,5 @@
   "respectedGameType": 0,
   "useFaultProofs": true,
   "useRevenueShare": true,
-  "chainFeesRecipient": "0x0000000000000000000000000000000000000001",
-  "l1FeesDepositor": "0x0000000000000000000000000000000000000002"
+  "chainFeesRecipient": "0x0000000000000000000000000000000000000001"
 }
