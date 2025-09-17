@@ -162,8 +162,13 @@ func (c *Intent) validateStandardValues() error {
 			if chain.RevenueShare.ChainFeesRecipient == emptyAddress {
 				return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, chain.ID)
 			}
+
 			if chain.RevenueShare.L1FeesDepositor != standard.L1FeesDepositor {
 				return fmt.Errorf("%w: chainId=%s", ErrNonStandardValue, chain.ID)
+			}
+
+			if chain.RevenueShare.L1FeesDepositor == emptyAddress {
+				return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, chain.ID)
 			}
 		}
 	}
