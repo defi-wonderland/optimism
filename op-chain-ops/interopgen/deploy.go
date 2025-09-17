@@ -335,7 +335,6 @@ func GenesisL2(l2Host *script.Host, cfg *L2Config, deployment *L2Deployment, mul
 		FundDevAccounts:                          cfg.FundDevAccounts,
 		UseRevenueShare:                          cfg.UseRevenueShare,
 		ChainFeesRecipient:                       cfg.ChainFeesRecipient,
-		L1FeesDepositor:                          cfg.L1FeesDepositor,
 	}); err != nil {
 		return fmt.Errorf("failed L2 genesis: %w", err)
 	}

@@ -87,7 +87,6 @@ type DevDeployConfig struct {
 
 type RevenueShareDeployConfig struct {
 	UseRevenueShare    bool           `json:"useRevenueShare"`
-	L1FeesDepositor    common.Address `json:"l1FeesDepositor"`
 	ChainFeesRecipient common.Address `json:"chainFeesRecipient"`
 }
 
@@ -97,10 +96,6 @@ func (d *RevenueShareDeployConfig) Check(log log.Logger) error {
 	if d.UseRevenueShare {
 		if d.ChainFeesRecipient == (common.Address{}) {
 			return fmt.Errorf("%w: ChainFeesRecipient cannot be address(0)", ErrInvalidDeployConfig)
-		}
-
-		if d.L1FeesDepositor == (common.Address{}) {
-			return fmt.Errorf("%w: L1FeesDepositor cannot be address(0)", ErrInvalidDeployConfig)
 		}
 	}
 	return nil
