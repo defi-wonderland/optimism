@@ -177,7 +177,8 @@ func getRevenueShareChainFeesRecipient(revenueShare *RevenueShare) common.Addres
 	if revenueShare != nil {
 		return revenueShare.ChainFeesRecipient
 	}
-	return standard.ChainFeesRecipient
+
+	return common.Address{}
 }
 
 

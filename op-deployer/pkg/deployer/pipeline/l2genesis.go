@@ -104,7 +104,7 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		FundDevAccounts:                          overrides.FundDevAccounts,
 		UseRevenueShare:                          thisIntent.RevenueShare != nil && thisIntent.RevenueShare.Enabled,
 		ChainFeesRecipient:                       getChainFeesRecipient(thisIntent.RevenueShare),
-		L1FeesDepositor:                          getL1FeesDepositor(thisIntent.RevenueShare),
+		L1FeesDepositor:                          standard.L1FeesDepositor,
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}
@@ -165,6 +165,10 @@ func wdNetworkToBig(wd genesis.WithdrawalNetwork) *big.Int {
 	return big.NewInt(int64(n))
 }
 
+func getRevenueShareEnabled(revenueShare *state.RevenueShare) bool {
+	return revenueShare != nil && revenueShare.Enabled
+}
+
 func getChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
 	if revenueShare != nil && revenueShare.Enabled {
 		return revenueShare.ChainFeesRecipient
@@ -172,12 +176,6 @@ func getChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
 	return standard.ChainFeesRecipient
 }
 
-func getL1FeesDepositor(revenueShare *state.RevenueShare) common.Address {
-	if revenueShare != nil && revenueShare.Enabled {
-		return revenueShare.L1FeesDepositor
-	}
-	return standard.L1FeesDepositor
-}
 
 func defaultOverrides() l2GenesisOverrides {
 	return l2GenesisOverrides{
