@@ -174,13 +174,12 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 }
 
 func getRevenueShareChainFeesRecipient(revenueShare *RevenueShare) common.Address {
-	if revenueShare != nil {
+	if revenueShare != nil && revenueShare.Enabled {
 		return revenueShare.ChainFeesRecipient
 	}
 
 	return common.Address{}
 }
-
 
 func calculateBatchInboxAddr(chainID common.Hash) common.Address {
 	var out common.Address
