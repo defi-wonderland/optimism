@@ -46,7 +46,7 @@ const (
 	CurrentTag              = ContractsV400Tag
 )
 
-var ChainFeesRecipient = common.HexToAddress("0x0000000000000000000000000000000000000001")
+var ChainFeesRecipient = common.Address{}
 
 // TODO(#17505): This address should be updated to the actual address once deployed
 var L1FeesDepositor = common.HexToAddress("0x81c01427DFA9A2512b4EBf1462868856BA4aA91a")
