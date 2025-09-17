@@ -173,7 +173,7 @@ func getChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
 }
 
 func getL1FeesDepositor(revenueShare *state.RevenueShare) common.Address {
-	if revenueShare != nil {
+	if revenueShare != nil && revenueShare.Enabled {
 		return revenueShare.L1FeesDepositor
 	}
 	return standard.L1FeesDepositor
