@@ -48,7 +48,7 @@ type L2Configurator interface {
 	WithL1StartBlockHash(hash common.Hash)
 	WithAdditionalDisputeGames(games []state.AdditionalDisputeGame)
 	WithFinalizationPeriodSeconds(value uint64)
-	WithRevenueShare(enabled bool, chainFeesRecipient common.Address, l1FeesDepositor common.Address)
+	WithRevenueShare(enabled bool, chainFeesRecipient common.Address)
 	ContractsConfigurator
 	L2VaultsConfigurator
 	L2RolesConfigurator
@@ -437,11 +437,10 @@ func (c *l2Configurator) WithForkAtOffset(fork rollup.ForkName, offset *uint64) 
 	}
 }
 
-func (c *l2Configurator) WithRevenueShare(enabled bool, chainFeesRecipient common.Address, l1FeesDepositor common.Address) {
+func (c *l2Configurator) WithRevenueShare(enabled bool, chainFeesRecipient common.Address) {
 	c.builder.intent.Chains[c.chainIndex].RevenueShare = &state.RevenueShare{
 		Enabled:            enabled,
 		ChainFeesRecipient: chainFeesRecipient,
-		L1FeesDepositor:    l1FeesDepositor,
 	}
 }
 

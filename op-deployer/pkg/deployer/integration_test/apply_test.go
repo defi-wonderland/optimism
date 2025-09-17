@@ -714,7 +714,6 @@ func newChainIntent(t *testing.T, dk *devkeys.MnemonicDevKeys, l1ChainID *big.In
 		},
 		RevenueShare: &state.RevenueShare{
 			Enabled:            false,
-			L1FeesDepositor:    common.Address{},
 			ChainFeesRecipient: common.Address{},
 		},
 	}

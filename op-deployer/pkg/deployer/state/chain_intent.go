@@ -59,7 +59,6 @@ type L2DevGenesisParams struct {
 type RevenueShare struct {
 	Enabled            bool           `json:"enabled" toml:"enabled"`
 	ChainFeesRecipient common.Address `json:"chainFeesRecipient" toml:"chainFeesRecipient"`
-	L1FeesDepositor    common.Address `json:"l1FeesDepositor" toml:"l1FeesDepositor"`
 }
 
 type ChainIntent struct {
@@ -135,10 +134,6 @@ func (c *ChainIntent) Check() error {
 
 	if c.RevenueShare != nil && c.RevenueShare.Enabled {
 		if c.RevenueShare.ChainFeesRecipient == emptyAddress {
-			return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, c.ID)
-		}
-
-		if c.RevenueShare.L1FeesDepositor == emptyAddress {
 			return fmt.Errorf("%w: chainId=%s", ErrRevenueShareZeroAddress, c.ID)
 		}
 	}

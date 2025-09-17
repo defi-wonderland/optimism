@@ -37,7 +37,6 @@ func TestCombineDeployConfig(t *testing.T) {
 		RevenueShare: &RevenueShare{
 			Enabled:            true,
 			ChainFeesRecipient: common.HexToAddress("0x123"),
-			L1FeesDepositor:    common.HexToAddress("0x456"),
 		},
 	}
 	state := State{

@@ -406,7 +406,6 @@ func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address,
 				RevenueShare: &state.RevenueShare{
 					Enabled:            true,
 					ChainFeesRecipient: common.HexToAddress("0x1CBd3b2770909D4e10f157cABC84C7264073C9Ec"),
-					L1FeesDepositor:    standard.L1FeesDepositor,
 				},
 				AdditionalDisputeGames: []state.AdditionalDisputeGame{
 					{

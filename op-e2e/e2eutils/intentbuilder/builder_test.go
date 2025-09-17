@@ -75,7 +75,7 @@ func TestBuilder(t *testing.T) {
 	l2Config.WithL2ContractsLocator("http://l2.example.com")
 
 	// Test RevenueShareConfigurator methods
-	l2Config.WithRevenueShare(true, common.HexToAddress("0x4444"), common.HexToAddress("0x5555"))
+	l2Config.WithRevenueShare(true, common.HexToAddress("0x4444"))
 
 	// Test L2VaultsConfigurator methods
 	baseFeeRecipient := common.HexToAddress("0x1111")
@@ -186,7 +186,6 @@ func TestBuilder(t *testing.T) {
 				RevenueShare: &state.RevenueShare{
 					Enabled:            true,
 					ChainFeesRecipient: common.HexToAddress("0x4444"),
-					L1FeesDepositor:    common.HexToAddress("0x5555"),
 				},
 			},
 		},

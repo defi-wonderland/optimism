@@ -34,8 +34,6 @@ type l2GenesisOverrides struct {
 	EnableGovernance                         bool                      `json:"enableGovernance"`
 	GovernanceTokenOwner                     common.Address            `json:"governanceTokenOwner"`
 	UseRevenueShare                          bool                      `json:"useRevenueShare"`
-	ChainFeesRecipient                       common.Address            `json:"chainFeesRecipient"`
-	L1FeesDepositor                          common.Address            `json:"l1FeesDepositor"`
 }
 
 func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, st *state.State, chainID common.Hash) error {
@@ -102,8 +100,8 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		DeployCrossL2Inbox:                       len(intent.Chains) > 1,
 		EnableGovernance:                         overrides.EnableGovernance,
 		FundDevAccounts:                          overrides.FundDevAccounts,
-		UseRevenueShare:                          thisIntent.RevenueShare != nil && thisIntent.RevenueShare.Enabled,
-		ChainFeesRecipient:                       getChainFeesRecipient(thisIntent.RevenueShare),
+		UseRevenueShare:                          getRevenueShareEnabled(thisIntent.RevenueShare),
+		ChainFeesRecipient:                       getRevenueShareChainFeesRecipient(thisIntent.RevenueShare),
 		L1FeesDepositor:                          standard.L1FeesDepositor,
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
@@ -169,13 +167,13 @@ func getRevenueShareEnabled(revenueShare *state.RevenueShare) bool {
 	return revenueShare != nil && revenueShare.Enabled
 }
 
-func getChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
+func getRevenueShareChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
 	if revenueShare != nil && revenueShare.Enabled {
 		return revenueShare.ChainFeesRecipient
 	}
-	return standard.ChainFeesRecipient
-}
 
+	return common.Address{}
+}
 
 func defaultOverrides() l2GenesisOverrides {
 	return l2GenesisOverrides{
@@ -191,7 +189,5 @@ func defaultOverrides() l2GenesisOverrides {
 		EnableGovernance:                         false,
 		GovernanceTokenOwner:                     standard.GovernanceTokenOwner,
 		UseRevenueShare:                          true,
-		ChainFeesRecipient:                       standard.ChainFeesRecipient,
-		L1FeesDepositor:                          standard.L1FeesDepositor,
 	}
 }

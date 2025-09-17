@@ -93,7 +93,6 @@ func TestValidateStandardValues(t *testing.T) {
 				intent.Chains[0].RevenueShare = &RevenueShare{
 					Enabled:            true,
 					ChainFeesRecipient: common.Address{},
-					L1FeesDepositor:    common.Address{},
 				}
 			},
 			ErrRevenueShareZeroAddress,
@@ -176,7 +175,6 @@ func TestValidateCustomValues(t *testing.T) {
 				intent.Chains[0].RevenueShare = &RevenueShare{
 					Enabled:            true,
 					ChainFeesRecipient: common.Address{},
-					L1FeesDepositor:    common.Address{},
 				}
 			},
 			ErrRevenueShareZeroAddress,
@@ -186,7 +184,6 @@ func TestValidateCustomValues(t *testing.T) {
 			func(intent *Intent) {
 				intent.Chains[0].RevenueShare = &RevenueShare{
 					Enabled:            true,
-					L1FeesDepositor:    common.Address{},
 					ChainFeesRecipient: common.HexToAddress("0x123"),
 				}
 			},
@@ -254,6 +251,5 @@ func setRevenueShare(intent *Intent) {
 	intent.Chains[0].RevenueShare = &RevenueShare{
 		Enabled:            true,
 		ChainFeesRecipient: common.HexToAddress("0x0C"),
-		L1FeesDepositor:    common.HexToAddress("0x0D"),
 	}
 }
