@@ -57,9 +57,9 @@ type L2DevGenesisParams struct {
 }
 
 type RevenueShare struct {
-	Enabled bool `json:"enabled" toml:"enabled"`
+	Enabled            bool           `json:"enabled" toml:"enabled"`
 	ChainFeesRecipient common.Address `json:"chainFeesRecipient" toml:"chainFeesRecipient"`
-	L1FeesDepositor common.Address `json:"l1FeesDepositor" toml:"l1FeesDepositor"`
+	L1FeesDepositor    common.Address `json:"l1FeesDepositor" toml:"l1FeesDepositor"`
 }
 
 type ChainIntent struct {

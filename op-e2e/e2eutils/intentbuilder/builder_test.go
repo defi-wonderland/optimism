@@ -184,9 +184,9 @@ func TestBuilder(t *testing.T) {
 					},
 				},
 				RevenueShare: &state.RevenueShare{
-					Enabled:             true,
-					ChainFeesRecipient:  common.HexToAddress("0x4444"),
-					L1FeesDepositor:     common.HexToAddress("0x5555"),
+					Enabled:            true,
+					ChainFeesRecipient: common.HexToAddress("0x4444"),
+					L1FeesDepositor:    common.HexToAddress("0x5555"),
 				},
 			},
 		},

@@ -91,9 +91,9 @@ func TestValidateStandardValues(t *testing.T) {
 			"RevenueShare",
 			func(intent *Intent) {
 				intent.Chains[0].RevenueShare = &RevenueShare{
-					Enabled: true,
+					Enabled:            true,
 					ChainFeesRecipient: common.Address{},
-					L1FeesDepositor: common.Address{},
+					L1FeesDepositor:    common.Address{},
 				}
 			},
 			ErrRevenueShareZeroAddress,
@@ -174,9 +174,9 @@ func TestValidateCustomValues(t *testing.T) {
 			"zero address for revenue share chain fees recipient when enabled",
 			func(intent *Intent) {
 				intent.Chains[0].RevenueShare = &RevenueShare{
-					Enabled: true,
+					Enabled:            true,
 					ChainFeesRecipient: common.Address{},
-					L1FeesDepositor: common.Address{},
+					L1FeesDepositor:    common.Address{},
 				}
 			},
 			ErrRevenueShareZeroAddress,
@@ -185,8 +185,8 @@ func TestValidateCustomValues(t *testing.T) {
 			"zero address for revenue share l1 fees depositor when enabled",
 			func(intent *Intent) {
 				intent.Chains[0].RevenueShare = &RevenueShare{
-					Enabled: true,
-					L1FeesDepositor: common.Address{},
+					Enabled:            true,
+					L1FeesDepositor:    common.Address{},
 					ChainFeesRecipient: common.HexToAddress("0x123"),
 				}
 			},
@@ -252,8 +252,8 @@ func setFeeAddresses(intent *Intent) {
 
 func setRevenueShare(intent *Intent) {
 	intent.Chains[0].RevenueShare = &RevenueShare{
-		Enabled: true,
+		Enabled:            true,
 		ChainFeesRecipient: common.HexToAddress("0x0C"),
-		L1FeesDepositor: common.HexToAddress("0x0D"),
+		L1FeesDepositor:    common.HexToAddress("0x0D"),
 	}
 }

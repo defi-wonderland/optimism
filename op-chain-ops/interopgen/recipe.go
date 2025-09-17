@@ -290,8 +290,8 @@ func (r *InteropDevL2Recipe) build(l1ChainID uint64, addrs devkeys.Addresses) (*
 				UseAltDA: false,
 			},
 			RevenueShareDeployConfig: genesis.RevenueShareDeployConfig{
-				UseRevenueShare: false,
-				L1FeesDepositor: common.Address{},
+				UseRevenueShare:    false,
+				L1FeesDepositor:    common.Address{},
 				ChainFeesRecipient: common.Address{},
 			},
 		},

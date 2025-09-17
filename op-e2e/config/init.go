@@ -354,7 +354,7 @@ func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address,
 			"baseFeeVaultMinimumWithdrawalAmount":      "0x8ac7230489e80000",
 			"l1FeeVaultMinimumWithdrawalAmount":        "0x8ac7230489e80000",
 			"sequencerFeeVaultMinimumWithdrawalAmount": "0x8ac7230489e80000",
-			"operatorFeeVaultMinimumWithdrawalAmount":   "0x8ac7230489e80000",
+			"operatorFeeVaultMinimumWithdrawalAmount":  "0x8ac7230489e80000",
 			"baseFeeVaultWithdrawalNetwork":            0,
 			"l1FeeVaultWithdrawalNetwork":              0,
 			"sequencerFeeVaultWithdrawalNetwork":       0,
@@ -405,9 +405,9 @@ func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address,
 				},
 				RevenueShare: &state.RevenueShare{
 					// TODO: These should be updated to the actual addresses
-					Enabled:             true,
-					ChainFeesRecipient:  common.HexToAddress("0x0000000000000000000000000000000000000001"),
-					L1FeesDepositor:     common.HexToAddress("0x0000000000000000000000000000000000000002"),
+					Enabled:            true,
+					ChainFeesRecipient: common.HexToAddress("0x0000000000000000000000000000000000000001"),
+					L1FeesDepositor:    common.HexToAddress("0x0000000000000000000000000000000000000002"),
 				},
 				AdditionalDisputeGames: []state.AdditionalDisputeGame{
 					{

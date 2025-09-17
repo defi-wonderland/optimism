@@ -74,9 +74,9 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 				EIP1559Elasticity:        chainIntent.Eip1559Elasticity,
 			},
 			RevenueShareDeployConfig: genesis.RevenueShareDeployConfig{
-				UseRevenueShare: chainIntent.RevenueShare != nil && chainIntent.RevenueShare.Enabled,
+				UseRevenueShare:    chainIntent.RevenueShare != nil && chainIntent.RevenueShare.Enabled,
 				ChainFeesRecipient: getRevenueShareChainFeesRecipient(chainIntent.RevenueShare),
-				L1FeesDepositor: getRevenueShareL1FeesDepositor(chainIntent.RevenueShare),
+				L1FeesDepositor:    getRevenueShareL1FeesDepositor(chainIntent.RevenueShare),
 			},
 
 			// STOP! This struct sets the _default_ upgrade schedule for all chains.

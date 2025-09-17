@@ -86,8 +86,8 @@ type DevDeployConfig struct {
 }
 
 type RevenueShareDeployConfig struct {
-	UseRevenueShare bool `json:"useRevenueShare"`
-	L1FeesDepositor common.Address `json:"l1FeesDepositor"`
+	UseRevenueShare    bool           `json:"useRevenueShare"`
+	L1FeesDepositor    common.Address `json:"l1FeesDepositor"`
 	ChainFeesRecipient common.Address `json:"chainFeesRecipient"`
 }
 

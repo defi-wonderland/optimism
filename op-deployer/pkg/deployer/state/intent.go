@@ -352,9 +352,9 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 				L2ProxyAdminOwner: l2ProxyAdminOwner,
 			},
 			RevenueShare: &RevenueShare{
-				Enabled:             standard.UseRevenueShare,
-				ChainFeesRecipient:  standard.ChainFeesRecipient,
-				L1FeesDepositor:     standard.L1FeesDepositor,
+				Enabled:            standard.UseRevenueShare,
+				ChainFeesRecipient: standard.ChainFeesRecipient,
+				L1FeesDepositor:    standard.L1FeesDepositor,
 			},
 		})
 	}

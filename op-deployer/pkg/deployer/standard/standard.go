@@ -47,7 +47,7 @@ const (
 )
 
 // TODO: These should be updated to the actual addresses
-var ChainFeesRecipient = 	common.HexToAddress("0x0000000000000000000000000000000000000001")
+var ChainFeesRecipient = common.HexToAddress("0x0000000000000000000000000000000000000001")
 
 var L1FeesDepositor = common.HexToAddress("0x0000000000000000000000000000000000000002")
 

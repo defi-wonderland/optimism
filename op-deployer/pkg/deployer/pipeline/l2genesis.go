@@ -34,8 +34,8 @@ type l2GenesisOverrides struct {
 	EnableGovernance                         bool                      `json:"enableGovernance"`
 	GovernanceTokenOwner                     common.Address            `json:"governanceTokenOwner"`
 	UseRevenueShare                          bool                      `json:"useRevenueShare"`
-	ChainFeesRecipient						 common.Address            `json:"chainFeesRecipient"`
-	L1FeesDepositor						     common.Address            `json:"l1FeesDepositor"`
+	ChainFeesRecipient                       common.Address            `json:"chainFeesRecipient"`
+	L1FeesDepositor                          common.Address            `json:"l1FeesDepositor"`
 }
 
 func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, st *state.State, chainID common.Hash) error {
