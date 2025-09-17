@@ -14,7 +14,7 @@ import { Types } from "src/libraries/Types.sol";
 
 /// @title RevenueSharingIntegration_Test
 /// @notice Integration tests for the complete revenue sharing system including
-///         FeeSplitter, SuperchainRevSharesCalculator, L1Withdrawer, and FeesDepositor.
+///         FeeSplitter, SuperchainRevSharesCalculator, L1Withdrawer.
 contract RevenueSharingIntegration_Test is CommonTest {
     /// @notice Basis points scale from SuperchainRevSharesCalculator
     uint32 internal constant BASIS_POINT_SCALE = 10_000;
@@ -115,15 +115,13 @@ contract RevenueSharingIntegration_Test is CommonTest {
     /// @param operatorFeeBalance Expected balance of operator fee vault
     /// @param l1WithdrawerBalance Expected balance of L1Withdrawer
     /// @param chainFeesRecipientBalance Expected balance of ChainFeesRecipient
-    /// @param feesDepositorBalance Expected balance of FeesDepositor
     function _assertFullFlowState(
         uint256 sequencerFeeBalance,
         uint256 baseFeeBalance,
         uint256 l1FeeBalance,
         uint256 operatorFeeBalance,
         uint256 l1WithdrawerBalance,
-        uint256 chainFeesRecipientBalance,
-        uint256 feesDepositorBalance,
+        uint256 chainFeesRecipientBalance
     ) private {
         // Assert vault balances
         assertEq(address(sequencerFeeVault).balance, sequencerFeeBalance, "Incorrect sequencer fee vault balance");
@@ -134,50 +132,47 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Assert recipient balances
         assertEq(address(l1Withdrawer).balance, l1WithdrawerBalance, "Incorrect L1Withdrawer balance");
         assertEq(address(chainFeesRecipient).balance, chainFeesRecipientBalance, "Incorrect ChainFeesRecipient balance");
-        assertEq(address(l1FeesDepositor).balance, feesDepositorBalance, "Incorrect FeesDepositor balance");
     }
 
     // Full Revenue Sharing Integration Flow Test
     // Vaults: S=Sequencer, B=Base, L=L1, O=Operator
     // RevSharesCalculator recipients: L1Withdrawer (share), ChainFeesRecipient (remainder)
-    // Thresholds: L1Withdrawer=10 ETH, FeesDepositor=20 ETH
-    //  ________________________________________________________________________________________________
-    // | Vaults (S/B/L/O) | L1Withdrawer | ChainFeesRec | FeesDepositor | Notes          |
-    // |===============================================================================================|
-    // | Initial state                                                                                 |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 0            | 0            | 0             |                |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 1. Fund vaults: S=10, B=8, L=2, O=5 ETH                                                       |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 10/8/2/5         | 0            | 0            | 0             |                |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 2. Call feeSplitter.disburseFees()                                                            |
-    // |    L1Withdrawer receives 3.45 ETH < 10 ETH threshold                                          |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 3.45         | 21.55        | 0             |                | Accumulating   |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 3. Fund vaults: S=40, B=30, L=10, O=20 ETH                                                    |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 40/30/10/20      | 3.45         | 21.55        | 0             |                |                |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 4. Call feeSplitter.disburseFees()                                                            |
-    // |    L1Withdrawer balance: 3.45 + 13.5 = 16.95 ETH > 10 ETH                                     |
-    // |    Triggers withdrawal to FeesDepositor                                                       |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 0            | 108.05       | 16.95         |                | L2→L1 triggered|
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 5. Fund vaults: S=50, B=35, L=5, O=30 ETH                                                     |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 50/35/5/30       | 0            | 108.05       | 16.95         |                |                |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 6. Call feeSplitter.disburseFees()                                                            |
-    // |    L1Withdrawer receives 17.25 ETH > 10 ETH threshold                                         |
-    // |    FeesDepositor balance: 16.95 + 17.25 = 34.2 ETH > 20 ETH                                   |
-    // |    Triggers deposit to OP Treasury                                                            |
-    // |------------------|--------------|--------------|---------------|-------------|----------------|
-    // | 0/0/0/0          | 0            | 210.8        | 0             |                | L1→L2 deposit  |
-    // |__________________|______________|______________|_______________|_____________|________________|
+    // Thresholds: L1Withdrawer=10 ETH
+    //  _________________________________________________________________________________
+    // | Vaults (S/B/L/O) | L1Withdrawer | ChainFeesRec | Notes                          |
+    // |================================================================================|
+    // | Initial state                                                                   |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 0/0/0/0          | 0            | 0            | -                              |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 1. Fund vaults: S=10, B=8, L=2, O=5 ETH                                        |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 10/8/2/5         | 0            | 0            | -                              |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 2. Call feeSplitter.disburseFees()                                             |
+    // |    L1Withdrawer receives 3.45 ETH < 10 ETH threshold                           |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 0/0/0/0          | 3.45         | 21.55        | Accumulating                   |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 3. Fund vaults: S=40, B=30, L=10, O=20 ETH                                     |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 40/30/10/20      | 3.45         | 21.55        | -                              |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 4. Call feeSplitter.disburseFees()                                             |
+    // |    L1Withdrawer balance: 3.45 + 13.5 = 16.95 ETH > 10 ETH threshold           |
+    // |    Triggers withdrawal                                                         |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 0/0/0/0          | 0            | 108.05       | L2→L1 triggered                |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 5. Fund vaults: S=50, B=35, L=5, O=30 ETH                                      |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 50/35/5/30       | 0            | 108.05       | -                              |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 6. Call feeSplitter.disburseFees()                                             |
+    // |    L1Withdrawer receives 17.25 ETH > 10 ETH threshold, triggers withdrawal     |
+    // |------------------|--------------|--------------|--------------------------------|
+    // | 0/0/0/0          | 0            | 210.8        | L1→L2 deposit                  |
+    // |__________________|______________|______________|________________________________|
     function test_revenueSharing_fullFlow_succeeds() public {
 
         // Configure vaults to withdraw to FeeSplitter
@@ -208,8 +203,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Vaults: 0/0/0/0 
         //L1Withdrawer: 3.45
         //ChainFeesRecipient: 21.55
-        //FeesDepositor: 0
-        _assertFullFlowState(0, 0, 0, 0, expectedShare1, expectedRemainder1, 0, 0);
+        _assertFullFlowState(0, 0, 0, 0, expectedShare1, expectedRemainder1);
 
         // Store remainder balance for later comparison
         uint256 remainderAfterFirst = remainderRecipient.balance;
@@ -240,16 +234,11 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // L2ToL1MessagePasser should hold the withdrawn funds
         assertEq(address(l2ToL1MessagePasser).balance, expectedTotalWithdrawal, "L2ToL1MessagePasser should hold 16.95 ETH");
 
-        // Mock the L1 withdrawal completing - funds reduced from L2ToL1MessagePasser and sent to FeesDepositor
-        vm.deal(address(l2ToL1MessagePasser), address(l2ToL1MessagePasser).balance - expectedTotalWithdrawal);
-        address(l1FeesDepositor).call{ value: expectedTotalWithdrawal }("");
-
         // Assert state
         // Vaults: 0/0/0/0 
         //L1Withdrawer: 3.45
         //ChainFeesRecipient: 21.55
-        //FeesDepositor: 16.95
-        _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterFirst + expectedRemainder2, expectedTotalWithdrawal, 0);
+        _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterFirst + expectedRemainder2);
 
         // Store remainder balance for final comparison
         uint256 remainderAfterSecond = remainderRecipient.balance;
@@ -262,23 +251,18 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
         _fundVaults(fees[0], fees[1], fees[2], fees[3]);
 
-       // Step 6: Third disbursement - should trigger L2→L1 withdrawal and then L1→L2 deposit
+       // Step 6: Third disbursement - should trigger L2→L1 withdrawal
 
         // Calculate expected values: Gross=120, Net=115, Share=max(3, 17.25)=17.25
         uint256 expectedShare3 = (115 ether * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE; // 17.25 ETH (net > gross)
         uint256 expectedRemainder3 = 120 ether - expectedShare3; // 102.75 ETH
-        uint256 expectedFeesDepositorTotal = expectedShare3 + expectedShare2 + expectedShare1; // 34.2 ETH
 
         _disburseFees();
 
-        //L2ToL1MessagePasser should hold the withdrawn funds
-        assertEq(address(l2ToL1MessagePasser).balance, expectedShare3, "L2ToL1MessagePasser should hold 17.25 ETH");
+        //L2ToL1MessagePasser should hold the withdrawn funds plus the previous balance
+        assertEq(address(l2ToL1MessagePasser).balance, expectedShare3 + expectedTotalWithdrawal, "L2ToL1MessagePasser should hold 17.25 ETH");
 
-        // Mock the L1 withdrawal completing - funds reduced from L2ToL1MessagePasser and sent to FeesDepositor
-        vm.deal(address(l2ToL1MessagePasser), address(l2ToL1MessagePasser).balance - expectedShare3);
-        address(l1FeesDepositor).call{ value: expectedShare3 }("");
-
-        // Final assertions: 0/0/0/0 | 0 | 210.8 | 34.2 |
-        _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3, expectedFeesDepositorTotal, 0);
+        // Final assertions: 0/0/0/0 | 0 | 210.8 |
+        _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3);
        }
 }
