@@ -627,13 +627,13 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Checks if the ETHLockbox feature is enabled.
     /// @return bool True if the ETHLockbox feature is enabled.
     function _isUsingLockbox() internal view returns (bool) {
-        return systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) && address(ethLockbox) != address(0);
+        return systemConfig.isETHLockbox() && address(ethLockbox) != address(0);
     }
 
     /// @notice Checks if the Custom Gas Token feature is enabled.
     /// @return bool True if the Custom Gas Token feature is enabled.
     function _isUsingCustomGasToken() internal view returns (bool) {
-        return systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN);
+        return systemConfig.isCustomGasToken();
     }
 
     /// @notice Asserts that the contract is not paused.
@@ -646,8 +646,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Asserts that the ETHLockbox is set/unset correctly depending on the feature flag.
     function _assertValidLockboxState() internal view {
         if (
-            systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) && address(ethLockbox) == address(0)
-                || !systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) && address(ethLockbox) != address(0)
+            systemConfig.isETHLockbox() && address(ethLockbox) == address(0)
+                || !systemConfig.isETHLockbox() && address(ethLockbox) != address(0)
         ) {
             revert OptimismPortal_InvalidLockboxState();
         }

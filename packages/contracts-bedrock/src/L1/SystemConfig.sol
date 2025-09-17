@@ -504,7 +504,7 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @return bool True if the system is paused, false otherwise.
     function paused() public view returns (bool) {
         // Determine the appropriate chain identifier based on the feature flags.
-        address identifier = isFeatureEnabled[Features.ETH_LOCKBOX]
+        address identifier = isETHLockbox()
             ? address(IOptimismPortal2(payable(optimismPortal())).ethLockbox())
             : address(optimismPortal());
 
@@ -522,5 +522,11 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @return bool True if the custom gas token feature is enabled, false otherwise.
     function isCustomGasToken() public view returns (bool) {
         return isFeatureEnabled[Features.CUSTOM_GAS_TOKEN];
+    }
+
+    /// @notice Returns whether the ETH lockbox feature is enabled.
+    /// @return bool True if the ETH lockbox feature is enabled, false otherwise.
+    function isETHLockbox() public view returns (bool) {
+        return isFeatureEnabled[Features.ETH_LOCKBOX];
     }
 }

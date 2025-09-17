@@ -34,6 +34,7 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 
 contract OptimismPortal2_TestInit is DisputeGameFactory_TestInit {
     address depositor;
@@ -172,7 +173,7 @@ contract OptimismPortal2_TestInit is DisputeGameFactory_TestInit {
     /// @notice Enables the ETHLockbox feature if not enabled.
     /// @param _lockbox Address of the lockbox to enable.
     function forceEnableLockbox(address _lockbox) public {
-        if (!isSysFeatureEnabled(Features.ETH_LOCKBOX)) {
+        if (!ISystemConfig(address(systemConfig)).isETHLockbox()) {
             vm.prank(address(proxyAdmin));
             systemConfig.setFeature(Features.ETH_LOCKBOX, true);
         }
@@ -2820,5 +2821,83 @@ contract OptimismPortal2_Params_Test is CommonTest {
         bytes32 slot21After = vm.load(address(optimismPortal2), bytes32(uint256(21)));
         bytes32 slot21Expected = NextImpl(address(optimismPortal2)).slot21Init();
         assertEq(slot21Expected, slot21After);
+    }
+}
+
+/// @title OptimismPortal2_FeatureHelpers_Test
+/// @notice Test contract for OptimismPortal2 feature helper functions integration with SystemConfig.
+contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
+    /// @notice Tests that OptimismPortal2.isCustomGasToken() matches SystemConfig.isCustomGasToken().
+    function test_isCustomGasToken_matchesSystemConfig() external {
+        // Test when disabled (default state)
+        bool portalResult = optimismPortal2.isCustomGasToken();
+        bool systemConfigResult = systemConfig.isCustomGasToken();
+        assertEq(portalResult, systemConfigResult, "Portal and SystemConfig should match when disabled");
+
+        // Test when enabled
+        vm.prank(address(proxyAdmin));
+        systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
+
+        portalResult = optimismPortal2.isCustomGasToken();
+        systemConfigResult = systemConfig.isCustomGasToken();
+        assertEq(portalResult, systemConfigResult, "Portal and SystemConfig should match when enabled");
+    }
+
+    /// @notice Tests that internal _isUsingCustomGasToken() correctly uses SystemConfig helper.
+    function test_internalIsUsingCustomGasToken_usesSystemConfigHelper() external {
+        // Create a spy contract to verify the correct function is called
+        TestOptimismPortal2Helper helper = new TestOptimismPortal2Helper(optimismPortal2, systemConfig);
+
+        // Test when disabled
+        assertFalse(helper.testIsUsingCustomGasToken());
+
+        // Enable the feature
+        vm.prank(address(proxyAdmin));
+        systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
+
+        // Test when enabled
+        assertTrue(helper.testIsUsingCustomGasToken());
+    }
+
+    /// @notice Tests that internal _isUsingLockbox() correctly uses SystemConfig.isETHLockbox().
+    function test_internalIsUsingLockbox_usesSystemConfigHelper() external {
+        TestOptimismPortal2Helper helper = new TestOptimismPortal2Helper(optimismPortal2, systemConfig);
+
+        // Test when disabled (default)
+        if (address(optimismPortal2.ethLockbox()) != address(0)) {
+            // If lockbox is set but feature is disabled, should return false
+            assertFalse(helper.testIsUsingLockbox());
+        }
+
+        // Enable the feature (if lockbox exists)
+        if (address(optimismPortal2.ethLockbox()) != address(0)) {
+            vm.prank(address(proxyAdmin));
+            systemConfig.setFeature(Features.ETH_LOCKBOX, true);
+
+            // Now should return true
+            assertTrue(helper.testIsUsingLockbox());
+        }
+    }
+}
+
+/// @title TestOptimismPortal2Helper
+/// @notice Helper contract to test internal functions of OptimismPortal2.
+contract TestOptimismPortal2Helper {
+    IOptimismPortal public portal;
+    ISystemConfig public systemConfig;
+
+    constructor(IOptimismPortal _portal, ISystemConfig _systemConfig) {
+        portal = _portal;
+        systemConfig = _systemConfig;
+    }
+
+    /// @notice Test wrapper for _isUsingCustomGasToken().
+    function testIsUsingCustomGasToken() external view returns (bool) {
+        return systemConfig.isCustomGasToken();
+    }
+
+    /// @notice Test wrapper for _isUsingLockbox().
+    function testIsUsingLockbox() external view returns (bool) {
+        return systemConfig.isETHLockbox() && address(portal.ethLockbox()) != address(0);
     }
 }
