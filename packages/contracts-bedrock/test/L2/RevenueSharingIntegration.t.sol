@@ -80,34 +80,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         vm.deal(address(operatorFeeVault), _operatorFees);
     }
 
-    /// @notice Helper to advance time past the fee disbursement interval
-    function _advanceTimeForDisbursement() private {
-        // Default fee disbursement interval is 1 day
-        vm.warp(block.timestamp + 1 days + 1);
-    }
-
-    /// @notice Helper to disburse fees and advance time past the fee disbursement interval
-    function _disburseFees() private {
-        _advanceTimeForDisbursement();
-        feeSplitter.disburseFees();
-    }
-
-    /// @notice Helper to fund vaults and trigger disbursement through FeeSplitter
-    function _fundVaultsAndDisburse(
-        uint256 _sequencerFees,
-        uint256 _baseFees,
-        uint256 _l1Fees,
-        uint256 _operatorFees
-    )
-        private
-    {
-        // Fund all vaults with amounts
-        _fundVaults(_sequencerFees, _baseFees, _l1Fees, _operatorFees);
-
-        // Disburse fees and advance time past the fee disbursement interval
-        _disburseFees();
-    }
-
     /// @notice Helper to assert the state of all accounts in the revenue sharing flow
     /// @param sequencerFeeBalance Expected balance of sequencer fee vault
     /// @param baseFeeBalance Expected balance of base fee vault  
@@ -193,7 +165,8 @@ contract RevenueSharingIntegration_Test is CommonTest {
         _fundVaults(fees[0], fees[1], fees[2], fees[3]);
 
         // Step 2: First disbursement - should accumulate in L1Withdrawer
-        _disburseFees();
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        feeSplitter.disburseFees();
 
         // Calculate expected values: Gross=25, Net=23, Share=max(0.625, 3.45)=3.45
         uint256 expectedShare1 = (23 ether * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE; // 3.45 ETH (net > gross)
@@ -229,7 +202,8 @@ contract RevenueSharingIntegration_Test is CommonTest {
         );
 
         // Step 4: Second disbursement - should trigger L2→L1 withdrawal
-        _disburseFees();
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        feeSplitter.disburseFees();
 
         // L2ToL1MessagePasser should hold the withdrawn funds
         assertEq(address(l2ToL1MessagePasser).balance, expectedTotalWithdrawal, "L2ToL1MessagePasser should hold 16.95 ETH");
@@ -261,7 +235,8 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 expectedShare3 = netShare3 > grossShare3 ? netShare3 : grossShare3; // max(2.5, 3) = 3 ETH
         uint256 expectedRemainder3 = grossRevenue3 - expectedShare3; // 97 ETH
 
-        _disburseFees();
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        feeSplitter.disburseFees();
 
         //L2ToL1MessagePasser should still hold only the previous withdrawal (16.95 ETH)
         // The 3 ETH stays in L1Withdrawer as it's below threshold
