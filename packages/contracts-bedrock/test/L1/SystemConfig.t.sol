@@ -818,12 +818,12 @@ contract SystemConfig_Guardian_Test is SystemConfig_TestInit {
 /// @notice Test contract for SystemConfig `isCustomGasToken` function.
 contract SystemConfig_IsCustomGasToken_Test is SystemConfig_TestInit {
     /// @notice Tests that `isCustomGasToken` returns false when CUSTOM_GAS_TOKEN feature is disabled.
-    function test_isCustomGasToken_whenDisabled_returnsFalse() external view {
+    function test_isCustomGasToken_whenDisabled_succeeds() external view {
         assertFalse(systemConfig.isCustomGasToken());
     }
 
     /// @notice Tests that `isCustomGasToken` returns true when CUSTOM_GAS_TOKEN feature is enabled.
-    function test_isCustomGasToken_whenEnabled_returnsTrue() external {
+    function test_isCustomGasToken_whenEnabled_succeeds() external {
         vm.prank(address(systemConfig.proxyAdmin()));
         systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
 
@@ -831,7 +831,7 @@ contract SystemConfig_IsCustomGasToken_Test is SystemConfig_TestInit {
     }
 
     /// @notice Tests that `isCustomGasToken` matches `isFeatureEnabled` for consistency.
-    function test_isCustomGasToken_matchesIsFeatureEnabled() external {
+    function test_isCustomGasToken_matchesIsFeatureEnabled_succeeds() external {
         // Test when disabled
         assertEq(systemConfig.isCustomGasToken(), systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
 
@@ -846,12 +846,12 @@ contract SystemConfig_IsCustomGasToken_Test is SystemConfig_TestInit {
 /// @notice Test contract for SystemConfig `isETHLockbox` function.
 contract SystemConfig_IsETHLockbox_Test is SystemConfig_TestInit {
     /// @notice Tests that `isETHLockbox` returns false when ETH_LOCKBOX feature is disabled.
-    function test_isETHLockbox_whenDisabled_returnsFalse() external view {
+    function test_isETHLockbox_whenDisabled_succeeds() external view {
         assertFalse(systemConfig.isETHLockbox());
     }
 
     /// @notice Tests that `isETHLockbox` returns true when ETH_LOCKBOX feature is enabled.
-    function test_isETHLockbox_whenEnabled_returnsTrue() external {
+    function test_isETHLockbox_whenEnabled_succeeds() external {
         vm.prank(address(systemConfig.proxyAdmin()));
         systemConfig.setFeature(Features.ETH_LOCKBOX, true);
 
@@ -859,7 +859,7 @@ contract SystemConfig_IsETHLockbox_Test is SystemConfig_TestInit {
     }
 
     /// @notice Tests that `isETHLockbox` matches `isFeatureEnabled` for consistency.
-    function test_isETHLockbox_matchesIsFeatureEnabled() external {
+    function test_isETHLockbox_matchesIsFeatureEnabled_succeeds() external {
         // Test when disabled
         assertEq(systemConfig.isETHLockbox(), systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX));
 

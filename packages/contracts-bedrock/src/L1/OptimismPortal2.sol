@@ -16,7 +16,6 @@ import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
-import { Features } from "src/libraries/Features.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";

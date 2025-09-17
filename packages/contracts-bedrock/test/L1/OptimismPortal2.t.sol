@@ -2828,7 +2828,7 @@ contract OptimismPortal2_Params_Test is CommonTest {
 /// @notice Test contract for OptimismPortal2 feature helper functions integration with SystemConfig.
 contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
     /// @notice Tests that OptimismPortal2.isCustomGasToken() matches SystemConfig.isCustomGasToken().
-    function test_isCustomGasToken_matchesSystemConfig() external {
+    function test_isCustomGasToken_matchesSystemConfig_succeeds() external {
         // Test when disabled (default state)
         bool portalResult = optimismPortal2.isCustomGasToken();
         bool systemConfigResult = systemConfig.isCustomGasToken();
@@ -2844,7 +2844,7 @@ contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
     }
 
     /// @notice Tests that internal _isUsingCustomGasToken() correctly uses SystemConfig helper.
-    function test_internalIsUsingCustomGasToken_usesSystemConfigHelper() external {
+    function test_internalIsUsingCustomGasToken_usesSystemConfigHelper_succeeds() external {
         // Create a spy contract to verify the correct function is called
         TestOptimismPortal2Helper helper = new TestOptimismPortal2Helper(optimismPortal2, systemConfig);
 
@@ -2860,7 +2860,7 @@ contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
     }
 
     /// @notice Tests that internal _isUsingLockbox() correctly uses SystemConfig.isETHLockbox().
-    function test_internalIsUsingLockbox_usesSystemConfigHelper() external {
+    function test_internalIsUsingLockbox_usesSystemConfigHelper_succeeds() external {
         TestOptimismPortal2Helper helper = new TestOptimismPortal2Helper(optimismPortal2, systemConfig);
 
         // Test when disabled (default)
