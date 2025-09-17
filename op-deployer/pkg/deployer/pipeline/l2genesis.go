@@ -166,7 +166,7 @@ func wdNetworkToBig(wd genesis.WithdrawalNetwork) *big.Int {
 }
 
 func getChainFeesRecipient(revenueShare *state.RevenueShare) common.Address {
-	if revenueShare != nil {
+	if revenueShare != nil && revenueShare.Enabled {
 		return revenueShare.ChainFeesRecipient
 	}
 	return standard.ChainFeesRecipient
