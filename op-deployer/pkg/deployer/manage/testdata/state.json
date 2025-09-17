@@ -22,9 +22,9 @@
         "sequencerFeeVaultRecipient": "0x0000000000000000000000000000000000000003",
         "operatorFeeVaultRecipient": "0x0000000000000000000000000000000000000004",
         "revenueShare": {
-          "enabled": false,
-          "chainFeesRecipient": "0x0000000000000000000000000000000000000000",
-          "l1FeesDepositor": "0x0000000000000000000000000000000000000000"
+          "enabled": true,
+          "chainFeesRecipient": "0x0000000000000000000000000000000000000005",
+          "l1FeesDepositor": "0x0000000000000000000000000000000000000006"
         },
         "eip1559DenominatorCanyon": 250,
         "eip1559Denominator": 50,
