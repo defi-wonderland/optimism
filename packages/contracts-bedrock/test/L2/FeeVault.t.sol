@@ -56,7 +56,7 @@ abstract contract FeeVault_Test is CommonTest {
     }
 
     /// @notice Tests that the l1 fee wallet is correct.
-    function test_constructor_succeeds() external view virtual {
+    function test_constructor_succeeds() external view {
         assertEq(feeVault.RECIPIENT(), recipient);
         assertEq(feeVault.recipient(), recipient);
         assertEq(feeVault.MIN_WITHDRAWAL_AMOUNT(), minWithdrawalAmount);
@@ -131,7 +131,7 @@ abstract contract FeeVault_Test is CommonTest {
     }
 
     /// @notice Tests that `withdraw` successfully initiates a withdrawal to L2.
-    function test_withdraw_toL2_succeeds() public virtual {
+    function test_withdraw_toL2_succeeds() public {
         _setupL2Withdrawal();
 
         uint256 amount = feeVault.MIN_WITHDRAWAL_AMOUNT() + 1;
