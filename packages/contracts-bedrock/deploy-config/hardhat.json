@@ -67,5 +67,5 @@
   "daBondSize": 1000,
   "daResolverRefundPercentage": 50,
   "useRevenueShare": true,
-  "chainFeesRecipient": "0x0000000000000000000000000000000000000001"
+  "chainFeesRecipient": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
 }
