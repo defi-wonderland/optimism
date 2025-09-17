@@ -318,7 +318,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     function test_feeSplitterDisburseFees_WhenNoFeesCollected_Reverts() public {
         _setupStandardFeeVaultMocks(0, 0, 0, 0);
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
         vm.expectRevert(IFeeSplitter.FeeSplitter_NoFeesCollected.selector);
         feeSplitter.disburseFees();
     }
@@ -332,7 +332,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
             abi.encode(Types.WithdrawalNetwork.L1)
         );
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
         vm.expectRevert(IFeeSplitter.FeeSplitter_FeeVaultMustWithdrawToL2.selector);
         feeSplitter.disburseFees();
     }
@@ -349,7 +349,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
             Predeploys.SEQUENCER_FEE_WALLET, abi.encodeCall(IFeeVault.recipient, ()), abi.encode(address(0x123))
         );
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
         vm.expectRevert(IFeeSplitter.FeeSplitter_FeeVaultMustWithdrawToFeeSplitter.selector);
         feeSplitter.disburseFees();
     }
@@ -385,7 +385,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         );
 
         // Fast forward time to allow disbursement
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
         // Store initial balances
         uint256 revenueShareRecipientBalanceBefore = address(_defaultRevenueShareRecipient).balance;
@@ -427,7 +427,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
             abi.encode(emptyShareInfo)
         );
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
         vm.expectRevert(IFeeSplitter.FeeSplitter_FeeShareInfoEmpty.selector);
         feeSplitter.disburseFees();
@@ -449,7 +449,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
             abi.encode(shareInfo)
         );
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
         vm.expectRevert(IFeeSplitter.FeeSplitter_FailedToSendToRevenueShareRecipient.selector);
         feeSplitter.disburseFees();
@@ -470,7 +470,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
             abi.encode(shareInfo)
         );
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
         vm.expectRevert(IFeeSplitter.FeeSplitter_SharesCalculatorMalformedOutput.selector);
         feeSplitter.disburseFees();
@@ -584,7 +584,7 @@ contract FeeSplitter_DisburseFees_TestFail is FeeSplitter_TestInit {
         // Override the selected vault with insufficient balance
         _setFeeVaultData(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
 
-        vm.warp(block.timestamp + 25 hours);
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
         // The entire disbursement should revert because one vault doesn't meet its minimum
         vm.expectRevert("FeeVault: withdrawal amount must be greater than minimum withdrawal amount");
