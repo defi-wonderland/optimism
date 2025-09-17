@@ -65,7 +65,6 @@ contract OptimismPortal2_TestInit is DisputeGameFactory_TestInit {
 
         if (isUsingCustomGasToken()) {
             _defaultTx.value = 0;
-            setUseCustomGasToken(true);
         }
 
         // Get withdrawal proof data we can use for testing.
