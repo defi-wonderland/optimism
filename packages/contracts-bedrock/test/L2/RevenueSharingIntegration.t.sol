@@ -164,14 +164,14 @@ contract RevenueSharingIntegration_Test is CommonTest {
     // |------------------|--------------|--------------|--------------------------------|
     // | 0/0/0/0          | 0            | 108.05       | L2→L1 triggered                |
     // |------------------|--------------|--------------|--------------------------------|
-    // | 5. Fund vaults: S=50, B=35, L=5, O=30 ETH                                      |
+    // | 5. Fund vaults: S=10, B=5, L=80, O=5 ETH (high L1 fees test gross vs net)     |
     // |------------------|--------------|--------------|--------------------------------|
-    // | 50/35/5/30       | 0            | 108.05       | -                              |
+    // | 10/5/80/5        | 0            | 108.05       | -                              |
     // |------------------|--------------|--------------|--------------------------------|
     // | 6. Call feeSplitter.disburseFees()                                             |
-    // |    L1Withdrawer receives 17.25 ETH > 10 ETH threshold, triggers withdrawal     |
+    // |    L1Withdrawer receives 3 ETH < 10 ETH threshold, accumulates                 |
     // |------------------|--------------|--------------|--------------------------------|
-    // | 0/0/0/0          | 0            | 210.8        | L1→L2 deposit                  |
+    // | 0/0/0/0          | 3            | 205.05       | Accumulating                   |
     // |__________________|______________|______________|________________________________|
     function test_revenueSharing_fullFlow_succeeds() public {
 
@@ -243,26 +243,32 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Store remainder balance for final comparison
         uint256 remainderAfterSecond = remainderRecipient.balance;
 
-        // Step 5: Fund vaults again
-        fees[0] = 50 ether; // sequencer
-        fees[1] = 35 ether; // base
-        fees[2] = 5 ether; // l1
-        fees[3] = 30 ether; // operator
+        // Step 5: Fund vaults again with high L1 fees to make gross > net share calculation
+        fees[0] = 10 ether; // sequencer
+        fees[1] = 5 ether; // base
+        fees[2] = 80 ether; // l1 (high L1 fees)
+        fees[3] = 5 ether; // operator
 
         _fundVaults(fees[0], fees[1], fees[2], fees[3]);
 
        // Step 6: Third disbursement - should trigger L2→L1 withdrawal
 
-        // Calculate expected values: Gross=120, Net=115, Share=max(3, 17.25)=17.25
-        uint256 expectedShare3 = (115 ether * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE; // 17.25 ETH (net > gross)
-        uint256 expectedRemainder3 = 120 ether - expectedShare3; // 102.75 ETH
+        // Calculate expected values: Gross=100, Net=20, Share=max(2.5, 3)=3
+        uint256 grossRevenue3 = 100 ether;
+        uint256 netRevenue3 = 20 ether; // gross - L1 fees = 100 - 80 = 20
+        uint256 grossShare3 = (grossRevenue3 * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE; // 2.5 ETH
+        uint256 netShare3 = (netRevenue3 * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE; // 3 ETH
+        uint256 expectedShare3 = netShare3 > grossShare3 ? netShare3 : grossShare3; // max(2.5, 3) = 3 ETH
+        uint256 expectedRemainder3 = grossRevenue3 - expectedShare3; // 97 ETH
 
         _disburseFees();
 
-        //L2ToL1MessagePasser should hold the withdrawn funds plus the previous balance
-        assertEq(address(l2ToL1MessagePasser).balance, expectedShare3 + expectedTotalWithdrawal, "L2ToL1MessagePasser should hold 17.25 ETH");
+        //L2ToL1MessagePasser should still hold only the previous withdrawal (16.95 ETH)
+        // The 3 ETH stays in L1Withdrawer as it's below threshold
+        assertEq(address(l2ToL1MessagePasser).balance, expectedTotalWithdrawal, "L2ToL1MessagePasser should still hold 16.95 ETH");
 
-        // Final assertions: 0/0/0/0 | 0 | 210.8 |
-        _assertFullFlowState(0, 0, 0, 0, 0, remainderAfterSecond + expectedRemainder3);
+        // Final assertions: 0/0/0/0 | 3 | 205.05 |
+        // Total remainder: 21.55 + 86.5 + 97 = 205.05 ETH
+        _assertFullFlowState(0, 0, 0, 0, expectedShare3, remainderAfterSecond + expectedRemainder3);
        }
 }
