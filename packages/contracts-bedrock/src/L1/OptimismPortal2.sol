@@ -632,6 +632,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         return systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) && address(ethLockbox) != address(0);
     }
 
+    /// @notice Checks if the Custom Gas Token feature is enabled.
+    /// @return bool True if the Custom Gas Token feature is enabled.
+    function _isUsingCustomGasToken() internal view returns (bool) {
+        return systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN);
+    }
+
     /// @notice Asserts that the contract is not paused.
     function _assertNotPaused() internal view {
         if (paused()) {
@@ -660,7 +666,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @return Whether the transaction is invalid (has value when CGT mode is enabled).
     function _isInvalidCGTWithdrawal(uint256 _value) internal view returns (bool) {
         // Cannot process withdrawal with value when custom gas token mode is enabled.
-        return systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN) && _value > 0;
+        return _isUsingCustomGasToken() && _value > 0;
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.
