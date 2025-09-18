@@ -32,9 +32,9 @@ interface ISequencerFeeVault {
     function l1FeeWallet() external view returns (address);
 
     function __constructor__(
-        address _recipient,
-        uint256 _minWithdrawalAmount,
-        Types.WithdrawalNetwork _withdrawalNetwork
+        address __recipient,
+        uint256 __minWithdrawalAmount,
+        Types.WithdrawalNetwork __withdrawalNetwork
     )
         external;
 }
