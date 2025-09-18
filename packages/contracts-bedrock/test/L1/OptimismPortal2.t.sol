@@ -2848,7 +2848,7 @@ contract OptimismPortal2_Params_Test is CommonTest {
 /// @notice Test contract for OptimismPortal2 feature helper functions integration with SystemConfig.
 contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
     /// @notice Tests that deposits with value revert when Custom Gas Token is enabled.
-    function test_depositWithValueWhenCGTEnabled_reverts() external {
+    function test_depositTransaction_valueWithCGTEnabled_reverts() external {
         // Skip if CGT is not enabled
         if (!systemConfig.isCustomGasToken()) {
             vm.skip(true);
@@ -2877,7 +2877,7 @@ contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
     }
 
     /// @notice Tests that CGT feature can be toggled and affects portal behavior.
-    function test_cgtFeatureToggleAffectsPortalBehavior() external {
+    function test_cgtFeatureToggle_affectsPortalBehavior_succeeds() external {
         // Skip if we can't modify features (e.g., in a fork test)
         vm.skip(isForkTest());
         // Skip if interop is enabled as it changes portal behavior
