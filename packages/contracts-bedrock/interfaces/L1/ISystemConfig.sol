@@ -96,7 +96,6 @@ interface ISystemConfig is IProxyAdminOwnedBase {
     function setFeature(bytes32 _feature, bool _enabled) external;
     function isFeatureEnabled(bytes32) external view returns (bool);
     function isCustomGasToken() external view returns (bool);
-    function isETHLockbox() external view returns (bool);
 
     function __constructor__() external;
 }

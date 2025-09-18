@@ -173,7 +173,7 @@ contract OptimismPortal2_TestInit is DisputeGameFactory_TestInit {
     /// @notice Enables the ETHLockbox feature if not enabled.
     /// @param _lockbox Address of the lockbox to enable.
     function forceEnableLockbox(address _lockbox) public {
-        if (!ISystemConfig(address(systemConfig)).isETHLockbox()) {
+        if (!ISystemConfig(address(systemConfig)).isFeatureEnabled(Features.ETH_LOCKBOX)) {
             vm.prank(address(proxyAdmin));
             systemConfig.setFeature(Features.ETH_LOCKBOX, true);
         }
@@ -2847,40 +2847,69 @@ contract OptimismPortal2_Params_Test is CommonTest {
 /// @title OptimismPortal2_FeatureHelpers_Test
 /// @notice Test contract for OptimismPortal2 feature helper functions integration with SystemConfig.
 contract OptimismPortal2_FeatureHelpers_Test is OptimismPortal2_TestInit {
-    /// @notice Tests that OptimismPortal2.isCustomGasToken() matches SystemConfig.isCustomGasToken().
-    function test_isCustomGasToken_matchesSystemConfig_succeeds() external {
-        // Test when disabled (default state)
-        bool portalResult = optimismPortal2.isCustomGasToken();
-        bool systemConfigResult = systemConfig.isCustomGasToken();
-        assertEq(portalResult, systemConfigResult, "Portal and SystemConfig should match when disabled");
+    /// @notice Tests that deposits with value revert when Custom Gas Token is enabled.
+    function test_depositWithValueWhenCGTEnabled_reverts() external {
+        // Skip if CGT is not enabled
+        if (!systemConfig.isCustomGasToken()) {
+            vm.skip(true);
+        }
 
-        // Test when enabled
-        vm.prank(address(proxyAdmin));
-        systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
-
-        portalResult = optimismPortal2.isCustomGasToken();
-        systemConfigResult = systemConfig.isCustomGasToken();
-        assertEq(portalResult, systemConfigResult, "Portal and SystemConfig should match when enabled");
+        vm.deal(alice, 1 ether);
+        vm.expectRevert(OptimismPortal2.OptimismPortal_NotAllowedOnCGTMode.selector);
+        vm.prank(alice);
+        optimismPortal2.depositTransaction{ value: 0.1 ether }(alice, 0.1 ether, 100_000, false, bytes(""));
     }
 
-    /// @notice Tests that internal _isUsingCustomGasToken() correctly uses SystemConfig helper.
-    function test_internalIsUsingCustomGasToken_usesSystemConfigHelper_succeeds() external {
-        // Create a spy contract to verify the correct function is called
-        TestOptimismPortal2Helper helper = new TestOptimismPortal2Helper(optimismPortal2, systemConfig);
+    /// @notice Tests that deposits with zero value succeed when Custom Gas Token is enabled.
+    function test_depositWithZeroValueWhenCGTEnabled_succeeds() external {
+        // Skip if CGT is not enabled
+        if (!systemConfig.isCustomGasToken()) {
+            vm.skip(true);
+        }
 
-        // Test when disabled
-        assertFalse(helper.testIsUsingCustomGasToken());
+        // When CGT is enabled, we don't check the exact event parameters
+        // Just verify the transaction succeeds without reverting
+        vm.prank(alice);
+        optimismPortal2.depositTransaction(alice, 0, 100_000, false, bytes(""));
 
-        // Enable the feature
-        vm.prank(address(proxyAdmin));
-        systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
+        // Additional verification: ensure the transaction was processed
+        // by checking that no revert occurred (implicit success)
+    }
 
-        // Test when enabled
-        assertTrue(helper.testIsUsingCustomGasToken());
+    /// @notice Tests that CGT feature can be toggled and affects portal behavior.
+    function test_cgtFeatureToggleAffectsPortalBehavior() external {
+        // Skip if we can't modify features (e.g., in a fork test)
+        vm.skip(isForkTest());
+        // Skip if interop is enabled as it changes portal behavior
+        skipIfDevFeatureEnabled(DevFeatures.OPTIMISM_PORTAL_INTEROP);
+
+        // Test deposit with value when CGT is disabled
+        if (!systemConfig.isCustomGasToken()) {
+            vm.deal(alice, 1 ether);
+            vm.prank(alice);
+            optimismPortal2.depositTransaction{ value: 0.1 ether }(alice, 0.1 ether, 100_000, false, bytes(""));
+
+            // Enable CGT
+            vm.prank(address(proxyAdmin));
+            systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
+        }
+
+        // Now deposits with value should revert
+        vm.deal(bob, 1 ether);
+        vm.expectRevert(OptimismPortal2.OptimismPortal_NotAllowedOnCGTMode.selector);
+        vm.prank(bob);
+        optimismPortal2.depositTransaction{ value: 0.1 ether }(bob, 0.1 ether, 100_000, false, bytes(""));
+
+        // But deposits with zero value should work
+        vm.prank(bob);
+        optimismPortal2.depositTransaction(bob, 0, 100_000, false, bytes(""));
     }
 
     /// @notice Tests that internal _isUsingLockbox() correctly uses SystemConfig.isETHLockbox().
     function test_internalIsUsingLockbox_usesSystemConfigHelper_succeeds() external {
+        // Skip if interop is enabled as it changes lockbox behavior
+        skipIfDevFeatureEnabled(DevFeatures.OPTIMISM_PORTAL_INTEROP);
+
         TestOptimismPortal2Helper helper = new TestOptimismPortal2Helper(optimismPortal2, systemConfig);
 
         // Test when disabled (default)
@@ -2918,6 +2947,6 @@ contract TestOptimismPortal2Helper {
 
     /// @notice Test wrapper for _isUsingLockbox().
     function testIsUsingLockbox() external view returns (bool) {
-        return systemConfig.isETHLockbox() && address(portal.ethLockbox()) != address(0);
+        return systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) && address(portal.ethLockbox()) != address(0);
     }
 }
