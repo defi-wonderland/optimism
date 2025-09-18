@@ -245,12 +245,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         __ResourceMetering_init();
     }
 
-    /// @notice Returns whether the custom gas token feature is enabled.
-    /// @return bool True if the custom gas token feature is enabled, false otherwise.
-    function isCustomGasToken() public view returns (bool) {
-        return _isUsingCustomGasToken();
-    }
-
     /// @notice Getter for the current paused status.
     function paused() public view returns (bool) {
         return systemConfig.paused();
