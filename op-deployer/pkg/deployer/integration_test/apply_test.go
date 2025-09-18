@@ -286,9 +286,40 @@ func TestEndToEndApply(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, true, response)
 
+		// Verify fee vaults exist in L2 genesis (withdrawal network validation happens during deployment)
+		sequencerFeeVaultAddr := common.HexToAddress("0x4200000000000000000000000000000000000011")
+		l2Genesis := st.Chains[0].Allocs.Data.Accounts
+
+		_, exists := l2Genesis[sequencerFeeVaultAddr]
+		require.True(t, exists, "SequencerFeeVault should exist in L2 genesis")
+
+		// Note: WITHDRAWAL_NETWORK validation for CGT happens during L2Genesis generation
+		// and would cause deployment to fail if misconfigured (immutable values can't be checked in genesis)
+
+		// Check CGT-specific predeploys exist in L2 genesis
+		liquidityControllerAddr := common.HexToAddress("0x420000000000000000000000000000000000002a")
+		liquidityControllerAccount, exists := l2Genesis[liquidityControllerAddr]
+		require.True(t, exists, "LiquidityController predeploy should exist in L2 genesis when CGT is enabled")
+
+		// Verify that LiquidityController has been initialized (has storage)
+		// Note: Specific name/symbol validation would require contract calls not available in genesis
+		require.NotNil(t, liquidityControllerAccount.Storage, "LiquidityController should have storage indicating initialization")
+		require.Greater(t, len(liquidityControllerAccount.Storage), 0, "LiquidityController should have non-empty storage when initialized")
+
+		// Verify L1Block predeploy has CGT configuration
+		l1BlockAddr := common.HexToAddress("0x4200000000000000000000000000000000000015")
+		l1BlockAccount, exists := l2Genesis[l1BlockAddr]
+		require.True(t, exists, "L1Block predeploy should exist in L2 genesis")
+
+		// Check that isCustomGasToken flag is set in L1Block storage
+		// IS_CUSTOM_GAS_TOKEN_SLOT = bytes32(uint256(keccak256("l1block.isCustomGasToken")) - 1)
+		isCustomGasTokenSlot := common.HexToHash("0xd2ff82c9b477ff6a09f530b1c627ffb4b0b81e2ae2ba427f824162e8dad020aa")
+		customGasTokenFlag, exists := l1BlockAccount.Storage[isCustomGasTokenSlot]
+		require.True(t, exists, "L1Block should have isCustomGasToken flag configured")
+		require.Equal(t, common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001"), customGasTokenFlag, "L1Block isCustomGasToken flag should be set to true when CGT is enabled")
+
 		// Check that the native asset liquidity predeploy has the configured amount in L2 genesis
 		nativeAssetLiquidityAddr := common.HexToAddress("0x4200000000000000000000000000000000000029")
-		l2Genesis := st.Chains[0].Allocs.Data.Accounts
 		account, exists := l2Genesis[nativeAssetLiquidityAddr]
 		require.True(t, exists, "Native asset liquidity predeploy should exist in L2 genesis")
 		require.Equal(t, amount, account.Balance, "Native asset liquidity predeploy should have the configured balance")
