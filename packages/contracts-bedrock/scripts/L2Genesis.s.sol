@@ -124,6 +124,14 @@ contract L2Genesis is Script {
         if (_input.fundDevAccounts) {
             fundDevAccounts();
         }
+
+        if (_input.useCustomGasToken) {
+            require(
+                _input.nativeAssetLiquidityAmount <= type(uint248).max,
+                "Native asset liquidity amount must be less than or equal to type(uint248).max"
+            );
+        }
+
         vm.stopPrank();
         vm.deal(deployer, 0);
         vm.resetNonce(deployer);
