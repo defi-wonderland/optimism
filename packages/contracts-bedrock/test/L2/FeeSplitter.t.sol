@@ -3,7 +3,10 @@ pragma solidity 0.8.15;
 
 // Testing
 import { CommonTest } from "test/setup/CommonTest.sol";
-import { LegacyFeeSplitter } from "test/mocks/LegacyFeeSplitter.sol";
+
+// Mocks
+import { MockFeeVault } from "test/mocks/MockFeeVault.sol";
+import { RevertingRecipient } from "test/mocks/RevertingRecipient.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -475,6 +478,52 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         vm.expectRevert(IFeeSplitter.FeeSplitter_SharesCalculatorMalformedOutput.selector);
         feeSplitter.disburseFees();
     }
+
+    /// @notice Fuzz test that a vault with balance below minimum causes entire disbursement to revert
+    function test_disburseFees_vaultBelowMinimum_reverts(uint256 _minWithdrawalAmount, uint256 _vaultIndex) public {
+        // If uint256, the test will revert due to ETH transfer overflow
+        _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint128).max);
+        _vaultIndex = bound(_vaultIndex, 0, 3); // 0-3 for the 4 vaults
+
+        // Calculate vault balances: one vault will have insufficient balance
+        uint256 insufficientBalance = _minWithdrawalAmount - 1;
+        uint256 sufficientBalance = _minWithdrawalAmount;
+
+        address[4] memory vaults = [
+            Predeploys.SEQUENCER_FEE_WALLET,
+            Predeploys.BASE_FEE_VAULT,
+            Predeploys.L1_FEE_VAULT,
+            Predeploys.OPERATOR_FEE_VAULT
+        ];
+
+        // Setup all vaults with sufficient balance first
+        for (uint256 i = 0; i < 4; i++) {
+            _setFeeVaultData(vaults[i], sufficientBalance, _minWithdrawalAmount);
+        }
+
+        // Override the selected vault with insufficient balance
+        _setFeeVaultData(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
+
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+        // The entire disbursement should revert because one vault doesn't meet its minimum
+        vm.expectRevert("FeeVault: withdrawal amount must be greater than minimum withdrawal amount");
+        feeSplitter.disburseFees();
+
+        // Verify no funds were moved (all vaults retain their original balance)
+        for (uint256 i = 0; i < 4; i++) {
+            uint256 expectedBalance = (i == _vaultIndex) ? insufficientBalance : sufficientBalance;
+            assertEq(address(vaults[i]).balance, expectedBalance);
+        }
+    }
+
+    function _setFeeVaultData(address _vault, uint256 _balance, uint256 _minWithdrawal) internal {
+        MockFeeVault mockVault =
+            new MockFeeVault(payable(address(feeSplitter)), _minWithdrawal, Types.WithdrawalNetwork.L2);
+        vm.deal(address(mockVault), _balance);
+        vm.etch(_vault, address(mockVault).code);
+        vm.deal(_vault, _balance);
+    }
 }
 
 /// @title FeeSplitter_SetSharesCalculator_Test
@@ -544,174 +593,5 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
         feeSplitter.setFeeDisbursementInterval(_newInterval);
 
         assertEq(feeSplitter.feeDisbursementInterval(), _newInterval);
-    }
-}
-
-/// @title FeeSplitter_DisburseFees
-/// @notice Test failure scenario where vaults have insufficient balance for withdrawal
-contract FeeSplitter_DisburseFees is FeeSplitter_TestInit {
-    function _setFeeVaultData(address _vault, uint256 _balance, uint256 _minWithdrawal) internal {
-        MockFeeVault mockVault =
-            new MockFeeVault(payable(address(feeSplitter)), _minWithdrawal, Types.WithdrawalNetwork.L2);
-        vm.deal(address(mockVault), _balance);
-        vm.etch(_vault, address(mockVault).code);
-        vm.deal(_vault, _balance);
-    }
-
-    /// @notice Fuzz test that a vault with balance below minimum causes entire disbursement to revert
-    function test_disburseFees_vaultBelowMinimum_reverts(uint256 _minWithdrawalAmount, uint256 _vaultIndex) public {
-        // If uint256, the test will revert due to ETH transfer overflow
-        _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint128).max);
-        _vaultIndex = bound(_vaultIndex, 0, 3); // 0-3 for the 4 vaults
-
-        // Calculate vault balances: one vault will have insufficient balance
-        uint256 insufficientBalance = _minWithdrawalAmount - 1;
-        uint256 sufficientBalance = _minWithdrawalAmount;
-
-        address[4] memory vaults = [
-            Predeploys.SEQUENCER_FEE_WALLET,
-            Predeploys.BASE_FEE_VAULT,
-            Predeploys.L1_FEE_VAULT,
-            Predeploys.OPERATOR_FEE_VAULT
-        ];
-
-        // Setup all vaults with sufficient balance first
-        for (uint256 i = 0; i < 4; i++) {
-            _setFeeVaultData(vaults[i], sufficientBalance, _minWithdrawalAmount);
-        }
-
-        // Override the selected vault with insufficient balance
-        _setFeeVaultData(vaults[_vaultIndex], insufficientBalance, _minWithdrawalAmount);
-
-        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
-
-        // The entire disbursement should revert because one vault doesn't meet its minimum
-        vm.expectRevert("FeeVault: withdrawal amount must be greater than minimum withdrawal amount");
-        feeSplitter.disburseFees();
-
-        // Verify no funds were moved (all vaults retain their original balance)
-        for (uint256 i = 0; i < 4; i++) {
-            uint256 expectedBalance = (i == _vaultIndex) ? insufficientBalance : sufficientBalance;
-            assertEq(address(vaults[i]).balance, expectedBalance);
-        }
-    }
-}
-
-contract LegacyFeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
-    LegacyFeeSplitter public legacyFeeSplitter;
-
-    function setUp() public override {
-        super.setUp();
-
-        legacyFeeSplitter = new LegacyFeeSplitter();
-
-        // Setup the legacy splitter as the recipient in the vaults
-        address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
-
-        vm.startPrank(owner);
-        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(address(legacyFeeSplitter));
-        IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).setRecipient(address(legacyFeeSplitter));
-        IFeeVault(payable(Predeploys.L1_FEE_VAULT)).setRecipient(address(legacyFeeSplitter));
-        IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).setRecipient(address(legacyFeeSplitter));
-        vm.stopPrank();
-    }
-
-    function test_legacyFeeSplitterDisburseFees_succeeds(
-        uint256 _sequencerBalance,
-        uint256 _baseBalance,
-        uint256 _l1Balance,
-        uint256 _operatorBalance
-    )
-        public
-    {
-        _sequencerBalance = bound(
-            _sequencerBalance,
-            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount(),
-            type(uint128).max
-        );
-
-        _baseBalance =
-            bound(_baseBalance, IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount(), type(uint128).max);
-
-        _l1Balance =
-            bound(_l1Balance, IFeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount(), type(uint128).max);
-
-        _operatorBalance = bound(
-            _operatorBalance, IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount(), type(uint128).max
-        );
-
-        // Setup mock fee vaults
-        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
-            address(legacyFeeSplitter), Predeploys.SEQUENCER_FEE_WALLET, uint256(_sequencerBalance)
-        );
-        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
-            address(legacyFeeSplitter), Predeploys.BASE_FEE_VAULT, uint256(_baseBalance)
-        );
-        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
-            address(legacyFeeSplitter), Predeploys.L1_FEE_VAULT, uint256(_l1Balance)
-        );
-        _mockFeeVaultForSuccessfulWithdrawalWithSplitter(
-            address(legacyFeeSplitter), Predeploys.OPERATOR_FEE_VAULT, uint256(_operatorBalance)
-        );
-
-        assertEq(address(legacyFeeSplitter).balance, 0);
-        legacyFeeSplitter.disburseFees();
-        assertEq(address(legacyFeeSplitter).balance, _sequencerBalance + _baseBalance + _l1Balance + _operatorBalance);
-    }
-}
-
-/// @notice Simple mock FeeVault for testing that actually transfers ETH
-contract MockFeeVault {
-    uint256 public immutable MIN_WITHDRAWAL_AMOUNT;
-    address public immutable RECIPIENT;
-    Types.WithdrawalNetwork public immutable WITHDRAWAL_NETWORK;
-
-    event Withdrawal(uint256 value, address to, address from);
-    event Withdrawal(uint256 value, address to, address from, Types.WithdrawalNetwork withdrawalNetwork);
-
-    constructor(address payable _recipient, uint256 _minWithdrawalAmount, Types.WithdrawalNetwork _withdrawalNetwork) {
-        RECIPIENT = _recipient;
-        MIN_WITHDRAWAL_AMOUNT = _minWithdrawalAmount;
-        WITHDRAWAL_NETWORK = _withdrawalNetwork;
-    }
-
-    receive() external payable { }
-
-    function withdrawalNetwork() external view returns (Types.WithdrawalNetwork) {
-        return WITHDRAWAL_NETWORK;
-    }
-
-    function minWithdrawalAmount() external view returns (uint256) {
-        return MIN_WITHDRAWAL_AMOUNT;
-    }
-
-    function recipient() external view returns (address) {
-        return RECIPIENT;
-    }
-
-    function withdraw() external returns (uint256) {
-        require(
-            address(this).balance >= MIN_WITHDRAWAL_AMOUNT,
-            "FeeVault: withdrawal amount must be greater than minimum withdrawal amount"
-        );
-
-        uint256 value = address(this).balance;
-
-        emit Withdrawal(value, RECIPIENT, msg.sender);
-        emit Withdrawal(value, RECIPIENT, msg.sender, WITHDRAWAL_NETWORK);
-
-        if (WITHDRAWAL_NETWORK == Types.WithdrawalNetwork.L2) {
-            (bool success,) = RECIPIENT.call{ value: value }("");
-            require(success, "FeeVault: failed to send ETH to L2 fee recipient");
-        }
-
-        return value;
-    }
-}
-
-/// @notice Helper recipient that always reverts on receiving ETH
-contract RevertingRecipient {
-    receive() external payable {
-        revert("RevertingRecipient: cannot accept ETH");
     }
 }

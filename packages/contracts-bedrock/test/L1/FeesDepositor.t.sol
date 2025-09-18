@@ -10,9 +10,9 @@ import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { Features } from "src/libraries/Features.sol";
 
-/// @title FeesDepositor_Test
+/// @title FeesDepositor_Uncategorized_Test
 /// @notice Tests all functionality of FeesDepositor including receive, deposit, and setters.
-contract FeesDepositor_Test is CommonTest {
+contract FeesDepositor_Uncategorized_Test is CommonTest {
     FeesDepositor feesDepositor;
 
     address l2Recipient = makeAddr("l2Recipient");

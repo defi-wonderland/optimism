@@ -16,10 +16,10 @@ import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
-/// @title FeeVault_Test
+/// @title FeeVault_Uncategorized_Test
 /// @notice Abstract test contract for fee feeVault testing.
 ///         Subclasses can override the feeVault-specific variables.
-abstract contract FeeVault_Test is CommonTest {
+abstract contract FeeVault_Uncategorized_Test is CommonTest {
     // Variables that can be overridden by concrete test contracts
     address recipient;
     IFeeVault feeVault;

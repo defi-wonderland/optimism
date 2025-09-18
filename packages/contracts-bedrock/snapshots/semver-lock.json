@@ -69,7 +69,7 @@
   },
   "src/L2/FeeVaultInitializer.sol:FeeVaultInitializer": {
     "initCodeHash": "0x0a679fb899f24944ee6ffc42646df5ec9563799264ee2fecfcafb642f4e302c2",
-    "sourceCodeHash": "0x51cc656fde167195e8d142d3e95f957f3bbcf2782bbe6b6f975452f009e65d9f"
+    "sourceCodeHash": "0x5169f19d03ec38d554edd06656e4ebc37cf37c56d0738e8a83cf95a837c72661"
   },
   "src/L2/GasPriceOracle.sol:GasPriceOracle": {
     "initCodeHash": "0x38ef70b2783dd45ad807afcf57972c7df4abaaeb5d16d17cdb451b9e931a9cbb",
