@@ -93,7 +93,7 @@
           }
         ],
         "internalType": "struct ISharesCalculator.ShareInfo[]",
-        "name": "shareInfo",
+        "name": "shareInfo_",
         "type": "tuple[]"
       }
     ],
