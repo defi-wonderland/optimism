@@ -10,7 +10,6 @@ import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { console } from "forge-std/console.sol";
 
 // Contracts
 import { LiquidityController } from "src/L2/LiquidityController.sol";
