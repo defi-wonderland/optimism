@@ -158,7 +158,6 @@ func (c *Intent) validateStandardValues() error {
 		if len(chain.AdditionalDisputeGames) > 0 {
 			return fmt.Errorf("%w: chainId=%s additionalDisputeGames must be nil", ErrNonStandardValue, chain.ID)
 		}
-
 		if chain.CustomGasToken.Enabled {
 			return fmt.Errorf("%w: chainId=%s custom gas token must be nil for standard chains", ErrNonStandardValue, chain.ID)
 		}
