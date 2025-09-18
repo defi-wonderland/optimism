@@ -31,9 +31,9 @@ interface IBaseFeeVault {
     function version() external view returns (string memory);
 
     function __constructor__(
-        address __recipient,
-        uint256 __minWithdrawalAmount,
-        Types.WithdrawalNetwork __withdrawalNetwork
+        address _recipient,
+        uint256 _minWithdrawalAmount,
+        Types.WithdrawalNetwork _withdrawalNetwork
     )
         external;
 }
