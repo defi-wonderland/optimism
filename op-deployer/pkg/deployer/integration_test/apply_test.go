@@ -293,18 +293,30 @@ func TestEndToEndApply(t *testing.T) {
 		_, exists := l2Genesis[sequencerFeeVaultAddr]
 		require.True(t, exists, "SequencerFeeVault should exist in L2 genesis")
 
-		// Note: WITHDRAWAL_NETWORK validation for CGT happens during L2Genesis generation
-		// and would cause deployment to fail if misconfigured (immutable values can't be checked in genesis)
+		// Check CGT-specific liquidity predeploys exist in L2 genesis
+		// EIP-1967 implementation slot: keccak256("eip1967.proxy.implementation") - 1
+		implSlot := common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
 
-		// Check CGT-specific predeploys exist in L2 genesis
+		// LiquidityController predeploy validation
 		liquidityControllerAddr := common.HexToAddress("0x420000000000000000000000000000000000002a")
 		liquidityControllerAccount, exists := l2Genesis[liquidityControllerAddr]
 		require.True(t, exists, "LiquidityController predeploy should exist in L2 genesis when CGT is enabled")
 
-		// Verify that LiquidityController has been initialized (has storage)
-		// Note: Specific name/symbol validation would require contract calls not available in genesis
-		require.NotNil(t, liquidityControllerAccount.Storage, "LiquidityController should have storage indicating initialization")
-		require.Greater(t, len(liquidityControllerAccount.Storage), 0, "LiquidityController should have non-empty storage when initialized")
+		// Verify that LiquidityController proxy has implementation set (not address(0))
+		implAddr, exists := liquidityControllerAccount.Storage[implSlot]
+		require.True(t, exists, "LiquidityController should have implementation slot configured")
+		require.NotEqual(t, common.Hash{}, implAddr, "LiquidityController implementation should not be address(0)")
+
+		// NativeAssetLiquidity predeploy validation
+		nativeAssetLiquidityAddr := common.HexToAddress("0x4200000000000000000000000000000000000029")
+		nativeAssetAccount, exists := l2Genesis[nativeAssetLiquidityAddr]
+		require.True(t, exists, "Native asset liquidity predeploy should exist in L2 genesis")
+		require.Equal(t, amount, nativeAssetAccount.Balance, "Native asset liquidity predeploy should have the configured balance")
+
+		// Verify that NativeAssetLiquidity proxy has implementation set (not address(0))
+		nativeImplAddr, exists := nativeAssetAccount.Storage[implSlot]
+		require.True(t, exists, "NativeAssetLiquidity should have implementation slot configured")
+		require.NotEqual(t, common.Hash{}, nativeImplAddr, "NativeAssetLiquidity implementation should not be address(0)")
 
 		// Verify L1Block predeploy has CGT configuration
 		l1BlockAddr := common.HexToAddress("0x4200000000000000000000000000000000000015")
@@ -317,12 +329,6 @@ func TestEndToEndApply(t *testing.T) {
 		customGasTokenFlag, exists := l1BlockAccount.Storage[isCustomGasTokenSlot]
 		require.True(t, exists, "L1Block should have isCustomGasToken flag configured")
 		require.Equal(t, common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001"), customGasTokenFlag, "L1Block isCustomGasToken flag should be set to true when CGT is enabled")
-
-		// Check that the native asset liquidity predeploy has the configured amount in L2 genesis
-		nativeAssetLiquidityAddr := common.HexToAddress("0x4200000000000000000000000000000000000029")
-		account, exists := l2Genesis[nativeAssetLiquidityAddr]
-		require.True(t, exists, "Native asset liquidity predeploy should exist in L2 genesis")
-		require.Equal(t, amount, account.Balance, "Native asset liquidity predeploy should have the configured balance")
 	})
 }
 
