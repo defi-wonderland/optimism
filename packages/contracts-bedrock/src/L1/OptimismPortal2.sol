@@ -236,6 +236,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         systemConfig = _systemConfig;
         anchorStateRegistry = _anchorStateRegistry;
 
+        // Assert that the lockbox state is valid.
+        _assertValidLockboxState();
+
         // Set the l2Sender slot, only if it is currently empty. This signals the first
         // initialization of the contract.
         if (l2Sender == address(0)) {
@@ -244,12 +247,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // Initialize the ResourceMetering contract.
         __ResourceMetering_init();
-    }
-
-    /// @notice Returns whether the custom gas token feature is enabled.
-    /// @return bool True if the custom gas token feature is enabled, false otherwise.
-    function isCustomGasToken() public view returns (bool) {
-        return _isUsingCustomGasToken();
     }
 
     /// @notice Getter for the current paused status.
@@ -577,7 +574,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         payable
         metered(_gasLimit)
     {
-        if (_isUsingCustomGasToken()) {
+        if (systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN)) {
             if (msg.value > 0) revert OptimismPortal_NotAllowedOnCGTMode();
         }
 
@@ -635,12 +632,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         return systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) && address(ethLockbox) != address(0);
     }
 
-    /// @notice Checks if the Custom Gas Token feature is enabled.
-    /// @return bool True if the Custom Gas Token feature is enabled.
-    function _isUsingCustomGasToken() internal view returns (bool) {
-        return systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN);
-    }
-
     /// @notice Asserts that the contract is not paused.
     function _assertNotPaused() internal view {
         if (paused()) {
@@ -669,7 +660,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @return Whether the transaction is invalid (has value when CGT mode is enabled).
     function _isInvalidCGTWithdrawal(uint256 _value) internal view returns (bool) {
         // Cannot process withdrawal with value when custom gas token mode is enabled.
-        return _isUsingCustomGasToken() && _value > 0;
+        return systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN) && _value > 0;
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.
