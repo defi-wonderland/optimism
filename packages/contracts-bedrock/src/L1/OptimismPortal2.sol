@@ -574,7 +574,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         payable
         metered(_gasLimit)
     {
-        if (systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN)) {
+        if (_isUsingCustomGasToken()) {
             if (msg.value > 0) revert OptimismPortal_NotAllowedOnCGTMode();
         }
 
