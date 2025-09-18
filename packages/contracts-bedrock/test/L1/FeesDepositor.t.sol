@@ -6,12 +6,9 @@ import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPort
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IFeesDepositor } from "interfaces/L1/IFeesDepositor.sol";
 import { FeesDepositor } from "src/L1/FeesDepositor.sol";
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { Proxy } from "src/universal/Proxy.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { Features } from "src/libraries/Features.sol";
-import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 
 /// @title FeesDepositor_Test
 /// @notice Tests all functionality of FeesDepositor including receive, deposit, and setters.

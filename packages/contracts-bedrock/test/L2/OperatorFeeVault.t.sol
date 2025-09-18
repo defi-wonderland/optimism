@@ -5,7 +5,6 @@ pragma solidity 0.8.15;
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 // Libraries
-import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { FeeVault_Test } from "test/L2/FeeVault.t.sol";
 

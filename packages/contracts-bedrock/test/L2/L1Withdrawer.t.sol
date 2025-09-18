@@ -4,9 +4,7 @@ pragma solidity 0.8.15;
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
-import { Constants } from "src/libraries/Constants.sol";
 
 /// @title L1Withdrawer_Test
 /// @notice Tests all functionality of L1Withdrawer including receive, withdrawal, and setters.
