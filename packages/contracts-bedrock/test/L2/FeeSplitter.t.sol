@@ -155,10 +155,6 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.assume(_caller != Predeploys.OPERATOR_FEE_VAULT);
         vm.assume(_caller != Predeploys.L1_FEE_VAULT);
 
-        // Mock the _isTransientDisbursing() function to return true
-        // This allows us to test the sender validation logic
-        vm.mockCall(address(feeSplitter), abi.encodeWithSignature("_isTransientDisbursing()"), abi.encode(true));
-
         // Setup disbursement conditions but expect revert from non-approved sender
         vm.deal(_caller, _amount);
         vm.startPrank(_caller);

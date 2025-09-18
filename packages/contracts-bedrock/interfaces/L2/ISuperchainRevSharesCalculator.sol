@@ -25,7 +25,7 @@ interface ISuperchainRevSharesCalculator is ISemver {
     )
         external
         view
-        returns (ISharesCalculator.ShareInfo[] memory shareInfo);
+        returns (ISharesCalculator.ShareInfo[] memory shareInfo_);
 
     function setShareRecipient(address payable _newShareRecipient) external;
     function setRemainderRecipient(address payable _newRemainderRecipient) external;

@@ -31,9 +31,10 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
         super.setUp();
 
         // Deploy FeesDepositor implementation
-        address implementation = DeployUtils.create1(
-            "FeesDepositor", DeployUtils.encodeConstructor(abi.encodeCall(IFeesDepositor.__constructor__, ()))
-        );
+        address implementation = DeployUtils.create1({
+            _name: "FeesDepositor",
+            _args: DeployUtils.encodeConstructor(abi.encodeCall(IFeesDepositor.__constructor__, ()))
+        });
 
         // Deploy proxy pointing to proxyAdmin
         address proxy = address(new Proxy(address(proxyAdmin)));

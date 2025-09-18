@@ -658,19 +658,21 @@ contract L2Genesis is Script {
 
             // Deploy L1Withdrawer with constructor args
             bytes32 l1WithdrawerSalt = keccak256("L1Withdrawer");
-            address l1Withdrawer = DeployUtils.create2(
-                "L1Withdrawer.sol:L1Withdrawer",
-                abi.encode(MIN_WITHDRAWAL_AMOUNT_THRESHOLD, _input.l1FeesDepositor, WITHDRAWAL_MIN_GAS_LIMIT),
-                l1WithdrawerSalt
-            );
+            address l1Withdrawer = DeployUtils.create2({
+                _name: "L1Withdrawer.sol:L1Withdrawer",
+                _args: DeployUtils.encodeConstructor(
+                    abi.encode(MIN_WITHDRAWAL_AMOUNT_THRESHOLD, _input.l1FeesDepositor, WITHDRAWAL_MIN_GAS_LIMIT)
+                ),
+                _salt: l1WithdrawerSalt
+            });
 
             // Deploy SuperchainRevSharesCalculator with constructor args
             bytes32 calcSalt = keccak256("SuperchainRevSharesCalculator");
-            revSharesCalculator = DeployUtils.create2(
-                "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
-                abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient)),
-                calcSalt
-            );
+            revSharesCalculator = DeployUtils.create2({
+                _name: "SuperchainRevSharesCalculator.sol:SuperchainRevSharesCalculator",
+                _args: DeployUtils.encodeConstructor(abi.encode(payable(l1Withdrawer), payable(_input.chainFeesRecipient))),
+                _salt: calcSalt
+            });
         }
 
         // Initialize the implementation with dummy values
