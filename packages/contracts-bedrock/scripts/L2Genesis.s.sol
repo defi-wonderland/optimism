@@ -35,6 +35,7 @@ import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IFeeVault, IFeeVaultConstructor } from "interfaces/L2/IFeeVault.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
+
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
 ///         The following safety invariants are used when setting state:
