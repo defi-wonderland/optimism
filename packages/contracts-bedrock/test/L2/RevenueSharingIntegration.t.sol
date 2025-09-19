@@ -38,33 +38,23 @@ contract RevenueSharingIntegration_Test is CommonTest {
         address proxyAdminOwner = proxyAdmin.owner();
 
         // Configure all vaults to withdraw to FeeSplitter on L2
-        vm.prank(proxyAdminOwner);
+        vm.startPrank(proxyAdminOwner);
         IFeeVault(payable(address(sequencerFeeVault))).setRecipient(address(feeSplitter));
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(sequencerFeeVault))).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(sequencerFeeVault))).setMinWithdrawalAmount(0);
 
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(baseFeeVault))).setRecipient(address(feeSplitter));
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(baseFeeVault))).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(baseFeeVault))).setMinWithdrawalAmount(0);
 
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(l1FeeVault))).setRecipient(address(feeSplitter));
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(l1FeeVault))).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(l1FeeVault))).setMinWithdrawalAmount(0);
 
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(operatorFeeVault))).setRecipient(address(feeSplitter));
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(operatorFeeVault))).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
-        vm.prank(proxyAdminOwner);
         IFeeVault(payable(address(operatorFeeVault))).setMinWithdrawalAmount(0);
+        vm.stopPrank();
     }
 
     /// @notice Helper to fund vaults
@@ -91,6 +81,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 chainFeesRecipientBalance
     )
         private
+        view
     {
         // Assert vault balances
         assertEq(address(sequencerFeeVault).balance, sequencerFeeBalance, "Incorrect sequencer fee vault balance");
