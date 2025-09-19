@@ -2539,8 +2539,6 @@ workflows:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
           save_image_tag: <<pipeline.git.revision>>
-          requires:
-            - contracts-bedrock-build
           matrix:
             parameters:
               docker_name:
