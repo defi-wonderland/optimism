@@ -16,10 +16,16 @@ import { Types } from "src/libraries/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
-/// @title FeeVault_Uncategorized_Test
-/// @notice Abstract test contract for fee feeVault testing.
-///         Subclasses can override the feeVault-specific variables.
-abstract contract FeeVault_Uncategorized_Test is CommonTest {
+/// @title FeeVault_TestInit
+/// @notice Reusable test initialization for `FeeVault` tests.
+abstract contract FeeVault_TestInit is CommonTest {
+    // Events specific to FeeVault (not already in Events.sol)
+    event MinWithdrawalAmountUpdated(uint256 oldWithdrawalAmount, uint256 newWithdrawalAmount);
+    event RecipientUpdated(address oldRecipient, address newRecipient);
+    event WithdrawalNetworkUpdated(
+        Types.WithdrawalNetwork oldWithdrawalNetwork, Types.WithdrawalNetwork newWithdrawalNetwork
+    );
+
     // Variables that can be overridden by concrete test contracts
     address recipient;
     IFeeVault feeVault;
@@ -27,7 +33,7 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
     uint256 minWithdrawalAmount;
     Types.WithdrawalNetwork expectedWithdrawalNetwork;
 
-    /// @dev Sets up the test suite.
+    /// @notice Test setup.
     function setUp() public virtual override {
         // Default to L1
         expectedWithdrawalNetwork = Types.WithdrawalNetwork.L1;
@@ -52,7 +58,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
             ).code
         );
     }
+}
 
+/// @title FeeVault_Constructor_Test
+/// @notice Tests the constructor of the `FeeVault` contract.
+abstract contract FeeVault_Constructor_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that the l1 fee wallet is correct.
     function test_constructor_succeeds() external view {
         assertEq(feeVault.RECIPIENT(), recipient);
@@ -62,7 +76,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         assertEq(uint8(feeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L1));
         assertEq(uint8(feeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L1));
     }
+}
 
+/// @title FeeVault_Receive_Test
+/// @notice Tests the receive function of the `FeeVault` contract.
+abstract contract FeeVault_Receive_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that the fee feeVault is able to receive ETH.
     function test_receive_succeeds() external {
         uint256 balance = address(feeVault).balance;
@@ -73,7 +95,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         assertEq(success, true);
         assertEq(address(feeVault).balance, balance + 100);
     }
+}
 
+/// @title FeeVault_Withdraw_Test
+/// @notice Tests the withdraw function of the `FeeVault` contract.
+abstract contract FeeVault_Withdraw_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that `withdraw` reverts if the balance is less than the minimum withdrawal
     ///         amount.
     function test_withdraw_notEnough_reverts() external {
@@ -175,7 +205,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         feeVault.withdraw();
         assertEq(feeVault.totalProcessed(), 0);
     }
+}
 
+/// @title FeeVault_SetMinWithdrawalAmount_Test
+/// @notice Tests the setMinWithdrawalAmount function of the `FeeVault` contract.
+abstract contract FeeVault_SetMinWithdrawalAmount_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that the owner can successfully set minimum withdrawal amount with fuzz testing.
     function testFuzz_setMinWithdrawalAmount_succeeds(uint256 _newAmount) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -201,7 +239,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         // Verify the value and boolean flag were NOT changed
         assertEq(feeVault.minWithdrawalAmount(), initialAmount);
     }
+}
 
+/// @title FeeVault_SetRecipient_Test
+/// @notice Tests the setRecipient function of the `FeeVault` contract.
+abstract contract FeeVault_SetRecipient_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that the owner can successfully set recipient with fuzz testing.
     function testFuzz_setRecipient_succeeds(address _newRecipient) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -227,7 +273,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         // Verify the value and boolean flag were NOT changed
         assertEq(feeVault.recipient(), initialRecipient);
     }
+}
 
+/// @title FeeVault_SetWithdrawalNetwork_Test
+/// @notice Tests the setWithdrawalNetwork function of the `FeeVault` contract.
+abstract contract FeeVault_SetWithdrawalNetwork_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that the owner can successfully set withdrawal network with fuzz testing.
     function testFuzz_setWithdrawalNetwork_succeeds(uint8 _networkValue) external {
         // Bound to valid enum values (0 = L1, 1 = L2)
@@ -261,7 +315,15 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         // Verify the value and boolean flag were NOT changed
         assertEq(uint8(feeVault.withdrawalNetwork()), uint8(initialNetwork));
     }
+}
 
+/// @title FeeVault_Getters_Test
+/// @notice Tests the getter overrides of the `FeeVault` contract.
+abstract contract FeeVault_Getters_Test is FeeVault_TestInit {
+    /// @dev Override setUp to avoid conflicts
+    function setUp() public virtual override {
+        super.setUp();
+    }
     /// @notice Tests that minWithdrawalAmount returns immutable by default, then storage after being set.
     function test_minWithdrawalAmount_returnsImmutableThenStorage_succeeds() external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
