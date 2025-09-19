@@ -19,6 +19,8 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
     uint96 minDepositAmount = 1 ether;
     uint64 gasLimit = 150_000;
     bytes depositData = hex"1234";
+    address depositFeesRecipient;
+            
 
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
@@ -49,6 +51,9 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
         // Initialize through proxy
         vm.prank(proxyAdminOwner);
         feesDepositor.initialize(minDepositAmount, l2Recipient, optimismPortal2, gasLimit, depositData);
+
+        // Set depositFeesRecipient
+        depositFeesRecipient = systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
     }
 
     /// @notice This contract is excluded from the Initializable.t.sol test because it is not deployed as part of the
@@ -60,8 +65,6 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
 
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
         // Handling the fork tests scenario
-        address depositFeesRecipient =
-            systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
         uint256 depositFeesRecipientBalanceBefore = depositFeesRecipient.balance;
         _amount = bound(_amount, 0, minDepositAmount - 1);
 
@@ -87,8 +90,6 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
 
     function testFuzz_receive_atOrAboveThreshold_succeeds(uint256 _sendAmount) external {
         // Handling the fork tests scenario case for the fork tests
-        address depositFeesRecipient =
-            systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
         uint256 depositFeesRecipientBalanceBefore = depositFeesRecipient.balance;
         _sendAmount = bound(_sendAmount, minDepositAmount, type(uint256).max - depositFeesRecipientBalanceBefore);
 
@@ -115,8 +116,6 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
 
     function testFuzz_receive_multipleDeposits_succeeds(uint256 _firstAmount, uint256 _secondAmount) external {
         // Handling the fork tests scenario
-        address depositFeesRecipient =
-            systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
         uint256 depositFeesRecipientBalanceBefore = depositFeesRecipient.balance;
         // First amount should not exceed minDepositAmount (so it doesn't trigger deposit)
         _firstAmount = bound(_firstAmount, 0, minDepositAmount - 1);
