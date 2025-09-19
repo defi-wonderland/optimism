@@ -134,7 +134,7 @@ contract FeeVaultInitializer_Uncategorized_Test is CommonTest {
         assertEq(uint8(newBaseFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
     }
 
-    function test_constructor_whenVaultsWithdrawalNetworkIsL2() public {
+    function test_constructor_whenVaultsWithdrawalNetworkIsL2_succeeds() public {
         // Mock the calls to the fee vaults to return L2 as the withdrawal network
         vm.mockCall(
             Predeploys.BASE_FEE_VAULT,
