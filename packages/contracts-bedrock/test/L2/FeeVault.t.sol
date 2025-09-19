@@ -86,14 +86,15 @@ abstract contract FeeVault_Receive_Test is FeeVault_TestInit {
         super.setUp();
     }
     /// @notice Tests that the fee feeVault is able to receive ETH.
-    function test_receive_succeeds() external {
+    function test_receive_succeeds(uint256 _amount) external {
         uint256 balance = address(feeVault).balance;
 
+        vm.deal(alice, _amount);
         vm.prank(alice);
-        (bool success,) = address(feeVault).call{ value: 100 }(hex"");
+        (bool success,) = address(feeVault).call{ value: _amount }(hex"");
 
         assertEq(success, true);
-        assertEq(address(feeVault).balance, balance + 100);
+        assertEq(address(feeVault).balance, balance + _amount);
     }
 }
 
