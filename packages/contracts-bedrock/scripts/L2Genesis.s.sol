@@ -43,7 +43,6 @@ import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevShar
 ///         effects in the constructor and no immutables in the bytecode.
 ///         2. A contract must be deployed using the `new` syntax if there are immutables in the code.
 ///         Any other side effects from the init code besides setting the immutables must be cleaned up afterwards.
-
 contract L2Genesis is Script {
     error L2Genesis_ChainFeesRecipientCannotBeZero();
     error L2Genesis_L1FeesDepositorCannotBeZero();
