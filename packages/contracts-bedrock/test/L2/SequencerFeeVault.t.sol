@@ -83,7 +83,10 @@ contract SequencerFeeVault_SetRecipient_Test is SequencerFeeVault_TestInit, FeeV
 
 /// @title SequencerFeeVault_SetWithdrawalNetwork_Test
 /// @notice Test contract for the SequencerFeeVault setWithdrawalNetwork functionality
-contract SequencerFeeVault_SetWithdrawalNetwork_Test is SequencerFeeVault_TestInit, FeeVault_SetWithdrawalNetwork_Test {
+contract SequencerFeeVault_SetWithdrawalNetwork_Test is
+    SequencerFeeVault_TestInit,
+    FeeVault_SetWithdrawalNetwork_Test
+{
     function setUp() public override(SequencerFeeVault_TestInit, FeeVault_SetWithdrawalNetwork_Test) {
         SequencerFeeVault_TestInit.setUp();
     }

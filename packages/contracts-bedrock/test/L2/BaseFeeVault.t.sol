@@ -60,10 +60,7 @@ contract BaseFeeVault_Withdraw_Test is BaseFeeVault_TestInit, FeeVault_Withdraw_
 
 /// @title BaseFeeVault_SetMinWithdrawalAmount_Test
 /// @notice Test contract for the BaseFeeVault setMinWithdrawalAmount functionality
-contract BaseFeeVault_SetMinWithdrawalAmount_Test is
-    BaseFeeVault_TestInit,
-    FeeVault_SetMinWithdrawalAmount_Test
-{
+contract BaseFeeVault_SetMinWithdrawalAmount_Test is BaseFeeVault_TestInit, FeeVault_SetMinWithdrawalAmount_Test {
     function setUp() public override(BaseFeeVault_TestInit, FeeVault_SetMinWithdrawalAmount_Test) {
         BaseFeeVault_TestInit.setUp();
     }

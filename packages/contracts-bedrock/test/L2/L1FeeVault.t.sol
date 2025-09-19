@@ -58,10 +58,7 @@ contract L1FeeVault_Withdraw_Test is L1FeeVault_TestInit, FeeVault_Withdraw_Test
 
 /// @title L1FeeVault_SetMinWithdrawalAmount_Test
 /// @notice Test contract for the L1FeeVault setMinWithdrawalAmount functionality
-contract L1FeeVault_SetMinWithdrawalAmount_Test is
-    L1FeeVault_TestInit,
-    FeeVault_SetMinWithdrawalAmount_Test
-{
+contract L1FeeVault_SetMinWithdrawalAmount_Test is L1FeeVault_TestInit, FeeVault_SetMinWithdrawalAmount_Test {
     function setUp() public override(L1FeeVault_TestInit, FeeVault_SetMinWithdrawalAmount_Test) {
         L1FeeVault_TestInit.setUp();
     }

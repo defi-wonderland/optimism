@@ -331,7 +331,7 @@ abstract contract FeeVault_Getters_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
-    
+
     /// @notice Tests that minWithdrawalAmount returns immutable by default, then storage after being set.
     function test_minWithdrawalAmount_returnsImmutableThenStorage_succeeds() external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
