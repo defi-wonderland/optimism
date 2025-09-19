@@ -92,11 +92,11 @@
     "sourceCodeHash": "0xde724da82ecf3c96b330c2876a7285b6e2b933ac599241eaa3174c443ebbe33a"
   },
   "src/L2/L2ToL1MessagePasser.sol:L2ToL1MessagePasser": {
-    "initCodeHash": "0xff1caffe84cbae4b94285754885d00fa4e174efe7043258c56ba61825eedba7d",
-    "sourceCodeHash": "0xffa514767f63fae7566c65817bcc5fc6a72490af6bf7144d1aea53d3bf93a9e6"
+    "initCodeHash": "0x6fc4ffa3381ea5871d726328ed055a051347256c46abf39a08b960464eff4805",
+    "sourceCodeHash": "0xd260ea36dcc6d78f6eb9d7c4df884856b72917b3e883cdc203bdbcebded37342"
   },
   "src/L2/L2ToL1MessagePasserCGT.sol:L2ToL1MessagePasserCGT": {
-    "initCodeHash": "0x5e1e6b0fa69edb4e07e01dd4ae915a319bbba318c079fa0a6c9c4878d9c98b7c",
+    "initCodeHash": "0x25911ca0374677e86b3bed2d66df5a555b8da19501929fc1773d37fa1a9ee863",
     "sourceCodeHash": "0xec1736e67134e22ad9ceb0b8b6c116fd169637aa6729c05d9f0f4b02547aaac0"
   },
   "src/L2/L2ToL2CrossDomainMessenger.sol:L2ToL2CrossDomainMessenger": {
