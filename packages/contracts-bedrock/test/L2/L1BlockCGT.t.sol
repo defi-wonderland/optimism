@@ -45,7 +45,7 @@ contract L1BlockCGT_Version_Test is L1BlockCGT_TestInit {
 /// @notice Tests the `gasPayingToken` function of the `L1BlockCGT` contract.
 contract L1BlockCGT_GasPayingToken_Test is L1BlockCGT_TestInit {
     /// @notice Tests that the `gasPayingToken` function reverts.
-    function test_gasPayingToken_reverts() external {
+    function test_gasPayingToken_deprecated_reverts() external {
         vm.expectRevert("L1BlockCGT: deprecated");
         l1BlockCGT.gasPayingToken();
     }
