@@ -21,6 +21,7 @@ import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 /// @title FeeVaultInitializer_Uncategorized_Test
 /// @notice Test contract for the FeeVaultInitializer contract's functionality
@@ -131,6 +132,51 @@ contract FeeVaultInitializer_Uncategorized_Test is CommonTest {
         assertEq(newBaseFeeVault.recipient(), legacyVault.RECIPIENT());
         assertEq(newBaseFeeVault.minWithdrawalAmount(), legacyVault.MIN_WITHDRAWAL_AMOUNT());
         assertEq(uint8(newBaseFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
+    }
+
+    function test_constructor_whenVaultsWithdrawalNetworkIsL2() public {
+        // Mock the calls to the fee vaults to return L2 as the withdrawal network
+        vm.mockCall(
+            Predeploys.BASE_FEE_VAULT,
+            abi.encodeCall(IBaseFeeVault.WITHDRAWAL_NETWORK, ()),
+            abi.encode(Types.WithdrawalNetwork.L2)
+        );
+        vm.mockCall(
+            Predeploys.SEQUENCER_FEE_WALLET,
+            abi.encodeCall(ISequencerFeeVault.WITHDRAWAL_NETWORK, ()),
+            abi.encode(Types.WithdrawalNetwork.L2)
+        );
+        vm.mockCall(
+            Predeploys.L1_FEE_VAULT,
+            abi.encodeCall(IL1FeeVault.WITHDRAWAL_NETWORK, ()),
+            abi.encode(Types.WithdrawalNetwork.L2)
+        );
+        vm.mockCall(
+            Predeploys.OPERATOR_FEE_VAULT,
+            abi.encodeCall(IOperatorFeeVault.WITHDRAWAL_NETWORK, ()),
+            abi.encode(Types.WithdrawalNetwork.L2)
+        );
+
+        address predictedInitializerAddress = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+        address predictedBaseFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 1);
+        address predictedSequencerFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 2);
+        address predictedL1FeeVault = vm.computeCreateAddress(predictedInitializerAddress, 3);
+        address predictedOperatorFeeVault = vm.computeCreateAddress(predictedInitializerAddress, 4);
+
+        // Deploy the FeeVaultInitializer
+        feeVaultInitializer = new FeeVaultInitializer();
+
+        // Check the vault's withdrawal network is L2
+        assertEq(
+            uint8(IFeeVault(payable(predictedBaseFeeVault)).withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2)
+        );
+        assertEq(
+            uint8(IFeeVault(payable(predictedSequencerFeeVault)).withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2)
+        );
+        assertEq(uint8(IFeeVault(payable(predictedL1FeeVault)).withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
+        assertEq(
+            uint8(IFeeVault(payable(predictedOperatorFeeVault)).withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2)
+        );
     }
 
     function test_constructor_withLegacySequencerFeeVault_succeeds() public {
