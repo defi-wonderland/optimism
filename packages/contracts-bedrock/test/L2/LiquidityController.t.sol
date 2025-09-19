@@ -146,10 +146,7 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
         isAuthorizedMinter(authorizedMinter)
     {
         vm.assume(_to != address(nativeAssetLiquidity));
-        _amount = bound(_amount, 1, type(uint248).max);
-
-        // Deal NativeAssetLiquidity with the amount to mint
-        vm.deal(address(nativeAssetLiquidity), _amount);
+        _amount = bound(_amount, 1, address(nativeAssetLiquidity).balance);
 
         // Record initial balances
         uint256 nativeAssetBalanceBefore = address(nativeAssetLiquidity).balance;

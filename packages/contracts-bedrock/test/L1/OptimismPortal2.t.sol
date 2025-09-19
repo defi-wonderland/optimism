@@ -240,9 +240,9 @@ contract OptimismPortal2_Initialize_Test is OptimismPortal2_TestInit {
             assertEq(address(optimismPortal2.ethLockbox()), address(0));
         }
         if (isUsingCustomGasToken()) {
-            assertTrue(OptimismPortal2(payable(address(optimismPortal2))).isCustomGasToken());
+            assertTrue(optimismPortal2.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
         } else if (!isUsingLockbox()) {
-            assertFalse(OptimismPortal2(payable(address(optimismPortal2))).isCustomGasToken());
+            assertFalse(optimismPortal2.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
         }
 
         returnIfForkTest(
