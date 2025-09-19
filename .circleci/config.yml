@@ -2009,7 +2009,7 @@ jobs:
   analyze-op-program-client:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: arm.medium
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -2153,7 +2153,7 @@ jobs:
   diff-fetcher-forge-artifacts:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: arm.medium
+    resource_class: medium
     steps:
       - checkout-from-workspace
       - run:
