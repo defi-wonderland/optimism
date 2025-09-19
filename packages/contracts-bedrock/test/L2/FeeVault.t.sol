@@ -67,6 +67,7 @@ abstract contract FeeVault_Constructor_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+
     /// @notice Tests that the l1 fee wallet is correct.
     function test_constructor_succeeds() external view {
         assertEq(feeVault.RECIPIENT(), recipient);
@@ -85,6 +86,7 @@ abstract contract FeeVault_Receive_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+
     /// @notice Tests that the fee feeVault is able to receive ETH.
     function test_receive_succeeds(uint256 _amount) external {
         uint256 balance = address(feeVault).balance;
@@ -105,6 +107,7 @@ abstract contract FeeVault_Withdraw_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+
     /// @notice Tests that `withdraw` reverts if the balance is less than the minimum withdrawal
     ///         amount.
     function test_withdraw_notEnough_reverts() external {
@@ -215,6 +218,7 @@ abstract contract FeeVault_SetMinWithdrawalAmount_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+
     /// @notice Tests that the owner can successfully set minimum withdrawal amount with fuzz testing.
     function testFuzz_setMinWithdrawalAmount_succeeds(uint256 _newAmount) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -249,6 +253,7 @@ abstract contract FeeVault_SetRecipient_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+
     /// @notice Tests that the owner can successfully set recipient with fuzz testing.
     function testFuzz_setRecipient_succeeds(address _newRecipient) external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -283,6 +288,7 @@ abstract contract FeeVault_SetWithdrawalNetwork_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+
     /// @notice Tests that the owner can successfully set withdrawal network with fuzz testing.
     function testFuzz_setWithdrawalNetwork_succeeds(uint8 _networkValue) external {
         // Bound to valid enum values (0 = L1, 1 = L2)
@@ -325,6 +331,7 @@ abstract contract FeeVault_Getters_Test is FeeVault_TestInit {
     function setUp() public virtual override {
         super.setUp();
     }
+    
     /// @notice Tests that minWithdrawalAmount returns immutable by default, then storage after being set.
     function test_minWithdrawalAmount_returnsImmutableThenStorage_succeeds() external {
         address owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
