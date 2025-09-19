@@ -622,7 +622,9 @@ jobs:
     steps:
       - checkout-from-workspace
       - run:
-          command: mkdir -p /tmp/docker_images
+          command: |
+            mkdir -p /tmp/docker_images
+            mkdir -p /tmp/.buildx-cache
       - when:
           condition:
             or:
@@ -709,10 +711,17 @@ jobs:
               --progress plain \
               --builder=buildx-build \
               -f docker-bake.hcl \
+              --set=*.cache-from=type=local,src=/tmp/.buildx-cache \
+              --set=*.cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
               $DOCKER_OUTPUT_DESTINATION \
               <<parameters.docker_name>>
 
           no_output_timeout: 45m
+      - run:
+          name: Clean up build cache
+          command: |
+            rm -rf /tmp/.buildx-cache
+            mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
       - when:
           condition: "<<parameters.publish>>"
           steps:
@@ -815,7 +824,7 @@ jobs:
     # circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: medium
+    resource_class: large
     parameters:
       test_list:
         description: List of test files to run
@@ -1088,7 +1097,7 @@ jobs:
         type: string
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -2000,9 +2009,11 @@ jobs:
   analyze-op-program-client:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: medium
+    resource_class: arm.medium
     steps:
       - checkout-from-workspace
+      - check-changed:
+          patterns: op-program
       - setup_remote_docker
       - run:
           name: Run Analyzer
@@ -2062,8 +2073,6 @@ jobs:
       - check-changed:
           no_go_deps: "true"
           patterns: contracts-bedrock/test/kontrol,contracts-bedrock/src/L1/OptimismPortal\.sol,contracts-bedrock/src/L1/OptimismPortal2\.sol,contracts-bedrock/src/L1/L1CrossDomainMessenger\.sol,contracts-bedrock/src/L1/L1ERC721Bridge\.sol,contracts-bedrock/src/L1/L1StandardBridge\.sol,contracts-bedrock/src/L1/ResourceMetering\.sol,contracts-bedrock/src/universal/StandardBridge\.sol,contracts-bedrock/src/universal/ERC721Bridge\.sol,contracts-bedrock/src/universal/CrossDomainMessenger\.sol
-      - setup_remote_docker:
-          docker_layer_caching: true
       - run:
           name: Run Kontrol Tests
           command: |
@@ -2144,7 +2153,7 @@ jobs:
   diff-fetcher-forge-artifacts:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: medium
+    resource_class: arm.medium
     steps:
       - checkout-from-workspace
       - run:
@@ -2422,12 +2431,16 @@ workflows:
           context:
             - slack
             - circleci-repo-readonly-authenticated-github-token
+          requires:
+            - contracts-bedrock-build
       - semgrep-scan:
           name: semgrep-test
           scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
           context:
             - slack
             - circleci-repo-readonly-authenticated-github-token
+          requires:
+            - contracts-bedrock-build
       # - go-lint:
       #     context:
       #       - circleci-repo-readonly-authenticated-github-token
@@ -2526,6 +2539,8 @@ workflows:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
           save_image_tag: <<pipeline.git.revision>>
+          requires:
+            - contracts-bedrock-build
           matrix:
             parameters:
               docker_name:
