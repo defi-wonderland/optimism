@@ -22,9 +22,9 @@ import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-/// @title FeeVaultInitializer_Uncategorized_Test
+/// @title FeeVaultInitializer_Constructor_Test
 /// @notice Test contract for the FeeVaultInitializer contract's functionality
-contract FeeVaultInitializer_Uncategorized_Test is CommonTest {
+contract FeeVaultInitializer_Constructor_Test is CommonTest {
     FeeVaultInitializer feeVaultInitializer;
 
     // Store original vault configurations

@@ -10,18 +10,10 @@ import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { Features } from "src/libraries/Features.sol";
 
-/// @title FeesDepositor_Uncategorized_Test
-/// @notice Tests all functionality of FeesDepositor including receive, deposit, and setters.
-contract FeesDepositor_Uncategorized_Test is CommonTest {
-    FeesDepositor feesDepositor;
-
-    address l2Recipient = makeAddr("l2Recipient");
-    uint96 minDepositAmount = 1 ether;
-    uint64 gasLimit = 150_000;
-    bytes depositData = hex"1234";
-    address depositFeesRecipient;
-            
-
+/// @title FeesDepositor_TestInit
+/// @notice Base test contract with initialization for `FeesDepositor` tests.
+contract FeesDepositor_TestInit is CommonTest {
+    // Events
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event MinDepositAmountUpdated(uint96 oldminDepositAmount, uint96 newminDepositAmount);
@@ -29,7 +21,16 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
     event DepositDataUpdated(bytes oldDepositData, bytes newDepositData);
 
-    function setUp() public override {
+    // Test state
+    FeesDepositor feesDepositor;
+    address l2Recipient = makeAddr("l2Recipient");
+    uint96 minDepositAmount = 1 ether;
+    uint64 gasLimit = 150_000;
+    bytes depositData = hex"1234";
+    address depositFeesRecipient;
+
+    /// @notice Test setup.
+    function setUp() public virtual override {
         super.setUp();
 
         // Deploy FeesDepositor implementation
@@ -55,14 +56,22 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
         // Set depositFeesRecipient
         depositFeesRecipient = systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
     }
+}
 
+/// @title FeesDepositor_Initialize_Test
+/// @notice Tests the initialization of the `FeesDepositor` contract.
+contract FeesDepositor_Initialize_Test is FeesDepositor_TestInit {
     /// @notice This contract is excluded from the Initializable.t.sol test because it is not deployed as part of the
     /// standard deployment script and instead is deployed manually, that's why we have this test.
     function test_cannotReinitialize_succeeds() public {
         vm.expectRevert("Initializable: contract is already initialized");
         feesDepositor.initialize(minDepositAmount, l2Recipient, optimismPortal2, gasLimit, depositData);
     }
+}
 
+/// @title FeesDepositor_Receive_Test
+/// @notice Tests the receive function of the `FeesDepositor` contract.
+contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
         // Handling the fork tests scenario
         uint256 depositFeesRecipientBalanceBefore = depositFeesRecipient.balance;
@@ -168,7 +177,11 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
             "depositFeesRecipient balance 2"
         );
     }
+}
 
+/// @title FeesDepositor_SetMinDepositAmount_Test
+/// @notice Tests the setMinDepositAmount function of the `FeesDepositor` contract.
+contract FeesDepositor_SetMinDepositAmount_Test is FeesDepositor_TestInit {
     function testFuzz_setMinDepositAmount_asOwner_succeeds(uint96 _newMinDepositAmount) external {
         address owner = proxyAdmin.owner();
 
@@ -193,7 +206,11 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
 
         assertEq(feesDepositor.minDepositAmount(), minDepositAmount);
     }
+}
 
+/// @title FeesDepositor_SetL2Recipient_Test
+/// @notice Tests the setL2Recipient function of the `FeesDepositor` contract.
+contract FeesDepositor_SetL2Recipient_Test is FeesDepositor_TestInit {
     function testFuzz_setL2Recipient_asOwner_succeeds(address _newL2Recipient) external {
         address owner = proxyAdmin.owner();
 
@@ -218,7 +235,11 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
 
         assertEq(feesDepositor.l2Recipient(), l2Recipient);
     }
+}
 
+/// @title FeesDepositor_SetGasLimit_Test
+/// @notice Tests the setGasLimit function of the `FeesDepositor` contract.
+contract FeesDepositor_SetGasLimit_Test is FeesDepositor_TestInit {
     function testFuzz_setGasLimit_asOwner_succeeds(uint64 _newGasLimit) external {
         address owner = proxyAdmin.owner();
 
@@ -243,7 +264,11 @@ contract FeesDepositor_Uncategorized_Test is CommonTest {
 
         assertEq(feesDepositor.gasLimit(), gasLimit);
     }
+}
 
+/// @title FeesDepositor_SetDepositData_Test
+/// @notice Tests the setDepositData function of the `FeesDepositor` contract.
+contract FeesDepositor_SetDepositData_Test is FeesDepositor_TestInit {
     function testFuzz_setDepositData_asOwner_succeeds(bytes memory _newDepositData) external {
         address owner = proxyAdmin.owner();
 
