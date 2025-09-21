@@ -31,7 +31,6 @@ contract L1Withdrawer_TestInit is CommonTest {
 /// @title L1Withdrawer_Receive_Test
 /// @notice Tests the receive function of the `L1Withdrawer` contract.
 contract L1Withdrawer_Receive_Test is L1Withdrawer_TestInit {
-
     function testFuzz_receive_belowThreshold_succeeds(uint256 _amount) external {
         _amount = bound(_amount, 0, minWithdrawalAmount - 1);
 

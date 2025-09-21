@@ -54,7 +54,8 @@ contract FeesDepositor_TestInit is CommonTest {
         feesDepositor.initialize(minDepositAmount, l2Recipient, optimismPortal2, gasLimit, depositData);
 
         // Set depositFeesRecipient
-        depositFeesRecipient = systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
+        depositFeesRecipient =
+            systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
     }
 }
 
