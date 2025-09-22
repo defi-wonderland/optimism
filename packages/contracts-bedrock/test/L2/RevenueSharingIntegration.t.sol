@@ -246,9 +246,8 @@ contract RevenueSharingIntegration_Test is CommonTest {
         _l1Fees = bound(_l1Fees, 1, 100 ether);
 
         // Get share info from calculator first
-        ISharesCalculator.ShareInfo[] memory shareInfo = superchainRevSharesCalculator.getRecipientsAndAmounts(
-            _sequencerFees, _baseFees, _operatorFees, _l1Fees
-        );
+        ISharesCalculator.ShareInfo[] memory shareInfo =
+            superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
         // Calculate expected values
         uint256 grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
@@ -262,9 +261,15 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
         // Assert calculator returns correct amounts
         assertEq(shareInfo[0].amount, expectedShare, "Share recipient should get max(grossShare, netShare)");
-        assertEq(shareInfo[0].recipient, superchainRevSharesCalculator.shareRecipient(), "Share recipient address incorrect");
+        assertEq(
+            shareInfo[0].recipient, superchainRevSharesCalculator.shareRecipient(), "Share recipient address incorrect"
+        );
         assertEq(shareInfo[1].amount, expectedRemainder, "Remainder recipient should get gross - share");
-        assertEq(shareInfo[1].recipient, superchainRevSharesCalculator.remainderRecipient(), "Remainder recipient address incorrect");
+        assertEq(
+            shareInfo[1].recipient,
+            superchainRevSharesCalculator.remainderRecipient(),
+            "Remainder recipient address incorrect"
+        );
 
         // Configure vaults for disbursement
         _configureVaultsForFeeSplitter();
