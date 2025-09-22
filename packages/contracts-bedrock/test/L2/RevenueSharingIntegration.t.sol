@@ -305,19 +305,14 @@ contract RevenueSharingIntegration_Test is CommonTest {
             uint256 totalShareBalanceAfter = l1WithdrawerBalanceBefore + expectedShare;
             bool willTriggerWithdrawal = totalShareBalanceAfter >= l1Withdrawer.minWithdrawalAmount();
 
-            if (willTriggerWithdrawal) {
-                vm.expectCall(
-                    Predeploys.L2_TO_L1_MESSAGE_PASSER,
-                    totalShareBalanceAfter,
-                    abi.encodeCall(
-                        IL2ToL1MessagePasser.initiateWithdrawal,
-                        (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex"")
-                    )
-                );
-            }
-
             // Disburse fees
             vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+            if (willTriggerWithdrawal) {
+                vm.expectEmit(true, false, false, true);
+                emit WithdrawalInitiated(l1Withdrawer.recipient(), totalShareBalanceAfter);
+            }
+
             feeSplitter.disburseFees();
 
             // Assert balances
@@ -395,6 +390,12 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
             // Disburse fees for second time
             vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+            if (willTriggerWithdrawal2) {
+                vm.expectEmit(true, false, false, true);
+                emit WithdrawalInitiated(l1Withdrawer.recipient(), totalShareBalanceAfter2);
+            }
+
             feeSplitter.disburseFees();
 
             // Assert balances
