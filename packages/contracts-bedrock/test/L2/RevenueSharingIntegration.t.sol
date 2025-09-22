@@ -238,7 +238,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
     /// @notice Fuzz test for the revenue sharing calculator and disbursement.
     /// @dev Checks max(net, gross) share is chosen and disbursed correctly.
-    function testFuzz_revenueSharing_calculator_works(uint256 _sequencerFees, uint256 _baseFees, uint256 _operatorFees, uint256 _l1Fees) public {
+    function testFuzz_revenueSharing_calculator_succeeds(uint256 _sequencerFees, uint256 _baseFees, uint256 _operatorFees, uint256 _l1Fees) public {
         // Bound inputs to prevent overflow and ensure gross share > 0
         _sequencerFees = bound(_sequencerFees, 1, 100 ether);
         _baseFees = bound(_baseFees, 1, 100 ether);
