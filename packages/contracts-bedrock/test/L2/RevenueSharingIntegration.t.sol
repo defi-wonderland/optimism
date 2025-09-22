@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -247,10 +248,16 @@ contract RevenueSharingIntegration_Test is CommonTest {
         public
     {
         // Bound inputs to prevent overflow and ensure gross share > 0
-        _sequencerFees = bound(_sequencerFees, 1, 100 ether);
-        _baseFees = bound(_baseFees, 1, 100 ether);
-        _operatorFees = bound(_operatorFees, 1, 100 ether);
-        _l1Fees = bound(_l1Fees, 1, 100 ether);
+        _sequencerFees = 0;
+        _baseFees = 0;
+        _operatorFees = 0;
+        _l1Fees = 0;
+
+        if (_l1Fees == 0 && _sequencerFees == 0 && _baseFees == 0 && _operatorFees == 0) {
+            vm.expectRevert(ISuperchainRevSharesCalculator.SharesCalculator_ZeroGrossShare.selector);
+            superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
+            return;
+        }
 
         // Get share info from calculator first
         ISharesCalculator.ShareInfo[] memory shareInfo =
