@@ -53,6 +53,11 @@ contract FeeVaultInitializer_Uncategorized_Test is CommonTest {
         uint256 minWithdrawalAmount
     );
 
+    function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
+        vm.mockCall(_receiver, _calldata, _returned);
+        vm.expectCall(_receiver, _calldata);
+    }
+
     function setUp() public override {
         super.setUp();
 
@@ -136,22 +141,22 @@ contract FeeVaultInitializer_Uncategorized_Test is CommonTest {
 
     function test_constructor_whenVaultsWithdrawalNetworkIsL2_succeeds() public {
         // Mock the calls to the fee vaults to return L2 as the withdrawal network
-        vm.mockCall(
+        _mockAndExpect(
             Predeploys.BASE_FEE_VAULT,
             abi.encodeCall(IBaseFeeVault.WITHDRAWAL_NETWORK, ()),
             abi.encode(Types.WithdrawalNetwork.L2)
         );
-        vm.mockCall(
+        _mockAndExpect(
             Predeploys.SEQUENCER_FEE_WALLET,
             abi.encodeCall(ISequencerFeeVault.WITHDRAWAL_NETWORK, ()),
             abi.encode(Types.WithdrawalNetwork.L2)
         );
-        vm.mockCall(
+        _mockAndExpect(
             Predeploys.L1_FEE_VAULT,
             abi.encodeCall(IL1FeeVault.WITHDRAWAL_NETWORK, ()),
             abi.encode(Types.WithdrawalNetwork.L2)
         );
-        vm.mockCall(
+        _mockAndExpect(
             Predeploys.OPERATOR_FEE_VAULT,
             abi.encodeCall(IOperatorFeeVault.WITHDRAWAL_NETWORK, ()),
             abi.encode(Types.WithdrawalNetwork.L2)
