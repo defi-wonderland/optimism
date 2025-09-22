@@ -243,107 +243,191 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 _sequencerFees,
         uint256 _baseFees,
         uint256 _operatorFees,
-        uint256 _l1Fees
+        uint256 _l1Fees,
+        uint256 _sequencerFees2,
+        uint256 _baseFees2,
+        uint256 _operatorFees2,
+        uint256 _l1Fees2
     )
         public
     {
-        // Bound inputs to prevent overflow and ensure gross share > 0
-        _sequencerFees = 0;
-        _baseFees = 0;
-        _operatorFees = 0;
-        _l1Fees = 0;
+        // Bound inputs to prevent overflow and ensure reasonable test ranges
+        _sequencerFees = bound(_sequencerFees, 0, 100 ether);
+        _baseFees = bound(_baseFees, 0, 100 ether);
+        _operatorFees = bound(_operatorFees, 0, 100 ether);
+        _l1Fees = bound(_l1Fees, 0, 100 ether);
 
+        _sequencerFees2 = bound(_sequencerFees2, 0, 100 ether);
+        _baseFees2 = bound(_baseFees2, 0, 100 ether);
+        _operatorFees2 = bound(_operatorFees2, 0, 100 ether);
+        _l1Fees2 = bound(_l1Fees2, 0, 100 ether);
+
+        // Handle case where first disbursement has all zero fees
         if (_l1Fees == 0 && _sequencerFees == 0 && _baseFees == 0 && _operatorFees == 0) {
             vm.expectRevert(ISuperchainRevSharesCalculator.SharesCalculator_ZeroGrossShare.selector);
             superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
             return;
         }
 
-        // Get share info from calculator first
-        ISharesCalculator.ShareInfo[] memory shareInfo =
-            superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
-
-        // Calculate expected values
-        uint256 grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
-        uint256 netRevenue = grossRevenue - _l1Fees;
-
-        uint256 grossShare = (grossRevenue * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE;
-        uint256 netShare = (netRevenue * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;
-
-        uint256 expectedShare = grossShare > netShare ? grossShare : netShare;
-        uint256 expectedRemainder = grossRevenue - expectedShare;
-
-        // Assert calculator returns correct amounts
-        assertEq(shareInfo[0].amount, expectedShare, "Share recipient should get max(grossShare, netShare)");
-        assertEq(
-            shareInfo[0].recipient, superchainRevSharesCalculator.shareRecipient(), "Share recipient address incorrect"
-        );
-        assertEq(shareInfo[1].amount, expectedRemainder, "Remainder recipient should get gross - share");
-        assertEq(
-            shareInfo[1].recipient,
-            superchainRevSharesCalculator.remainderRecipient(),
-            "Remainder recipient address incorrect"
-        );
-
         // Configure vaults for disbursement
         _configureVaultsForFeeSplitter();
 
-        // Fund vaults
-        _fundVaults(_sequencerFees, _baseFees, _l1Fees, _operatorFees);
+        {
+            // Get share info from calculator first
+            ISharesCalculator.ShareInfo[] memory shareInfo =
+                superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
-        // Record balances before disbursement
-        uint256 l1WithdrawerBalanceBefore = address(l1Withdrawer).balance;
-        uint256 remainderRecipientBalanceBefore = address(chainFeesRecipient).balance;
+            // Calculate expected values
+            uint256 grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
+            uint256 grossShare = (grossRevenue * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE;
+            uint256 netShare = ((grossRevenue - _l1Fees) * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;
+            uint256 expectedShare = grossShare > netShare ? grossShare : netShare;
 
-        // Check if share amount will trigger withdrawal
-        uint256 minWithdrawalAmount = l1Withdrawer.minWithdrawalAmount();
-        uint256 totalShareBalanceAfter = l1WithdrawerBalanceBefore + expectedShare;
-        bool willTriggerWithdrawal = totalShareBalanceAfter >= minWithdrawalAmount;
-
-        if (willTriggerWithdrawal) {
-            // Expect withdrawal to L2ToL1MessagePasser
-            vm.expectCall(
-                Predeploys.L2_TO_L1_MESSAGE_PASSER,
-                totalShareBalanceAfter,
-                abi.encodeCall(
-                    IL2ToL1MessagePasser.initiateWithdrawal,
-                    (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex"")
-                )
+            // Assert calculator returns correct amounts
+            assertEq(shareInfo[0].amount, expectedShare, "Share recipient should get max(grossShare, netShare)");
+            assertEq(
+                shareInfo[0].recipient,
+                superchainRevSharesCalculator.shareRecipient(),
+                "Share recipient address incorrect"
             );
+            assertEq(shareInfo[1].amount, grossRevenue - expectedShare, "Remainder recipient should get gross - share");
+            assertEq(
+                shareInfo[1].recipient,
+                superchainRevSharesCalculator.remainderRecipient(),
+                "Remainder recipient address incorrect"
+            );
+
+            // Fund vaults and perform disbursement
+            _fundVaults(_sequencerFees, _baseFees, _l1Fees, _operatorFees);
+
+            uint256 l1WithdrawerBalanceBefore = address(l1Withdrawer).balance;
+            uint256 remainderRecipientBalanceBefore = address(chainFeesRecipient).balance;
+            uint256 totalShareBalanceAfter = l1WithdrawerBalanceBefore + expectedShare;
+            bool willTriggerWithdrawal = totalShareBalanceAfter >= l1Withdrawer.minWithdrawalAmount();
+
+            if (willTriggerWithdrawal) {
+                vm.expectCall(
+                    Predeploys.L2_TO_L1_MESSAGE_PASSER,
+                    totalShareBalanceAfter,
+                    abi.encodeCall(
+                        IL2ToL1MessagePasser.initiateWithdrawal,
+                        (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex"")
+                    )
+                );
+            }
+
+            // Disburse fees
+            vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+            feeSplitter.disburseFees();
+
+            // Assert balances
+            assertEq(
+                address(chainFeesRecipient).balance,
+                remainderRecipientBalanceBefore + (grossRevenue - expectedShare),
+                "Remainder recipient should receive expected remainder"
+            );
+
+            if (willTriggerWithdrawal) {
+                assertEq(address(l1Withdrawer).balance, 0, "L1Withdrawer should be empty after withdrawal");
+                assertEq(
+                    address(l2ToL1MessagePasser).balance,
+                    totalShareBalanceAfter,
+                    "L2ToL1MessagePasser should hold the withdrawn share amount"
+                );
+            } else {
+                assertEq(
+                    address(l1Withdrawer).balance,
+                    totalShareBalanceAfter,
+                    "L1Withdrawer should hold the share amount when below threshold"
+                );
+            }
         }
 
-        // Disburse fees
-        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
-        feeSplitter.disburseFees();
-
-        // Assert remainder recipient always gets the expected remainder
+        // Assert all vaults are drained after first disbursement
         assertEq(
-            address(chainFeesRecipient).balance,
-            remainderRecipientBalanceBefore + expectedRemainder,
-            "Remainder recipient should receive expected remainder"
+            address(sequencerFeeVault).balance, 0, "Sequencer fee vault should be drained after first disbursement"
         );
+        assertEq(address(baseFeeVault).balance, 0, "Base fee vault should be drained after first disbursement");
+        assertEq(address(l1FeeVault).balance, 0, "L1 fee vault should be drained after first disbursement");
+        assertEq(address(operatorFeeVault).balance, 0, "Operator fee vault should be drained after first disbursement");
 
-        if (willTriggerWithdrawal) {
-            // Funds should be in L2ToL1MessagePasser, L1Withdrawer should be empty
-            assertEq(address(l1Withdrawer).balance, 0, "L1Withdrawer should be empty after withdrawal");
-            assertEq(
-                address(l2ToL1MessagePasser).balance,
-                totalShareBalanceAfter,
-                "L2ToL1MessagePasser should hold the withdrawn share amount"
-            );
-        } else {
-            // Funds should stay in L1Withdrawer
-            assertEq(
-                address(l1Withdrawer).balance,
-                totalShareBalanceAfter,
-                "L1Withdrawer should hold the share amount when below threshold"
-            );
+        // ========== SECOND DISBURSEMENT ==========
+
+        // Handle case where second disbursement has all zero fees
+        if (_l1Fees2 == 0 && _sequencerFees2 == 0 && _baseFees2 == 0 && _operatorFees2 == 0) {
+            vm.expectRevert(ISuperchainRevSharesCalculator.SharesCalculator_ZeroGrossShare.selector);
+            superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees2, _baseFees2, _operatorFees2, _l1Fees2);
+            return;
         }
 
-        // Assert all vaults are drained
-        assertEq(address(sequencerFeeVault).balance, 0, "Sequencer fee vault should be drained");
-        assertEq(address(baseFeeVault).balance, 0, "Base fee vault should be drained");
-        assertEq(address(l1FeeVault).balance, 0, "L1 fee vault should be drained");
-        assertEq(address(operatorFeeVault).balance, 0, "Operator fee vault should be drained");
+        {
+            // Get share info from calculator for second disbursement
+            ISharesCalculator.ShareInfo[] memory shareInfo2 = superchainRevSharesCalculator.getRecipientsAndAmounts(
+                _sequencerFees2, _baseFees2, _operatorFees2, _l1Fees2
+            );
+
+            // Calculate expected values for second disbursement
+            uint256 grossRevenue2 = _sequencerFees2 + _baseFees2 + _operatorFees2 + _l1Fees2;
+            uint256 grossShare2 = (grossRevenue2 * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE;
+            uint256 netShare2 = ((grossRevenue2 - _l1Fees2) * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;
+            uint256 expectedShare2 = grossShare2 > netShare2 ? grossShare2 : netShare2;
+
+            // Assert calculator returns correct amounts for second disbursement
+            assertEq(
+                shareInfo2[0].amount,
+                expectedShare2,
+                "Share recipient should get max(grossShare, netShare) for second disbursement"
+            );
+            assertEq(
+                shareInfo2[1].amount,
+                grossRevenue2 - expectedShare2,
+                "Remainder recipient should get gross - share for second disbursement"
+            );
+
+            // Fund vaults for second disbursement
+            _fundVaults(_sequencerFees2, _baseFees2, _l1Fees2, _operatorFees2);
+
+            uint256 l1WithdrawerBalanceBefore2 = address(l1Withdrawer).balance;
+            uint256 remainderRecipientBalanceBefore2 = address(chainFeesRecipient).balance;
+            uint256 l2ToL1MessagePasserBalanceBefore2 = address(l2ToL1MessagePasser).balance;
+            uint256 totalShareBalanceAfter2 = l1WithdrawerBalanceBefore2 + expectedShare2;
+            bool willTriggerWithdrawal2 = totalShareBalanceAfter2 >= l1Withdrawer.minWithdrawalAmount();
+
+            // Disburse fees for second time
+            vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+            feeSplitter.disburseFees();
+
+            // Assert balances
+            assertEq(
+                address(chainFeesRecipient).balance,
+                remainderRecipientBalanceBefore2 + (grossRevenue2 - expectedShare2),
+                "Remainder recipient should receive expected remainder from second disbursement"
+            );
+
+            if (willTriggerWithdrawal2) {
+                assertEq(address(l1Withdrawer).balance, 0, "L1Withdrawer should be empty after second withdrawal");
+                assertEq(
+                    address(l2ToL1MessagePasser).balance,
+                    l2ToL1MessagePasserBalanceBefore2 + totalShareBalanceAfter2,
+                    "L2ToL1MessagePasser should hold the total withdrawn amount after second disbursement"
+                );
+            } else {
+                assertEq(
+                    address(l1Withdrawer).balance,
+                    totalShareBalanceAfter2,
+                    "L1Withdrawer should hold accumulated share amount when below threshold after second disbursement"
+                );
+            }
+
+            // Assert all vaults are drained after second disbursement
+            assertEq(
+                address(sequencerFeeVault).balance, 0, "Sequencer fee vault should be drained after second disbursement"
+            );
+            assertEq(address(baseFeeVault).balance, 0, "Base fee vault should be drained after second disbursement");
+            assertEq(address(l1FeeVault).balance, 0, "L1 fee vault should be drained after second disbursement");
+            assertEq(
+                address(operatorFeeVault).balance, 0, "Operator fee vault should be drained after second disbursement"
+            );
+        }
     }
 }
