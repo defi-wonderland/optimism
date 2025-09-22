@@ -17,6 +17,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
     uint32 internal constant BASIS_POINT_SCALE = 10_000;
     uint32 internal constant GROSS_SHARE_BPS = 250; // 2.5%
     uint32 internal constant NET_SHARE_BPS = 1_500; // 15%
+    uint256 internal disbursementInterval;
 
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event FeesReceived(address indexed sender, uint256 amount);
@@ -27,6 +28,8 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Enable revenue sharing before calling parent setUp
         super.enableRevenueShare();
         super.setUp();
+
+        disbursementInterval = feeSplitter.feeDisbursementInterval();
     }
 
     /// @notice Configure all vaults to withdraw to FeeSplitter on L2
@@ -149,7 +152,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         _fundVaults(fees[0], fees[1], fees[2], fees[3]);
 
         // Step 2: First disbursement - should accumulate in L1Withdrawer
-        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        vm.warp(block.timestamp + disbursementInterval + 1);
         feeSplitter.disburseFees();
 
         // Calculate expected values: Gross=25, Net=23, Share=max(0.625, 3.45)=3.45
@@ -189,7 +192,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         );
 
         // Step 4: Second disbursement - should trigger L2→L1 withdrawal
-        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        vm.warp(block.timestamp + disbursementInterval + 1);
         feeSplitter.disburseFees();
 
         // L2ToL1MessagePasser should hold the withdrawn funds
@@ -219,7 +222,7 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Calculate expected values: Gross=100, Net=10, Share=max(2.5, 1.5)=2.5
         uint256 expectedShare3 = (100 ether * uint256(GROSS_SHARE_BPS)) / BASIS_POINT_SCALE; // 2.5 ETH
 
-        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        vm.warp(block.timestamp + disbursementInterval + 1);
         feeSplitter.disburseFees();
 
         //L2ToL1MessagePasser should still hold only the previous withdrawal (16.95 ETH)
@@ -305,19 +308,14 @@ contract RevenueSharingIntegration_Test is CommonTest {
             uint256 totalShareBalanceAfter = l1WithdrawerBalanceBefore + expectedShare;
             bool willTriggerWithdrawal = totalShareBalanceAfter >= l1Withdrawer.minWithdrawalAmount();
 
+            // Disburse fees
+            vm.warp(block.timestamp + disbursementInterval + 1);
+
             if (willTriggerWithdrawal) {
-                vm.expectCall(
-                    Predeploys.L2_TO_L1_MESSAGE_PASSER,
-                    totalShareBalanceAfter,
-                    abi.encodeCall(
-                        IL2ToL1MessagePasser.initiateWithdrawal,
-                        (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex"")
-                    )
-                );
+                vm.expectEmit(true, false, false, true);
+                emit WithdrawalInitiated(l1Withdrawer.recipient(), totalShareBalanceAfter);
             }
 
-            // Disburse fees
-            vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
             feeSplitter.disburseFees();
 
             // Assert balances
@@ -394,7 +392,13 @@ contract RevenueSharingIntegration_Test is CommonTest {
             bool willTriggerWithdrawal2 = totalShareBalanceAfter2 >= l1Withdrawer.minWithdrawalAmount();
 
             // Disburse fees for second time
-            vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+            vm.warp(block.timestamp + disbursementInterval + 1);
+
+            if (willTriggerWithdrawal2) {
+                vm.expectEmit(true, false, false, true);
+                emit WithdrawalInitiated(l1Withdrawer.recipient(), totalShareBalanceAfter2);
+            }
+
             feeSplitter.disburseFees();
 
             // Assert balances
