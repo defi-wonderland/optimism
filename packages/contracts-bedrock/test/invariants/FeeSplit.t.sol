@@ -132,8 +132,6 @@ contract FeeSplitter_Invariant is CommonTest {
         super.enableRevenueShare();
         super.setUp();
 
-        IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
-
         disburser = new FeeSplitter_Disburser(vm, feeSplitter);
         preconditions = new FeeSplitter_Preconditions();
 
@@ -160,14 +158,15 @@ contract FeeSplitter_Invariant is CommonTest {
     function invariant_balanceConservation() external view {
         assertEq(
             disburser.ghost_grossRevenueDisbursed(),
-            address(l1Withdrawer).balance + l1Withdrawer.recipient().balance
-                + Predeploys.L2_TO_L1_MESSAGE_PASSER.balance + address(chainFeesRecipient).balance
+            address(l1Withdrawer).balance + Predeploys.L2_TO_L1_MESSAGE_PASSER.balance
+                + address(chainFeesRecipient).balance
         );
     }
 
     /// @notice Invariants: these are revert invariants, disburseFees can only revert if either one of the vault
     /// has a balance below it's minimum withdrawal amount (no other revert conditions are possible for the vault)
-    /// or if the disbursement interval has not been reached yet.
+    /// or if the disbursement interval has not been reached yet (this is making the assumption the recipient are
+    /// NOT reverting when receiving the fees).
     /// @dev This invariant is also testing the "no partial disbursement", as the previous one.
     function invariant_disburseReverts() external view {
         if (disburser.txFailed()) {
