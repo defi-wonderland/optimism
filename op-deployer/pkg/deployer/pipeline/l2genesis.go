@@ -23,10 +23,10 @@ import (
 
 type l2GenesisOverrides struct {
 	// ===== CUSTOM GAS TOKEN (CGT) CONFIGURATION =====
-	UseCustomGasToken    bool         `json:"useCustomGasToken"`          // CGT: Enable custom gas token mode
-	GasPayingTokenName   string       `json:"gasPayingTokenName"`         // CGT: Name of the custom gas token
-	GasPayingTokenSymbol string       `json:"gasPayingTokenSymbol"`       // CGT: Symbol of the custom gas token
-	InitialLiquidity     *hexutil.Big `json:"nativeAssetLiquidityAmount"` // CGT: Liquidity amount for NativeAssetLiquidity contract
+	UseCustomGasToken    bool         `json:"useCustomGasToken"`    // CGT: Enable custom gas token mode
+	GasPayingTokenName   string       `json:"gasPayingTokenName"`   // CGT: Name of the custom gas token
+	GasPayingTokenSymbol string       `json:"gasPayingTokenSymbol"` // CGT: Symbol of the custom gas token
+	InitialLiquidity     *hexutil.Big `json:"initialLiquidity"`     // CGT: Liquidity amount for NativeAssetLiquidity contract
 
 	// ===== GENERAL L2 CONFIGURATION (NON-CGT) =====
 	FundDevAccounts                          bool                      `json:"fundDevAccounts"`

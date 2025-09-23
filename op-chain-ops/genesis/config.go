@@ -280,7 +280,7 @@ type GasTokenDeployConfig struct {
 	// GasPayingTokenSymbol represents the custom gas token symbol.
 	GasPayingTokenSymbol string `json:"gasPayingTokenSymbol"`
 	// InitialLiquidity represents the amount of liquidity to pre-fund the NativeAssetLiquidity contract with.
-	InitialLiquidity *hexutil.Big `json:"nativeAssetLiquidityAmount"`
+	InitialLiquidity *hexutil.Big `json:"initialLiquidity"`
 }
 
 var _ ConfigChecker = (*GasTokenDeployConfig)(nil)
