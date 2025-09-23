@@ -135,8 +135,8 @@ func (c *ChainIntent) Check() error {
 			return fmt.Errorf("%w: CustomGasToken.Symbol cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
 
-		if c.CustomGasToken.NativeAssetLiquidityAmount == nil {
-			return fmt.Errorf("%w: CustomGasToken.NativeAssetLiquidityAmount must be set when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		if c.CustomGasToken.NativeAssetLiquidityAmount == nil || c.CustomGasToken.NativeAssetLiquidityAmount.ToInt().Sign() < 0 {
+			return fmt.Errorf("%w: CustomGasToken.NativeAssetLiquidityAmount must be set and non-negative when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
 	}
 
