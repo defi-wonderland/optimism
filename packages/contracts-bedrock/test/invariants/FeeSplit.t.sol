@@ -3,7 +3,6 @@ pragma solidity 0.8.15;
 
 import { StdUtils } from "forge-std/StdUtils.sol";
 import { Vm } from "forge-std/Vm.sol";
-
 import { StdInvariant } from "forge-std/StdInvariant.sol";
 import { InvariantTest } from "test/invariants/InvariantTest.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
@@ -86,7 +85,7 @@ contract FeeSplitter_Preconditions is CommonTest {
     /// @notice Add collected fee to a vault
     /// @param _amount The seed of amount to add to the vault
     /// @param _vaultIndex The seed of the vault's index to add the fee to
-    /// @dev The net revenue has an upper bound to avoid overflows in the shares calculator (where
+    /// @dev The gross revenue has an upper bound to avoid overflows in the shares calculator (where
     /// `uint256 netShare = (netRevenue * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;` would overflow
     /// otherwise)
     function addCollectedFeeToVault(uint256 _amount, uint256 _vaultIndex) public {
