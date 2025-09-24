@@ -7,6 +7,8 @@ interface ISharesCalculator {
         uint256 amount;
     }
 
+    /// @dev Any implementation MUST use the entirety of the `_grossRevenue`
+    /// (calculated as the sum of all the vault balances) as it will revert otherwise
     function getRecipientsAndAmounts(
         uint256 _sequencerFeeVaultBalance,
         uint256 _baseFeeVaultBalance,
