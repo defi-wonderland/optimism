@@ -94,6 +94,7 @@ contract FeeSplitter_Preconditions is CommonTest {
     /// @param _vaultIndex The seed of the vault's index to set the min amount to withdraw from
     function setMinAmount(uint256 _minAmount, uint256 _vaultIndex) public {
         _minAmount = bound(_minAmount, 0, 10 ether);
+        _vaultIndex = bound(_vaultIndex, 0, 3);
 
         vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
 
