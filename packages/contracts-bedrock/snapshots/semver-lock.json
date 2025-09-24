@@ -9,7 +9,7 @@
   },
   "src/L1/FeesDepositor.sol:FeesDepositor": {
     "initCodeHash": "0x3db0c0c8c85294f014e5aea2f12a24565184836fa92f615df84b93e07026cb1f",
-    "sourceCodeHash": "0x3fa8df2642e3800c13bf86f006266a1b617cfc68f3e0da5de7613a5c05ca50df"
+    "sourceCodeHash": "0x8439ede5fcac7aeb4bca5040800fd02bf0e948a7d83edd40e258bc751fc54991"
   },
   "src/L1/L1CrossDomainMessenger.sol:L1CrossDomainMessenger": {
     "initCodeHash": "0x3dc659aafb03bd357f92abfc6794af89ee0ddd5212364551637422bf8d0b00f9",
