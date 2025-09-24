@@ -42,5 +42,5 @@
   "useCustomGasToken": false,
   "gasPayingTokenName": "",
   "gasPayingTokenSymbol": "",
-  "initialLiquidity": null
+  "nativeAssetLiquidityAmount": null
 }
