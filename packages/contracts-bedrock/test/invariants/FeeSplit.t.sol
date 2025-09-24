@@ -119,20 +119,21 @@ contract FeeSplitter_Preconditions is CommonTest {
     /// @notice Add collected fee to a vault
     /// @param _amount The seed of amount to add to the vault
     /// @param _vaultIndex The seed of the vault's index to add the fee to
-    /// @dev The net revenue has an upper bound to avoid overflows in the shares calculator (where
-    /// `uint256 netShare = (netRevenue * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;` would overflow
-    /// otherwise)
+    /// @dev The net and gross revenue have an upper bound to avoid overflows in the shares calculator
     function addCollectedFeeToVault(uint256 _amount, uint256 _vaultIndex) public {
         _vaultIndex = bound(_vaultIndex, 0, 3);
 
         // Avoid having the net revenue exceeding the max uint256 / 1500 (net share default is 1500 bps in the
         // superchain rev shares calculator). This covers the gross share too (as net * 1500 <= gross * 1500)
-        _amount = bound(
-            _amount,
-            0,
-            (type(uint256).max / 1500) - address(Predeploys.SEQUENCER_FEE_WALLET).balance
-                - address(Predeploys.BASE_FEE_VAULT).balance - address(Predeploys.OPERATOR_FEE_VAULT).balance
-        );
+        // or the gross revenue exceeding the max uint256 / 2500.
+        uint256 _maxNetRevenue = (type(uint256).max / 1500) - address(Predeploys.SEQUENCER_FEE_WALLET).balance
+            - address(Predeploys.BASE_FEE_VAULT).balance - address(Predeploys.OPERATOR_FEE_VAULT).balance;
+
+        uint256 _maxGrossRevenue = (type(uint256).max / 2500) - address(Predeploys.SEQUENCER_FEE_WALLET).balance
+            - address(Predeploys.BASE_FEE_VAULT).balance - address(Predeploys.OPERATOR_FEE_VAULT).balance
+            - address(Predeploys.L1_FEE_VAULT).balance;
+
+        _amount = bound(_amount, 0, _maxNetRevenue < _maxGrossRevenue ? _maxNetRevenue : _maxGrossRevenue);
 
         if (_vaultIndex == 0) {
             vm.deal(address(Predeploys.SEQUENCER_FEE_WALLET), _amount);
