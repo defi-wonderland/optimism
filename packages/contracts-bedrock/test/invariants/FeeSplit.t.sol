@@ -7,15 +7,20 @@ import { StdInvariant } from "forge-std/StdInvariant.sol";
 import { InvariantTest } from "test/invariants/InvariantTest.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 
 /// @notice A struct to keep track of the state when a disburse call fails
 struct DisburseFailureState {
     uint256 sequencerFeeVaultBalance;
+    uint256 sequencerFeeVaultMinWithdrawalAmount;
     uint256 baseFeeVaultBalance;
+    uint256 baseFeeVaultMinWithdrawalAmount;
     uint256 l1FeeVaultBalance;
+    uint256 l1FeeVaultMinWithdrawalAmount;
     uint256 operatorFeeVaultBalance;
+    uint256 operatorFeeVaultMinWithdrawalAmount;
     uint256 attemptTimestamp;
 }
 
@@ -65,9 +70,17 @@ contract FeeSplitter_Disburser is StdUtils {
             // keep track of the failing state
             txFailed = true;
             failureState.sequencerFeeVaultBalance = address(Predeploys.SEQUENCER_FEE_WALLET).balance;
+            failureState.sequencerFeeVaultMinWithdrawalAmount =
+                IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount();
             failureState.baseFeeVaultBalance = address(Predeploys.BASE_FEE_VAULT).balance;
+            failureState.baseFeeVaultMinWithdrawalAmount =
+                IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount();
             failureState.l1FeeVaultBalance = address(Predeploys.L1_FEE_VAULT).balance;
+            failureState.l1FeeVaultMinWithdrawalAmount =
+                IFeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount();
             failureState.operatorFeeVaultBalance = address(Predeploys.OPERATOR_FEE_VAULT).balance;
+            failureState.operatorFeeVaultMinWithdrawalAmount =
+                IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount();
             failureState.attemptTimestamp = block.timestamp;
         }
     }
@@ -75,6 +88,26 @@ contract FeeSplitter_Disburser is StdUtils {
 
 /// @title Handler to set arbitrary preconditions (balance and block timestamp)
 contract FeeSplitter_Preconditions is CommonTest {
+    /// @notice modify the min amount to withdraw from a vault
+    /// @dev We include the case where min amount is 0 (ie no minimum to withdraw)
+    /// @param _minAmount The seed of the min amount to withdraw from a vault
+    /// @param _vaultIndex The seed of the vault's index to set the min amount to withdraw from
+    function setMinAmount(uint256 _minAmount, uint256 _vaultIndex) public {
+        _minAmount = bound(_minAmount, 0, 10 ether);
+
+        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+
+        if (_vaultIndex == 0) {
+            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(_minAmount);
+        } else if (_vaultIndex == 1) {
+            IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).setMinWithdrawalAmount(_minAmount);
+        } else if (_vaultIndex == 2) {
+            IFeeVault(payable(Predeploys.L1_FEE_VAULT)).setMinWithdrawalAmount(_minAmount);
+        } else if (_vaultIndex == 3) {
+            IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).setMinWithdrawalAmount(_minAmount);
+        }
+    }
+
     /// @notice Warp the block timestamp
     /// @param _seconds The seed of the seconds to warp the block timestamp by
     function warp(uint256 _seconds) public {
@@ -85,14 +118,14 @@ contract FeeSplitter_Preconditions is CommonTest {
     /// @notice Add collected fee to a vault
     /// @param _amount The seed of amount to add to the vault
     /// @param _vaultIndex The seed of the vault's index to add the fee to
-    /// @dev The gross revenue has an upper bound to avoid overflows in the shares calculator (where
+    /// @dev The net revenue has an upper bound to avoid overflows in the shares calculator (where
     /// `uint256 netShare = (netRevenue * uint256(NET_SHARE_BPS)) / BASIS_POINT_SCALE;` would overflow
     /// otherwise)
     function addCollectedFeeToVault(uint256 _amount, uint256 _vaultIndex) public {
         _vaultIndex = bound(_vaultIndex, 0, 3);
 
         // Avoid having the net revenue exceeding the max uint256 / 1500 (net share default is 1500 bps in the
-        // superchain rev shares calculator)
+        // superchain rev shares calculator). This covers the gross share too (as net * 1500 <= gross * 1500)
         _amount = bound(
             _amount,
             0,
@@ -138,9 +171,10 @@ contract FeeSplitter_Invariant is CommonTest {
         targetContract(address(disburser));
 
         targetContract(address(preconditions));
-        bytes4[] memory selectors = new bytes4[](2);
+        bytes4[] memory selectors = new bytes4[](3);
         selectors[0] = FeeSplitter_Preconditions.warp.selector;
         selectors[1] = FeeSplitter_Preconditions.addCollectedFeeToVault.selector;
+        selectors[2] = FeeSplitter_Preconditions.setMinAmount.selector;
         targetSelector(FuzzSelector({ addr: address(preconditions), selectors: selectors }));
     }
 
@@ -174,17 +208,30 @@ contract FeeSplitter_Invariant is CommonTest {
 
             assertTrue(
                 // either one of the vaults is below the minimum withdrawal amount
-                _failureState.sequencerFeeVaultBalance
-                    < IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount()
-                    || _failureState.baseFeeVaultBalance
-                        < IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount()
-                    || _failureState.l1FeeVaultBalance < IFeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount()
-                    || _failureState.operatorFeeVaultBalance
-                        < IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount()
+                _failureState.sequencerFeeVaultBalance < _failureState.sequencerFeeVaultMinWithdrawalAmount
+                    || _failureState.baseFeeVaultBalance < _failureState.baseFeeVaultMinWithdrawalAmount
+                    || _failureState.l1FeeVaultBalance < _failureState.l1FeeVaultMinWithdrawalAmount
+                    || _failureState.operatorFeeVaultBalance < _failureState.operatorFeeVaultMinWithdrawalAmount
                 // not enough time since last disbursement
                 || _failureState.attemptTimestamp
                     < disburser.feeSplitter().lastDisbursementTime() + disburser.feeSplitter().feeDisbursementInterval()
             );
         }
+    }
+
+    function test_repro() external {
+        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).addCollectedFeeToVault(
+            (10000 / 250) - 1, 17586
+        );
+        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 0);
+        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 1);
+        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 2);
+        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 3);
+        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).warp(
+            1262019975972037049913916341930955891865197205853087
+        );
+
+        FeeSplitter_Disburser(0xa0Cb889707d426A7A386870A03bc70d1b0697598).disburse();
+        this.invariant_disburseReverts();
     }
 }
