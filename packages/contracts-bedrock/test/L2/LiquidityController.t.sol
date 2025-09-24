@@ -54,12 +54,11 @@ contract LiquidityController_TestInit is CommonTest {
         assertEq(liquidityController.gasPayingTokenSymbol(), "CGT");
     }
 
-    /// @notice Shared modifier to authorize a minter.
-    modifier isAuthorizedMinter(address _minter) {
+    /// @notice Helper function to authorize a minter.
+    function _authorizeMinter(address _minter) internal {
         // Authorize the minter
         stdstore.target(address(liquidityController)).sig(liquidityController.minters.selector).with_key(_minter)
             .checked_write(true);
-        _;
     }
 }
 
@@ -139,13 +138,8 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
     address authorizedMinter = makeAddr("authorizedMinter");
 
     /// @notice Tests that the mint function can be called by an authorized minter.
-    function testFuzz_mint_fromAuthorizedMinter_succeeds(
-        address _to,
-        uint256 _amount
-    )
-        public
-        isAuthorizedMinter(authorizedMinter)
-    {
+    function testFuzz_mint_fromAuthorizedMinter_succeeds(address _to, uint256 _amount) public {
+        _authorizeMinter(authorizedMinter);
         vm.assume(_to != address(nativeAssetLiquidity));
         _amount = bound(_amount, 1, address(nativeAssetLiquidity).balance);
 
@@ -185,7 +179,8 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
     }
 
     /// @notice Tests that the mint function reverts when contract has insufficient balance.
-    function test_mint_insufficientBalance_fails() public isAuthorizedMinter(authorizedMinter) {
+    function test_mint_insufficientBalance_fails() public {
+        _authorizeMinter(authorizedMinter);
         // Try to mint more than available balance
         uint256 contractBalance = address(nativeAssetLiquidity).balance;
         uint256 amount = bound(contractBalance, contractBalance + 1, type(uint256).max);
@@ -193,7 +188,9 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
 
         // Call the mint function with insufficient balance
         vm.prank(authorizedMinter);
-        vm.expectRevert(bytes("")); // Should revert due to insufficient balance in NativeAssetLiquidity
+        vm.expectRevert("NativeAssetLiquidity: insufficient balance"); // Should revert due to insufficient
+            // balance in
+            // NativeAssetLiquidity
         liquidityController.mint(to, amount);
 
         // Assert recipient and NativeAssetLiquidity balances remain unchanged
@@ -208,7 +205,8 @@ contract LiquidityController_Burn_Test is LiquidityController_TestInit {
     address authorizedMinter = makeAddr("authorizedMinter");
 
     /// @notice Tests that the burn function can be called by an authorized minter.
-    function testFuzz_burn_fromAuthorizedMinter_succeeds(uint256 _amount) public isAuthorizedMinter(authorizedMinter) {
+    function testFuzz_burn_fromAuthorizedMinter_succeeds(uint256 _amount) public {
+        _authorizeMinter(authorizedMinter);
         _amount = bound(_amount, 0, address(nativeAssetLiquidity).balance);
 
         // Deal the authorized minter with the amount to burn
@@ -231,13 +229,8 @@ contract LiquidityController_Burn_Test is LiquidityController_TestInit {
     }
 
     /// @notice Tests that the burn function reverts when called by unauthorized address.
-    function testFuzz_burn_fromUnauthorizedCaller_fails(
-        address _caller,
-        uint256 _amount
-    )
-        public
-        isAuthorizedMinter(authorizedMinter)
-    {
+    function testFuzz_burn_fromUnauthorizedCaller_fails(address _caller, uint256 _amount) public {
+        _authorizeMinter(authorizedMinter);
         vm.assume(_caller != authorizedMinter);
         _amount = bound(_amount, 0, address(nativeAssetLiquidity).balance);
 

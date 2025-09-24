@@ -139,7 +139,7 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
         // Call the withdraw function with insufficient balance
         vm.prank(address(liquidityController));
         // Expect revert with OutOfFunds
-        vm.expectRevert(bytes(""));
+        vm.expectRevert("NativeAssetLiquidity: OutOfFunds");
         nativeAssetLiquidity.withdraw(amount);
 
         // Assert contract and controller balances remain unchanged
