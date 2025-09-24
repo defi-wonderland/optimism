@@ -29,6 +29,7 @@ contract DeployConfig is Script {
     uint256 public l2GenesisFjordTimeOffset;
     uint256 public l2GenesisGraniteTimeOffset;
     uint256 public l2GenesisHoloceneTimeOffset;
+    uint256 public l2GenesisJovianTimeOffset;
     address public p2pSequencerAddress;
     address public batchInboxAddress;
     address public batchSenderAddress;
@@ -100,6 +101,7 @@ contract DeployConfig is Script {
         l2GenesisFjordTimeOffset = _readOr(_json, "$.l2GenesisFjordTimeOffset", NULL_OFFSET);
         l2GenesisGraniteTimeOffset = _readOr(_json, "$.l2GenesisGraniteTimeOffset", NULL_OFFSET);
         l2GenesisHoloceneTimeOffset = _readOr(_json, "$.l2GenesisHoloceneTimeOffset", NULL_OFFSET);
+        l2GenesisJovianTimeOffset = _readOr(_json, "$.l2GenesisJovianTimeOffset", NULL_OFFSET);
 
         p2pSequencerAddress = stdJson.readAddress(_json, "$.p2pSequencerAddress");
         batchInboxAddress = stdJson.readAddress(_json, "$.batchInboxAddress");
@@ -236,6 +238,11 @@ contract DeployConfig is Script {
         useCustomGasToken = _useCustomGasToken;
     }
 
+    /// @notice Allow the `nativeAssetLiquidityAmount` config to be overridden in testing environments
+    function setNativeAssetLiquidityAmount(uint256 _nativeAssetLiquidityAmount) public {
+        nativeAssetLiquidityAmount = _nativeAssetLiquidityAmount;
+    }
+
     /// @notice Allow the `baseFeeVaultWithdrawalNetwork` config to be overridden in testing environments
     function setBaseFeeVaultWithdrawalNetwork(uint256 _baseFeeVaultWithdrawalNetwork) public {
         baseFeeVaultWithdrawalNetwork = _baseFeeVaultWithdrawalNetwork;
@@ -252,7 +259,9 @@ contract DeployConfig is Script {
     }
 
     function latestGenesisFork() internal view returns (Fork) {
-        if (l2GenesisHoloceneTimeOffset == 0) {
+        if (l2GenesisJovianTimeOffset == 0) {
+            return Fork.JOVIAN;
+        } else if (l2GenesisHoloceneTimeOffset == 0) {
             return Fork.HOLOCENE;
         } else if (l2GenesisGraniteTimeOffset == 0) {
             return Fork.GRANITE;

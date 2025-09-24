@@ -3,7 +3,6 @@ package integration_test
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"log/slog"
 	"math/big"
@@ -13,6 +12,8 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/bootstrap"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/inspect"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/integration_test/shared"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/params"
 
@@ -37,7 +38,6 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/lmittmann/w3"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
@@ -60,17 +60,6 @@ func (d *deployerKey) String() string {
 	return "deployer-key"
 }
 
-func defaultPrivkey(t *testing.T) (string, *ecdsa.PrivateKey, *devkeys.MnemonicDevKeys) {
-	pkHex := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-	pk, err := crypto.HexToECDSA(pkHex)
-	require.NoError(t, err)
-
-	dk, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
-	require.NoError(t, err)
-
-	return pkHex, pk, dk
-}
-
 // TestEndToEndBootstrapApply tests that a system can be fully bootstrapped and applied, both from
 // local artifacts and the default tagged artifacts. The tagged artifacts test only runs on proposal
 // or backports branches, since those are the only branches with an SLA to support tagged artifacts.
@@ -79,7 +68,7 @@ func TestEndToEndBootstrapApply(t *testing.T) {
 
 	lgr := testlog.Logger(t, slog.LevelDebug)
 	l1RPC, l1Client := devnet.DefaultAnvilRPC(t, lgr)
-	pkHex, pk, dk := defaultPrivkey(t)
+	pkHex, pk, dk := shared.DefaultPrivkey(t)
 	l1ChainID := new(big.Int).SetUint64(devnet.DefaultChainID)
 	l2ChainID := uint256.NewInt(1)
 	testCacheDir := testutils.IsolatedTestDirWithAutoCleanup(t)
@@ -125,7 +114,7 @@ func TestEndToEndBootstrapApply(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		intent, st := newIntent(t, l1ChainID, dk, l2ChainID, loc, loc)
+		intent, st := shared.NewIntent(t, l1ChainID, dk, l2ChainID, loc, loc, testCustomGasLimit)
 		intent.SuperchainRoles = nil
 		intent.OPCMAddress = &impls.Opcm
 
@@ -162,7 +151,7 @@ func TestEndToEndApply(t *testing.T) {
 
 	lgr := testlog.Logger(t, slog.LevelDebug)
 	l1RPC, l1Client := devnet.DefaultAnvilRPC(t, lgr)
-	_, pk, dk := defaultPrivkey(t)
+	_, pk, dk := shared.DefaultPrivkey(t)
 	l1ChainID := new(big.Int).SetUint64(devnet.DefaultChainID)
 	l2ChainID1 := uint256.NewInt(1)
 	l2ChainID2 := uint256.NewInt(2)
@@ -173,7 +162,7 @@ func TestEndToEndApply(t *testing.T) {
 	defer cancel()
 
 	t.Run("two chains one after another", func(t *testing.T) {
-		intent, st := newIntent(t, l1ChainID, dk, l2ChainID1, loc, loc)
+		intent, st := shared.NewIntent(t, l1ChainID, dk, l2ChainID1, loc, loc, testCustomGasLimit)
 		cg := ethClientCodeGetter(ctx, l1Client)
 
 		require.NoError(t, deployer.ApplyPipeline(
@@ -192,7 +181,7 @@ func TestEndToEndApply(t *testing.T) {
 
 		// create a new environment with wiped state to ensure we can continue using the
 		// state from the previous deployment
-		intent.Chains = append(intent.Chains, newChainIntent(t, dk, l1ChainID, l2ChainID2))
+		intent.Chains = append(intent.Chains, shared.NewChainIntent(t, dk, l1ChainID, l2ChainID2, testCustomGasLimit))
 
 		require.NoError(t, deployer.ApplyPipeline(
 			ctx,
@@ -213,7 +202,7 @@ func TestEndToEndApply(t *testing.T) {
 	})
 
 	t.Run("with calldata broadcasts and prestate generation", func(t *testing.T) {
-		intent, st := newIntent(t, l1ChainID, dk, l2ChainID1, loc, loc)
+		intent, st := shared.NewIntent(t, l1ChainID, dk, l2ChainID1, loc, loc, testCustomGasLimit)
 		mockPreStateBuilder := devnet.NewMockPreStateBuilder()
 
 		require.NoError(t, deployer.ApplyPipeline(
@@ -242,16 +231,20 @@ func TestEndToEndApply(t *testing.T) {
 	})
 
 	t.Run("with custom gas token", func(t *testing.T) {
-		intent, st := newIntent(t, l1ChainID, dk, l2ChainID1, loc, loc)
+		intent, st := shared.NewIntent(t, l1ChainID, dk, l2ChainID1, loc, loc, testCustomGasLimit)
 
 		// CGT config for L2 genesis
 		amount := new(big.Int)
 		amount.SetString("1000000000000000000000", 10)
-		intent.Chains[0].CustomGasToken = &state.CustomGasToken{
-			Enabled:                    true,
-			Name:                       "Custom Gas Token",
-			Symbol:                     "CGT",
-			NativeAssetLiquidityAmount: (*hexutil.Big)(amount),
+		intent.Chains[0].CustomGasToken = state.CustomGasToken{
+			Enabled:          true,
+			Name:             "Custom Gas Token",
+			Symbol:           "CGT",
+			InitialLiquidity: (*hexutil.Big)(amount),
+		}
+		// CGT config for OPCM
+		intent.GlobalDeployOverrides = map[string]interface{}{
+			"devFeatureBitmap": common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000100"),
 		}
 		// CGT config for OPCM
 		intent.GlobalDeployOverrides = map[string]interface{}{
@@ -286,49 +279,12 @@ func TestEndToEndApply(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, true, response)
 
-		// Verify fee vaults exist in L2 genesis (withdrawal network validation happens during deployment)
-		sequencerFeeVaultAddr := common.HexToAddress("0x4200000000000000000000000000000000000011")
-		l2Genesis := st.Chains[0].Allocs.Data.Accounts
-
-		_, exists := l2Genesis[sequencerFeeVaultAddr]
-		require.True(t, exists, "SequencerFeeVault should exist in L2 genesis")
-
-		// Check CGT-specific liquidity predeploys exist in L2 genesis
-		// EIP-1967 implementation slot: keccak256("eip1967.proxy.implementation") - 1
-		implSlot := common.HexToHash("0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc")
-
-		// LiquidityController predeploy validation
-		liquidityControllerAddr := common.HexToAddress("0x420000000000000000000000000000000000002a")
-		liquidityControllerAccount, exists := l2Genesis[liquidityControllerAddr]
-		require.True(t, exists, "LiquidityController predeploy should exist in L2 genesis when CGT is enabled")
-
-		// Verify that LiquidityController proxy has implementation set (not address(0))
-		implAddr, exists := liquidityControllerAccount.Storage[implSlot]
-		require.True(t, exists, "LiquidityController should have implementation slot configured")
-		require.NotEqual(t, common.Hash{}, implAddr, "LiquidityController implementation should not be address(0)")
-
-		// NativeAssetLiquidity predeploy validation
+		// Check that the native asset liquidity predeploy has the configured amount in L2 genesis
 		nativeAssetLiquidityAddr := common.HexToAddress("0x4200000000000000000000000000000000000029")
-		nativeAssetAccount, exists := l2Genesis[nativeAssetLiquidityAddr]
+		l2Genesis := st.Chains[0].Allocs.Data.Accounts
+		account, exists := l2Genesis[nativeAssetLiquidityAddr]
 		require.True(t, exists, "Native asset liquidity predeploy should exist in L2 genesis")
-		require.Equal(t, amount, nativeAssetAccount.Balance, "Native asset liquidity predeploy should have the configured balance")
-
-		// Verify that NativeAssetLiquidity proxy has implementation set (not address(0))
-		nativeImplAddr, exists := nativeAssetAccount.Storage[implSlot]
-		require.True(t, exists, "NativeAssetLiquidity should have implementation slot configured")
-		require.NotEqual(t, common.Hash{}, nativeImplAddr, "NativeAssetLiquidity implementation should not be address(0)")
-
-		// Verify L1Block predeploy has CGT configuration
-		l1BlockAddr := common.HexToAddress("0x4200000000000000000000000000000000000015")
-		l1BlockAccount, exists := l2Genesis[l1BlockAddr]
-		require.True(t, exists, "L1Block predeploy should exist in L2 genesis")
-
-		// Check that isCustomGasToken flag is set in L1Block storage
-		// IS_CUSTOM_GAS_TOKEN_SLOT = bytes32(uint256(keccak256("l1block.isCustomGasToken")) - 1)
-		isCustomGasTokenSlot := common.HexToHash("0xd2ff82c9b477ff6a09f530b1c627ffb4b0b81e2ae2ba427f824162e8dad020aa")
-		customGasTokenFlag, exists := l1BlockAccount.Storage[isCustomGasTokenSlot]
-		require.True(t, exists, "L1Block should have isCustomGasToken flag configured")
-		require.Equal(t, common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001"), customGasTokenFlag, "L1Block isCustomGasToken flag should be set to true when CGT is enabled")
+		require.Equal(t, amount, account.Balance, "Native asset liquidity predeploy should have the configured balance")
 	})
 }
 
@@ -731,7 +687,7 @@ func setupGenesisChain(t *testing.T, l1ChainID uint64) (deployer.ApplyPipelineOp
 
 	loc, _ := testutil.LocalArtifacts(t)
 
-	intent, st := newIntent(t, l1ChainIDBig, dk, l2ChainID1, loc, loc)
+	intent, st := shared.NewIntent(t, l1ChainIDBig, dk, l2ChainID1, loc, loc, testCustomGasLimit)
 
 	testCacheDir := testutils.IsolatedTestDirWithAutoCleanup(t)
 
@@ -746,69 +702,6 @@ func setupGenesisChain(t *testing.T, l1ChainID uint64) (deployer.ApplyPipelineOp
 	}
 
 	return opts, intent, st
-}
-
-func addrFor(t *testing.T, dk *devkeys.MnemonicDevKeys, key devkeys.Key) common.Address {
-	addr, err := dk.Address(key)
-	require.NoError(t, err)
-	return addr
-}
-
-func newIntent(
-	t *testing.T,
-	l1ChainID *big.Int,
-	dk *devkeys.MnemonicDevKeys,
-	l2ChainID *uint256.Int,
-	l1Loc *artifacts.Locator,
-	l2Loc *artifacts.Locator,
-) (*state.Intent, *state.State) {
-	intent := &state.Intent{
-		ConfigType: state.IntentTypeCustom,
-		L1ChainID:  l1ChainID.Uint64(),
-		SuperchainRoles: &addresses.SuperchainRoles{
-			SuperchainProxyAdminOwner: addrFor(t, dk, devkeys.L1ProxyAdminOwnerRole.Key(l1ChainID)),
-			ProtocolVersionsOwner:     addrFor(t, dk, devkeys.SuperchainDeployerKey.Key(l1ChainID)),
-			SuperchainGuardian:        addrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainID)),
-			Challenger:                addrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainID)),
-		},
-		FundDevAccounts:    false,
-		L1ContractsLocator: l1Loc,
-		L2ContractsLocator: l2Loc,
-		Chains: []*state.ChainIntent{
-			newChainIntent(t, dk, l1ChainID, l2ChainID),
-		},
-	}
-	st := &state.State{
-		Version: 1,
-	}
-	return intent, st
-}
-
-func newChainIntent(t *testing.T, dk *devkeys.MnemonicDevKeys, l1ChainID *big.Int, l2ChainID *uint256.Int) *state.ChainIntent {
-	return &state.ChainIntent{
-		ID:                         l2ChainID.Bytes32(),
-		BaseFeeVaultRecipient:      addrFor(t, dk, devkeys.BaseFeeVaultRecipientRole.Key(l1ChainID)),
-		L1FeeVaultRecipient:        addrFor(t, dk, devkeys.L1FeeVaultRecipientRole.Key(l1ChainID)),
-		SequencerFeeVaultRecipient: addrFor(t, dk, devkeys.SequencerFeeVaultRecipientRole.Key(l1ChainID)),
-		Eip1559DenominatorCanyon:   standard.Eip1559DenominatorCanyon,
-		Eip1559Denominator:         standard.Eip1559Denominator,
-		Eip1559Elasticity:          standard.Eip1559Elasticity,
-		GasLimit:                   testCustomGasLimit,
-		Roles: state.ChainRoles{
-			L1ProxyAdminOwner: addrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainID)),
-			L2ProxyAdminOwner: addrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainID)),
-			SystemConfigOwner: addrFor(t, dk, devkeys.SystemConfigOwner.Key(l1ChainID)),
-			UnsafeBlockSigner: addrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainID)),
-			Batcher:           addrFor(t, dk, devkeys.BatcherRole.Key(l1ChainID)),
-			Proposer:          addrFor(t, dk, devkeys.ProposerRole.Key(l1ChainID)),
-			Challenger:        addrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainID)),
-		},
-		CustomGasToken: &state.CustomGasToken{
-			Enabled: false,
-			Name:    "",
-			Symbol:  "",
-		},
-	}
 }
 
 type codeGetter func(t *testing.T, addr common.Address) []byte

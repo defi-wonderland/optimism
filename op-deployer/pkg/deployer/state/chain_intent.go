@@ -58,10 +58,10 @@ type L2DevGenesisParams struct {
 }
 
 type CustomGasToken struct {
-	Enabled                    bool         `json:"enabled" toml:"enabled"`
-	Name                       string       `json:"name,omitempty" toml:"name,omitempty"`
-	Symbol                     string       `json:"symbol,omitempty" toml:"symbol,omitempty"`
-	NativeAssetLiquidityAmount *hexutil.Big `json:"nativeAssetLiquidityAmount,omitempty" toml:"nativeAssetLiquidityAmount,omitempty"`
+	Enabled          bool         `json:"enabled" toml:"enabled"`
+	Name             string       `json:"name,omitempty" toml:"name,omitempty"`
+	Symbol           string       `json:"symbol,omitempty" toml:"symbol,omitempty"`
+	InitialLiquidity *hexutil.Big `json:"nativeAssetLiquidityAmount,omitempty" toml:"nativeAssetLiquidityAmount,omitempty"`
 }
 
 type ChainIntent struct {
@@ -81,7 +81,7 @@ type ChainIntent struct {
 	OperatorFeeConstant        uint64                    `json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
 	L1StartBlockHash           *common.Hash              `json:"l1StartBlockHash,omitempty" toml:"l1StartBlockHash,omitempty"`
 	MinBaseFee                 uint64                    `json:"minBaseFee,omitempty" toml:"minBaseFee,omitempty"`
-	CustomGasToken             *CustomGasToken           `json:"customGasToken" toml:"customGasToken"`
+	CustomGasToken             CustomGasToken            `json:"customGasToken" toml:"customGasToken"`
 	// Optional. For development purposes only. Only enabled if the operation mode targets a genesis-file output.
 	L2DevGenesisParams *L2DevGenesisParams `json:"l2DevGenesisParams,omitempty" toml:"l2DevGenesisParams,omitempty"`
 }
@@ -127,7 +127,7 @@ func (c *ChainIntent) Check() error {
 		return fmt.Errorf("%w: chainId=%s", ErrFeeVaultZeroAddress, c.ID)
 	}
 
-	if c.CustomGasToken != nil && c.CustomGasToken.Enabled {
+	if c.CustomGasToken.Enabled {
 		if c.CustomGasToken.Name == "" {
 			return fmt.Errorf("%w: CustomGasToken.Name cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
@@ -135,8 +135,8 @@ func (c *ChainIntent) Check() error {
 			return fmt.Errorf("%w: CustomGasToken.Symbol cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
 
-		if c.CustomGasToken.NativeAssetLiquidityAmount == nil {
-			return fmt.Errorf("%w: CustomGasToken.NativeAssetLiquidityAmount must be set when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		if c.CustomGasToken.InitialLiquidity == nil || c.CustomGasToken.InitialLiquidity.ToInt().Sign() < 0 {
+			return fmt.Errorf("%w: CustomGasToken.InitialLiquidity must be set and non-negative when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
 	}
 
@@ -147,11 +147,11 @@ func (c *ChainIntent) Check() error {
 	return nil
 }
 
-// GetNativeAssetLiquidityAmount returns the native asset liquidity amount for the chain.
+// GetInitialLiquidity returns the native asset liquidity amount for the chain.
 // If not set, returns the default value of zero.
-func (c *ChainIntent) GetNativeAssetLiquidityAmount() *big.Int {
-	if c.CustomGasToken != nil && c.CustomGasToken.NativeAssetLiquidityAmount != nil {
-		return c.CustomGasToken.NativeAssetLiquidityAmount.ToInt()
+func (c *ChainIntent) GetInitialLiquidity() *big.Int {
+	if c.CustomGasToken.InitialLiquidity != nil {
+		return c.CustomGasToken.InitialLiquidity.ToInt()
 	}
 
 	return (*hexutil.Big)(big.NewInt(0)).ToInt()

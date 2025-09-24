@@ -208,9 +208,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     error OptimismPortal_InvalidLockboxState();
 
     /// @notice Semantic version.
-    /// @custom:semver 5.1.1
+    /// @custom:semver 5.2.0
     function version() public pure virtual returns (string memory) {
-        return "5.1.1";
+        return "5.2.0";
     }
 
     /// @param _proofMaturityDelaySeconds The proof maturity delay in seconds.
@@ -236,6 +236,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         systemConfig = _systemConfig;
         anchorStateRegistry = _anchorStateRegistry;
 
+        // Assert that the lockbox state is valid.
+        _assertValidLockboxState();
+
         // Set the l2Sender slot, only if it is currently empty. This signals the first
         // initialization of the contract.
         if (l2Sender == address(0)) {
@@ -244,12 +247,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // Initialize the ResourceMetering contract.
         __ResourceMetering_init();
-    }
-
-    /// @notice Returns whether the custom gas token feature is enabled.
-    /// @return bool True if the custom gas token feature is enabled, false otherwise.
-    function isCustomGasToken() public view returns (bool) {
-        return _isUsingCustomGasToken();
     }
 
     /// @notice Getter for the current paused status.
@@ -355,8 +352,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         }
 
         // Cannot prove withdrawal with value when custom gas token mode is enabled.
-        if (_isInvalidCGTWithdrawal(_tx.value)) {
-            revert OptimismPortal_NotAllowedOnCGTMode();
+        if (_isUsingCustomGasToken()) {
+            if (_tx.value > 0) revert OptimismPortal_NotAllowedOnCGTMode();
         }
 
         // Fetch the dispute game proxy from the `DisputeGameFactory` contract.
@@ -450,14 +447,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // Cannot finalize withdrawal transactions while the system is paused.
         _assertNotPaused();
 
-        // Make sure that the target address is safe.
-        if (_isUnsafeTarget(_tx.target)) {
-            revert OptimismPortal_BadTarget();
-        }
-
         // Cannot finalize withdrawal with value when custom gas token mode is enabled.
-        if (_isInvalidCGTWithdrawal(_tx.value)) {
-            revert OptimismPortal_NotAllowedOnCGTMode();
+        if (_isUsingCustomGasToken()) {
+            if (_tx.value > 0) revert OptimismPortal_NotAllowedOnCGTMode();
         }
 
         // Make sure that the l2Sender has not yet been set. The l2Sender is set to a value other
@@ -465,6 +457,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // a defacto reentrancy guard.
         if (l2Sender != Constants.DEFAULT_L2_SENDER) {
             revert OptimismPortal_NoReentrancy();
+        }
+
+        // Make sure that the target address is safe.
+        if (_isUnsafeTarget(_tx.target)) {
+            revert OptimismPortal_BadTarget();
         }
 
         // Grab the withdrawal.
@@ -638,6 +635,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Checks if the Custom Gas Token feature is enabled.
     /// @return bool True if the Custom Gas Token feature is enabled.
     function _isUsingCustomGasToken() internal view returns (bool) {
+        // NOTE: Chains are not supposed to enable Custom Gas Token (CGT) mode after initial deployment.
+        //       Enabling CGT post-deployment is strongly discouraged and may lead to unexpected behavior.
         return systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN);
     }
 
@@ -662,14 +661,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     function _isUnsafeTarget(address _target) internal view virtual returns (bool) {
         // Prevent users from targeting an unsafe target address on a withdrawal transaction.
         return _target == address(this) || _target == address(ethLockbox);
-    }
-
-    /// @notice Checks if a withdrawal transaction is invalid due to CGT mode restrictions.
-    /// @param _value The value of the withdrawal transaction to validate.
-    /// @return Whether the transaction is invalid (has value when CGT mode is enabled).
-    function _isInvalidCGTWithdrawal(uint256 _value) internal view returns (bool) {
-        // Cannot process withdrawal with value when custom gas token mode is enabled.
-        return _isUsingCustomGasToken() && _value > 0;
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.

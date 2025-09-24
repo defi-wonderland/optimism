@@ -14,8 +14,14 @@ holocene:
 isthmus:
     @just acceptance-test "" isthmus
 
+jovian:
+    @just acceptance-test jovian jovian
+
 interop:
     @just acceptance-test "" interop
+
+cgt:
+    @just acceptance-test "" cgt
 
 
 # Run acceptance tests with mise-managed binary

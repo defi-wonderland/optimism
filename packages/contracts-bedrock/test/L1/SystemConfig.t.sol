@@ -11,6 +11,7 @@ import { ForgeArtifacts, StorageSlot } from "scripts/libraries/ForgeArtifacts.so
 import { Constants } from "src/libraries/Constants.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { Features } from "src/libraries/Features.sol";
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 // Interfaces
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
@@ -821,5 +822,41 @@ contract SystemConfig_SuperchainConfig_Test is SystemConfig_TestInit {
     /// @notice Tests that `superchainConfig()` returns the correct address.
     function test_superchainConfig_succeeds() external view {
         assertEq(address(systemConfig.superchainConfig()), address(superchainConfig));
+    }
+}
+
+/// @title SystemConfig_SetMinBaseFee_Test
+/// @notice Test contract for SystemConfig `setMinBaseFee` function.
+contract SystemConfig_SetMinBaseFee_Test is SystemConfig_TestInit {
+    /// @notice Tests that `setMinBaseFee` reverts if the caller is not the owner.
+    function test_setMinBaseFee_notOwner_reverts() external {
+        vm.expectRevert("Ownable: caller is not the owner");
+        systemConfig.setMinBaseFee(0);
+    }
+
+    /// @notice Tests that `setMinBaseFee` updates the min base fee successfully.
+    function testFuzz_setMinBaseFee_succeeds(uint64 newMinBaseFee) external {
+        vm.expectEmit(address(systemConfig));
+        emit ConfigUpdate(0, ISystemConfig.UpdateType.MIN_BASE_FEE, abi.encode(newMinBaseFee));
+
+        vm.prank(systemConfig.owner());
+        systemConfig.setMinBaseFee(newMinBaseFee);
+        assertEq(systemConfig.minBaseFee(), newMinBaseFee);
+    }
+}
+
+/// @title SystemConfig_IsCustomGasToken_Test
+/// @notice Test contract for SystemConfig `isCustomGasToken` function.
+contract SystemConfig_IsCustomGasToken_Test is SystemConfig_TestInit {
+    /// @notice Tests that `isCustomGasToken` returns the correct value.
+    function test_isCustomGasToken_enabled_succeeds() external {
+        skipIfDevFeatureDisabled(DevFeatures.CUSTOM_GAS_TOKEN);
+        assertTrue(systemConfig.isCustomGasToken());
+    }
+
+    /// @notice Tests that `isCustomGasToken` returns the correct value.
+    function test_isCustomGasToken_disabled_succeeds() external {
+        skipIfDevFeatureEnabled(DevFeatures.CUSTOM_GAS_TOKEN);
+        assertFalse(systemConfig.isCustomGasToken());
     }
 }
