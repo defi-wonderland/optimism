@@ -724,13 +724,10 @@ contract OptimismPortal2_Receive_Test is OptimismPortal2_TestInit {
         _value = bound(_value, 1, type(uint128).max);
         vm.deal(alice, _value);
 
-        address portal = address(optimismPortal2);
-
         vm.prank(alice);
         vm.expectRevert(IOptimismPortal.OptimismPortal_NotAllowedOnCGTMode.selector);
-        assembly {
-            pop(call(gas(), portal, _value, 0, 0, 0, 0))
-        }
+        (bool revertsAsExpected,) = address(optimismPortal2).call{ value: _value }(hex"");
+        assertTrue(revertsAsExpected, "expectRevert: call did not revert");
     }
 }
 
