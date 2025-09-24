@@ -10,7 +10,7 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     event Initialized(uint8 version);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
-    event MinDepositAmountUpdated(uint96 oldminDepositAmount, uint96 newminDepositAmount);
+    event MinDepositAmountUpdated(uint96 oldMinDepositAmount, uint96 newMinDepositAmount);
     event L2RecipientUpdated(address oldL2Recipient, address newL2Recipient);
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
     event DepositDataUpdated(bytes oldDepositData, bytes newDepositData);
@@ -29,10 +29,10 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     )
         external;
 
-    function setMinDepositAmount(uint96 _minDepositAmount) external;
-    function setL2Recipient(address _l2Recipient) external;
-    function setGasLimit(uint64 _gasLimit) external;
-    function setDepositData(bytes memory _depositData) external;
+    function setMinDepositAmount(uint96 _newMinDepositAmount) external;
+    function setL2Recipient(address _newL2Recipient) external;
+    function setGasLimit(uint64 _newGasLimit) external;
+    function setDepositData(bytes _newDepositData) external;
 
     receive() external payable;
 
