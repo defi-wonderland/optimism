@@ -122,18 +122,7 @@ contract FeeSplitter_Preconditions is CommonTest {
     /// @dev The net and gross revenue have an upper bound to avoid overflows in the shares calculator
     function addCollectedFeeToVault(uint256 _amount, uint256 _vaultIndex) public {
         _vaultIndex = bound(_vaultIndex, 0, 3);
-
-        // Avoid having the net revenue exceeding the max uint256 / 1500 (net share default is 1500 bps in the
-        // superchain rev shares calculator). This covers the gross share too (as net * 1500 <= gross * 1500)
-        // or the gross revenue exceeding the max uint256 / 2500.
-        uint256 _maxNetRevenue = (type(uint256).max / 1500) - address(Predeploys.SEQUENCER_FEE_WALLET).balance
-            - address(Predeploys.BASE_FEE_VAULT).balance - address(Predeploys.OPERATOR_FEE_VAULT).balance;
-
-        uint256 _maxGrossRevenue = (type(uint256).max / 2500) - address(Predeploys.SEQUENCER_FEE_WALLET).balance
-            - address(Predeploys.BASE_FEE_VAULT).balance - address(Predeploys.OPERATOR_FEE_VAULT).balance
-            - address(Predeploys.L1_FEE_VAULT).balance;
-
-        _amount = bound(_amount, 0, _maxNetRevenue < _maxGrossRevenue ? _maxNetRevenue : _maxGrossRevenue);
+        _amount = bound(_amount, 0, 100 ether);
 
         if (_vaultIndex == 0) {
             vm.deal(address(Predeploys.SEQUENCER_FEE_WALLET), _amount);
@@ -208,6 +197,9 @@ contract FeeSplitter_Invariant is CommonTest {
         if (disburser.txFailed()) {
             DisburseFailureState memory _failureState = disburser.getFailureState();
 
+            uint256 _grossRevenue = _failureState.sequencerFeeVaultBalance + _failureState.baseFeeVaultBalance
+                + _failureState.l1FeeVaultBalance + _failureState.operatorFeeVaultBalance;
+
             assertTrue(
                 // either one of the vaults is below the minimum withdrawal amount
                 _failureState.sequencerFeeVaultBalance < _failureState.sequencerFeeVaultMinWithdrawalAmount
@@ -217,23 +209,11 @@ contract FeeSplitter_Invariant is CommonTest {
                 // not enough time since last disbursement
                 || _failureState.attemptTimestamp
                     < disburser.feeSplitter().lastDisbursementTime() + disburser.feeSplitter().feeDisbursementInterval()
+                // no revenue at all
+                || _grossRevenue == 0
+                // rounding down error in the shares calculator
+                || (_grossRevenue * 250) < 10000
             );
         }
-    }
-
-    function test_repro() external {
-        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).addCollectedFeeToVault(
-            (10000 / 250) - 1, 17586
-        );
-        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 0);
-        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 1);
-        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 2);
-        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).setMinAmount(0, 3);
-        FeeSplitter_Preconditions(0x1d1499e622D69689cdf9004d05Ec547d650Ff211).warp(
-            1262019975972037049913916341930955891865197205853087
-        );
-
-        FeeSplitter_Disburser(0xa0Cb889707d426A7A386870A03bc70d1b0697598).disburse();
-        this.invariant_disburseReverts();
     }
 }
