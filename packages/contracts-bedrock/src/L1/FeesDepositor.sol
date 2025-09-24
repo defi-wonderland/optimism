@@ -114,6 +114,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     }
 
     /// @notice Updates the L2 recipient for the deposit transaction.
+    /// @dev The L2 recipient MUST be able to receive ether or FeesDepositor#receive will fail.
     /// @param _newL2Recipient The new L2 recipient.
     function setL2Recipient(address _newL2Recipient) external {
         _assertOnlyProxyAdminOwner();
