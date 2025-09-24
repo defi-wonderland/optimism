@@ -10,6 +10,7 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 
 /// @notice A struct to keep track of the state when a disburse call fails
 struct DisburseFailureState {
@@ -32,6 +33,8 @@ contract FeeSplitter_Disburser is StdUtils {
     /// @notice FeeSplitter contract
     IFeeSplitter public feeSplitter;
 
+    IL1Withdrawer public l1Withdrawer;
+
     /// @notice Flag to track if a disburseFees() call failed
     bool public txFailed;
 
@@ -41,9 +44,16 @@ contract FeeSplitter_Disburser is StdUtils {
     /// @notice Aggregate of the vault balances disbursed
     uint256 public ghost_grossRevenueDisbursed;
 
-    constructor(Vm _vm, IFeeSplitter _feeSplitter) {
+    /// @notice Keep track of the last aggregated fee disbursed
+    uint256 public ghost_lastDisbursementAmount;
+
+    /// @notice Keep track of the l1withdrawer should have withdrawn
+    bool public l1withdrawerShouldHaveWithdrawn;
+
+    constructor(Vm _vm, IFeeSplitter _feeSplitter, IL1Withdrawer _l1Withdrawer) {
         vm = _vm;
         feeSplitter = _feeSplitter;
+        l1Withdrawer = _l1Withdrawer;
     }
 
     /// @notice Get the failure state (convenience, to keep the struct)
@@ -56,14 +66,32 @@ contract FeeSplitter_Disburser is StdUtils {
     /// - success: update the overall amount disbursed (ie add the sum of the vaults balances before disbursement)
     /// - failure: update the failure state (all vault balances and the current timestamp)
     function disburse() public {
-        uint256 _aggregateVaultsBalances = address(Predeploys.SEQUENCER_FEE_WALLET).balance
-            + address(Predeploys.BASE_FEE_VAULT).balance + address(Predeploys.L1_FEE_VAULT).balance
-            + address(Predeploys.OPERATOR_FEE_VAULT).balance;
+        uint256 _sequencerFees = address(Predeploys.SEQUENCER_FEE_WALLET).balance;
+        uint256 _baseFees = address(Predeploys.BASE_FEE_VAULT).balance;
+        uint256 _l1Fees = address(Predeploys.L1_FEE_VAULT).balance;
+        uint256 _operatorFees = address(Predeploys.OPERATOR_FEE_VAULT).balance;
+        uint256 _aggregateVaultsBalances = _sequencerFees + _baseFees + _l1Fees + _operatorFees;
+
+        uint256 _l1withdrawerBalanceBeforeDisbursement = address(l1Withdrawer).balance;
 
         try feeSplitter.disburseFees() {
             // reset the fail flags
             txFailed = false;
             delete failureState;
+
+            // Check if the l1withdrawer should have been triggered and empty its balance
+            uint256 _amountToL1Withdrawer = feeSplitter.sharesCalculator().getRecipientsAndAmounts(
+                _sequencerFees, _baseFees, _operatorFees, _l1Fees
+            )[0].amount;
+
+            if (
+                _l1withdrawerBalanceBeforeDisbursement + _amountToL1Withdrawer
+                    >= IL1Withdrawer(payable(l1Withdrawer)).minWithdrawalAmount()
+            ) {
+                l1withdrawerShouldHaveWithdrawn = true;
+            } else {
+                l1withdrawerShouldHaveWithdrawn = false;
+            }
 
             ghost_grossRevenueDisbursed += _aggregateVaultsBalances;
         } catch {
@@ -156,7 +184,7 @@ contract FeeSplitter_Invariant is CommonTest {
         super.enableRevenueShare();
         super.setUp();
 
-        disburser = new FeeSplitter_Disburser(vm, feeSplitter);
+        disburser = new FeeSplitter_Disburser(vm, feeSplitter, l1Withdrawer);
         preconditions = new FeeSplitter_Preconditions();
 
         targetContract(address(disburser));
@@ -173,6 +201,13 @@ contract FeeSplitter_Invariant is CommonTest {
     /// @dev This invariant doesn't account for direct forced transfers (eg selfdestruct)
     function invariant_noDust() external view {
         assertEq(address(disburser.feeSplitter()).balance, 0);
+    }
+
+    /// @notice Invariant: The l1withdrawer should always transfer its whole balance if it reaches the threshold
+    function invariant_l1withdrawerWithdrawn() external view {
+        if (disburser.l1withdrawerShouldHaveWithdrawn()) {
+            assertEq(address(l1Withdrawer).balance, 0);
+        }
     }
 
     /// @notice Invariant: The total disbursed fees should always be equal to the sum of the vault balances before
