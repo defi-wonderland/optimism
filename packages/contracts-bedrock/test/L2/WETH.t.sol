@@ -34,6 +34,6 @@ contract WETH_Symbol_Test is CommonTest {
 
     /// @notice Tests that the `symbol` function returns 'WETH' by default.
     function test_symbol_ether_succeeds() external view {
-        assertEq("WETH", weth.symbol());
+        assertEq(string.concat("W", l1Block.gasPayingTokenSymbol()), weth.symbol());
     }
 }
