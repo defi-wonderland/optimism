@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
     
 /// @title ISharesCalculator
 /// @notice Interface for a contract that calculates the recipients and amounts for fee distribution.
-/// @dev Meant to be used by the FeeSplitter contract.
+/// @dev Meant to be called by the FeeSplitter contract.
 interface ISharesCalculator {
     /// @notice Struct to hold the recipient and amount for each fee share.
     /// @param recipient The address that will receive the fee share
