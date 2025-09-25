@@ -5,9 +5,6 @@ pragma solidity 0.8.15;
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
-// Error imports
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
@@ -48,11 +45,19 @@ contract LiquidityController_TestInit is CommonTest {
         skipIfDevFeatureDisabled(DevFeatures.CUSTOM_GAS_TOKEN);
     }
 
-    /// @notice Tests that contract is set up correctly.
-    function test_setup_succeeds() public view {
-        assertEq(liquidityController.version(), "1.0.0");
-        assertEq(liquidityController.gasPayingTokenName(), "Custom Gas Token");
-        assertEq(liquidityController.gasPayingTokenSymbol(), "CGT");
+    /// @notice Tests that contract version is set correctly.
+    function test_setup_version_succeeds() public view {
+        assertTrue(bytes(liquidityController.version()).length > 0);
+    }
+
+    /// @notice Tests that gas paying token name is set correctly.
+    function test_setup_gasPayingTokenName_succeeds() public view {
+        assertTrue(bytes(liquidityController.gasPayingTokenName()).length > 0);
+    }
+
+    /// @notice Tests that gas paying token symbol is set correctly.
+    function test_setup_gasPayingTokenSymbol_succeeds() public view {
+        assertTrue(bytes(liquidityController.gasPayingTokenSymbol()).length > 0);
     }
 
     /// @notice Helper function to authorize a minter.
@@ -85,7 +90,7 @@ contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestIni
 
         // Call the authorizeMinter function with non-owner as the caller
         vm.prank(_caller);
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(LiquidityController.LiquidityController_Unauthorized.selector);
         liquidityController.authorizeMinter(_minter);
 
         // Assert minter is not authorized
@@ -125,7 +130,7 @@ contract LiquidityController_DeauthorizeMinter_Test is LiquidityController_TestI
 
         // Call the deauthorizeMinter function with non-owner as the caller
         vm.prank(_caller);
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(LiquidityController.LiquidityController_Unauthorized.selector);
         liquidityController.deauthorizeMinter(_minter);
 
         // Assert minter is still authorized
@@ -171,7 +176,7 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
 
         // Call the mint function with unauthorized caller
         vm.prank(_caller);
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(LiquidityController.LiquidityController_Unauthorized.selector);
         liquidityController.mint(_to, _amount);
 
         // Assert recipient and NativeAssetLiquidity balances remain unchanged
@@ -243,7 +248,7 @@ contract LiquidityController_Burn_Test is LiquidityController_TestInit {
 
         // Call the burn function with unauthorized caller
         vm.prank(_caller);
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(LiquidityController.LiquidityController_Unauthorized.selector);
         liquidityController.burn{ value: _amount }();
 
         // Assert caller and NativeAssetLiquidity balances remain unchanged

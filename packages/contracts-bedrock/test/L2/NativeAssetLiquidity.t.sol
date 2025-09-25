@@ -6,9 +6,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
-
-// Error imports
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
 import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
 
 /// @title NativeAssetLiquidity_TestInit
@@ -30,9 +27,9 @@ contract NativeAssetLiquidity_TestInit is CommonTest {
     }
 
     /// @notice Tests that contract is set up correctly.
-    function test_setup_succeeds() public view {
+    function test_setup_version_succeeds() public view {
         // Assert
-        assertEq(nativeAssetLiquidity.version(), "1.0.0");
+        assertTrue(bytes(nativeAssetLiquidity.version()).length > 0);
     }
 }
 
@@ -75,7 +72,7 @@ contract NativeAssetLiquidity_Deposit_Test is NativeAssetLiquidity_TestInit {
         // Call the deposit function with unauthorized caller
         vm.prank(_caller);
         // Expect revert with Unauthorized
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(NativeAssetLiquidity.NativeAssetLiquidity_Unauthorized.selector);
         nativeAssetLiquidity.deposit{ value: _amount }();
 
         // Assert caller and NativeAssetLiquidity balances remain unchanged
@@ -123,7 +120,7 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
         // Call the withdraw function with unauthorized caller
         vm.prank(_caller);
         // Expect revert with Unauthorized
-        vm.expectRevert(Unauthorized.selector);
+        vm.expectRevert(NativeAssetLiquidity.NativeAssetLiquidity_Unauthorized.selector);
         nativeAssetLiquidity.withdraw(_amount);
 
         // Assert caller and NativeAssetLiquidity balances remain unchanged

@@ -10,9 +10,6 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
-// Errors
-import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
-
 /// @custom:predeploy 0x4200000000000000000000000000000000000029
 /// @title NativeAssetLiquidity
 /// @notice The NativeAssetLiquidity contract allows other contracts to access native asset liquidity
@@ -26,13 +23,16 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Error for when the contract has insufficient balance.
     error NativeAssetLiquidity_InsufficientBalance();
 
+    /// @notice Error for when the contract has insufficient balance.
+    error NativeAssetLiquidity_Unauthorized();
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
     /// @notice Allows an address to lock native asset liquidity into this contract.
     function deposit() external payable {
-        if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
+        if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert NativeAssetLiquidity_Unauthorized();
 
         emit LiquidityDeposited(msg.sender, msg.value);
     }
@@ -40,7 +40,7 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Allows an address to unlock native asset liquidity from this contract.
     /// @param _amount The amount of liquidity to unlock.
     function withdraw(uint256 _amount) external {
-        if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
+        if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert NativeAssetLiquidity_Unauthorized();
 
         if (_amount > address(this).balance) revert NativeAssetLiquidity_InsufficientBalance();
 
