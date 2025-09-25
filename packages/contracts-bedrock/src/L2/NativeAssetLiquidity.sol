@@ -23,7 +23,7 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Error for when the contract has insufficient balance.
     error NativeAssetLiquidity_InsufficientBalance();
 
-    /// @notice Error for when the contract has insufficient balance.
+    /// @notice Error for when an address is unauthorized to perform native asset liquidity operations
     error NativeAssetLiquidity_Unauthorized();
 
     /// @notice Semantic version.

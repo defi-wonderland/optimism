@@ -38,6 +38,7 @@ contract LiquidityController is ISemver, Initializable {
     /// @param amount The amount of liquidity that was burned
     event LiquidityBurned(address indexed minter, uint256 amount);
 
+    /// @notice Error for when an address is unauthorized to perform liquidity control operations
     error LiquidityController_Unauthorized();
 
     /// @notice Semantic version.

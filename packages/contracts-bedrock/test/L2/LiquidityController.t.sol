@@ -194,10 +194,9 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
 
         // Call the mint function with insufficient balance
         vm.prank(authorizedMinter);
-        vm.expectRevert(NativeAssetLiquidity.NativeAssetLiquidity_InsufficientBalance.selector); // Should revert due to
-            // insufficient
-            // balance in
-            // NativeAssetLiquidity
+        // Should revert due to insufficient balance in NativeAssetLiquidity
+        vm.expectRevert(NativeAssetLiquidity.NativeAssetLiquidity_InsufficientBalance.selector);
+
         liquidityController.mint(to, amount);
 
         // Assert recipient and NativeAssetLiquidity balances remain unchanged
