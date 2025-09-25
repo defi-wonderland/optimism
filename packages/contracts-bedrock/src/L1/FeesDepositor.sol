@@ -93,7 +93,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     }
 
     /// @notice Receives ETH and deposits it to the L2 recipient through the portal when the threshold is reached.
-    /// @dev Be aware that when the DepositTransaction is sent, the `from` address will be alias of this contract address.
+    /// @dev Be aware that when the DepositTransaction is sent, the `from` address will be the alias of this contract address.
     receive() external payable {
         uint256 balance = address(this).balance;
         emit FundsReceived(msg.sender, msg.value, balance);
