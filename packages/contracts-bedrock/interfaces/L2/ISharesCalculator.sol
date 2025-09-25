@@ -12,8 +12,8 @@ interface ISharesCalculator {
     }
 
     /// @notice Returns the recipients and amounts for fee distribution.
-    /// @dev Any implementation MUST use the entirety of the `_grossRevenue`
-    /// (calculated as the sum of all the vault balances) as it will revert otherwise
+    /// @dev Any implementation MUST return ShareInfo where the sum of all amounts equals
+    /// the total revenue (sum of all vault balances) as it will revert otherwise
     /// @param _sequencerFeeVaultBalance Balance of the sequencer fee vault.
     /// @param _baseFeeVaultBalance Balance of the base fee vault.
     /// @param _operatorFeeVaultBalance Balance of the operator fee vault.
