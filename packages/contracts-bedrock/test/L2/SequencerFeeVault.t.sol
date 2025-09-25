@@ -37,8 +37,8 @@ contract SequencerFeeVault_Constructor_Test is SequencerFeeVault_TestInit {
         assertEq(sequencerFeeVault.recipient(), recipient);
         assertEq(sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount());
         assertEq(sequencerFeeVault.minWithdrawalAmount(), deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount());
-        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L1));
-        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L1));
+        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), deploy.cfg().sequencerFeeVaultWithdrawalNetwork());
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), deploy.cfg().sequencerFeeVaultWithdrawalNetwork());
     }
 }
 
