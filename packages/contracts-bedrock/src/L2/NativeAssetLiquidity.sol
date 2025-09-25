@@ -23,6 +23,9 @@ contract NativeAssetLiquidity is ISemver {
     /// @notice Emitted when an address deposits native asset liquidity.
     event LiquidityDeposited(address indexed caller, uint256 value);
 
+    /// @notice Error for when the contract has insufficient balance.
+    error NativeAssetLiquidity_InsufficientBalance();
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -38,6 +41,8 @@ contract NativeAssetLiquidity is ISemver {
     /// @param _amount The amount of liquidity to unlock.
     function withdraw(uint256 _amount) external {
         if (msg.sender != Predeploys.LIQUIDITY_CONTROLLER) revert Unauthorized();
+
+        if (_amount > address(this).balance) revert NativeAssetLiquidity_InsufficientBalance();
 
         new SafeSend{ value: _amount }(payable(msg.sender));
 

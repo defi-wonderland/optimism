@@ -14,6 +14,7 @@ import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 // Contracts
 import { LiquidityController } from "src/L2/LiquidityController.sol";
+import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
 
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
@@ -188,7 +189,8 @@ contract LiquidityController_Mint_Test is LiquidityController_TestInit {
 
         // Call the mint function with insufficient balance
         vm.prank(authorizedMinter);
-        vm.expectRevert("NativeAssetLiquidity: insufficient balance"); // Should revert due to insufficient
+        vm.expectRevert(NativeAssetLiquidity.NativeAssetLiquidity_InsufficientBalance.selector); // Should revert due to
+            // insufficient
             // balance in
             // NativeAssetLiquidity
         liquidityController.mint(to, amount);

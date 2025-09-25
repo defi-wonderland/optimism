@@ -9,6 +9,7 @@ import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 // Error imports
 import { Unauthorized } from "src/libraries/errors/CommonErrors.sol";
+import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
 
 /// @title NativeAssetLiquidity_TestInit
 /// @notice Reusable test initialization for `NativeAssetLiquidity` tests.
@@ -138,8 +139,8 @@ contract NativeAssetLiquidity_Withdraw_Test is NativeAssetLiquidity_TestInit {
 
         // Call the withdraw function with insufficient balance
         vm.prank(address(liquidityController));
-        // Expect revert with OutOfFunds
-        vm.expectRevert("NativeAssetLiquidity: OutOfFunds");
+        // Expect revert with NativeAssetLiquidity_InsufficientBalance
+        vm.expectRevert(NativeAssetLiquidity.NativeAssetLiquidity_InsufficientBalance.selector);
         nativeAssetLiquidity.withdraw(amount);
 
         // Assert contract and controller balances remain unchanged
