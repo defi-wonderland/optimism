@@ -6,6 +6,8 @@ pragma solidity ^0.8.0;
 /// @dev Meant to be used by the FeeSplitter contract.
 interface ISharesCalculator {
     /// @notice Struct to hold the recipient and amount for each fee share.
+    /// @param recipient The address that will receive the fee share
+    /// @param amount The amount of ETH to be sent to the recipient
     struct ShareInfo {
         address payable recipient;
         uint256 amount;
