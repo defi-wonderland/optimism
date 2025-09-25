@@ -90,7 +90,7 @@ contract L1Withdrawer is ISemver {
 
     /// @notice Updates the recipient address. Only callable by the ProxyAdmin owner.
     /// @dev The recipient MUST be able to receive ether or L1Withdrawer#receive will fail
-    /// when a withdrawal is initiated.
+    /// when the withdrawal is finalized.
     /// @param _newRecipient The new recipient address.
     function setRecipient(address _newRecipient) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
