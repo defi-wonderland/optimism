@@ -163,7 +163,7 @@ contract FeeSplitter_Preconditions is CommonTest {
     }
 }
 /// @title Handler to set the call distribution bias for setMinAmount
-/// @notice This bias the distribution of calls to setMinAmount, favoring 80% of the calls to set the min amount to 0
+/// @notice This bias the distribution of calls to setMinAmount, favoring 75% of the calls to set the min amount to 0
 /// as it is the "vanilla" case.
 /// @dev See https://getfoundry.sh/forge/advanced-testing/invariant-testing#function-call-probability-distribution
 /// We favor this over a single wrapper with a seed to branch to keep distinct edges/selectors while using a corpus
