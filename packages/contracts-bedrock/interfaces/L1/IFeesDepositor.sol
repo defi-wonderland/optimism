@@ -13,26 +13,22 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     event MinDepositAmountUpdated(uint96 oldminDepositAmount, uint96 newminDepositAmount);
     event L2RecipientUpdated(address oldL2Recipient, address newL2Recipient);
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
-    event DepositDataUpdated(bytes oldDepositData, bytes newDepositData);
 
     function minDepositAmount() external view returns (uint96);
     function portal() external view returns (IOptimismPortal);
     function l2Recipient() external view returns (address);
     function gasLimit() external view returns (uint64);
-    function depositData() external view returns (bytes memory);
     function initialize(
         uint96 _minDepositAmount,
         address _l2Recipient,
         IOptimismPortal _portal,
-        uint64 _gasLimit,
-        bytes memory _depositData
+        uint64 _gasLimit
     )
         external;
 
     function setMinDepositAmount(uint96 _minDepositAmount) external;
     function setL2Recipient(address _l2Recipient) external;
     function setGasLimit(uint64 _gasLimit) external;
-    function setDepositData(bytes memory _depositData) external;
 
     receive() external payable;
 

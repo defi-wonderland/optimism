@@ -21,6 +21,7 @@ contract L1Withdrawer is ISemver {
     address public recipient;
 
     /// @notice The L1 gas limit set when initiating withdrawals.
+    /// @dev withdrawalGasLimit should be overestimated to account for expensive receive()
     uint96 public withdrawalGasLimit;
 
     /// @notice Emitted when a withdrawal to L1 is initiated.

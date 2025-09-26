@@ -23,9 +23,6 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @notice The gas limit for the deposit transaction.
     uint64 public gasLimit;
 
-    /// @notice The data for the deposit transaction.
-    bytes public depositData;
-
     /// @notice Emitted when fees are received.
     /// @param sender The sender of the fees.
     /// @param amount The amount of fees received.
@@ -52,11 +49,6 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @param newGasLimit The new gas limit.
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
 
-    /// @notice Emitted when the deposit data is updated.
-    /// @param oldDepositData The old deposit data.
-    /// @param newDepositData The new deposit data.
-    event DepositDataUpdated(bytes oldDepositData, bytes newDepositData);
-
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -71,13 +63,11 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     /// @param _l2Recipient The L2 recipient of the fees.
     /// @param _portal The portal contract.
     /// @param _gasLimit The gas limit for the deposit transaction.
-    /// @param _depositData The deposit data for the deposit transaction.
     function initialize(
         uint96 _minDepositAmount,
         address _l2Recipient,
         IOptimismPortal _portal,
-        uint64 _gasLimit,
-        bytes memory _depositData
+        uint64 _gasLimit
     )
         external
         reinitializer(initVersion())
@@ -89,7 +79,6 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
         minDepositAmount = _minDepositAmount;
         l2Recipient = _l2Recipient;
         gasLimit = _gasLimit;
-        depositData = _depositData;
     }
 
     /// @notice Receives ETH and deposits it to the L2 recipient through the portal when the threshold is reached.
@@ -99,7 +88,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
 
         if (balance >= minDepositAmount) {
             address recipient = l2Recipient;
-            portal.depositTransaction{ value: balance }(recipient, balance, gasLimit, false, depositData);
+            portal.depositTransaction{ value: balance }(recipient, balance, gasLimit, false, "");
             emit FeesDeposited(recipient, balance);
         }
     }
@@ -129,14 +118,5 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
         uint64 oldGasLimit = gasLimit;
         gasLimit = _gasLimit;
         emit GasLimitUpdated(oldGasLimit, _gasLimit);
-    }
-
-    /// @notice Updates the deposit data.
-    /// @param _depositData The new deposit data.
-    function setDepositData(bytes memory _depositData) external {
-        _assertOnlyProxyAdminOwner();
-        bytes memory oldDepositData = depositData;
-        depositData = _depositData;
-        emit DepositDataUpdated(oldDepositData, _depositData);
     }
 }
