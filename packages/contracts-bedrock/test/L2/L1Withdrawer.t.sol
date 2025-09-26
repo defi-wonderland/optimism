@@ -180,7 +180,8 @@ contract L1Withdrawer_SetWithdrawalGasLimit_Test is L1Withdrawer_TestInit {
     function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint96 _newWithdrawalGasLimit) external {
         address owner = proxyAdmin.owner();
 
-        _newWithdrawalGasLimit = uint96(bound(uint256(_newWithdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
+        _newWithdrawalGasLimit =
+            uint96(bound(uint256(_newWithdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
 
         vm.expectEmit(address(l1Withdrawer));
         emit WithdrawalGasLimitUpdated(withdrawalGasLimit, _newWithdrawalGasLimit);
