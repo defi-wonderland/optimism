@@ -182,7 +182,7 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
     ///      preventing potential issues with withdrawal gas limits. The limit includes buffer for
     ///      measurement overhead and future contract changes.
     function testFuzz_receive_gasUsageWithinLimit_succeeds(uint256 _amount) external {
-        _amount = bound(_amount, 0, type(uint256).max - address(feesDepositor).balance);
+        _amount = bound(_amount, 0, type(uint256).max - depositFeesRecipient.balance);
 
         vm.deal(address(this), _amount);
 
