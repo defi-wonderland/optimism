@@ -26,9 +26,9 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     )
         external;
 
-    function setMinDepositAmount(uint96 _minDepositAmount) external;
-    function setL2Recipient(address _l2Recipient) external;
-    function setGasLimit(uint64 _gasLimit) external;
+    function setMinDepositAmount(uint96 _newMinDepositAmount) external;
+    function setL2Recipient(address _newL2Recipient) external;
+    function setGasLimit(uint64 _newGasLimit) external;
 
     receive() external payable;
 
