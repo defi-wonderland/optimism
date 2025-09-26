@@ -177,7 +177,7 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
         );
     }
 
-    /// @notice Fuzz test to ensure receive function gas usage never exceeds 200,000 gas.
+    /// @notice Fuzz test to ensure receive function gas usage never exceeds 250,000 gas.
     /// @dev This test verifies the security requirement that receive() doesn't consume excessive gas,
     ///      preventing potential issues with withdrawal gas limits. The limit includes buffer for
     ///      measurement overhead and future contract changes.
@@ -189,7 +189,7 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
         uint256 gasUsed = gasBefore - gasleft();
 
         assertTrue(success, "Receive call should succeed");
-        assertLe(gasUsed, 200_000, "Receive function gas usage should not exceed 200,000 gas");
+        assertLe(gasUsed, 250_000, "Receive function gas usage should not exceed 250,000 gas");
     }
 }
 

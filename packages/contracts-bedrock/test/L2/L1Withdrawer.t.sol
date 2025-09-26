@@ -20,6 +20,8 @@ contract L1Withdrawer_TestInit is CommonTest {
     uint256 minWithdrawalAmount = 10 ether;
     uint96 withdrawalGasLimit = 300_000;
 
+    uint256 internal constant MIN_WITHDRAWAL_GAS_LIMIT = 250_000;
+
     /// @notice Test setup.
     function setUp() public virtual override {
         // Enable revenue sharing before calling parent setUp
@@ -178,6 +180,8 @@ contract L1Withdrawer_SetWithdrawalGasLimit_Test is L1Withdrawer_TestInit {
     function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint96 _newWithdrawalGasLimit) external {
         address owner = proxyAdmin.owner();
 
+        _newWithdrawalGasLimit = uint96(bound(uint256(_newWithdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
+
         vm.expectEmit(address(l1Withdrawer));
         emit WithdrawalGasLimitUpdated(withdrawalGasLimit, _newWithdrawalGasLimit);
 
@@ -191,12 +195,20 @@ contract L1Withdrawer_SetWithdrawalGasLimit_Test is L1Withdrawer_TestInit {
         address owner = proxyAdmin.owner();
         vm.assume(_caller != owner);
 
-        uint96 newWithdrawalGasLimit = 200_000;
+        uint96 newWithdrawalGasLimit = 250_000;
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
         l1Withdrawer.setWithdrawalGasLimit(newWithdrawalGasLimit);
 
         assertEq(l1Withdrawer.withdrawalGasLimit(), withdrawalGasLimit);
+    }
+
+    function testFuzz_setWithdrawalGasLimit_lowGasLimit_reverts(uint96 _newWithdrawalGasLimit) external {
+        _newWithdrawalGasLimit = uint96(bound(uint256(_newWithdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
+
+        vm.prank(proxyAdmin.owner());
+        vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
+        l1Withdrawer.setWithdrawalGasLimit(_newWithdrawalGasLimit);
     }
 }
