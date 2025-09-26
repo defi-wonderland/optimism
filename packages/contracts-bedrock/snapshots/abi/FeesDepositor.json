@@ -149,7 +149,7 @@
     "inputs": [
       {
         "internalType": "bytes",
-        "name": "_depositData",
+        "name": "_newDepositData",
         "type": "bytes"
       }
     ],
@@ -162,7 +162,7 @@
     "inputs": [
       {
         "internalType": "uint64",
-        "name": "_gasLimit",
+        "name": "_newGasLimit",
         "type": "uint64"
       }
     ],
@@ -175,7 +175,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_l2Recipient",
+        "name": "_newL2Recipient",
         "type": "address"
       }
     ],
@@ -188,7 +188,7 @@
     "inputs": [
       {
         "internalType": "uint96",
-        "name": "_minDepositAmount",
+        "name": "_newMinDepositAmount",
         "type": "uint96"
       }
     ],
@@ -330,13 +330,13 @@
       {
         "indexed": false,
         "internalType": "uint96",
-        "name": "oldminDepositAmount",
+        "name": "oldMinDepositAmount",
         "type": "uint96"
       },
       {
         "indexed": false,
         "internalType": "uint96",
-        "name": "newminDepositAmount",
+        "name": "newMinDepositAmount",
         "type": "uint96"
       }
     ],

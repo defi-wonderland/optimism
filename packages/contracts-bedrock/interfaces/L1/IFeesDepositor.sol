@@ -10,7 +10,7 @@ interface IFeesDepositor is ISemver, IProxyAdminOwnedBase, IReinitializableBase 
     event Initialized(uint8 version);
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event FeesDeposited(address indexed l2Recipient, uint256 amount);
-    event MinDepositAmountUpdated(uint96 oldminDepositAmount, uint96 newminDepositAmount);
+    event MinDepositAmountUpdated(uint96 oldMinDepositAmount, uint96 newMinDepositAmount);
     event L2RecipientUpdated(address oldL2Recipient, address newL2Recipient);
     event GasLimitUpdated(uint64 oldGasLimit, uint64 newGasLimit);
 
