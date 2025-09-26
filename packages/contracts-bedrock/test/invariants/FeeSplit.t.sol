@@ -121,7 +121,6 @@ contract FeeSplitter_Preconditions is CommonTest {
     /// @param _minAmount The seed of the min amount to withdraw from a vault
     /// @param _vaultIndex The seed of the vault's index to set the min amount to withdraw from
     function setMinAmount(uint256 _minAmount, uint256 _vaultIndex) public {
-        _minAmount = bound(_minAmount, 0, 10 ether);
         _vaultIndex = bound(_vaultIndex, 0, 3);
 
         vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
@@ -163,6 +162,36 @@ contract FeeSplitter_Preconditions is CommonTest {
         }
     }
 }
+/// @title Handler to set the call distribution bias for setMinAmount
+/// @notice This bias the distribution of calls to setMinAmount, favoring 80% of the calls to set the min amount to 0
+/// as it is the "vanilla" case.
+/// @dev See https://getfoundry.sh/forge/advanced-testing/invariant-testing#function-call-probability-distribution
+/// We favor this over a single wrapper with a seed to branch to keep distinct edges/selectors while using a corpus
+
+contract FeeSplitter_CallDistributionBias is FeeSplitter_Preconditions {
+    uint256 public amountZeroCalls;
+    uint256 public amountNotZeroCalls;
+
+    function setMinAmountZero1(uint256 _vaultIndex) public {
+        amountZeroCalls++;
+        setMinAmount(0, _vaultIndex);
+    }
+
+    function setMinAmountZero2(uint256 _vaultIndex) public {
+        amountZeroCalls++;
+        setMinAmount(0, _vaultIndex);
+    }
+
+    function setMinAmountZero3(uint256 _vaultIndex) public {
+        amountZeroCalls++;
+        setMinAmount(0, _vaultIndex);
+    }
+
+    function setMinAmountNotZero(uint256 _minAmount, uint256 _vaultIndex) public {
+        amountNotZeroCalls++;
+        setMinAmount(_minAmount, _vaultIndex);
+    }
+}
 
 /// @title Invariants for the FeeSplitter
 /// @notice The invariants tested are:
@@ -179,6 +208,9 @@ contract FeeSplitter_Invariant is CommonTest {
     /// @notice Handler to set test preconditions
     FeeSplitter_Preconditions public preconditions;
 
+    /// @notice Handler to set the call distribution bias
+    FeeSplitter_CallDistributionBias public callDistributionBias;
+
     /// @notice Setup: enable the revenue share, deploy handlers and target them.
     function setUp() public override {
         super.enableRevenueShare();
@@ -186,14 +218,22 @@ contract FeeSplitter_Invariant is CommonTest {
 
         disburser = new FeeSplitter_Disburser(vm, feeSplitter, l1Withdrawer);
         preconditions = new FeeSplitter_Preconditions();
+        callDistributionBias = new FeeSplitter_CallDistributionBias();
 
         targetContract(address(disburser));
 
+        targetContract(address(callDistributionBias));
+        bytes4[] memory selectors = new bytes4[](4);
+        selectors[0] = FeeSplitter_CallDistributionBias.setMinAmountZero1.selector;
+        selectors[1] = FeeSplitter_CallDistributionBias.setMinAmountZero2.selector;
+        selectors[2] = FeeSplitter_CallDistributionBias.setMinAmountZero3.selector;
+        selectors[3] = FeeSplitter_CallDistributionBias.setMinAmountNotZero.selector;
+        targetSelector(FuzzSelector({ addr: address(callDistributionBias), selectors: selectors }));
+
         targetContract(address(preconditions));
-        bytes4[] memory selectors = new bytes4[](3);
+        selectors = new bytes4[](2);
         selectors[0] = FeeSplitter_Preconditions.warp.selector;
         selectors[1] = FeeSplitter_Preconditions.addCollectedFeeToVault.selector;
-        selectors[2] = FeeSplitter_Preconditions.setMinAmount.selector;
         targetSelector(FuzzSelector({ addr: address(preconditions), selectors: selectors }));
     }
 
@@ -248,6 +288,20 @@ contract FeeSplitter_Invariant is CommonTest {
                 || _grossRevenue == 0
                 // rounding down error in the shares calculator
                 || (_grossRevenue * 250) < 10000
+            );
+        }
+    }
+
+    /// @notice After invariant: log the call distribution bias
+    /// @dev This could be an assertion, but only works significant with big calldepth (or keeping a counter accross all
+    /// runs, which needs a file to write to)
+    function afterInvariant() external {
+        uint256 _totalCalls = callDistributionBias.amountZeroCalls() + callDistributionBias.amountNotZeroCalls();
+
+        if (_totalCalls > 0) {
+            emit log_named_uint(
+                "% of calls setting the min amount to zero in this run: ",
+                callDistributionBias.amountZeroCalls() * 100 / _totalCalls
             );
         }
     }
