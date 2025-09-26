@@ -176,6 +176,21 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
             "depositFeesRecipient balance 2"
         );
     }
+
+    /// @notice Fuzz test to ensure receive function gas usage never exceeds 200,000 gas.
+    /// @dev This test verifies the security requirement that receive() doesn't consume excessive gas,
+    ///      preventing potential issues with withdrawal gas limits. The limit includes buffer for
+    ///      measurement overhead and future contract changes.
+    function testFuzz_receive_gasUsage_withinLimit_succeeds(uint256 _amount) external {
+        vm.deal(address(this), _amount);
+
+        uint256 gasBefore = gasleft();
+        (bool success,) = address(feesDepositor).call{ value: _amount }("");
+        uint256 gasUsed = gasBefore - gasleft();
+
+        assertTrue(success, "Receive call should succeed");
+        assertLe(gasUsed, 200_000, "Receive function gas usage should not exceed 200,000 gas");
+    }
 }
 
 /// @title FeesDepositor_SetMinDepositAmount_Test
