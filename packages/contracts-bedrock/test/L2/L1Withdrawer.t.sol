@@ -5,6 +5,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
 /// @title L1Withdrawer_TestInit
 /// @notice Base test contract with initialization for `L1Withdrawer` tests.
@@ -27,6 +28,43 @@ contract L1Withdrawer_TestInit is CommonTest {
         // Enable revenue sharing before calling parent setUp
         super.enableRevenueShare();
         super.setUp();
+    }
+}
+
+contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
+    function testFuzz_constructor_succeeds(uint256 _minWithdrawalAmount, address _recipient, uint96 _withdrawalGasLimit) external {
+        _withdrawalGasLimit = uint96(bound(uint256(_withdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
+
+        IL1Withdrawer withdrawer = IL1Withdrawer(
+            DeployUtils.create1({
+                _name: "L1Withdrawer",
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(
+                        IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit)
+                    )
+                )
+            })
+        );
+
+        assertEq(withdrawer.minWithdrawalAmount(), _minWithdrawalAmount);
+        assertEq(withdrawer.recipient(), _recipient);
+        assertEq(withdrawer.withdrawalGasLimit(), _withdrawalGasLimit);
+    }
+
+    function testFuzz_constructor_lowGasLimit_reverts(uint256 _minWithdrawalAmount, address _recipient, uint96 _withdrawalGasLimit) external {
+        _withdrawalGasLimit = uint96(bound(uint256(_withdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
+
+        vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
+        IL1Withdrawer(
+            DeployUtils.create1({
+                _name: "L1Withdrawer",
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(
+                        IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit)
+                    )
+                )
+            })
+        );
     }
 }
 
