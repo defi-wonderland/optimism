@@ -32,16 +32,20 @@ contract L1Withdrawer_TestInit is CommonTest {
 }
 
 contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
-    function testFuzz_constructor_succeeds(uint256 _minWithdrawalAmount, address _recipient, uint96 _withdrawalGasLimit) external {
+    function testFuzz_constructor_succeeds(
+        uint256 _minWithdrawalAmount,
+        address _recipient,
+        uint96 _withdrawalGasLimit
+    )
+        external
+    {
         _withdrawalGasLimit = uint96(bound(uint256(_withdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
 
         IL1Withdrawer withdrawer = IL1Withdrawer(
             DeployUtils.create1({
                 _name: "L1Withdrawer",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit)
-                    )
+                    abi.encodeCall(IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit))
                 )
             })
         );
@@ -51,7 +55,13 @@ contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
         assertEq(withdrawer.withdrawalGasLimit(), _withdrawalGasLimit);
     }
 
-    function testFuzz_constructor_lowGasLimit_reverts(uint256 _minWithdrawalAmount, address _recipient, uint96 _withdrawalGasLimit) external {
+    function testFuzz_constructor_lowGasLimit_reverts(
+        uint256 _minWithdrawalAmount,
+        address _recipient,
+        uint96 _withdrawalGasLimit
+    )
+        external
+    {
         _withdrawalGasLimit = uint96(bound(uint256(_withdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
@@ -59,9 +69,7 @@ contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
             DeployUtils.create1({
                 _name: "L1Withdrawer",
                 _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(
-                        IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit)
-                    )
+                    abi.encodeCall(IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit))
                 )
             })
         );
