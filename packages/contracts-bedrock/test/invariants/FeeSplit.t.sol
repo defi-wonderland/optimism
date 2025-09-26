@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity ^0.8.15;
 
 import { StdUtils } from "forge-std/StdUtils.sol";
 import { Vm } from "forge-std/Vm.sol";
@@ -11,6 +11,7 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 
 /// @notice A struct to keep track of the state when a disburse call fails
 struct DisburseFailureState {
@@ -23,6 +24,7 @@ struct DisburseFailureState {
     uint256 operatorFeeVaultBalance;
     uint256 operatorFeeVaultMinWithdrawalAmount;
     uint256 attemptTimestamp;
+    bytes reason;
 }
 
 /// @title Handler to call the disburseFees function
@@ -94,7 +96,7 @@ contract FeeSplitter_Disburser is StdUtils {
             }
 
             ghost_grossRevenueDisbursed += _aggregateVaultsBalances;
-        } catch {
+        } catch (bytes memory _reason) {
             // keep track of the failing state
             txFailed = true;
             failureState.sequencerFeeVaultBalance = address(Predeploys.SEQUENCER_FEE_WALLET).balance;
@@ -110,6 +112,7 @@ contract FeeSplitter_Disburser is StdUtils {
             failureState.operatorFeeVaultMinWithdrawalAmount =
                 IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount();
             failureState.attemptTimestamp = block.timestamp;
+            failureState.reason = _reason;
         }
     }
 }
@@ -275,20 +278,34 @@ contract FeeSplitter_Invariant is CommonTest {
             uint256 _grossRevenue = _failureState.sequencerFeeVaultBalance + _failureState.baseFeeVaultBalance
                 + _failureState.l1FeeVaultBalance + _failureState.operatorFeeVaultBalance;
 
-            assertTrue(
-                // either one of the vaults is below the minimum withdrawal amount
+            // either one of the vaults is below the minimum withdrawal amount
+            bool _vaultBelowMinimum = (
                 _failureState.sequencerFeeVaultBalance < _failureState.sequencerFeeVaultMinWithdrawalAmount
                     || _failureState.baseFeeVaultBalance < _failureState.baseFeeVaultMinWithdrawalAmount
                     || _failureState.l1FeeVaultBalance < _failureState.l1FeeVaultMinWithdrawalAmount
                     || _failureState.operatorFeeVaultBalance < _failureState.operatorFeeVaultMinWithdrawalAmount
-                // not enough time since last disbursement
-                || _failureState.attemptTimestamp
-                    < disburser.feeSplitter().lastDisbursementTime() + disburser.feeSplitter().feeDisbursementInterval()
-                // no revenue at all
-                || _grossRevenue == 0
-                // rounding down error in the shares calculator
-                || (_grossRevenue * 250) < 10000
-            );
+            )
+                && keccak256(_failureState.reason)
+                    == keccak256(
+                        abi.encodeWithSignature(
+                            "Error(string)", "FeeVault: withdrawal amount must be greater than minimum withdrawal amount"
+                        )
+                    );
+
+            // not enough time since last disbursement
+            bool _tooEarly = _failureState.attemptTimestamp
+                < disburser.feeSplitter().lastDisbursementTime() + disburser.feeSplitter().feeDisbursementInterval()
+                && bytes4(_failureState.reason) == IFeeSplitter.FeeSplitter_DisbursementIntervalNotReached.selector;
+
+            // no revenue at all
+            bool _noRevenue =
+                _grossRevenue == 0 && bytes4(_failureState.reason) == IFeeSplitter.FeeSplitter_NoFeesCollected.selector;
+
+            // rounding down error in the shares calculator
+            bool _noSharesCalculator = (_grossRevenue * 250) < 10000
+                && bytes4(_failureState.reason) == ISuperchainRevSharesCalculator.SharesCalculator_ZeroGrossShare.selector;
+
+            assertTrue(_vaultBelowMinimum || _tooEarly || _noRevenue || _noSharesCalculator);
         }
     }
 
