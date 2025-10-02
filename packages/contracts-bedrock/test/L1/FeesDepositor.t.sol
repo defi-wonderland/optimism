@@ -99,8 +99,7 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
     function testFuzz_receive_atOrAboveThreshold_succeeds(uint256 _sendAmount) external {
         // Handling the fork tests scenario case for the fork tests
         uint256 depositFeesRecipientBalanceBefore = depositFeesRecipient.balance;
-        // _sendAmount = bound(_sendAmount, minDepositAmount, type(uint256).max - depositFeesRecipientBalanceBefore);
-        _sendAmount = type(uint256).max - depositFeesRecipientBalanceBefore;
+        _sendAmount = bound(_sendAmount, minDepositAmount, type(uint256).max - depositFeesRecipientBalanceBefore);
 
         vm.deal(address(this), _sendAmount);
 
