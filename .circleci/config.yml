@@ -420,7 +420,7 @@ jobs:
   contracts-bedrock-build:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    resource_class: 2xlarge
     parameters:
       build_args:
         description: Forge build arguments
@@ -720,7 +720,7 @@ jobs:
     circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    resource_class: 2xlarge
     parameters:
       test_list:
         description: List of test files to run
@@ -1929,7 +1929,12 @@ workflows:
           dev_features: <<matrix.dev_features>>
           matrix:
             parameters:
-              dev_features: ["main", "OPTIMISM_PORTAL_INTEROP", "CANNON_KONA,DEPLOY_V2_DISPUTE_GAMES"]
+              dev_features:
+                [
+                  "main",
+                  "OPTIMISM_PORTAL_INTEROP",
+                  "CANNON_KONA,DEPLOY_V2_DISPUTE_GAMES",
+                ]
           # need this requires to ensure that all FFI JSONs exist
           requires:
             - contracts-bedrock-build
@@ -2547,7 +2552,14 @@ workflows:
             - cannon-prestate-quick
           matrix:
             parameters:
-              network_preset: ["op-sepolia", "base-sepolia", "unichain-sepolia", "op-mainnet", "base-mainnet"]
+              network_preset:
+                [
+                  "op-sepolia",
+                  "base-sepolia",
+                  "unichain-sepolia",
+                  "op-mainnet",
+                  "base-mainnet",
+                ]
               l2_cl_syncmode: ["consensus-layer", "execution-layer"]
 
   # Acceptance tests (post-merge to develop)
