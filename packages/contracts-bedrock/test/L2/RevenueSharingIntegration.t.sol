@@ -5,7 +5,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
-import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
+import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
 
@@ -182,12 +182,15 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 expectedTotalWithdrawal = expectedShare1 + expectedShare2; // 16.95 ETH
 
         // Expect L2→L1 withdrawal since 16.95 ETH > 10 ETH threshold
+        // L1Withdrawer now uses CrossDomainMessenger instead of L2ToL1MessagePasser directly
         vm.expectCall(
-            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
             expectedTotalWithdrawal,
-            abi.encodeCall(
-                IL2ToL1MessagePasser.initiateWithdrawal,
-                (l1Withdrawer.recipient(), l1Withdrawer.withdrawalGasLimit(), hex"")
+            abi.encodeWithSignature(
+                "sendMessage(address,bytes,uint32)",
+                l1Withdrawer.recipient(),
+                hex"",
+                l1Withdrawer.withdrawalGasLimit()
             )
         );
 
