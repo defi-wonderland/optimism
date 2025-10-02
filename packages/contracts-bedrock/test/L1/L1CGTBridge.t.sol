@@ -27,6 +27,10 @@ contract L1CGTBridge_TestInit is CommonTest {
 
     event CGTBridgeFinalized(address indexed from, address indexed to, uint256 amount);
 
+    event DepositsEnabledL1toL2Updated(bool enabled);
+
+    event FinalizeEnabledL2toL1Updated(bool enabled);
+
     L1CGTBridge internal l1CGTBridge;
     L2CGTBridge internal l2CGTBridge;
     ICrossDomainMessenger internal messenger;
@@ -81,6 +85,10 @@ contract L1CGTBridge_Initialize_Test is L1CGTBridge_TestInit {
         assertEq(address(l1CGTBridge.messenger()), address(messenger));
         assertEq(address(l1CGTBridge.l2CGTBridge()), address(l2CGTBridge));
         assertEq(address(l1CGTBridge.superchainConfig()), address(superchainConfig));
+
+        // Check that flags are initialized correctly
+        assertTrue(l1CGTBridge.depositsEnabledL1toL2());
+        assertTrue(l1CGTBridge.finalizeEnabledL2toL1());
     }
 
     /// @notice Tests that the contract cannot be initialized twice.
@@ -201,6 +209,18 @@ contract L1CGTBridge_BridgeCGT_Test is L1CGTBridge_TestInit {
         l1CGTBridge.bridgeCGT(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
         vm.stopPrank();
     }
+
+    /// @notice Tests that bridgeCGT reverts when deposits are disabled.
+    function test_bridgeCGT_whenDepositsDisabled_reverts() external {
+        // Disable deposits
+        vm.prank(alice);
+        l1CGTBridge.setDepositsEnabledL1toL2(false);
+
+        vm.expectRevert(L1CGTBridge.L1CGTBridge_DepositsDisabled.selector);
+        vm.startPrank(alice, alice);
+        l1CGTBridge.bridgeCGT(bob, BRIDGE_AMOUNT, MIN_GAS_LIMIT);
+        vm.stopPrank();
+    }
 }
 
 /// @title L1CGTBridge_FinalizeBridgeCGT_Test
@@ -278,5 +298,95 @@ contract L1CGTBridge_FinalizeBridgeCGT_Test is L1CGTBridge_TestInit {
         vm.expectRevert(L1CGTBridge.Paused.selector);
         vm.prank(address(messenger));
         l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
+    }
+
+    /// @notice Tests that finalizeBridgeCGT reverts when finalize is disabled.
+    function test_finalizeBridgeCGT_whenFinalizeDisabled_reverts() external {
+        // Disable finalize
+        vm.prank(alice);
+        l1CGTBridge.setFinalizeEnabledL2toL1(false);
+
+        // Mock the messenger to return the correct xDomainMessageSender
+        vm.mockCall(
+            address(messenger),
+            abi.encodeWithSelector(ICrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encode(address(l2CGTBridge))
+        );
+
+        vm.expectRevert(L1CGTBridge.L1CGTBridge_FinalizeDisabled.selector);
+        vm.prank(address(messenger));
+        l1CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
+    }
+}
+
+/// @title L1CGTBridge_SetDepositsEnabledL1toL2_Test
+/// @notice Tests for the `setDepositsEnabledL1toL2` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_SetDepositsEnabledL1toL2_Test is L1CGTBridge_TestInit {
+    /// @notice Tests that setDepositsEnabledL1toL2 succeeds when called by ProxyAdmin owner.
+    function test_setDepositsEnabledL1toL2_succeeds() external {
+        // Expect the event to be emitted
+        vm.expectEmit(address(l1CGTBridge));
+        emit DepositsEnabledL1toL2Updated(false);
+
+        // Set deposits to disabled
+        vm.prank(alice);
+        l1CGTBridge.setDepositsEnabledL1toL2(false);
+
+        // Check that the flag was updated
+        assertFalse(l1CGTBridge.depositsEnabledL1toL2());
+
+        // Expect the event to be emitted again
+        vm.expectEmit(address(l1CGTBridge));
+        emit DepositsEnabledL1toL2Updated(true);
+
+        // Set deposits back to enabled
+        vm.prank(alice);
+        l1CGTBridge.setDepositsEnabledL1toL2(true);
+
+        // Check that the flag was updated
+        assertTrue(l1CGTBridge.depositsEnabledL1toL2());
+    }
+
+    /// @notice Tests that setDepositsEnabledL1toL2 reverts when called by unauthorized account.
+    function test_setDepositsEnabledL1toL2_whenUnauthorized_reverts() external {
+        vm.expectRevert();
+        vm.prank(bob);
+        l1CGTBridge.setDepositsEnabledL1toL2(false);
+    }
+}
+
+/// @title L1CGTBridge_SetFinalizeEnabledL2toL1_Test
+/// @notice Tests for the `setFinalizeEnabledL2toL1` function of the `L1CGTBridge` contract.
+contract L1CGTBridge_SetFinalizeEnabledL2toL1_Test is L1CGTBridge_TestInit {
+    /// @notice Tests that setFinalizeEnabledL2toL1 succeeds when called by ProxyAdmin owner.
+    function test_setFinalizeEnabledL2toL1_succeeds() external {
+        // Expect the event to be emitted
+        vm.expectEmit(address(l1CGTBridge));
+        emit FinalizeEnabledL2toL1Updated(false);
+
+        // Set finalize to disabled
+        vm.prank(alice);
+        l1CGTBridge.setFinalizeEnabledL2toL1(false);
+
+        // Check that the flag was updated
+        assertFalse(l1CGTBridge.finalizeEnabledL2toL1());
+
+        // Expect the event to be emitted again
+        vm.expectEmit(address(l1CGTBridge));
+        emit FinalizeEnabledL2toL1Updated(true);
+
+        // Set finalize back to enabled
+        vm.prank(alice);
+        l1CGTBridge.setFinalizeEnabledL2toL1(true);
+
+        // Check that the flag was updated
+        assertTrue(l1CGTBridge.finalizeEnabledL2toL1());
+    }
+
+    /// @notice Tests that setFinalizeEnabledL2toL1 reverts when called by unauthorized account.
+    function test_setFinalizeEnabledL2toL1_whenUnauthorized_reverts() external {
+        vm.expectRevert();
+        vm.prank(bob);
+        l1CGTBridge.setFinalizeEnabledL2toL1(false);
     }
 }

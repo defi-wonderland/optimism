@@ -14,6 +14,20 @@ interface IL2CGTBridge {
     /// @notice Thrown when the recipient address is invalid.
     error InvalidRecipient();
 
+    /// @notice Thrown when withdrawals from L2 to L1 are disabled.
+    error L2CGTBridge_InitiateDisabled();
+
+    /// @notice Thrown when finalizing deposits from L1 to L2 is disabled.
+    error L2CGTBridge_FinalizeDisabled();
+
+    /// @notice Emitted when initiate enabled flag is updated.
+    /// @param enabled New state of the flag.
+    event InitiateEnabledL2toL1Updated(bool enabled);
+
+    /// @notice Emitted when finalize enabled flag is updated.
+    /// @param enabled New state of the flag.
+    event FinalizeEnabledL1toL2Updated(bool enabled);
+
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from   Address of the sender.
     /// @param to     Address of the receiver.
@@ -63,4 +77,22 @@ interface IL2CGTBridge {
     /// @notice Returns the address of the LiquidityController.
     /// @return Address of the LiquidityController contract.
     function liquidityController() external view returns (ILiquidityController);
+
+    /// @notice Returns the initiate enabled flag.
+    /// @return True if withdrawals from L2 to L1 are enabled.
+    function initiateEnabledL2toL1() external view returns (bool);
+
+    /// @notice Returns the finalize enabled flag.
+    /// @return True if finalizing deposits from L1 to L2 is enabled.
+    function finalizeEnabledL1toL2() external view returns (bool);
+
+    /// @notice Sets the initiate enabled flag.
+    /// @dev Only callable by ProxyAdmin or its owner.
+    /// @param _enabled New state of the initiate enabled flag.
+    function setInitiateEnabledL2toL1(bool _enabled) external;
+
+    /// @notice Sets the finalize enabled flag.
+    /// @dev Only callable by ProxyAdmin or its owner.
+    /// @param _enabled New state of the finalize enabled flag.
+    function setFinalizeEnabledL1toL2(bool _enabled) external;
 }

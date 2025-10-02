@@ -15,6 +15,20 @@ interface IL1CGTBridge {
     /// @notice Thrown when the function is called from a non-L2 CGT bridge.
     error OnlyL2CGTBridge();
 
+    /// @notice Thrown when deposits from L1 to L2 are disabled.
+    error L1CGTBridge_DepositsDisabled();
+
+    /// @notice Thrown when finalizing withdrawals from L2 to L1 is disabled.
+    error L1CGTBridge_FinalizeDisabled();
+
+    /// @notice Emitted when deposits enabled flag is updated.
+    /// @param enabled New state of the flag.
+    event DepositsEnabledL1toL2Updated(bool enabled);
+
+    /// @notice Emitted when finalize enabled flag is updated.
+    /// @param enabled New state of the flag.
+    event FinalizeEnabledL2toL1Updated(bool enabled);
+
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from   Address of the sender.
     /// @param to     Address of the receiver.
@@ -71,4 +85,22 @@ interface IL1CGTBridge {
     /// @notice Returns the address of the SuperchainConfig contract.
     /// @return Address of the SuperchainConfig contract.
     function superchainConfig() external view returns (ISuperchainConfig);
+
+    /// @notice Returns the deposits enabled flag.
+    /// @return True if deposits from L1 to L2 are enabled.
+    function depositsEnabledL1toL2() external view returns (bool);
+
+    /// @notice Returns the finalize enabled flag.
+    /// @return True if finalizing withdrawals from L2 to L1 is enabled.
+    function finalizeEnabledL2toL1() external view returns (bool);
+
+    /// @notice Sets the deposits enabled flag.
+    /// @dev Only callable by ProxyAdmin or its owner.
+    /// @param _enabled New state of the deposits enabled flag.
+    function setDepositsEnabledL1toL2(bool _enabled) external;
+
+    /// @notice Sets the finalize enabled flag.
+    /// @dev Only callable by ProxyAdmin or its owner.
+    /// @param _enabled New state of the finalize enabled flag.
+    function setFinalizeEnabledL2toL1(bool _enabled) external;
 }

@@ -41,14 +41,36 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @custom:network-specific
     ISuperchainConfig public superchainConfig;
 
+    /// @notice Flag to control if deposits from L1 to L2 are enabled.
+    /// @custom:network-specific
+    bool public depositsEnabledL1toL2;
+
+    /// @notice Flag to control if finalizing withdrawals from L2 to L1 is enabled.
+    /// @custom:network-specific
+    bool public finalizeEnabledL2toL1;
+
     /// @notice Reserve extra slots in the storage layout for future upgrades.
-    uint256[50] private __gap;
+    uint256[47] private __gap;
 
     /// @notice Thrown when the bridge is paused.
     error Paused();
 
     /// @notice Thrown when caller is not the authorized L2 CGT Bridge.
     error OnlyL2CGTBridge();
+
+    /// @notice Thrown when deposits from L1 to L2 are disabled.
+    error L1CGTBridge_DepositsDisabled();
+
+    /// @notice Thrown when finalizing withdrawals from L2 to L1 is disabled.
+    error L1CGTBridge_FinalizeDisabled();
+
+    /// @notice Emitted when deposits enabled flag is updated.
+    /// @param enabled New state of the flag.
+    event DepositsEnabledL1toL2Updated(bool enabled);
+
+    /// @notice Emitted when finalize enabled flag is updated.
+    /// @param enabled New state of the flag.
+    event FinalizeEnabledL2toL1Updated(bool enabled);
 
     /// @notice Emitted when a CGT bridge is initiated on this chain.
     /// @param from   Address of the sender.
@@ -94,6 +116,9 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
         superchainConfig = _superchainConfig;
         cgtToken = _cgtToken;
         l2CGTBridge = _l2CGTBridge;
+
+        depositsEnabledL1toL2 = true;
+        finalizeEnabledL2toL1 = true;
     }
 
     /// @notice Sends CGT tokens to a receiver's address on the other chain.
@@ -101,6 +126,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @param _amount      Amount of CGT tokens to bridge.
     /// @param _minGasLimit Minimum gas limit for the bridge.
     function bridgeCGT(address _to, uint256 _amount, uint32 _minGasLimit) external virtual {
+        if (!depositsEnabledL1toL2) revert L1CGTBridge_DepositsDisabled();
         if (superchainConfig.paused(address(this))) revert Paused();
 
         cgtToken.safeTransferFrom(msg.sender, address(this), _amount);
@@ -120,6 +146,7 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
     /// @param _to          Address of the receiver.
     /// @param _amount      Amount of the CGT being bridged.
     function finalizeBridgeCGT(address _from, address _to, uint256 _amount) external virtual {
+        if (!finalizeEnabledL2toL1) revert L1CGTBridge_FinalizeDisabled();
         if (superchainConfig.paused(address(this))) revert Paused();
 
         if (msg.sender != address(messenger) || messenger.xDomainMessageSender() != l2CGTBridge) {
@@ -129,5 +156,23 @@ contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable,
         cgtToken.safeTransfer(_to, _amount);
 
         emit CGTBridgeFinalized(_from, _to, _amount);
+    }
+
+    /// @notice Sets the deposits enabled flag.
+    /// @dev Only callable by ProxyAdmin or its owner.
+    /// @param _enabled New state of the deposits enabled flag.
+    function setDepositsEnabledL1toL2(bool _enabled) external {
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+        depositsEnabledL1toL2 = _enabled;
+        emit DepositsEnabledL1toL2Updated(_enabled);
+    }
+
+    /// @notice Sets the finalize enabled flag.
+    /// @dev Only callable by ProxyAdmin or its owner.
+    /// @param _enabled New state of the finalize enabled flag.
+    function setFinalizeEnabledL2toL1(bool _enabled) external {
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+        finalizeEnabledL2toL1 = _enabled;
+        emit FinalizeEnabledL2toL1Updated(_enabled);
     }
 }
