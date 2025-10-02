@@ -182,7 +182,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         uint256 expectedTotalWithdrawal = expectedShare1 + expectedShare2; // 16.95 ETH
 
         // Expect L2→L1 withdrawal since 16.95 ETH > 10 ETH threshold
-        // L1Withdrawer now uses CrossDomainMessenger instead of L2ToL1MessagePasser directly
         vm.expectCall(
             Predeploys.L2_CROSS_DOMAIN_MESSENGER,
             expectedTotalWithdrawal,
