@@ -19,8 +19,9 @@ contract L1Withdrawer_TestInit is CommonTest {
 
     // Test state
     uint256 minWithdrawalAmount = 10 ether;
+    uint32 withdrawalGasLimit = 1_000_000;
 
-    uint32 internal constant MIN_WITHDRAWAL_GAS_LIMIT = 300_000;
+    uint32 internal constant MIN_WITHDRAWAL_GAS_LIMIT = 800_000;
 
     /// @notice Test setup.
     function setUp() public virtual override {
@@ -52,26 +53,6 @@ contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
         assertEq(withdrawer.minWithdrawalAmount(), _minWithdrawalAmount);
         assertEq(withdrawer.recipient(), _recipient);
         assertEq(withdrawer.withdrawalGasLimit(), _withdrawalGasLimit);
-    }
-
-    function testFuzz_constructor_lowGasLimit_reverts(
-        uint256 _minWithdrawalAmount,
-        address _recipient,
-        uint32 _withdrawalGasLimit
-    )
-        external
-    {
-        _withdrawalGasLimit = uint32(bound(uint256(_withdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
-
-        vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
-        IL1Withdrawer(
-            DeployUtils.create1({
-                _name: "L1Withdrawer",
-                _args: DeployUtils.encodeConstructor(
-                    abi.encodeCall(IL1Withdrawer.__constructor__, (_minWithdrawalAmount, _recipient, _withdrawalGasLimit))
-                )
-            })
-        );
     }
 }
 
@@ -253,13 +234,5 @@ contract L1Withdrawer_SetWithdrawalGasLimit_Test is L1Withdrawer_TestInit {
         l1Withdrawer.setWithdrawalGasLimit(newWithdrawalGasLimit);
 
         assertEq(l1Withdrawer.withdrawalGasLimit(), l1Withdrawer.withdrawalGasLimit());
-    }
-
-    function testFuzz_setWithdrawalGasLimit_lowGasLimit_reverts(uint32 _newWithdrawalGasLimit) external {
-        _newWithdrawalGasLimit = uint32(bound(uint256(_newWithdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
-
-        vm.prank(proxyAdmin.owner());
-        vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
-        l1Withdrawer.setWithdrawalGasLimit(_newWithdrawalGasLimit);
     }
 }

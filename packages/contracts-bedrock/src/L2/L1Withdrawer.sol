@@ -14,12 +14,6 @@ contract L1Withdrawer is ISemver {
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error L1Withdrawer_OnlyProxyAdminOwner();
 
-    /// @notice Thrown when the withdrawal gas limit is too low.
-    error L1Withdrawer_WithdrawalGasLimitTooLow();
-
-    /// @notice Minimum gas limit for cross-domain message.
-    uint32 internal constant MIN_WITHDRAWAL_GAS = 300_000;
-
     /// @notice The minimum amount of ETH that must be accumulated before a withdrawal is initiated.
     uint256 public minWithdrawalAmount;
 
@@ -64,10 +58,8 @@ contract L1Withdrawer is ISemver {
     /// @param _minWithdrawalAmount The minimum amount of ETH required to trigger a withdrawal.
     /// @param _recipient The L1 address that will receive withdrawals.
     /// @param _withdrawalGasLimit The gas limit for the L1 withdrawal transaction.
+    /// @dev If target on L1 is `FeesDepositor`, the gas limit should be above 800k gas.
     constructor(uint256 _minWithdrawalAmount, address _recipient, uint32 _withdrawalGasLimit) {
-        if (_withdrawalGasLimit < MIN_WITHDRAWAL_GAS) {
-            revert L1Withdrawer_WithdrawalGasLimitTooLow();
-        }
         minWithdrawalAmount = _minWithdrawalAmount;
         recipient = _recipient;
         withdrawalGasLimit = _withdrawalGasLimit;
@@ -113,12 +105,10 @@ contract L1Withdrawer is ISemver {
 
     /// @notice Updates the withdrawal gas limit. Only callable by the ProxyAdmin owner.
     /// @param _newWithdrawalGasLimit The new withdrawal gas limit.
+    /// @dev If target on L1 is `FeesDepositor`, the gas limit should be above 800k gas.
     function setWithdrawalGasLimit(uint32 _newWithdrawalGasLimit) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert L1Withdrawer_OnlyProxyAdminOwner();
-        }
-        if (_newWithdrawalGasLimit < MIN_WITHDRAWAL_GAS) {
-            revert L1Withdrawer_WithdrawalGasLimitTooLow();
         }
         uint32 oldWithdrawalGasLimit = withdrawalGasLimit;
         withdrawalGasLimit = _newWithdrawalGasLimit;

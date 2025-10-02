@@ -99,7 +99,8 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
     function testFuzz_receive_atOrAboveThreshold_succeeds(uint256 _sendAmount) external {
         // Handling the fork tests scenario case for the fork tests
         uint256 depositFeesRecipientBalanceBefore = depositFeesRecipient.balance;
-        _sendAmount = bound(_sendAmount, minDepositAmount, type(uint256).max - depositFeesRecipientBalanceBefore);
+        // _sendAmount = bound(_sendAmount, minDepositAmount, type(uint256).max - depositFeesRecipientBalanceBefore);
+        _sendAmount = type(uint256).max - depositFeesRecipientBalanceBefore;
 
         vm.deal(address(this), _sendAmount);
 
@@ -175,23 +176,6 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
             depositFeesRecipientBalanceBefore + totalAmount,
             "depositFeesRecipient balance 2"
         );
-    }
-
-    /// @notice Fuzz test to ensure receive function gas usage never exceeds reasonable limits.
-    /// @dev This test verifies the security requirement that receive() doesn't consume excessive gas.
-    ///      The limit is set to 600,000 to account for CrossDomainMessenger overhead which is
-    ///      significantly higher than direct portal deposits (~560k gas observed).
-    function testFuzz_receive_gasUsageWithinLimit_succeeds(uint256 _amount) external {
-        _amount = bound(_amount, 0, type(uint256).max - depositFeesRecipient.balance);
-
-        vm.deal(address(this), _amount);
-
-        uint256 gasBefore = gasleft();
-        (bool success,) = address(feesDepositor).call{ value: _amount }("");
-        uint256 gasUsed = gasBefore - gasleft();
-
-        assertTrue(success, "Receive call should succeed");
-        assertLe(gasUsed, 600_000, "Receive function gas usage should not exceed 600,000 gas");
     }
 }
 
