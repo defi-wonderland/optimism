@@ -128,7 +128,7 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
         // First amount should not exceed minDepositAmount (so it doesn't trigger deposit)
         _firstAmount = bound(_firstAmount, 0, minDepositAmount - 1);
 
-        // First deposit (should not trigger portal deposit)
+        // First deposit (should not trigger deposit)
         vm.deal(address(this), _firstAmount);
 
         vm.expectEmit(address(feesDepositor));
@@ -150,7 +150,7 @@ contract FeesDepositor_Receive_Test is FeesDepositor_TestInit {
 
         uint256 totalAmount = _firstAmount + _secondAmount;
 
-        // Second deposit (will trigger portal deposit since total >= minDepositAmount)
+        // Second deposit (will trigger deposit since total >= minDepositAmount)
         vm.deal(address(this), _secondAmount);
 
         vm.expectEmit(address(feesDepositor));
