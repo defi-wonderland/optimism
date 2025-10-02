@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 // Contracts
 import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
 import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import { L2CGTBridge } from "src/L2/L2CGTBridge.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -22,7 +23,7 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 ///         to L2 where they are converted to native assets through the LiquidityController system.
 ///         This bridge escrows CGT tokens on L1 and triggers the minting of equivalent native
 ///         assets on L2.
-contract L1CGTBridge is ProxyAdminOwnedBase, ReinitializableBase, Initializable, ISemver {
+contract L1CGTBridge is ProxyAdminOwnedBase, Initializable, ReinitializableBase, ISemver {
     using SafeERC20 for IERC20;
 
     /// @notice Corresponding bridge on the other domain.

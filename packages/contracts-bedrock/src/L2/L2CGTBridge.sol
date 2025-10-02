@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.15;
 
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
 import { L1CGTBridge } from "src/L1/L1CGTBridge.sol";
+
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 /// @custom:proxied true
 /// @title L2CGTBridge
 /// @notice The L2CGTBridge handles bridging operations on L2, converting between native assets
 ///         and L1 ERC20 tokens through cross-chain messaging. It burns native assets when sending
 ///         to L1 and mints native assets when receiving from L1 via the LiquidityController.
-contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
+contract L2CGTBridge is Initializable, ISemver {
     /// @notice Address of the corresponding L1 CGT bridge.
     /// @custom:network-specific
     address public l1CGTBridge;
@@ -51,6 +54,9 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
 
     /// @notice Thrown when finalizing deposits from L1 to L2 is disabled.
     error L2CGTBridge_FinalizeDisabled();
+
+    /// @notice Thrown when the caller is unauthorized.
+    error L2CGTBridge_Unauthorized();
 
     /// @notice Emitted when initiate enabled flag is updated.
     /// @param enabled New state of the flag.
@@ -95,9 +101,6 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
         external
         initializer
     {
-        // Initialization transactions must come from the ProxyAdmin or its owner.
-        _assertOnlyProxyAdminOrProxyAdminOwner();
-
         messenger = _messenger;
         liquidityController = _liquidityController;
         l1CGTBridge = _l1CGTBridge;
@@ -148,7 +151,9 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
     /// @dev Only callable by ProxyAdmin or its owner.
     /// @param _enabled New state of the initiate enabled flag.
     function setInitiateEnabledL2toL1(bool _enabled) external {
-        _assertOnlyProxyAdminOrProxyAdminOwner();
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert L2CGTBridge_Unauthorized();
+        }
         initiateEnabledL2toL1 = _enabled;
         emit InitiateEnabledL2toL1Updated(_enabled);
     }
@@ -157,7 +162,9 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
     /// @dev Only callable by ProxyAdmin or its owner.
     /// @param _enabled New state of the finalize enabled flag.
     function setFinalizeEnabledL1toL2(bool _enabled) external {
-        _assertOnlyProxyAdminOrProxyAdminOwner();
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
+            revert L2CGTBridge_Unauthorized();
+        }
         finalizeEnabledL1toL2 = _enabled;
         emit FinalizeEnabledL1toL2Updated(_enabled);
     }
