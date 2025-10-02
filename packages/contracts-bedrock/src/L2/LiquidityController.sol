@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.15;
 
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import { SafeSend } from "src/universal/SafeSend.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -11,6 +10,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
+import { IMintingAuth } from "interfaces/L2/IMintingAuth.sol";
 
 /// @custom:proxied true
 /// @custom:predeploy 0x420000000000000000000000000000000000002A
@@ -92,15 +92,13 @@ contract LiquidityController is ISemver, Initializable {
     function mint(address _to, uint256 _amount) external {
         if (!minters[msg.sender]) revert LiquidityController_Unauthorized();
 
-        // Set transient storage to authorize this contract (address 0x2a) to call the precompile
-        assembly {
-            tstore(0, 1)
-        }
+        IMintingAuth(Predeploys.MINTING_AUTH).unlock();
 
         // Call the MintBurn precompile to mint tokens
-        // ABI: mint(address,uint256)
         (bool success,) = MINT_BURN_PRECOMPILE.call(abi.encodeWithSignature("mint(address,uint256)", _to, _amount));
         require(success, "MintBurn precompile call failed");
+
+        IMintingAuth(Predeploys.MINTING_AUTH).lock();
 
         emit LiquidityMinted(msg.sender, _to, _amount);
     }
@@ -109,16 +107,14 @@ contract LiquidityController is ISemver, Initializable {
     function burn() external payable {
         if (!minters[msg.sender]) revert LiquidityController_Unauthorized();
 
-        // Set transient storage to authorize this contract (address 0x2a) to call the precompile
-        assembly {
-            tstore(0, 1)
-        }
+        IMintingAuth(Predeploys.MINTING_AUTH).unlock();
 
         // Call the MintBurn precompile to burn tokens
-        // ABI: burn(address,uint256)
         (bool success,) =
             MINT_BURN_PRECOMPILE.call(abi.encodeWithSignature("burn(address,uint256)", address(this), msg.value));
         require(success, "MintBurn precompile call failed");
+
+        IMintingAuth(Predeploys.MINTING_AUTH).lock();
 
         emit LiquidityBurned(msg.sender, msg.value);
     }

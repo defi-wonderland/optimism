@@ -247,6 +247,7 @@ contract L2Genesis is Script {
         if (_input.useCustomGasToken) {
             setLiquidityController(_input); // 29
             setNativeAssetLiquidity(_input); // 2A
+            setMintingAuth(); // 2B
         }
     }
 
@@ -608,6 +609,12 @@ contract L2Genesis is Script {
 
         // Pre-fund the liquidity contract with the specified amount
         vm.deal(Predeploys.NATIVE_ASSET_LIQUIDITY, _input.nativeAssetLiquidityAmount);
+    }
+
+    /// @notice This predeploy is following the safety invariant #1.
+    ///         This contract has no initializer.
+    function setMintingAuth() internal {
+        _setImplementationCode(Predeploys.MINTING_AUTH);
     }
 
     /// @notice Sets all the preinstalls.

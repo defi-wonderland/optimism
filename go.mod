@@ -305,7 +305,7 @@ require (
 
 // replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101603.0-rc.1
 
-replace github.com/ethereum/go-ethereum => ../op-geth
+replace github.com/ethereum/go-ethereum => ../op-geth-personal/op-geth
 
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 // This release keeps breaking Go builds. Stop that.
