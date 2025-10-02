@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import { CommonTest } from "test/setup/CommonTest.sol";
-import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
@@ -15,13 +15,12 @@ contract L1Withdrawer_TestInit is CommonTest {
     event FundsReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event MinWithdrawalAmountUpdated(uint256 oldMinWithdrawalAmount, uint256 newMinWithdrawalAmount);
     event RecipientUpdated(address oldRecipient, address newRecipient);
-    event WithdrawalGasLimitUpdated(uint96 oldWithdrawalGasLimit, uint96 newWithdrawalGasLimit);
+    event WithdrawalGasLimitUpdated(uint32 oldWithdrawalGasLimit, uint32 newWithdrawalGasLimit);
 
     // Test state
     uint256 minWithdrawalAmount = 10 ether;
-    uint96 withdrawalGasLimit = 300_000;
 
-    uint256 internal constant MIN_WITHDRAWAL_GAS_LIMIT = 250_000;
+    uint32 internal constant MIN_WITHDRAWAL_GAS_LIMIT = 300_000;
 
     /// @notice Test setup.
     function setUp() public virtual override {
@@ -35,11 +34,11 @@ contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
     function testFuzz_constructor_succeeds(
         uint256 _minWithdrawalAmount,
         address _recipient,
-        uint96 _withdrawalGasLimit
+        uint32 _withdrawalGasLimit
     )
         external
     {
-        _withdrawalGasLimit = uint96(bound(uint256(_withdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
+        _withdrawalGasLimit = uint32(bound(uint256(_withdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint32).max));
 
         IL1Withdrawer withdrawer = IL1Withdrawer(
             DeployUtils.create1({
@@ -58,11 +57,11 @@ contract L1Withdrawer_Constructor_Test is L1Withdrawer_TestInit {
     function testFuzz_constructor_lowGasLimit_reverts(
         uint256 _minWithdrawalAmount,
         address _recipient,
-        uint96 _withdrawalGasLimit
+        uint32 _withdrawalGasLimit
     )
         external
     {
-        _withdrawalGasLimit = uint96(bound(uint256(_withdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
+        _withdrawalGasLimit = uint32(bound(uint256(_withdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
         IL1Withdrawer(
@@ -91,7 +90,7 @@ contract L1Withdrawer_Receive_Test is L1Withdrawer_TestInit {
 
         assertTrue(success);
         assertEq(address(l1Withdrawer).balance, _amount);
-        assertEq(address(Predeploys.L2_TO_L1_MESSAGE_PASSER).balance, 0);
+        assertEq(address(Predeploys.L2_CROSS_DOMAIN_MESSENGER).balance, 0);
     }
 
     function testFuzz_receive_atOrAboveThreshold_succeeds(uint256 _sendAmount) external {
@@ -106,15 +105,18 @@ contract L1Withdrawer_Receive_Test is L1Withdrawer_TestInit {
         emit WithdrawalInitiated(l1FeesDepositor, _sendAmount);
 
         vm.expectCall(
-            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
             _sendAmount,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (l1FeesDepositor, withdrawalGasLimit, hex""))
+            abi.encodeCall(
+                ICrossDomainMessenger.sendMessage, (l1FeesDepositor, hex"", l1Withdrawer.withdrawalGasLimit())
+            )
         );
 
         (bool success,) = address(l1Withdrawer).call{ value: _sendAmount }("");
 
         assertTrue(success);
         assertEq(address(l1Withdrawer).balance, 0);
+        // Note: CrossDomainMessenger forwards to L2ToL1MessagePasser, so balance goes there
         assertEq(address(Predeploys.L2_TO_L1_MESSAGE_PASSER).balance, _sendAmount);
     }
 
@@ -136,7 +138,7 @@ contract L1Withdrawer_Receive_Test is L1Withdrawer_TestInit {
         (bool success1,) = address(l1Withdrawer).call{ value: _firstAmount }("");
         assertTrue(success1);
         assertEq(address(l1Withdrawer).balance, _firstAmount);
-        assertEq(address(Predeploys.L2_TO_L1_MESSAGE_PASSER).balance, 0);
+        assertEq(address(Predeploys.L2_CROSS_DOMAIN_MESSENGER).balance, 0);
 
         // Second deposit (will trigger withdrawal since total >= minWithdrawalAmount)
         vm.deal(address(this), _secondAmount);
@@ -148,9 +150,11 @@ contract L1Withdrawer_Receive_Test is L1Withdrawer_TestInit {
         emit WithdrawalInitiated(l1FeesDepositor, totalAmount);
 
         vm.expectCall(
-            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
             totalAmount,
-            abi.encodeCall(IL2ToL1MessagePasser.initiateWithdrawal, (l1FeesDepositor, withdrawalGasLimit, hex""))
+            abi.encodeCall(
+                ICrossDomainMessenger.sendMessage, (l1FeesDepositor, hex"", l1Withdrawer.withdrawalGasLimit())
+            )
         );
 
         (bool success2,) = address(l1Withdrawer).call{ value: _secondAmount }("");
@@ -223,14 +227,14 @@ contract L1Withdrawer_SetRecipient_Test is L1Withdrawer_TestInit {
 /// @title L1Withdrawer_SetWithdrawalGasLimit_Test
 /// @notice Tests the setWithdrawalGasLimit function of the `L1Withdrawer` contract.
 contract L1Withdrawer_SetWithdrawalGasLimit_Test is L1Withdrawer_TestInit {
-    function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint96 _newWithdrawalGasLimit) external {
+    function testFuzz_setWithdrawalGasLimit_asOwner_succeeds(uint32 _newWithdrawalGasLimit) external {
         address owner = proxyAdmin.owner();
 
         _newWithdrawalGasLimit =
-            uint96(bound(uint256(_newWithdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint96).max));
+            uint32(bound(uint256(_newWithdrawalGasLimit), MIN_WITHDRAWAL_GAS_LIMIT, type(uint32).max));
 
         vm.expectEmit(address(l1Withdrawer));
-        emit WithdrawalGasLimitUpdated(withdrawalGasLimit, _newWithdrawalGasLimit);
+        emit WithdrawalGasLimitUpdated(l1Withdrawer.withdrawalGasLimit(), _newWithdrawalGasLimit);
 
         vm.prank(owner);
         l1Withdrawer.setWithdrawalGasLimit(_newWithdrawalGasLimit);
@@ -242,17 +246,17 @@ contract L1Withdrawer_SetWithdrawalGasLimit_Test is L1Withdrawer_TestInit {
         address owner = proxyAdmin.owner();
         vm.assume(_caller != owner);
 
-        uint96 newWithdrawalGasLimit = 250_000;
+        uint32 newWithdrawalGasLimit = 250_000;
 
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_OnlyProxyAdminOwner.selector);
         vm.prank(_caller);
         l1Withdrawer.setWithdrawalGasLimit(newWithdrawalGasLimit);
 
-        assertEq(l1Withdrawer.withdrawalGasLimit(), withdrawalGasLimit);
+        assertEq(l1Withdrawer.withdrawalGasLimit(), l1Withdrawer.withdrawalGasLimit());
     }
 
-    function testFuzz_setWithdrawalGasLimit_lowGasLimit_reverts(uint96 _newWithdrawalGasLimit) external {
-        _newWithdrawalGasLimit = uint96(bound(uint256(_newWithdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
+    function testFuzz_setWithdrawalGasLimit_lowGasLimit_reverts(uint32 _newWithdrawalGasLimit) external {
+        _newWithdrawalGasLimit = uint32(bound(uint256(_newWithdrawalGasLimit), 0, MIN_WITHDRAWAL_GAS_LIMIT - 1));
 
         vm.prank(proxyAdmin.owner());
         vm.expectRevert(IL1Withdrawer.L1Withdrawer_WithdrawalGasLimitTooLow.selector);
