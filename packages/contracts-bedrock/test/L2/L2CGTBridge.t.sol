@@ -17,7 +17,6 @@ import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Constants } from "src/libraries/Constants.sol";
 
 /// @title L2CGTBridge_TestInit
 /// @notice Reusable test initialization for `L2CGTBridge` tests.

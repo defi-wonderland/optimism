@@ -42,10 +42,24 @@
     "type": "contract ISuperchainConfig"
   },
   {
-    "bytes": "1600",
+    "bytes": "1",
+    "label": "depositsEnabledL1toL2",
+    "offset": 20,
+    "slot": "3",
+    "type": "bool"
+  },
+  {
+    "bytes": "1",
+    "label": "finalizeEnabledL2toL1",
+    "offset": 21,
+    "slot": "3",
+    "type": "bool"
+  },
+  {
+    "bytes": "1504",
     "label": "__gap",
     "offset": 0,
     "slot": "4",
-    "type": "uint256[50]"
+    "type": "uint256[47]"
   }
 ]

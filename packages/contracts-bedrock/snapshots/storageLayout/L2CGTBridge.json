@@ -35,10 +35,24 @@
     "type": "contract ICrossDomainMessenger"
   },
   {
-    "bytes": "1600",
+    "bytes": "1",
+    "label": "initiateEnabledL2toL1",
+    "offset": 20,
+    "slot": "2",
+    "type": "bool"
+  },
+  {
+    "bytes": "1",
+    "label": "finalizeEnabledL1toL2",
+    "offset": 21,
+    "slot": "2",
+    "type": "bool"
+  },
+  {
+    "bytes": "1504",
     "label": "__gap",
     "offset": 0,
     "slot": "3",
-    "type": "uint256[50]"
+    "type": "uint256[47]"
   }
 ]
