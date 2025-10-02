@@ -13,6 +13,11 @@ import { Proxy } from "src/universal/Proxy.sol";
 // Interfaces
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 /// @title L2CGTBridge_TestInit
 /// @notice Reusable test initialization for `L2CGTBridge` tests.
@@ -57,6 +62,10 @@ contract L2CGTBridge_TestInit is CommonTest {
         // Initialize the bridge
         vm.prank(alice);
         l2CGTBridge.initialize(messenger, mockLiquidityController, l1CGTBridge);
+
+        // Mock the ProxyAdmin predeploy to return alice as owner
+        // Predeploys.PROXY_ADMIN is a constant address, so we mock calls to it directly
+        vm.mockCall(Predeploys.PROXY_ADMIN, abi.encodeWithSelector(IProxyAdmin.owner.selector), abi.encode(alice));
 
         // Give alice some ETH for bridging
         vm.deal(alice, 1000 ether);
@@ -221,6 +230,32 @@ contract L2CGTBridge_BridgeCGT_Test is L2CGTBridge_TestInit {
         vm.prank(alice);
         l2CGTBridge.bridgeCGT{ value: BRIDGE_AMOUNT }(bob, MIN_GAS_LIMIT);
     }
+
+    /// @notice Tests that bridgeCGT works with zero value.
+    function test_bridgeCGT_withZeroValue_succeeds() external {
+        // Mock the mockLiquidityController.burn() call
+        vm.mockCall(address(mockLiquidityController), abi.encodeWithSignature("burn()"), "");
+
+        // Mock the messenger call
+        vm.mockCall(
+            address(messenger),
+            abi.encodeWithSelector(
+                ICrossDomainMessenger.sendMessage.selector,
+                address(l1CGTBridge),
+                abi.encodeWithSelector(L1CGTBridge.finalizeBridgeCGT.selector, alice, bob, 0),
+                MIN_GAS_LIMIT
+            ),
+            ""
+        );
+
+        // Expect the event to be emitted
+        vm.expectEmit(address(l2CGTBridge));
+        emit CGTBridgeInitiated(alice, bob, 0);
+
+        // Call bridgeCGT with zero value
+        vm.prank(alice);
+        l2CGTBridge.bridgeCGT{ value: 0 }(bob, MIN_GAS_LIMIT);
+    }
 }
 
 /// @title L2CGTBridge_FinalizeBridgeCGT_Test
@@ -317,6 +352,34 @@ contract L2CGTBridge_FinalizeBridgeCGT_Test is L2CGTBridge_TestInit {
         vm.prank(address(messenger));
         l2CGTBridge.finalizeBridgeCGT(alice, bob, BRIDGE_AMOUNT);
     }
+
+    /// @notice Tests that finalizeBridgeCGT reverts when recipient is the bridge itself.
+    function test_finalizeBridgeCGT_whenRecipientIsBridge_reverts() external {
+        // Mock the messenger to return the correct xDomainMessageSender
+        vm.mockCall(
+            address(messenger),
+            abi.encodeWithSelector(ICrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encode(l1CGTBridge)
+        );
+
+        vm.expectRevert(L2CGTBridge.InvalidRecipient.selector);
+        vm.prank(address(messenger));
+        l2CGTBridge.finalizeBridgeCGT(alice, address(l2CGTBridge), BRIDGE_AMOUNT);
+    }
+
+    /// @notice Tests that finalizeBridgeCGT reverts when recipient is the messenger.
+    function test_finalizeBridgeCGT_whenRecipientIsMessenger_reverts() external {
+        // Mock the messenger to return the correct xDomainMessageSender
+        vm.mockCall(
+            address(messenger),
+            abi.encodeWithSelector(ICrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encode(l1CGTBridge)
+        );
+
+        vm.expectRevert(L2CGTBridge.InvalidRecipient.selector);
+        vm.prank(address(messenger));
+        l2CGTBridge.finalizeBridgeCGT(alice, address(messenger), BRIDGE_AMOUNT);
+    }
 }
 
 /// @title L2CGTBridge_SetInitiateEnabledL2toL1_Test
@@ -349,7 +412,7 @@ contract L2CGTBridge_SetInitiateEnabledL2toL1_Test is L2CGTBridge_TestInit {
 
     /// @notice Tests that setInitiateEnabledL2toL1 reverts when called by unauthorized account.
     function test_setInitiateEnabledL2toL1_whenUnauthorized_reverts() external {
-        vm.expectRevert();
+        vm.expectRevert(L2CGTBridge.L2CGTBridge_Unauthorized.selector);
         vm.prank(bob);
         l2CGTBridge.setInitiateEnabledL2toL1(false);
     }
@@ -385,7 +448,7 @@ contract L2CGTBridge_SetFinalizeEnabledL1toL2_Test is L2CGTBridge_TestInit {
 
     /// @notice Tests that setFinalizeEnabledL1toL2 reverts when called by unauthorized account.
     function test_setFinalizeEnabledL1toL2_whenUnauthorized_reverts() external {
-        vm.expectRevert();
+        vm.expectRevert(L2CGTBridge.L2CGTBridge_Unauthorized.selector);
         vm.prank(bob);
         l2CGTBridge.setFinalizeEnabledL1toL2(false);
     }

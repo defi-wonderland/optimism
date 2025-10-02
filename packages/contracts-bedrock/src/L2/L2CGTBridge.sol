@@ -10,6 +10,10 @@ import { L1CGTBridge } from "src/L1/L1CGTBridge.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @custom:proxied true
 /// @title L2CGTBridge
@@ -42,6 +46,9 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
 
     /// @notice Thrown when the function is called from a non-L1 CGT bridge.
     error OnlyL1CGTBridge();
+
+    /// @notice Thrown when the caller is unauthorized.
+    error L2CGTBridge_Unauthorized();
 
     /// @notice Thrown when the recipient address is invalid.
     error InvalidRecipient();
@@ -148,7 +155,7 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
     /// @dev Only callable by ProxyAdmin or its owner.
     /// @param _enabled New state of the initiate enabled flag.
     function setInitiateEnabledL2toL1(bool _enabled) external {
-        _assertOnlyProxyAdminOrProxyAdminOwner();
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert L2CGTBridge_Unauthorized();
         initiateEnabledL2toL1 = _enabled;
         emit InitiateEnabledL2toL1Updated(_enabled);
     }
@@ -157,7 +164,7 @@ contract L2CGTBridge is Initializable, ProxyAdminOwnedBase, ISemver {
     /// @dev Only callable by ProxyAdmin or its owner.
     /// @param _enabled New state of the finalize enabled flag.
     function setFinalizeEnabledL1toL2(bool _enabled) external {
-        _assertOnlyProxyAdminOrProxyAdminOwner();
+        if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) revert L2CGTBridge_Unauthorized();
         finalizeEnabledL1toL2 = _enabled;
         emit FinalizeEnabledL1toL2Updated(_enabled);
     }
