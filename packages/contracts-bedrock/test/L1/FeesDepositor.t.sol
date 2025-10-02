@@ -51,7 +51,7 @@ contract FeesDepositor_TestInit is CommonTest {
         vm.prank(proxyAdminOwner);
         feesDepositor.initialize(minDepositAmount, l2Recipient, l1CrossDomainMessenger, gasLimit);
 
-        // Set depositFeesRecipient - now tracks where ETH ultimately goes through the messenger
+        // Set depositFeesRecipient
         depositFeesRecipient =
             systemConfig.isFeatureEnabled(Features.ETH_LOCKBOX) ? address(ethLockbox) : address(optimismPortal2);
     }
