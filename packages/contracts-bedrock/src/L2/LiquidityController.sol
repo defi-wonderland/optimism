@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.25;
 
 // Contracts
 import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
@@ -9,7 +9,6 @@ import { SafeSend } from "src/universal/SafeSend.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Interfaces
-import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
@@ -17,8 +16,11 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 /// @custom:predeploy 0x420000000000000000000000000000000000002A
 /// @title LiquidityController
 /// @notice The LiquidityController contract is responsible for controlling the liquidity of the native asset on the L2
-///         chain.
+///         chain. Uses the MintBurn precompile at address(0x42) for native asset minting/burning.
 contract LiquidityController is ISemver, Initializable {
+    /// @notice Address of the MintBurn precompile
+    address public constant MINT_BURN_PRECOMPILE = address(0x0101);
+
     /// @notice Emitted when an address is authorized to mint/burn liquidity
     /// @param minter The address that was authorized
     event MinterAuthorized(address indexed minter);
@@ -44,6 +46,8 @@ contract LiquidityController is ISemver, Initializable {
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
+
+    bool public authorized;
 
     /// @notice Mapping of addresses authorized to control liquidity operations
     mapping(address => bool) public minters;
@@ -87,10 +91,16 @@ contract LiquidityController is ISemver, Initializable {
     /// @param _amount The amount of native asset to mint and send
     function mint(address _to, uint256 _amount) external {
         if (!minters[msg.sender]) revert LiquidityController_Unauthorized();
-        INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).withdraw(_amount);
 
-        // This is a forced ETH send to the recipient, the recipient should NOT expect to be called
-        new SafeSend{ value: _amount }(payable(_to));
+        // Set transient storage to authorize this contract (address 0x2a) to call the precompile
+        assembly {
+            tstore(0, 1)
+        }
+
+        // Call the MintBurn precompile to mint tokens
+        // ABI: mint(address,uint256)
+        (bool success,) = MINT_BURN_PRECOMPILE.call(abi.encodeWithSignature("mint(address,uint256)", _to, _amount));
+        require(success, "MintBurn precompile call failed");
 
         emit LiquidityMinted(msg.sender, _to, _amount);
     }
@@ -98,7 +108,17 @@ contract LiquidityController is ISemver, Initializable {
     /// @notice Burns native asset liquidity by sending ETH to the contract
     function burn() external payable {
         if (!minters[msg.sender]) revert LiquidityController_Unauthorized();
-        INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY).deposit{ value: msg.value }();
+
+        // Set transient storage to authorize this contract (address 0x2a) to call the precompile
+        assembly {
+            tstore(0, 1)
+        }
+
+        // Call the MintBurn precompile to burn tokens
+        // ABI: burn(address,uint256)
+        (bool success,) =
+            MINT_BURN_PRECOMPILE.call(abi.encodeWithSignature("burn(address,uint256)", address(this), msg.value));
+        require(success, "MintBurn precompile call failed");
 
         emit LiquidityBurned(msg.sender, msg.value);
     }

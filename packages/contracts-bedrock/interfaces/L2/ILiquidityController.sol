@@ -13,6 +13,7 @@ interface ILiquidityController is ISemver {
     event LiquidityMinted(address indexed minter, address indexed to, uint256 amount);
     event LiquidityBurned(address indexed minter, uint256 amount);
 
+    function authorized() external view returns (bool);
     function authorizeMinter(address _minter) external;
     function deauthorizeMinter(address _minter) external;
     function mint(address _to, uint256 _amount) external;
@@ -20,6 +21,7 @@ interface ILiquidityController is ISemver {
     function minters(address) external view returns (bool);
     function gasPayingTokenName() external view returns (string memory);
     function gasPayingTokenSymbol() external view returns (string memory);
+    function MINT_BURN_PRECOMPILE() external view returns (address);
     function initialize(string memory _gasPayingTokenName, string memory _gasPayingTokenSymbol) external;
 
     function __constructor__() external;
