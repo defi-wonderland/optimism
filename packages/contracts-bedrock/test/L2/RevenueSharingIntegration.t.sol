@@ -5,9 +5,9 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
-import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 
 /// @title RevenueSharingIntegration_Test
 /// @notice Integration tests for the complete revenue sharing system including
@@ -186,11 +186,8 @@ contract RevenueSharingIntegration_Test is CommonTest {
         vm.expectCall(
             Predeploys.L2_CROSS_DOMAIN_MESSENGER,
             expectedTotalWithdrawal,
-            abi.encodeWithSignature(
-                "sendMessage(address,bytes,uint32)",
-                l1Withdrawer.recipient(),
-                hex"",
-                l1Withdrawer.withdrawalGasLimit()
+            abi.encodeCall(
+                ICrossDomainMessenger.sendMessage, (l1Withdrawer.recipient(), hex"", l1Withdrawer.withdrawalGasLimit())
             )
         );
 
