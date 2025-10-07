@@ -64,8 +64,12 @@
     "sourceCodeHash": "0x4351fe2ac1106c8c220b8cfe7839bc107c24d8084deb21259ac954f5a362725d"
   },
   "src/L2/L1Block.sol:L1Block": {
-    "initCodeHash": "0xc35734387887a95f611888f3944546c6bcf82fd4c05dcdaa1e019779b628ad68",
-    "sourceCodeHash": "0x6e5349fd781d5f0127ff29ccea4d86a80240550cfa322364183a0f629abcb43e"
+    "initCodeHash": "0x03285c88bf59fd17004489269134abf740d8111b9cb55a6c542a5dc27121d988",
+    "sourceCodeHash": "0x2cad0fa9b950c9306eb7a77622486ebc9aa2c2530a4c167c460819dba4dbaf9a"
+  },
+  "src/L2/L1BlockCGT.sol:L1BlockCGT": {
+    "initCodeHash": "0xeb84bcedc6491e79179a1629058b9f851ec3c4f903d3aced433ab5cf0e78af8f",
+    "sourceCodeHash": "0x74067550973930ddf9531f7722685c09cbe40d81ed3f5830cebabcd9b0d0ab94"
   },
   "src/L2/L1FeeVault.sol:L1FeeVault": {
     "initCodeHash": "0x9b664e3d84ad510091337b4aacaa494b142512e2f6f7fbcdb6210ed62ca9b885",
@@ -88,8 +92,12 @@
     "sourceCodeHash": "0xde724da82ecf3c96b330c2876a7285b6e2b933ac599241eaa3174c443ebbe33a"
   },
   "src/L2/L2ToL1MessagePasser.sol:L2ToL1MessagePasser": {
-    "initCodeHash": "0x88f7b25f956eceeab9ad84c17e66cded6a1acbb933054ac2c8b336641f70f875",
-    "sourceCodeHash": "0x83396cbd12a0c5c02e09a4d99c4b62ab4e9d9eb762745e63283e2e818a78a39c"
+    "initCodeHash": "0xff1caffe84cbae4b94285754885d00fa4e174efe7043258c56ba61825eedba7d",
+    "sourceCodeHash": "0xffa514767f63fae7566c65817bcc5fc6a72490af6bf7144d1aea53d3bf93a9e6"
+  },
+  "src/L2/L2ToL1MessagePasserCGT.sol:L2ToL1MessagePasserCGT": {
+    "initCodeHash": "0xae32e4209c231272d85be719a897be7ca83e71f51beb6e3598e58a325147b6d3",
+    "sourceCodeHash": "0x9fdd302a9d7c790018a56eafe4db1939b26c96f8806a243a4392cb6bad7ebc4d"
   },
   "src/L2/L2ToL2CrossDomainMessenger.sol:L2ToL2CrossDomainMessenger": {
     "initCodeHash": "0x975fd33a3a386310d54dbb01b56f3a6a8350f55a3b6bd7781e5ccc2166ddf2e6",

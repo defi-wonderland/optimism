@@ -1,4 +1,4 @@
-  # Test validation exclusions configuration
+# Test validation exclusions configuration
 # This file contains lists of paths and test names that should be excluded
 # from various validation checks in the test validation script.
 
@@ -77,11 +77,11 @@ contract_name_validation = [
 # - Fixing misspelled function names in test contracts
 # - Restructuring tests to match actual function signatures
 function_name_validation = [
-    "test/L1/ProxyAdminOwnedBase.t.sol",       # Tests internal functions not in ABI
-    "test/L1/SystemConfig.t.sol",              # Tests internal functions not in ABI
-    "test/safe/SafeSigners.t.sol",             # Function name validation issues
-    "test/libraries/Predeploys.t.sol",         # Function 'uncategorizedInterop' doesn't exist in library
-    "test/libraries/TransientContext.t.sol",   # Function 'reentrantAware' doesn't exist in library
+    "test/L1/ProxyAdminOwnedBase.t.sol",     # Tests internal functions not in ABI
+    "test/L1/SystemConfig.t.sol",            # Tests internal functions not in ABI
+    "test/safe/SafeSigners.t.sol",           # Function name validation issues
+    "test/libraries/Predeploys.t.sol",       # Function 'uncategorizedInterop' doesn't exist in library
+    "test/libraries/TransientContext.t.sol", # Function 'reentrantAware' doesn't exist in library
 ]
 
 [excluded_tests]
@@ -94,4 +94,6 @@ contracts = [
     "OptimismPortal2_UpgradeInterop_Test",      # Interop tests hosted in the OptimismPortal2 test file
     "TransactionBuilder",                       # Transaction builder helper library in TimelockGuard test file
     "Constants_Test",                           # Invalid naming pattern - doesn't specify function or Uncategorized
+    "L1Block_SetCustomGasToken_Test",           # Custom gas token tests hosted in the L1Block test file
+    "L1Block_Initialize_Test",                  # Custom gas token tests hosted in the L1Block test file
 ]

@@ -15,6 +15,7 @@ import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableE
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IGovernanceToken } from "interfaces/governance/IGovernanceToken.sol";
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
+import { IL1BlockCGT } from "interfaces/L2/IL1BlockCGT.sol";
 
 /// @title L2Genesis_TestInit
 /// @notice Reusable test initialization for `L2Genesis` tests.
@@ -23,12 +24,22 @@ contract L2Genesis_TestInit is Test {
 
     L2Genesis internal genesis;
 
-    function setUp() public {
+    function setUp() public virtual {
         genesis = new L2Genesis();
     }
 
     function testProxyAdmin() internal view {
+        // Verify owner in the proxy
         assertEq(input.opChainProxyAdminOwner, IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+
+        // Verify owner in the implementation to catch storage shifting issues
+        // The implementation is stored in the code namespace
+        address proxyAdminImpl = Predeploys.predeployToCodeNamespace(Predeploys.PROXY_ADMIN);
+        assertEq(
+            input.opChainProxyAdminOwner,
+            IProxyAdmin(proxyAdminImpl).owner(),
+            "ProxyAdmin implementation owner should match expected"
+        );
     }
 
     function testPredeploys() internal view {
@@ -81,7 +92,14 @@ contract L2Genesis_TestInit is Test {
 
     function testGovernance() internal view {
         IGovernanceToken token = IGovernanceToken(payable(Predeploys.GOVERNANCE_TOKEN));
+
+        // Verify owner (existing check)
         assertEq(token.owner(), input.governanceTokenOwner);
+
+        // Verify name and symbol to catch storage shifting issues
+        // These should match the values hardcoded in GovernanceToken constructor
+        assertEq(token.name(), "Optimism", "GovernanceToken name should be 'Optimism'");
+        assertEq(token.symbol(), "OP", "GovernanceToken symbol should be 'OP'");
     }
 
     function testFactories() internal view {
@@ -102,12 +120,22 @@ contract L2Genesis_TestInit is Test {
         assertEq(gasPriceOracle.isFjord(), true);
         assertEq(gasPriceOracle.isIsthmus(), true);
     }
+
+    function testCGT() internal view {
+        // Test LiquidityController deployment
+        IL1BlockCGT l1BlockCGT = IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES);
+        assertEq(l1BlockCGT.gasPayingTokenName(), input.gasPayingTokenName);
+        assertEq(l1BlockCGT.gasPayingTokenSymbol(), input.gasPayingTokenSymbol);
+        assertEq(l1BlockCGT.isCustomGasToken(), input.useCustomGasToken);
+    }
 }
 
 /// @title L2Genesis_Run_Test
 /// @notice Tests the `run` function of the `L2Genesis` contract.
 contract L2Genesis_Run_Test is L2Genesis_TestInit {
-    function test_run_succeeds() external {
+    function setUp() public override {
+        super.setUp();
+        // Set up default input configuration
         input = L2Genesis.Input({
             l1ChainID: 1,
             l2ChainID: 2,
@@ -128,8 +156,14 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             fork: uint256(LATEST_FORK),
             deployCrossL2Inbox: true,
             enableGovernance: true,
-            fundDevAccounts: true
+            fundDevAccounts: true,
+            useCustomGasToken: false,
+            gasPayingTokenName: "",
+            gasPayingTokenSymbol: ""
         });
+    }
+
+    function test_run_succeeds() external {
         genesis.run(input);
 
         testProxyAdmin();
@@ -138,5 +172,51 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
         testGovernance();
         testFactories();
         testForks();
+    }
+
+    /// @notice Helper function to configure input for CGT enabled tests.
+    function _setInputCGTEnabled() internal {
+        input.useCustomGasToken = true;
+        input.gasPayingTokenName = "Custom Gas Token";
+        input.gasPayingTokenSymbol = "CGT";
+    }
+
+    /// @notice Tests that the run function succeeds when CGT is enabled.
+    /// @dev Tests that LiquidityController and NativeAssetLiquidity are deployed.
+    function test_run_cgt_succeeds() external {
+        _setInputCGTEnabled();
+        genesis.run(input);
+
+        testProxyAdmin();
+        testPredeploys();
+        testVaults();
+        testGovernance();
+        testFactories();
+        testForks();
+        testCGT();
+    }
+
+    /// @notice Tests that the run function reverts when CGT is enabled and sequencerFeeVault withdrawal network is L1.
+    function test_cgt_sequencerVault_reverts() external {
+        _setInputCGTEnabled();
+        input.sequencerFeeVaultWithdrawalNetwork = 0;
+        vm.expectRevert("SequencerFeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        genesis.run(input);
+    }
+
+    /// @notice Tests that the run function reverts when CGT is enabled and baseFeeVault withdrawal network is L1.
+    function test_cgt_baseFeeVault_reverts() external {
+        _setInputCGTEnabled();
+        input.baseFeeVaultWithdrawalNetwork = 0;
+        vm.expectRevert("BaseFeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        genesis.run(input);
+    }
+
+    /// @notice Tests that the run function reverts when CGT is enabled and l1FeeVault withdrawal network is L1.
+    function test_cgt_l1FeeVault_reverts() external {
+        _setInputCGTEnabled();
+        input.l1FeeVaultWithdrawalNetwork = 0;
+        vm.expectRevert("L1FeeVault: withdrawalNetwork type cannot be L1 when custom gas token is enabled");
+        genesis.run(input);
     }
 }

@@ -9,6 +9,7 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ForgeArtifacts } from "scripts/libraries/ForgeArtifacts.sol";
 import { Fork } from "scripts/libraries/Config.sol";
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 /// @title Predeploys_TestInit
 /// @notice Reusable test initialization for `Predeploys` tests.
@@ -21,6 +22,12 @@ contract Predeploys_TestInit is CommonTest {
     ///         interop mode.
     function _interopCodeDiffer(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.L1_BLOCK_ATTRIBUTES || _addr == Predeploys.L2_STANDARD_BRIDGE;
+    }
+
+    /// @notice Returns true if the address is a predeploy that has a different code in the
+    ///         custom gas token mode.
+    function _customGasTokenCodeDiffer(address _addr) internal pure returns (bool) {
+        return _addr == Predeploys.L1_BLOCK_ATTRIBUTES || _addr == Predeploys.L2_TO_L1_MESSAGE_PASSER;
     }
 
     /// @notice Returns true if the account is not meant to be in the L2 genesis anymore.
@@ -93,7 +100,7 @@ contract Predeploys_TestInit is CommonTest {
                 string.concat("Implementation mismatch for ", vm.toString(addr))
             );
             assertNotEq(implAddr.code.length, 0, "predeploy implementation account must have code");
-            if (!_usesImmutables(addr) && !_interopCodeDiffer(addr)) {
+            if (!_usesImmutables(addr) && !_interopCodeDiffer(addr) && !_customGasTokenCodeDiffer(addr)) {
                 // can't check bytecode if it's modified with immutables in genesis.
                 assertEq(implAddr.code, supposedCode, "proxy implementation contract should match contract source");
             }
@@ -133,6 +140,13 @@ contract Predeploys_Uncategorized_Test is Predeploys_TestInit {
     /// @notice Tests that the predeploy addresses are set correctly. They have code
     ///         and the proxied accounts have the correct admin.
     function test_predeploys_succeeds() external {
+        _test_predeploys(Fork.ISTHMUS, false);
+    }
+
+    /// @notice Tests that the predeploy addresses are set correctly. They have code
+    ///         and the proxied accounts have the correct admin. Using custom gas token.
+    function test_predeploys_customGasToken_succeeds() external {
+        skipIfDevFeatureDisabled(DevFeatures.CUSTOM_GAS_TOKEN);
         _test_predeploys(Fork.ISTHMUS, false);
     }
 }

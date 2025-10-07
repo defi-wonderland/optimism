@@ -334,7 +334,10 @@ contract Setup is FeatureFlags {
                 fork: uint256(l2Fork),
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
-                fundDevAccounts: deploy.cfg().fundDevAccounts()
+                fundDevAccounts: deploy.cfg().fundDevAccounts(),
+                useCustomGasToken: deploy.cfg().useCustomGasToken(),
+                gasPayingTokenName: deploy.cfg().gasPayingTokenName(),
+                gasPayingTokenSymbol: deploy.cfg().gasPayingTokenSymbol()
             })
         );
 
