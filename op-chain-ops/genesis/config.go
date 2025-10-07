@@ -277,16 +277,24 @@ type GasTokenDeployConfig struct {
 	UseCustomGasToken bool `json:"useCustomGasToken"`
 	// CustomGasTokenAddress is the address of the ERC20 token to be used to pay for gas on L2.
 	CustomGasTokenAddress common.Address `json:"customGasTokenAddress"`
+	// GasPayingTokenName represents the custom gas token name.
+	GasPayingTokenName string `json:"gasPayingTokenName"`
+	// GasPayingTokenSymbol represents the custom gas token symbol.
+	GasPayingTokenSymbol string `json:"gasPayingTokenSymbol"`
 }
 
 var _ ConfigChecker = (*GasTokenDeployConfig)(nil)
 
 func (d *GasTokenDeployConfig) Check(log log.Logger) error {
 	if d.UseCustomGasToken {
-		if d.CustomGasTokenAddress == (common.Address{}) {
-			return fmt.Errorf("%w: CustomGasTokenAddress cannot be address(0)", ErrInvalidDeployConfig)
+		if d.GasPayingTokenName == "" {
+			return fmt.Errorf("%w: GasPayingTokenName cannot be empty", ErrInvalidDeployConfig)
 		}
-		log.Info("Using custom gas token", "address", d.CustomGasTokenAddress)
+		if d.GasPayingTokenSymbol == "" {
+			return fmt.Errorf("%w: GasPayingTokenSymbol cannot be empty", ErrInvalidDeployConfig)
+		}
+
+		log.Info("Using custom gas token", "name", d.GasPayingTokenName, "symbol", d.GasPayingTokenSymbol)
 	}
 	return nil
 }

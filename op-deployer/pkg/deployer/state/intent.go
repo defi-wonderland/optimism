@@ -158,6 +158,9 @@ func (c *Intent) validateStandardValues() error {
 		if err := chain.Check(); err != nil {
 			return err
 		}
+		if chain.CustomGasToken.Enabled {
+			return fmt.Errorf("%w: chainId=%s custom gas token must be disabled for standard chains", ErrNonStandardValue, chain.ID)
+		}
 		if chain.Eip1559DenominatorCanyon != standard.Eip1559DenominatorCanyon ||
 			chain.Eip1559Denominator != standard.Eip1559Denominator ||
 			chain.Eip1559Elasticity != standard.Eip1559Elasticity {
@@ -310,6 +313,11 @@ func NewIntentCustom(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, error)
 		intent.Chains = append(intent.Chains, &ChainIntent{
 			ID:       l2ChainID,
 			GasLimit: standard.GasLimit,
+			CustomGasToken: CustomGasToken{
+				Enabled: false,
+				Name:    "",
+				Symbol:  "",
+			},
 		})
 	}
 	return intent, nil
@@ -353,6 +361,11 @@ func NewIntentStandard(l1ChainId uint64, l2ChainIds []common.Hash) (Intent, erro
 				Challenger:        challenger,
 				L1ProxyAdminOwner: l1ProxyAdminOwner,
 				L2ProxyAdminOwner: l2ProxyAdminOwner,
+			},
+			CustomGasToken: CustomGasToken{
+				Enabled: false,
+				Name:    "",
+				Symbol:  "",
 			},
 		})
 	}

@@ -56,6 +56,12 @@ type L2DevGenesisParams struct {
 	Prefund map[common.Address]*hexutil.U256 `json:"prefund" toml:"prefund"`
 }
 
+type CustomGasToken struct {
+	Enabled bool   `json:"enabled" toml:"enabled"`
+	Name    string `json:"name,omitempty" toml:"name,omitempty"`
+	Symbol  string `json:"symbol,omitempty" toml:"symbol,omitempty"`
+}
+
 type ChainIntent struct {
 	ID                         common.Hash               `json:"id" toml:"id"`
 	BaseFeeVaultRecipient      common.Address            `json:"baseFeeVaultRecipient" toml:"baseFeeVaultRecipient"`
@@ -73,6 +79,7 @@ type ChainIntent struct {
 	OperatorFeeConstant        uint64                    `json:"operatorFeeConstant,omitempty" toml:"operatorFeeConstant,omitempty"`
 	L1StartBlockHash           *common.Hash              `json:"l1StartBlockHash,omitempty" toml:"l1StartBlockHash,omitempty"`
 	MinBaseFee                 uint64                    `json:"minBaseFee,omitempty" toml:"minBaseFee,omitempty"`
+	CustomGasToken             CustomGasToken            `json:"customGasToken" toml:"customGasToken"`
 
 	// Optional. For development purposes only. Only enabled if the operation mode targets a genesis-file output.
 	L2DevGenesisParams *L2DevGenesisParams `json:"l2DevGenesisParams,omitempty" toml:"l2DevGenesisParams,omitempty"`
@@ -117,6 +124,15 @@ func (c *ChainIntent) Check() error {
 		c.L1FeeVaultRecipient == emptyAddress ||
 		c.SequencerFeeVaultRecipient == emptyAddress {
 		return fmt.Errorf("%w: chainId=%s", ErrFeeVaultZeroAddress, c.ID)
+	}
+
+	if c.CustomGasToken.Enabled {
+		if c.CustomGasToken.Name == "" {
+			return fmt.Errorf("%w: CustomGasToken.Name cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		}
+		if c.CustomGasToken.Symbol == "" {
+			return fmt.Errorf("%w: CustomGasToken.Symbol cannot be empty when enabled, chainId=%s", ErrIncompatibleValue, c.ID)
+		}
 	}
 
 	if c.DangerousAltDAConfig.UseAltDA {

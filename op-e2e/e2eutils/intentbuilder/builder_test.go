@@ -75,6 +75,7 @@ func TestBuilder(t *testing.T) {
 	require.Equal(t, eth.ChainIDFromUInt64(420), l2Config.ChainID())
 	l2Config.WithBlockTime(2)
 	l2Config.WithL1StartBlockHash(common.HexToHash("0x5678"))
+	l2Config.WithCustomGasToken(false, "", "")
 
 	// Test ContractsConfigurator methods
 	l2Config.WithL1ContractsLocator("http://l1.example.com")
@@ -160,6 +161,11 @@ func TestBuilder(t *testing.T) {
 					Batcher:           batcher,
 					Proposer:          proposer,
 					Challenger:        challenger,
+				},
+				CustomGasToken: state.CustomGasToken{
+					Enabled: false,
+					Name:    "",
+					Symbol:  "",
 				},
 				Eip1559DenominatorCanyon: 250,
 				Eip1559Denominator:       50,

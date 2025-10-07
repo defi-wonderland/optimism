@@ -58,6 +58,7 @@ type L2Configurator interface {
 	L2FeesConfigurator
 	L2HardforkConfigurator
 	WithPrefundedAccount(addr common.Address, amount uint256.Int) L2Configurator
+	WithCustomGasToken(enabled bool, name string, symbol string)
 }
 
 type ContractsConfigurator interface {
@@ -407,6 +408,14 @@ func (c *l2Configurator) WithEIP1559DenominatorCanyon(value uint64) {
 
 func (c *l2Configurator) WithEIP1559Denominator(value uint64) {
 	c.builder.intent.Chains[c.chainIndex].Eip1559Denominator = value
+}
+
+func (c *l2Configurator) WithCustomGasToken(enabled bool, name, symbol string) {
+	c.builder.intent.Chains[c.chainIndex].CustomGasToken = state.CustomGasToken{
+		Enabled: enabled,
+		Name:    name,
+		Symbol:  symbol,
+	}
 }
 
 func (c *l2Configurator) WithEIP1559Elasticity(value uint64) {

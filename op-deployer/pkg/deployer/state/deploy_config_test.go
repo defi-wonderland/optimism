@@ -33,6 +33,11 @@ func TestCombineDeployConfig(t *testing.T) {
 			UnsafeBlockSigner: common.HexToAddress("0xabc"),
 			Batcher:           common.HexToAddress("0xdef"),
 		},
+		CustomGasToken: CustomGasToken{
+			Enabled: false,
+			Name:    "",
+			Symbol:  "",
+		},
 	}
 	state := State{
 		SuperchainDeployment: &addresses.SuperchainContracts{ProtocolVersionsProxy: common.HexToAddress("0x123")},

@@ -446,7 +446,7 @@ jobs:
   initialize:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    resource_class: 2xlarge
     steps:
       - utils/checkout-with-mise
       - install-contracts-dependencies
@@ -1247,7 +1247,7 @@ jobs:
   go-lint:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    resource_class: 2xlarge
     steps:
       - checkout-from-workspace
       - restore_cache:
@@ -2214,7 +2214,11 @@ workflows:
       or:
         - equal: [build_daily, <<pipeline.schedule.name>>]
         - and:
-            - equal: [true, << pipeline.parameters.kurtosis_acceptance_tests_dispatch >>]
+            - equal:
+                [
+                  true,
+                  << pipeline.parameters.kurtosis_acceptance_tests_dispatch >>,
+                ]
             - equal: ["api", << pipeline.trigger_source >>]
     jobs:
       - initialize:
@@ -2330,7 +2334,14 @@ workflows:
           dev_features: <<matrix.dev_features>>
           matrix:
             parameters:
-              dev_features: ["main", "OPTIMISM_PORTAL_INTEROP","CANNON_KONA","CANNON_KONA,DEPLOY_V2_DISPUTE_GAMES"]
+              dev_features:
+                [
+                  "main",
+                  "OPTIMISM_PORTAL_INTEROP",
+                  "CANNON_KONA",
+                  "CANNON_KONA,DEPLOY_V2_DISPUTE_GAMES",
+                  "CUSTOM_GAS_TOKEN",
+                ]
           # need this requires to ensure that all FFI JSONs exist
           requires:
             - contracts-bedrock-build
@@ -2985,7 +2996,14 @@ workflows:
             - cannon-prestate-quick
           matrix:
             parameters:
-              network_preset: ["op-sepolia", "base-sepolia", "unichain-sepolia", "op-mainnet", "base-mainnet"]
+              network_preset:
+                [
+                  "op-sepolia",
+                  "base-sepolia",
+                  "unichain-sepolia",
+                  "op-mainnet",
+                  "base-mainnet",
+                ]
               l2_cl_syncmode: ["consensus-layer", "execution-layer"]
 
   scheduled-heavy-fuzz-tests:
