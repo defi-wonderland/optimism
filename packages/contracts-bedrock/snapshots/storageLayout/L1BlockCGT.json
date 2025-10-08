@@ -89,33 +89,5 @@
     "offset": 8,
     "slot": "8",
     "type": "uint32"
-  },
-  {
-    "bytes": "1",
-    "label": "_initialized",
-    "offset": 12,
-    "slot": "8",
-    "type": "uint8"
-  },
-  {
-    "bytes": "1",
-    "label": "_initializing",
-    "offset": 13,
-    "slot": "8",
-    "type": "bool"
-  },
-  {
-    "bytes": "32",
-    "label": "_gasPayingTokenName",
-    "offset": 0,
-    "slot": "9",
-    "type": "string"
-  },
-  {
-    "bytes": "32",
-    "label": "_gasPayingTokenSymbol",
-    "offset": 0,
-    "slot": "10",
-    "type": "string"
   }
 ]

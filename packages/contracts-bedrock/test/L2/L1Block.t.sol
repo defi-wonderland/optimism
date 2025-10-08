@@ -377,52 +377,44 @@ contract L1Block_SetCustomGasToken_Test is L1Block_TestInit {
     }
 
     /// @notice Tests that `setCustomGasToken` reverts if called twice.
-    function test_setCustomGasToken_alreadyActive_reverts() external {
+    function test_setCustomGasToken_alreadyActive_reverts(
+        bytes32 _gasPayingTokenName,
+        bytes32 _gasPayingTokenSymbol
+    )
+        external
+    {
         // This test uses the setUp that already activates custom gas token
         assertTrue(l1BlockCGT.isCustomGasToken());
 
         vm.expectRevert("L1Block: CustomGasToken already active");
         vm.prank(depositor);
-        IL1BlockCGT(address(l1BlockCGT)).setCustomGasToken();
+        IL1BlockCGT(address(l1BlockCGT)).setCustomGasToken(_gasPayingTokenName, _gasPayingTokenSymbol);
     }
 
     /// @notice Tests that `setCustomGasToken` updates the flag correctly when called by depositor.
-    function test_setCustomGasToken_succeeds() external {
+    function test_setCustomGasToken_succeeds(bytes32 _gasPayingTokenName, bytes32 _gasPayingTokenSymbol) external {
         stdstore.target(address(l1BlockCGT)).sig("isCustomGasToken()").checked_write(false);
         // This test uses the setUp that already activates custom gas token
         assertFalse(l1BlockCGT.isCustomGasToken());
 
         vm.prank(depositor);
-        l1BlockCGT.setCustomGasToken();
+        l1BlockCGT.setCustomGasToken(_gasPayingTokenName, _gasPayingTokenSymbol);
 
         assertTrue(l1BlockCGT.isCustomGasToken());
     }
 
     /// @notice Tests that `setCustomGasToken` reverts if sender address is not the depositor.
-    function test_setCustomGasToken_notDepositor_reverts(address nonDepositor) external {
+    function test_setCustomGasToken_notDepositor_reverts(
+        address nonDepositor,
+        bytes32 _gasPayingTokenName,
+        bytes32 _gasPayingTokenSymbol
+    )
+        external
+    {
         stdstore.target(address(l1BlockCGT)).sig("isCustomGasToken()").checked_write(false);
         vm.assume(nonDepositor != depositor);
         vm.expectRevert("L1Block: only the depositor account can set isCustomGasToken flag");
         vm.prank(nonDepositor);
-        l1BlockCGT.setCustomGasToken();
-    }
-}
-
-/// @title L1Block_Initialize_Test
-/// @notice Tests the `initialize` function of the `L1Block` contract.
-contract L1Block_Initialize_Test is L1Block_TestInit {
-    IL1BlockCGT l1BlockCGT;
-
-    function setUp() public override {
-        super.setUp();
-        skipIfDevFeatureDisabled(DevFeatures.CUSTOM_GAS_TOKEN);
-        l1BlockCGT = IL1BlockCGT(address(l1Block));
-    }
-
-    /// @notice Tests that calling initialize on the implementation contract reverts.
-    function test_initialize_implementation_reverts() public {
-        // This should revert because _disableInitializers() was called in the constructor
-        vm.expectRevert("Initializable: contract is already initialized");
-        l1BlockCGT.initialize("Test Token", "TEST");
+        l1BlockCGT.setCustomGasToken(_gasPayingTokenName, _gasPayingTokenSymbol);
     }
 }

@@ -14,6 +14,7 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Types } from "src/libraries/Types.sol";
+import { LibString } from "@solady/utils/LibString.sol";
 
 // Interfaces
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
@@ -368,15 +369,11 @@ contract L2Genesis is Script {
             address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_BLOCK_ATTRIBUTES);
             vm.etch(impl, vm.getDeployedCode(string.concat(cname, ".sol:", cname)));
 
-            IL1BlockCGT(impl).initialize({ __gasPayingTokenName: "", __gasPayingTokenSymbol: "" });
-            IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES).initialize({
-                __gasPayingTokenName: _input.gasPayingTokenName,
-                __gasPayingTokenSymbol: _input.gasPayingTokenSymbol
-            });
-
             // Set the custom gas token flag
             vm.startPrank(IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES).DEPOSITOR_ACCOUNT());
-            IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES).setCustomGasToken();
+            IL1BlockCGT(Predeploys.L1_BLOCK_ATTRIBUTES).setCustomGasToken(
+                LibString.toSmallString(_input.gasPayingTokenName), LibString.toSmallString(_input.gasPayingTokenSymbol)
+            );
             vm.stopPrank();
         } else {
             _setImplementationCode(Predeploys.L1_BLOCK_ATTRIBUTES);

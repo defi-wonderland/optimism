@@ -1,11 +1,6 @@
 [
   {
     "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
     "name": "DEPOSITOR_ACCOUNT",
     "outputs": [
       {
@@ -140,24 +135,6 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "__gasPayingTokenName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "__gasPayingTokenSymbol",
-        "type": "string"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "isCustomGasToken",
     "outputs": [
@@ -249,7 +226,18 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "_gasPayingTokenName",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_gasPayingTokenSymbol",
+        "type": "bytes32"
+      }
+    ],
     "name": "setCustomGasToken",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -342,18 +330,5 @@
     ],
     "stateMutability": "pure",
     "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "version",
-        "type": "uint8"
-      }
-    ],
-    "name": "Initialized",
-    "type": "event"
   }
 ]

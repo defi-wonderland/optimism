@@ -2,8 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IL1BlockCGT {
-    event Initialized(uint8 version);
-
     function DEPOSITOR_ACCOUNT() external pure returns (address addr_);
     function number() external view returns (uint64);
     function timestamp() external view returns (uint64);
@@ -35,8 +33,6 @@ interface IL1BlockCGT {
         external;
     function setL1BlockValuesEcotone() external;
     function setL1BlockValuesIsthmus() external;
-    function setCustomGasToken() external;
+    function setCustomGasToken(bytes32 _gasPayingTokenName, bytes32 _gasPayingTokenSymbol) external;
     function gasPayingToken() external view returns (address, uint8);
-    function initialize(string memory __gasPayingTokenName, string memory __gasPayingTokenSymbol) external;
-    function __constructor__() external;
 }
