@@ -51,7 +51,7 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
     function test_initialize_reinitialization_reverts() external {
         _setupL2Withdrawal();
 
-        vm.expectRevert("Initializable: contract is already initialized");
+        vm.expectRevert(IFeeVault.InvalidInitialization.selector);
         feeVault.initialize(recipient, minWithdrawalAmount, Types.WithdrawalNetwork.L1);
     }
 
