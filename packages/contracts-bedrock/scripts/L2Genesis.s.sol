@@ -335,6 +335,16 @@ contract L2Genesis is Script {
         address impl = Predeploys.predeployToCodeNamespace(Predeploys.SEQUENCER_FEE_WALLET);
         vm.etch(impl, address(vault).code);
 
+        /// Initialize
+        ISequencerFeeVault(payable(impl)).initialize(
+            recipient, _input.sequencerFeeVaultMinimumWithdrawalAmount, network
+        );
+        ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).initialize({
+            _recipient: recipient,
+            _minWithdrawalAmount: _input.sequencerFeeVaultMinimumWithdrawalAmount,
+            _withdrawalNetwork: network
+        });
+
         /// Reset so its not included state dump
         vm.etch(address(vault), "");
         vm.resetNonce(address(vault));
@@ -433,6 +443,15 @@ contract L2Genesis is Script {
         address impl = Predeploys.predeployToCodeNamespace(Predeploys.BASE_FEE_VAULT);
         vm.etch(impl, address(vault).code);
 
+        /// Initialize
+        IBaseFeeVault(payable(impl)).initialize(recipient, _input.baseFeeVaultMinimumWithdrawalAmount, network);
+
+        IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT)).initialize({
+            _recipient: recipient,
+            _minWithdrawalAmount: _input.baseFeeVaultMinimumWithdrawalAmount,
+            _withdrawalNetwork: network
+        });
+
         /// Reset so its not included state dump
         vm.etch(address(vault), "");
         vm.resetNonce(address(vault));
@@ -463,6 +482,15 @@ contract L2Genesis is Script {
 
         address impl = Predeploys.predeployToCodeNamespace(Predeploys.L1_FEE_VAULT);
         vm.etch(impl, address(vault).code);
+
+        /// Initialize
+        IL1FeeVault(payable(impl)).initialize(recipient, _input.l1FeeVaultMinimumWithdrawalAmount, network);
+
+        IL1FeeVault(payable(Predeploys.L1_FEE_VAULT)).initialize({
+            _recipient: recipient,
+            _minWithdrawalAmount: _input.l1FeeVaultMinimumWithdrawalAmount,
+            _withdrawalNetwork: network
+        });
 
         /// Reset so its not included state dump
         vm.etch(address(vault), "");
@@ -496,7 +524,16 @@ contract L2Genesis is Script {
         address impl = Predeploys.predeployToCodeNamespace(Predeploys.OPERATOR_FEE_VAULT);
         vm.etch(impl, address(vault).code);
 
-        /// Reset so its not included state dump
+        /// Initialize
+        IOperatorFeeVault(payable(impl)).initialize(recipient, _input.operatorFeeVaultMinimumWithdrawalAmount, network);
+
+        IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).initialize({
+            _recipient: recipient,
+            _minWithdrawalAmount: _input.operatorFeeVaultMinimumWithdrawalAmount,
+            _withdrawalNetwork: network
+        });
+
+        /// Reset so its not included state dump in state dump
         vm.etch(address(vault), "");
         vm.resetNonce(address(vault));
     }

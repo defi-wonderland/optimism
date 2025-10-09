@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.23;
 
 // Contracts
 import { FeeVault } from "src/L2/FeeVault.sol";
@@ -35,6 +35,6 @@ contract SequencerFeeVault is FeeVault, ISemver {
     /// @notice Legacy getter for the recipient address.
     /// @return The recipient address.
     function l1FeeWallet() public view returns (address) {
-        return recipient();
+        return recipient;
     }
 }
