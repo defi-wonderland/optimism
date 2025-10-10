@@ -40,15 +40,3 @@ interface IFeeVault {
 
     function __constructor__() external;
 }
-
-interface IFeeVaultConstructor {
-    /// NOTE: This is the real constructor for the FeeVault contract, but can't be added to the main interface because
-    ///       it is an abstract contract, and on the scripts it gets an empty constructor automatically generated that
-    ///       makes the `interfaces-check` script fail.
-    function __constructor__(
-        address _recipient,
-        uint256 _minWithdrawalAmount,
-        Types.WithdrawalNetwork _withdrawalNetwork
-    )
-        external;
-}
