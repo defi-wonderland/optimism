@@ -180,7 +180,6 @@ abstract contract FeeVault is Initializable {
     ///         and is subject to be removed in the future.
     /// @custom:legacy
     /// @return The recipient address.
-    /// @custom:legacy
     function RECIPIENT() public view returns (address) {
         return recipient;
     }
