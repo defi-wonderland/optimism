@@ -21,24 +21,6 @@ abstract contract FeeVault is Initializable {
     /// @notice Error thrown when a function meant to be called by the ProxyAdmin owner is called by another account.
     error FeeVault_OnlyProxyAdminOwner();
 
-    /// @notice Minimum balance before a withdrawal can be triggered.
-    ///         Use the `minWithdrawalAmount()` getter as this is deprecated
-    ///         and is subject to be removed in the future.
-    /// @custom:legacy
-    uint256 public immutable MIN_WITHDRAWAL_AMOUNT;
-
-    /// @notice Account that will receive the fees. Can be located on L1 or L2.
-    ///         Use the `recipient()` getter as this is deprecated
-    ///         and is subject to be removed in the future.
-    /// @custom:legacy
-    address public immutable RECIPIENT;
-
-    /// @notice Network which the recipient will receive fees on.
-    ///         Use the `withdrawalNetwork()` getter as this is deprecated
-    ///         and is subject to be removed in the future.
-    /// @custom:legacy
-    Types.WithdrawalNetwork public immutable WITHDRAWAL_NETWORK;
-
     /// @notice The minimum gas limit for the FeeVault withdrawal transaction.
     uint32 internal constant _WITHDRAWAL_MIN_GAS = 400_000;
 
@@ -88,18 +70,17 @@ abstract contract FeeVault is Initializable {
         Types.WithdrawalNetwork oldWithdrawalNetwork, Types.WithdrawalNetwork newWithdrawalNetwork
     );
 
-    /// @dev Using `__` on params to avoid warnings related to shadowing (even though there is no shadowing)
-    /// @param _recipient           Wallet that will receive the fees.
-    /// @param _minWithdrawalAmount Minimum balance for withdrawals.
-    /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
-    constructor(address _recipient, uint256 _minWithdrawalAmount, Types.WithdrawalNetwork _withdrawalNetwork) {
-        RECIPIENT = _recipient;
-        MIN_WITHDRAWAL_AMOUNT = _minWithdrawalAmount;
-        WITHDRAWAL_NETWORK = _withdrawalNetwork;
-
+    /// @notice Constructor for the FeeVault contract.
+    ///         This constructor is intentionally empty to prevent initialization.
+    ///         Initialization is handled by the `initialize` function.
+    constructor() {
         _disableInitializers();
     }
 
+    /// @notice Initializes the FeeVault contract.
+    /// @param _recipient           Wallet that will receive the fees.
+    /// @param _minWithdrawalAmount Minimum balance for withdrawals.
+    /// @param _withdrawalNetwork   Network which the recipient will receive fees on.
     function initialize(
         address _recipient,
         uint256 _minWithdrawalAmount,
@@ -184,5 +165,31 @@ abstract contract FeeVault is Initializable {
                 _data: hex""
             });
         }
+    }
+
+    /// @notice Minimum balance before a withdrawal can be triggered.
+    ///         Use the `minWithdrawalAmount()` getter as this is deprecated
+    ///         and is subject to be removed in the future.
+    /// @custom:legacy
+    function MIN_WITHDRAWAL_AMOUNT() public view returns (uint256) {
+        return minWithdrawalAmount;
+    }
+
+    /// @notice Account that will receive the fees. Can be located on L1 or L2.
+    ///         Use the `recipient()` getter as this is deprecated
+    ///         and is subject to be removed in the future.
+    /// @custom:legacy
+    /// @return The recipient address.
+    /// @custom:legacy
+    function RECIPIENT() public view returns (address) {
+        return recipient;
+    }
+
+    /// @notice Network which the recipient will receive fees on.
+    ///         Use the `withdrawalNetwork()` getter as this is deprecated
+    ///         and is subject to be removed in the future.
+    /// @custom:legacy
+    function WITHDRAWAL_NETWORK() public view returns (Types.WithdrawalNetwork) {
+        return withdrawalNetwork;
     }
 }
