@@ -20,7 +20,7 @@ contract SequencerFeeVault_Uncategorized_Test is FeeVault_Uncategorized_Test {
         feeVaultName = "SequencerFeeVault";
         minWithdrawalAmount = deploy.cfg().sequencerFeeVaultMinimumWithdrawalAmount();
         feeVault = IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().sequencerFeeVaultWithdrawalNetwork()));
+        withdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().sequencerFeeVaultWithdrawalNetwork()));
     }
 
     function test_constructor_l1FeeWallet_succeeds() external view {

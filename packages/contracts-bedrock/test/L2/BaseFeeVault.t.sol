@@ -19,7 +19,7 @@ contract BaseFeeVault_Uncategorized_Test is FeeVault_Uncategorized_Test {
         feeVaultName = "BaseFeeVault";
         minWithdrawalAmount = deploy.cfg().baseFeeVaultMinimumWithdrawalAmount();
         feeVault = IFeeVault(payable(Predeploys.BASE_FEE_VAULT));
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().baseFeeVaultWithdrawalNetwork()));
+        withdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().baseFeeVaultWithdrawalNetwork()));
         // Current recipient is a contract that reverts when receiving fees, so etching empty bytes to it
         vm.etch(recipient, hex"");
     }

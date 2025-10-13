@@ -19,6 +19,6 @@ contract L1FeeVault_Uncategorized_Test is FeeVault_Uncategorized_Test {
         feeVaultName = "L1FeeVault";
         minWithdrawalAmount = deploy.cfg().l1FeeVaultMinimumWithdrawalAmount();
         feeVault = IFeeVault(payable(Predeploys.L1_FEE_VAULT));
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().l1FeeVaultWithdrawalNetwork()));
+        withdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().l1FeeVaultWithdrawalNetwork()));
     }
 }

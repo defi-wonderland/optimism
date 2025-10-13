@@ -19,6 +19,6 @@ contract OperatorFeeVault_Uncategorized_Test is FeeVault_Uncategorized_Test {
         feeVaultName = "OperatorFeeVault";
         minWithdrawalAmount = deploy.cfg().operatorFeeVaultMinimumWithdrawalAmount();
         feeVault = IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT));
-        expectedWithdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().operatorFeeVaultWithdrawalNetwork()));
+        withdrawalNetwork = Types.WithdrawalNetwork(uint8(deploy.cfg().operatorFeeVaultWithdrawalNetwork()));
     }
 }

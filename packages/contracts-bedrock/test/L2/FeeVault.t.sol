@@ -24,7 +24,7 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
     IFeeVault feeVault;
     string feeVaultName;
     uint256 minWithdrawalAmount;
-    Types.WithdrawalNetwork expectedWithdrawalNetwork;
+    Types.WithdrawalNetwork withdrawalNetwork;
 
     /// @notice Helper function to set up L2 withdrawal configuration.
     function _setupL2Withdrawal() internal {
@@ -37,14 +37,14 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
     function test_constructor_succeeds() external view {
         assertEq(feeVault.RECIPIENT(), recipient);
         assertEq(feeVault.MIN_WITHDRAWAL_AMOUNT(), minWithdrawalAmount);
-        assertEq(uint8(feeVault.WITHDRAWAL_NETWORK()), uint8(expectedWithdrawalNetwork));
+        assertEq(uint8(feeVault.WITHDRAWAL_NETWORK()), uint8(withdrawalNetwork));
     }
 
     /// @notice Tests that the initialize function succeeds.
     function test_initialize_succeeds() external view {
         assertEq(feeVault.recipient(), recipient);
         assertEq(feeVault.minWithdrawalAmount(), minWithdrawalAmount);
-        assertEq(uint8(feeVault.withdrawalNetwork()), uint8(expectedWithdrawalNetwork));
+        assertEq(uint8(feeVault.withdrawalNetwork()), uint8(withdrawalNetwork));
     }
 
     /// @notice Tests that the initialize function reverts if the contract is already initialized.
