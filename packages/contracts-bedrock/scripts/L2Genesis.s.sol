@@ -322,8 +322,8 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.SEQUENCER_FEE_WALLET);
 
-        /// Initialize the implemenation using max value for min withdrawal amount to make it unusable
-        ISequencerFeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        /// Initialize the implemenation
+        ISequencerFeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
         // Initialize the predeploy
         ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).initialize({
             _recipient: recipient,
@@ -412,8 +412,8 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.BASE_FEE_VAULT);
 
-        /// Initialize the implementation using max value for min withdrawal amount to make it unusable
-        IBaseFeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        /// Initialize the implementation
+        IBaseFeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
         // Initialize the predeploy
         IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT)).initialize({
             _recipient: recipient,
@@ -436,8 +436,8 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.L1_FEE_VAULT);
 
-        /// Initialize the implementation using max value for min withdrawal amount to make it unusable
-        IL1FeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        /// Initialize the implementation
+        IL1FeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
         // Initialize the predeploy
         IL1FeeVault(payable(Predeploys.L1_FEE_VAULT)).initialize({
             _recipient: recipient,
@@ -460,8 +460,8 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.OPERATOR_FEE_VAULT);
 
-        /// Initialize the implementation using max value for min withdrawal amount to make it unusable
-        IOperatorFeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        /// Initialize the implementation
+        IOperatorFeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
         // Initialize the predeploy
         IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).initialize({
             _recipient: recipient,
