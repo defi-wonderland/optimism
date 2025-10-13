@@ -238,6 +238,7 @@ func TestGlobalOverrides(t *testing.T) {
 	expectedBaseFeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000001")
 	expectedL1FeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000002")
 	expectedSequencerFeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000003")
+	expectedOperatorFeeVaultRecipient := common.HexToAddress("0x0000000000000000000000000000000000000004")
 	expectedBaseFeeVaultMinimumWithdrawalAmount := strings.ToLower("0x1BC16D674EC80000")
 	expectedBaseFeeVaultWithdrawalNetwork := genesis.FromUint8(0)
 	expectedEnableGovernance := false
@@ -249,6 +250,7 @@ func TestGlobalOverrides(t *testing.T) {
 		"baseFeeVaultRecipient":               expectedBaseFeeVaultRecipient,
 		"l1FeeVaultRecipient":                 expectedL1FeeVaultRecipient,
 		"sequencerFeeVaultRecipient":          expectedSequencerFeeVaultRecipient,
+		"operatorFeeVaultRecipient":           expectedOperatorFeeVaultRecipient,
 		"baseFeeVaultMinimumWithdrawalAmount": expectedBaseFeeVaultMinimumWithdrawalAmount,
 		"baseFeeVaultWithdrawalNetwork":       expectedBaseFeeVaultWithdrawalNetwork,
 		"enableGovernance":                    expectedEnableGovernance,
