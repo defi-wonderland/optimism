@@ -322,9 +322,9 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.SEQUENCER_FEE_WALLET);
 
-        /// Initialize
-        ISequencerFeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
-
+        /// Initialize the implemenation using max value for min withdrawal amount to make it unusable
+        ISequencerFeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        // Initialize the predeploy
         ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).initialize({
             _recipient: recipient,
             _minWithdrawalAmount: _input.sequencerFeeVaultMinimumWithdrawalAmount,
@@ -412,9 +412,9 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.BASE_FEE_VAULT);
 
-        /// Initialize
-        IBaseFeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
-
+        /// Initialize the implementation using max value for min withdrawal amount to make it unusable
+        IBaseFeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        // Initialize the predeploy
         IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT)).initialize({
             _recipient: recipient,
             _minWithdrawalAmount: _input.baseFeeVaultMinimumWithdrawalAmount,
@@ -436,9 +436,9 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.L1_FEE_VAULT);
 
-        /// Initialize
-        IL1FeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
-
+        /// Initialize the implementation using max value for min withdrawal amount to make it unusable
+        IL1FeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        // Initialize the predeploy
         IL1FeeVault(payable(Predeploys.L1_FEE_VAULT)).initialize({
             _recipient: recipient,
             _minWithdrawalAmount: _input.l1FeeVaultMinimumWithdrawalAmount,
@@ -460,9 +460,9 @@ contract L2Genesis is Script {
 
         address impl = _setImplementationCode(Predeploys.OPERATOR_FEE_VAULT);
 
-        /// Initialize
-        IOperatorFeeVault(payable(impl)).initialize(address(0), 0, Types.WithdrawalNetwork.L1);
-
+        /// Initialize the implementation using max value for min withdrawal amount to make it unusable
+        IOperatorFeeVault(payable(impl)).initialize(address(0), type(uint256).max, Types.WithdrawalNetwork.L1);
+        // Initialize the predeploy
         IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).initialize({
             _recipient: recipient,
             _minWithdrawalAmount: _input.operatorFeeVaultMinimumWithdrawalAmount,
