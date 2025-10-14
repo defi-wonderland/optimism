@@ -142,9 +142,9 @@ func (c *Intent) validateStandardValues() error {
 		return ErrIncompatibleValue
 	}
 
-	if c.SuperchainRoles != nil {
-		return ErrIncompatibleValue
-	}
+	// if c.SuperchainRoles != nil {
+	// 	return ErrIncompatibleValue
+	// }
 
 	standardOPCM, err := standard.OPCMImplAddressFor(c.L1ChainID, standard.CurrentTag)
 	if err != nil {
