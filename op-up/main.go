@@ -123,7 +123,7 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string, intentPath s
 	defer p.Close()
 
 	var ids sysgo.DefaultMinimalSystemIDs
-	var deployerOpt stack.Option[*sysgo.Orchestrator]
+	var deployerOptions []sysgo.DeployerOption
 
 	if intentPath != "" {
 		// Load intent from file
@@ -137,28 +137,31 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string, intentPath s
 
 		// Create IDs based on intent's chain IDs
 		l1ChainID := eth.ChainIDFromUInt64(intent.L1ChainID)
-		l2ChainID := eth.ChainIDFromBytes32(intent.Chains[0].ID)
+		l2ChainID := eth.ChainIDFromBytes32([32]byte(intent.Chains[0].ID))
 		ids = sysgo.NewDefaultMinimalSystemIDs(l1ChainID, l2ChainID)
 
-		// Use custom intent
-		// Note: WithCustomIntent receives the intent and populates a builder with it.
-		// This allows WithDeployerOptions to apply additional configuration on top.
-		deployerOpt = sysgo.WithCustomIntent(intent)
+		// Apply custom intent configuration through deployer options
+		deployerOptions = []sysgo.DeployerOption{
+			sysgo.WithEmbeddedContractSources(),
+			sysgo.WithCommons(ids.L1.ChainID()),
+			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
+			sysgo.WithCustomIntent(intent),
+		}
 	} else {
 		// Use default IDs and intent builder
 		ids = sysgo.NewDefaultMinimalSystemIDs(sysgo.DefaultL1ID, sysgo.DefaultL2AID)
-		deployerOpt = sysgo.WithDeployer()
+		deployerOptions = []sysgo.DeployerOption{
+			sysgo.WithEmbeddedContractSources(),
+			sysgo.WithCommons(ids.L1.ChainID()),
+			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
+		}
 	}
 
 	opts := stack.Combine(
 		sysgo.WithMnemonicKeys(devkeys.TestMnemonic),
 
-		deployerOpt,
-		sysgo.WithDeployerOptions(
-			sysgo.WithEmbeddedContractSources(),
-			sysgo.WithCommons(ids.L1.ChainID()),
-			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
-		),
+		sysgo.WithDeployer(),
+		sysgo.WithDeployerOptions(deployerOptions...),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 
 		sysgo.WithL1Nodes(ids.L1EL, ids.L1CL),

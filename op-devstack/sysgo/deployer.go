@@ -133,171 +133,6 @@ func WithDeployer() stack.Option[*Orchestrator] {
 	}
 }
 
-func WithCustomIntent(intent *state.Intent) stack.Option[*Orchestrator] {
-	return stack.FnOption[*Orchestrator]{
-		BeforeDeployFn: func(o *Orchestrator) {
-			o.P().Require().Nil(o.wb, "must not already have a world builder")
-
-			// Create a builder and populate it from the loaded intent
-			builder := intentbuilder.New()
-
-			// Apply the intent's configuration to the builder
-			// This allows deployer options to modify it
-			if intent.L1ContractsLocator != nil {
-				builder.WithL1ContractsLocator(intent.L1ContractsLocator)
-			}
-			if intent.L2ContractsLocator != nil {
-				builder.WithL2ContractsLocator(intent.L2ContractsLocator)
-			}
-
-			// Configure L1
-			l1ChainID := eth.ChainIDFromUInt64(intent.L1ChainID)
-			_, l1Config := builder.WithL1(l1ChainID)
-
-			// Apply L1 dev genesis params if present
-			if intent.L1DevGenesisParams != nil {
-				if intent.L1DevGenesisParams.BlockParams.Timestamp != 0 {
-					l1Config.WithTimestamp(intent.L1DevGenesisParams.BlockParams.Timestamp)
-				}
-				if intent.L1DevGenesisParams.BlockParams.GasLimit != 0 {
-					l1Config.WithGasLimit(intent.L1DevGenesisParams.BlockParams.GasLimit)
-				}
-				if intent.L1DevGenesisParams.BlockParams.ExcessBlobGas != 0 {
-					l1Config.WithExcessBlobGas(intent.L1DevGenesisParams.BlockParams.ExcessBlobGas)
-				}
-				if intent.L1DevGenesisParams.PragueTimeOffset != nil {
-					l1Config.WithPragueOffset(*intent.L1DevGenesisParams.PragueTimeOffset)
-				}
-				if intent.L1DevGenesisParams.OsakaTimeOffset != nil {
-					l1Config.WithOsakaOffset(*intent.L1DevGenesisParams.OsakaTimeOffset)
-				}
-				if intent.L1DevGenesisParams.BPO1TimeOffset != nil {
-					l1Config.WithBPO1Offset(*intent.L1DevGenesisParams.BPO1TimeOffset)
-				}
-				if intent.L1DevGenesisParams.BlobSchedule != nil {
-					l1Config.WithL1BlobSchedule(intent.L1DevGenesisParams.BlobSchedule)
-				}
-				// Apply L1 prefunding
-				for addr, balance := range intent.L1DevGenesisParams.Prefund {
-					l1Config.WithPrefundedAccount(addr, uint256.Int(*balance))
-				}
-			}
-
-			// Configure superchain
-			_, superConfig := builder.WithSuperchain()
-			if intent.SuperchainConfigProxy != nil {
-				superConfig.WithSuperchainConfigProxy(*intent.SuperchainConfigProxy)
-			}
-			if intent.SuperchainRoles != nil {
-				superConfig.WithProxyAdminOwner(intent.SuperchainRoles.SuperchainProxyAdminOwner)
-				superConfig.WithGuardian(intent.SuperchainRoles.SuperchainGuardian)
-				superConfig.WithProtocolVersionsOwner(intent.SuperchainRoles.ProtocolVersionsOwner)
-				superConfig.WithChallenger(intent.SuperchainRoles.Challenger)
-			}
-
-			// Configure L2 chains
-			for _, chainIntent := range intent.Chains {
-				l2ChainID := eth.ChainIDFromBytes32(chainIntent.ID)
-				_, l2Config := builder.WithL2(l2ChainID)
-
-				// Apply chain configuration
-				l2Config.WithBaseFeeVaultRecipient(chainIntent.BaseFeeVaultRecipient)
-				l2Config.WithSequencerFeeVaultRecipient(chainIntent.SequencerFeeVaultRecipient)
-				l2Config.WithL1FeeVaultRecipient(chainIntent.L1FeeVaultRecipient)
-
-				l2Config.WithL1ProxyAdminOwner(chainIntent.Roles.L1ProxyAdminOwner)
-				l2Config.WithL2ProxyAdminOwner(chainIntent.Roles.L2ProxyAdminOwner)
-				l2Config.WithSystemConfigOwner(chainIntent.Roles.SystemConfigOwner)
-				l2Config.WithUnsafeBlockSigner(chainIntent.Roles.UnsafeBlockSigner)
-				l2Config.WithBatcher(chainIntent.Roles.Batcher)
-				l2Config.WithProposer(chainIntent.Roles.Proposer)
-				l2Config.WithChallenger(chainIntent.Roles.Challenger)
-
-				l2Config.WithEIP1559DenominatorCanyon(chainIntent.Eip1559DenominatorCanyon)
-				l2Config.WithEIP1559Denominator(chainIntent.Eip1559Denominator)
-				l2Config.WithEIP1559Elasticity(chainIntent.Eip1559Elasticity)
-				l2Config.WithOperatorFeeScalar(uint64(chainIntent.OperatorFeeScalar))
-				l2Config.WithOperatorFeeConstant(chainIntent.OperatorFeeConstant)
-
-				// Apply deploy overrides
-				for key, value := range chainIntent.DeployOverrides {
-					chainIntent.DeployOverrides[key] = value
-				}
-
-				// Apply L2 dev genesis params if present
-				if chainIntent.L2DevGenesisParams != nil {
-					for addr, balance := range chainIntent.L2DevGenesisParams.Prefund {
-						l2Config.WithPrefundedAccount(addr, uint256.Int(*balance))
-					}
-				}
-			}
-
-			// Apply global overrides
-			for key, value := range intent.GlobalDeployOverrides {
-				builder.WithGlobalOverride(key, value)
-			}
-
-			o.wb = &worldBuilder{
-				p:       o.P(),
-				logger:  o.P().Logger(),
-				require: o.P().Require(),
-				keys:    o.keys,
-				builder: builder,
-			}
-		},
-		DeployFn: func(o *Orchestrator) {
-			o.P().Require().NotNil(o.wb, "must have a world builder")
-			o.wb.deployerPipelineOptions = o.deployerPipelineOptions
-			o.wb.Build()
-		},
-		AfterDeployFn: func(o *Orchestrator) {
-			wb := o.wb
-			require := o.P().Require()
-			require.NotNil(o.wb, "must have a world builder")
-
-			l1ID := stack.L1NetworkID(eth.ChainIDFromUInt64(wb.output.AppliedIntent.L1ChainID))
-			superchainID := stack.SuperchainID("main")
-			clusterID := stack.ClusterID("main")
-
-			l1Net := &L1Network{
-				id:        l1ID,
-				genesis:   wb.outL1Genesis,
-				blockTime: 6,
-			}
-			o.l1Nets.Set(l1ID.ChainID(), l1Net)
-
-			o.superchains.Set(superchainID, &Superchain{
-				id:         superchainID,
-				deployment: wb.outSuperchainDeployment,
-			})
-			o.clusters.Set(clusterID, &Cluster{
-				id:     clusterID,
-				cfgset: wb.outFullCfgSet,
-			})
-
-			for _, chainID := range wb.l2Chains {
-				l2Genesis, ok := wb.outL2Genesis[chainID]
-				require.True(ok, "L2 genesis must exist")
-				l2RollupCfg, ok := wb.outL2RollupCfg[chainID]
-				require.True(ok, "L2 rollup config must exist")
-				l2Dep, ok := wb.outL2Deployment[chainID]
-				require.True(ok, "L2 deployment must exist")
-
-				l2ID := stack.L2NetworkID(chainID)
-				l2Net := &L2Network{
-					id:         l2ID,
-					l1ChainID:  l1ID.ChainID(),
-					genesis:    l2Genesis,
-					rollupCfg:  l2RollupCfg,
-					deployment: l2Dep,
-					keys:       o.keys,
-				}
-				o.l2Nets.Set(l2ID.ChainID(), l2Net)
-			}
-		},
-	}
-}
-
 type L2Deployment struct {
 	systemConfigProxyAddr   common.Address
 	disputeGameFactoryProxy common.Address
@@ -396,6 +231,52 @@ func WithCommons(l1ChainID eth.ChainID) DeployerOption {
 		l1Config.WithPrefundedAccount(addrFor(devkeys.SuperchainProtocolVersionsOwner), *millionEth)
 		l1Config.WithPrefundedAccount(addrFor(devkeys.SuperchainConfigGuardianKey), *millionEth)
 		l1Config.WithPrefundedAccount(addrFor(devkeys.L1ProxyAdminOwnerRole), *millionEth)
+	}
+}
+
+func WithCustomIntent(intent *state.Intent) DeployerOption {
+	return func(p devtest.P, keys devkeys.Keys, builder intentbuilder.Builder) {
+		if intent.L1ContractsLocator != nil {
+			builder.WithL1ContractsLocator(intent.L1ContractsLocator)
+		}
+		if intent.L2ContractsLocator != nil {
+			builder.WithL2ContractsLocator(intent.L2ContractsLocator)
+		}
+
+		for _, chainIntent := range intent.Chains {
+			l2ChainID := eth.ChainIDFromBytes32(chainIntent.ID)
+			var l2Config intentbuilder.L2Configurator
+			for _, l2 := range builder.L2s() {
+				if l2.ChainID() == l2ChainID {
+					l2Config = l2
+					break
+				}
+			}
+
+			l2Config.WithBaseFeeVaultRecipient(chainIntent.BaseFeeVaultRecipient)
+			l2Config.WithSequencerFeeVaultRecipient(chainIntent.SequencerFeeVaultRecipient)
+			l2Config.WithL1FeeVaultRecipient(chainIntent.L1FeeVaultRecipient)
+
+			l2Config.WithL1ProxyAdminOwner(chainIntent.Roles.L1ProxyAdminOwner)
+			l2Config.WithL2ProxyAdminOwner(chainIntent.Roles.L2ProxyAdminOwner)
+			l2Config.WithSystemConfigOwner(chainIntent.Roles.SystemConfigOwner)
+			l2Config.WithUnsafeBlockSigner(chainIntent.Roles.UnsafeBlockSigner)
+			l2Config.WithBatcher(chainIntent.Roles.Batcher)
+			l2Config.WithProposer(chainIntent.Roles.Proposer)
+			l2Config.WithChallenger(chainIntent.Roles.Challenger)
+
+			l2Config.WithEIP1559DenominatorCanyon(chainIntent.Eip1559DenominatorCanyon)
+			l2Config.WithEIP1559Denominator(chainIntent.Eip1559Denominator)
+			l2Config.WithEIP1559Elasticity(chainIntent.Eip1559Elasticity)
+			l2Config.WithOperatorFeeScalar(uint64(chainIntent.OperatorFeeScalar))
+			l2Config.WithOperatorFeeConstant(chainIntent.OperatorFeeConstant)
+
+			if chainIntent.L2DevGenesisParams != nil {
+				for addr, balance := range chainIntent.L2DevGenesisParams.Prefund {
+					l2Config.WithPrefundedAccount(addr, uint256.Int(*balance))
+				}
+			}
+		}
 	}
 }
 
