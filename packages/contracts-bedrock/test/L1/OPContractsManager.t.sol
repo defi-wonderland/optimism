@@ -39,9 +39,9 @@ import {
     IOPContractsManager,
     IOPContractsManagerGameTypeAdder,
     IOPContractsManagerInteropMigrator,
-    IOPContractsManagerUpgrader
+    IOPContractsManagerUpgrader,
+    IOPContractsManagerStandardValidator
 } from "interfaces/L1/IOPContractsManager.sol";
-import { IOPContractsManagerStandardValidator } from "interfaces/L1/IOPContractsManagerStandardValidator.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
 import { ISuperFaultDisputeGame } from "interfaces/dispute/ISuperFaultDisputeGame.sol";
@@ -57,7 +57,6 @@ import {
     OPContractsManagerInteropMigrator,
     OPContractsManagerStandardValidator
 } from "src/L1/OPContractsManager.sol";
-import { OPContractsManagerStandardValidator } from "src/L1/OPContractsManagerStandardValidator.sol";
 
 /// @title OPContractsManager_Harness
 /// @notice Exposes internal functions for testing.
@@ -69,8 +68,7 @@ contract OPContractsManager_Harness is OPContractsManager {
         OPContractsManagerInteropMigrator _opcmInteropMigrator,
         OPContractsManagerStandardValidator _opcmStandardValidator,
         ISuperchainConfig _superchainConfig,
-        IProtocolVersions _protocolVersions,
-        IProxyAdmin _superchainProxyAdmin
+        IProtocolVersions _protocolVersions
     )
         OPContractsManager(
             _opcmGameTypeAdder,
@@ -79,8 +77,7 @@ contract OPContractsManager_Harness is OPContractsManager {
             _opcmInteropMigrator,
             _opcmStandardValidator,
             _superchainConfig,
-            _protocolVersions,
-            _superchainProxyAdmin
+            _protocolVersions
         )
     { }
 
@@ -248,6 +245,14 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
             return;
         }
 
+        // Create validationOverrides
+        IOPContractsManagerStandardValidator.ValidationOverrides memory validationOverrides =
+        IOPContractsManagerStandardValidator.ValidationOverrides({
+            l1PAOMultisig: opChainConfigs[0].proxyAdmin.owner(),
+            challenger: IPermissionedDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON)))
+                .challenger()
+        });
+
         // Grab the validator before we do the error assertion because otherwise the assertion will
         // try to apply to this function call instead.
         IOPContractsManagerStandardValidator validator = _opcm.opcmStandardValidator();
@@ -257,19 +262,23 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
         // user is requesting to use the existing prestate. We could avoid the error by grabbing
         // the prestate from the actual contracts, but that doesn't actually give us any valuable
         // checks. Easier to just expect the error in this case.
+        // We add the prefix of OVERRIDES-L1PAOMULTISIG,OVERRIDES-CHALLENGER because we use validationOverrides.
         if (opChainConfigs[0].absolutePrestate.raw() == bytes32(0)) {
-            vm.expectRevert("OPContractsManagerStandardValidator: PDDG-40,PLDG-40");
+            vm.expectRevert(
+                "OPContractsManagerStandardValidator: OVERRIDES-L1PAOMULTISIG,OVERRIDES-CHALLENGER,PDDG-40,PLDG-40"
+            );
         }
 
         // Run the StandardValidator checks.
-        validator.validate(
+        validator.validateWithOverrides(
             IOPContractsManagerStandardValidator.ValidationInput({
                 proxyAdmin: opChainConfigs[0].proxyAdmin,
                 sysCfg: opChainConfigs[0].systemConfigProxy,
                 absolutePrestate: opChainConfigs[0].absolutePrestate.raw(),
                 l2ChainID: l2ChainId
             }),
-            false
+            false,
+            validationOverrides
         );
     }
 
@@ -279,14 +288,13 @@ contract OPContractsManager_Upgrade_Harness is CommonTest {
     ///         upgrades from this function once they've been executed on mainnet and the
     ///         simulation block has been bumped beyond the execution block.
     /// @param _delegateCaller The address of the delegate caller to use for the upgrade.
-    function runPastUpgrades(address _delegateCaller) internal {
+    function runPastUpgrades(address _delegateCaller) internal view {
         // Run past upgrades depending on network.
         if (block.chainid == 1) {
             // Mainnet
-            // U16a
-            _runOpcmUpgradeAndChecks(
-                IOPContractsManager(0x8123739C1368C2DEDc8C564255bc417FEEeBFF9D), _delegateCaller, bytes("")
-            );
+            // This is empty because the block number in the justfile is after the most recent upgrade so there are no
+            // past upgrades to run.
+            _delegateCaller;
         } else {
             revert UnsupportedChainId();
         }
@@ -330,7 +338,6 @@ contract OPContractsManager_TestInit is CommonTest {
     function setupEnvVars() public {
         vm.setEnv("EXPECTED_SUPERCHAIN_CONFIG", vm.toString(address(opcm.superchainConfig())));
         vm.setEnv("EXPECTED_PROTOCOL_VERSIONS", vm.toString(address(opcm.protocolVersions())));
-        vm.setEnv("EXPECTED_SUPERCHAIN_PROXY_ADMIN", vm.toString(address(opcm.superchainProxyAdmin())));
     }
 
     /// @notice Helper function to deploy a new set of L1 contracts via OPCM.
@@ -450,8 +457,7 @@ contract OPContractsManager_ChainIdToBatchInboxAddress_Test is Test, FeatureFlag
                 opcmImplementations, superchainConfigProxy, address(superchainProxyAdmin), challenger, 100, bytes32(0)
             ),
             _superchainConfig: superchainConfigProxy,
-            _protocolVersions: protocolVersionsProxy,
-            _superchainProxyAdmin: superchainProxyAdmin
+            _protocolVersions: protocolVersionsProxy
         });
     }
 
@@ -1231,7 +1237,6 @@ contract OPContractsManager_UpdatePrestate_Test is OPContractsManager_TestInit {
 /// @notice Tests the `upgrade` function of the `OPContractsManager` contract.
 contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
     function setUp() public override {
-        skipIfNotOpFork("OPContractsManager_Upgrade_Test");
         super.setUp();
 
         // Run all past upgrades.
@@ -1249,7 +1254,6 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
         // Set up environment variables with the actual OPCM addresses for tests that need themqq
         vm.setEnv("EXPECTED_SUPERCHAIN_CONFIG", vm.toString(address(opcm.superchainConfig())));
         vm.setEnv("EXPECTED_PROTOCOL_VERSIONS", vm.toString(address(opcm.protocolVersions())));
-        vm.setEnv("EXPECTED_SUPERCHAIN_PROXY_ADMIN", vm.toString(address(opcm.superchainProxyAdmin())));
 
         // Run the upgrade test and checks
         runCurrentUpgrade(upgrader);
