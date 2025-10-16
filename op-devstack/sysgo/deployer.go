@@ -501,6 +501,11 @@ func (wb *worldBuilder) Build() {
 	wb.buildFullConfigSet()
 }
 
+// GetState returns the deployment state output
+func (wb *worldBuilder) GetState() *state.State {
+	return wb.output
+}
+
 // WriteState is a callback used by deployer.ApplyPipeline to write the output
 func (wb *worldBuilder) WriteState(st *state.State) error {
 	wb.output = st

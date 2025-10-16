@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
 	"github.com/ethereum-optimism/optimism/op-devstack/compat"
 	"github.com/ethereum-optimism/optimism/op-devstack/devtest"
 	"github.com/ethereum-optimism/optimism/op-devstack/stack"
@@ -97,6 +98,13 @@ func NewOrchestrator(p devtest.P, hook stack.SystemHook) *Orchestrator {
 
 func (o *Orchestrator) P() devtest.P {
 	return o.p
+}
+
+func (o *Orchestrator) DeploymentState() *state.State {
+	if o.wb == nil {
+		return nil
+	}
+	return o.wb.GetState()
 }
 
 func (o *Orchestrator) writeDefaultJWT() (jwtPath string, secret [32]byte) {

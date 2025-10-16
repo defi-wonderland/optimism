@@ -12,8 +12,10 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"runtime/debug"
 	"slices"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -179,8 +181,8 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string, intentPath s
 	)
 
 	orch := sysgo.NewOrchestrator(p, opts)
-	stack.ApplyOptionLifecycle[*sysgo.Orchestrator](opts, orch)
-	if err := runSysgo(ctx, stderr, orch); err != nil {
+	stack.ApplyOptionLifecycle(opts, orch)
+	if err := runSysgo(ctx, stderr, orch, opUpDir); err != nil {
 		return err
 	}
 	fmt.Fprintf(stderr, "\nPlease consider filling out this survey to influence future development: https://www.surveymonkey.com/r/JTGHFK3\n")
@@ -208,7 +210,7 @@ func newP(ctx context.Context, stderr io.Writer) devtest.P {
 	return p
 }
 
-func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) error {
+func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator, opUpDir string) error {
 	// Print available account.
 	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 	if err != nil {
@@ -243,6 +245,13 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 	}
 	l2Net := l2Networks[0]
 	elNode := l2Net.L2ELNode(match.FirstL2EL)
+
+	// Export L1 deployment addresses to JSON
+	if err := exportL1Deployments(opUpDir, orch); err != nil {
+		fmt.Fprintf(stderr, "Warning: failed to export L1 deployments: %v\n", err)
+	} else {
+		fmt.Fprintf(stderr, "L1 deployment addresses exported to: %s/l1-deployments.json\n", opUpDir)
+	}
 
 	// Log on new blocks.
 	go func() {
@@ -516,6 +525,63 @@ func (t *testingT) WithCtx(ctx context.Context) devtest.T {
 
 // _TestOnly implements devtest.T.
 func (t *testingT) TestOnly() {
+}
+
+func exportL1Deployments(opUpDir string, orch *sysgo.Orchestrator) error {
+	deploymentState := orch.DeploymentState()
+	if deploymentState == nil {
+		return fmt.Errorf("no deployment state available")
+	}
+
+	l1Deployments := make(map[string]any)
+
+	chains := make([]map[string]any, 0, len(deploymentState.Chains))
+	for _, chainState := range deploymentState.Chains {
+		proxies := extractProxies(reflect.ValueOf(*chainState))
+		proxies["chainId"] = chainState.ID.Hex()
+
+		if deploymentState.SuperchainDeployment != nil {
+			proxies["superchain"] = extractProxies(reflect.ValueOf(*deploymentState.SuperchainDeployment))
+		}
+
+		chains = append(chains, proxies)
+	}
+	l1Deployments["chains"] = chains
+
+	data, err := json.MarshalIndent(l1Deployments, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal L1 deployments: %w", err)
+	}
+
+	deploymentsPath := filepath.Join(opUpDir, "l1-deployments.json")
+	if err := os.WriteFile(deploymentsPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write L1 deployments file: %w", err)
+	}
+
+	return nil
+}
+
+func extractProxies(val reflect.Value) map[string]any {
+	result := make(map[string]any)
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		if !fieldType.IsExported() {
+			continue
+		}
+
+		if fieldType.Anonymous && field.Kind() == reflect.Struct {
+			for k, v := range extractProxies(field) {
+				result[k] = v
+			}
+		} else if fieldType.Type == reflect.TypeOf(common.Address{}) && strings.HasSuffix(fieldType.Name, "Proxy") {
+			jsonName := strings.ToLower(fieldType.Name[:1]) + fieldType.Name[1:]
+			result[jsonName] = field.Interface().(common.Address).Hex()
+		}
+	}
+	return result
 }
 
 type CustomIntent struct {
