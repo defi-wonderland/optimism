@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,8 +34,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/log/logfilter"
 	"github.com/ethereum-optimism/optimism/op-service/testreq"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -127,7 +130,7 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string, intentPath s
 
 	if intentPath != "" {
 		// Load intent from file
-		intent, err := jsonutil.LoadTOML[state.Intent](intentPath)
+		intent, err := loadIntent(intentPath)
 		if err != nil {
 			return fmt.Errorf("failed to load intent: %w", err)
 		}
@@ -224,7 +227,8 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 
 	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
 	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
-	fmt.Fprintf(stderr, "EL Node URL: %s\n", "http://localhost:8545")
+	fmt.Fprintf(stderr, "L2 Node URL: %s\n", "http://localhost:8545")
+	fmt.Fprintf(stderr, "L1 Node URL: %s\n", "http://127.0.0.1:8544")
 
 	t := &testingT{
 		ctx:      ctx,
@@ -512,4 +516,51 @@ func (t *testingT) WithCtx(ctx context.Context) devtest.T {
 
 // _TestOnly implements devtest.T.
 func (t *testingT) TestOnly() {
+}
+
+type CustomIntent struct {
+	state.Intent
+	ChainsPrefund []struct {
+		PrefundAccounts []struct {
+			Address string `toml:"address"`
+			Amount  string `toml:"amount"`
+		} `toml:"prefundAccounts,omitempty"`
+	} `toml:"chainsPrefund,omitempty"`
+}
+
+// Helper function to load intent with
+func loadIntent(path string) (*state.Intent, error) {
+	customIntent, err := jsonutil.LoadTOML[CustomIntent](path)
+	if err != nil {
+		return nil, err
+	}
+
+	intent := &customIntent.Intent
+
+	// Convert prefund arrays to maps
+	for i, chainPf := range customIntent.ChainsPrefund {
+		if i >= len(intent.Chains) {
+			break
+		}
+		if len(chainPf.PrefundAccounts) == 0 {
+			continue
+		}
+
+		// Initialize L2 dev genesis since cannot be loaded from intent.toml
+		if intent.Chains[i].L2DevGenesisParams == nil {
+			intent.Chains[i].L2DevGenesisParams = &state.L2DevGenesisParams{
+				Prefund: make(map[common.Address]*hexutil.U256),
+			}
+		}
+
+		for _, pf := range chainPf.PrefundAccounts {
+			addr := common.HexToAddress(pf.Address)
+			amount := new(big.Int)
+			amount.SetString(pf.Amount, 0)
+			u256Amount := uint256.MustFromBig(amount)
+			intent.Chains[i].L2DevGenesisParams.Prefund[addr] = (*hexutil.U256)(u256Amount)
+		}
+	}
+
+	return intent, nil
 }

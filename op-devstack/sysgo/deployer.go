@@ -243,6 +243,10 @@ func WithCustomIntent(intent *state.Intent) DeployerOption {
 			builder.WithL2ContractsLocator(intent.L2ContractsLocator)
 		}
 
+		if intent.GlobalDeployOverrides["devFeatureBitmap"] != nil {
+			builder.WithGlobalOverride("devFeatureBitmap", intent.GlobalDeployOverrides["devFeatureBitmap"])
+		}
+
 		for _, chainIntent := range intent.Chains {
 			l2ChainID := eth.ChainIDFromBytes32(chainIntent.ID)
 			var l2Config intentbuilder.L2Configurator
