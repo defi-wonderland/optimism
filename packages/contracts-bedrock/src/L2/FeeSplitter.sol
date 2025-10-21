@@ -13,7 +13,7 @@ import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 // OpenZeppelin
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 /// @custom:proxied
 /// @custom:predeploy 0x420000000000000000000000000000000000002B

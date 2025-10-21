@@ -90,13 +90,14 @@ contract FeeSplitter_TestInit is CommonTest {
 /// @title FeeSplitter_Initialize_Test
 /// @notice Tests the initialization functions of the `FeeSplitter` contract.
 contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
-    event Initialized(uint8 version);
+    event Initialized(uint64 version);
+    error InvalidInitialization();
 
     /// @notice Test that re-initialization fails on the already-initialized predeploy
     function test_feeSplitter_reinitialization_reverts() public {
         // The FeeSplitter at the predeploy address is already initialized through genesis
         vm.prank(_owner);
-        vm.expectRevert("Initializable: contract is already initialized");
+        vm.expectRevert(InvalidInitialization.selector);
         feeSplitter.initialize(ISharesCalculator(address(_defaultSharesCalculator)));
     }
 
@@ -120,7 +121,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 
         // Expect the Initialized event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Initialized(type(uint8).max);
+        emit Initialized(type(uint64).max);
 
         // Deploy the implementation contract
         assembly {
@@ -131,7 +132,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
         assertTrue(implementation != address(0));
 
         // Verify re-initialization fails
-        vm.expectRevert("Initializable: contract is already initialized");
+        vm.expectRevert(InvalidInitialization.selector);
         IFeeSplitter(payable(implementation)).initialize(ISharesCalculator(address(_defaultSharesCalculator)));
     }
 }

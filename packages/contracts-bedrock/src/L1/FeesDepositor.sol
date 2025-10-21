@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.25;
 
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { ProxyAdminOwnedBase } from "src/L1/ProxyAdminOwnedBase.sol";
-import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { Initializable } from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import { Initializable } from "@openzeppelin/contracts-v5/proxy/utils/Initializable.sol";
 
 /// @custom:proxied true
 /// @title FeesDepositor
 /// @notice A contract that deposits fees to the L2 recipient when the deposit threshold is reached.
-contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBase, ISemver {
+contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ISemver {
     /// @notice The L1CrossDomainMessenger contract.
     IL1CrossDomainMessenger public messenger;
 
@@ -54,7 +53,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
     string public constant version = "1.0.0";
 
     /// @notice Constructs the FeesDepositor contract.
-    constructor() ReinitializableBase(1) {
+    constructor() {
         _disableInitializers();
     }
 
@@ -70,7 +69,7 @@ contract FeesDepositor is ProxyAdminOwnedBase, Initializable, ReinitializableBas
         uint32 _gasLimit
     )
         external
-        reinitializer(initVersion())
+        initializer
     {
         // Initialization transactions must come from the ProxyAdmin or its owner.
         _assertOnlyProxyAdminOrProxyAdminOwner();

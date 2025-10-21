@@ -5,7 +5,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { IFeesDepositor } from "interfaces/L1/IFeesDepositor.sol";
-import { FeesDepositor } from "src/L1/FeesDepositor.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { Proxy } from "src/universal/Proxy.sol";
 import { Features } from "src/libraries/Features.sol";
@@ -20,8 +19,11 @@ contract FeesDepositor_TestInit is CommonTest {
     event L2RecipientUpdated(address oldL2Recipient, address newL2Recipient);
     event GasLimitUpdated(uint32 oldGasLimit, uint32 newGasLimit);
 
+    // Errors
+    error InvalidInitialization();
+
     // Test state
-    FeesDepositor feesDepositor;
+    IFeesDepositor feesDepositor;
     address l2Recipient = makeAddr("l2Recipient");
     uint96 minDepositAmount = 1 ether;
     uint32 gasLimit = 150_000;
@@ -45,7 +47,7 @@ contract FeesDepositor_TestInit is CommonTest {
         Proxy(payable(proxy)).upgradeTo(implementation);
 
         // Cast proxy to FeesDepositor
-        feesDepositor = FeesDepositor(payable(proxy));
+        feesDepositor = IFeesDepositor(payable(proxy));
 
         // Initialize through proxy
         vm.prank(proxyAdminOwner);
@@ -63,7 +65,7 @@ contract FeesDepositor_Initialize_Test is FeesDepositor_TestInit {
     /// @notice This contract is excluded from the Initializable.t.sol test because it is not deployed as part of the
     /// standard deployment script and instead is deployed manually, that's why we have this test.
     function test_cannotReinitialize_succeeds() public {
-        vm.expectRevert("Initializable: contract is already initialized");
+        vm.expectRevert(InvalidInitialization.selector);
         feesDepositor.initialize(minDepositAmount, l2Recipient, l1CrossDomainMessenger, gasLimit);
     }
 }
