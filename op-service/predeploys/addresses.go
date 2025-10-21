@@ -26,6 +26,7 @@ const (
 	OperatorFeeVault              = "0x420000000000000000000000000000000000001b"
 	SchemaRegistry                = "0x4200000000000000000000000000000000000020"
 	EAS                           = "0x4200000000000000000000000000000000000021"
+	FeeSplitter                   = "0x420000000000000000000000000000000000002b"
 	CrossL2Inbox                  = "0x4200000000000000000000000000000000000022"
 	L2toL2CrossDomainMessenger    = "0x4200000000000000000000000000000000000023"
 	SuperchainETHBridge           = "0x4200000000000000000000000000000000000024"
@@ -67,6 +68,7 @@ var (
 	OperatorFeeVaultAddr              = common.HexToAddress(OperatorFeeVault)
 	SchemaRegistryAddr                = common.HexToAddress(SchemaRegistry)
 	EASAddr                           = common.HexToAddress(EAS)
+	FeeSplitterAddr                   = common.HexToAddress(FeeSplitter)
 	CrossL2InboxAddr                  = common.HexToAddress(CrossL2Inbox)
 	L2toL2CrossDomainMessengerAddr    = common.HexToAddress(L2toL2CrossDomainMessenger)
 	SuperchainETHBridgeAddr           = common.HexToAddress(SuperchainETHBridge)
@@ -122,6 +124,7 @@ func init() {
 	Predeploys["OperatorFeeVault"] = &Predeploy{Address: OperatorFeeVaultAddr}
 	Predeploys["SchemaRegistry"] = &Predeploy{Address: SchemaRegistryAddr}
 	Predeploys["EAS"] = &Predeploy{Address: EASAddr}
+	Predeploys["FeeSplitter"] = &Predeploy{Address: FeeSplitterAddr}
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
 		ProxyDisabled: true,
