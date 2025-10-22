@@ -19,7 +19,7 @@ interface IFeeSplitter is ISemver {
     error FeeSplitter_ReceiveWindowClosed();
     error FeeSplitter_SenderNotApprovedVault();
 
-    event FeesReceived(address indexed sender, uint256 amount);
+    event FeesReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
