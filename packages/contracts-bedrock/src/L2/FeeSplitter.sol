@@ -42,6 +42,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the FeeVault does not withdraw to FeeSplitter contract.
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
 
+    /// @notice Thrown when the FeeVault withdrawal amount does not match the expected amount.
+    error FeeSplitter_FeeVaultWithdrawalAmountMismatch(uint256 value, uint256 balanceBefore, uint256 balanceAfter);
+
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error FeeSplitter_OnlyProxyAdminOwner();
 
@@ -217,7 +220,12 @@ contract FeeSplitter is ISemver, Initializable {
         if (IFeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
+        uint256 balanceBefore = address(this).balance;
         value_ = IFeeVault(_feeVault).withdraw();
+        uint256 balanceAfter = address(this).balance;
+        if (balanceAfter - balanceBefore != value_) {
+            revert FeeSplitter_FeeVaultWithdrawalAmountMismatch(value_, balanceBefore, balanceAfter);
+        }
     }
 
     /// @notice Sets the transient disbursing flag.

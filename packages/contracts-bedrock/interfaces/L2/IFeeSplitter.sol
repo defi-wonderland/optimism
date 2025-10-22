@@ -13,6 +13,7 @@ interface IFeeSplitter is ISemver {
     error FeeSplitter_NoFeesCollected();
     error FeeSplitter_FeeVaultMustWithdrawToL2();
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
+    error FeeSplitter_FeeVaultWithdrawalAmountMismatch(uint256 value, uint256 balanceBefore, uint256 balanceAfter);
     error FeeSplitter_OnlyProxyAdminOwner();
     error FeeSplitter_FailedToSendToRevenueShareRecipient();
     error FeeSplitter_SharesCalculatorMalformedOutput();

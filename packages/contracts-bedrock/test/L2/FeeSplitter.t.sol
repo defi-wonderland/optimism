@@ -6,6 +6,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Mocks
 import { MockFeeVault } from "test/mocks/MockFeeVault.sol";
+import { MaliciousMockFeeVault } from "test/mocks/MaliciousMockFeeVault.sol";
 import { RevertingRecipient } from "test/mocks/RevertingRecipient.sol";
 
 // Libraries
@@ -362,6 +363,36 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
 
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
         vm.expectRevert(IFeeSplitter.FeeSplitter_FeeVaultMustWithdrawToFeeSplitter.selector);
+        feeSplitter.disburseFees();
+    }
+
+    /// @notice Test disburseFees reverts when fee vault withdrawal amount does not match the expected amount
+    function testFuzz_feeSplitterDisburseFees_whenFeeVaultWithdrawalAmountMismatch_reverts(uint256 _actualTransferAmount, uint256 _claimedWithdrawalAmount) public {
+        vm.assume(_actualTransferAmount != _claimedWithdrawalAmount);
+
+        // Create a malicious mock vault that lies about withdrawal amount
+        MaliciousMockFeeVault maliciousVault =
+            new MaliciousMockFeeVault(payable(address(feeSplitter)), _actualTransferAmount, _claimedWithdrawalAmount);
+        vm.deal(address(maliciousVault), _actualTransferAmount);
+
+        // Replace SEQUENCER_FEE_WALLET with the malicious vault
+        vm.etch(Predeploys.SEQUENCER_FEE_WALLET, address(maliciousVault).code);
+        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, _actualTransferAmount);
+
+        // Setup other vaults normally with zero balance
+        _mockFeeVaultForSuccessfulWithdrawal(Predeploys.BASE_FEE_VAULT, 0);
+        _mockFeeVaultForSuccessfulWithdrawal(Predeploys.L1_FEE_VAULT, 0);
+        _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, 0);
+
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IFeeSplitter.FeeSplitter_FeeVaultWithdrawalAmountMismatch.selector,
+                _claimedWithdrawalAmount,
+                0,
+                _actualTransferAmount
+            )
+        );
         feeSplitter.disburseFees();
     }
 
