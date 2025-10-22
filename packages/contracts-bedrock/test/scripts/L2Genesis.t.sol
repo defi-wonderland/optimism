@@ -10,6 +10,7 @@ import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevShar
 import { ISequencerFeeVault } from "interfaces/L2/ISequencerFeeVault.sol";
 import { IBaseFeeVault } from "interfaces/L2/IBaseFeeVault.sol";
 import { IL1FeeVault } from "interfaces/L2/IL1FeeVault.sol";
+import { IOperatorFeeVault } from "interfaces/L2/IOperatorFeeVault.sol";
 import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
 import { IOptimismMintableERC721Factory } from "interfaces/L2/IOptimismMintableERC721Factory.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
@@ -69,6 +70,7 @@ abstract contract L2Genesis_TestInit is Test {
         IBaseFeeVault baseFeeVault = IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT));
         IL1FeeVault l1FeeVault = IL1FeeVault(payable(Predeploys.L1_FEE_VAULT));
         ISequencerFeeVault sequencerFeeVault = ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET));
+        IOperatorFeeVault operatorFeeVault = IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT));
 
         assertEq(baseFeeVault.recipient(), input.baseFeeVaultRecipient);
         assertEq(baseFeeVault.MIN_WITHDRAWAL_AMOUNT(), input.baseFeeVaultMinimumWithdrawalAmount);
@@ -81,6 +83,10 @@ abstract contract L2Genesis_TestInit is Test {
         assertEq(sequencerFeeVault.recipient(), input.sequencerFeeVaultRecipient);
         assertEq(sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), input.sequencerFeeVaultMinimumWithdrawalAmount);
         assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(input.sequencerFeeVaultWithdrawalNetwork));
+
+        assertEq(operatorFeeVault.recipient(), input.operatorFeeVaultRecipient);
+        assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), input.operatorFeeVaultMinimumWithdrawalAmount);
+        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(input.operatorFeeVaultWithdrawalNetwork));
     }
 
     function testVaultsWithRevenueShare() internal view {
