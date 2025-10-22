@@ -153,12 +153,14 @@ contract FeeSplitter is ISemver, Initializable {
         (ISharesCalculator.ShareInfo[] memory _shareInfo) =
             sharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
 
+        uint256 _shareInfoLength = _shareInfo.length;
+
         // Ensure the share calculator returned valid data
-        if (_shareInfo.length == 0) revert FeeSplitter_FeeShareInfoEmpty();
+        if (_shareInfoLength == 0) revert FeeSplitter_FeeShareInfoEmpty();
 
         // Loop through the recipients and their corresponding fee shares
         uint256 _totalFeesDisbursed;
-        for (uint256 i; i < _shareInfo.length; i++) {
+        for (uint256 i; i < _shareInfoLength; i++) {
             address payable _recipient = _shareInfo[i].recipient;
             uint256 _feeShareAmount = _shareInfo[i].amount;
 
