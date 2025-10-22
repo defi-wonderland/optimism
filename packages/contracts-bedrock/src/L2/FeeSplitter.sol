@@ -60,10 +60,13 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when a sender other than an approved FeeVault attempts to send ETH.
     error FeeSplitter_SenderNotApprovedVault();
 
-    /// @notice Transient storage slot key for disbursement-in-progress flag.
-    ///         Equal to bytes32(uint256(keccak256("feesplitter.isDisbursing")) - 1)
-    bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT =
-        0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
+    /// @notice Thrown when the sender is not the currently disbursing vault.
+    error FeeSplitter_SenderNotCurrentVault();
+
+    /// @notice Transient storage slot key for the address of the vault currently allowed to disburse.
+    ///         Equal to bytes32(uint256(keccak256("feesplitter.disbursingAddress")) - 1)
+    bytes32 internal constant _FEE_SPLITTER_DISBURSING_ADDRESS_SLOT =
+        0x21346dddac42cc163a6523eefc19df981df7352c870dc3b0b17a6a92fc6fe813;
 
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -116,12 +119,15 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
     receive() external payable virtual {
-        if (!_isTransientDisbursing()) revert FeeSplitter_ReceiveWindowClosed();
         if (
             msg.sender != Predeploys.SEQUENCER_FEE_WALLET && msg.sender != Predeploys.BASE_FEE_VAULT
                 && msg.sender != Predeploys.L1_FEE_VAULT && msg.sender != Predeploys.OPERATOR_FEE_VAULT
         ) {
             revert FeeSplitter_SenderNotApprovedVault();
+        }
+        // Sender must be the currently disbursing vault
+        if (msg.sender != _getTransientDisbursingAddress()) {
+            revert FeeSplitter_SenderNotCurrentVault();
         }
         uint256 newBalance = address(this).balance;
         emit FeesReceived(msg.sender, msg.value, newBalance);
@@ -137,12 +143,12 @@ contract FeeSplitter is ISemver, Initializable {
         lastDisbursementTime = uint128(block.timestamp);
 
         // Pull fees into the contract
-        _setTransientDisbursing(true);
         uint256 _sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
         uint256 _baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
         uint256 _l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
         uint256 _operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
-        _setTransientDisbursing(false);
+        // Clear the transient disbursing address
+        _setTransientDisbursingAddress(address(0));
 
         uint256 _grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
 
@@ -221,6 +227,7 @@ contract FeeSplitter is ISemver, Initializable {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
         uint256 balanceBefore = address(this).balance;
+        _setTransientDisbursingAddress(address(_feeVault));
         value_ = IFeeVault(_feeVault).withdraw();
         uint256 balanceAfter = address(this).balance;
         if (balanceAfter - balanceBefore != value_) {
@@ -228,19 +235,19 @@ contract FeeSplitter is ISemver, Initializable {
         }
     }
 
-    /// @notice Sets the transient disbursing flag.
-    /// @param _enabled True to enable, false to disable.
-    function _setTransientDisbursing(bool _enabled) internal {
+    /// @notice Sets the transient disbursing address.
+    /// @param _allowedCaller The address of the vault allowed to call receive().
+    function _setTransientDisbursingAddress(address _allowedCaller) internal {
         assembly {
-            tstore(_FEE_SPLITTER_IS_DISBURSING_SLOT, _enabled)
+            tstore(_FEE_SPLITTER_DISBURSING_ADDRESS_SLOT, _allowedCaller)
         }
     }
 
-    /// @notice Reads the transient disbursing flag.
-    /// @return isDisbursing_ True if disbursement is in progress.
-    function _isTransientDisbursing() internal view returns (bool isDisbursing_) {
+    /// @notice Reads the transient disbursing address.
+    /// @return allowedCaller_ The address of the vault currently allowed to call receive().
+    function _getTransientDisbursingAddress() internal view returns (address allowedCaller_) {
         assembly {
-            isDisbursing_ := tload(_FEE_SPLITTER_IS_DISBURSING_SLOT)
+            allowedCaller_ := tload(_FEE_SPLITTER_DISBURSING_ADDRESS_SLOT)
         }
     }
 }
