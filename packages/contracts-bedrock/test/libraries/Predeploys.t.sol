@@ -32,14 +32,14 @@ abstract contract Predeploys_TestInit is CommonTest {
     function _isInitializable(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.L2_CROSS_DOMAIN_MESSENGER || _addr == Predeploys.L2_STANDARD_BRIDGE
             || _addr == Predeploys.L2_ERC721_BRIDGE || _addr == Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY
-            || _addr == Predeploys.FEE_SPLITTER;
+            || _addr == Predeploys.FEE_SPLITTER || _addr == Predeploys.SEQUENCER_FEE_WALLET
+            || _addr == Predeploys.BASE_FEE_VAULT || _addr == Predeploys.L1_FEE_VAULT
+            || _addr == Predeploys.OPERATOR_FEE_VAULT;
     }
 
     /// @notice Returns true if the predeploy uses immutables.
     function _usesImmutables(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.SEQUENCER_FEE_WALLET
-            || _addr == Predeploys.BASE_FEE_VAULT || _addr == Predeploys.L1_FEE_VAULT
-            || _addr == Predeploys.OPERATOR_FEE_VAULT || _addr == Predeploys.EAS || _addr == Predeploys.GOVERNANCE_TOKEN;
+        return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.EAS || _addr == Predeploys.GOVERNANCE_TOKEN;
     }
 
     /// @notice Internal test function for predeploys validation across different forks.
