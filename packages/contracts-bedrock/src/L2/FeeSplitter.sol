@@ -80,7 +80,8 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Emitted when fees are received from FeeVaults.
     /// @param sender The FeeVault that sent the fees.
     /// @param amount The amount of fees received.
-    event FeesReceived(address indexed sender, uint256 amount);
+    /// @param newBalance The new balance after receiving fees.
+    event FeesReceived(address indexed sender, uint256 amount, uint256 newBalance);
 
     /// @notice Emitted when the fee disbursement interval is updated.
     /// @param oldFeeDisbursementInterval The previous fee disbursement interval.
@@ -119,7 +120,8 @@ contract FeeSplitter is ISemver, Initializable {
         ) {
             revert FeeSplitter_SenderNotApprovedVault();
         }
-        emit FeesReceived({ sender: msg.sender, amount: msg.value });
+        uint256 newBalance = address(this).balance;
+        emit FeesReceived(msg.sender, msg.value, newBalance);
     }
 
     /// @notice Withdraws funds from FeeVaults and disburses them to the recipients.

@@ -22,7 +22,7 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 /// @notice Reusable test initialization for `FeeSplitter` tests.
 contract FeeSplitter_TestInit is CommonTest {
     // Events
-    event FeesReceived(address indexed sender, uint256 amount);
+    event FeesReceived(address indexed sender, uint256 amount, uint256 newBalance);
     event FeeDisbursementIntervalUpdated(uint128 oldFeeDisbursementInterval, uint128 newFeeDisbursementInterval);
     event FeesDisbursed(ISharesCalculator.ShareInfo[] shareInfo, uint256 grossRevenue);
     event SharesCalculatorUpdated(address oldSharesCalculator, address newSharesCalculator);
@@ -189,6 +189,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         // Fast forward time to allow disbursement
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
+        vm.expectEmit(true, true, true, true);
+        emit FeesReceived(Predeploys.SEQUENCER_FEE_WALLET, _amount, _amount);
+
         // Call disburseFees - this will trigger the receive function during withdrawal
         feeSplitter.disburseFees();
 
@@ -222,6 +225,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
         // Fast forward time to allow disbursement
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+        vm.expectEmit(true, true, true, true);
+        emit FeesReceived(Predeploys.BASE_FEE_VAULT, _amount, _amount);
 
         // Call disburseFees - this will trigger the receive function during withdrawal
         feeSplitter.disburseFees();
@@ -257,6 +263,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         // Fast forward time to allow disbursement
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
+        vm.expectEmit(true, true, true, true);
+        emit FeesReceived(Predeploys.L1_FEE_VAULT, _amount, _amount);
+
         // Call disburseFees - this will trigger the receive function during withdrawal
         feeSplitter.disburseFees();
 
@@ -290,6 +299,9 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
         // Fast forward time to allow disbursement
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+        vm.expectEmit(true, true, true, true);
+        emit FeesReceived(Predeploys.OPERATOR_FEE_VAULT, _amount, _amount);
 
         // Call disburseFees - this will trigger the receive function during withdrawal
         feeSplitter.disburseFees();
