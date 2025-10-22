@@ -62,6 +62,7 @@ contract FeeSplitter is ISemver, Initializable {
     bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT =
         0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
 
+    /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 

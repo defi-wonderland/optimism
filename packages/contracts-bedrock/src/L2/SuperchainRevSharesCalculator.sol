@@ -30,6 +30,7 @@ contract SuperchainRevSharesCalculator is ISemver, ISharesCalculator {
     /// @notice Thrown when the gross share is zero.
     error SharesCalculator_ZeroGrossShare();
 
+    /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
