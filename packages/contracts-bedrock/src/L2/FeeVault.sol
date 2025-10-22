@@ -39,6 +39,7 @@ abstract contract FeeVault is Initializable {
     /// @notice Reserve extra slots in the storage layout for future upgrades, 50 in total.
     uint256[46] private __gap;
 
+    /// @custom:legacy
     /// @notice Emitted each time a withdrawal occurs. This event will be deprecated
     ///         in favor of the Withdrawal event containing the WithdrawalNetwork parameter.
     /// @param value Amount that was withdrawn (in wei).
