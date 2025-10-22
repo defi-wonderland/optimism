@@ -18,8 +18,8 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @custom:proxied
 /// @custom:predeploy 0x420000000000000000000000000000000000002B
 /// @title FeeSplitter
-/// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
-///         sends the remaining funds to the fee router.
+/// @notice Withdraws funds from system FeeVault contracts and distributes them according to the
+///         configured SharesCalculator.
 contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee disbursement interval exceeds the maximum allowed.
     error FeeSplitter_ExceedsMaxFeeDisbursementTime();
