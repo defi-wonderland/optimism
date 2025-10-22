@@ -7,6 +7,7 @@ import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 interface IFeeSplitter is ISemver {
     event Initialized(uint8 version);
     error FeeSplitter_ExceedsMaxFeeDisbursementTime();
+    error FeeSplitter_FeeDisbursementIntervalCannotBeZero();
     error FeeSplitter_SharesCalculatorCannotBeZero();
     error FeeSplitter_DisbursementIntervalNotReached();
     error FeeSplitter_FeeShareInfoEmpty();

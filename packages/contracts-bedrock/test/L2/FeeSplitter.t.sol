@@ -579,6 +579,13 @@ contract FeeSplitter_SetFeeDisbursementInterval_Test is FeeSplitter_TestInit {
         feeSplitter.setFeeDisbursementInterval(48 hours);
     }
 
+    /// @notice Test setFeeDisbursementInterval reverts when interval is zero
+    function test_feeSplitterSetFeeDisbursementInterval_whenIntervalZero_reverts() public {
+        vm.prank(_owner);
+        vm.expectRevert(IFeeSplitter.FeeSplitter_FeeDisbursementIntervalCannotBeZero.selector);
+        feeSplitter.setFeeDisbursementInterval(0);
+    }
+
     /// @notice Test setFeeDisbursementInterval reverts when interval is too long
     function testFuzz_feeSplitterSetFeeDisbursementInterval_whenIntervalTooLong_reverts(uint256 _disbursementInterval)
         public
