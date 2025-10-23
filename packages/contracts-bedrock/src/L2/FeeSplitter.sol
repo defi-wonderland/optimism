@@ -115,7 +115,7 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
-    receive() external payable virtual {
+    receive() external payable {
         if (!_isTransientDisbursing()) revert FeeSplitter_ReceiveWindowClosed();
         if (
             msg.sender != Predeploys.SEQUENCER_FEE_WALLET && msg.sender != Predeploys.BASE_FEE_VAULT
