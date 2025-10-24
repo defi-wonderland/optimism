@@ -118,22 +118,22 @@ abstract contract L2Genesis_TestInit is Test {
         assertEq(l1FeeVault.recipient(), Predeploys.FEE_SPLITTER);
         assertEq(l1FeeVault.MIN_WITHDRAWAL_AMOUNT(), 0);
         assertEq(l1FeeVault.minWithdrawalAmount(), 0);
-        assertEq(uint8(l1FeeVault.WITHDRAWAL_NETWORK()), uint8(input.l1FeeVaultWithdrawalNetwork));
-        assertEq(uint8(l1FeeVault.withdrawalNetwork()), uint8(input.l1FeeVaultWithdrawalNetwork));
+        assertEq(uint8(l1FeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+        assertEq(uint8(l1FeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
 
         assertEq(sequencerFeeVault.RECIPIENT(), Predeploys.FEE_SPLITTER);
         assertEq(sequencerFeeVault.recipient(), Predeploys.FEE_SPLITTER);
         assertEq(sequencerFeeVault.MIN_WITHDRAWAL_AMOUNT(), 0);
         assertEq(sequencerFeeVault.minWithdrawalAmount(), 0);
-        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(input.sequencerFeeVaultWithdrawalNetwork));
-        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(input.sequencerFeeVaultWithdrawalNetwork));
+        assertEq(uint8(sequencerFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+        assertEq(uint8(sequencerFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
 
         assertEq(operatorFeeVault.RECIPIENT(), Predeploys.FEE_SPLITTER);
         assertEq(operatorFeeVault.recipient(), Predeploys.FEE_SPLITTER);
         assertEq(operatorFeeVault.MIN_WITHDRAWAL_AMOUNT(), 0);
         assertEq(operatorFeeVault.minWithdrawalAmount(), 0);
-        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(input.operatorFeeVaultWithdrawalNetwork));
-        assertEq(uint8(operatorFeeVault.withdrawalNetwork()), uint8(input.operatorFeeVaultWithdrawalNetwork));
+        assertEq(uint8(operatorFeeVault.WITHDRAWAL_NETWORK()), uint8(Types.WithdrawalNetwork.L2));
+        assertEq(uint8(operatorFeeVault.withdrawalNetwork()), uint8(Types.WithdrawalNetwork.L2));
     }
 
     function testGovernance() internal view {
