@@ -314,12 +314,15 @@ contract L2Genesis is Script {
     function setSequencerFeeVault(Input memory _input) internal {
         address recipient;
         Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         if (_input.useRevenueShare) {
             recipient = Predeploys.FEE_SPLITTER;
             network = Types.WithdrawalNetwork.L2;
+            minWithdrawalAmount = 0;
         } else {
             recipient = _input.sequencerFeeVaultRecipient;
             network = Types.WithdrawalNetwork(_input.sequencerFeeVaultWithdrawalNetwork);
+            minWithdrawalAmount = _input.sequencerFeeVaultMinimumWithdrawalAmount;
         }
 
         address impl = _setImplementationCode(Predeploys.SEQUENCER_FEE_WALLET);
@@ -329,7 +332,7 @@ contract L2Genesis is Script {
         // Initialize the predeploy
         ISequencerFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).initialize({
             _recipient: recipient,
-            _minWithdrawalAmount: _input.sequencerFeeVaultMinimumWithdrawalAmount,
+            _minWithdrawalAmount: minWithdrawalAmount,
             _withdrawalNetwork: network
         });
     }
@@ -404,12 +407,15 @@ contract L2Genesis is Script {
     function setBaseFeeVault(Input memory _input) internal {
         address recipient;
         Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         if (_input.useRevenueShare) {
             recipient = Predeploys.FEE_SPLITTER;
             network = Types.WithdrawalNetwork.L2;
+            minWithdrawalAmount = 0;
         } else {
             recipient = _input.baseFeeVaultRecipient;
             network = Types.WithdrawalNetwork(_input.baseFeeVaultWithdrawalNetwork);
+            minWithdrawalAmount = _input.baseFeeVaultMinimumWithdrawalAmount;
         }
 
         address impl = _setImplementationCode(Predeploys.BASE_FEE_VAULT);
@@ -419,7 +425,7 @@ contract L2Genesis is Script {
         // Initialize the predeploy
         IBaseFeeVault(payable(Predeploys.BASE_FEE_VAULT)).initialize({
             _recipient: recipient,
-            _minWithdrawalAmount: _input.baseFeeVaultMinimumWithdrawalAmount,
+            _minWithdrawalAmount: minWithdrawalAmount,
             _withdrawalNetwork: network
         });
     }
@@ -428,12 +434,15 @@ contract L2Genesis is Script {
     function setL1FeeVault(Input memory _input) internal {
         address recipient;
         Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         if (_input.useRevenueShare) {
             recipient = Predeploys.FEE_SPLITTER;
             network = Types.WithdrawalNetwork.L2;
+            minWithdrawalAmount = 0;
         } else {
             recipient = _input.l1FeeVaultRecipient;
             network = Types.WithdrawalNetwork(_input.l1FeeVaultWithdrawalNetwork);
+            minWithdrawalAmount = _input.l1FeeVaultMinimumWithdrawalAmount;
         }
 
         address impl = _setImplementationCode(Predeploys.L1_FEE_VAULT);
@@ -443,7 +452,7 @@ contract L2Genesis is Script {
         // Initialize the predeploy
         IL1FeeVault(payable(Predeploys.L1_FEE_VAULT)).initialize({
             _recipient: recipient,
-            _minWithdrawalAmount: _input.l1FeeVaultMinimumWithdrawalAmount,
+            _minWithdrawalAmount: minWithdrawalAmount,
             _withdrawalNetwork: network
         });
     }
@@ -452,12 +461,15 @@ contract L2Genesis is Script {
     function setOperatorFeeVault(Input memory _input) internal {
         address recipient;
         Types.WithdrawalNetwork network;
+        uint256 minWithdrawalAmount;
         if (_input.useRevenueShare) {
             recipient = Predeploys.FEE_SPLITTER;
             network = Types.WithdrawalNetwork.L2;
+            minWithdrawalAmount = 0;
         } else {
             recipient = _input.operatorFeeVaultRecipient;
             network = Types.WithdrawalNetwork(_input.operatorFeeVaultWithdrawalNetwork);
+            minWithdrawalAmount = _input.operatorFeeVaultMinimumWithdrawalAmount;
         }
 
         address impl = _setImplementationCode(Predeploys.OPERATOR_FEE_VAULT);
@@ -467,7 +479,7 @@ contract L2Genesis is Script {
         // Initialize the predeploy
         IOperatorFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).initialize({
             _recipient: recipient,
-            _minWithdrawalAmount: _input.operatorFeeVaultMinimumWithdrawalAmount,
+            _minWithdrawalAmount: minWithdrawalAmount,
             _withdrawalNetwork: network
         });
     }
