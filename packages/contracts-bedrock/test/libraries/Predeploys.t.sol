@@ -28,18 +28,33 @@ abstract contract Predeploys_TestInit is CommonTest {
         return _addr == Predeploys.L1_MESSAGE_SENDER;
     }
 
-    /// @notice Returns true if the predeploy is initializable.
-    function _isInitializable(address _addr) internal pure returns (bool) {
+    /// @notice Returns true if the predeploy is initializable and uses OpenZeppelin v4 storage pattern.
+    ///         These contracts have _initialized in the regular storage layout.
+    function _isInitializableV4(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.L2_CROSS_DOMAIN_MESSENGER || _addr == Predeploys.L2_STANDARD_BRIDGE
             || _addr == Predeploys.L2_ERC721_BRIDGE || _addr == Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY
-            || _addr == Predeploys.FEE_SPLITTER || _addr == Predeploys.SEQUENCER_FEE_WALLET
-            || _addr == Predeploys.BASE_FEE_VAULT || _addr == Predeploys.L1_FEE_VAULT
-            || _addr == Predeploys.OPERATOR_FEE_VAULT;
+            || _addr == Predeploys.FEE_SPLITTER;
+    }
+
+    /// @notice Returns true if the predeploy is initializable and uses OpenZeppelin v5 namespaced storage (EIP-7201).
+    ///         These contracts store _initialized in a namespaced slot, not in the regular storage layout.
+    function _isInitializableV5(address _addr) internal pure returns (bool) {
+        return _addr == Predeploys.SEQUENCER_FEE_WALLET || _addr == Predeploys.BASE_FEE_VAULT
+            || _addr == Predeploys.L1_FEE_VAULT || _addr == Predeploys.OPERATOR_FEE_VAULT;
     }
 
     /// @notice Returns true if the predeploy uses immutables.
     function _usesImmutables(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.EAS || _addr == Predeploys.GOVERNANCE_TOKEN;
+    }
+
+    /// @notice Checks if a contract is initialized using OpenZeppelin v5 namespaced storage pattern.
+    ///         OZ v5 storage slot: keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Initializable")) - 1)) & ~bytes32(uint256(0xff))
+    function _isInitializedV5(address _addr) internal view returns (bool) {
+        bytes32 INITIALIZABLE_STORAGE_SLOT = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
+        bytes32 slotVal = vm.load(_addr, INITIALIZABLE_STORAGE_SLOT);
+        // In OZ v5, byte 0 is _initialized, byte 1 is _initializing
+        return uint8(uint256(slotVal) & 0xFF) != 0;
     }
 
     /// @notice Internal test function for predeploys validation across different forks.
@@ -99,9 +114,14 @@ abstract contract Predeploys_TestInit is CommonTest {
                 assertEq(implAddr.code, supposedCode, "proxy implementation contract should match contract source");
             }
 
-            if (_isInitializable(addr)) {
+            if (_isInitializableV4(addr)) {
                 assertTrue(ForgeArtifacts.isInitialized({ _name: cname, _address: addr }));
                 assertTrue(ForgeArtifacts.isInitialized({ _name: cname, _address: implAddr }));
+            }
+
+            if (_isInitializableV5(addr)) {
+                assertTrue(_isInitializedV5(addr), string.concat("V5 proxy not initialized: ", vm.toString(addr)));
+                assertTrue(_isInitializedV5(implAddr), string.concat("V5 implementation not initialized: ", vm.toString(implAddr)));
             }
         }
     }
