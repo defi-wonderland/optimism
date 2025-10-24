@@ -33,13 +33,6 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
         feeVault.setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
     }
 
-    /// @notice Tests that the l1 fee wallet is correct.
-    function test_constructor_succeeds() external view {
-        assertEq(feeVault.RECIPIENT(), recipient);
-        assertEq(feeVault.MIN_WITHDRAWAL_AMOUNT(), minWithdrawalAmount);
-        assertEq(uint8(feeVault.WITHDRAWAL_NETWORK()), uint8(withdrawalNetwork));
-    }
-
     /// @notice Tests that the initialize function succeeds.
     function test_initialize_succeeds() external view {
         assertEq(feeVault.recipient(), recipient);
@@ -53,6 +46,13 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
 
         vm.expectRevert(IFeeVault.InvalidInitialization.selector);
         feeVault.initialize(recipient, minWithdrawalAmount, Types.WithdrawalNetwork.L1);
+    }
+
+    /// @notice Tests that the immutable values match the storage getters.
+    function test_immutableMatchesStorageVariables_succeeds() external view {
+        assertEq(feeVault.RECIPIENT(), feeVault.recipient());
+        assertEq(feeVault.MIN_WITHDRAWAL_AMOUNT(), feeVault.minWithdrawalAmount());
+        assertEq(uint8(feeVault.WITHDRAWAL_NETWORK()), uint8(feeVault.withdrawalNetwork()));
     }
 
     /// @notice Tests that the fee feeVault is able to receive ETH.

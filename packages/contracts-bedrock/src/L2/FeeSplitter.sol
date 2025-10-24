@@ -24,6 +24,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee disbursement interval exceeds the maximum allowed.
     error FeeSplitter_ExceedsMaxFeeDisbursementTime();
 
+    /// @notice Thrown when the fee disbursement interval is set to zero.
+    error FeeSplitter_FeeDisbursementIntervalCannotBeZero();
+
     /// @notice Thrown when the share calculator address is zero.
     error FeeSplitter_SharesCalculatorCannotBeZero();
 
@@ -80,7 +83,8 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Emitted when fees are received from FeeVaults.
     /// @param sender The FeeVault that sent the fees.
     /// @param amount The amount of fees received.
-    event FeesReceived(address indexed sender, uint256 amount);
+    /// @param newBalance The new balance after receiving fees.
+    event FeesReceived(address indexed sender, uint256 amount, uint256 newBalance);
 
     /// @notice Emitted when the fee disbursement interval is updated.
     /// @param oldFeeDisbursementInterval The previous fee disbursement interval.
@@ -111,7 +115,7 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
-    receive() external payable virtual {
+    receive() external payable {
         if (!_isTransientDisbursing()) revert FeeSplitter_ReceiveWindowClosed();
         if (
             msg.sender != Predeploys.SEQUENCER_FEE_WALLET && msg.sender != Predeploys.BASE_FEE_VAULT
@@ -119,7 +123,8 @@ contract FeeSplitter is ISemver, Initializable {
         ) {
             revert FeeSplitter_SenderNotApprovedVault();
         }
-        emit FeesReceived({ sender: msg.sender, amount: msg.value });
+        uint256 newBalance = address(this).balance;
+        emit FeesReceived(msg.sender, msg.value, newBalance);
     }
 
     /// @notice Withdraws funds from FeeVaults and disburses them to the recipients.
@@ -182,6 +187,9 @@ contract FeeSplitter is ISemver, Initializable {
     function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
+        }
+        if (_newFeeDisbursementInterval == 0) {
+            revert FeeSplitter_FeeDisbursementIntervalCannotBeZero();
         }
         if (_newFeeDisbursementInterval > MAX_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_ExceedsMaxFeeDisbursementTime();
