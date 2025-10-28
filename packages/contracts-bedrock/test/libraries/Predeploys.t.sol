@@ -45,16 +45,8 @@ abstract contract Predeploys_TestInit is CommonTest {
 
     /// @notice Returns true if the predeploy uses immutables.
     function _usesImmutables(address _addr) internal pure returns (bool) {
-        return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.EAS || _addr == Predeploys.GOVERNANCE_TOKEN;
-    }
-
-    /// @notice Checks if a contract is initialized using OpenZeppelin v5 namespaced storage pattern.
-    ///         OZ v5 storage slot: keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Initializable")) - 1)) & ~bytes32(uint256(0xff))
-    function _isInitializedV5(address _addr) internal view returns (bool) {
-        bytes32 INITIALIZABLE_STORAGE_SLOT = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
-        bytes32 slotVal = vm.load(_addr, INITIALIZABLE_STORAGE_SLOT);
-        // In OZ v5, byte 0 is _initialized, byte 1 is _initializing
-        return uint8(uint256(slotVal) & 0xFF) != 0;
+        return _addr == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == Predeploys.EAS
+            || _addr == Predeploys.GOVERNANCE_TOKEN;
     }
 
     /// @notice Internal test function for predeploys validation across different forks.
@@ -120,8 +112,13 @@ abstract contract Predeploys_TestInit is CommonTest {
             }
 
             if (_isInitializableV5(addr)) {
-                assertTrue(_isInitializedV5(addr), string.concat("V5 proxy not initialized: ", vm.toString(addr)));
-                assertTrue(_isInitializedV5(implAddr), string.concat("V5 implementation not initialized: ", vm.toString(implAddr)));
+                assertTrue(
+                    ForgeArtifacts.isInitializedV5(addr), string.concat("V5 proxy not initialized: ", vm.toString(addr))
+                );
+                assertTrue(
+                    ForgeArtifacts.isInitializedV5(implAddr),
+                    string.concat("V5 implementation not initialized: ", vm.toString(implAddr))
+                );
             }
         }
     }
