@@ -33,4 +33,4 @@ issues:
       linters:
         - err113
 run:
-  timeout: 20m
+  timeout: 5m

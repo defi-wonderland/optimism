@@ -515,7 +515,7 @@ jobs:
   contracts-bedrock-build:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    resource_class: xlarge
     parameters:
       build_args:
         description: Forge build arguments
@@ -617,7 +617,7 @@ jobs:
         default: medium
     machine:
       image: <<pipeline.parameters.base_image>>
-      resource_class: medium
+      resource_class: "<<parameters.resource_class>>"
       docker_layer_caching: true # we rely on this for faster builds, and actively warm it up for builds with common stages
     steps:
       - checkout-from-workspace
@@ -991,7 +991,7 @@ jobs:
     # circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: medium
+    resource_class: 2xlarge
     parameters:
       test_flags:
         description: Additional flags to pass to the test command
@@ -1088,7 +1088,7 @@ jobs:
         type: string
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    resource_class: xlarge
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -1159,7 +1159,7 @@ jobs:
 
   contracts-bedrock-checks:
     machine: true
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout-from-workspace
       - check-changed:
@@ -1255,7 +1255,7 @@ jobs:
   go-lint:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout-from-workspace
       - restore_cache:
@@ -1375,7 +1375,7 @@ jobs:
         type: string
         default: ""
     machine: true
-    resource_class: medium
+    resource_class: <<parameters.resource_class>>
     steps:
       - checkout-from-workspace
       - run:
