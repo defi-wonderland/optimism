@@ -554,27 +554,27 @@ jobs:
             - "op-deployer/pkg/deployer/artifacts/forge-artifacts"
       - notify-failures-on-develop
 
-  # check-kontrol-build:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   resource_class: xlarge
-  #   steps:
-  #     - utils/checkout-with-mise
-  #     - attach_workspace: { at: "." }
-  #     - install-contracts-dependencies
-  #     - check-changed:
-  #         patterns: contracts-bedrock
-  #     - setup_remote_docker:
-  #         docker_layer_caching: true
-  #     - run:
-  #         name: Run Kontrol build
-  #         command: just kontrol-summary-full
-  #         working_directory: packages/contracts-bedrock
-  #     - run:
-  #         name: Build Kontrol summary files
-  #         command: just forge-build ./test/kontrol/proofs
-  #         working_directory: packages/contracts-bedrock
-  #     - notify-failures-on-develop
+  check-kontrol-build:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: xlarge
+    steps:
+      - utils/checkout-with-mise
+      - attach_workspace: { at: "." }
+      - install-contracts-dependencies
+      - check-changed:
+          patterns: contracts-bedrock
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Run Kontrol build
+          command: just kontrol-summary-full
+          working_directory: packages/contracts-bedrock
+      - run:
+          name: Build Kontrol summary files
+          command: just forge-build ./test/kontrol/proofs
+          working_directory: packages/contracts-bedrock
+      # - notify-failures-on-develop
 
   docker-build:
     environment:
