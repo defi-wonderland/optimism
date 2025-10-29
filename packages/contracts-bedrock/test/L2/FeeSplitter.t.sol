@@ -169,7 +169,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
     /// @notice Test that receive function reverts when sender is an approved vault but not currently disbursing
     /// @param _amount The amount of ETH to send.
-    function test_feeSplitterReceive_whenNotCurrentVault_reverts(uint128 _amount) public {
+    function testFuzz_feeSplitterReceive_whenNotCurrentVault_reverts(uint128 _amount) public {
         // Simulate disbursement context on each vault and
         // ensure that the receive function reverts when the sender is not the currently disbursing vault.
         for (uint256 i = 0; i < _feeVaults.length; i++) {
