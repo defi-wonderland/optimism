@@ -18,8 +18,8 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 /// @custom:proxied
 /// @custom:predeploy 0x420000000000000000000000000000000000002B
 /// @title FeeSplitter
-/// @notice Withdraws funds from system FeeVault contracts, sends Optimism their revenue share, and
-///         sends the remaining funds to the fee router.
+/// @notice Withdraws funds from system FeeVault contracts and distributes them according to the
+///         configured SharesCalculator.
 contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee disbursement interval exceeds the maximum allowed.
     error FeeSplitter_ExceedsMaxFeeDisbursementTime();
@@ -65,6 +65,7 @@ contract FeeSplitter is ISemver, Initializable {
     bytes32 internal constant _FEE_SPLITTER_DISBURSING_ADDRESS_SLOT =
         0x21346dddac42cc163a6523eefc19df981df7352c870dc3b0b17a6a92fc6fe813;
 
+    /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
@@ -112,6 +113,9 @@ contract FeeSplitter is ISemver, Initializable {
         sharesCalculator = _sharesCalculator;
         // As default, the fee disbursement interval is 1 day
         feeDisbursementInterval = 1 days;
+
+        // Set the last disbursement time to the current block timestamp
+        lastDisbursementTime = uint128(block.timestamp);
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
@@ -142,42 +146,43 @@ contract FeeSplitter is ISemver, Initializable {
         // Clear the transient disbursing address
         _setTransientDisbursingAddress(address(0));
 
-        uint256 _grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
+        uint256 grossRevenue = sequencerFees + baseFees + operatorFees + l1Fees;
 
         // Revert if no fees were collected
-        if (_grossRevenue == 0) {
+        if (grossRevenue == 0) {
             revert FeeSplitter_NoFeesCollected();
         }
 
         // Call to the sharesCalculator to determine the fee share recipients, amounts, withdrawal networks, and data
         // DoS risk if array size is too large.
-        (ISharesCalculator.ShareInfo[] memory _shareInfo) =
-            sharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
+        (ISharesCalculator.ShareInfo[] memory shareInfo) =
+            sharesCalculator.getRecipientsAndAmounts(sequencerFees, baseFees, operatorFees, l1Fees);
+
+        uint256 shareInfoLength = shareInfo.length;
 
         // Ensure the share calculator returned valid data
-        if (_shareInfo.length == 0) revert FeeSplitter_FeeShareInfoEmpty();
+        if (shareInfoLength == 0) revert FeeSplitter_FeeShareInfoEmpty();
 
         // Loop through the recipients and their corresponding fee shares
-        uint256 _totalFeesDisbursed;
-        for (uint256 i; i < _shareInfo.length; i++) {
-            address payable _recipient = _shareInfo[i].recipient;
-            uint256 _feeShareAmount = _shareInfo[i].amount;
+        uint256 totalFeesDisbursed;
+        for (uint256 i; i < shareInfoLength; i++) {
+            uint256 feesAmount = shareInfo[i].amount;
 
             // Ensure the fee share is greater than zero
-            if (_feeShareAmount == 0) continue;
+            if (feesAmount == 0) continue;
 
-            bool success = SafeCall.send(address(_recipient), _feeShareAmount);
+            bool success = SafeCall.send(shareInfo[i].recipient, feesAmount);
             if (!success) {
                 revert FeeSplitter_FailedToSendToRevenueShareRecipient();
             }
-            _totalFeesDisbursed += _feeShareAmount;
+            totalFeesDisbursed += feesAmount;
         }
 
         // Ensure the total fees disbursed is equal to the gross revenue
         /// NOTE: Contract can hold some balance after disbursement if tokens are force sent (using SELFDESTRUCT).
-        if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
+        if (totalFeesDisbursed != grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
 
-        emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
+        emit FeesDisbursed({ shareInfo: shareInfo, grossRevenue: grossRevenue });
     }
 
     /// @notice Updates the fee disbursement interval. Only callable by the ProxyAdmin owner.

@@ -128,6 +128,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 
         assertEq(address(IFeeSplitter(payable(impl)).sharesCalculator()), address(_defaultSharesCalculator));
         assertEq(IFeeSplitter(payable(impl)).feeDisbursementInterval(), 1 days);
+        assertEq(IFeeSplitter(payable(impl)).lastDisbursementTime(), block.timestamp);
     }
 
     /// @notice Test that the implementation contract disables initializers in the constructor
