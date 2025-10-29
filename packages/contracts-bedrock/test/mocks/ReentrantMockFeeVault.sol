@@ -8,6 +8,8 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 ///         This demonstrates the attack vector where a malicious vault tries to exploit the disbursing context
 ///         to allow unauthorized withdrawals from other vaults.
 contract ReentrantMockFeeVault {
+    event ReentrantMockFeeVault_Error();
+
     address public immutable RECIPIENT;
     uint256 public immutable WITHDRAWAL_AMOUNT;
     address payable public immutable TARGET_VAULT;
@@ -39,7 +41,7 @@ contract ReentrantMockFeeVault {
             try IFeeVault(TARGET_VAULT).withdraw() returns (uint256) {
                 // If this succeeds, the attack worked
             } catch {
-                // Expected to revert with FeeSplitter_SenderNotCurrentVault
+                emit ReentrantMockFeeVault_Error();
             }
         }
 

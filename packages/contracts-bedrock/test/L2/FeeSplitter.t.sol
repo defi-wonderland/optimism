@@ -148,6 +148,8 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 /// @title FeeSplitter_Receive_Test
 /// @notice Tests the receive function of the `FeeSplitter` contract.
 contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
+    event ReentrantMockFeeVault_Error();
+
     /// @notice Test that receive function reverts when sender is not an approved vault
     function testFuzz_feeSplitterReceive_whenNotApprovedVault_reverts(address _caller, uint256 _amount) public {
         vm.assume(_caller != Predeploys.SEQUENCER_FEE_WALLET);
@@ -377,16 +379,17 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         // Fast forward time
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
+        // Expect the reentrant vault to emit an error event when its reentrant attack fails
+        // Note: The event comes from SEQUENCER_FEE_WALLET because we etched the malicious code there
+        vm.expectEmit(Predeploys.SEQUENCER_FEE_WALLET);
+        emit ReentrantMockFeeVault_Error();
+
         // The disbursement should succeed because:
         // 1. The malicious vault sends ETH correctly to FeeSplitter
         // 2. When it tries to trigger BASE_FEE_VAULT withdrawal, that will fail internally
-        //    but the malicious vault catches the error
+        //    but the malicious vault catches the error and emits ReentrantMockFeeVault_Error
         // 3. The disbursement continues normally
         feeSplitter.disburseFees();
-
-        // The key validation is that BASE_FEE_VAULT's withdrawal during the malicious vault's
-        // withdrawal attempt would have reverted with FeeSplitter_SenderNotCurrentVault
-        // if it had actually tried to send ETH to the FeeSplitter
     }
 }
 
