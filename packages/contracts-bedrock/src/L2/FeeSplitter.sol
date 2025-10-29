@@ -139,10 +139,10 @@ contract FeeSplitter is ISemver, Initializable {
         lastDisbursementTime = uint128(block.timestamp);
 
         // Pull fees into the contract
-        uint256 _sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
-        uint256 _baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
-        uint256 _l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
-        uint256 _operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
+        uint256 sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
+        uint256 baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
+        uint256 l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
+        uint256 operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
         // Clear the transient disbursing address
         _setTransientDisbursingAddress(address(0));
 

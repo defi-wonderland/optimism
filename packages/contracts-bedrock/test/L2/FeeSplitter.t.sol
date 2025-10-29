@@ -168,7 +168,6 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
         (bool success, ) = payable(address(feeSplitter)).call{ value: _amount }("");
-        assertTrue(success, "Failed to send ETH");
     }
 
     /// @notice Test that receive function reverts when sender is an approved vault but not currently disbursing
