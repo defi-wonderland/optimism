@@ -161,13 +161,12 @@ contract FeeSplitter is ISemver, Initializable {
         // Loop through the recipients and their corresponding fee shares
         uint256 totalFeesDisbursed;
         for (uint256 i; i < shareInfoLength; i++) {
-            address payable recipient = shareInfo[i].recipient;
             uint256 feeShareAmount = shareInfo[i].amount;
 
             // Ensure the fee share is greater than zero
             if (feeShareAmount == 0) continue;
 
-            bool success = SafeCall.send(address(recipient), feeShareAmount);
+            bool success = SafeCall.send(shareInfo[i].recipient, feeShareAmount);
             if (!success) {
                 revert FeeSplitter_FailedToSendToRevenueShareRecipient();
             }
