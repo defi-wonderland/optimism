@@ -168,27 +168,27 @@ abstract contract FeeVault is Initializable {
         }
     }
 
+    /// @custom:legacy
     /// @notice Minimum balance before a withdrawal can be triggered.
     ///         Use the `minWithdrawalAmount()` getter as this is deprecated
     ///         and is subject to be removed in the future.
-    /// @custom:legacy
     function MIN_WITHDRAWAL_AMOUNT() public view returns (uint256) {
         return minWithdrawalAmount;
     }
 
+    /// @custom:legacy
     /// @notice Account that will receive the fees. Can be located on L1 or L2.
     ///         Use the `recipient()` getter as this is deprecated
     ///         and is subject to be removed in the future.
-    /// @custom:legacy
     /// @return The recipient address.
     function RECIPIENT() public view returns (address) {
         return recipient;
     }
 
+    /// @custom:legacy
     /// @notice Network which the recipient will receive fees on.
     ///         Use the `withdrawalNetwork()` getter as this is deprecated
     ///         and is subject to be removed in the future.
-    /// @custom:legacy
     function WITHDRAWAL_NETWORK() public view returns (Types.WithdrawalNetwork) {
         return withdrawalNetwork;
     }
