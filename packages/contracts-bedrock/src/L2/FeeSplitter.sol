@@ -57,9 +57,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the sharesCalculator returns malformed output.
     error FeeSplitter_SharesCalculatorMalformedOutput();
 
-    /// @notice Thrown when receiving ETH is attempted outside of a disbursement window.
-    error FeeSplitter_ReceiveWindowClosed();
-
     /// @notice Thrown when the sender is not the currently disbursing vault.
     error FeeSplitter_SenderNotCurrentVault();
 
