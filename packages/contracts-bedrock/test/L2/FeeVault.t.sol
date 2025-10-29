@@ -68,7 +68,7 @@ abstract contract FeeVault_Uncategorized_Test is CommonTest {
 
     /// @notice Tests that `withdraw` reverts if the balance is less than the minimum withdrawal
     ///         amount.
-    function test_withdraw_notEnough_reverts(uint256 _minWithdrawalAmount) external {
+    function testFuzz_withdraw_notEnough_reverts(uint256 _minWithdrawalAmount) external {
         // Set the minimum withdrawal amount
         _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint256).max);
         vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
