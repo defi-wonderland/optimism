@@ -29,11 +29,7 @@ contract ReentrantMockFeeVault {
     }
 
     function withdraw() external returns (uint256) {
-        // First, send the expected ETH to the FeeSplitter
-        (bool success,) = RECIPIENT.call{ value: WITHDRAWAL_AMOUNT }("");
-        require(success, "ReentrantMockFeeVault: failed to send ETH");
-
-        // Now attempt to trigger a withdrawal from a different vault
+        // Attempt to trigger a withdrawal from a different vault
         // This should fail with the new stricter check and propagate the revert
         if (TARGET_VAULT != address(0)) {
             IFeeVault(TARGET_VAULT).withdraw();
