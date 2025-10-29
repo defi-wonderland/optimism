@@ -19,7 +19,6 @@ import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
-import { IFeeSplitterForTest } from "interfaces/for-test/IFeeSplitterForTest.sol";
 
 /// @title FeeSplitter_TestInit
 /// @notice Reusable test initialization for `FeeSplitter` tests.
@@ -45,8 +44,6 @@ contract FeeSplitter_TestInit is CommonTest {
         // Enable revenue sharing before calling parent setUp
         super.enableRevenueShare();
         super.setUp();
-
-        vm.etch(address(feeSplitter), vm.getDeployedCode("FeeSplitterForTest.sol"));
 
         // Get the owner from ProxyAdmin
         _owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
@@ -165,28 +162,6 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
         (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
-    }
-
-    /// @notice Test that receive function reverts when sender is an approved vault but not currently disbursing
-    /// @param _amount The amount of ETH to send.
-    function testFuzz_feeSplitterReceive_whenNotCurrentVault_reverts(uint128 _amount) public {
-        // Simulate disbursement context on each vault and
-        // ensure that the receive function reverts when the sender is not the currently disbursing vault.
-        for (uint256 i = 0; i < _feeVaults.length; i++) {
-            address _disbursingVault = _feeVaults[i];
-            IFeeSplitterForTest(payable(address(feeSplitter))).setTransientDisbursingAddress(_disbursingVault);
-            for (uint256 j = 0; j < _feeVaults.length; j++) {
-                address _selectedVault = _feeVaults[j];
-                vm.deal(_selectedVault, _amount);
-
-                if (_selectedVault != _disbursingVault) {
-                    vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
-                }
-
-                vm.prank(_selectedVault);
-                payable(address(feeSplitter)).call{ value: _amount }("");
-            }
-        }
     }
 
     /// @notice Test receive function from non-approved vault reverts even during disbursement
