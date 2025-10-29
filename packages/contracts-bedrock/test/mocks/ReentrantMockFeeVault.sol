@@ -5,7 +5,7 @@ import { Types } from "src/libraries/Types.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 /// @notice Mock fee vault that attempts to trigger withdrawal from a different vault during its own withdrawal.
-///         This demonstrates the attack vector where a malicious vault tries to exploit the disbursing window
+///         This demonstrates the attack vector where a malicious vault tries to exploit the disbursing context
 ///         to allow unauthorized withdrawals from other vaults.
 contract ReentrantMockFeeVault {
     address public immutable RECIPIENT;
