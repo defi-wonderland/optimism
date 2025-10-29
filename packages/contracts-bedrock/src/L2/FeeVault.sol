@@ -152,13 +152,13 @@ abstract contract FeeVault is Initializable {
         value_ = address(this).balance;
         totalProcessed += value_;
 
-        address _recipient = recipient;
+        address recipientAddr = recipient;
 
-        emit Withdrawal(value_, _recipient, msg.sender);
-        emit Withdrawal(value_, _recipient, msg.sender, withdrawalNetwork);
+        emit Withdrawal(value_, recipientAddr, msg.sender);
+        emit Withdrawal(value_, recipientAddr, msg.sender, withdrawalNetwork);
 
         if (withdrawalNetwork == Types.WithdrawalNetwork.L2) {
-            bool success = SafeCall.send(_recipient, value_);
+            bool success = SafeCall.send(recipientAddr, value_);
             require(success, "FeeVault: failed to send ETH to L2 fee recipient");
         } else {
             IL2ToL1MessagePasser(payable(Predeploys.L2_TO_L1_MESSAGE_PASSER)).initiateWithdrawal{ value: value_ }({
