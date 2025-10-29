@@ -120,6 +120,7 @@ contract FeeSplitter is ISemver, Initializable {
         if (msg.sender != _getTransientDisbursingAddress()) {
             revert FeeSplitter_SenderNotCurrentVault();
         }
+        
         uint256 newBalance = address(this).balance;
         emit FeesReceived(msg.sender, msg.value, newBalance);
     }
