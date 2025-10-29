@@ -149,7 +149,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 /// @notice Tests the receive function of the `FeeSplitter` contract.
 contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     /// @notice Test that receive function reverts when sender is not an approved vault
-    function test_feeSplitterReceive_whenNotApprovedVault_reverts(address _caller, uint256 _amount) public {
+    function testFuzz_feeSplitterReceive_whenNotApprovedVault_reverts(address _caller, uint256 _amount) public {
         vm.assume(_caller != Predeploys.SEQUENCER_FEE_WALLET);
         vm.assume(_caller != Predeploys.BASE_FEE_VAULT);
         vm.assume(_caller != Predeploys.OPERATOR_FEE_VAULT);
@@ -164,7 +164,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     /// @notice Test that receive function reverts when sender is an approved vault but not currently disbursing
     /// @param _amount The amount of ETH to send.
     /// @param _vaultIndex The index of the vault to send from (0-3).
-    function test_feeSplitterReceive_whenNotCurrentVault_reverts(uint256 _amount, uint256 _vaultIndex) public {
+    function testFuzz_feeSplitterReceive_whenNotCurrentVault_reverts(uint256 _amount, uint256 _vaultIndex) public {
         _vaultIndex = bound(_vaultIndex, 0, 3);
         address _vault = _feeVaults[_vaultIndex];
 
@@ -193,7 +193,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test receive function works during disbursement from SequencerFeeVault
-    function test_feeSplitterReceive_sequencerFeeVault_succeeds(uint256 _amount) public {
+    function testFuzz_feeSplitterReceive_sequencerFeeVault_succeeds(uint256 _amount) public {
         _amount = bound(_amount, 1, type(uint256).max);
 
         // Setup mocks - only sequencer vault has balance
@@ -230,7 +230,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test receive function works during disbursement from BaseFeeVault
-    function test_feeSplitterReceive_baseFeeVault_succeeds(uint256 _amount) public {
+    function testFuzz_feeSplitterReceive_baseFeeVault_succeeds(uint256 _amount) public {
         _amount = bound(_amount, 1, type(uint256).max);
 
         // Setup mocks - only sequencer vault has balance
@@ -267,7 +267,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test receive function works during disbursement from L1FeeVault
-    function test_feeSplitterReceive_l1FeeVault_succeeds(uint256 _amount) public {
+    function testFuzz_feeSplitterReceive_l1FeeVault_succeeds(uint256 _amount) public {
         _amount = bound(_amount, 1, type(uint256).max);
 
         // Setup mocks - only sequencer vault has balance
@@ -304,7 +304,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test receive function works during disbursement from OperatorFeeVault
-    function test_feeSplitterReceive_operatorFeeVault_succeeds(uint256 _amount) public {
+    function testFuzz_feeSplitterReceive_operatorFeeVault_succeeds(uint256 _amount) public {
         _amount = bound(_amount, 1, type(uint256).max);
 
         // Setup mocks - only sequencer vault has balance
@@ -588,7 +588,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Fuzz test that a vault with balance below minimum causes entire disbursement to revert
-    function test_disburseFees_vaultBelowMinimum_reverts(uint256 _minWithdrawalAmount, uint256 _vaultIndex) public {
+    function testFuzz_disburseFees_vaultBelowMinimum_reverts(uint256 _minWithdrawalAmount, uint256 _vaultIndex) public {
         // If uint256, the test will revert due to ETH transfer overflow
         _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint128).max);
         _vaultIndex = bound(_vaultIndex, 0, 3); // 0-3 for the 4 vaults
@@ -631,6 +631,59 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         vm.deal(address(mockVault), _balance);
         vm.etch(_vault, address(mockVault).code);
         vm.deal(_vault, _balance);
+    }
+
+    /// @notice Test that vaults cannot send ETH after disburseFees completes (transient storage cleanup check)
+    /// @param _vaultIndex The index of the vault to test (0-3).
+    function testFuzz_feeSplitterDisburseFees_vaultsCannotSendAfterDisbursement_reverts(uint256 _vaultIndex) public {
+        _vaultIndex = bound(_vaultIndex, 0, 3);
+
+        uint256 _sequencerAmount = 2 ether;
+        uint256 _baseAmount = 3 ether;
+        uint256 _l1Amount = 1 ether;
+        uint256 _operatorAmount = 4 ether;
+
+        _setupStandardFeeVaultMocks(_sequencerAmount, _baseAmount, _l1Amount, _operatorAmount);
+
+        // Calculate expected gross revenue
+        uint256 expectedGrossRevenue = _sequencerAmount + _baseAmount + _l1Amount + _operatorAmount;
+
+        // Setup mock shares calculator to return 50/50 split
+        uint256 halfGrossRevenue = expectedGrossRevenue / 2;
+        ISharesCalculator.ShareInfo[] memory expectedShareInfo = new ISharesCalculator.ShareInfo[](2);
+        expectedShareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), halfGrossRevenue);
+        expectedShareInfo[1] = ISharesCalculator.ShareInfo(
+            payable(_defaultRevenueRemainderRecipient), expectedGrossRevenue - halfGrossRevenue
+        );
+
+        // Get the actual shares calculator from the FeeSplitter
+        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
+        vm.mockCall(
+            actualSharesCalculator,
+            abi.encodeCall(
+                ISharesCalculator.getRecipientsAndAmounts, (_sequencerAmount, _baseAmount, _operatorAmount, _l1Amount)
+            ),
+            abi.encode(expectedShareInfo)
+        );
+
+        // Fast forward time to allow disbursement
+        vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
+
+        // Call disburseFees
+        feeSplitter.disburseFees();
+
+        // Verify disbursement was successful
+        assertEq(feeSplitter.lastDisbursementTime(), block.timestamp);
+
+        // Now try to send ETH from one of the vaults after disbursement
+        address _vault = _feeVaults[_vaultIndex];
+        uint256 _attemptAmount = 1 ether;
+        vm.deal(_vault, _attemptAmount);
+
+        // Attempt to send ETH from the vault - should revert because transient storage was cleared
+        vm.prank(_vault);
+        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
+        payable(address(feeSplitter)).call{ value: _attemptAmount }("");
     }
 }
 
