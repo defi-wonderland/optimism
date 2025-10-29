@@ -112,6 +112,9 @@ contract FeeSplitter is ISemver, Initializable {
         sharesCalculator = _sharesCalculator;
         // As default, the fee disbursement interval is 1 day
         feeDisbursementInterval = 1 days;
+
+        // Set the last disbursement time to the current block timestamp
+        lastDisbursementTime = uint128(block.timestamp);
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
