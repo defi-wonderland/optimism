@@ -150,7 +150,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.deal(_caller, _amount);
 
         vm.prank(_caller);
-        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotApprovedVault.selector);
+        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
         payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
@@ -176,7 +176,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         vm.startPrank(_caller);
 
         // Now we test the actual sender validation
-        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotApprovedVault.selector);
+        vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
         payable(address(feeSplitter)).call{ value: _amount }("");
     }
 

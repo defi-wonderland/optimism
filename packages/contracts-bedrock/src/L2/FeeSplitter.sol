@@ -60,9 +60,6 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when receiving ETH is attempted outside of a disbursement window.
     error FeeSplitter_ReceiveWindowClosed();
 
-    /// @notice Thrown when a sender other than an approved FeeVault attempts to send ETH.
-    error FeeSplitter_SenderNotApprovedVault();
-
     /// @notice Thrown when the sender is not the currently disbursing vault.
     error FeeSplitter_SenderNotCurrentVault();
 
@@ -122,12 +119,6 @@ contract FeeSplitter is ISemver, Initializable {
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
     receive() external payable virtual {
-        if (
-            msg.sender != Predeploys.SEQUENCER_FEE_WALLET && msg.sender != Predeploys.BASE_FEE_VAULT
-                && msg.sender != Predeploys.L1_FEE_VAULT && msg.sender != Predeploys.OPERATOR_FEE_VAULT
-        ) {
-            revert FeeSplitter_SenderNotApprovedVault();
-        }
         // Sender must be the currently disbursing vault
         if (msg.sender != _getTransientDisbursingAddress()) {
             revert FeeSplitter_SenderNotCurrentVault();
