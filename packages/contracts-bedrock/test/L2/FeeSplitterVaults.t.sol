@@ -33,7 +33,7 @@ contract FeeSplitterVaults_Test is Test {
     function setUp() public {
         FeeSplitterForTest feeSplitterImpl = new FeeSplitterForTest();
         feeSplitter = FeeSplitterForTest(payable(Predeploys.FEE_SPLITTER));
-        
+
         vm.etch(Predeploys.FEE_SPLITTER, address(feeSplitterImpl).code);
         vm.etch(Predeploys.SEQUENCER_FEE_WALLET, vm.getDeployedCode("SequencerFeeVault.sol"));
         vm.etch(Predeploys.BASE_FEE_VAULT, vm.getDeployedCode("BaseFeeVault.sol"));
