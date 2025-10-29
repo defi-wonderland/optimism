@@ -223,10 +223,12 @@ contract FeeSplitter is ISemver, Initializable {
         if (IFeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
+
         uint256 balanceBefore = address(this).balance;
         _setTransientDisbursingAddress(address(_feeVault));
         value_ = IFeeVault(_feeVault).withdraw();
         uint256 balanceAfter = address(this).balance;
+        
         if (balanceAfter - balanceBefore != value_) {
             revert FeeSplitter_FeeVaultWithdrawalAmountMismatch();
         }
