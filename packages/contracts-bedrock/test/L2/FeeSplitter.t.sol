@@ -449,14 +449,7 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
         _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, 0);
 
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IFeeSplitter.FeeSplitter_FeeVaultWithdrawalAmountMismatch.selector,
-                _claimedWithdrawalAmount,
-                0,
-                _actualTransferAmount
-            )
-        );
+        vm.expectRevert(IFeeSplitter.FeeSplitter_FeeVaultWithdrawalAmountMismatch.selector);
         feeSplitter.disburseFees();
     }
 

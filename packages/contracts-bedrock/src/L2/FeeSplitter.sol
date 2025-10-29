@@ -46,7 +46,7 @@ contract FeeSplitter is ISemver, Initializable {
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
 
     /// @notice Thrown when the FeeVault withdrawal amount does not match the expected amount.
-    error FeeSplitter_FeeVaultWithdrawalAmountMismatch(uint256 value, uint256 balanceBefore, uint256 balanceAfter);
+    error FeeSplitter_FeeVaultWithdrawalAmountMismatch();
 
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error FeeSplitter_OnlyProxyAdminOwner();
@@ -237,7 +237,7 @@ contract FeeSplitter is ISemver, Initializable {
         value_ = IFeeVault(_feeVault).withdraw();
         uint256 balanceAfter = address(this).balance;
         if (balanceAfter - balanceBefore != value_) {
-            revert FeeSplitter_FeeVaultWithdrawalAmountMismatch(value_, balanceBefore, balanceAfter);
+            revert FeeSplitter_FeeVaultWithdrawalAmountMismatch();
         }
     }
 
