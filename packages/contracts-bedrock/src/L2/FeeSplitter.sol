@@ -45,6 +45,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the FeeVault does not withdraw to FeeSplitter contract.
     error FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
 
+    /// @notice Thrown when the FeeVault withdrawal amount does not match the expected amount.
+    error FeeSplitter_FeeVaultWithdrawalAmountMismatch();
+
     /// @notice Thrown when the caller is not the ProxyAdmin owner.
     error FeeSplitter_OnlyProxyAdminOwner();
 
@@ -54,16 +57,13 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the sharesCalculator returns malformed output.
     error FeeSplitter_SharesCalculatorMalformedOutput();
 
-    /// @notice Thrown when receiving ETH is attempted outside of a disbursement window.
-    error FeeSplitter_ReceiveWindowClosed();
+    /// @notice Thrown when the sender is not the currently disbursing vault.
+    error FeeSplitter_SenderNotCurrentVault();
 
-    /// @notice Thrown when a sender other than an approved FeeVault attempts to send ETH.
-    error FeeSplitter_SenderNotApprovedVault();
-
-    /// @notice Transient storage slot key for disbursement-in-progress flag.
-    ///         Equal to bytes32(uint256(keccak256("feesplitter.isDisbursing")) - 1)
-    bytes32 internal constant _FEE_SPLITTER_IS_DISBURSING_SLOT =
-        0xe3007e9730850b5618eacb0537bef0cf0f1600267ae8549e472449d77b731e45;
+    /// @notice Transient storage slot key for the address of the vault currently allowed to disburse.
+    ///         Equal to bytes32(uint256(keccak256("feesplitter.disbursingAddress")) - 1)
+    bytes32 internal constant _FEE_SPLITTER_DISBURSING_ADDRESS_SLOT =
+        0x21346dddac42cc163a6523eefc19df981df7352c870dc3b0b17a6a92fc6fe813;
 
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
@@ -119,14 +119,12 @@ contract FeeSplitter is ISemver, Initializable {
     }
 
     /// @dev Receives ETH fees withdrawn from L2 FeeVaults.
-    receive() external payable {
-        if (!_isTransientDisbursing()) revert FeeSplitter_ReceiveWindowClosed();
-        if (
-            msg.sender != Predeploys.SEQUENCER_FEE_WALLET && msg.sender != Predeploys.BASE_FEE_VAULT
-                && msg.sender != Predeploys.L1_FEE_VAULT && msg.sender != Predeploys.OPERATOR_FEE_VAULT
-        ) {
-            revert FeeSplitter_SenderNotApprovedVault();
+    receive() external payable virtual {
+        // Sender must be the currently disbursing vault
+        if (msg.sender != _getTransientDisbursingAddress()) {
+            revert FeeSplitter_SenderNotCurrentVault();
         }
+
         uint256 newBalance = address(this).balance;
         emit FeesReceived(msg.sender, msg.value, newBalance);
     }
@@ -141,12 +139,12 @@ contract FeeSplitter is ISemver, Initializable {
         lastDisbursementTime = uint128(block.timestamp);
 
         // Pull fees into the contract
-        _setTransientDisbursing(true);
         uint256 sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
         uint256 baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
         uint256 l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
         uint256 operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
-        _setTransientDisbursing(false);
+        // Clear the transient disbursing address
+        _setTransientDisbursingAddress(address(0));
 
         uint256 grossRevenue = sequencerFees + baseFees + operatorFees + l1Fees;
 
@@ -228,22 +226,30 @@ contract FeeSplitter is ISemver, Initializable {
         if (IFeeVault(_feeVault).recipient() != address(this)) {
             revert FeeSplitter_FeeVaultMustWithdrawToFeeSplitter();
         }
-        value_ = IFeeVault(_feeVault).withdraw();
-    }
 
-    /// @notice Sets the transient disbursing flag.
-    /// @param _enabled True to enable, false to disable.
-    function _setTransientDisbursing(bool _enabled) internal {
-        assembly {
-            tstore(_FEE_SPLITTER_IS_DISBURSING_SLOT, _enabled)
+        uint256 balanceBefore = address(this).balance;
+        _setTransientDisbursingAddress(address(_feeVault));
+        value_ = IFeeVault(_feeVault).withdraw();
+        uint256 balanceAfter = address(this).balance;
+
+        if (balanceAfter - balanceBefore != value_) {
+            revert FeeSplitter_FeeVaultWithdrawalAmountMismatch();
         }
     }
 
-    /// @notice Reads the transient disbursing flag.
-    /// @return isDisbursing_ True if disbursement is in progress.
-    function _isTransientDisbursing() internal view returns (bool isDisbursing_) {
+    /// @notice Sets the transient disbursing address.
+    /// @param _allowedCaller The address of the vault allowed to call receive().
+    function _setTransientDisbursingAddress(address _allowedCaller) internal {
         assembly {
-            isDisbursing_ := tload(_FEE_SPLITTER_IS_DISBURSING_SLOT)
+            tstore(_FEE_SPLITTER_DISBURSING_ADDRESS_SLOT, _allowedCaller)
+        }
+    }
+
+    /// @notice Reads the transient disbursing address.
+    /// @return allowedCaller_ The address of the vault currently allowed to call receive().
+    function _getTransientDisbursingAddress() internal view returns (address allowedCaller_) {
+        assembly {
+            allowedCaller_ := tload(_FEE_SPLITTER_DISBURSING_ADDRESS_SLOT)
         }
     }
 }
