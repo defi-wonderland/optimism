@@ -142,48 +142,49 @@ contract FeeSplitter is ISemver, Initializable {
 
         // Pull fees into the contract
         _setTransientDisbursing(true);
-        uint256 _sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
-        uint256 _baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
-        uint256 _l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
-        uint256 _operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
+        uint256 sequencerFees = _feeVaultWithdrawal(payable(Predeploys.SEQUENCER_FEE_WALLET));
+        uint256 baseFees = _feeVaultWithdrawal(payable(Predeploys.BASE_FEE_VAULT));
+        uint256 l1Fees = _feeVaultWithdrawal(payable(Predeploys.L1_FEE_VAULT));
+        uint256 operatorFees = _feeVaultWithdrawal(payable(Predeploys.OPERATOR_FEE_VAULT));
         _setTransientDisbursing(false);
 
-        uint256 _grossRevenue = _sequencerFees + _baseFees + _operatorFees + _l1Fees;
+        uint256 grossRevenue = sequencerFees + baseFees + operatorFees + l1Fees;
 
         // Revert if no fees were collected
-        if (_grossRevenue == 0) {
+        if (grossRevenue == 0) {
             revert FeeSplitter_NoFeesCollected();
         }
 
         // Call to the sharesCalculator to determine the fee share recipients, amounts, withdrawal networks, and data
         // DoS risk if array size is too large.
-        (ISharesCalculator.ShareInfo[] memory _shareInfo) =
-            sharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
+        (ISharesCalculator.ShareInfo[] memory shareInfo) =
+            sharesCalculator.getRecipientsAndAmounts(sequencerFees, baseFees, operatorFees, l1Fees);
+
+        uint256 shareInfoLength = shareInfo.length;
 
         // Ensure the share calculator returned valid data
-        if (_shareInfo.length == 0) revert FeeSplitter_FeeShareInfoEmpty();
+        if (shareInfoLength == 0) revert FeeSplitter_FeeShareInfoEmpty();
 
         // Loop through the recipients and their corresponding fee shares
-        uint256 _totalFeesDisbursed;
-        for (uint256 i; i < _shareInfo.length; i++) {
-            address payable _recipient = _shareInfo[i].recipient;
-            uint256 _feeShareAmount = _shareInfo[i].amount;
+        uint256 totalFeesDisbursed;
+        for (uint256 i; i < shareInfoLength; i++) {
+            uint256 feesAmount = shareInfo[i].amount;
 
             // Ensure the fee share is greater than zero
-            if (_feeShareAmount == 0) continue;
+            if (feesAmount == 0) continue;
 
-            bool success = SafeCall.send(address(_recipient), _feeShareAmount);
+            bool success = SafeCall.send(shareInfo[i].recipient, feesAmount);
             if (!success) {
                 revert FeeSplitter_FailedToSendToRevenueShareRecipient();
             }
-            _totalFeesDisbursed += _feeShareAmount;
+            totalFeesDisbursed += feesAmount;
         }
 
         // Ensure the total fees disbursed is equal to the gross revenue
         /// NOTE: Contract can hold some balance after disbursement if tokens are force sent (using SELFDESTRUCT).
-        if (_totalFeesDisbursed != _grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
+        if (totalFeesDisbursed != grossRevenue) revert FeeSplitter_SharesCalculatorMalformedOutput();
 
-        emit FeesDisbursed({ shareInfo: _shareInfo, grossRevenue: _grossRevenue });
+        emit FeesDisbursed({ shareInfo: shareInfo, grossRevenue: grossRevenue });
     }
 
     /// @notice Updates the fee disbursement interval. Only callable by the ProxyAdmin owner.
