@@ -1,0 +1,146 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.15;
+
+import { Vm } from "forge-std/Vm.sol";
+import { stdJson } from "forge-std/StdJson.sol";
+import { console } from "forge-std/console.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
+
+/// @title NetworkUpgradeTxns
+/// @notice Standard library for generating Network Upgrade Transaction (NUT) artifacts.
+///         Provides minimal interface to create DepositTx-compatible transaction metadata.
+library NetworkUpgradeTxns {
+    using stdJson for string;
+
+    Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
+    /// @notice Source domain for upgrade transactions
+    uint64 internal constant UPGRADE_DEPOSIT_SOURCE_DOMAIN = 2;
+
+    /// @notice Represents a single Network Upgrade Transaction (maps to DepositTx)
+    struct UpgradeTxn {
+        bytes32 sourceHash;
+        address from;
+        address to;
+        uint256 mint;
+        uint256 value;
+        uint64 gas;
+        bool isSystemTransaction;
+        bytes data;
+    }
+
+    /// @notice Create an upgrade transaction
+    /// @param intent Human-readable intent
+    /// @param from Sender address
+    /// @param to Target address
+    /// @param mint Mint amount
+    /// @param value Value to send
+    /// @param gas Gas limit
+    /// @param isSystemTransaction Whether this is a system transaction
+    /// @param data Transaction data
+    /// @return Upgrade transaction struct
+    function newTx(
+        string memory intent,
+        address from,
+        address to,
+        uint256 mint,
+        uint256 value,
+        uint64 gas,
+        bool isSystemTransaction,
+        bytes memory data
+    )
+        internal
+        pure
+        returns (UpgradeTxn memory)
+    {
+        return UpgradeTxn({
+            sourceHash: sourceHash(intent),
+            from: from,
+            to: to,
+            mint: mint,
+            value: value,
+            gas: gas,
+            isSystemTransaction: isSystemTransaction,
+            data: data
+        });
+    }
+
+    /// @notice Create a deployment transaction
+    /// @param intent Human-readable intent (e.g., "Fjord: Gas Price Oracle Deployment")
+    /// @param from Deployer address
+    /// @param gas Gas limit
+    /// @param artifactPath Contract artifact path (e.g., "GasPriceOracle.sol:GasPriceOracle")
+    /// @return Upgrade transaction struct
+    function newDeploymentTx(
+        string memory intent,
+        address from,
+        uint64 gas,
+        string memory artifactPath
+    )
+        internal
+        view
+        returns (UpgradeTxn memory)
+    {
+        bytes memory deploymentBytecode = vm.getCode(artifactPath);
+
+        return UpgradeTxn({
+            sourceHash: sourceHash(intent),
+            from: from,
+            to: address(0),
+            mint: 0,
+            value: 0,
+            gas: gas,
+            isSystemTransaction: false,
+            data: deploymentBytecode
+        });
+    }
+
+    /// @notice Calculate source hash for an upgrade transaction
+    /// @param intent Human-readable intent string
+    /// @return Source hash
+    function sourceHash(string memory intent) internal pure returns (bytes32) {
+        bytes32 intentHash = keccak256(bytes(intent));
+        bytes memory domainInput = new bytes(64);
+
+        assembly {
+            mstore(add(domainInput, 56), shl(192, UPGRADE_DEPOSIT_SOURCE_DOMAIN))
+            mstore(add(domainInput, 64), intentHash)
+        }
+
+        return keccak256(domainInput);
+    }
+
+    /// @notice Write transactions array to JSON file
+    /// @param txns Array of upgrade transactions
+    /// @param outputPath File path for output JSON
+    function writeArtifact(UpgradeTxn[] memory txns, string memory outputPath) internal {
+        string memory root = "root";
+        string memory finalJson;
+
+        for (uint256 i = 0; i < txns.length; i++) {
+            string memory txnJson = serializeTxn(txns[i], i);
+            finalJson = vm.serializeString(root, vm.toString(i), txnJson);
+        }
+
+        // Write the final serialized JSON array to file
+        vm.writeJson(finalJson, outputPath);
+        console.log(finalJson);
+    }
+
+    /// @notice Serialize a single transaction to JSON
+    /// @param txn Transaction to serialize
+    /// @param index Transaction index
+    /// @return JSON string
+    function serializeTxn(UpgradeTxn memory txn, uint256 index) internal returns (string memory) {
+        string memory key = vm.toString(index);
+
+        vm.serializeBytes32(key, "sourceHash", txn.sourceHash);
+        vm.serializeAddress(key, "from", txn.from);
+        vm.serializeAddress(key, "to", txn.to);
+        vm.serializeUint(key, "mint", txn.mint);
+        vm.serializeUint(key, "value", txn.value);
+        vm.serializeUint(key, "gas", uint256(txn.gas));
+        vm.serializeBool(key, "isSystemTransaction", txn.isSystemTransaction);
+        return vm.serializeBytes(key, "data", txn.data);
+    }
+}
