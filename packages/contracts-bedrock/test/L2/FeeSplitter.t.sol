@@ -19,10 +19,7 @@ import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
-
-interface IFeeSplitterForTest is IFeeSplitter {
-    function setTransientDisbursingAddress(address _allowedCaller) external;
-}
+import { IFeeSplitterForTest } from "interfaces/for-test/IFeeSplitterForTest.sol";
 
 /// @title FeeSplitter_TestInit
 /// @notice Reusable test initialization for `FeeSplitter` tests.
@@ -167,13 +164,12 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
-        (bool success, ) = payable(address(feeSplitter)).call{ value: _amount }("");
+        (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
     /// @notice Test that receive function reverts when sender is an approved vault but not currently disbursing
     /// @param _amount The amount of ETH to send.
     function test_feeSplitterReceive_whenNotCurrentVault_reverts(uint128 _amount) public {
-
         // Simulate disbursement context on each vault and
         // ensure that the receive function reverts when the sender is not the currently disbursing vault.
         for (uint256 i = 0; i < _feeVaults.length; i++) {
@@ -439,7 +435,12 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test disburseFees reverts when fee vault withdrawal amount does not match the expected amount
-    function testFuzz_feeSplitterDisburseFees_whenFeeVaultWithdrawalAmountMismatch_reverts(uint256 _actualTransferAmount, uint256 _claimedWithdrawalAmount) public {
+    function testFuzz_feeSplitterDisburseFees_whenFeeVaultWithdrawalAmountMismatch_reverts(
+        uint256 _actualTransferAmount,
+        uint256 _claimedWithdrawalAmount
+    )
+        public
+    {
         vm.assume(_actualTransferAmount != _claimedWithdrawalAmount);
 
         // Create a malicious mock vault that lies about withdrawal amount
@@ -584,7 +585,12 @@ contract FeeSplitter_DisburseFees_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Fuzz test that a vault with balance below minimum causes entire disbursement to revert
-    function testFuzz_disburseFees_vaultBelowMinimum_reverts(uint256 _minWithdrawalAmount, uint256 _vaultIndex) public {
+    function testFuzz_disburseFees_vaultBelowMinimum_reverts(
+        uint256 _minWithdrawalAmount,
+        uint256 _vaultIndex
+    )
+        public
+    {
         // If uint256, the test will revert due to ETH transfer overflow
         _minWithdrawalAmount = bound(_minWithdrawalAmount, 1, type(uint128).max);
         _vaultIndex = bound(_vaultIndex, 0, 3); // 0-3 for the 4 vaults
