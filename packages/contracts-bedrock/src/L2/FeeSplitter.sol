@@ -24,6 +24,9 @@ contract FeeSplitter is ISemver, Initializable {
     /// @notice Thrown when the fee disbursement interval exceeds the maximum allowed.
     error FeeSplitter_ExceedsMaxFeeDisbursementTime();
 
+    /// @notice Thrown when the fee disbursement interval is set to zero.
+    error FeeSplitter_FeeDisbursementIntervalCannotBeZero();
+
     /// @notice Thrown when the share calculator address is zero.
     error FeeSplitter_SharesCalculatorCannotBeZero();
 
@@ -193,6 +196,9 @@ contract FeeSplitter is ISemver, Initializable {
     function setFeeDisbursementInterval(uint128 _newFeeDisbursementInterval) external {
         if (msg.sender != IProxyAdmin(Predeploys.PROXY_ADMIN).owner()) {
             revert FeeSplitter_OnlyProxyAdminOwner();
+        }
+        if (_newFeeDisbursementInterval == 0) {
+            revert FeeSplitter_FeeDisbursementIntervalCannotBeZero();
         }
         if (_newFeeDisbursementInterval > MAX_DISBURSEMENT_INTERVAL) {
             revert FeeSplitter_ExceedsMaxFeeDisbursementTime();
