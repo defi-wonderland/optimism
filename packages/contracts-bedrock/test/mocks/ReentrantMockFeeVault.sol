@@ -8,8 +8,6 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 ///         This demonstrates the attack vector where a malicious vault tries to exploit the disbursing context
 ///         to allow unauthorized withdrawals from other vaults.
 contract ReentrantMockFeeVault {
-    event ReentrantMockFeeVault_Error();
-
     address public immutable RECIPIENT;
     uint256 public immutable WITHDRAWAL_AMOUNT;
     address payable public immutable TARGET_VAULT;
@@ -36,13 +34,9 @@ contract ReentrantMockFeeVault {
         require(success, "ReentrantMockFeeVault: failed to send ETH");
 
         // Now attempt to trigger a withdrawal from a different vault
-        // This should fail with the new stricter check
+        // This should fail with the new stricter check and propagate the revert
         if (TARGET_VAULT != address(0)) {
-            try IFeeVault(TARGET_VAULT).withdraw() returns (uint256) {
-                // If this succeeds, the attack worked
-            } catch {
-                emit ReentrantMockFeeVault_Error();
-            }
+            IFeeVault(TARGET_VAULT).withdraw();
         }
 
         return WITHDRAWAL_AMOUNT;

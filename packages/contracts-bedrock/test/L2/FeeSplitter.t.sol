@@ -148,8 +148,6 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 /// @title FeeSplitter_Receive_Test
 /// @notice Tests the receive function of the `FeeSplitter` contract.
 contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
-    event ReentrantMockFeeVault_Error();
-
     /// @notice Test that receive function reverts when sender is not an approved vault
     function testFuzz_feeSplitterReceive_whenNotApprovedVault_reverts(address _caller, uint256 _amount) public {
         vm.assume(_caller != Predeploys.SEQUENCER_FEE_WALLET);
@@ -349,46 +347,24 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
         uint256 sequencerAmount = 1 ether;
         uint256 baseAmount = 2 ether;
 
-        // Setup BASE_FEE_VAULT normally with funds
-        _mockFeeVaultForSuccessfulWithdrawal(Predeploys.BASE_FEE_VAULT, baseAmount);
-
         // Setup SEQUENCER_FEE_WALLET as a malicious vault that will try to trigger BASE_FEE_VAULT withdrawal
         ReentrantMockFeeVault maliciousVault = new ReentrantMockFeeVault(
             payable(address(feeSplitter)), sequencerAmount, payable(Predeploys.BASE_FEE_VAULT)
         );
-        vm.deal(address(maliciousVault), sequencerAmount);
+
         vm.etch(Predeploys.SEQUENCER_FEE_WALLET, address(maliciousVault).code);
         vm.deal(Predeploys.SEQUENCER_FEE_WALLET, sequencerAmount);
-
-        // Setup other vaults with zero balance
-        _mockFeeVaultForSuccessfulWithdrawal(Predeploys.L1_FEE_VAULT, 0);
-        _mockFeeVaultForSuccessfulWithdrawal(Predeploys.OPERATOR_FEE_VAULT, 0);
-
-        // Mock shares calculator
-        uint256 totalAmount = sequencerAmount + baseAmount;
-        ISharesCalculator.ShareInfo[] memory shareInfo = new ISharesCalculator.ShareInfo[](1);
-        shareInfo[0] = ISharesCalculator.ShareInfo(payable(_defaultRevenueShareRecipient), totalAmount);
-
-        address actualSharesCalculator = address(feeSplitter.sharesCalculator());
-        vm.mockCall(
-            actualSharesCalculator,
-            abi.encodeCall(ISharesCalculator.getRecipientsAndAmounts, (sequencerAmount, baseAmount, 0, 0)),
-            abi.encode(shareInfo)
-        );
 
         // Fast forward time
         vm.warp(block.timestamp + feeSplitter.feeDisbursementInterval() + 1);
 
-        // Expect the reentrant vault to emit an error event when its reentrant attack fails
-        // Note: The event comes from SEQUENCER_FEE_WALLET because we etched the malicious code there
-        vm.expectEmit(Predeploys.SEQUENCER_FEE_WALLET);
-        emit ReentrantMockFeeVault_Error();
-
-        // The disbursement should succeed because:
-        // 1. The malicious vault sends ETH correctly to FeeSplitter
-        // 2. When it tries to trigger BASE_FEE_VAULT withdrawal, that will fail internally
-        //    but the malicious vault catches the error and emits ReentrantMockFeeVault_Error
-        // 3. The disbursement continues normally
+        // Expect the disbursement to revert with the MockFeeVault error message.
+        // The flow is:
+        // 1. FeeSplitter:disburseFees() is called
+        // 2. Splitter triggers withdrawal from SEQUENCER_FEE_WALLET (etched with malicious code)
+        // 3. SEQUENCER_FEE_WALLET sends ETH to FeeSplitter and triggers withdrawal from BASE_FEE_VAULT
+        // 4. BASE_FEE_VAULT's withdraw() reverts with the FeeVault's error message
+        vm.expectRevert("FeeVault: failed to send ETH to L2 fee recipient");
         feeSplitter.disburseFees();
     }
 }
