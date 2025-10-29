@@ -161,7 +161,7 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
 
         vm.prank(_caller);
         vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
-        (bool success,) = payable(address(feeSplitter)).call{ value: _amount }("");
+        payable(address(feeSplitter)).call{ value: _amount }("");
     }
 
     /// @notice Test receive function from non-approved vault reverts even during disbursement
