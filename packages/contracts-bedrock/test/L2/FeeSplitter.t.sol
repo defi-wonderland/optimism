@@ -35,6 +35,7 @@ contract FeeSplitter_TestInit is CommonTest {
     address internal _defaultRevenueRemainderRecipient = makeAddr("RemainderRecipient");
     uint128 internal _defaultFeeDisbursementInterval = 1 days;
     address internal _defaultSharesCalculator = makeAddr("SharesCalculator");
+    address[4] internal _feeVaults;
 
     /// @notice Test setup.
     function setUp() public virtual override {
@@ -44,6 +45,12 @@ contract FeeSplitter_TestInit is CommonTest {
 
         // Get the owner from ProxyAdmin
         _owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+
+        // Initialize fee vaults array
+        _feeVaults[0] = Predeploys.SEQUENCER_FEE_WALLET;
+        _feeVaults[1] = Predeploys.BASE_FEE_VAULT;
+        _feeVaults[2] = Predeploys.L1_FEE_VAULT;
+        _feeVaults[3] = Predeploys.OPERATOR_FEE_VAULT;
     }
 
     /// @notice Helper function to setup a mock and expect a call to it.
@@ -155,11 +162,16 @@ contract FeeSplitter_Receive_Test is FeeSplitter_TestInit {
     }
 
     /// @notice Test that receive function reverts when sender is an approved vault but not currently disbursing
-    function test_feeSplitterReceive_whenNotCurrentVault_reverts(uint256 _amount) public {
-        vm.deal(Predeploys.SEQUENCER_FEE_WALLET, _amount);
+    /// @param _amount The amount of ETH to send.
+    /// @param _vaultIndex The index of the vault to send from (0-3).
+    function test_feeSplitterReceive_whenNotCurrentVault_reverts(uint256 _amount, uint256 _vaultIndex) public {
+        _vaultIndex = bound(_vaultIndex, 0, 3);
+        address _vault = _feeVaults[_vaultIndex];
 
-        // Try to send ETH from SEQUENCER_FEE_WALLET outside of its disbursement window
-        vm.prank(Predeploys.SEQUENCER_FEE_WALLET);
+        vm.deal(_vault, _amount);
+
+        // Try to send ETH from vault outside of its disbursement window
+        vm.prank(_vault);
         vm.expectRevert(IFeeSplitter.FeeSplitter_SenderNotCurrentVault.selector);
         payable(address(feeSplitter)).call{ value: _amount }("");
     }
