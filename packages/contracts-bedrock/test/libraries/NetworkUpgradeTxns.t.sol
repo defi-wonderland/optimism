@@ -94,7 +94,7 @@ contract NetworkUpgradeTxns_NewTx_Test is NetworkUpgradeTxns_TestInit {
         public
         pure
     {
-        NetworkUpgradeTxns.UpgradeTxn memory txn = NetworkUpgradeTxns.newTx({
+        NetworkUpgradeTxns.NetworkUpgradeTxn memory txn = NetworkUpgradeTxns.newTx({
             intent: _intent,
             from: _from,
             to: _to,
@@ -121,7 +121,7 @@ contract NetworkUpgradeTxns_NewTx_Test is NetworkUpgradeTxns_TestInit {
 contract NetworkUpgradeTxns_NewDeploymentTx_Test is NetworkUpgradeTxns_TestInit {
     /// @notice Test newDeploymentTx creates correct deployment transaction
     function test_newDeploymentTx_succeeds(string memory _intent, address _from, uint64 _gas) public view {
-        NetworkUpgradeTxns.UpgradeTxn memory txn = NetworkUpgradeTxns.newDeploymentTx({
+        NetworkUpgradeTxns.NetworkUpgradeTxn memory txn = NetworkUpgradeTxns.newDeploymentTx({
             intent: _intent,
             from: _from,
             gas: _gas,
@@ -144,14 +144,14 @@ contract NetworkUpgradeTxns_NewDeploymentTx_Test is NetworkUpgradeTxns_TestInit 
 contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
     /// @notice Test writeArtifact with empty array
     function test_writeArtifact_emptyArray() public {
-        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](0);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = new NetworkUpgradeTxns.NetworkUpgradeTxn[](0);
         string memory outputPath = "deployments/nut-test-empty.json";
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
     }
 
     /// @notice Test writeArtifact with single Predeploy deployment
     function test_writeArtifact_singleDeployment() public {
-        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](1);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = new NetworkUpgradeTxns.NetworkUpgradeTxn[](1);
         txns[0] = NetworkUpgradeTxns.newDeploymentTx({
             intent: INTENT_DEPLOY_L1_BLOCK,
             from: L1_BLOCK_DEPLOYER,
@@ -164,7 +164,7 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
 
     /// @notice Test writeArtifact creates valid JSON file
     function test_writeArtifact_succeeds() public {
-        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](2);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = new NetworkUpgradeTxns.NetworkUpgradeTxn[](2);
 
         txns[0] = NetworkUpgradeTxns.newDeploymentTx({
             intent: INTENT_DEPLOY_L1_BLOCK,
@@ -200,16 +200,21 @@ contract NetworkUpgradeTxns_EcotoneUpgrade_Test is NetworkUpgradeTxns_TestInit {
     /// @notice Helper function to read upgrade transactions from JSON file
     /// @param _inputPath File path for input JSON
     /// @return Array of upgrade transactions
-    function readArtifact(string memory _inputPath) internal view returns (NetworkUpgradeTxns.UpgradeTxn[] memory) {
+    function readArtifact(string memory _inputPath)
+        internal
+        view
+        returns (NetworkUpgradeTxns.NetworkUpgradeTxn[] memory)
+    {
         string memory json = vm.readFile(_inputPath);
         bytes memory parsedData = vm.parseJson(json);
-        NetworkUpgradeTxns.UpgradeTxn[] memory txns = abi.decode(parsedData, (NetworkUpgradeTxns.UpgradeTxn[]));
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns =
+            abi.decode(parsedData, (NetworkUpgradeTxns.NetworkUpgradeTxn[]));
         return txns;
     }
 
     /// @notice Test constructing Ecotone upgrade transactions, writing to file and reading back.
     function test_ecotoneUpgrade_roundtrip_succeeds() public {
-        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](6);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = new NetworkUpgradeTxns.NetworkUpgradeTxn[](6);
 
         // 1. Deploy L1Block
         // ecotone_upgrade_transactions.go:47
@@ -290,7 +295,7 @@ contract NetworkUpgradeTxns_EcotoneUpgrade_Test is NetworkUpgradeTxns_TestInit {
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
 
         // Read back the transactions
-        NetworkUpgradeTxns.UpgradeTxn[] memory readTxns = readArtifact(outputPath);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory readTxns = readArtifact(outputPath);
 
         // Validate array length matches
         assertEq(readTxns.length, txns.length, "Transaction count mismatch");

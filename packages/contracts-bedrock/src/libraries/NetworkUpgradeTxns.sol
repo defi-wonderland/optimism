@@ -20,7 +20,7 @@ library NetworkUpgradeTxns {
     /// @notice Represents a single Network Upgrade Transaction
     ///         Maps to the fields of the `DepositTx` struct defined in
     ///         https://github.com/ethereum-optimism/op-geth/blob/optimism/core/types/deposit_tx.go
-    struct UpgradeTxn {
+    struct NetworkUpgradeTxn {
         bytes data;
         address from;
         uint64 gas;
@@ -53,9 +53,9 @@ library NetworkUpgradeTxns {
     )
         internal
         pure
-        returns (UpgradeTxn memory)
+        returns (NetworkUpgradeTxn memory)
     {
-        return UpgradeTxn({
+        return NetworkUpgradeTxn({
             sourceHash: sourceHash(intent),
             from: from,
             to: to,
@@ -81,11 +81,11 @@ library NetworkUpgradeTxns {
     )
         internal
         view
-        returns (UpgradeTxn memory)
+        returns (NetworkUpgradeTxn memory)
     {
         bytes memory deploymentBytecode = vm.getCode(forgeArtifactPath);
 
-        return UpgradeTxn({
+        return NetworkUpgradeTxn({
             sourceHash: sourceHash(intent),
             from: from,
             to: address(0),
@@ -115,7 +115,7 @@ library NetworkUpgradeTxns {
     /// @notice Write transactions array to JSON file
     /// @param txns Array of upgrade transactions
     /// @param outputPath File path for output JSON
-    function writeArtifact(UpgradeTxn[] memory txns, string memory outputPath) internal {
+    function writeArtifact(NetworkUpgradeTxn[] memory txns, string memory outputPath) internal {
         string memory root = "root";
         string memory finalJson = "[";
 
@@ -138,7 +138,7 @@ library NetworkUpgradeTxns {
     /// @param txn Transaction to serialize
     /// @param index Transaction index
     /// @return JSON string
-    function serializeTxn(UpgradeTxn memory txn, uint256 index) internal returns (string memory) {
+    function serializeTxn(NetworkUpgradeTxn memory txn, uint256 index) internal returns (string memory) {
         string memory key = vm.toString(index);
 
         vm.serializeBytes32(key, "sourceHash", txn.sourceHash);
