@@ -115,12 +115,17 @@ library NetworkUpgradeTxns {
     /// @param outputPath File path for output JSON
     function writeArtifact(UpgradeTxn[] memory txns, string memory outputPath) internal {
         string memory root = "root";
-        string memory finalJson;
+        string memory finalJson = "[";
 
         for (uint256 i = 0; i < txns.length; i++) {
             string memory txnJson = serializeTxn(txns[i], i);
-            finalJson = vm.serializeString(root, vm.toString(i), txnJson);
+            finalJson = string.concat(finalJson, txnJson);
+            if (i < txns.length - 1) {
+                finalJson = string.concat(finalJson, ",");
+            }
         }
+
+        finalJson = string.concat(finalJson, "]");
 
         // Write the final serialized JSON array to file
         vm.writeJson(finalJson, outputPath);

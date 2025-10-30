@@ -141,6 +141,26 @@ contract NetworkUpgradeTxns_NewDeploymentTx_Test is NetworkUpgradeTxns_TestInit 
 /// @title NetworkUpgradeTxns_WriteArtifact_Test
 /// @notice Tests the `writeArtifact` function.
 contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
+    /// @notice Test writeArtifact with empty array
+    function test_writeArtifact_emptyArray() public {
+        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](0);
+        string memory outputPath = "deployments/nut-test-empty.json";
+        NetworkUpgradeTxns.writeArtifact(txns, outputPath);
+    }
+
+    /// @notice Test writeArtifact with single Predeploy deployment
+    function test_writeArtifact_singleDeployment() public {
+        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](1);
+        txns[0] = NetworkUpgradeTxns.newDeploymentTx({
+            intent: INTENT_DEPLOY_L1_BLOCK,
+            from: L1_BLOCK_DEPLOYER,
+            gas: 375_000,
+            artifactPath: "L1Block.sol:L1Block"
+        });
+        string memory outputPath = "deployments/nut-test-single.json";
+        NetworkUpgradeTxns.writeArtifact(txns, outputPath);
+    }
+
     /// @notice Test writeArtifact creates valid JSON file
     function test_writeArtifact_succeeds() public {
         NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](2);
