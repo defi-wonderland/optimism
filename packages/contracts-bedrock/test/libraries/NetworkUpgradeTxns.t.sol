@@ -124,7 +124,7 @@ contract NetworkUpgradeTxns_NewDeploymentTx_Test is NetworkUpgradeTxns_TestInit 
             intent: _intent,
             from: _from,
             gas: _gas,
-            artifactPath: "GasPriceOracle.sol:GasPriceOracle"
+            forgeArtifactPath: "GasPriceOracle.sol:GasPriceOracle"
         });
 
         assertEq(txn.sourceHash, NetworkUpgradeTxns.sourceHash(_intent), "sourceHash mismatch");
@@ -155,7 +155,7 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
             intent: INTENT_DEPLOY_L1_BLOCK,
             from: L1_BLOCK_DEPLOYER,
             gas: 375_000,
-            artifactPath: "L1Block.sol:L1Block"
+            forgeArtifactPath: "L1Block.sol:L1Block"
         });
         string memory outputPath = "deployments/nut-test-single.json";
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
@@ -169,7 +169,7 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
             intent: INTENT_DEPLOY_L1_BLOCK,
             from: L1_BLOCK_DEPLOYER,
             gas: 375_000,
-            artifactPath: "L1Block.sol:L1Block"
+            forgeArtifactPath: "L1Block.sol:L1Block"
         });
 
         txns[1] = NetworkUpgradeTxns.newTx({

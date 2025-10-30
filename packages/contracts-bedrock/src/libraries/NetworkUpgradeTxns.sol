@@ -69,19 +69,19 @@ library NetworkUpgradeTxns {
     /// @param intent Human-readable intent (e.g., "Fjord: Gas Price Oracle Deployment")
     /// @param from Deployer address
     /// @param gas Gas limit
-    /// @param artifactPath Contract artifact path (e.g., "GasPriceOracle.sol:GasPriceOracle")
+    /// @param forgeArtifactPath Contract artifact path (e.g., "GasPriceOracle.sol:GasPriceOracle")
     /// @return Upgrade transaction struct
     function newDeploymentTx(
         string memory intent,
         address from,
         uint64 gas,
-        string memory artifactPath
+        string memory forgeArtifactPath
     )
         internal
         view
         returns (UpgradeTxn memory)
     {
-        bytes memory deploymentBytecode = vm.getCode(artifactPath);
+        bytes memory deploymentBytecode = vm.getCode(forgeArtifactPath);
 
         return UpgradeTxn({
             sourceHash: sourceHash(intent),
