@@ -17,16 +17,18 @@ library NetworkUpgradeTxns {
     /// @notice Source domain for upgrade transactions
     uint64 internal constant UPGRADE_DEPOSIT_SOURCE_DOMAIN = 2;
 
-    /// @notice Represents a single Network Upgrade Transaction (maps to DepositTx)
+    /// @notice Represents a single Network Upgrade Transaction
+    ///         Maps to the fields of the `DepositTx` struct defined in
+    ///         https://github.com/ethereum-optimism/op-geth/blob/optimism/core/types/deposit_tx.go
     struct UpgradeTxn {
-        bytes32 sourceHash;
+        bytes data;
         address from;
-        address to;
-        uint256 mint;
-        uint256 value;
         uint64 gas;
         bool isSystemTransaction;
-        bytes data;
+        uint256 mint;
+        bytes32 sourceHash;
+        address to;
+        uint256 value;
     }
 
     /// @notice Create an upgrade transaction

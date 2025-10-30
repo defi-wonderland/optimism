@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 // Interfaces
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
 
 // Testing
 import { Test } from "forge-std/Test.sol";
@@ -185,5 +186,127 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
 
         string memory outputPath = "deployments/nut-test.json";
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
+    }
+}
+
+/// @title NetworkUpgradeTxns_EcotoneUpgrade_Test
+/// @notice Tests that the artifact produced by the library matches the expected values.
+contract NetworkUpgradeTxns_EcotoneUpgrade_Test is NetworkUpgradeTxns_TestInit {
+    /// @notice EIP-4788 beacon roots contract deployment data from EIP spec
+    ///         Obtained from https://eips.ethereum.org/EIPS/eip-4788#deployment
+    bytes constant EIP4788_CREATION_DATA =
+        hex"60618060095f395ff33373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500";
+
+    /// @notice Helper function to read upgrade transactions from JSON file
+    /// @param _inputPath File path for input JSON
+    /// @return Array of upgrade transactions
+    function readArtifact(string memory _inputPath) internal view returns (NetworkUpgradeTxns.UpgradeTxn[] memory) {
+        string memory json = vm.readFile(_inputPath);
+        bytes memory parsedData = vm.parseJson(json);
+        NetworkUpgradeTxns.UpgradeTxn[] memory txns = abi.decode(parsedData, (NetworkUpgradeTxns.UpgradeTxn[]));
+        return txns;
+    }
+
+    /// @notice Test constructing Ecotone upgrade transactions, writing to file and reading back.
+    function test_ecotoneUpgrade_roundtrip_succeeds() public {
+        NetworkUpgradeTxns.UpgradeTxn[] memory txns = new NetworkUpgradeTxns.UpgradeTxn[](6);
+
+        // 1. Deploy L1Block
+        // ecotone_upgrade_transactions.go:47
+        txns[0] = NetworkUpgradeTxns.newDeploymentTx({
+            intent: INTENT_DEPLOY_L1_BLOCK,
+            from: L1_BLOCK_DEPLOYER,
+            gas: 375_000,
+            forgeArtifactPath: "L1Block.sol:L1Block"
+        });
+
+        // 2. Deploy GasPriceOracle
+        // ecotone_upgrade_transactions.go:64
+        txns[1] = NetworkUpgradeTxns.newDeploymentTx({
+            intent: INTENT_DEPLOY_GAS_PRICE_ORACLE,
+            from: GAS_PRICE_ORACLE_DEPLOYER,
+            gas: 1_000_000,
+            forgeArtifactPath: "GasPriceOracle.sol:GasPriceOracle"
+        });
+
+        // 3. Update L1Block proxy
+        // ecotone_upgrade_transactions.go:81
+        // Calculate the deployed L1Block address
+        address newL1BlockAddress = vm.computeCreateAddress(L1_BLOCK_DEPLOYER, 0);
+        txns[2] = NetworkUpgradeTxns.newTx({
+            intent: INTENT_UPDATE_L1_BLOCK_PROXY,
+            from: address(0),
+            to: Predeploys.L1_BLOCK_ATTRIBUTES,
+            mint: 0,
+            value: 0,
+            gas: 50_000,
+            isSystemTransaction: false,
+            data: abi.encodeCall(IProxy.upgradeTo, (newL1BlockAddress))
+        });
+
+        // 4. Update GasPriceOracle proxy
+        // ecotone_upgrade_transactions.go:98
+        // Calculate the deployed GasPriceOracle address
+        address newGasPriceOracleAddress = vm.computeCreateAddress(GAS_PRICE_ORACLE_DEPLOYER, 0);
+        txns[3] = NetworkUpgradeTxns.newTx({
+            intent: INTENT_UPDATE_GAS_PRICE_ORACLE,
+            from: address(0),
+            to: Predeploys.GAS_PRICE_ORACLE,
+            mint: 0,
+            value: 0,
+            gas: 50_000,
+            isSystemTransaction: false,
+            data: abi.encodeCall(IProxy.upgradeTo, (newGasPriceOracleAddress))
+        });
+
+        // 5. Enable Ecotone on GasPriceOracle
+        // ecotone_upgrade_transactions.go:115
+        txns[4] = NetworkUpgradeTxns.newTx({
+            intent: INTENT_ENABLE_ECOTONE,
+            from: DEPOSITOR_ACCOUNT,
+            to: Predeploys.GAS_PRICE_ORACLE,
+            mint: 0,
+            value: 0,
+            gas: 80_000,
+            isSystemTransaction: false,
+            data: abi.encodeCall(IGasPriceOracle.setEcotone, ())
+        });
+
+        // 6. Deploy EIP-4788 beacon block roots contract
+        // ecotone_upgrade_transactions.go:130
+        txns[5] = NetworkUpgradeTxns.newTx({
+            intent: INTENT_BEACON_ROOTS,
+            from: 0x0B799C86a49DEeb90402691F1041aa3AF2d3C875,
+            to: address(0), // Contract deployment
+            mint: 0,
+            value: 0,
+            gas: 250_000, // hex constant 0x3d090, as defined in EIP-4788 (250_000 in decimal)
+            isSystemTransaction: false,
+            data: EIP4788_CREATION_DATA
+        });
+
+        // Write transactions to JSON file
+        string memory outputPath = "deployments/nut-ecotone-upgrade-test.json";
+        NetworkUpgradeTxns.writeArtifact(txns, outputPath);
+
+        // Read back the transactions
+        NetworkUpgradeTxns.UpgradeTxn[] memory readTxns = readArtifact(outputPath);
+
+        // Validate array length matches
+        assertEq(readTxns.length, txns.length, "Transaction count mismatch");
+
+        // Validate each transaction matches
+        for (uint256 i = 0; i < txns.length; i++) {
+            assertEq(readTxns[i].sourceHash, txns[i].sourceHash, "'sourceHash' doesn't match");
+            assertEq(readTxns[i].from, txns[i].from, "'from' doesn't match");
+            assertEq(readTxns[i].to, txns[i].to, "'to' doesn't match");
+            assertEq(readTxns[i].mint, txns[i].mint, "'mint' doesn't match");
+            assertEq(readTxns[i].value, txns[i].value, "'value' doesn't match");
+            assertEq(readTxns[i].gas, txns[i].gas, "'gas' doesn't match");
+            assertEq(
+                readTxns[i].isSystemTransaction, txns[i].isSystemTransaction, "'isSystemTransaction' doesn't match"
+            );
+            assertEq(readTxns[i].data, txns[i].data, "'data' doesn't match");
+        }
     }
 }
