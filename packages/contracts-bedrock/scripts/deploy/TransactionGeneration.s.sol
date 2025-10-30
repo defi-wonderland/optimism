@@ -31,11 +31,11 @@ interface ICreate2Deployer {
     function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
 }
 
-/// @title UpgradeTransactions
+/// @title TransactionGenerationScript
 /// @notice Script that generates Network Upgrade Transactions (NUTs) for deploying L2 contracts during a hard fork.
 ///         This script creates a sequence of transactions that deploy Predeploy contracts using CREATE2 and execute
 ///         and the L2ContractsManager. The last transaction is the execution of the L2ContractsManager.
-contract UpgradeTransactions is Script {
+contract TransactionGeneration is Script {
     address constant CREATE2_DEPLOYER = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
 
     /// @notice Generates Network Upgrade Transactions for deploying L2 contracts

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.15;
 
 import { Test } from "forge-std/Test.sol";
-import { UpgradeTransactions } from "scripts/deploy/UpgradeTransactions.s.sol";
+import { TransactionGeneration } from "scripts/deploy/TransactionGeneration.s.sol";
 import { Config } from "scripts/libraries/Config.sol";
 import { NetworkUpgradeTxns } from "src/libraries/NetworkUpgradeTxns.sol";
 import { L1Block } from "src/L2/L1Block.sol";
@@ -11,12 +11,12 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { XForkContractsManager } from "src/L2/XForkContractsManager.sol";
 
-contract UpgradeTransactionsTest is Test {
-    UpgradeTransactions public upgradeTransactions;
+contract TransactionGenerationTest is Test {
+    TransactionGeneration public transactionGeneration;
 
     function setUp() public {
         vm.createSelectFork(Config.forkRpcUrl(), Config.forkBlockNumber());
-        upgradeTransactions = new UpgradeTransactions();
+        transactionGeneration = new TransactionGeneration();
 
         // etch the L2ProxyAdmin
         vm.etch(Predeploys.PROXY_ADMIN, vm.getDeployedCode("ProxyAdmin.sol:ProxyAdmin"));
@@ -24,7 +24,7 @@ contract UpgradeTransactionsTest is Test {
 
     /// @notice Test that the upgrade transaction upgrading L1Block defined in the XForkContractsManager succeed.
     function test_upgradeTransactions_succeeds() public {
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = upgradeTransactions.run("XForkContractsManager");
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = transactionGeneration.run("XForkContractsManager");
 
         // 1. L1Block Deployment
         // 2. L2ContractsManager Deployment
@@ -43,7 +43,7 @@ contract UpgradeTransactionsTest is Test {
 
     /// @notice Test that the upgrade transaction structure is correct.
     function test_upgradeTransactions_transactionStructure_succeeds() public {
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = upgradeTransactions.run("XForkContractsManager");
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = transactionGeneration.run("XForkContractsManager");
 
         // Verify transaction structure
         assertEq(txns.length, 3);
