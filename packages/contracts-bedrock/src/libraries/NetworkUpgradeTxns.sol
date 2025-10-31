@@ -116,7 +116,6 @@ library NetworkUpgradeTxns {
     /// @param txns Array of upgrade transactions
     /// @param outputPath File path for output JSON
     function writeArtifact(NetworkUpgradeTxn[] memory txns, string memory outputPath) internal {
-        string memory root = "root";
         string memory finalJson = "[";
 
         for (uint256 i = 0; i < txns.length; i++) {
@@ -131,7 +130,6 @@ library NetworkUpgradeTxns {
 
         // Write the final serialized JSON array to file
         vm.writeJson(finalJson, outputPath);
-        console.log(finalJson);
     }
 
     /// @notice Serialize a single transaction to JSON
@@ -149,5 +147,20 @@ library NetworkUpgradeTxns {
         vm.serializeUint(key, "gas", uint256(txn.gas));
         vm.serializeBool(key, "isSystemTransaction", txn.isSystemTransaction);
         return vm.serializeBytes(key, "data", txn.data);
+    }
+
+    /// @notice Helper function to read upgrade transactions from JSON file
+    /// @param _inputPath File path for input JSON
+    /// @return Array of upgrade transactions
+    function readArtifact(string memory _inputPath)
+        internal
+        view
+        returns (NetworkUpgradeTxns.NetworkUpgradeTxn[] memory)
+    {
+        string memory json = vm.readFile(_inputPath);
+        bytes memory parsedData = vm.parseJson(json);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns =
+            abi.decode(parsedData, (NetworkUpgradeTxns.NetworkUpgradeTxn[]));
+        return txns;
     }
 }

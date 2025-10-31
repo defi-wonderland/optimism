@@ -186,6 +186,16 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
 
         string memory outputPath = "deployments/nut-test.json";
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
+
+        // Read json file and validate the transactions
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory readTxns = NetworkUpgradeTxns.readArtifact(outputPath);
+        assertEq(readTxns.length, txns.length, "Transaction count mismatch");
+        for (uint256 i = 0; i < txns.length; i++) {
+            assertEq(readTxns[i].sourceHash, txns[i].sourceHash, "'sourceHash' doesn't match");
+            assertEq(readTxns[i].from, txns[i].from, "'from' doesn't match");
+            assertEq(readTxns[i].to, txns[i].to, "'to' doesn't match");
+            assertEq(readTxns[i].mint, txns[i].mint, "'mint' doesn't match");
+        }
     }
 }
 
@@ -196,21 +206,6 @@ contract NetworkUpgradeTxns_EcotoneUpgrade_Test is NetworkUpgradeTxns_TestInit {
     ///         Obtained from https://eips.ethereum.org/EIPS/eip-4788#deployment
     bytes constant EIP4788_CREATION_DATA =
         hex"60618060095f395ff33373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500";
-
-    /// @notice Helper function to read upgrade transactions from JSON file
-    /// @param _inputPath File path for input JSON
-    /// @return Array of upgrade transactions
-    function readArtifact(string memory _inputPath)
-        internal
-        view
-        returns (NetworkUpgradeTxns.NetworkUpgradeTxn[] memory)
-    {
-        string memory json = vm.readFile(_inputPath);
-        bytes memory parsedData = vm.parseJson(json);
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns =
-            abi.decode(parsedData, (NetworkUpgradeTxns.NetworkUpgradeTxn[]));
-        return txns;
-    }
 
     /// @notice Test constructing Ecotone upgrade transactions, writing to file and reading back.
     function test_ecotoneUpgrade_roundtrip_succeeds() public {
@@ -295,7 +290,7 @@ contract NetworkUpgradeTxns_EcotoneUpgrade_Test is NetworkUpgradeTxns_TestInit {
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
 
         // Read back the transactions
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory readTxns = readArtifact(outputPath);
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory readTxns = NetworkUpgradeTxns.readArtifact(outputPath);
 
         // Validate array length matches
         assertEq(readTxns.length, txns.length, "Transaction count mismatch");
