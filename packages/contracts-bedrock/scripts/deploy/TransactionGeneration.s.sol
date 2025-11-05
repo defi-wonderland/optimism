@@ -21,9 +21,29 @@ contract TransactionGeneration is Script {
     /// @notice Address of the Create2Deployer predeploy.
     address payable immutable CREATE2_DEPLOYER = payable(Preinstalls.Create2Deployer);
 
+    /// @notice Array of Network Upgrade Transactions.
     NetworkUpgradeTxns.NetworkUpgradeTxn[] private txns;
+
+    /// @notice Helper for managing predeploy configurations.
     PredeployHelper internal helper;
 
+    /// @notice Input struct for the script.
+    /// @param l2ChainID The ID of the L2 chain.
+    /// @param l1ChainID The ID of the L1 chain.
+    /// @param l1CrossDomainMessengerProxy The address of the L1 Cross Domain Messenger proxy.
+    /// @param l1StandardBridgeProxy The address of the L1 Standard Bridge proxy.
+    /// @param l1ERC721BridgeProxy The address of the L1 ERC721 Bridge proxy.
+    /// @param opChainProxyAdminOwner The address of the OP Chain Proxy Admin owner.
+    /// @param sequencerFeeVaultRecipient The address of the Sequencer Fee Vault recipient.
+    /// @param sequencerFeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the Sequencer Fee Vault.
+    /// @param sequencerFeeVaultWithdrawalNetwork The withdrawal network for the Sequencer Fee Vault.
+    /// @param baseFeeVaultRecipient The address of the Base Fee Vault recipient.
+    /// @param baseFeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the Base Fee Vault.
+    /// @param baseFeeVaultWithdrawalNetwork The withdrawal network for the Base Fee Vault.
+    /// @param l1FeeVaultRecipient The address of the L1 Fee Vault recipient.
+    /// @param l1FeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the L1 Fee Vault.
+    /// @param l1FeeVaultWithdrawalNetwork The withdrawal network for the L1 Fee Vault.
+    /// @param l2cmName The name of the L2 Contracts Manager.
     struct Input {
         uint256 l2ChainID;
         uint256 l1ChainID;
@@ -43,33 +63,49 @@ contract TransactionGeneration is Script {
         string l2cmName;
     }
 
-    /// @notice Generates Network Upgrade Transactions for deploying L2 contracts
-    /// @param _input The input struct
-    /// @return Array of Network Upgrade Transactions
-    function run(Input memory _input) external returns (NetworkUpgradeTxns.NetworkUpgradeTxn[] memory) {
+    /// @notice Output struct for the script
+    /// @param txns Array of Network Upgrade Transactions generated
+    /// @param l2cmAddress Address where the L2ContractsManager is deployed
+    /// @param changedPredeploys Array of predeploys that were changed
+    struct Output {
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] txns;
+        address l2cmAddress;
+        PredeployHelper.Predeploy[] changedPredeploys;
+    }
+
+    /// @notice Generates Network Upgrade Transactions for deploying L2 contracts during a hard fork
+    /// @dev Creates a sequence of transactions that:
+    ///      1. Deploy new predeploy implementations via CREATE2
+    ///      2. Deploy the L2ContractsManager via CREATE2
+    ///      3. Execute the L2ContractsManager to upgrade all predeploy proxies
+    ///      The final artifact is written to deployments/nut-xfork-upgrade-transactions.json
+    /// @param _input The input struct containing chain configuration and deployment parameters
+    /// @return Output struct containing the generated transactions, L2CM address, and changed predeploys
+    function run(Input memory _input) external returns (Output memory) {
+        // Get all changed predeploy implementations
         PredeployHelper.Predeploy[] memory changedPredeploys = _getChangedPredeploys(_input);
 
-        // Generate deployment transactions for each contract
+        // Generate deployment transactions for each changed predeploy implementations
         generateDeploymentTransactions(changedPredeploys);
 
         // Generate the L2ContractsManager deployment transaction
         generateL2ContractsManagerDeploymentTransaction(_input.l2cmName);
 
         // Generate L2ContractsManager execute transaction
-        generateL2ContractsManagerExecuteTransaction(
-            _input.l2cmName,
-            ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
-                keccak256(abi.encode(_input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
-            ),
-            changedPredeploys
+        address l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
+            keccak256(abi.encode(_input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
         );
+        generateL2ContractsManagerExecuteTransaction(_input.l2cmName, l2cmAddress, changedPredeploys);
 
         // Write all transactions to JSON artifact file
         NetworkUpgradeTxns.writeArtifact(txns, "deployments/nut-xfork-upgrade-transactions.json");
 
-        return txns;
+        return Output({ txns: txns, l2cmAddress: l2cmAddress, changedPredeploys: changedPredeploys });
     }
 
+    /// @notice Gets all changed predeploy implementations
+    /// @param _input The input struct
+    /// @return Array of changed predeploy implementations
     function _getChangedPredeploys(Input memory _input) internal returns (PredeployHelper.Predeploy[] memory) {
         helper = new PredeployHelper();
 
@@ -85,6 +121,8 @@ contract TransactionGeneration is Script {
         return helper.finalizeChangedPredeploys();
     }
 
+    /// @notice Adds the SequencerFeeVault predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
     function _addSequencerFeeVault(Input memory _input) internal {
         helper.addPredeploy(
             Predeploys.SEQUENCER_FEE_WALLET,
@@ -96,6 +134,8 @@ contract TransactionGeneration is Script {
         );
     }
 
+    /// @notice Adds the BaseFeeVault predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
     function _addBaseFeeVault(Input memory _input) internal {
         helper.addPredeploy(
             Predeploys.BASE_FEE_VAULT,
@@ -107,6 +147,8 @@ contract TransactionGeneration is Script {
         );
     }
 
+    /// @notice Adds the L1FeeVault predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
     function _addL1FeeVault(Input memory _input) internal {
         helper.addPredeploy(
             Predeploys.L1_FEE_VAULT,
@@ -116,12 +158,17 @@ contract TransactionGeneration is Script {
         );
     }
 
+    /// @notice Adds the OptimismMintableERC721Factory predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
     function _addOptimismMintableERC721Factory(Input memory _input) internal {
         helper.addPredeploy(
             Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, abi.encode(_input.l1ERC721BridgeProxy, _input.l2ChainID)
         );
     }
 
+    /// @notice Generates deployment transactions for all changed predeploys using CREATE2
+    /// @dev Each predeploy is deployed via the Create2Deployer preinstall with a salt derived from its name
+    /// @param changedPredeploys Array of predeploys that need to be deployed
     function generateDeploymentTransactions(PredeployHelper.Predeploy[] memory changedPredeploys) internal {
         for (uint256 i = 0; i < changedPredeploys.length; i++) {
             txns.push(
@@ -142,6 +189,9 @@ contract TransactionGeneration is Script {
         }
     }
 
+    /// @notice Generates a deployment transaction for the L2ContractsManager using CREATE2
+    /// @dev The L2ContractsManager is deployed via the Create2Deployer preinstall with a salt derived from its name
+    /// @param _l2cmName The name of the L2ContractsManager contract to deploy
     function generateL2ContractsManagerDeploymentTransaction(string memory _l2cmName) internal {
         // Generate the L2ContractsManager deployment transaction
         txns.push(
@@ -158,6 +208,12 @@ contract TransactionGeneration is Script {
         );
     }
 
+    /// @notice Generates a transaction that executes the L2ContractsManager via ProxyAdmin to upgrade predeploys
+    /// @dev The transaction calls ProxyAdmin.performDelegateCall to delegatecall into the L2ContractsManager,
+    ///      which upgrades all predeploy proxies to their new implementations
+    /// @param _l2cmName The name of the L2ContractsManager contract
+    /// @param _l2cmAddress The address where the L2ContractsManager is deployed
+    /// @param changedPredeploys Array of predeploys that were deployed and need to be upgraded
     function generateL2ContractsManagerExecuteTransaction(
         string memory _l2cmName,
         address _l2cmAddress,

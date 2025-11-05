@@ -46,18 +46,19 @@ contract TransactionGenerationTest is Test {
 
     /// @notice Test that the upgrade transactions defined in the XForkContractsManager succeed.
     function test_upgradeTransactions_succeeds() public {
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = transactionGeneration.run(_getInput());
+        TransactionGeneration.Output memory output = transactionGeneration.run(_getInput());
 
         // The test expects at least 3 transactions:
         // 1+ predeploy deployments
         // 1 L2ContractsManager deployment
         // 1 L2ContractsManager execution
-        assertGe(txns.length, 3, "Should have at least 3 transactions");
+        assertGe(output.txns.length, 3, "Should have at least 3 transactions");
 
         // Execute all transactions
-        for (uint256 i = 0; i < txns.length; i++) {
-            vm.prank(txns[i].from);
-            (bool success,) = txns[i].to.call{ value: txns[i].value, gas: txns[i].gas }(txns[i].data);
+        for (uint256 i = 0; i < output.txns.length; i++) {
+            vm.prank(output.txns[i].from);
+            (bool success,) =
+                output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
             assertTrue(success, string.concat("Transaction ", vm.toString(i), " should succeed"));
         }
 
@@ -67,15 +68,15 @@ contract TransactionGenerationTest is Test {
 
     /// @notice Test that the upgrade transaction structure is correct.
     function test_upgradeTransactions_transactionStructure_succeeds() public {
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = transactionGeneration.run(_getInput());
+        TransactionGeneration.Output memory output = transactionGeneration.run(_getInput());
 
         // Verify we have at least 3 transactions
-        assertGe(txns.length, 3, "Should have at least 3 transactions");
+        assertGe(output.txns.length, 3, "Should have at least 3 transactions");
 
-        _verifyL2CMDeployment(txns);
-        _verifyExecuteTransaction(txns);
-        _verifyPredeployTransactions(txns);
-        _verifyProxyUpgradesMatch(txns);
+        _verifyL2CMDeployment(output.txns);
+        _verifyExecuteTransaction(output.txns);
+        _verifyPredeployTransactions(output.txns);
+        _verifyProxyUpgradesMatch(output.txns);
     }
 
     function _verifyL2CMDeployment(NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns) internal pure {
