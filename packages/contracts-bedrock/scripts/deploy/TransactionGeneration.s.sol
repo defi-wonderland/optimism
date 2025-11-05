@@ -10,36 +10,16 @@ import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Config, Fork } from "scripts/libraries/Config.sol";
 import { console2 as console } from "forge-std/console2.sol";
 import { PredeployHelper } from "scripts/deploy/PredeployHelper.sol";
-
-interface ICreate2Deployer {
-    /**
-     * @notice Deploys a contract using `CREATE2`. The address where the
-     * contract will be deployed can be known in advance via {computeAddress}.
-     *
-     * The bytecode for a contract can be obtained from Solidity with
-     * `type(contractName).creationCode`.
-     *
-     * Requirements:
-     * - `bytecode` must not be empty.
-     * - `salt` must have not been used for `bytecode` already.
-     * - the factory must have a balance of at least `value`.
-     * - if `value` is non-zero, `bytecode` must have a `payable` constructor.
-     */
-    function deploy(uint256 value, bytes32 salt, bytes memory code) external;
-
-    /**
-     * @notice Returns the address where a contract will be stored if deployed via {deploy}.
-     * Any change in the `bytecodeHash` or `salt` will result in a new destination address.
-     */
-    function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
-}
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
+import { ICreate2Deployer } from "interfaces/preinstalls/ICreate2Deployer.sol";
 
 /// @title TransactionGenerationScript
 /// @notice Script that generates Network Upgrade Transactions (NUTs) for deploying L2 contracts during a hard fork.
 ///         This script creates a sequence of transactions that deploy Predeploy contracts using CREATE2 and execute
 ///         and the L2ContractsManager. The last transaction is the execution of the L2ContractsManager.
 contract TransactionGeneration is Script {
-    address constant CREATE2_DEPLOYER = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
+    /// @notice Address of the Create2Deployer predeploy.
+    address payable immutable CREATE2_DEPLOYER = payable(Preinstalls.Create2Deployer);
 
     NetworkUpgradeTxns.NetworkUpgradeTxn[] private txns;
     PredeployHelper internal helper;

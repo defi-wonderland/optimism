@@ -4,15 +4,14 @@ pragma solidity ^0.8.15;
 import { Script } from "forge-std/Script.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { console } from "forge-std/console.sol";
-
-interface ICreate2Deployer {
-    function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
-}
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
+import { ICreate2Deployer } from "interfaces/preinstalls/ICreate2Deployer.sol";
 
 /// @title PredeployHelper
 /// @notice Helper script for managing predeploy configurations
 contract PredeployHelper is Script {
-    address constant CREATE2_DEPLOYER = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
+    /// @notice Address of the Create2Deployer predeploy.
+    address payable immutable CREATE2_DEPLOYER = payable(Preinstalls.Create2Deployer);
 
     struct Predeploy {
         address proxy;
