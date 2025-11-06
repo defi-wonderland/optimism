@@ -109,61 +109,8 @@ contract TransactionGeneration is Script {
     function _getChangedPredeploys(Input memory _input) internal returns (PredeployHelper.Predeploy[] memory) {
         helper = new PredeployHelper();
 
-        // Get all predeploys without constructor args
-        helper.getChangedPredeploys(uint256(Config.fork()), Config.fork() >= Fork.INTEROP);
-
-        // Add predeploys with constructor args individually
-        _addSequencerFeeVault(_input);
-        _addBaseFeeVault(_input);
-        _addL1FeeVault(_input);
-        _addOptimismMintableERC721Factory(_input);
-
-        return helper.finalizeChangedPredeploys();
-    }
-
-    /// @notice Adds the SequencerFeeVault predeploy with its constructor arguments
-    /// @param _input The input struct containing configuration parameters
-    function _addSequencerFeeVault(Input memory _input) internal {
-        helper.addPredeploy(
-            Predeploys.SEQUENCER_FEE_WALLET,
-            abi.encode(
-                _input.sequencerFeeVaultRecipient,
-                _input.sequencerFeeVaultMinimumWithdrawalAmount,
-                _input.sequencerFeeVaultWithdrawalNetwork
-            )
-        );
-    }
-
-    /// @notice Adds the BaseFeeVault predeploy with its constructor arguments
-    /// @param _input The input struct containing configuration parameters
-    function _addBaseFeeVault(Input memory _input) internal {
-        helper.addPredeploy(
-            Predeploys.BASE_FEE_VAULT,
-            abi.encode(
-                _input.baseFeeVaultRecipient,
-                _input.baseFeeVaultMinimumWithdrawalAmount,
-                _input.baseFeeVaultWithdrawalNetwork
-            )
-        );
-    }
-
-    /// @notice Adds the L1FeeVault predeploy with its constructor arguments
-    /// @param _input The input struct containing configuration parameters
-    function _addL1FeeVault(Input memory _input) internal {
-        helper.addPredeploy(
-            Predeploys.L1_FEE_VAULT,
-            abi.encode(
-                _input.l1FeeVaultRecipient, _input.l1FeeVaultMinimumWithdrawalAmount, _input.l1FeeVaultWithdrawalNetwork
-            )
-        );
-    }
-
-    /// @notice Adds the OptimismMintableERC721Factory predeploy with its constructor arguments
-    /// @param _input The input struct containing configuration parameters
-    function _addOptimismMintableERC721Factory(Input memory _input) internal {
-        helper.addPredeploy(
-            Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, abi.encode(_input.l1ERC721BridgeProxy, _input.l2ChainID)
-        );
+        // Get all changed predeploys
+        return helper.getChangedPredeploys(uint256(Config.fork()), Config.fork() >= Fork.INTEROP, _input);
     }
 
     /// @notice Generates deployment transactions for all changed predeploys using CREATE2

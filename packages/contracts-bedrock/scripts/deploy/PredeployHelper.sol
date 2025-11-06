@@ -6,6 +6,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { console } from "forge-std/console.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { ICreate2Deployer } from "interfaces/preinstalls/ICreate2Deployer.sol";
+import { TransactionGeneration } from "scripts/deploy/TransactionGeneration.s.sol";
 
 /// @title PredeployHelper
 /// @notice Helper script for managing predeploy configurations
@@ -28,20 +29,36 @@ contract PredeployHelper is Script {
     /// @param _fork Fork version
     /// @param _enableCrossL2Inbox Whether to enable CrossL2Inbox
     /// @return Array of changed predeploys
-    function getChangedPredeploys(uint256 _fork, bool _enableCrossL2Inbox) external returns (Predeploy[] memory) {
+    function getChangedPredeploys(
+        uint256 _fork,
+        bool _enableCrossL2Inbox,
+        TransactionGeneration.Input memory _input
+    )
+        external
+        returns (Predeploy[] memory)
+    {
         delete changedPredeploys;
         fork = _fork;
         enableCrossL2Inbox = _enableCrossL2Inbox;
 
-        // Iterate through all predeploys (skip ones that need constructor args)
-        address[] memory allPredeploys = Predeploys.getPredeploys();
-        for (uint256 i = 0; i < allPredeploys.length; i++) {
-            // Skip predeploys that need constructor arguments - they'll be added separately
-            if (_needsConstructorArgs(allPredeploys[i])) {
+        uint160 prefix = uint160(0x420) << 148;
+
+        for (uint256 i = 0; i < Predeploys.PREDEPLOY_COUNT; i++) {
+            address addr = address(prefix | uint160(i));
+            // Skip if not supported or not proxied or needs constructor args
+            if (
+                !Predeploys.isSupportedPredeploy(addr, fork, enableCrossL2Inbox) || Predeploys.notProxied(addr)
+                    || _needsConstructorArgs(addr)
+            ) {
                 continue;
             }
-            addPredeploy(allPredeploys[i], bytes(""));
+            _addPredeploy(addr, bytes(""));
         }
+
+        _addSequencerFeeVault(_input);
+        _addBaseFeeVault(_input);
+        _addL1FeeVault(_input);
+        _addOptimismMintableERC721Factory(_input);
 
         // Copy storage array to memory for return
         Predeploy[] memory result = new Predeploy[](changedPredeploys.length);
@@ -59,17 +76,8 @@ contract PredeployHelper is Script {
     }
 
     /// @notice Add a predeploy with constructor args
-    function addPredeploy(address _proxy, bytes memory _args) public {
-        // Skip if not supported
-        if (!Predeploys.isSupportedPredeploy(_proxy, fork, enableCrossL2Inbox)) {
-            return;
-        }
-        // Skip if not proxied
-        if (Predeploys.notProxied(_proxy)) {
-            return;
-        }
-
-        string memory _name = Predeploys.getName(_proxy);
+    function _addPredeploy(address _addr, bytes memory _args) internal {
+        string memory _name = Predeploys.getName(_addr);
         bytes memory initCode = abi.encodePacked(vm.getCode(_name), _args);
         bytes32 salt = keccak256(abi.encode(_name));
         address implementation = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(initCode));
@@ -80,16 +88,52 @@ contract PredeployHelper is Script {
         }
 
         changedPredeploys.push(
-            Predeploy({ proxy: _proxy, name: _name, initCode: initCode, implementation: implementation })
+            Predeploy({ proxy: _addr, name: _name, initCode: initCode, implementation: implementation })
         );
     }
 
-    /// @notice Get the final list of changed predeploys
-    function finalizeChangedPredeploys() external view returns (Predeploy[] memory) {
-        Predeploy[] memory result = new Predeploy[](changedPredeploys.length);
-        for (uint256 i = 0; i < changedPredeploys.length; i++) {
-            result[i] = changedPredeploys[i];
-        }
-        return result;
+    /// @notice Adds the SequencerFeeVault predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
+    function _addSequencerFeeVault(TransactionGeneration.Input memory _input) internal {
+        _addPredeploy(
+            Predeploys.SEQUENCER_FEE_WALLET,
+            abi.encode(
+                _input.sequencerFeeVaultRecipient,
+                _input.sequencerFeeVaultMinimumWithdrawalAmount,
+                _input.sequencerFeeVaultWithdrawalNetwork
+            )
+        );
+    }
+
+    /// @notice Adds the BaseFeeVault predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
+    function _addBaseFeeVault(TransactionGeneration.Input memory _input) internal {
+        _addPredeploy(
+            Predeploys.BASE_FEE_VAULT,
+            abi.encode(
+                _input.baseFeeVaultRecipient,
+                _input.baseFeeVaultMinimumWithdrawalAmount,
+                _input.baseFeeVaultWithdrawalNetwork
+            )
+        );
+    }
+
+    /// @notice Adds the L1FeeVault predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
+    function _addL1FeeVault(TransactionGeneration.Input memory _input) internal {
+        _addPredeploy(
+            Predeploys.L1_FEE_VAULT,
+            abi.encode(
+                _input.l1FeeVaultRecipient, _input.l1FeeVaultMinimumWithdrawalAmount, _input.l1FeeVaultWithdrawalNetwork
+            )
+        );
+    }
+
+    /// @notice Adds the OptimismMintableERC721Factory predeploy with its constructor arguments
+    /// @param _input The input struct containing configuration parameters
+    function _addOptimismMintableERC721Factory(TransactionGeneration.Input memory _input) internal {
+        _addPredeploy(
+            Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, abi.encode(_input.l1ERC721BridgeProxy, _input.l2ChainID)
+        );
     }
 }

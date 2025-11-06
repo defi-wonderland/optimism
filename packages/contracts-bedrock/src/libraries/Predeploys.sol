@@ -7,11 +7,6 @@ import { Fork } from "scripts/libraries/Config.sol";
 /// @notice Contains constant addresses for protocol contracts that are pre-deployed to the L2 system.
 //          This excludes the preinstalls (non-protocol contracts).
 library Predeploys {
-    struct Predeploy {
-        address addr;
-        string name;
-    }
-
     /// @notice Number of predeploy-namespace addresses reserved for protocol usage.
     uint256 internal constant PREDEPLOY_COUNT = 2048;
 
@@ -192,39 +187,5 @@ library Predeploys {
         return address(
             uint160(uint256(uint160(_addr)) & 0xffff | uint256(uint160(0xc0D3C0d3C0d3C0D3c0d3C0d3c0D3C0d3c0d30000)))
         );
-    }
-
-    function getPredeploys() internal pure returns (address[] memory) {
-        address[] memory predeploys = new address[](29);
-        predeploys[0] = LEGACY_MESSAGE_PASSER;
-        predeploys[1] = L1_MESSAGE_SENDER;
-        predeploys[2] = DEPLOYER_WHITELIST;
-        predeploys[3] = WETH;
-        predeploys[4] = L2_CROSS_DOMAIN_MESSENGER;
-        predeploys[5] = GAS_PRICE_ORACLE;
-        predeploys[6] = L2_STANDARD_BRIDGE;
-        predeploys[7] = SEQUENCER_FEE_WALLET;
-        predeploys[8] = OPTIMISM_MINTABLE_ERC20_FACTORY;
-        predeploys[9] = L1_BLOCK_NUMBER;
-        predeploys[10] = L2_ERC721_BRIDGE;
-        predeploys[11] = L1_BLOCK_ATTRIBUTES;
-        predeploys[12] = L2_TO_L1_MESSAGE_PASSER;
-        predeploys[13] = OPTIMISM_MINTABLE_ERC721_FACTORY;
-        predeploys[14] = PROXY_ADMIN;
-        predeploys[15] = BASE_FEE_VAULT;
-        predeploys[16] = L1_FEE_VAULT;
-        predeploys[17] = OPERATOR_FEE_VAULT;
-        predeploys[18] = SCHEMA_REGISTRY;
-        predeploys[19] = EAS;
-        predeploys[20] = GOVERNANCE_TOKEN;
-        predeploys[21] = LEGACY_ERC20_ETH;
-        predeploys[22] = CROSS_L2_INBOX;
-        predeploys[23] = L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-        predeploys[24] = SUPERCHAIN_ETH_BRIDGE;
-        predeploys[25] = ETH_LIQUIDITY;
-        predeploys[26] = OPTIMISM_SUPERCHAIN_ERC20_FACTORY;
-        predeploys[27] = OPTIMISM_SUPERCHAIN_ERC20_BEACON;
-        predeploys[28] = SUPERCHAIN_TOKEN_BRIDGE;
-        return predeploys;
     }
 }
