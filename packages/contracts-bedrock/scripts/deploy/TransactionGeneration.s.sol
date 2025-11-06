@@ -12,6 +12,7 @@ import { console2 as console } from "forge-std/console2.sol";
 import { PredeployHelper } from "scripts/deploy/PredeployHelper.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { ICreate2Deployer } from "interfaces/preinstalls/ICreate2Deployer.sol";
+import { L2ImplementationsDeployer } from "src/L2/L2ImplementationsDeployer.sol";
 
 /// @title TransactionGenerationScript
 /// @notice Script that generates Network Upgrade Transactions (NUTs) for deploying L2 contracts during a hard fork.
@@ -26,6 +27,9 @@ contract TransactionGeneration is Script {
 
     /// @notice Helper for managing predeploy configurations.
     PredeployHelper internal helper;
+
+    /// @notice Address of the L2ImplementationsDeployer contract.
+    address private l2ImplDeployerAddress;
 
     /// @notice Input struct for the script.
     /// @param l2ChainID The ID of the L2 chain.
@@ -66,27 +70,33 @@ contract TransactionGeneration is Script {
     /// @notice Output struct for the script
     /// @param txns Array of Network Upgrade Transactions generated
     /// @param l2cmAddress Address where the L2ContractsManager is deployed
-    /// @param changedPredeploys Array of predeploys that were changed
+    /// @param predeploys Array of predeploys that were changed
     struct Output {
         NetworkUpgradeTxns.NetworkUpgradeTxn[] txns;
         address l2cmAddress;
-        PredeployHelper.Predeploy[] changedPredeploys;
+        PredeployHelper.Predeploy[] predeploys;
     }
 
     /// @notice Generates Network Upgrade Transactions for deploying L2 contracts during a hard fork
     /// @dev Creates a sequence of transactions that:
-    ///      1. Deploy new predeploy implementations via CREATE2
-    ///      2. Deploy the L2ContractsManager via CREATE2
-    ///      3. Execute the L2ContractsManager to upgrade all predeploy proxies
+    ///      1. Deploy L2ImplementationsDeployer via CREATE2
+    ///      2. Deploy new predeploy implementations via L2ImplementationsDeployer
+    ///      3. Deploy the L2ContractsManager via CREATE2
+    ///      4. Execute the L2ContractsManager to upgrade all predeploy proxies
     ///      The final artifact is written to deployments/nut-xfork-upgrade-transactions.json
     /// @param _input The input struct containing chain configuration and deployment parameters
     /// @return Output struct containing the generated transactions, L2CM address, and changed predeploys
     function run(Input memory _input) external returns (Output memory) {
+        helper = new PredeployHelper(uint256(Config.fork()), Config.fork() >= Fork.INTEROP);
+
+        // Deploy L2ImplementationsDeployer
+        generateL2ImplementationsDeployerDeploymentTransaction();
+
         // Get all changed predeploy implementations
-        PredeployHelper.Predeploy[] memory changedPredeploys = _getChangedPredeploys(_input);
+        PredeployHelper.Predeploy[] memory predeploys = helper.getPredeploys(_input);
 
         // Generate deployment transactions for each changed predeploy implementations
-        generateDeploymentTransactions(changedPredeploys);
+        generateDeploymentTransactions(predeploys);
 
         // Generate the L2ContractsManager deployment transaction
         generateL2ContractsManagerDeploymentTransaction(_input.l2cmName);
@@ -95,41 +105,55 @@ contract TransactionGeneration is Script {
         address l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
             keccak256(abi.encode(_input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
         );
-        generateL2ContractsManagerExecuteTransaction(_input.l2cmName, l2cmAddress, changedPredeploys);
+        generateL2ContractsManagerExecuteTransaction(_input.l2cmName, l2cmAddress, predeploys);
 
         // Write all transactions to JSON artifact file
         NetworkUpgradeTxns.writeArtifact(txns, "deployments/nut-xfork-upgrade-transactions.json");
 
-        return Output({ txns: txns, l2cmAddress: l2cmAddress, changedPredeploys: changedPredeploys });
+        return Output({ txns: txns, l2cmAddress: l2cmAddress, predeploys: predeploys });
     }
 
-    /// @notice Gets all changed predeploy implementations
-    /// @param _input The input struct
-    /// @return Array of changed predeploy implementations
-    function _getChangedPredeploys(Input memory _input) internal returns (PredeployHelper.Predeploy[] memory) {
-        helper = new PredeployHelper();
+    /// @notice Generates a deployment transaction for the L2ImplementationsDeployer using CREATE2
+    /// @dev The L2ImplementationsDeployer is deployed via the Create2Deployer preinstall with a fixed salt
+    function generateL2ImplementationsDeployerDeploymentTransaction() internal {
+        string memory contractName = "L2ImplementationsDeployer";
+        bytes memory initCode = vm.getCode(contractName);
+        bytes32 salt = keccak256(abi.encode(contractName));
 
-        // Get all changed predeploys
-        return helper.getChangedPredeploys(uint256(Config.fork()), Config.fork() >= Fork.INTEROP, _input);
+        // Compute and store the address for later use
+        l2ImplDeployerAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(initCode));
+
+        txns.push(
+            NetworkUpgradeTxns.newTx({
+                intent: string.concat("XFork: ", contractName, " Deployment"),
+                from: address(0),
+                to: CREATE2_DEPLOYER,
+                mint: 0,
+                value: 0,
+                gas: 1_000_000,
+                isSystemTransaction: false,
+                data: abi.encodeCall(ICreate2Deployer.deploy, (0, salt, initCode))
+            })
+        );
     }
 
-    /// @notice Generates deployment transactions for all changed predeploys using CREATE2
-    /// @dev Each predeploy is deployed via the Create2Deployer preinstall with a salt derived from its name
-    /// @param changedPredeploys Array of predeploys that need to be deployed
-    function generateDeploymentTransactions(PredeployHelper.Predeploy[] memory changedPredeploys) internal {
-        for (uint256 i = 0; i < changedPredeploys.length; i++) {
+    /// @notice Generates deployment transactions for all changed predeploys using L2ImplementationsDeployer
+    /// @dev Each predeploy is deployed via the L2ImplementationsDeployer with a salt derived from its name
+    /// @param predeploys Array of predeploys that need to be deployed
+    function generateDeploymentTransactions(PredeployHelper.Predeploy[] memory predeploys) internal {
+        for (uint256 i = 0; i < predeploys.length; i++) {
             txns.push(
                 NetworkUpgradeTxns.newTx({
-                    intent: string.concat("XFork: ", changedPredeploys[i].name, " Deployment"),
+                    intent: string.concat("XFork: ", predeploys[i].name, " Deployment"),
                     from: address(0),
-                    to: CREATE2_DEPLOYER,
+                    to: l2ImplDeployerAddress,
                     mint: 0,
                     value: 0,
                     gas: 1_000_000_000,
                     isSystemTransaction: false,
                     data: abi.encodeCall(
-                        ICreate2Deployer.deploy,
-                        (0, keccak256(abi.encode(changedPredeploys[i].name)), changedPredeploys[i].initCode)
+                        L2ImplementationsDeployer.deploy,
+                        (0, keccak256(abi.encode(predeploys[i].name)), predeploys[i].initCode)
                     )
                 })
             );
@@ -160,21 +184,21 @@ contract TransactionGeneration is Script {
     ///      which upgrades all predeploy proxies to their new implementations
     /// @param _l2cmName The name of the L2ContractsManager contract
     /// @param _l2cmAddress The address where the L2ContractsManager is deployed
-    /// @param changedPredeploys Array of predeploys that were deployed and need to be upgraded
+    /// @param predeploys Array of predeploys that were deployed and need to be upgraded
     function generateL2ContractsManagerExecuteTransaction(
         string memory _l2cmName,
         address _l2cmAddress,
-        PredeployHelper.Predeploy[] memory changedPredeploys
+        PredeployHelper.Predeploy[] memory predeploys
     )
         internal
     {
         // Build the ProxyUpgrade array for the L2ContractsManager
         L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades =
-            new L2ContractsManager.ProxyUpgrade[](changedPredeploys.length);
-        for (uint256 i = 0; i < changedPredeploys.length; i++) {
+            new L2ContractsManager.ProxyUpgrade[](predeploys.length);
+        for (uint256 i = 0; i < predeploys.length; i++) {
             proxyUpgrades[i] = L2ContractsManager.ProxyUpgrade({
-                proxy: changedPredeploys[i].proxy,
-                implementation: changedPredeploys[i].implementation
+                proxy: predeploys[i].proxy,
+                implementation: predeploys[i].implementation
             });
         }
 
