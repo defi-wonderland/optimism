@@ -15,12 +15,20 @@ import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 contract TransactionGenerationTest is Test {
     TransactionGeneration public transactionGeneration;
 
+    /// @notice Address where L2ImplementationsDeployer is etched
+    address constant L2_IMPLEMENTATIONS_DEPLOYER = 0x4200000000000000000000000000000000000420;
+
     function setUp() public {
         vm.createSelectFork(Config.forkRpcUrl());
         transactionGeneration = new TransactionGeneration();
 
         // etch the L2ProxyAdmin
         vm.etch(Predeploys.PROXY_ADMIN, vm.getDeployedCode("ProxyAdmin.sol:ProxyAdmin"));
+
+        // etch the L2ImplementationsDeployer
+        vm.etch(
+            L2_IMPLEMENTATIONS_DEPLOYER, vm.getDeployedCode("L2ImplementationsDeployer.sol:L2ImplementationsDeployer")
+        );
     }
 
     function _getInput() internal view returns (TransactionGeneration.Input memory) {
@@ -40,6 +48,7 @@ contract TransactionGenerationTest is Test {
             l1FeeVaultRecipient: 0x42000000000000000000000000000000000000f6,
             l1FeeVaultMinimumWithdrawalAmount: 0x8ac7230489e80000,
             l1FeeVaultWithdrawalNetwork: 1,
+            l2ImplDeployerAddress: L2_IMPLEMENTATIONS_DEPLOYER,
             l2cmName: "XForkContractsManager"
         });
     }
@@ -48,12 +57,11 @@ contract TransactionGenerationTest is Test {
     function test_upgradeTransactions_succeeds() public {
         TransactionGeneration.Output memory output = transactionGeneration.run(_getInput());
 
-        // The test expects at least 4 transactions:
-        // 1 L2ImplementationsDeployer deployment
+        // The test expects at least 3 transactions:
         // 1+ predeploy deployments
         // 1 L2ContractsManager deployment
         // 1 L2ContractsManager execution
-        assertGe(output.txns.length, 4, "Should have at least 4 transactions");
+        assertGe(output.txns.length, 3, "Should have at least 3 transactions");
 
         // Execute all transactions
         for (uint256 i = 0; i < output.txns.length; i++) {
@@ -71,29 +79,13 @@ contract TransactionGenerationTest is Test {
     function test_upgradeTransactions_transactionStructure_succeeds() public {
         TransactionGeneration.Output memory output = transactionGeneration.run(_getInput());
 
-        // Verify we have at least 4 transactions
-        assertGe(output.txns.length, 4, "Should have at least 4 transactions");
+        // Verify we have at least 3 transactions
+        assertGe(output.txns.length, 3, "Should have at least 3 transactions");
 
-        _verifyL2ImplementationsDeployerDeployment(output.txns);
         _verifyL2CMDeployment(output.txns);
         _verifyExecuteTransaction(output.txns);
         _verifyPredeployTransactions(output.txns);
         _verifyProxyUpgradesMatch(output.txns);
-    }
-
-    function _verifyL2ImplementationsDeployerDeployment(NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns)
-        internal
-        pure
-    {
-        // First transaction: L2ImplementationsDeployer deployment via CREATE2
-        assertEq(
-            txns[0].from, address(0), "L2ImplementationsDeployer deployment should be from address(0)"
-        );
-        assertEq(txns[0].value, 0, "L2ImplementationsDeployer deployment should have 0 value");
-        assertEq(txns[0].mint, 0, "L2ImplementationsDeployer deployment should have 0 mint");
-        assertFalse(
-            txns[0].isSystemTransaction, "L2ImplementationsDeployer deployment should not be a system tx"
-        );
     }
 
     function _verifyL2CMDeployment(NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns) internal pure {
@@ -116,12 +108,11 @@ contract TransactionGenerationTest is Test {
     }
 
     function _verifyPredeployTransactions(NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns) internal pure {
-        // All predeploy deployment transactions (all except first, and last 2) should follow the same pattern
-        // Index 0: L2ImplementationsDeployer deployment
-        // Index 1 to length-3: Predeploy deployments
+        // All predeploy deployment transactions (all except last 2) should follow the same pattern
+        // Index 0 to length-3: Predeploy deployments
         // Index length-2: L2ContractsManager deployment
         // Index length-1: Execute transaction
-        for (uint256 i = 1; i < txns.length - 2; i++) {
+        for (uint256 i = 0; i < txns.length - 2; i++) {
             assertEq(txns[i].from, address(0), "Predeploy deployment should be from address(0)");
             assertEq(txns[i].value, 0, "Predeploy deployment should have 0 value");
             assertEq(txns[i].mint, 0, "Predeploy deployment should have 0 mint");
@@ -144,9 +135,9 @@ contract TransactionGenerationTest is Test {
         // Decode the parameters
         (, L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades) = _decodeProxyUpgrades(callData);
 
-        // Assert that counts match (subtract 3: L2ImplementationsDeployer, L2ContractsManager, Execute)
+        // Assert that counts match (subtract 2: L2ContractsManager, Execute)
         assertEq(
-            txns.length - 3,
+            txns.length - 2,
             proxyUpgrades.length,
             "Number of predeploy deployments should match ProxyUpgrade array length"
         );

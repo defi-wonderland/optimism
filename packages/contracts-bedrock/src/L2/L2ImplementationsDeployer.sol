@@ -2,14 +2,13 @@
 pragma solidity 0.8.15;
 
 import { ICreate2Deployer } from "interfaces/preinstalls/ICreate2Deployer.sol";
-import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { Constants } from "src/libraries/Constants.sol";
 
 /// @title L2ImplementationsDeployer
 /// @notice Intermediary contract for deploying predeploy implementations during network upgrades.
 contract L2ImplementationsDeployer {
     /// @notice Address of the Create2Deployer preinstall.
-    address payable private immutable CREATE2_DEPLOYER = payable(Preinstalls.Create2Deployer);
+    address payable private constant CREATE2_DEPLOYER = payable(0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2);
 
     /// @notice Emitted when an implementation is deployed.
     /// @param implementation The address of the deployed implementation.

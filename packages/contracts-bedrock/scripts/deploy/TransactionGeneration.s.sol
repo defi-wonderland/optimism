@@ -47,6 +47,7 @@ contract TransactionGeneration is Script {
     /// @param l1FeeVaultRecipient The address of the L1 Fee Vault recipient.
     /// @param l1FeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the L1 Fee Vault.
     /// @param l1FeeVaultWithdrawalNetwork The withdrawal network for the L1 Fee Vault.
+    /// @param l2ImplDeployerAddress The address of the already-deployed L2ImplementationsDeployer.
     /// @param l2cmName The name of the L2 Contracts Manager.
     struct Input {
         uint256 l2ChainID;
@@ -64,6 +65,7 @@ contract TransactionGeneration is Script {
         address l1FeeVaultRecipient;
         uint256 l1FeeVaultMinimumWithdrawalAmount;
         uint256 l1FeeVaultWithdrawalNetwork;
+        address l2ImplDeployerAddress;
         string l2cmName;
     }
 
@@ -79,18 +81,17 @@ contract TransactionGeneration is Script {
 
     /// @notice Generates Network Upgrade Transactions for deploying L2 contracts during a hard fork
     /// @dev Creates a sequence of transactions that:
-    ///      1. Deploy L2ImplementationsDeployer via CREATE2
-    ///      2. Deploy new predeploy implementations via L2ImplementationsDeployer
-    ///      3. Deploy the L2ContractsManager via CREATE2
-    ///      4. Execute the L2ContractsManager to upgrade all predeploy proxies
+    ///      1. Deploy new predeploy implementations via L2ImplementationsDeployer
+    ///      2. Deploy the L2ContractsManager via CREATE2
+    ///      3. Execute the L2ContractsManager to upgrade all predeploy proxies
     ///      The final artifact is written to deployments/nut-xfork-upgrade-transactions.json
     /// @param _input The input struct containing chain configuration and deployment parameters
     /// @return Output struct containing the generated transactions, L2CM address, and changed predeploys
     function run(Input memory _input) external returns (Output memory) {
         helper = new PredeployHelper(uint256(Config.fork()), Config.fork() >= Fork.INTEROP);
 
-        // Deploy L2ImplementationsDeployer
-        generateL2ImplementationsDeployerDeploymentTransaction();
+        // Set the L2ImplementationsDeployer address from input
+        l2ImplDeployerAddress = _input.l2ImplDeployerAddress;
 
         // Get all changed predeploy implementations
         PredeployHelper.Predeploy[] memory predeploys = helper.getPredeploys(_input);
@@ -111,30 +112,6 @@ contract TransactionGeneration is Script {
         NetworkUpgradeTxns.writeArtifact(txns, "deployments/nut-xfork-upgrade-transactions.json");
 
         return Output({ txns: txns, l2cmAddress: l2cmAddress, predeploys: predeploys });
-    }
-
-    /// @notice Generates a deployment transaction for the L2ImplementationsDeployer using CREATE2
-    /// @dev The L2ImplementationsDeployer is deployed via the Create2Deployer preinstall with a fixed salt
-    function generateL2ImplementationsDeployerDeploymentTransaction() internal {
-        string memory contractName = "L2ImplementationsDeployer";
-        bytes memory initCode = vm.getCode(contractName);
-        bytes32 salt = keccak256(abi.encode(contractName));
-
-        // Compute and store the address for later use
-        l2ImplDeployerAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(initCode));
-
-        txns.push(
-            NetworkUpgradeTxns.newTx({
-                intent: string.concat("XFork: ", contractName, " Deployment"),
-                from: address(0),
-                to: CREATE2_DEPLOYER,
-                mint: 0,
-                value: 0,
-                gas: 1_000_000,
-                isSystemTransaction: false,
-                data: abi.encodeCall(ICreate2Deployer.deploy, (0, salt, initCode))
-            })
-        );
     }
 
     /// @notice Generates deployment transactions for all changed predeploys using L2ImplementationsDeployer
