@@ -131,7 +131,7 @@ library NetworkUpgradeTxns {
 
         // Write the final serialized JSON array to file
         vm.writeJson(finalJson, outputPath);
-        // console.log(finalJson);
+        console.log(finalJson);
     }
 
     /// @notice Serialize a single transaction to JSON
