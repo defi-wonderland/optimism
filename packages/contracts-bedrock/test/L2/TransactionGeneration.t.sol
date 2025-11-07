@@ -11,6 +11,7 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { XForkContractsManager } from "src/L2/XForkContractsManager.sol";
 import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
+import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
 contract TransactionGenerationTest is Test {
     TransactionGeneration public transactionGeneration;
@@ -130,7 +131,7 @@ contract TransactionGenerationTest is Test {
         }
 
         // Verify the function selector is correct
-        assertEq(selector, bytes4(keccak256("performDelegateCall(address,(address,address)[])")));
+        assertEq(selector, ProxyAdmin.performDelegateCall.selector);
 
         // Decode the parameters
         (, L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades) = _decodeProxyUpgrades(callData);
