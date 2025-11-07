@@ -60,10 +60,8 @@ contract PredeployHelper is Script {
             _addPredeploy(addr, bytes(""));
         }
 
-        _addSequencerFeeVault(_input);
-        _addBaseFeeVault(_input);
-        _addL1FeeVault(_input);
-        _addOptimismMintableERC721Factory(_input);
+        // Add predeploys with constructor arguments
+        _addPredeploysWithArgs(_input);
 
         // Copy storage array to memory for return
         Predeploy[] memory result = new Predeploy[](predeploys.length);
@@ -71,15 +69,6 @@ contract PredeployHelper is Script {
             result[i] = predeploys[i];
         }
         return result;
-    }
-
-    /// @notice Checks if a predeploy requires constructor arguments or special handling.
-    /// @param _proxy The address of the proxy contract to check.
-    /// @return True if the predeploy requires constructor arguments, false otherwise.
-    function _needsConstructorArgs(address _proxy) private pure returns (bool) {
-        return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
-            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
-            || _proxy == Predeploys.PROXY_ADMIN;
     }
 
     /// @notice Adds a predeploy to the deployment list with optional constructor arguments.
@@ -97,40 +86,58 @@ contract PredeployHelper is Script {
         predeploys.push(Predeploy({ proxy: _addr, name: _name, initCode: initCode, implementation: implementation }));
     }
 
-    /// @notice Adds the SequencerFeeVault predeploy with its constructor arguments.
+    /// @notice Checks if a predeploy requires constructor arguments or special handling.
+    /// @param _proxy The address of the proxy contract to check.
+    /// @return True if the predeploy requires constructor arguments, false otherwise.
+    function _needsConstructorArgs(address _proxy) private pure returns (bool) {
+        return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
+            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
+            || _proxy == Predeploys.PROXY_ADMIN;
+    }
+
+    /// @notice Adds predeploys with constructor arguments to the deployment list.
     /// @param _input The input struct containing configuration parameters.
-    function _addSequencerFeeVault(TransactionGeneration.Input memory _input) internal {
-        _addPredeploy(
+    function _addPredeploysWithArgs(TransactionGeneration.Input memory _input) internal {
+        // Add SequencerFeeVault
+        _addFeeVault(
             Predeploys.SEQUENCER_FEE_WALLET,
-            abi.encode(
-                _input.sequencerFeeVaultRecipient,
-                _input.sequencerFeeVaultMinimumWithdrawalAmount,
-                _input.sequencerFeeVaultWithdrawalNetwork
-            )
+            _input.sequencerFeeVaultRecipient,
+            _input.sequencerFeeVaultMinimumWithdrawalAmount,
+            _input.sequencerFeeVaultWithdrawalNetwork
         );
-    }
-
-    /// @notice Adds the BaseFeeVault predeploy with its constructor arguments.
-    /// @param _input The input struct containing configuration parameters.
-    function _addBaseFeeVault(TransactionGeneration.Input memory _input) internal {
-        _addPredeploy(
+        // Add BaseFeeVault
+        _addFeeVault(
             Predeploys.BASE_FEE_VAULT,
-            abi.encode(
-                _input.baseFeeVaultRecipient,
-                _input.baseFeeVaultMinimumWithdrawalAmount,
-                _input.baseFeeVaultWithdrawalNetwork
-            )
+            _input.baseFeeVaultRecipient,
+            _input.baseFeeVaultMinimumWithdrawalAmount,
+            _input.baseFeeVaultWithdrawalNetwork
         );
+        // Add L1FeeVault
+        _addFeeVault(
+            Predeploys.L1_FEE_VAULT,
+            _input.l1FeeVaultRecipient,
+            _input.l1FeeVaultMinimumWithdrawalAmount,
+            _input.l1FeeVaultWithdrawalNetwork
+        );
+        // Add OptimismMintableERC721Factory
+        _addOptimismMintableERC721Factory(_input);
     }
 
-    /// @notice Adds the L1FeeVault predeploy with its constructor arguments
-    /// @param _input The input struct containing configuration parameters
-    function _addL1FeeVault(TransactionGeneration.Input memory _input) internal {
+    /// @notice Adds a fee vault to the deployment list with its constructor arguments.
+    /// @param _feeVault The address of the fee vault contract to add.
+    /// @param _feeVaultRecipient The recipient of the fee vault.
+    /// @param _feeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the fee vault.
+    /// @param _feeVaultWithdrawalNetwork The withdrawal network for the fee vault.
+    function _addFeeVault(
+        address _feeVault,
+        address _feeVaultRecipient,
+        uint256 _feeVaultMinimumWithdrawalAmount,
+        uint256 _feeVaultWithdrawalNetwork
+    )
+        internal
+    {
         _addPredeploy(
-            Predeploys.L1_FEE_VAULT,
-            abi.encode(
-                _input.l1FeeVaultRecipient, _input.l1FeeVaultMinimumWithdrawalAmount, _input.l1FeeVaultWithdrawalNetwork
-            )
+            _feeVault, abi.encode(_feeVaultRecipient, _feeVaultMinimumWithdrawalAmount, _feeVaultWithdrawalNetwork)
         );
     }
 
