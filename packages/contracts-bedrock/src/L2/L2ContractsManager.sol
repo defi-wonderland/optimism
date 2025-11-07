@@ -38,26 +38,7 @@ abstract contract L2ContractsManager {
     /// @return returnData Return data from the execution.
     function _performUpgrades(ProxyUpgrade[] memory proxyUpgrades) internal virtual returns (bytes memory returnData) {
         for (uint256 i = 0; i < proxyUpgrades.length; i++) {
-            ProxyUpgrade memory proxyUpgrade = proxyUpgrades[i];
-
-            // Access ProxyAdmin's proxyType storage via public getter (we're in its context)
-            IProxyAdmin.ProxyType ptype = IProxyAdmin(address(this)).proxyType(proxyUpgrade.proxy);
-
-            if (ptype == IProxyAdmin.ProxyType.ERC1967) {
-                IProxy(payable(proxyUpgrade.proxy)).upgradeTo(proxyUpgrade.implementation);
-            } else if (ptype == IProxyAdmin.ProxyType.CHUGSPLASH) {
-                IL1ChugSplashProxy(payable(proxyUpgrade.proxy)).setStorage(
-                    Constants.PROXY_IMPLEMENTATION_ADDRESS, bytes32(uint256(uint160(proxyUpgrade.implementation)))
-                );
-            } else if (ptype == IProxyAdmin.ProxyType.RESOLVED) {
-                string memory name = IProxyAdmin(address(this)).implementationName(proxyUpgrade.proxy);
-                IAddressManager(IProxyAdmin(address(this)).addressManager()).setAddress(
-                    name, proxyUpgrade.implementation
-                );
-            } else {
-                // Should not be possible, but matches ProxyAdmin's assert(false)
-                revert("XForkContractsManager: unknown proxy type");
-            }
+            IProxy(payable(proxyUpgrades[i].proxy)).upgradeTo(proxyUpgrades[i].implementation);
         }
 
         return abi.encode(true);
