@@ -75,7 +75,11 @@ contract PredeployHelper is Script {
     /// @param _addr The proxy address of the predeploy contract.
     /// @param _args ABI-encoded constructor arguments (empty bytes for no-arg constructors).
     function _addPredeploy(address _addr, bytes memory _args) internal {
-        if (!Predeploys.isSupportedPredeploy(_addr, fork, enableCrossL2Inbox) || Predeploys.notProxied(_addr)) {
+        // Skip deploying PROXY_ADMIN since its ownership is managed by the L1 ProxyAdminOwner
+        if (
+            !Predeploys.isSupportedPredeploy(_addr, fork, enableCrossL2Inbox) || Predeploys.notProxied(_addr)
+                || _addr == Predeploys.PROXY_ADMIN
+        ) {
             return;
         }
         string memory _name = Predeploys.getName(_addr);
@@ -91,8 +95,7 @@ contract PredeployHelper is Script {
     /// @return True if the predeploy requires constructor arguments, false otherwise.
     function _needsConstructorArgs(address _proxy) private pure returns (bool) {
         return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
-            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
-            || _proxy == Predeploys.PROXY_ADMIN;
+            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY;
     }
 
     /// @notice Adds predeploys with constructor arguments to the deployment list.
