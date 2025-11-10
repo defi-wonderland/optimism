@@ -67,36 +67,6 @@ library NetworkUpgradeTxns {
         });
     }
 
-    /// @notice Create a deployment transaction
-    /// @param intent Human-readable intent (e.g., "Fjord: Gas Price Oracle Deployment")
-    /// @param from Deployer address
-    /// @param gas Gas limit
-    /// @param forgeArtifactPath Contract artifact path (e.g., "GasPriceOracle.sol:GasPriceOracle")
-    /// @return Upgrade transaction struct
-    function newDeploymentTx(
-        string memory intent,
-        address from,
-        uint64 gas,
-        string memory forgeArtifactPath
-    )
-        internal
-        view
-        returns (NetworkUpgradeTxn memory)
-    {
-        bytes memory deploymentBytecode = vm.getCode(forgeArtifactPath);
-
-        return NetworkUpgradeTxn({
-            sourceHash: sourceHash(intent),
-            from: from,
-            to: address(0),
-            mint: 0,
-            value: 0,
-            gas: gas,
-            isSystemTransaction: false,
-            data: deploymentBytecode
-        });
-    }
-
     /// @notice Calculate source hash for an upgrade transaction
     /// @param intent Human-readable intent string
     /// @return Source hash
