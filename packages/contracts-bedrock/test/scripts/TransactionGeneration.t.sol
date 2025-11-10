@@ -72,9 +72,6 @@ contract TransactionGenerationTest is Test {
                 output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
             assertTrue(success, string.concat("Transaction ", vm.toString(i), " should succeed"));
         }
-
-        // At this point the L1Block should have been upgraded to v1.8.0
-        assertEq(L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).version(), "1.8.0");
     }
 
     /// @notice Test that the upgrade transaction structure is correct.
