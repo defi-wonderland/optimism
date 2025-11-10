@@ -92,7 +92,7 @@ contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestIni
         vm.expectEmit(address(liquidityController));
         emit MinterAuthorized(_minter);
         // Call the authorizeMinter function with owner as the caller
-        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+        vm.prank(liquidityController.owner());
         liquidityController.authorizeMinter(_minter);
 
         // Assert minter is authorized
@@ -101,11 +101,11 @@ contract LiquidityController_AuthorizeMinter_Test is LiquidityController_TestIni
 
     /// @notice Tests that the authorizeMinter function reverts when called by non-owner.
     function testFuzz_authorizeMinter_fromNonOwner_fails(address _caller, address _minter) public {
-        vm.assume(_caller != IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+        vm.assume(_caller != liquidityController.owner());
 
         // Call the authorizeMinter function with non-owner as the caller
         vm.prank(_caller);
-        vm.expectRevert(LiquidityController.LiquidityController_Unauthorized.selector);
+        vm.expectRevert("Ownable: caller is not the owner");
         liquidityController.authorizeMinter(_minter);
 
         // Assert minter is not authorized
@@ -125,7 +125,7 @@ contract LiquidityController_DeauthorizeMinter_Test is LiquidityController_TestI
         vm.expectEmit(address(liquidityController));
         emit MinterDeauthorized(_minter);
         // Call the deauthorizeMinter function with owner as the caller
-        vm.prank(IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+        vm.prank(liquidityController.owner());
         liquidityController.deauthorizeMinter(_minter);
 
         // Assert minter is deauthorized
@@ -134,14 +134,14 @@ contract LiquidityController_DeauthorizeMinter_Test is LiquidityController_TestI
 
     /// @notice Tests that the deauthorizeMinter function reverts when called by non-owner.
     function testFuzz_deauthorizeMinter_fromNonOwner_fails(address _caller, address _minter) public {
-        vm.assume(_caller != IProxyAdmin(Predeploys.PROXY_ADMIN).owner());
+        vm.assume(_caller != liquidityController.owner());
 
         // Set minter to authorized
         _authorizeMinter(_minter);
 
         // Call the deauthorizeMinter function with non-owner as the caller
         vm.prank(_caller);
-        vm.expectRevert(LiquidityController.LiquidityController_Unauthorized.selector);
+        vm.expectRevert("Ownable: caller is not the owner");
         liquidityController.deauthorizeMinter(_minter);
 
         // Assert minter is still authorized
@@ -274,6 +274,6 @@ contract LiquidityController_Initialize_Test is LiquidityController_TestInit {
         // Try to initialize the implementation contract directly
         // This should revert because _disableInitializers() was called in the constructor
         vm.expectRevert("Initializable: contract is already initialized");
-        implementation.initialize("Test Token", "TEST");
+        implementation.initialize(address(this), "Test Token", "TEST");
     }
 }
