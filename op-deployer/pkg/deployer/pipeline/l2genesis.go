@@ -110,10 +110,11 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		ChainFeesRecipient:                       thisIntent.ChainFeesRecipient,
 		L1FeesDepositor:                          standard.L1FeesDepositor,
 		// Custom Gas Token (CGT) configuration passed to L2Genesis script
-		UseCustomGasToken:          thisIntent.CustomGasToken.Enabled, // CGT: Enable/disable custom gas token
-		GasPayingTokenName:         thisIntent.CustomGasToken.Name,    // CGT: Token name (e.g., "Custom Gas Token")
-		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,  // CGT: Token symbol (e.g., "CGT")
-		NativeAssetLiquidityAmount: thisIntent.GetInitialLiquidity(),  // CGT: Liquidity amount for NativeAssetLiquidity contract
+		UseCustomGasToken:          thisIntent.IsCustomGasTokenEnabled(),    // CGT: Enable/disable custom gas token (inferred from Name/Symbol)
+		GasPayingTokenName:         thisIntent.CustomGasToken.Name,          // CGT: Token name (e.g., "Custom Gas Token")
+		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,        // CGT: Token symbol (e.g., "CGT")
+		NativeAssetLiquidityAmount: thisIntent.GetInitialLiquidity(),        // CGT: Liquidity amount (defaults to type(uint248).max)
+		LiquidityControllerOwner:   thisIntent.GetLiquidityControllerOwner(), // CGT: LiquidityController owner (defaults to L2ProxyAdminOwner)
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}
@@ -162,10 +163,9 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 		}
 	}
 
-	// If CustomGasToken is not enabled, update it with override values
-	if !thisIntent.CustomGasToken.Enabled {
+	// If CustomGasToken is not enabled in intent, update it with override values
+	if !thisIntent.IsCustomGasTokenEnabled() && overrides.UseCustomGasToken {
 		thisIntent.CustomGasToken = state.CustomGasToken{
-			Enabled:          overrides.UseCustomGasToken,
 			Name:             overrides.GasPayingTokenName,
 			Symbol:           overrides.GasPayingTokenSymbol,
 			InitialLiquidity: overrides.NativeAssetLiquidityAmount,
