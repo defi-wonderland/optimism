@@ -67,6 +67,7 @@ contract TransactionGeneration is Script {
         uint256 l1FeeVaultWithdrawalNetwork;
         address l2ImplDeployerAddress;
         string l2cmName;
+        string hardForkName;
     }
 
     /// @notice Output struct for the script
@@ -97,19 +98,18 @@ contract TransactionGeneration is Script {
         PredeployHelper.Predeploy[] memory predeploys = helper.getPredeploys(_input);
 
         // Generate deployment transactions for each changed predeploy implementations
-        generateDeploymentTransactions(predeploys);
+        generateDeploymentTransactions(_input.hardForkName, predeploys);
 
         // Generate the L2ContractsManager deployment transaction
-        generateL2ContractsManagerDeploymentTransaction(_input.l2cmName);
+        address l2cmAddress = generateL2ContractsManagerDeploymentTransaction(_input.hardForkName, _input.l2cmName);
 
         // Generate L2ContractsManager execute transaction
-        address l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
-            keccak256(abi.encode(_input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
-        );
-        generateL2ContractsManagerExecuteTransaction(_input.l2cmName, l2cmAddress, predeploys);
+        generateL2ContractsManagerExecuteTransaction(_input.hardForkName, _input.l2cmName, l2cmAddress, predeploys);
 
         // Write all transactions to JSON artifact file
-        NetworkUpgradeTxns.writeArtifact(txns, "deployments/nut-xfork-upgrade-transactions.json");
+        NetworkUpgradeTxns.writeArtifact(
+            txns, string.concat("deployments/nut-", _input.hardForkName, "-upgrade-transactions.json")
+        );
 
         return Output({ txns: txns, l2cmAddress: l2cmAddress, predeploys: predeploys });
     }
@@ -117,11 +117,16 @@ contract TransactionGeneration is Script {
     /// @notice Generates deployment transactions for all changed predeploys using L2ImplementationsDeployer
     /// @dev Each predeploy is deployed via the L2ImplementationsDeployer with a salt derived from its name
     /// @param predeploys Array of predeploys that need to be deployed
-    function generateDeploymentTransactions(PredeployHelper.Predeploy[] memory predeploys) internal {
+    function generateDeploymentTransactions(
+        string memory _hardForkName,
+        PredeployHelper.Predeploy[] memory predeploys
+    )
+        internal
+    {
         for (uint256 i = 0; i < predeploys.length; i++) {
             txns.push(
                 NetworkUpgradeTxns.newTx({
-                    intent: string.concat("XFork: ", predeploys[i].name, " Deployment"),
+                    intent: string.concat(_hardForkName, predeploys[i].name, " Deployment"),
                     from: address(0),
                     to: l2ImplDeployerAddress,
                     mint: 0,
@@ -137,21 +142,30 @@ contract TransactionGeneration is Script {
         }
     }
 
-    /// @notice Generates a deployment transaction for the L2ContractsManager using CREATE2
-    /// @dev The L2ContractsManager is deployed via the Create2Deployer preinstall with a salt derived from its name
+    /// @notice Generates a deployment transaction for the L2ContractsManager using L2ImplementationsDeployer
+    /// @dev The L2ContractsManager is deployed via the L2ImplementationsDeployer with a salt derived from its name
+    /// @param _hardForkName The name of the hard fork
     /// @param _l2cmName The name of the L2ContractsManager contract to deploy
-    function generateL2ContractsManagerDeploymentTransaction(string memory _l2cmName) internal {
+    function generateL2ContractsManagerDeploymentTransaction(
+        string memory _hardForkName,
+        string memory _l2cmName
+    )
+        internal
+        returns (address l2cmAddress)
+    {
+        bytes32 salt = keccak256(abi.encode(_hardForkName, _l2cmName));
+        l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(vm.getCode(_l2cmName)));
         // Generate the L2ContractsManager deployment transaction
         txns.push(
             NetworkUpgradeTxns.newTx({
-                intent: string.concat("XFork: ", _l2cmName, " Deployment"),
+                intent: string.concat(_hardForkName, ": ", _l2cmName, " Deployment"),
                 from: address(0),
-                to: CREATE2_DEPLOYER,
+                to: l2ImplDeployerAddress,
                 mint: 0,
                 value: 0,
                 gas: 1_000_000,
                 isSystemTransaction: false,
-                data: abi.encodeCall(ICreate2Deployer.deploy, (0, keccak256(abi.encode(_l2cmName)), vm.getCode(_l2cmName)))
+                data: abi.encodeCall(L2ImplementationsDeployer.deploy, (0, salt, vm.getCode(_l2cmName)))
             })
         );
     }
@@ -159,10 +173,12 @@ contract TransactionGeneration is Script {
     /// @notice Generates a transaction that executes the L2ContractsManager via ProxyAdmin to upgrade predeploys
     /// @dev The transaction calls ProxyAdmin.performDelegateCall to delegatecall into the L2ContractsManager,
     ///      which upgrades all predeploy proxies to their new implementations
+    /// @param _hardForkName The name of the hard fork
     /// @param _l2cmName The name of the L2ContractsManager contract
     /// @param _l2cmAddress The address where the L2ContractsManager is deployed
     /// @param predeploys Array of predeploys that were deployed and need to be upgraded
     function generateL2ContractsManagerExecuteTransaction(
+        string memory _hardForkName,
         string memory _l2cmName,
         address _l2cmAddress,
         PredeployHelper.Predeploy[] memory predeploys
@@ -182,7 +198,7 @@ contract TransactionGeneration is Script {
         // Create transaction that calls execute() on the deployed L2ContractsManager
         txns.push(
             NetworkUpgradeTxns.newTx({
-                intent: string.concat("XFork: ", _l2cmName, " Execute"),
+                intent: string.concat(_hardForkName, ": ", _l2cmName, " Execute"),
                 from: Constants.DEPOSITOR_ACCOUNT,
                 to: Predeploys.PROXY_ADMIN,
                 mint: 0,

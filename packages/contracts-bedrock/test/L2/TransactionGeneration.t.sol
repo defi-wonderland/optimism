@@ -50,7 +50,8 @@ contract TransactionGenerationTest is Test {
             l1FeeVaultMinimumWithdrawalAmount: 0x8ac7230489e80000,
             l1FeeVaultWithdrawalNetwork: 1,
             l2ImplDeployerAddress: L2_IMPLEMENTATIONS_DEPLOYER,
-            l2cmName: "XForkContractsManager"
+            l2cmName: "XForkContractsManager",
+            hardForkName: "XFork"
         });
     }
 
@@ -156,5 +157,41 @@ contract TransactionGenerationTest is Test {
         }
 
         return abi.decode(params, (address, L2ContractsManager.ProxyUpgrade[]));
+    }
+
+    /// @notice Test that running the upgrade twice results in the same implementations (idempotency).
+    function test_upgradeTransactions_idempotent_succeeds() public {
+        TransactionGeneration.Input memory input = _getInput();
+        TransactionGeneration.Output memory output = transactionGeneration.run(input);
+
+        // Execute all transactions from first run
+        for (uint256 i = 0; i < output.txns.length; i++) {
+            vm.prank(output.txns[i].from);
+            (bool success,) =
+                output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
+            assertTrue(success, string.concat("First run transaction ", vm.toString(i), " should succeed"));
+        }
+
+        input.hardForkName = "XFork2";
+        TransactionGeneration.Output memory output2 = new TransactionGeneration().run(input);
+
+        // Execute all transactions from second run
+        for (uint256 i = 0; i < output2.txns.length; i++) {
+            vm.prank(output2.txns[i].from);
+            (bool success,) =
+                output2.txns[i].to.call{ value: output2.txns[i].value, gas: output2.txns[i].gas }(output2.txns[i].data);
+            assertTrue(success, string.concat("Second run transaction ", vm.toString(i), " should succeed"));
+        }
+
+        // Verify that the implementations are the same after second upgrade
+        for (uint256 i = 0; i < output2.predeploys.length; i++) {
+            assertEq(
+                ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(output2.predeploys[i].proxy),
+                ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(output.predeploys[i].proxy),
+                string.concat(
+                    "Implementation for ", output2.predeploys[i].name, " should be the same after second upgrade"
+                )
+            );
+        }
     }
 }
