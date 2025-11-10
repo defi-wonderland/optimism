@@ -7,183 +7,190 @@ import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
-
-interface ICreate2Deployer {
-    /**
-     * @notice Deploys a contract using `CREATE2`. The address where the
-     * contract will be deployed can be known in advance via {computeAddress}.
-     *
-     * The bytecode for a contract can be obtained from Solidity with
-     * `type(contractName).creationCode`.
-     *
-     * Requirements:
-     * - `bytecode` must not be empty.
-     * - `salt` must have not been used for `bytecode` already.
-     * - the factory must have a balance of at least `value`.
-     * - if `value` is non-zero, `bytecode` must have a `payable` constructor.
-     */
-    function deploy(uint256 value, bytes32 salt, bytes memory code) external;
-
-    /**
-     * @notice Returns the address where a contract will be stored if deployed via {deploy}.
-     * Any change in the `bytecodeHash` or `salt` will result in a new destination address.
-     */
-    function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
-}
+import { Config, Fork } from "scripts/libraries/Config.sol";
+import { console2 as console } from "forge-std/console2.sol";
+import { PredeployHelper } from "scripts/deploy/PredeployHelper.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
+import { ICreate2Deployer } from "interfaces/preinstalls/ICreate2Deployer.sol";
+import { L2ImplementationsDeployer } from "src/L2/L2ImplementationsDeployer.sol";
 
 /// @title TransactionGenerationScript
 /// @notice Script that generates Network Upgrade Transactions (NUTs) for deploying L2 contracts during a hard fork.
 ///         This script creates a sequence of transactions that deploy Predeploy contracts using CREATE2 and execute
 ///         and the L2ContractsManager. The last transaction is the execution of the L2ContractsManager.
 contract TransactionGeneration is Script {
-    address constant CREATE2_DEPLOYER = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
+    /// @notice Address of the Create2Deployer predeploy.
+    address payable immutable CREATE2_DEPLOYER = payable(Preinstalls.Create2Deployer);
 
-    /// @notice Generates Network Upgrade Transactions for deploying L2 contracts
-    /// @param l2ContractsManager The forge artifact path for the L2ContractsManager contract (e.g.,
-    /// "L2ContractsManager.sol:L2ContractsManager")
-    /// @return Array of Network Upgrade Transactions
-    function run(string memory l2ContractsManager) external returns (NetworkUpgradeTxns.NetworkUpgradeTxn[] memory) {
-        // TODO: Implement automatic detection of changed contracts since last hard fork
-        // Currently hardcoded to deploy L1Block and the specified L2ContractsManager
+    /// @notice Array of Network Upgrade Transactions.
+    NetworkUpgradeTxns.NetworkUpgradeTxn[] private txns;
 
-        // contracts to deploy
-        string[] memory changedPredeploys = new string[](1);
-        changedPredeploys[0] = "L1Block";
+    /// @notice Helper for managing predeploy configurations.
+    PredeployHelper internal helper;
 
-        // Initialize array to hold all upgrade transactions
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns =
-            new NetworkUpgradeTxns.NetworkUpgradeTxn[](changedPredeploys.length + 2);
+    /// @notice Address of the L2ImplementationsDeployer contract.
+    address private l2ImplDeployerAddress;
 
-        // Predeploys addresses and new implementation addresses
-        address[] memory predeploysImplPrecalculatedAddresses = new address[](changedPredeploys.length);
-        address[] memory predeploysAddresses = new address[](changedPredeploys.length);
+    /// @notice Input struct for the script.
+    /// @param l2ChainID The ID of the L2 chain.
+    /// @param l1ChainID The ID of the L1 chain.
+    /// @param l1CrossDomainMessengerProxy The address of the L1 Cross Domain Messenger proxy.
+    /// @param l1StandardBridgeProxy The address of the L1 Standard Bridge proxy.
+    /// @param l1ERC721BridgeProxy The address of the L1 ERC721 Bridge proxy.
+    /// @param opChainProxyAdminOwner The address of the OP Chain Proxy Admin owner.
+    /// @param sequencerFeeVaultRecipient The address of the Sequencer Fee Vault recipient.
+    /// @param sequencerFeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the Sequencer Fee Vault.
+    /// @param sequencerFeeVaultWithdrawalNetwork The withdrawal network for the Sequencer Fee Vault.
+    /// @param baseFeeVaultRecipient The address of the Base Fee Vault recipient.
+    /// @param baseFeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the Base Fee Vault.
+    /// @param baseFeeVaultWithdrawalNetwork The withdrawal network for the Base Fee Vault.
+    /// @param l1FeeVaultRecipient The address of the L1 Fee Vault recipient.
+    /// @param l1FeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the L1 Fee Vault.
+    /// @param l1FeeVaultWithdrawalNetwork The withdrawal network for the L1 Fee Vault.
+    /// @param l2ImplDeployerAddress The address of the already-deployed L2ImplementationsDeployer.
+    /// @param l2cmName The name of the L2 Contracts Manager.
+    struct Input {
+        uint256 l2ChainID;
+        uint256 l1ChainID;
+        address payable l1CrossDomainMessengerProxy;
+        address payable l1StandardBridgeProxy;
+        address payable l1ERC721BridgeProxy;
+        address opChainProxyAdminOwner;
+        address sequencerFeeVaultRecipient;
+        uint256 sequencerFeeVaultMinimumWithdrawalAmount;
+        uint256 sequencerFeeVaultWithdrawalNetwork;
+        address baseFeeVaultRecipient;
+        uint256 baseFeeVaultMinimumWithdrawalAmount;
+        uint256 baseFeeVaultWithdrawalNetwork;
+        address l1FeeVaultRecipient;
+        uint256 l1FeeVaultMinimumWithdrawalAmount;
+        uint256 l1FeeVaultWithdrawalNetwork;
+        address l2ImplDeployerAddress;
+        string l2cmName;
+    }
 
-        // Generate deployment transactions for each contract
-        for (uint256 i = 0; i < changedPredeploys.length; i++) {
-            // Get contract bytecode from forge artifacts
-            bytes memory deploymentBytecode =
-                vm.getCode(string.concat(changedPredeploys[i], ".sol:", changedPredeploys[i]));
-            // Generate deterministic salt from intent string
-            bytes32 salt = keccak256(abi.encode(string.concat("XFork: ", changedPredeploys[i], " Deployment")));
+    /// @notice Output struct for the script
+    /// @param txns Array of Network Upgrade Transactions generated
+    /// @param l2cmAddress Address where the L2ContractsManager is deployed
+    /// @param predeploys Array of predeploys that were changed
+    struct Output {
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] txns;
+        address l2cmAddress;
+        PredeployHelper.Predeploy[] predeploys;
+    }
 
-            predeploysAddresses[i] = _getAddress(changedPredeploys[i]);
-            predeploysImplPrecalculatedAddresses[i] =
-                ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(deploymentBytecode));
+    /// @notice Generates Network Upgrade Transactions for deploying L2 contracts during a hard fork
+    /// @dev Creates a sequence of transactions that:
+    ///      1. Deploy new predeploy implementations via L2ImplementationsDeployer
+    ///      2. Deploy the L2ContractsManager via CREATE2
+    ///      3. Execute the L2ContractsManager to upgrade all predeploy proxies
+    ///      The final artifact is written to deployments/nut-xfork-upgrade-transactions.json
+    /// @param _input The input struct containing chain configuration and deployment parameters
+    /// @return Output struct containing the generated transactions, L2CM address, and changed predeploys
+    function run(Input memory _input) external returns (Output memory) {
+        helper = new PredeployHelper(uint256(Config.fork()), Config.fork() >= Fork.INTEROP);
 
-            // Create transaction that calls CREATE2 deployer
-            txns[i] = NetworkUpgradeTxns.newTx({
-                intent: string.concat("XFork: ", changedPredeploys[i], " Deployment"),
+        // Set the L2ImplementationsDeployer address from input
+        l2ImplDeployerAddress = _input.l2ImplDeployerAddress;
+
+        // Get all changed predeploy implementations
+        PredeployHelper.Predeploy[] memory predeploys = helper.getPredeploys(_input);
+
+        // Generate deployment transactions for each changed predeploy implementations
+        generateDeploymentTransactions(predeploys);
+
+        // Generate the L2ContractsManager deployment transaction
+        generateL2ContractsManagerDeploymentTransaction(_input.l2cmName);
+
+        // Generate L2ContractsManager execute transaction
+        address l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
+            keccak256(abi.encode(_input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
+        );
+        generateL2ContractsManagerExecuteTransaction(_input.l2cmName, l2cmAddress, predeploys);
+
+        // Write all transactions to JSON artifact file
+        NetworkUpgradeTxns.writeArtifact(txns, "deployments/nut-xfork-upgrade-transactions.json");
+
+        return Output({ txns: txns, l2cmAddress: l2cmAddress, predeploys: predeploys });
+    }
+
+    /// @notice Generates deployment transactions for all changed predeploys using L2ImplementationsDeployer
+    /// @dev Each predeploy is deployed via the L2ImplementationsDeployer with a salt derived from its name
+    /// @param predeploys Array of predeploys that need to be deployed
+    function generateDeploymentTransactions(PredeployHelper.Predeploy[] memory predeploys) internal {
+        for (uint256 i = 0; i < predeploys.length; i++) {
+            txns.push(
+                NetworkUpgradeTxns.newTx({
+                    intent: string.concat("XFork: ", predeploys[i].name, " Deployment"),
+                    from: address(0),
+                    to: l2ImplDeployerAddress,
+                    mint: 0,
+                    value: 0,
+                    gas: 1_000_000_000,
+                    isSystemTransaction: false,
+                    data: abi.encodeCall(
+                        L2ImplementationsDeployer.deploy,
+                        (0, keccak256(abi.encode(predeploys[i].name)), predeploys[i].initCode)
+                    )
+                })
+            );
+        }
+    }
+
+    /// @notice Generates a deployment transaction for the L2ContractsManager using CREATE2
+    /// @dev The L2ContractsManager is deployed via the Create2Deployer preinstall with a salt derived from its name
+    /// @param _l2cmName The name of the L2ContractsManager contract to deploy
+    function generateL2ContractsManagerDeploymentTransaction(string memory _l2cmName) internal {
+        // Generate the L2ContractsManager deployment transaction
+        txns.push(
+            NetworkUpgradeTxns.newTx({
+                intent: string.concat("XFork: ", _l2cmName, " Deployment"),
                 from: address(0),
                 to: CREATE2_DEPLOYER,
                 mint: 0,
                 value: 0,
                 gas: 1_000_000,
                 isSystemTransaction: false,
-                data: abi.encodeCall(ICreate2Deployer.deploy, (0, salt, deploymentBytecode))
+                data: abi.encodeCall(ICreate2Deployer.deploy, (0, keccak256(abi.encode(_l2cmName)), vm.getCode(_l2cmName)))
+            })
+        );
+    }
+
+    /// @notice Generates a transaction that executes the L2ContractsManager via ProxyAdmin to upgrade predeploys
+    /// @dev The transaction calls ProxyAdmin.performDelegateCall to delegatecall into the L2ContractsManager,
+    ///      which upgrades all predeploy proxies to their new implementations
+    /// @param _l2cmName The name of the L2ContractsManager contract
+    /// @param _l2cmAddress The address where the L2ContractsManager is deployed
+    /// @param predeploys Array of predeploys that were deployed and need to be upgraded
+    function generateL2ContractsManagerExecuteTransaction(
+        string memory _l2cmName,
+        address _l2cmAddress,
+        PredeployHelper.Predeploy[] memory predeploys
+    )
+        internal
+    {
+        // Build the ProxyUpgrade array for the L2ContractsManager
+        L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades =
+            new L2ContractsManager.ProxyUpgrade[](predeploys.length);
+        for (uint256 i = 0; i < predeploys.length; i++) {
+            proxyUpgrades[i] = L2ContractsManager.ProxyUpgrade({
+                proxy: predeploys[i].proxy,
+                implementation: predeploys[i].implementation
             });
         }
 
-        bytes memory l2ContractsManagerCreationCode =
-            vm.getCode(string.concat(l2ContractsManager, ".sol:", l2ContractsManager));
-
-        // Generate the L2ContractsManager deployment transaction
-        string memory intent = string.concat("XFork: ", l2ContractsManager, " Deployment");
-        txns[txns.length - 2] = NetworkUpgradeTxns.newTx({
-            intent: intent,
-            from: address(0),
-            to: CREATE2_DEPLOYER,
-            mint: 0,
-            value: 0,
-            gas: 1_000_000,
-            isSystemTransaction: false,
-            data: abi.encodeCall(
-                ICreate2Deployer.deploy, (0, keccak256(abi.encode(intent)), l2ContractsManagerCreationCode)
-            )
-        });
-
-        // Generate the final transaction: execute the deployed L2ContractsManager
-        // Calculate the deterministic address where L2ContractsManager will be deployed
-        address l2ContractsPrecalculatedAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
-            keccak256(abi.encode(intent)), keccak256(l2ContractsManagerCreationCode)
-        );
-
         // Create transaction that calls execute() on the deployed L2ContractsManager
-        intent = string.concat("XFork: ", l2ContractsManager, " Execute");
-        txns[txns.length - 1] = NetworkUpgradeTxns.newTx({
-            intent: intent,
-            from: Constants.DEPOSITOR_ACCOUNT,
-            to: Predeploys.PROXY_ADMIN,
-            mint: 0,
-            value: 0,
-            gas: 1_500_000,
-            isSystemTransaction: false,
-            data: abi.encodeCall(
-                ProxyAdmin.performDelegateCall,
-                (l2ContractsPrecalculatedAddress, abi.encode(predeploysAddresses, predeploysImplPrecalculatedAddresses))
-            )
-        });
-
-        // Write all transactions to JSON artifact file
-        NetworkUpgradeTxns.writeArtifact(txns, "deployments/nut-xfork-upgrade-transactions.json");
-
-        return txns;
-    }
-
-    function _getAddress(string memory _name) internal pure returns (address payable) {
-        bytes32 digest = keccak256(bytes(_name));
-        if (digest == keccak256(bytes("L2CrossDomainMessenger"))) {
-            return payable(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
-        } else if (digest == keccak256(bytes("L2ToL1MessagePasser"))) {
-            return payable(Predeploys.L2_TO_L1_MESSAGE_PASSER);
-        } else if (digest == keccak256(bytes("L2StandardBridge"))) {
-            return payable(Predeploys.L2_STANDARD_BRIDGE);
-        } else if (digest == keccak256(bytes("L2StandardBridgeInterop"))) {
-            return payable(Predeploys.L2_STANDARD_BRIDGE);
-        } else if (digest == keccak256(bytes("L2ERC721Bridge"))) {
-            return payable(Predeploys.L2_ERC721_BRIDGE);
-        } else if (digest == keccak256(bytes("SequencerFeeWallet"))) {
-            return payable(Predeploys.SEQUENCER_FEE_WALLET);
-        } else if (digest == keccak256(bytes("OptimismMintableERC20Factory"))) {
-            return payable(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
-        } else if (digest == keccak256(bytes("OptimismMintableERC721Factory"))) {
-            return payable(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
-        } else if (digest == keccak256(bytes("L1Block"))) {
-            return payable(Predeploys.L1_BLOCK_ATTRIBUTES);
-        } else if (digest == keccak256(bytes("GasPriceOracle"))) {
-            return payable(Predeploys.GAS_PRICE_ORACLE);
-        } else if (digest == keccak256(bytes("L1MessageSender"))) {
-            return payable(Predeploys.L1_MESSAGE_SENDER);
-        } else if (digest == keccak256(bytes("DeployerWhitelist"))) {
-            return payable(Predeploys.DEPLOYER_WHITELIST);
-        } else if (digest == keccak256(bytes("WETH"))) {
-            return payable(Predeploys.WETH);
-        } else if (digest == keccak256(bytes("LegacyERC20ETH"))) {
-            return payable(Predeploys.LEGACY_ERC20_ETH);
-        } else if (digest == keccak256(bytes("L1BlockNumber"))) {
-            return payable(Predeploys.L1_BLOCK_NUMBER);
-        } else if (digest == keccak256(bytes("LegacyMessagePasser"))) {
-            return payable(Predeploys.LEGACY_MESSAGE_PASSER);
-        } else if (digest == keccak256(bytes("ProxyAdmin"))) {
-            return payable(Predeploys.PROXY_ADMIN);
-        } else if (digest == keccak256(bytes("BaseFeeVault"))) {
-            return payable(Predeploys.BASE_FEE_VAULT);
-        } else if (digest == keccak256(bytes("L1FeeVault"))) {
-            return payable(Predeploys.L1_FEE_VAULT);
-        } else if (digest == keccak256(bytes("OperatorFeeVault"))) {
-            return payable(Predeploys.OPERATOR_FEE_VAULT);
-        } else if (digest == keccak256(bytes("GovernanceToken"))) {
-            return payable(Predeploys.GOVERNANCE_TOKEN);
-        } else if (digest == keccak256(bytes("SchemaRegistry"))) {
-            return payable(Predeploys.SCHEMA_REGISTRY);
-        } else if (digest == keccak256(bytes("EAS"))) {
-            return payable(Predeploys.EAS);
-        } else if (digest == keccak256(bytes("OptimismSuperchainERC20Factory"))) {
-            return payable(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
-        } else if (digest == keccak256(bytes("OptimismSuperchainERC20Beacon"))) {
-            return payable(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON);
-        } else if (digest == keccak256(bytes("SuperchainTokenBridge"))) {
-            return payable(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
-        }
-        return payable(address(0));
+        txns.push(
+            NetworkUpgradeTxns.newTx({
+                intent: string.concat("XFork: ", _l2cmName, " Execute"),
+                from: Constants.DEPOSITOR_ACCOUNT,
+                to: Predeploys.PROXY_ADMIN,
+                mint: 0,
+                value: 0,
+                gas: type(uint64).max,
+                isSystemTransaction: false,
+                data: abi.encodeCall(ProxyAdmin.performDelegateCall, (_l2cmAddress, proxyUpgrades))
+            })
+        );
     }
 }

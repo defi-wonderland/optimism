@@ -193,10 +193,21 @@ contract ProxyAdmin is Ownable {
         }
     }
 
-    function performDelegateCall(address _target, bytes memory _data) external payable {
+    /// @notice Performs a delegate call to the target contract.
+    /// @param _target Address of the target contract.
+    /// @param proxyUpgrades Data for the proxy upgrades.
+    function performDelegateCall(
+        address _target,
+        L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades
+    )
+        external
+        payable
+        returns (bytes memory)
+    {
         require(msg.sender == Constants.DEPOSITOR_ACCOUNT || msg.sender == owner(), "not allowed");
         (bool success, bytes memory returnData) =
-            _target.delegatecall(abi.encodeCall(L2ContractsManager.execute, (_data)));
+            _target.delegatecall(abi.encodeCall(L2ContractsManager.execute, (proxyUpgrades)));
         require(success, "ProxyAdmin: delegatecall to target failed");
+        return returnData;
     }
 }
