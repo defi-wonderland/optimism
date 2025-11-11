@@ -23,10 +23,11 @@ import (
 
 type l2GenesisOverrides struct {
 	// ===== CUSTOM GAS TOKEN (CGT) CONFIGURATION =====
-	UseCustomGasToken          bool         `json:"useCustomGasToken"`          // CGT: Enable custom gas token mode
-	GasPayingTokenName         string       `json:"gasPayingTokenName"`         // CGT: Name of the custom gas token
-	GasPayingTokenSymbol       string       `json:"gasPayingTokenSymbol"`       // CGT: Symbol of the custom gas token
-	NativeAssetLiquidityAmount *hexutil.Big `json:"nativeAssetLiquidityAmount"` // CGT: Liquidity amount for NativeAssetLiquidity contract
+	UseCustomGasToken          bool           `json:"useCustomGasToken"`          // CGT: Enable custom gas token mode
+	GasPayingTokenName         string         `json:"gasPayingTokenName"`         // CGT: Name of the custom gas token
+	GasPayingTokenSymbol       string         `json:"gasPayingTokenSymbol"`       // CGT: Symbol of the custom gas token
+	NativeAssetLiquidityAmount *hexutil.Big   `json:"nativeAssetLiquidityAmount"` // CGT: Liquidity amount for NativeAssetLiquidity contract
+	LiquidityControllerOwner   common.Address `json:"liquidityControllerOwner"`   // CGT: Owner of the LiquidityController contract
 
 	// ===== GENERAL L2 CONFIGURATION (NON-CGT) =====
 	FundDevAccounts                          bool                      `json:"fundDevAccounts"`
@@ -212,7 +213,12 @@ func resolveEffectiveCGT(thisIntent *state.ChainIntent, overrides l2GenesisOverr
 
 	// If intent doesn't have CGT enabled but overrides do, use override values
 	if overrides.UseCustomGasToken {
-		liquidity := overrides.NativeAssetLiquidityAmount.ToInt()
+		var liquidity *big.Int
+
+		// Check if liquidity is set in overrides
+		if overrides.NativeAssetLiquidityAmount != nil {
+			liquidity = overrides.NativeAssetLiquidityAmount.ToInt()
+		}
 
 		// If liquidity is not set (nil or 0), use type(uint248).max as default
 		if liquidity == nil || liquidity.Sign() == 0 {
@@ -221,8 +227,11 @@ func resolveEffectiveCGT(thisIntent *state.ChainIntent, overrides l2GenesisOverr
 			liquidity = maxUint248
 		}
 
-		// Use L2ProxyAdminOwner as default for LiquidityControllerOwner
-		owner := thisIntent.Roles.L2ProxyAdminOwner
+		// Use override value if set, otherwise fall back to L2ProxyAdminOwner
+		owner := overrides.LiquidityControllerOwner
+		if owner == (common.Address{}) {
+			owner = thisIntent.Roles.L2ProxyAdminOwner
+		}
 
 		return effectiveCGTConfig{
 			UseCustomGasToken:          true,
@@ -263,9 +272,10 @@ func defaultOverrides() l2GenesisOverrides {
 		EnableGovernance:                         false,
 		GovernanceTokenOwner:                     standard.GovernanceTokenOwner,
 		// ===== CGT DEFAULTS =====
-		UseCustomGasToken:          false,                         // CGT disabled by default
-		GasPayingTokenName:         "",                            // Empty when CGT disabled
-		GasPayingTokenSymbol:       "",                            // Empty when CGT disabled
-		NativeAssetLiquidityAmount: (*hexutil.Big)(big.NewInt(0)), // Default to 0 when CGT disabled (consistent with "" and false)
+		UseCustomGasToken:          false,           // CGT disabled by default
+		GasPayingTokenName:         "",              // Empty when CGT disabled
+		GasPayingTokenSymbol:       "",              // Empty when CGT disabled
+		NativeAssetLiquidityAmount: nil,             // nil triggers type(uint248).max fallback when CGT enabled
+		LiquidityControllerOwner:   common.Address{}, // Empty address triggers L2ProxyAdminOwner fallback when CGT enabled
 	}
 }

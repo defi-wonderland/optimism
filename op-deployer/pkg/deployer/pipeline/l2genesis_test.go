@@ -240,14 +240,15 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 				CustomGasToken: state.CustomGasToken{},
 			},
 			expectError: false, // Should succeed for standard-overrides chains
-			expectedOverrides: func() l2GenesisOverrides {
-				defaults := defaultOverrides()
-				defaults.UseCustomGasToken = true
-				defaults.GasPayingTokenName = "OverrideToken"
-				defaults.GasPayingTokenSymbol = "OVR"
-				defaults.NativeAssetLiquidityAmount = (*hexutil.Big)(hexutil.MustDecodeBig("0x2000000"))
-				return defaults
-			}(),
+		expectedOverrides: func() l2GenesisOverrides {
+			defaults := defaultOverrides()
+			defaults.UseCustomGasToken = true
+			defaults.GasPayingTokenName = "OverrideToken"
+			defaults.GasPayingTokenSymbol = "OVR"
+			defaults.NativeAssetLiquidityAmount = (*hexutil.Big)(hexutil.MustDecodeBig("0x2000000"))
+			defaults.LiquidityControllerOwner = common.HexToAddress("0x1111111111111111111111111111111111111111")
+			return defaults
+		}(),
 			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
 				return standard.DefaultHardforkScheduleForTag("")
 			},
@@ -354,6 +355,33 @@ func TestResolveEffectiveCGT(t *testing.T) {
 			shouldNotMutate: true,
 		},
 		{
+			name: "CGT not in intent, override with nil liquidity - use type(uint248).max",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0xbeef"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Nil Liquidity Token",
+				GasPayingTokenSymbol:       "NLT",
+				NativeAssetLiquidityAmount: nil,
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:    true,
+				GasPayingTokenName:   "Nil Liquidity Token",
+				GasPayingTokenSymbol: "NLT",
+				NativeAssetLiquidityAmount: func() *big.Int {
+					maxUint248 := new(big.Int)
+					maxUint248.SetString("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+					return maxUint248
+				}(),
+				LiquidityControllerOwner: common.HexToAddress("0xbeef"),
+			},
+			shouldNotMutate: true,
+		},
+		{
 			name: "CGT disabled in both intent and overrides",
 			chainIntent: &state.ChainIntent{
 				CustomGasToken: state.CustomGasToken{},
@@ -401,6 +429,30 @@ func TestResolveEffectiveCGT(t *testing.T) {
 				GasPayingTokenSymbol:       "COT",
 				NativeAssetLiquidityAmount: hexutil.MustDecodeBig("0x5000000"),
 				LiquidityControllerOwner:   common.HexToAddress("0x9999"),
+			},
+			shouldNotMutate: true,
+		},
+		{
+			name: "CGT not in intent but enabled in overrides with explicit LiquidityControllerOwner",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0x8888"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Override Token",
+				GasPayingTokenSymbol:       "OTK",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(hexutil.MustDecodeBig("0x3000000")),
+				LiquidityControllerOwner:   common.HexToAddress("0x7777"),
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Override Token",
+				GasPayingTokenSymbol:       "OTK",
+				NativeAssetLiquidityAmount: hexutil.MustDecodeBig("0x3000000"),
+				LiquidityControllerOwner:   common.HexToAddress("0x7777"),
 			},
 			shouldNotMutate: true,
 		},
