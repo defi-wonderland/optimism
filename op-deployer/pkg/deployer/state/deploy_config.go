@@ -82,7 +82,7 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 		UseCustomGasToken:          chainIntent.IsCustomGasTokenEnabled(),
 		GasPayingTokenName:         chainIntent.CustomGasToken.Name,
 		GasPayingTokenSymbol:       chainIntent.CustomGasToken.Symbol,
-		NativeAssetLiquidityAmount: chainIntent.CustomGasToken.InitialLiquidity,
+		NativeAssetLiquidityAmount: (*hexutil.Big)(chainIntent.GetInitialLiquidity()),
 		LiquidityControllerOwner:   chainIntent.GetLiquidityControllerOwner(),
 	},
 
