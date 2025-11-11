@@ -60,8 +60,8 @@ type L2DevGenesisParams struct {
 type CustomGasToken struct {
 	Name             string          `json:"name,omitempty" toml:"name,omitempty"`
 	Symbol           string          `json:"symbol,omitempty" toml:"symbol,omitempty"`
-	InitialLiquidity *hexutil.Big    `json:"initialLiquidity,omitempty" toml:"initialLiquidity,omitempty"`
-	Owner            *common.Address `json:"owner,omitempty" toml:"owner,omitempty"` // LiquidityController owner, defaults to L2ProxyAdminOwner if not set
+	InitialLiquidity *hexutil.Big    `json:"initialLiquidity" toml:"initialLiquidity"`
+	LiquidityControllerOwner common.Address `json:"liquidityControllerOwner" toml:"liquidityControllerOwner"`
 }
 
 type ChainIntent struct {
@@ -137,7 +137,7 @@ func (c *ChainIntent) Check() error {
 	// Validate CustomGasToken: if any field is set, both Name and Symbol must be present
 	hasName := c.CustomGasToken.Name != ""
 	hasSymbol := c.CustomGasToken.Symbol != ""
-	hasAnyCustomGasTokenField := hasName || hasSymbol || c.CustomGasToken.InitialLiquidity != nil || c.CustomGasToken.Owner != nil
+	hasAnyCustomGasTokenField := hasName || hasSymbol || c.CustomGasToken.InitialLiquidity != nil || c.CustomGasToken.LiquidityControllerOwner != (common.Address{})
 
 	if hasAnyCustomGasTokenField {
 		if !hasName {
@@ -152,6 +152,7 @@ func (c *ChainIntent) Check() error {
 		if c.CustomGasToken.InitialLiquidity != nil && c.CustomGasToken.InitialLiquidity.ToInt().Sign() < 0 {
 			return fmt.Errorf("%w: CustomGasToken.InitialLiquidity must be non-negative when custom gas token is enabled, chainId=%s", ErrIncompatibleValue, c.ID)
 		}
+		// LiquidityControllerOwner is optional - if not set, L2ProxyAdminOwner will be used as default
 	}
 
 	if c.DangerousAltDAConfig.UseAltDA {
@@ -189,8 +190,8 @@ func (c *ChainIntent) GetInitialLiquidity() *big.Int {
 // GetLiquidityControllerOwner returns the owner of the LiquidityController.
 // If not set in CustomGasToken config, defaults to L2ProxyAdminOwner.
 func (c *ChainIntent) GetLiquidityControllerOwner() common.Address {
-	if c.CustomGasToken.Owner != nil {
-		return *c.CustomGasToken.Owner
+	if c.CustomGasToken.LiquidityControllerOwner != (common.Address{}) {
+		return c.CustomGasToken.LiquidityControllerOwner
 	}
 	return c.Roles.L2ProxyAdminOwner
 }

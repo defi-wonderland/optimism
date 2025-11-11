@@ -79,11 +79,10 @@ func TestGetLiquidityControllerOwner(t *testing.T) {
 		expected common.Address
 	}{
 		{
-			name: "returns L2ProxyAdminOwner when CustomGasToken.Owner is not set",
+			name: "returns L2ProxyAdminOwner when CustomGasToken.LiquidityControllerOwner is not set",
 			cgt: CustomGasToken{
 				Name:   "Custom Gas Token",
 				Symbol: "CGT",
-				Owner:  nil,
 			},
 			roles: ChainRoles{
 				L2ProxyAdminOwner: defaultOwner,
@@ -91,11 +90,11 @@ func TestGetLiquidityControllerOwner(t *testing.T) {
 			expected: defaultOwner,
 		},
 		{
-			name: "returns custom owner when CustomGasToken.Owner is set",
+			name: "returns custom owner when CustomGasToken.LiquidityControllerOwner is set",
 			cgt: CustomGasToken{
-				Name:   "Custom Gas Token",
-				Symbol: "CGT",
-				Owner:  &customOwner,
+				Name:                     "Custom Gas Token",
+				Symbol:                   "CGT",
+				LiquidityControllerOwner: customOwner,
 			},
 			roles: ChainRoles{
 				L2ProxyAdminOwner: defaultOwner,
