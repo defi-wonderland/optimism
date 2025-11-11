@@ -70,8 +70,10 @@ contract LiquidityController is ISemver, Initializable, OwnableUpgradeable {
         external
         initializer
     {
-        __Ownable_init();
-        transferOwnership(_owner);
+        if (_owner != address(0)) {
+            __Ownable_init();
+            transferOwnership(_owner);
+        }
         gasPayingTokenName = _gasPayingTokenName;
         gasPayingTokenSymbol = _gasPayingTokenSymbol;
     }
