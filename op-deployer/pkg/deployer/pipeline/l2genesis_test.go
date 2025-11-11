@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
@@ -262,6 +263,171 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tc.expectedOverrides, overrides)
 				require.Equal(t, tc.expectedSchedule(), schedule)
+			}
+		})
+	}
+}
+
+func TestResolveEffectiveCGT(t *testing.T) {
+	testCases := []struct {
+		name           string
+		chainIntent    *state.ChainIntent
+		overrides      l2GenesisOverrides
+		expectedConfig effectiveCGTConfig
+		shouldNotMutate bool
+	}{
+		{
+			name: "CGT enabled in intent - use intent values",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{
+					Name:             "Intent Token",
+					Symbol:           "ITK",
+					InitialLiquidity: (*hexutil.Big)(hexutil.MustDecodeBig("0x1000000")),
+				},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0x1234"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Override Token",
+				GasPayingTokenSymbol:       "OTK",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(hexutil.MustDecodeBig("0x2000000")),
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Intent Token",
+				GasPayingTokenSymbol:       "ITK",
+				NativeAssetLiquidityAmount: hexutil.MustDecodeBig("0x1000000"),
+				LiquidityControllerOwner:   common.HexToAddress("0x1234"),
+			},
+			shouldNotMutate: true,
+		},
+		{
+			name: "CGT not in intent but enabled in overrides - use override values",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0x5678"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Override Token",
+				GasPayingTokenSymbol:       "OTK",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(hexutil.MustDecodeBig("0x3000000")),
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Override Token",
+				GasPayingTokenSymbol:       "OTK",
+				NativeAssetLiquidityAmount: hexutil.MustDecodeBig("0x3000000"),
+				LiquidityControllerOwner:   common.HexToAddress("0x5678"),
+			},
+			shouldNotMutate: true,
+		},
+		{
+			name: "CGT not in intent, override with zero liquidity - use type(uint248).max",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0xabcd"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Zero Liquidity Token",
+				GasPayingTokenSymbol:       "ZLT",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(hexutil.MustDecodeBig("0x0")),
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:    true,
+				GasPayingTokenName:   "Zero Liquidity Token",
+				GasPayingTokenSymbol: "ZLT",
+				NativeAssetLiquidityAmount: func() *big.Int {
+					maxUint248 := new(big.Int)
+					maxUint248.SetString("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+					return maxUint248
+				}(),
+				LiquidityControllerOwner: common.HexToAddress("0xabcd"),
+			},
+			shouldNotMutate: true,
+		},
+		{
+			name: "CGT disabled in both intent and overrides",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0xdead"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          false,
+				GasPayingTokenName:         "",
+				GasPayingTokenSymbol:       "",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(hexutil.MustDecodeBig("0x0")),
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:          false,
+				GasPayingTokenName:         "",
+				GasPayingTokenSymbol:       "",
+				NativeAssetLiquidityAmount: big.NewInt(0),
+				LiquidityControllerOwner:   common.Address{},
+			},
+			shouldNotMutate: true,
+		},
+		{
+			name: "CGT enabled in intent with LiquidityControllerOwner set",
+			chainIntent: &state.ChainIntent{
+				CustomGasToken: state.CustomGasToken{
+					Name:                     "Custom Owner Token",
+					Symbol:                   "COT",
+					InitialLiquidity:         (*hexutil.Big)(hexutil.MustDecodeBig("0x5000000")),
+					LiquidityControllerOwner: common.HexToAddress("0x9999"),
+				},
+				Roles: state.ChainRoles{
+					L2ProxyAdminOwner: common.HexToAddress("0x8888"),
+				},
+			},
+			overrides: l2GenesisOverrides{
+				UseCustomGasToken:          false,
+				GasPayingTokenName:         "",
+				GasPayingTokenSymbol:       "",
+				NativeAssetLiquidityAmount: (*hexutil.Big)(hexutil.MustDecodeBig("0x0")),
+			},
+			expectedConfig: effectiveCGTConfig{
+				UseCustomGasToken:          true,
+				GasPayingTokenName:         "Custom Owner Token",
+				GasPayingTokenSymbol:       "COT",
+				NativeAssetLiquidityAmount: hexutil.MustDecodeBig("0x5000000"),
+				LiquidityControllerOwner:   common.HexToAddress("0x9999"),
+			},
+			shouldNotMutate: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Clone the original intent to check for mutations
+			originalCGT := tc.chainIntent.CustomGasToken
+
+			// Call resolveEffectiveCGT
+			result := resolveEffectiveCGT(tc.chainIntent, tc.overrides)
+
+			// Verify result matches expected
+			require.Equal(t, tc.expectedConfig.UseCustomGasToken, result.UseCustomGasToken)
+			require.Equal(t, tc.expectedConfig.GasPayingTokenName, result.GasPayingTokenName)
+			require.Equal(t, tc.expectedConfig.GasPayingTokenSymbol, result.GasPayingTokenSymbol)
+			// Compare big.Int values numerically (not deep equality) to avoid internal representation differences
+			require.True(t, tc.expectedConfig.NativeAssetLiquidityAmount.Cmp(result.NativeAssetLiquidityAmount) == 0,
+				"NativeAssetLiquidityAmount mismatch: expected %s, got %s",
+				tc.expectedConfig.NativeAssetLiquidityAmount.String(),
+				result.NativeAssetLiquidityAmount.String())
+			require.Equal(t, tc.expectedConfig.LiquidityControllerOwner, result.LiquidityControllerOwner)
+
+			// Verify no mutation occurred
+			if tc.shouldNotMutate {
+				require.Equal(t, originalCGT, tc.chainIntent.CustomGasToken, "resolveEffectiveCGT should not mutate the input intent")
 			}
 		})
 	}

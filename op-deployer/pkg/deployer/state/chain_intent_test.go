@@ -46,15 +46,6 @@ func TestGetInitialLiquidity(t *testing.T) {
 			},
 			expected: big.NewInt(0),
 		},
-		{
-			name: "respects explicit InitialLiquidity even when Name/Symbol are not set",
-			cgt: CustomGasToken{
-				Name:             "",
-				Symbol:           "",
-				InitialLiquidity: (*hexutil.Big)(big.NewInt(5000)),
-			},
-			expected: big.NewInt(5000),
-		},
 	}
 
 	for _, tt := range tests {

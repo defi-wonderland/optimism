@@ -82,6 +82,9 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		return fmt.Errorf("failed to calculate L2 genesis overrides: %w", err)
 	}
 
+	// Resolve effective CGT configuration without mutating the intent
+	effectiveCGT := resolveEffectiveCGT(thisIntent, overrides)
+
 	if err := script.Run(opcm.L2GenesisInput{
 		L1ChainID:                                new(big.Int).SetUint64(intent.L1ChainID),
 		L2ChainID:                                chainID.Big(),
@@ -110,11 +113,11 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		ChainFeesRecipient:                       thisIntent.ChainFeesRecipient,
 		L1FeesDepositor:                          standard.L1FeesDepositor,
 		// Custom Gas Token (CGT) configuration passed to L2Genesis script
-		UseCustomGasToken:          thisIntent.IsCustomGasTokenEnabled(),    // CGT: Enable/disable custom gas token (inferred from Name/Symbol)
-		GasPayingTokenName:         thisIntent.CustomGasToken.Name,          // CGT: Token name (e.g., "Custom Gas Token")
-		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,        // CGT: Token symbol (e.g., "CGT")
-		NativeAssetLiquidityAmount: thisIntent.GetInitialLiquidity(),        // CGT: Liquidity amount (defaults to type(uint248).max)
-		LiquidityControllerOwner:   thisIntent.GetLiquidityControllerOwner(), // CGT: LiquidityController owner (defaults to L2ProxyAdminOwner)
+		UseCustomGasToken:          effectiveCGT.UseCustomGasToken,          // CGT: Enable/disable custom gas token (inferred from Name/Symbol)
+		GasPayingTokenName:         effectiveCGT.GasPayingTokenName,         // CGT: Token name (e.g., "Custom Gas Token")
+		GasPayingTokenSymbol:       effectiveCGT.GasPayingTokenSymbol,       // CGT: Token symbol (e.g., "CGT")
+		NativeAssetLiquidityAmount: effectiveCGT.NativeAssetLiquidityAmount, // CGT: Liquidity amount (defaults to type(uint248).max)
+		LiquidityControllerOwner:   effectiveCGT.LiquidityControllerOwner,   // CGT: LiquidityController owner (defaults to L2ProxyAdminOwner)
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}
@@ -163,20 +166,14 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 		}
 	}
 
-	// If CustomGasToken is not enabled in intent, update it with override values
-	if !thisIntent.IsCustomGasTokenEnabled() && overrides.UseCustomGasToken {
-		thisIntent.CustomGasToken = state.CustomGasToken{
-			Name:             overrides.GasPayingTokenName,
-			Symbol:           overrides.GasPayingTokenSymbol,
-			InitialLiquidity: overrides.NativeAssetLiquidityAmount,
-		}
-	}
-
-	// If the intent is a standard chain, and the custom gas token is enabled, return an error
+	// Validate that standard chains don't enable custom gas token
 	if intent.ConfigType == state.IntentTypeStandard {
-		if thisIntent.IsCustomGasTokenEnabled() {
+		// Check both intent and override configurations
+		intentHasCGT := thisIntent.IsCustomGasTokenEnabled()
+		overrideHasCGT := overrides.UseCustomGasToken
+		if intentHasCGT || overrideHasCGT {
 			return l2GenesisOverrides{}, nil, fmt.Errorf(
-				"override attempted to enable custom gas token on standard chain (chainId=%s). "+
+				"custom gas token cannot be enabled on standard chain (chainId=%s). "+
 					"Standard chains must use ETH as the native gas token. "+
 					"To use a custom gas token, the intent must be created with configType=\"custom\" or \"standard-overrides\"",
 				thisIntent.ID)
@@ -188,6 +185,62 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 
 func shouldGenerateL2Genesis(thisChainState *state.ChainState) bool {
 	return thisChainState.Allocs == nil
+}
+
+// effectiveCGTConfig represents the resolved CGT configuration to pass to L2Genesis script.
+type effectiveCGTConfig struct {
+	UseCustomGasToken          bool
+	GasPayingTokenName         string
+	GasPayingTokenSymbol       string
+	NativeAssetLiquidityAmount *big.Int
+	LiquidityControllerOwner   common.Address
+}
+
+// resolveEffectiveCGT computes the effective CGT configuration without mutating the input intent.
+// It prioritizes the intent configuration, but falls back to overrides if the intent doesn't have CGT enabled.
+func resolveEffectiveCGT(thisIntent *state.ChainIntent, overrides l2GenesisOverrides) effectiveCGTConfig {
+	// If intent has CGT enabled, use intent values
+	if thisIntent.IsCustomGasTokenEnabled() {
+		return effectiveCGTConfig{
+			UseCustomGasToken:          true,
+			GasPayingTokenName:         thisIntent.CustomGasToken.Name,
+			GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,
+			NativeAssetLiquidityAmount: thisIntent.GetInitialLiquidity(),
+			LiquidityControllerOwner:   thisIntent.GetLiquidityControllerOwner(),
+		}
+	}
+
+	// If intent doesn't have CGT enabled but overrides do, use override values
+	if overrides.UseCustomGasToken {
+		liquidity := overrides.NativeAssetLiquidityAmount.ToInt()
+
+		// If liquidity is not set (nil or 0), use type(uint248).max as default
+		if liquidity == nil || liquidity.Sign() == 0 {
+			maxUint248 := new(big.Int)
+			maxUint248.SetString("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+			liquidity = maxUint248
+		}
+
+		// Use L2ProxyAdminOwner as default for LiquidityControllerOwner
+		owner := thisIntent.Roles.L2ProxyAdminOwner
+
+		return effectiveCGTConfig{
+			UseCustomGasToken:          true,
+			GasPayingTokenName:         overrides.GasPayingTokenName,
+			GasPayingTokenSymbol:       overrides.GasPayingTokenSymbol,
+			NativeAssetLiquidityAmount: liquidity,
+			LiquidityControllerOwner:   owner,
+		}
+	}
+
+	// CGT not enabled in either intent or overrides
+	return effectiveCGTConfig{
+		UseCustomGasToken:          false,
+		GasPayingTokenName:         "",
+		GasPayingTokenSymbol:       "",
+		NativeAssetLiquidityAmount: big.NewInt(0),
+		LiquidityControllerOwner:   common.Address{},
+	}
 }
 
 func wdNetworkToBig(wd genesis.WithdrawalNetwork) *big.Int {
