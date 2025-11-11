@@ -6,15 +6,11 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
 // Libraries
-import { Predeploys } from "src/libraries/Predeploys.sol";
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 // Contracts
 import { LiquidityController } from "src/L2/LiquidityController.sol";
 import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
-
-// Interfaces
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 
 /// @title LiquidityController_TestInit
 /// @notice Reusable test initialization for `LiquidityController` tests.
