@@ -43,19 +43,11 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 			},
 			chainIntent: &state.ChainIntent{},
 			expectError: false,
-			expectedOverrides: l2GenesisOverrides{
-				FundDevAccounts:                          true,
-				BaseFeeVaultMinimumWithdrawalAmount:      standard.VaultMinWithdrawalAmount,
-				L1FeeVaultMinimumWithdrawalAmount:        standard.VaultMinWithdrawalAmount,
-				SequencerFeeVaultMinimumWithdrawalAmount: standard.VaultMinWithdrawalAmount,
-				OperatorFeeVaultMinimumWithdrawalAmount:  standard.VaultMinWithdrawalAmount,
-				BaseFeeVaultWithdrawalNetwork:            "local",
-				L1FeeVaultWithdrawalNetwork:              "local",
-				SequencerFeeVaultWithdrawalNetwork:       "local",
-				OperatorFeeVaultWithdrawalNetwork:        "local",
-				EnableGovernance:                         false,
-				GovernanceTokenOwner:                     standard.GovernanceTokenOwner,
-			},
+			expectedOverrides: func() l2GenesisOverrides {
+				defaults := defaultOverrides()
+				defaults.FundDevAccounts = true
+				return defaults
+			}(),
 			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
 				return standard.DefaultHardforkScheduleForTag("")
 			},
@@ -175,6 +167,88 @@ func TestCalculateL2GenesisOverrides(t *testing.T) {
 				schedule := standard.DefaultHardforkScheduleForTag("")
 				schedule.L2GenesisInteropTimeOffset = op_service.U64UtilPtr(0)
 				return schedule
+			},
+		},
+		{
+			name: "SECURITY: reject CGT override on standard chain",
+			intent: &state.Intent{
+				ConfigType:         state.IntentTypeStandard,
+				L1ContractsLocator: &artifacts.Locator{},
+				GlobalDeployOverrides: map[string]any{
+					"useCustomGasToken":          true,
+					"gasPayingTokenName":         "MaliciousToken",
+					"gasPayingTokenSymbol":       "MAL",
+					"nativeAssetLiquidityAmount": "0x1000000",
+				},
+			},
+			chainIntent: &state.ChainIntent{
+				ID: common.HexToHash("0x1234"),
+				// CustomGasToken is intentionally NOT enabled in the base intent
+				CustomGasToken: state.CustomGasToken{},
+			},
+			expectError:       true, // Should fail security check
+			expectedOverrides: l2GenesisOverrides{},
+			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
+				return nil
+			},
+		},
+		{
+			name: "allow CGT override on custom chain",
+			intent: &state.Intent{
+				ConfigType:         state.IntentTypeCustom,
+				L1ContractsLocator: &artifacts.Locator{},
+				GlobalDeployOverrides: map[string]any{
+					"useCustomGasToken":          true,
+					"gasPayingTokenName":         "CustomToken",
+					"gasPayingTokenSymbol":       "CTK",
+					"nativeAssetLiquidityAmount": "0x1000000",
+				},
+			},
+			chainIntent: &state.ChainIntent{
+				// CustomGasToken is NOT enabled in base intent, but should be allowed for custom chains
+				CustomGasToken: state.CustomGasToken{},
+			},
+			expectError: false, // Should succeed for custom chains
+			expectedOverrides: func() l2GenesisOverrides {
+				defaults := defaultOverrides()
+				defaults.UseCustomGasToken = true
+				defaults.GasPayingTokenName = "CustomToken"
+				defaults.GasPayingTokenSymbol = "CTK"
+				defaults.NativeAssetLiquidityAmount = (*hexutil.Big)(hexutil.MustDecodeBig("0x1000000"))
+				return defaults
+			}(),
+			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
+				return standard.DefaultHardforkScheduleForTag("")
+			},
+		},
+		{
+			name: "allow CGT override on standard-overrides chain",
+			intent: &state.Intent{
+				ConfigType:         state.IntentTypeStandardOverrides,
+				L1ContractsLocator: &artifacts.Locator{},
+				GlobalDeployOverrides: map[string]any{
+					"useCustomGasToken":          true,
+					"gasPayingTokenName":         "OverrideToken",
+					"gasPayingTokenSymbol":       "OVR",
+					"nativeAssetLiquidityAmount": "0x2000000",
+					"liquidityControllerOwner":   "0x1111111111111111111111111111111111111111",
+				},
+			},
+			chainIntent: &state.ChainIntent{
+				// CustomGasToken is NOT enabled in base intent, but should be allowed for standard-overrides
+				CustomGasToken: state.CustomGasToken{},
+			},
+			expectError: false, // Should succeed for standard-overrides chains
+			expectedOverrides: func() l2GenesisOverrides {
+				defaults := defaultOverrides()
+				defaults.UseCustomGasToken = true
+				defaults.GasPayingTokenName = "OverrideToken"
+				defaults.GasPayingTokenSymbol = "OVR"
+				defaults.NativeAssetLiquidityAmount = (*hexutil.Big)(hexutil.MustDecodeBig("0x2000000"))
+				return defaults
+			}(),
+			expectedSchedule: func() *genesis.UpgradeScheduleDeployConfig {
+				return standard.DefaultHardforkScheduleForTag("")
 			},
 		},
 	}

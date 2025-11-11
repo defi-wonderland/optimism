@@ -172,6 +172,17 @@ func calculateL2GenesisOverrides(intent *state.Intent, thisIntent *state.ChainIn
 		}
 	}
 
+	// If the intent is a standard chain, and the custom gas token is enabled, return an error
+	if intent.ConfigType == state.IntentTypeStandard {
+		if thisIntent.IsCustomGasTokenEnabled() {
+			return l2GenesisOverrides{}, nil, fmt.Errorf(
+				"override attempted to enable custom gas token on standard chain (chainId=%s). "+
+					"Standard chains must use ETH as the native gas token. "+
+					"To use a custom gas token, the intent must be created with configType=\"custom\" or \"standard-overrides\"",
+				thisIntent.ID)
+		}
+	}
+
 	return overrides, schedule, nil
 }
 
