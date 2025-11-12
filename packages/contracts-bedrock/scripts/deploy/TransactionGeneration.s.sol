@@ -89,7 +89,7 @@ contract TransactionGeneration is Script {
     /// @param _input The input struct containing chain configuration and deployment parameters
     /// @return Output struct containing the generated transactions, L2CM address, and changed predeploys
     function run(Input memory _input) external returns (Output memory) {
-        helper = new PredeployHelper(uint256(Config.fork()), Config.fork() >= Fork.INTEROP);
+        helper = new PredeployHelper();
 
         // Set the L2ImplementationsDeployer address from input
         l2ImplDeployerAddress = _input.l2ImplDeployerAddress;
@@ -100,8 +100,12 @@ contract TransactionGeneration is Script {
         // Generate deployment transactions for each changed predeploy implementations
         generateDeploymentTransactions(_input.hardForkName, predeploys);
 
+        address[] memory predeploysAddresses = new address[](predeploys.length);
+        for (uint256 i = 0; i < predeploysAddresses.length; i++) {
+            predeploysAddresses[i] = predeploys[i].implementation;
+        }
         // Generate the L2ContractsManager deployment transaction
-        address l2cmAddress = generateL2ContractsManagerDeploymentTransaction(_input.hardForkName, _input.l2cmName);
+        address l2cmAddress = generateL2ContractsManagerDeploymentTransaction(_input, predeploysAddresses);
 
         // Generate L2ContractsManager execute transaction
         generateL2ContractsManagerExecuteTransaction(_input.hardForkName, _input.l2cmName, l2cmAddress, predeploys);
@@ -144,28 +148,34 @@ contract TransactionGeneration is Script {
 
     /// @notice Generates a deployment transaction for the L2ContractsManager using L2ImplementationsDeployer
     /// @dev The L2ContractsManager is deployed via the L2ImplementationsDeployer with a salt derived from its name
-    /// @param _hardForkName The name of the hard fork
-    /// @param _l2cmName The name of the L2ContractsManager contract to deploy
     function generateL2ContractsManagerDeploymentTransaction(
-        string memory _hardForkName,
-        string memory _l2cmName
+        TransactionGeneration.Input memory _input,
+        address[] memory predeploysAddresses
     )
         internal
         returns (address l2cmAddress)
     {
-        bytes32 salt = keccak256(abi.encode(_hardForkName, _l2cmName));
-        l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(vm.getCode(_l2cmName)));
+        l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
+            keccak256(abi.encode(_input.hardForkName, _input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
+        );
         // Generate the L2ContractsManager deployment transaction
         txns.push(
             NetworkUpgradeTxns.newTx({
-                intent: string.concat(_hardForkName, ": ", _l2cmName, " Deployment"),
+                intent: string.concat(_input.hardForkName, ": ", _input.l2cmName, " Deployment"),
                 from: address(0),
                 to: l2ImplDeployerAddress,
                 mint: 0,
                 value: 0,
                 gas: 1_000_000,
                 isSystemTransaction: false,
-                data: abi.encodeCall(L2ImplementationsDeployer.deploy, (0, salt, vm.getCode(_l2cmName)))
+                data: abi.encodeCall(
+                    L2ImplementationsDeployer.deploy,
+                    (
+                        0,
+                        keccak256(abi.encode(_input.hardForkName, _input.l2cmName)),
+                        abi.encodePacked(vm.getCode(_input.l2cmName), abi.encode(predeploysAddresses))
+                    )
+                )
             })
         );
     }
@@ -205,7 +215,7 @@ contract TransactionGeneration is Script {
                 value: 0,
                 gas: type(uint64).max,
                 isSystemTransaction: false,
-                data: abi.encodeCall(ProxyAdmin.performDelegateCall, (_l2cmAddress, proxyUpgrades))
+                data: abi.encodeCall(ProxyAdmin.performDelegateCall, (_l2cmAddress))
             })
         );
     }

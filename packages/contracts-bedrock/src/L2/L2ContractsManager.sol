@@ -17,11 +17,10 @@ abstract contract L2ContractsManager {
     }
 
     /// @notice Executes the NUT with before/after hooks.
-    /// @param proxyUpgrades Data for the proxy upgrades.
     /// @return Return data from the execution.
-    function execute(ProxyUpgrade[] memory proxyUpgrades) external returns (bytes memory) {
+    function execute() external returns (bytes memory) {
         _beforeExecution();
-        bytes memory returnData = _performUpgrades(proxyUpgrades);
+        bytes memory returnData = _performUpgrades();
         _afterExecution(returnData);
         return returnData;
     }
@@ -34,13 +33,6 @@ abstract contract L2ContractsManager {
     function _afterExecution(bytes memory returnData) internal virtual;
 
     /// @notice Performs the proxy upgrades logic.
-    /// @param proxyUpgrades Data for the proxy upgrades.
     /// @return returnData Return data from the execution.
-    function _performUpgrades(ProxyUpgrade[] memory proxyUpgrades) internal virtual returns (bytes memory returnData) {
-        for (uint256 i = 0; i < proxyUpgrades.length; i++) {
-            IProxy(payable(proxyUpgrades[i].proxy)).upgradeTo(proxyUpgrades[i].implementation);
-        }
-
-        return abi.encode(true);
-    }
+    function _performUpgrades() internal virtual returns (bytes memory returnData) { }
 }

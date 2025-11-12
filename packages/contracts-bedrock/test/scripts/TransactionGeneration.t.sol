@@ -12,6 +12,7 @@ import { Constants } from "src/libraries/Constants.sol";
 import { XForkContractsManager } from "src/L2/XForkContractsManager.sol";
 import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+import { Fork } from "scripts/libraries/Config.sol";
 
 contract TransactionGenerationTest is Test {
     TransactionGeneration public transactionGeneration;
@@ -131,29 +132,21 @@ contract TransactionGenerationTest is Test {
         // Verify the function selector is correct
         assertEq(selector, ProxyAdmin.performDelegateCall.selector);
 
-        // Decode the parameters
-        (, L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades) = _decodeProxyUpgrades(callData);
+        // Decode the target address from performDelegateCall
+        address target = _decodeTarget(callData);
 
-        // Assert that counts match (subtract 2: L2ContractsManager, Execute)
-        assertEq(
-            txns.length - 2,
-            proxyUpgrades.length,
-            "Number of predeploy deployments should match ProxyUpgrade array length"
-        );
+        // Verify target is a valid address
+        assertTrue(target != address(0), "Target address should not be zero");
     }
 
-    function _decodeProxyUpgrades(bytes memory callData)
-        internal
-        pure
-        returns (address, L2ContractsManager.ProxyUpgrade[] memory)
-    {
+    function _decodeTarget(bytes memory callData) internal pure returns (address) {
         // Create new bytes array without selector for decoding
         bytes memory params = new bytes(callData.length - 4);
         for (uint256 i = 0; i < params.length; i++) {
             params[i] = callData[i + 4];
         }
 
-        return abi.decode(params, (address, L2ContractsManager.ProxyUpgrade[]));
+        return abi.decode(params, (address));
     }
 
     /// @notice Test that running the upgrade twice results in the same implementations (idempotency).
