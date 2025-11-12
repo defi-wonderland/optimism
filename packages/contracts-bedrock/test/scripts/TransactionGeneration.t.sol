@@ -13,6 +13,7 @@ import { XForkContractsManager } from "src/L2/XForkContractsManager.sol";
 import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Fork } from "scripts/libraries/Config.sol";
+import { PredeployHelper } from "scripts/deploy/PredeployHelper.sol";
 
 contract TransactionGenerationTest is Test {
     TransactionGeneration public transactionGeneration;
@@ -73,6 +74,29 @@ contract TransactionGenerationTest is Test {
                 output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
             assertTrue(success, string.concat("Transaction ", vm.toString(i), " should succeed"));
         }
+
+        for (uint256 i = 0; i < output.predeploys.length; i++) {
+            assertEq(
+                ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(output.predeploys[i].proxy),
+                output.predeploys[i].implementation,
+                string.concat("Predeploy ", output.predeploys[i].name, " should have correct implementation")
+            );
+            if (!_hasConstructor(output.predeploys[i].proxy)) {
+                assertEq(
+                    output.predeploys[i].implementation.code,
+                    vm.getDeployedCode(output.predeploys[i].name),
+                    string.concat(
+                        "Predeploy", vm.toString(i), " ", output.predeploys[i].name, " should have correct code"
+                    )
+                );
+            }
+        }
+    }
+
+    function _hasConstructor(address _proxy) internal pure returns (bool) {
+        return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
+            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
+            || _proxy == Predeploys.OPERATOR_FEE_VAULT || _proxy == Predeploys.EAS;
     }
 
     /// @notice Test that the upgrade transaction structure is correct.

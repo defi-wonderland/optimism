@@ -155,9 +155,12 @@ contract TransactionGeneration is Script {
         internal
         returns (address l2cmAddress)
     {
-        l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(
-            keccak256(abi.encode(_input.hardForkName, _input.l2cmName)), keccak256(vm.getCode(_input.l2cmName))
-        );
+        bytes memory constructorArgs = _encodeL2CMConstructorArgs(predeploysAddresses);
+        bytes memory initCode = abi.encodePacked(vm.getCode(_input.l2cmName), constructorArgs);
+        bytes32 salt = keccak256(abi.encode(_input.hardForkName, _input.l2cmName));
+
+        l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(salt, keccak256(initCode));
+
         // Generate the L2ContractsManager deployment transaction
         txns.push(
             NetworkUpgradeTxns.newTx({
@@ -168,16 +171,22 @@ contract TransactionGeneration is Script {
                 value: 0,
                 gas: 1_000_000,
                 isSystemTransaction: false,
-                data: abi.encodeCall(
-                    L2ImplementationsDeployer.deploy,
-                    (
-                        0,
-                        keccak256(abi.encode(_input.hardForkName, _input.l2cmName)),
-                        abi.encodePacked(vm.getCode(_input.l2cmName), abi.encode(predeploysAddresses))
-                    )
-                )
+                data: abi.encodeCall(L2ImplementationsDeployer.deploy, (0, salt, initCode))
             })
         );
+    }
+
+    /// @notice Helper function to encode constructor arguments for L2ContractsManager
+    /// @dev Uses assembly to avoid stack too deep errors
+    function _encodeL2CMConstructorArgs(address[] memory addrs) internal pure returns (bytes memory result) {
+        result = new bytes(32 * 17);
+        assembly {
+            let ptr := add(result, 32)
+            for { let i := 0 } lt(i, 17) { i := add(i, 1) } {
+                let addr := mload(add(add(addrs, 32), mul(i, 32)))
+                mstore(add(ptr, mul(i, 32)), addr)
+            }
+        }
     }
 
     /// @notice Generates a transaction that executes the L2ContractsManager via ProxyAdmin to upgrade predeploys
