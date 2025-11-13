@@ -934,12 +934,14 @@ contract SystemConfig_SetDAFootprintGasScalar_Test is SystemConfig_TestInit {
 contract SystemConfig_IsCustomGasToken_Test is SystemConfig_TestInit {
     /// @notice Tests that `isCustomGasToken` returns the correct value.
     function test_isCustomGasToken_enabled_succeeds() external {
+        skipIfForkTest("Skipping on forked tests because CGT is not available");
         skipIfDevFeatureDisabled(DevFeatures.CUSTOM_GAS_TOKEN);
         assertTrue(systemConfig.isCustomGasToken());
     }
 
     /// @notice Tests that `isCustomGasToken` returns the correct value.
     function test_isCustomGasToken_disabled_succeeds() external {
+        skipIfForkTest("Skipping on forked tests because CGT is not available");
         skipIfDevFeatureEnabled(DevFeatures.CUSTOM_GAS_TOKEN);
         assertFalse(systemConfig.isCustomGasToken());
     }

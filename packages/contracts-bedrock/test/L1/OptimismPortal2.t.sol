@@ -241,10 +241,13 @@ contract OptimismPortal2_Initialize_Test is OptimismPortal2_TestInit {
         } else {
             assertEq(address(optimismPortal2.ethLockbox()), address(0));
         }
-        if (isUsingCustomGasToken()) {
-            assertTrue(optimismPortal2.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
-        } else if (!isUsingLockbox()) {
-            assertFalse(optimismPortal2.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
+
+        if (!isForkTest()) {
+            if (isUsingCustomGasToken()) {
+                assertTrue(optimismPortal2.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
+            } else if (!isUsingLockbox()) {
+                assertFalse(optimismPortal2.systemConfig().isFeatureEnabled(Features.CUSTOM_GAS_TOKEN));
+            }
         }
 
         returnIfForkTest(
@@ -721,6 +724,11 @@ contract OptimismPortal2_Receive_Test is OptimismPortal2_TestInit {
     /// @notice Tests that `receive` reverts when custom gas token is enabled
     function testFuzz_receive_customGasToken_reverts(uint256 _value) external {
         skipIfDevFeatureDisabled(DevFeatures.CUSTOM_GAS_TOKEN);
+
+        if (isForkTest()) {
+            skipIfSysFeatureDisabled(Features.CUSTOM_GAS_TOKEN);
+        }
+
         _value = bound(_value, 1, type(uint128).max);
         vm.deal(alice, _value);
 
