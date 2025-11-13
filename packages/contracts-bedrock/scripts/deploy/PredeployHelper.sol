@@ -33,8 +33,6 @@ contract PredeployHelper is Script {
 
     /// @notice Constructor for the PredeployHelper.
     constructor() {
-        // predeploys = new Predeploy[](17);
-
         predeploys[0].proxy = Predeploys.LEGACY_MESSAGE_PASSER; // 0: LegacyMessagePasser
         predeploys[1].proxy = Predeploys.DEPLOYER_WHITELIST; // 1: DeployerWhitelist
         predeploys[2].proxy = Predeploys.L2_CROSS_DOMAIN_MESSENGER; // 2: L2CrossDomainMessenger
