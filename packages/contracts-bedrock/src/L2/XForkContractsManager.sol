@@ -14,9 +14,6 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 /// @notice The XForkContractsManager is responsible for orquestrating the upgrades of the L2 contracts during xFork
 /// hardforks.
 contract XForkContractsManager is L2ContractsManager {
-    /// @notice Thrown when any implementation address is zero.
-    error InvalidInput();
-
     /// @notice Configuration for all L2 predeploy implementation addresses.
     /// @param legacyMessagePasserImplementation Implementation for LegacyMessagePasser.
     /// @param deployerWhitelistImplementation Implementation for DeployerWhitelist.
@@ -110,23 +107,6 @@ contract XForkContractsManager is L2ContractsManager {
     /// @dev Reverts if any implementation address is zero.
     /// @param _input Configuration containing all implementation addresses.
     constructor(Input memory _input) {
-        if (
-            _input.legacyMessagePasserImplementation == address(0)
-                || _input.deployerWhitelistImplementation == address(0)
-                || _input.l2CrossDomainMessengerImplementation == address(0)
-                || _input.gasPriceOracleImplementation == address(0) || _input.l2StandardBridgeImplementation == address(0)
-                || _input.sequencerFeeWalletImplementation == address(0)
-                || _input.optimismMintableERC20FactoryImplementation == address(0)
-                || _input.l1BlockNumberImplementation == address(0) || _input.l2ERC721BridgeImplementation == address(0)
-                || _input.l1BlockAttributesImplementation == address(0)
-                || _input.l2ToL1MessagePasserImplementation == address(0)
-                || _input.optimismMintableERC721FactoryImplementation == address(0)
-                || _input.baseFeeVaultImplementation == address(0) || _input.l1FeeVaultImplementation == address(0)
-                || _input.operatorFeeVaultImplementation == address(0) || _input.schemaRegistryImplementation == address(0)
-                || _input.easImplementation == address(0)
-        ) {
-            revert InvalidInput();
-        }
         LEGACY_MESSAGE_PASSER_IMPLEMENTATION = _input.legacyMessagePasserImplementation;
         DEPLOYER_WHITELIST_IMPLEMENTATION = _input.deployerWhitelistImplementation;
         L2_CROSS_DOMAIN_MESSENGER_IMPLEMENTATION = _input.l2CrossDomainMessengerImplementation;
