@@ -263,13 +263,16 @@ contract LiquidityController_Burn_Test is LiquidityController_TestInit {
 /// @notice Tests the `initialize` function of the `LiquidityController` contract.
 contract LiquidityController_Initialize_Test is LiquidityController_TestInit {
     /// @notice Tests that calling initialize on the implementation contract reverts.
-    function test_initialize_implementation_reverts() public {
+    function testFuzz_initialize_implementation_reverts(address _owner) public {
         // Deploy a new implementation contract directly (not through proxy)
         LiquidityController implementation = new LiquidityController();
 
         // Try to initialize the implementation contract directly
         // This should revert because _disableInitializers() was called in the constructor
         vm.expectRevert("Initializable: contract is already initialized");
-        implementation.initialize(address(this), "Test Token", "TEST");
+        implementation.initialize(_owner, "Test Token", "TEST");
+
+        // Assert owner is set correctly
+        assertNotEq(implementation.owner(), _owner);
     }
 }
