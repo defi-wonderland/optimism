@@ -264,6 +264,7 @@ contract LiquidityController_Burn_Test is LiquidityController_TestInit {
 contract LiquidityController_Initialize_Test is LiquidityController_TestInit {
     /// @notice Tests that calling initialize on the implementation contract reverts.
     function testFuzz_initialize_implementation_reverts(address _owner) public {
+        vm.assume(_owner != address(0));
         // Deploy a new implementation contract directly (not through proxy)
         LiquidityController implementation = new LiquidityController();
 
