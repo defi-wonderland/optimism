@@ -102,7 +102,7 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		UseRevenueShare:                          thisIntent.UseRevenueShare,
 		ChainFeesRecipient:                       thisIntent.ChainFeesRecipient,
 		L1FeesDepositor:                          standard.L1FeesDepositor,
-		// Custom Gas Token (CGT) configuration from intent only (no overrides)
+		// Custom Gas Token (CGT) configuration from intent
 		UseCustomGasToken:          thisIntent.IsCustomGasTokenEnabled(),
 		GasPayingTokenName:         thisIntent.CustomGasToken.Name,
 		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,
