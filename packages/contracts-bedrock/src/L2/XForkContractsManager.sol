@@ -14,46 +14,101 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 /// @notice The XForkContractsManager is responsible for orquestrating the upgrades of the L2 contracts during xFork
 /// hardforks.
 contract XForkContractsManager is L2ContractsManager {
+    /// @notice Thrown when any implementation address is zero.
     error InvalidInput();
 
+    /// @notice Configuration for all L2 predeploy implementation addresses.
+    /// @param legacyMessagePasserImplementation Implementation for LegacyMessagePasser.
+    /// @param deployerWhitelistImplementation Implementation for DeployerWhitelist.
+    /// @param l2CrossDomainMessengerImplementation Implementation for L2CrossDomainMessenger.
+    /// @param gasPriceOracleImplementation Implementation for GasPriceOracle.
+    /// @param l2StandardBridgeImplementation Implementation for L2StandardBridge.
+    /// @param sequencerFeeWalletImplementation Implementation for SequencerFeeWallet.
+    /// @param optimismMintableERC20FactoryImplementation Implementation for OptimismMintableERC20Factory.
+    /// @param l1BlockNumberImplementation Implementation for L1BlockNumber.
+    /// @param l2ERC721BridgeImplementation Implementation for L2ERC721Bridge.
+    /// @param l1BlockAttributesImplementation Implementation for L1Block.
+    /// @param l2ToL1MessagePasserImplementation Implementation for L2ToL1MessagePasser.
+    /// @param optimismMintableERC721FactoryImplementation Implementation for OptimismMintableERC721Factory.
+    /// @param baseFeeVaultImplementation Implementation for BaseFeeVault.
+    /// @param l1FeeVaultImplementation Implementation for L1FeeVault.
+    /// @param operatorFeeVaultImplementation Implementation for OperatorFeeVault.
+    /// @param schemaRegistryImplementation Implementation for SchemaRegistry.
+    /// @param easImplementation Implementation for EAS.
     struct Input {
-        address legacyMessagePasserImplementation; // 0: LegacyMessagePasser
-        address deployerWhitelistImplementation; // 1: DeployerWhitelist
-        address l2CrossDomainMessengerImplementation; // 2: L2CrossDomainMessenger
-        address gasPriceOracleImplementation; // 3: GasPriceOracle
-        address l2StandardBridgeImplementation; // 4: L2StandardBridge
-        address sequencerFeeWalletImplementation; // 5: SequencerFeeWallet
-        address optimismMintableERC20FactoryImplementation; // 6: OptimismMintableERC20Factory
-        address l1BlockNumberImplementation; // 7: L1BlockNumber
-        address l2ERC721BridgeImplementation; // 8: L2ERC721Bridge
-        address l1BlockAttributesImplementation; // 9: L1Block
-        address l2ToL1MessagePasserImplementation; // 10: L2ToL1MessagePasser
-        address optimismMintableERC721FactoryImplementation; // 11: OptimismMintableERC721Factory
-        address baseFeeVaultImplementation; // 12: BaseFeeVault
-        address l1FeeVaultImplementation; // 13: L1FeeVault
-        address operatorFeeVaultImplementation; // 14: OperatorFeeVault
-        address schemaRegistryImplementation; // 15: SchemaRegistry
-        address easImplementation; // 16: EAS
+        address legacyMessagePasserImplementation;
+        address deployerWhitelistImplementation;
+        address l2CrossDomainMessengerImplementation;
+        address gasPriceOracleImplementation;
+        address l2StandardBridgeImplementation;
+        address sequencerFeeWalletImplementation;
+        address optimismMintableERC20FactoryImplementation;
+        address l1BlockNumberImplementation;
+        address l2ERC721BridgeImplementation;
+        address l1BlockAttributesImplementation;
+        address l2ToL1MessagePasserImplementation;
+        address optimismMintableERC721FactoryImplementation;
+        address baseFeeVaultImplementation;
+        address l1FeeVaultImplementation;
+        address operatorFeeVaultImplementation;
+        address schemaRegistryImplementation;
+        address easImplementation;
     }
 
+    /// @notice Implementation address for LegacyMessagePasser.
     address internal immutable LEGACY_MESSAGE_PASSER_IMPLEMENTATION;
+
+    /// @notice Implementation address for DeployerWhitelist.
     address internal immutable DEPLOYER_WHITELIST_IMPLEMENTATION;
+
+    /// @notice Implementation address for L2CrossDomainMessenger.
     address internal immutable L2_CROSS_DOMAIN_MESSENGER_IMPLEMENTATION;
+
+    /// @notice Implementation address for GasPriceOracle.
     address internal immutable GAS_PRICE_ORACLE_IMPLEMENTATION;
+
+    /// @notice Implementation address for L2StandardBridge.
     address internal immutable L2_STANDARD_BRIDGE_IMPLEMENTATION;
+
+    /// @notice Implementation address for SequencerFeeWallet.
     address internal immutable SEQUENCER_FEE_WALLET_IMPLEMENTATION;
+
+    /// @notice Implementation address for OptimismMintableERC20Factory.
     address internal immutable OPTIMISM_MINTABLE_ERC20_FACTORY_IMPLEMENTATION;
+
+    /// @notice Implementation address for L1BlockNumber.
     address internal immutable L1_BLOCK_NUMBER_IMPLEMENTATION;
+
+    /// @notice Implementation address for L2ERC721Bridge.
     address internal immutable L2_ERC721_BRIDGE_IMPLEMENTATION;
+
+    /// @notice Implementation address for L1BlockAttributes.
     address internal immutable L1_BLOCK_ATTRIBUTES_IMPLEMENTATION;
+
+    /// @notice Implementation address for L2ToL1MessagePasser.
     address internal immutable L2_TO_L1_MESSAGE_PASSER_IMPLEMENTATION;
+
+    /// @notice Implementation address for OptimismMintableERC721Factory.
     address internal immutable OPTIMISM_MINTABLE_ERC721_FACTORY_IMPLEMENTATION;
+
+    /// @notice Implementation address for BaseFeeVault.
     address internal immutable BASE_FEE_VAULT_IMPLEMENTATION;
+
+    /// @notice Implementation address for L1FeeVault.
     address internal immutable L1_FEE_VAULT_IMPLEMENTATION;
+
+    /// @notice Implementation address for OperatorFeeVault.
     address internal immutable OPERATOR_FEE_VAULT_IMPLEMENTATION;
+
+    /// @notice Implementation address for SchemaRegistry.
     address internal immutable SCHEMA_REGISTRY_IMPLEMENTATION;
+
+    /// @notice Implementation address for EAS.
     address internal immutable EAS_IMPLEMENTATION;
 
+    /// @notice Constructs the XForkContractsManager with implementation addresses.
+    /// @dev Reverts if any implementation address is zero.
+    /// @param _input Configuration containing all implementation addresses.
     constructor(Input memory _input) {
         if (
             _input.legacyMessagePasserImplementation == address(0)
@@ -97,6 +152,7 @@ contract XForkContractsManager is L2ContractsManager {
     /// @notice Hook called after execution.
     function _afterExecution() internal override { }
 
+    /// @notice Performs upgrades for all L2 predeploy contracts.
     function _performUpgrades() internal override {
         IProxy(payable(Predeploys.LEGACY_MESSAGE_PASSER)).upgradeTo(LEGACY_MESSAGE_PASSER_IMPLEMENTATION);
         IProxy(payable(Predeploys.DEPLOYER_WHITELIST)).upgradeTo(DEPLOYER_WHITELIST_IMPLEMENTATION);
