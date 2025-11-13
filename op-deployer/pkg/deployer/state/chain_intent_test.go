@@ -38,13 +38,13 @@ func TestGetInitialLiquidity(t *testing.T) {
 			expected: big.NewInt(1000),
 		},
 		{
-			name: "returns zero when CustomGasToken is not enabled",
+			name: "returns nil when CustomGasToken is not enabled",
 			cgt: CustomGasToken{
 				Name:             "",
 				Symbol:           "",
 				InitialLiquidity: nil,
 			},
-			expected: big.NewInt(0),
+			expected: nil,
 		},
 	}
 

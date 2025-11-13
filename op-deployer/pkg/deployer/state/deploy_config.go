@@ -174,6 +174,20 @@ func CombineDeployConfig(intent *Intent, chainIntent *ChainIntent, state *State,
 		}
 	}
 
+	// After applying overrides, if CGT is enabled but NativeAssetLiquidityAmount is nil or 0,
+	// set it to type(uint248).max as the default
+	if cfg.UseCustomGasToken {
+		if cfg.NativeAssetLiquidityAmount == nil || cfg.NativeAssetLiquidityAmount.ToInt().Sign() == 0 {
+			maxUint248 := new(big.Int)
+			maxUint248.SetString("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+			cfg.NativeAssetLiquidityAmount = (*hexutil.Big)(maxUint248)
+		}
+		// If LiquidityControllerOwner is not set, default to L2ProxyAdminOwner
+		if cfg.LiquidityControllerOwner == (common.Address{}) {
+			cfg.LiquidityControllerOwner = chainIntent.Roles.L2ProxyAdminOwner
+		}
+	}
+
 	if err := cfg.Check(log.New(log.DiscardHandler())); err != nil {
 		return cfg, fmt.Errorf("combined deploy config failed validation: %w", err)
 	}

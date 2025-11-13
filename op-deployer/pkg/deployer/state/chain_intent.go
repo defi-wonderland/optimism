@@ -184,7 +184,8 @@ func (c *ChainIntent) GetInitialLiquidity() *big.Int {
 		return maxUint248
 	}
 
-	return (*hexutil.Big)(big.NewInt(0)).ToInt()
+	// Return nil when CGT is not enabled so that overrides can properly set it later
+	return nil
 }
 
 // GetLiquidityControllerOwner returns the owner of the LiquidityController.
