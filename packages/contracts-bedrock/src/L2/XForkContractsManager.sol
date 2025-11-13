@@ -95,9 +95,9 @@ contract XForkContractsManager is L2ContractsManager {
     function _beforeExecution() internal override { }
 
     /// @notice Hook called after execution.
-    function _afterExecution(bytes memory returnData) internal override { }
+    function _afterExecution() internal override { }
 
-    function _performUpgrades() internal override returns (bytes memory returnData) {
+    function _performUpgrades() internal override {
         IProxy(payable(Predeploys.LEGACY_MESSAGE_PASSER)).upgradeTo(LEGACY_MESSAGE_PASSER_IMPLEMENTATION);
         IProxy(payable(Predeploys.DEPLOYER_WHITELIST)).upgradeTo(DEPLOYER_WHITELIST_IMPLEMENTATION);
         IProxy(payable(Predeploys.L2_CROSS_DOMAIN_MESSENGER)).upgradeTo(L2_CROSS_DOMAIN_MESSENGER_IMPLEMENTATION);
@@ -119,6 +119,5 @@ contract XForkContractsManager is L2ContractsManager {
         IProxy(payable(Predeploys.OPERATOR_FEE_VAULT)).upgradeTo(OPERATOR_FEE_VAULT_IMPLEMENTATION);
         IProxy(payable(Predeploys.SCHEMA_REGISTRY)).upgradeTo(SCHEMA_REGISTRY_IMPLEMENTATION);
         IProxy(payable(Predeploys.EAS)).upgradeTo(EAS_IMPLEMENTATION);
-        return abi.encode(true);
     }
 }
