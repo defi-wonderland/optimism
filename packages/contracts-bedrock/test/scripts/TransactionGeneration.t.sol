@@ -14,12 +14,15 @@ import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Fork } from "scripts/libraries/Config.sol";
 import { PredeployHelper } from "scripts/deploy/PredeployHelper.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
 
 contract TransactionGenerationTest is Test {
     TransactionGeneration public transactionGeneration;
 
     /// @notice Address where L2ImplementationsDeployer is etched
     address constant L2_IMPLEMENTATIONS_DEPLOYER = 0x4200000000000000000000000000000000000420;
+
+    event Upgraded(address indexed implementation);
 
     function setUp() public {
         vm.createSelectFork(Config.forkRpcUrl());
@@ -70,6 +73,12 @@ contract TransactionGenerationTest is Test {
         // Execute all transactions
         for (uint256 i = 0; i < output.txns.length; i++) {
             vm.prank(output.txns[i].from);
+            if (output.txns[i].to == Predeploys.PROXY_ADMIN) {
+                for (uint256 k = 0; k < output.predeploys.length; k++) {
+                    vm.expectEmit(output.predeploys[k].proxy);
+                    emit Upgraded(output.predeploys[k].implementation);
+                }
+            }
             (bool success,) =
                 output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
             assertTrue(success, string.concat("Transaction ", vm.toString(i), " should succeed"));
