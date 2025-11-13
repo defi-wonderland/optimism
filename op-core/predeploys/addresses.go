@@ -30,8 +30,6 @@ const (
 	L2toL2CrossDomainMessenger     = "0x4200000000000000000000000000000000000023"
 	SuperchainETHBridge            = "0x4200000000000000000000000000000000000024"
 	ETHLiquidity                   = "0x4200000000000000000000000000000000000025"
-	OptimismSuperchainERC20Factory = "0x4200000000000000000000000000000000000026"
-	OptimismSuperchainERC20Beacon  = "0x4200000000000000000000000000000000000027"
 	SuperchainTokenBridge          = "0x4200000000000000000000000000000000000028"
 	NativeAssetLiquidity           = "0x4200000000000000000000000000000000000029"
 	LiquidityController            = "0x420000000000000000000000000000000000002a"
@@ -76,8 +74,6 @@ var (
 	L2toL2CrossDomainMessengerAddr     = common.HexToAddress(L2toL2CrossDomainMessenger)
 	SuperchainETHBridgeAddr            = common.HexToAddress(SuperchainETHBridge)
 	ETHLiquidityAddr                   = common.HexToAddress(ETHLiquidity)
-	OptimismSuperchainERC20FactoryAddr = common.HexToAddress(OptimismSuperchainERC20Factory)
-	OptimismSuperchainERC20BeaconAddr  = common.HexToAddress(OptimismSuperchainERC20Beacon)
 	SuperchainTokenBridgeAddr          = common.HexToAddress(SuperchainTokenBridge)
 	NativeAssetLiquidityAddr           = common.HexToAddress(NativeAssetLiquidity)
 	LiquidityControllerAddr            = common.HexToAddress(LiquidityController)
@@ -115,8 +111,6 @@ func init() {
 	Predeploys["L2toL2CrossDomainMessenger"] = &Predeploy{Address: L2toL2CrossDomainMessengerAddr}
 	Predeploys["SuperchainETHBridge"] = &Predeploy{Address: SuperchainETHBridgeAddr}
 	Predeploys["ETHLiquidity"] = &Predeploy{Address: ETHLiquidityAddr}
-	Predeploys["OptimismSuperchainERC20Factory"] = &Predeploy{Address: OptimismSuperchainERC20FactoryAddr}
-	Predeploys["OptimismSuperchainERC20Beacon"] = &Predeploy{Address: OptimismSuperchainERC20BeaconAddr}
 	Predeploys["SuperchainTokenBridge"] = &Predeploy{Address: SuperchainTokenBridgeAddr}
 	Predeploys["NativeAssetLiquidity"] = &Predeploy{Address: NativeAssetLiquidityAddr}
 	Predeploys["LiquidityController"] = &Predeploy{Address: LiquidityControllerAddr}

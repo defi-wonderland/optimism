@@ -29,8 +29,6 @@ var (
 	L2ToL2CrossDomainMessenger     types.Address = common.HexToAddress("0x4200000000000000000000000000000000000023")
 	SuperchainETHBridge            types.Address = common.HexToAddress("0x4200000000000000000000000000000000000024")
 	ETHLiquidity                   types.Address = common.HexToAddress("0x4200000000000000000000000000000000000025")
-	OptimismSuperchainERC20Factory types.Address = common.HexToAddress("0x4200000000000000000000000000000000000026")
-	OptimismSuperchainERC20Beacon  types.Address = common.HexToAddress("0x4200000000000000000000000000000000000027")
 	SuperchainTokenBridge          types.Address = common.HexToAddress("0x4200000000000000000000000000000000000028")
 	NativeAssetLiquidity           types.Address = common.HexToAddress("0x4200000000000000000000000000000000000029")
 	LiquidityController            types.Address = common.HexToAddress("0x420000000000000000000000000000000000002a")
