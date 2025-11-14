@@ -33,38 +33,12 @@ contract TransactionGeneration is Script {
 
     /// @notice Input struct for the script.
     /// @param l2ChainID The ID of the L2 chain.
-    /// @param l1ChainID The ID of the L1 chain.
-    /// @param l1CrossDomainMessengerProxy The address of the L1 Cross Domain Messenger proxy.
-    /// @param l1StandardBridgeProxy The address of the L1 Standard Bridge proxy.
     /// @param l1ERC721BridgeProxy The address of the L1 ERC721 Bridge proxy.
-    /// @param opChainProxyAdminOwner The address of the OP Chain Proxy Admin owner.
-    /// @param sequencerFeeVaultRecipient The address of the Sequencer Fee Vault recipient.
-    /// @param sequencerFeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the Sequencer Fee Vault.
-    /// @param sequencerFeeVaultWithdrawalNetwork The withdrawal network for the Sequencer Fee Vault.
-    /// @param baseFeeVaultRecipient The address of the Base Fee Vault recipient.
-    /// @param baseFeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the Base Fee Vault.
-    /// @param baseFeeVaultWithdrawalNetwork The withdrawal network for the Base Fee Vault.
-    /// @param l1FeeVaultRecipient The address of the L1 Fee Vault recipient.
-    /// @param l1FeeVaultMinimumWithdrawalAmount The minimum withdrawal amount for the L1 Fee Vault.
-    /// @param l1FeeVaultWithdrawalNetwork The withdrawal network for the L1 Fee Vault.
     /// @param l2ImplDeployerAddress The address of the already-deployed L2ImplementationsDeployer.
     /// @param l2cmName The name of the L2 Contracts Manager.
     struct Input {
         uint256 l2ChainID;
-        uint256 l1ChainID;
-        address payable l1CrossDomainMessengerProxy;
-        address payable l1StandardBridgeProxy;
         address payable l1ERC721BridgeProxy;
-        address opChainProxyAdminOwner;
-        address sequencerFeeVaultRecipient;
-        uint256 sequencerFeeVaultMinimumWithdrawalAmount;
-        uint256 sequencerFeeVaultWithdrawalNetwork;
-        address baseFeeVaultRecipient;
-        uint256 baseFeeVaultMinimumWithdrawalAmount;
-        uint256 baseFeeVaultWithdrawalNetwork;
-        address l1FeeVaultRecipient;
-        uint256 l1FeeVaultMinimumWithdrawalAmount;
-        uint256 l1FeeVaultWithdrawalNetwork;
         address l2ImplDeployerAddress;
         string l2cmName;
         string hardForkName;

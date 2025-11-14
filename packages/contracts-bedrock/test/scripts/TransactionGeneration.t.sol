@@ -40,20 +40,7 @@ contract TransactionGenerationTest is Test {
     function _getInput() internal view returns (TransactionGeneration.Input memory) {
         return TransactionGeneration.Input({
             l2ChainID: block.chainid,
-            l1ChainID: 1,
-            l1CrossDomainMessengerProxy: payable(0x42000000000000000000000000000000000000F9),
-            l1StandardBridgeProxy: payable(0x42000000000000000000000000000000000000f8),
             l1ERC721BridgeProxy: payable(0x4200000000000000000000000000000000000060),
-            opChainProxyAdminOwner: 0x0000000000000000000000000000000000000222,
-            sequencerFeeVaultRecipient: 0x42000000000000000000000000000000000000F7,
-            sequencerFeeVaultMinimumWithdrawalAmount: 0x8ac7230489e80000,
-            sequencerFeeVaultWithdrawalNetwork: 1,
-            baseFeeVaultRecipient: 0x42000000000000000000000000000000000000f5,
-            baseFeeVaultMinimumWithdrawalAmount: 0x8ac7230489e80000,
-            baseFeeVaultWithdrawalNetwork: 0,
-            l1FeeVaultRecipient: 0x42000000000000000000000000000000000000f6,
-            l1FeeVaultMinimumWithdrawalAmount: 0x8ac7230489e80000,
-            l1FeeVaultWithdrawalNetwork: 1,
             l2ImplDeployerAddress: L2_IMPLEMENTATIONS_DEPLOYER,
             l2cmName: "XForkContractsManager",
             hardForkName: "XFork"
@@ -103,9 +90,7 @@ contract TransactionGenerationTest is Test {
     }
 
     function _hasConstructor(address _proxy) internal pure returns (bool) {
-        return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
-            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
-            || _proxy == Predeploys.OPERATOR_FEE_VAULT || _proxy == Predeploys.EAS;
+        return _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY || _proxy == Predeploys.EAS;
     }
 
     /// @notice Test that the upgrade transaction structure is correct.
