@@ -75,6 +75,8 @@ var (
 	SuperchainETHBridgeAddr           = common.HexToAddress(SuperchainETHBridge)
 	ETHLiquidityAddr                  = common.HexToAddress(ETHLiquidity)
 	SuperchainTokenBridgeAddr         = common.HexToAddress(SuperchainTokenBridge)
+	NativeAssetLiquidityAddr          = common.HexToAddress(NativeAssetLiquidity)
+	LiquidityControllerAddr           = common.HexToAddress(LiquidityController)
 	FeeSplitterAddr                   = common.HexToAddress(FeeSplitter)
 	Create2DeployerAddr               = common.HexToAddress(Create2Deployer)
 	MultiCall3Addr                    = common.HexToAddress(MultiCall3)
