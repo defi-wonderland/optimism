@@ -90,8 +90,7 @@ contract PredeployHelper is Script {
     /// @param _proxy The address of the proxy contract to check.
     /// @return True if the predeploy requires constructor arguments, false otherwise.
     function _needsConstructorArgs(address _proxy) private pure returns (bool) {
-        return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
-            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY;
+        return _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY;
     }
 
     /// @notice Adds predeploys with constructor arguments to the deployment list.
@@ -103,31 +102,7 @@ contract PredeployHelper is Script {
     )
         internal
     {
-        if (_proxy == Predeploys.SEQUENCER_FEE_WALLET) {
-            _addFeeVault(
-                _index,
-                Predeploys.SEQUENCER_FEE_WALLET,
-                _input.sequencerFeeVaultRecipient,
-                _input.sequencerFeeVaultMinimumWithdrawalAmount,
-                _input.sequencerFeeVaultWithdrawalNetwork
-            );
-        } else if (_proxy == Predeploys.BASE_FEE_VAULT) {
-            _addFeeVault(
-                _index,
-                Predeploys.BASE_FEE_VAULT,
-                _input.baseFeeVaultRecipient,
-                _input.baseFeeVaultMinimumWithdrawalAmount,
-                _input.baseFeeVaultWithdrawalNetwork
-            );
-        } else if (_proxy == Predeploys.L1_FEE_VAULT) {
-            _addFeeVault(
-                _index,
-                Predeploys.L1_FEE_VAULT,
-                _input.l1FeeVaultRecipient,
-                _input.l1FeeVaultMinimumWithdrawalAmount,
-                _input.l1FeeVaultWithdrawalNetwork
-            );
-        } else if (_proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY) {
+        if (_proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY) {
             _addOptimismMintableERC721Factory(_index, _input);
         }
     }
