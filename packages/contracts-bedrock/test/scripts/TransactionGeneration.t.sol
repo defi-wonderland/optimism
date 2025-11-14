@@ -12,12 +12,17 @@ import { Constants } from "src/libraries/Constants.sol";
 import { XForkContractsManager } from "src/L2/XForkContractsManager.sol";
 import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
+import { Fork } from "scripts/libraries/Config.sol";
+import { PredeployHelper } from "scripts/deploy/PredeployHelper.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
 
 contract TransactionGenerationTest is Test {
     TransactionGeneration public transactionGeneration;
 
     /// @notice Address where L2ImplementationsDeployer is etched
     address constant L2_IMPLEMENTATIONS_DEPLOYER = 0x4200000000000000000000000000000000000420;
+
+    event Upgraded(address indexed implementation);
 
     function setUp() public {
         vm.createSelectFork(Config.forkRpcUrl());
@@ -50,7 +55,8 @@ contract TransactionGenerationTest is Test {
             l1FeeVaultMinimumWithdrawalAmount: 0x8ac7230489e80000,
             l1FeeVaultWithdrawalNetwork: 1,
             l2ImplDeployerAddress: L2_IMPLEMENTATIONS_DEPLOYER,
-            l2cmName: "XForkContractsManager"
+            l2cmName: "XForkContractsManager",
+            hardForkName: "XFork"
         });
     }
 
@@ -67,13 +73,39 @@ contract TransactionGenerationTest is Test {
         // Execute all transactions
         for (uint256 i = 0; i < output.txns.length; i++) {
             vm.prank(output.txns[i].from);
+            if (output.txns[i].to == Predeploys.PROXY_ADMIN) {
+                for (uint256 k = 0; k < output.predeploys.length; k++) {
+                    vm.expectEmit(output.predeploys[k].proxy);
+                    emit Upgraded(output.predeploys[k].implementation);
+                }
+            }
             (bool success,) =
                 output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
             assertTrue(success, string.concat("Transaction ", vm.toString(i), " should succeed"));
         }
 
-        // At this point the L1Block should have been upgraded to v1.8.0
-        assertEq(L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).version(), "1.8.0");
+        for (uint256 i = 0; i < output.predeploys.length; i++) {
+            assertEq(
+                ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(output.predeploys[i].proxy),
+                output.predeploys[i].implementation,
+                string.concat("Predeploy ", output.predeploys[i].name, " should have correct implementation")
+            );
+            if (!_hasConstructor(output.predeploys[i].proxy)) {
+                assertEq(
+                    output.predeploys[i].implementation.code,
+                    vm.getDeployedCode(output.predeploys[i].name),
+                    string.concat(
+                        "Predeploy", vm.toString(i), " ", output.predeploys[i].name, " should have correct code"
+                    )
+                );
+            }
+        }
+    }
+
+    function _hasConstructor(address _proxy) internal pure returns (bool) {
+        return _proxy == Predeploys.SEQUENCER_FEE_WALLET || _proxy == Predeploys.BASE_FEE_VAULT
+            || _proxy == Predeploys.L1_FEE_VAULT || _proxy == Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY
+            || _proxy == Predeploys.OPERATOR_FEE_VAULT || _proxy == Predeploys.EAS;
     }
 
     /// @notice Test that the upgrade transaction structure is correct.
@@ -133,28 +165,56 @@ contract TransactionGenerationTest is Test {
         // Verify the function selector is correct
         assertEq(selector, ProxyAdmin.performDelegateCall.selector);
 
-        // Decode the parameters
-        (, L2ContractsManager.ProxyUpgrade[] memory proxyUpgrades) = _decodeProxyUpgrades(callData);
+        // Decode the target address from performDelegateCall
+        address target = _decodeTarget(callData);
 
-        // Assert that counts match (subtract 2: L2ContractsManager, Execute)
-        assertEq(
-            txns.length - 2,
-            proxyUpgrades.length,
-            "Number of predeploy deployments should match ProxyUpgrade array length"
-        );
+        // Verify target is a valid address
+        assertTrue(target != address(0), "Target address should not be zero");
     }
 
-    function _decodeProxyUpgrades(bytes memory callData)
-        internal
-        pure
-        returns (address, L2ContractsManager.ProxyUpgrade[] memory)
-    {
+    function _decodeTarget(bytes memory callData) internal pure returns (address) {
         // Create new bytes array without selector for decoding
         bytes memory params = new bytes(callData.length - 4);
         for (uint256 i = 0; i < params.length; i++) {
             params[i] = callData[i + 4];
         }
 
-        return abi.decode(params, (address, L2ContractsManager.ProxyUpgrade[]));
+        return abi.decode(params, (address));
+    }
+
+    /// @notice Test that running the upgrade twice results in the same implementations (idempotency).
+    function test_upgradeTransactions_idempotent_succeeds() public {
+        TransactionGeneration.Input memory input = _getInput();
+        TransactionGeneration.Output memory output = transactionGeneration.run(input);
+
+        // Execute all transactions from first run
+        for (uint256 i = 0; i < output.txns.length; i++) {
+            vm.prank(output.txns[i].from);
+            (bool success,) =
+                output.txns[i].to.call{ value: output.txns[i].value, gas: output.txns[i].gas }(output.txns[i].data);
+            assertTrue(success, string.concat("First run transaction ", vm.toString(i), " should succeed"));
+        }
+
+        input.hardForkName = "XFork2";
+        TransactionGeneration.Output memory output2 = new TransactionGeneration().run(input);
+
+        // Execute all transactions from second run
+        for (uint256 i = 0; i < output2.txns.length; i++) {
+            vm.prank(output2.txns[i].from);
+            (bool success,) =
+                output2.txns[i].to.call{ value: output2.txns[i].value, gas: output2.txns[i].gas }(output2.txns[i].data);
+            assertTrue(success, string.concat("Second run transaction ", vm.toString(i), " should succeed"));
+        }
+
+        // Verify that the implementations are the same after second upgrade
+        for (uint256 i = 0; i < output2.predeploys.length; i++) {
+            assertEq(
+                ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(output2.predeploys[i].proxy),
+                ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(output.predeploys[i].proxy),
+                string.concat(
+                    "Implementation for ", output2.predeploys[i].name, " should be the same after second upgrade"
+                )
+            );
+        }
     }
 }

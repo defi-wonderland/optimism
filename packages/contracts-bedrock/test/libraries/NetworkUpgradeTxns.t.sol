@@ -116,29 +116,6 @@ contract NetworkUpgradeTxns_NewTx_Test is NetworkUpgradeTxns_TestInit {
     }
 }
 
-/// @title NetworkUpgradeTxns_NewDeploymentTx_Test
-/// @notice Tests the `newDeploymentTx` function.
-contract NetworkUpgradeTxns_NewDeploymentTx_Test is NetworkUpgradeTxns_TestInit {
-    /// @notice Test newDeploymentTx creates correct deployment transaction
-    function test_newDeploymentTx_succeeds(string memory _intent, address _from, uint64 _gas) public view {
-        NetworkUpgradeTxns.NetworkUpgradeTxn memory txn = NetworkUpgradeTxns.newDeploymentTx({
-            intent: _intent,
-            from: _from,
-            gas: _gas,
-            forgeArtifactPath: "GasPriceOracle.sol:GasPriceOracle"
-        });
-
-        assertEq(txn.sourceHash, NetworkUpgradeTxns.sourceHash(_intent), "sourceHash mismatch");
-        assertEq(txn.from, _from, "from mismatch");
-        assertEq(txn.to, address(0), "to should be zero for deployment");
-        assertEq(txn.mint, 0, "mint should be zero");
-        assertEq(txn.value, 0, "value should be zero");
-        assertEq(txn.gas, _gas, "gas mismatch");
-        assertFalse(txn.isSystemTransaction, "should not be system transaction");
-        assertTrue(txn.data.length > 0, "data should not be empty");
-    }
-}
-
 /// @title NetworkUpgradeTxns_WriteArtifact_Test
 /// @notice Tests the `writeArtifact` function.
 contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
@@ -152,11 +129,16 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
     /// @notice Test writeArtifact with single Predeploy deployment
     function test_writeArtifact_singleDeployment() public {
         NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = new NetworkUpgradeTxns.NetworkUpgradeTxn[](1);
-        txns[0] = NetworkUpgradeTxns.newDeploymentTx({
+
+        txns[0] = NetworkUpgradeTxns.newTx({
             intent: INTENT_DEPLOY_L1_BLOCK,
             from: L1_BLOCK_DEPLOYER,
+            to: address(0),
+            mint: 0,
+            value: 0,
             gas: 375_000,
-            forgeArtifactPath: "L1Block.sol:L1Block"
+            isSystemTransaction: false,
+            data: vm.getCode("L1Block.sol:L1Block")
         });
         string memory outputPath = "deployments/nut-test-single.json";
         NetworkUpgradeTxns.writeArtifact(txns, outputPath);
@@ -166,11 +148,15 @@ contract NetworkUpgradeTxns_WriteArtifact_Test is NetworkUpgradeTxns_TestInit {
     function test_writeArtifact_succeeds() public {
         NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns = new NetworkUpgradeTxns.NetworkUpgradeTxn[](2);
 
-        txns[0] = NetworkUpgradeTxns.newDeploymentTx({
+        txns[0] = NetworkUpgradeTxns.newTx({
             intent: INTENT_DEPLOY_L1_BLOCK,
             from: L1_BLOCK_DEPLOYER,
+            to: address(0),
+            mint: 0,
+            value: 0,
             gas: 375_000,
-            forgeArtifactPath: "L1Block.sol:L1Block"
+            isSystemTransaction: false,
+            data: vm.getCode("L1Block.sol:L1Block")
         });
 
         txns[1] = NetworkUpgradeTxns.newTx({
@@ -213,20 +199,28 @@ contract NetworkUpgradeTxns_EcotoneUpgrade_Test is NetworkUpgradeTxns_TestInit {
 
         // 1. Deploy L1Block
         // ecotone_upgrade_transactions.go:47
-        txns[0] = NetworkUpgradeTxns.newDeploymentTx({
+        txns[0] = NetworkUpgradeTxns.newTx({
             intent: INTENT_DEPLOY_L1_BLOCK,
             from: L1_BLOCK_DEPLOYER,
+            to: address(0),
+            mint: 0,
+            value: 0,
             gas: 375_000,
-            forgeArtifactPath: "L1Block.sol:L1Block"
+            isSystemTransaction: false,
+            data: vm.getCode("L1Block.sol:L1Block")
         });
 
         // 2. Deploy GasPriceOracle
         // ecotone_upgrade_transactions.go:64
-        txns[1] = NetworkUpgradeTxns.newDeploymentTx({
+        txns[1] = NetworkUpgradeTxns.newTx({
             intent: INTENT_DEPLOY_GAS_PRICE_ORACLE,
             from: GAS_PRICE_ORACLE_DEPLOYER,
+            to: address(0),
+            mint: 0,
+            value: 0,
             gas: 1_000_000,
-            forgeArtifactPath: "GasPriceOracle.sol:GasPriceOracle"
+            isSystemTransaction: false,
+            data: vm.getCode("GasPriceOracle.sol:GasPriceOracle")
         });
 
         // 3. Update L1Block proxy
