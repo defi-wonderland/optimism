@@ -197,6 +197,18 @@ func (c *ChainIntent) GetLiquidityControllerOwner() common.Address {
 	return c.Roles.L2ProxyAdminOwner
 }
 
+// GetGasPayingTokenName returns the gas paying token name.
+// Returns empty string if not set, which will cause IsCustomGasTokenEnabled to return false.
+func (c *ChainIntent) GetGasPayingTokenName() string {
+	return c.CustomGasToken.Name
+}
+
+// GetGasPayingTokenSymbol returns the gas paying token symbol.
+// Returns empty string if not set, which will cause IsCustomGasTokenEnabled to return false.
+func (c *ChainIntent) GetGasPayingTokenSymbol() string {
+	return c.CustomGasToken.Symbol
+}
+
 // IsCustomGasTokenEnabled returns true if custom gas token is enabled.
 // It's enabled when both Name and Symbol are provided.
 func (c *ChainIntent) IsCustomGasTokenEnabled() bool {

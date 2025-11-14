@@ -104,8 +104,8 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		L1FeesDepositor:                          standard.L1FeesDepositor,
 		// Custom Gas Token (CGT) configuration from intent
 		UseCustomGasToken:          thisIntent.IsCustomGasTokenEnabled(),
-		GasPayingTokenName:         thisIntent.CustomGasToken.Name,
-		GasPayingTokenSymbol:       thisIntent.CustomGasToken.Symbol,
+		GasPayingTokenName:         thisIntent.GetGasPayingTokenName(),
+		GasPayingTokenSymbol:       thisIntent.GetGasPayingTokenSymbol(),
 		NativeAssetLiquidityAmount: thisIntent.GetInitialLiquidity(),
 		LiquidityControllerOwner:   thisIntent.GetLiquidityControllerOwner(),
 	}); err != nil {
