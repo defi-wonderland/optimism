@@ -329,7 +329,7 @@ library NetworkUpgradeTxns {
             "{\"inputs\":", inputsArray, ",\"name\":\"performDelegateCall\",\"payable\":false}"
         );
 
-        obj = "contractInputsValues";
+        obj = "contractInputsValuesDelegateCall";
         result.contractInputsValuesJson = vm.serializeString(obj, "_target", targetStr);
     }
 }
