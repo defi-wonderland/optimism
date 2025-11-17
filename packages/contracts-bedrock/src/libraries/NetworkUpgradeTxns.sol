@@ -8,7 +8,7 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 
 /// @title NetworkUpgradeTxns
 /// @notice Standard library for generating Network Upgrade Transaction (NUT) artifacts.
-///         Provides minimal interface to create DepositTx-compatible transaction metadata.
+///         Provides interface to create DepositTx-compatible transaction metadata with optional Safe fields.
 library NetworkUpgradeTxns {
     using stdJson for string;
 
@@ -17,29 +17,32 @@ library NetworkUpgradeTxns {
     /// @notice Source domain for upgrade transactions
     uint64 internal constant UPGRADE_DEPOSIT_SOURCE_DOMAIN = 2;
 
-    /// @notice Represents a single Network Upgrade Transaction
-    ///         Maps to the fields of the `DepositTx` struct defined in
+    /// @notice Represents a Network Upgrade Transaction with both NUT and Safe fields
+    ///         NUT fields map to the `DepositTx` struct defined in
     ///         https://github.com/ethereum-optimism/op-geth/blob/optimism/core/types/deposit_tx.go
+    ///         Safe fields provide contractMethod and contractInputsValues for Safe UI compatibility
     struct NetworkUpgradeTxn {
+        address to;
+        uint256 value;
         bytes data;
         address from;
         uint64 gas;
         bool isSystemTransaction;
         uint256 mint;
         bytes32 sourceHash;
-        address to;
-        uint256 value;
+        string contractMethodJson;
+        string contractInputsValuesJson;
     }
 
-    /// @notice Represents a Safe transaction bundle metadata
-    struct SafeBundleMeta {
+    /// @notice Represents a transaction bundle metadata
+    struct BundleMeta {
         string createdFromSafeAddress;
         string createdFromOwnerAddress;
         string name;
         string description;
     }
 
-    /// @notice Create an upgrade transaction
+    /// @notice Create an upgrade transaction with optional Safe fields
     /// @param intent Human-readable intent
     /// @param from Sender address
     /// @param to Target address
@@ -48,6 +51,8 @@ library NetworkUpgradeTxns {
     /// @param gas Gas limit
     /// @param isSystemTransaction Whether this is a system transaction
     /// @param data Transaction data
+    /// @param contractMethodJson Optional Safe contractMethod JSON (empty string if not needed)
+    /// @param contractInputsValuesJson Optional Safe contractInputsValues JSON (empty string if not needed)
     /// @return Upgrade transaction struct
     function newTx(
         string memory intent,
@@ -57,21 +62,25 @@ library NetworkUpgradeTxns {
         uint256 value,
         uint64 gas,
         bool isSystemTransaction,
-        bytes memory data
+        bytes memory data,
+        string memory contractMethodJson,
+        string memory contractInputsValuesJson
     )
         internal
         pure
         returns (NetworkUpgradeTxn memory)
     {
         return NetworkUpgradeTxn({
-            sourceHash: sourceHash(intent),
-            from: from,
             to: to,
-            mint: mint,
             value: value,
+            data: data,
+            from: from,
             gas: gas,
             isSystemTransaction: isSystemTransaction,
-            data: data
+            mint: mint,
+            sourceHash: sourceHash(intent),
+            contractMethodJson: contractMethodJson,
+            contractInputsValuesJson: contractInputsValuesJson
         });
     }
 
@@ -90,97 +99,45 @@ library NetworkUpgradeTxns {
         return keccak256(domainInput);
     }
 
-    /// @notice Write transactions array to JSON file
-    /// @param txns Array of upgrade transactions
-    /// @param outputPath File path for output JSON
-    function writeArtifact(NetworkUpgradeTxn[] memory txns, string memory outputPath) internal {
-        string memory finalJson = "[";
-
-        for (uint256 i = 0; i < txns.length; i++) {
-            string memory txnJson = serializeTxn(txns[i], i);
-            finalJson = string.concat(finalJson, txnJson);
-            if (i < txns.length - 1) {
-                finalJson = string.concat(finalJson, ",");
-            }
-        }
-
-        finalJson = string.concat(finalJson, "]");
-
-        // Write the final serialized JSON array to file
-        vm.writeJson(finalJson, outputPath);
-    }
-
-    /// @notice Serialize a single transaction to JSON
-    /// @param txn Transaction to serialize
-    /// @param index Transaction index
-    /// @return JSON string
-    function serializeTxn(NetworkUpgradeTxn memory txn, uint256 index) internal returns (string memory) {
-        string memory key = vm.toString(index);
-
-        vm.serializeBytes32(key, "sourceHash", txn.sourceHash);
-        vm.serializeAddress(key, "from", txn.from);
-        vm.serializeAddress(key, "to", txn.to);
-        vm.serializeUint(key, "mint", txn.mint);
-        vm.serializeUint(key, "value", txn.value);
-        vm.serializeUint(key, "gas", uint256(txn.gas));
-        vm.serializeBool(key, "isSystemTransaction", txn.isSystemTransaction);
-        return vm.serializeBytes(key, "data", txn.data);
-    }
-
-    /// @notice Helper function to read upgrade transactions from JSON file
-    /// @param _inputPath File path for input JSON
-    /// @return Array of upgrade transactions
-    function readArtifact(string memory _inputPath)
-        internal
-        view
-        returns (NetworkUpgradeTxns.NetworkUpgradeTxn[] memory)
-    {
-        string memory json = vm.readFile(_inputPath);
-        bytes memory parsedData = vm.parseJson(json);
-        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns =
-            abi.decode(parsedData, (NetworkUpgradeTxns.NetworkUpgradeTxn[]));
-        return txns;
-    }
-
-    /// @notice Write Safe transaction bundle to JSON file
-    /// @param version Version string
-    /// @param chainId Chain ID string (as string, e.g., "10")
+    /// @notice Write transaction bundle to JSON file
+    /// @param version Version string (e.g., "1.0")
+    /// @param chainId Chain ID as string
     /// @param createdAt Creation timestamp
     /// @param meta Bundle metadata
-    /// @param transactionJsons Array of transaction JSON strings
+    /// @param txns Array of upgrade transactions
     /// @param outputPath File path for output JSON
-    function writeSafeBundle(
+    function writeArtifact(
         string memory version,
         string memory chainId,
         uint256 createdAt,
-        SafeBundleMeta memory meta,
-        string[] memory transactionJsons,
+        BundleMeta memory meta,
+        NetworkUpgradeTxn[] memory txns,
         string memory outputPath
     )
         internal
     {
-        // Serialize meta object using vm.serialize* for proper structure
+        // Serialize meta object
         string memory metaObj = "meta";
         vm.serializeString(metaObj, "createdFromSafeAddress", meta.createdFromSafeAddress);
         vm.serializeString(metaObj, "createdFromOwnerAddress", meta.createdFromOwnerAddress);
         vm.serializeString(metaObj, "name", meta.name);
         string memory metaJson = vm.serializeString(metaObj, "description", meta.description);
 
-        // Build transactions array from individual JSON strings
+        // Build transactions array
         string memory txnsArrayStr = "[";
-        for (uint256 i = 0; i < transactionJsons.length; i++) {
-            txnsArrayStr = string.concat(txnsArrayStr, transactionJsons[i]);
-            if (i < transactionJsons.length - 1) {
+        for (uint256 i = 0; i < txns.length; i++) {
+            txnsArrayStr = string.concat(txnsArrayStr, serializeTxn(txns[i]));
+            if (i < txns.length - 1) {
                 txnsArrayStr = string.concat(txnsArrayStr, ",");
             }
         }
         txnsArrayStr = string.concat(txnsArrayStr, "]");
 
-        // Manually construct final JSON - chainId is numeric string, transactions is raw JSON array
+        // Manually construct final JSON
         string memory finalJson = string.concat(
             "{",
             "\"version\":\"", version, "\",",
-            "\"chainId\":", chainId, ",",  // No quotes around chainId value
+            "\"chainId\":", chainId, ",",
             "\"createdAt\":", vm.toString(createdAt), ",",
             "\"meta\":", metaJson, ",",
             "\"transactions\":", txnsArrayStr,
@@ -190,29 +147,104 @@ library NetworkUpgradeTxns {
         vm.writeJson(finalJson, outputPath);
     }
 
-    /// @notice Create a Safe transaction for L2ImplementationsDeployer.deploy
+    /// @notice Serialize a transaction (with both NUT and optional Safe fields) to JSON
+    /// @param txn Transaction to serialize
+    /// @return JSON string representing the transaction
+    function serializeTxn(NetworkUpgradeTxn memory txn) internal pure returns (string memory) {
+        // Convert all values to strings early to avoid stack depth issues
+        string memory toStr = vm.toString(txn.to);
+        string memory valueStr = vm.toString(txn.value);
+        string memory dataStr = vm.toString(txn.data);
+        string memory fromStr = vm.toString(txn.from);
+        string memory gasStr = vm.toString(uint256(txn.gas));
+        string memory mintStr = vm.toString(txn.mint);
+        string memory sourceHashStr = vm.toString(txn.sourceHash);
+        string memory isSysStr = txn.isSystemTransaction ? "true" : "false";
+
+        // Manually construct JSON to avoid double-serialization
+        string memory finalJson = string.concat(
+            "{\"to\":\"", toStr, "\",",
+            "\"value\":\"", valueStr, "\",",
+            "\"data\":\"", dataStr, "\",",
+            "\"from\":\"", fromStr, "\",",
+            "\"gas\":", gasStr, ","
+        );
+
+        finalJson = string.concat(
+            finalJson,
+            "\"isSystemTransaction\":", isSysStr, ",",
+            "\"mint\":", mintStr, ",",
+            "\"sourceHash\":\"", sourceHashStr, "\""
+        );
+
+        // Add Safe fields if present
+        if (bytes(txn.contractMethodJson).length > 0) {
+            finalJson = string.concat(
+                finalJson,
+                ",\"contractMethod\":", txn.contractMethodJson,
+                ",\"contractInputsValues\":", txn.contractInputsValuesJson
+            );
+        }
+
+        return string.concat(finalJson, "}");
+    }
+
+    /// @notice Create a transaction for L2ImplementationsDeployer.deploy with both NUT and Safe fields
+    /// @param intent Human-readable intent for the NUT sourceHash
+    /// @param from Sender address
     /// @param to Target address (L2ImplementationsDeployer)
     /// @param value ETH value to send
+    /// @param gas Gas limit
+    /// @param isSystemTransaction Whether this is a system transaction
+    /// @param mint Mint amount
     /// @param salt Salt for CREATE2
     /// @param initCode Initialization code for the contract
-    /// @return JSON string representing the Safe transaction
-    function createSafeDeployJson(
+    /// @return result Transaction struct
+    function newDeployTx(
+        string memory intent,
+        address from,
         address to,
         uint256 value,
+        uint64 gas,
+        bool isSystemTransaction,
+        uint256 mint,
         bytes32 salt,
         bytes memory initCode
     )
         internal
-        returns (string memory)
+        returns (NetworkUpgradeTxn memory result)
     {
-        // Encode data early to avoid recomputing
-        string memory dataStr = vm.toString(abi.encodeWithSignature("deploy(uint256,bytes32,bytes)", value, salt, initCode));
+        // Compute sourceHash early to avoid stack depth issues
+        bytes32 srcHash = sourceHash(intent);
+        bytes memory data = abi.encodeWithSignature("deploy(uint256,bytes32,bytes)", value, salt, initCode);
+
+        // Set basic fields first
+        result.to = to;
+        result.value = value;
+        result.data = data;
+        result.from = from;
+        result.gas = gas;
+        result.isSystemTransaction = isSystemTransaction;
+        result.mint = mint;
+        result.sourceHash = srcHash;
+
+        // Generate Safe transaction fields
         string memory valueStr = vm.toString(value);
         string memory saltStr = vm.toString(salt);
         string memory initCodeStr = vm.toString(initCode);
-        string memory toStr = vm.toString(to);
 
-        // Serialize inputs array items
+        // Build inputs using a helper to reduce stack depth
+        string memory inputsArray = _buildDeployInputsArray();
+
+        result.contractMethodJson = string.concat(
+            "{\"inputs\":", inputsArray, ",\"name\":\"deploy\",\"payable\":false}"
+        );
+
+        result.contractInputsValuesJson = _buildDeployInputsValues(valueStr, saltStr, initCodeStr);
+    }
+
+    /// @notice Helper to build deploy inputs array JSON
+    function _buildDeployInputsArray() private returns (string memory) {
         string memory obj = "input0";
         vm.serializeString(obj, "internalType", "uint256");
         vm.serializeString(obj, "name", "_value");
@@ -228,74 +260,76 @@ library NetworkUpgradeTxns {
         vm.serializeString(obj, "name", "_initCode");
         string memory input2Json = vm.serializeString(obj, "type", "bytes");
 
-        // Build inputs as raw JSON array (not escaped string)
-        string memory inputsArray = string.concat("[", input0Json, ",", input1Json, ",", input2Json, "]");
-
-        // Build contractMethod as raw JSON (using string.concat to avoid double-serialization)
-        string memory contractMethodJson = string.concat(
-            "{\"inputs\":", inputsArray, ",\"name\":\"deploy\",\"payable\":false}"
-        );
-
-        // Serialize contractInputsValues object
-        obj = "contractInputsValues";
-        vm.serializeString(obj, "_value", valueStr);
-        vm.serializeString(obj, "_salt", saltStr);
-        string memory contractInputsJson = vm.serializeString(obj, "_initCode", initCodeStr);
-
-        // Build main transaction as raw JSON to avoid escaping nested objects
-        string memory finalJson = string.concat(
-            "{\"to\":\"", toStr, "\",",
-            "\"value\":\"", valueStr, "\",",
-            "\"data\":\"", dataStr, "\",",
-            "\"contractMethod\":", contractMethodJson, ",",
-            "\"contractInputsValues\":", contractInputsJson,
-            "}"
-        );
-
-        return finalJson;
+        return string.concat("[", input0Json, ",", input1Json, ",", input2Json, "]");
     }
 
-    /// @notice Create a Safe transaction for ProxyAdmin.performDelegateCall
-    /// @param to Target address (ProxyAdmin)
-    /// @param target Address to delegatecall to (L2ContractsManager)
-    /// @return JSON string representing the Safe transaction
-    function createSafePerformDelegateCallJson(address to, address target)
-        internal
+    /// @notice Helper to build deploy inputs values JSON
+    function _buildDeployInputsValues(
+        string memory valueStr,
+        string memory saltStr,
+        string memory initCodeStr
+    )
+        private
         returns (string memory)
     {
-        // Convert to strings early to avoid stack depth issues
-        string memory dataStr = vm.toString(abi.encodeWithSignature("performDelegateCall(address)", target));
-        string memory targetStr = vm.toString(target);
-        string memory toStr = vm.toString(to);
+        string memory obj = "contractInputsValues";
+        vm.serializeString(obj, "_value", valueStr);
+        vm.serializeString(obj, "_salt", saltStr);
+        return vm.serializeString(obj, "_initCode", initCodeStr);
+    }
 
-        // Serialize inputs array item
+    /// @notice Create a transaction for ProxyAdmin.performDelegateCall with both NUT and Safe fields
+    /// @param intent Human-readable intent for the NUT sourceHash
+    /// @param from Sender address
+    /// @param proxyAdmin Target address (ProxyAdmin)
+    /// @param target Address to delegatecall to (L2ContractsManager)
+    /// @param gas Gas limit
+    /// @param isSystemTransaction Whether this is a system transaction
+    /// @param mint Mint amount
+    /// @param value ETH value to send
+    /// @return result Transaction struct
+    function newPerformDelegateCallTx(
+        string memory intent,
+        address from,
+        address proxyAdmin,
+        address target,
+        uint64 gas,
+        bool isSystemTransaction,
+        uint256 mint,
+        uint256 value
+    )
+        internal
+        returns (NetworkUpgradeTxn memory result)
+    {
+        // Compute sourceHash early to avoid stack depth issues
+        bytes32 srcHash = sourceHash(intent);
+        bytes memory data = abi.encodeWithSignature("performDelegateCall(address)", target);
+
+        // Set basic fields first
+        result.to = proxyAdmin;
+        result.value = value;
+        result.data = data;
+        result.from = from;
+        result.gas = gas;
+        result.isSystemTransaction = isSystemTransaction;
+        result.mint = mint;
+        result.sourceHash = srcHash;
+
+        // Generate Safe transaction fields
+        string memory targetStr = vm.toString(target);
+
         string memory obj = "input0";
         vm.serializeString(obj, "internalType", "address");
         vm.serializeString(obj, "name", "_target");
         string memory input0Json = vm.serializeString(obj, "type", "address");
 
-        // Build inputs as raw JSON array (not escaped string)
         string memory inputsArray = string.concat("[", input0Json, "]");
 
-        // Build contractMethod as raw JSON (using string.concat to avoid double-serialization)
-        string memory contractMethodJson = string.concat(
+        result.contractMethodJson = string.concat(
             "{\"inputs\":", inputsArray, ",\"name\":\"performDelegateCall\",\"payable\":false}"
         );
 
-        // Serialize contractInputsValues object
         obj = "contractInputsValues";
-        string memory contractInputsJson = vm.serializeString(obj, "_target", targetStr);
-
-        // Build main transaction as raw JSON to avoid escaping nested objects
-        string memory finalJson = string.concat(
-            "{\"to\":\"", toStr, "\",",
-            "\"value\":\"0\",",
-            "\"data\":\"", dataStr, "\",",
-            "\"contractMethod\":", contractMethodJson, ",",
-            "\"contractInputsValues\":", contractInputsJson,
-            "}"
-        );
-
-        return finalJson;
+        result.contractInputsValuesJson = vm.serializeString(obj, "_target", targetStr);
     }
 }

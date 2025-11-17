@@ -86,13 +86,23 @@ contract TransactionGeneration is Script {
         // Generate L2ContractsManager execute transaction
         generateL2ContractsManagerExecuteTransaction(_input.hardForkName, _input.l2cmName, l2cmAddress, predeploys);
 
-        // Write all transactions to JSON artifact file
-        NetworkUpgradeTxns.writeArtifact(
-            txns, string.concat("deployments/nut-", _input.hardForkName, "-upgrade-transactions.json")
-        );
+        // Create metadata
+        NetworkUpgradeTxns.BundleMeta memory meta = NetworkUpgradeTxns.BundleMeta({
+            createdFromSafeAddress: "",
+            createdFromOwnerAddress: "",
+            name: string.concat(_input.hardForkName, " Upgrade"),
+            description: string.concat("Network upgrade transactions for ", _input.hardForkName)
+        });
 
-        // Generate Safe transaction bundle
-        generateSafeBundle(_input, predeploys);
+        // Write unified transaction bundle (with both NUT and Safe fields)
+        NetworkUpgradeTxns.writeArtifact(
+            "1.0",
+            vm.toString(_input.l2ChainID),
+            block.timestamp,
+            meta,
+            txns,
+            string.concat("deployments/nut-bundle-", _input.hardForkName, ".json")
+        );
 
         return Output({ txns: txns, l2cmAddress: l2cmAddress, predeploys: predeploys });
     }
@@ -107,19 +117,18 @@ contract TransactionGeneration is Script {
         internal
     {
         for (uint256 i = 0; i < predeploys.length; i++) {
+            bytes32 salt = keccak256(abi.encode(predeploys[i].name));
             txns.push(
-                NetworkUpgradeTxns.newTx({
+                NetworkUpgradeTxns.newDeployTx({
                     intent: string.concat(_hardForkName, predeploys[i].name, " Deployment"),
                     from: address(0),
                     to: l2ImplDeployerAddress,
-                    mint: 0,
                     value: 0,
                     gas: 1_000_000_000,
                     isSystemTransaction: false,
-                    data: abi.encodeCall(
-                        L2ImplementationsDeployer.deploy,
-                        (0, keccak256(abi.encode(predeploys[i].name)), predeploys[i].initCode)
-                    )
+                    mint: 0,
+                    salt: salt,
+                    initCode: predeploys[i].initCode
                 })
             );
         }
@@ -142,15 +151,16 @@ contract TransactionGeneration is Script {
 
         // Generate the L2ContractsManager deployment transaction
         txns.push(
-            NetworkUpgradeTxns.newTx({
+            NetworkUpgradeTxns.newDeployTx({
                 intent: string.concat(_input.hardForkName, ": ", _input.l2cmName, " Deployment"),
                 from: address(0),
                 to: l2ImplDeployerAddress,
-                mint: 0,
                 value: 0,
                 gas: 1_000_000,
                 isSystemTransaction: false,
-                data: abi.encodeCall(L2ImplementationsDeployer.deploy, (0, salt, initCode))
+                mint: 0,
+                salt: salt,
+                initCode: initCode
             })
         );
     }
@@ -195,70 +205,16 @@ contract TransactionGeneration is Script {
 
         // Create transaction that calls execute() on the deployed L2ContractsManager
         txns.push(
-            NetworkUpgradeTxns.newTx({
+            NetworkUpgradeTxns.newPerformDelegateCallTx({
                 intent: string.concat(_hardForkName, ": ", _l2cmName, " Execute"),
                 from: Constants.DEPOSITOR_ACCOUNT,
-                to: Predeploys.PROXY_ADMIN,
-                mint: 0,
-                value: 0,
+                proxyAdmin: Predeploys.PROXY_ADMIN,
+                target: _l2cmAddress,
                 gas: type(uint64).max,
                 isSystemTransaction: false,
-                data: abi.encodeCall(ProxyAdmin.performDelegateCall, (_l2cmAddress))
+                mint: 0,
+                value: 0
             })
-        );
-    }
-
-    /// @notice Generates Safe transaction bundle from NUT transactions
-    /// @dev Creates Safe-compatible transaction bundle mirroring the actual NUT transactions
-    /// @param _input The input struct containing chain configuration
-    /// @param predeploys Array of predeploys that need to be deployed
-    function generateSafeBundle(Input memory _input, PredeployHelper.Predeploy[] memory predeploys) internal {
-        // Calculate total transactions: predeploy deployments + L2CM deployment + L2CM execute
-        uint256 totalTxns = predeploys.length + 2;
-        string[] memory transactionJsons = new string[](totalTxns);
-        uint256 txIndex = 0;
-
-        // Generate Safe transactions for each predeploy deployment
-        for (uint256 i = 0; i < predeploys.length; i++) {
-            bytes32 salt = keccak256(abi.encode(predeploys[i].name));
-            transactionJsons[txIndex] = NetworkUpgradeTxns.createSafeDeployJson(
-                l2ImplDeployerAddress, 0, salt, predeploys[i].initCode
-            );
-            txIndex++;
-        }
-
-        // Generate L2ContractsManager deployment transaction
-        bytes memory constructorArgs = _encodeL2CMConstructorArgs(_getPredeployAddresses(predeploys));
-        bytes memory l2cmInitCode = abi.encodePacked(vm.getCode(_input.l2cmName), constructorArgs);
-        bytes32 l2cmSalt = keccak256(abi.encode(_input.hardForkName, _input.l2cmName));
-        address l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(l2cmSalt, keccak256(l2cmInitCode));
-
-        transactionJsons[txIndex] = NetworkUpgradeTxns.createSafeDeployJson(
-            l2ImplDeployerAddress, 0, l2cmSalt, l2cmInitCode
-        );
-        txIndex++;
-
-        // Generate ProxyAdmin.performDelegateCall transaction
-        transactionJsons[txIndex] = NetworkUpgradeTxns.createSafePerformDelegateCallJson(
-            Predeploys.PROXY_ADMIN, l2cmAddress
-        );
-
-        // Create default metadata
-        NetworkUpgradeTxns.SafeBundleMeta memory meta = NetworkUpgradeTxns.SafeBundleMeta({
-            createdFromSafeAddress: "",
-            createdFromOwnerAddress: "",
-            name: string.concat(_input.hardForkName, " Upgrade"),
-            description: string.concat("Network upgrade transactions for ", _input.hardForkName)
-        });
-
-        // Write Safe bundle to JSON
-        NetworkUpgradeTxns.writeSafeBundle(
-            "1.0",
-            vm.toString(_input.l2ChainID),
-            block.timestamp,
-            meta,
-            transactionJsons,
-            string.concat("deployments/safe-", _input.hardForkName, "-upgrade-bundle.json")
         );
     }
 
