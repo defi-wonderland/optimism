@@ -144,7 +144,7 @@ library NetworkUpgradeTxns {
 
     /// @notice Write Safe transaction bundle to JSON file
     /// @param version Version string
-    /// @param chainId Chain ID string
+    /// @param chainId Chain ID string (as string, e.g., "10")
     /// @param createdAt Creation timestamp
     /// @param meta Bundle metadata
     /// @param transactionJsons Array of transaction JSON strings
@@ -159,30 +159,31 @@ library NetworkUpgradeTxns {
     )
         internal
     {
-        // Serialize meta object
+        // Serialize meta object using vm.serialize* for proper structure
         string memory metaObj = "meta";
         vm.serializeString(metaObj, "createdFromSafeAddress", meta.createdFromSafeAddress);
         vm.serializeString(metaObj, "createdFromOwnerAddress", meta.createdFromOwnerAddress);
         vm.serializeString(metaObj, "name", meta.name);
         string memory metaJson = vm.serializeString(metaObj, "description", meta.description);
 
-        // Serialize transactions array
-        string memory txnsArray = "[";
+        // Build transactions array from individual JSON strings
+        string memory txnsArrayStr = "[";
         for (uint256 i = 0; i < transactionJsons.length; i++) {
-            txnsArray = string.concat(txnsArray, transactionJsons[i]);
+            txnsArrayStr = string.concat(txnsArrayStr, transactionJsons[i]);
             if (i < transactionJsons.length - 1) {
-                txnsArray = string.concat(txnsArray, ",");
+                txnsArrayStr = string.concat(txnsArrayStr, ",");
             }
         }
-        txnsArray = string.concat(txnsArray, "]");
+        txnsArrayStr = string.concat(txnsArrayStr, "]");
 
-        // Manually construct the final JSON to ensure proper structure
+        // Manually construct final JSON - chainId is numeric string, transactions is raw JSON array
         string memory finalJson = string.concat(
-            "{\"version\":\"", version,
-            "\",\"chainId\":", chainId,
-            ",\"createdAt\":", vm.toString(createdAt),
-            ",\"meta\":", metaJson,
-            ",\"transactions\":", txnsArray,
+            "{",
+            "\"version\":\"", version, "\",",
+            "\"chainId\":", chainId, ",",  // No quotes around chainId value
+            "\"createdAt\":", vm.toString(createdAt), ",",
+            "\"meta\":", metaJson, ",",
+            "\"transactions\":", txnsArrayStr,
             "}"
         );
 
@@ -202,39 +203,52 @@ library NetworkUpgradeTxns {
         bytes memory initCode
     )
         internal
-        pure
         returns (string memory)
     {
-        bytes memory data = abi.encodeWithSignature("deploy(uint256,bytes32,bytes)", value, salt, initCode);
+        // Encode data early to avoid recomputing
+        string memory dataStr = vm.toString(abi.encodeWithSignature("deploy(uint256,bytes32,bytes)", value, salt, initCode));
+        string memory valueStr = vm.toString(value);
+        string memory saltStr = vm.toString(salt);
+        string memory initCodeStr = vm.toString(initCode);
+        string memory toStr = vm.toString(to);
 
-        // Build the inputs array as raw JSON
-        string memory inputsArray = string.concat(
-            "[",
-            "{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"},",
-            "{\"internalType\":\"bytes32\",\"name\":\"_salt\",\"type\":\"bytes32\"},",
-            "{\"internalType\":\"bytes\",\"name\":\"_initCode\",\"type\":\"bytes\"}",
-            "]"
-        );
+        // Serialize inputs array items
+        string memory obj = "input0";
+        vm.serializeString(obj, "internalType", "uint256");
+        vm.serializeString(obj, "name", "_value");
+        string memory input0Json = vm.serializeString(obj, "type", "uint256");
 
-        // Build contractMethod object
-        string memory contractMethod = string.concat(
+        obj = "input1";
+        vm.serializeString(obj, "internalType", "bytes32");
+        vm.serializeString(obj, "name", "_salt");
+        string memory input1Json = vm.serializeString(obj, "type", "bytes32");
+
+        obj = "input2";
+        vm.serializeString(obj, "internalType", "bytes");
+        vm.serializeString(obj, "name", "_initCode");
+        string memory input2Json = vm.serializeString(obj, "type", "bytes");
+
+        // Build inputs as raw JSON array (not escaped string)
+        string memory inputsArray = string.concat("[", input0Json, ",", input1Json, ",", input2Json, "]");
+
+        // Build contractMethod as raw JSON (using string.concat to avoid double-serialization)
+        string memory contractMethodJson = string.concat(
             "{\"inputs\":", inputsArray, ",\"name\":\"deploy\",\"payable\":false}"
         );
 
-        // Build contractInputsValues object
-        string memory contractInputsValues = string.concat(
-            "{\"_value\":\"", vm.toString(value), "\",",
-            "\"_salt\":\"", vm.toString(salt), "\",",
-            "\"_initCode\":\"", vm.toString(initCode), "\"}"
-        );
+        // Serialize contractInputsValues object
+        obj = "contractInputsValues";
+        vm.serializeString(obj, "_value", valueStr);
+        vm.serializeString(obj, "_salt", saltStr);
+        string memory contractInputsJson = vm.serializeString(obj, "_initCode", initCodeStr);
 
-        // Combine everything into final transaction JSON
+        // Build main transaction as raw JSON to avoid escaping nested objects
         string memory finalJson = string.concat(
-            "{\"to\":\"", vm.toString(to), "\",",
-            "\"value\":\"", vm.toString(value), "\",",
-            "\"data\":\"", vm.toString(data), "\",",
-            "\"contractMethod\":", contractMethod, ",",
-            "\"contractInputsValues\":", contractInputsValues,
+            "{\"to\":\"", toStr, "\",",
+            "\"value\":\"", valueStr, "\",",
+            "\"data\":\"", dataStr, "\",",
+            "\"contractMethod\":", contractMethodJson, ",",
+            "\"contractInputsValues\":", contractInputsJson,
             "}"
         );
 
@@ -247,30 +261,38 @@ library NetworkUpgradeTxns {
     /// @return JSON string representing the Safe transaction
     function createSafePerformDelegateCallJson(address to, address target)
         internal
-        pure
         returns (string memory)
     {
-        bytes memory data = abi.encodeWithSignature("performDelegateCall(address)", target);
+        // Convert to strings early to avoid stack depth issues
+        string memory dataStr = vm.toString(abi.encodeWithSignature("performDelegateCall(address)", target));
+        string memory targetStr = vm.toString(target);
+        string memory toStr = vm.toString(to);
 
-        // Build the inputs array as raw JSON
-        string memory inputsArray =
-            "[{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"}]";
+        // Serialize inputs array item
+        string memory obj = "input0";
+        vm.serializeString(obj, "internalType", "address");
+        vm.serializeString(obj, "name", "_target");
+        string memory input0Json = vm.serializeString(obj, "type", "address");
 
-        // Build contractMethod object
-        string memory contractMethod = string.concat(
+        // Build inputs as raw JSON array (not escaped string)
+        string memory inputsArray = string.concat("[", input0Json, "]");
+
+        // Build contractMethod as raw JSON (using string.concat to avoid double-serialization)
+        string memory contractMethodJson = string.concat(
             "{\"inputs\":", inputsArray, ",\"name\":\"performDelegateCall\",\"payable\":false}"
         );
 
-        // Build contractInputsValues object
-        string memory contractInputsValues = string.concat("{\"_target\":\"", vm.toString(target), "\"}");
+        // Serialize contractInputsValues object
+        obj = "contractInputsValues";
+        string memory contractInputsJson = vm.serializeString(obj, "_target", targetStr);
 
-        // Combine everything into final transaction JSON
+        // Build main transaction as raw JSON to avoid escaping nested objects
         string memory finalJson = string.concat(
-            "{\"to\":\"", vm.toString(to), "\",",
+            "{\"to\":\"", toStr, "\",",
             "\"value\":\"0\",",
-            "\"data\":\"", vm.toString(data), "\",",
-            "\"contractMethod\":", contractMethod, ",",
-            "\"contractInputsValues\":", contractInputsValues,
+            "\"data\":\"", dataStr, "\",",
+            "\"contractMethod\":", contractMethodJson, ",",
+            "\"contractInputsValues\":", contractInputsJson,
             "}"
         );
 
