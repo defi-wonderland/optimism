@@ -36,12 +36,14 @@ contract TransactionGeneration is Script {
     /// @param l1ERC721BridgeProxy The address of the L1 ERC721 Bridge proxy.
     /// @param l2ImplDeployerAddress The address of the already-deployed L2ImplementationsDeployer.
     /// @param l2cmName The name of the L2 Contracts Manager.
+    /// @param proxyAdminAddress The address of the ProxyAdmin contract (for Safe bundles).
     struct Input {
         uint256 l2ChainID;
         address payable l1ERC721BridgeProxy;
         address l2ImplDeployerAddress;
         string l2cmName;
         string hardForkName;
+        address proxyAdminAddress;
     }
 
     /// @notice Output struct for the script
@@ -88,6 +90,9 @@ contract TransactionGeneration is Script {
         NetworkUpgradeTxns.writeArtifact(
             txns, string.concat("deployments/nut-", _input.hardForkName, "-upgrade-transactions.json")
         );
+
+        // Generate Safe transaction bundle
+        generateSafeBundle(_input, predeploys);
 
         return Output({ txns: txns, l2cmAddress: l2cmAddress, predeploys: predeploys });
     }
@@ -201,5 +206,72 @@ contract TransactionGeneration is Script {
                 data: abi.encodeCall(ProxyAdmin.performDelegateCall, (_l2cmAddress))
             })
         );
+    }
+
+    /// @notice Generates Safe transaction bundle from NUT transactions
+    /// @dev Creates Safe-compatible transaction bundle mirroring the actual NUT transactions
+    /// @param _input The input struct containing chain configuration
+    /// @param predeploys Array of predeploys that need to be deployed
+    function generateSafeBundle(Input memory _input, PredeployHelper.Predeploy[] memory predeploys) internal {
+        // Calculate total transactions: predeploy deployments + L2CM deployment + L2CM execute
+        uint256 totalTxns = predeploys.length + 2;
+        string[] memory transactionJsons = new string[](totalTxns);
+        uint256 txIndex = 0;
+
+        // Generate Safe transactions for each predeploy deployment
+        for (uint256 i = 0; i < predeploys.length; i++) {
+            bytes32 salt = keccak256(abi.encode(predeploys[i].name));
+            transactionJsons[txIndex] = NetworkUpgradeTxns.createSafeDeployJson(
+                l2ImplDeployerAddress, 0, salt, predeploys[i].initCode
+            );
+            txIndex++;
+        }
+
+        // Generate L2ContractsManager deployment transaction
+        bytes memory constructorArgs = _encodeL2CMConstructorArgs(_getPredeployAddresses(predeploys));
+        bytes memory l2cmInitCode = abi.encodePacked(vm.getCode(_input.l2cmName), constructorArgs);
+        bytes32 l2cmSalt = keccak256(abi.encode(_input.hardForkName, _input.l2cmName));
+        address l2cmAddress = ICreate2Deployer(CREATE2_DEPLOYER).computeAddress(l2cmSalt, keccak256(l2cmInitCode));
+
+        transactionJsons[txIndex] = NetworkUpgradeTxns.createSafeDeployJson(
+            l2ImplDeployerAddress, 0, l2cmSalt, l2cmInitCode
+        );
+        txIndex++;
+
+        // Generate ProxyAdmin.performDelegateCall transaction
+        transactionJsons[txIndex] = NetworkUpgradeTxns.createSafePerformDelegateCallJson(
+            Predeploys.PROXY_ADMIN, l2cmAddress
+        );
+
+        // Create default metadata
+        NetworkUpgradeTxns.SafeBundleMeta memory meta = NetworkUpgradeTxns.SafeBundleMeta({
+            createdFromSafeAddress: "",
+            createdFromOwnerAddress: "",
+            name: string.concat(_input.hardForkName, " Upgrade"),
+            description: string.concat("Network upgrade transactions for ", _input.hardForkName)
+        });
+
+        // Write Safe bundle to JSON
+        NetworkUpgradeTxns.writeSafeBundle(
+            "1.0",
+            vm.toString(_input.l2ChainID),
+            block.timestamp,
+            meta,
+            transactionJsons,
+            string.concat("deployments/safe-", _input.hardForkName, "-upgrade-bundle.json")
+        );
+    }
+
+    /// @notice Helper to extract predeploy addresses from predeploys array
+    function _getPredeployAddresses(PredeployHelper.Predeploy[] memory predeploys)
+        internal
+        pure
+        returns (address[] memory)
+    {
+        address[] memory addresses = new address[](predeploys.length);
+        for (uint256 i = 0; i < predeploys.length; i++) {
+            addresses[i] = predeploys[i].implementation;
+        }
+        return addresses;
     }
 }

@@ -36,6 +36,7 @@ deployments/kontrol-fp.json
 deployments/kontrol-fp.jsonReversed
 deployments/1-deploy.json
 deployments/nut-*.json
+deployments/safe-*.json
 
 
 

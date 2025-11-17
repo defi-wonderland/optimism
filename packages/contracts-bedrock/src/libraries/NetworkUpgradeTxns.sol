@@ -31,6 +31,14 @@ library NetworkUpgradeTxns {
         uint256 value;
     }
 
+    /// @notice Represents a Safe transaction bundle metadata
+    struct SafeBundleMeta {
+        string createdFromSafeAddress;
+        string createdFromOwnerAddress;
+        string name;
+        string description;
+    }
+
     /// @notice Create an upgrade transaction
     /// @param intent Human-readable intent
     /// @param from Sender address
@@ -132,5 +140,140 @@ library NetworkUpgradeTxns {
         NetworkUpgradeTxns.NetworkUpgradeTxn[] memory txns =
             abi.decode(parsedData, (NetworkUpgradeTxns.NetworkUpgradeTxn[]));
         return txns;
+    }
+
+    /// @notice Write Safe transaction bundle to JSON file
+    /// @param version Version string
+    /// @param chainId Chain ID string
+    /// @param createdAt Creation timestamp
+    /// @param meta Bundle metadata
+    /// @param transactionJsons Array of transaction JSON strings
+    /// @param outputPath File path for output JSON
+    function writeSafeBundle(
+        string memory version,
+        string memory chainId,
+        uint256 createdAt,
+        SafeBundleMeta memory meta,
+        string[] memory transactionJsons,
+        string memory outputPath
+    )
+        internal
+    {
+        // Serialize meta object
+        string memory metaObj = "meta";
+        vm.serializeString(metaObj, "createdFromSafeAddress", meta.createdFromSafeAddress);
+        vm.serializeString(metaObj, "createdFromOwnerAddress", meta.createdFromOwnerAddress);
+        vm.serializeString(metaObj, "name", meta.name);
+        string memory metaJson = vm.serializeString(metaObj, "description", meta.description);
+
+        // Serialize transactions array
+        string memory txnsArray = "[";
+        for (uint256 i = 0; i < transactionJsons.length; i++) {
+            txnsArray = string.concat(txnsArray, transactionJsons[i]);
+            if (i < transactionJsons.length - 1) {
+                txnsArray = string.concat(txnsArray, ",");
+            }
+        }
+        txnsArray = string.concat(txnsArray, "]");
+
+        // Manually construct the final JSON to ensure proper structure
+        string memory finalJson = string.concat(
+            "{\"version\":\"", version,
+            "\",\"chainId\":", chainId,
+            ",\"createdAt\":", vm.toString(createdAt),
+            ",\"meta\":", metaJson,
+            ",\"transactions\":", txnsArray,
+            "}"
+        );
+
+        vm.writeJson(finalJson, outputPath);
+    }
+
+    /// @notice Create a Safe transaction for L2ImplementationsDeployer.deploy
+    /// @param to Target address (L2ImplementationsDeployer)
+    /// @param value ETH value to send
+    /// @param salt Salt for CREATE2
+    /// @param initCode Initialization code for the contract
+    /// @return JSON string representing the Safe transaction
+    function createSafeDeployJson(
+        address to,
+        uint256 value,
+        bytes32 salt,
+        bytes memory initCode
+    )
+        internal
+        pure
+        returns (string memory)
+    {
+        bytes memory data = abi.encodeWithSignature("deploy(uint256,bytes32,bytes)", value, salt, initCode);
+
+        // Build the inputs array as raw JSON
+        string memory inputsArray = string.concat(
+            "[",
+            "{\"internalType\":\"uint256\",\"name\":\"_value\",\"type\":\"uint256\"},",
+            "{\"internalType\":\"bytes32\",\"name\":\"_salt\",\"type\":\"bytes32\"},",
+            "{\"internalType\":\"bytes\",\"name\":\"_initCode\",\"type\":\"bytes\"}",
+            "]"
+        );
+
+        // Build contractMethod object
+        string memory contractMethod = string.concat(
+            "{\"inputs\":", inputsArray, ",\"name\":\"deploy\",\"payable\":false}"
+        );
+
+        // Build contractInputsValues object
+        string memory contractInputsValues = string.concat(
+            "{\"_value\":\"", vm.toString(value), "\",",
+            "\"_salt\":\"", vm.toString(salt), "\",",
+            "\"_initCode\":\"", vm.toString(initCode), "\"}"
+        );
+
+        // Combine everything into final transaction JSON
+        string memory finalJson = string.concat(
+            "{\"to\":\"", vm.toString(to), "\",",
+            "\"value\":\"", vm.toString(value), "\",",
+            "\"data\":\"", vm.toString(data), "\",",
+            "\"contractMethod\":", contractMethod, ",",
+            "\"contractInputsValues\":", contractInputsValues,
+            "}"
+        );
+
+        return finalJson;
+    }
+
+    /// @notice Create a Safe transaction for ProxyAdmin.performDelegateCall
+    /// @param to Target address (ProxyAdmin)
+    /// @param target Address to delegatecall to (L2ContractsManager)
+    /// @return JSON string representing the Safe transaction
+    function createSafePerformDelegateCallJson(address to, address target)
+        internal
+        pure
+        returns (string memory)
+    {
+        bytes memory data = abi.encodeWithSignature("performDelegateCall(address)", target);
+
+        // Build the inputs array as raw JSON
+        string memory inputsArray =
+            "[{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"}]";
+
+        // Build contractMethod object
+        string memory contractMethod = string.concat(
+            "{\"inputs\":", inputsArray, ",\"name\":\"performDelegateCall\",\"payable\":false}"
+        );
+
+        // Build contractInputsValues object
+        string memory contractInputsValues = string.concat("{\"_target\":\"", vm.toString(target), "\"}");
+
+        // Combine everything into final transaction JSON
+        string memory finalJson = string.concat(
+            "{\"to\":\"", vm.toString(to), "\",",
+            "\"value\":\"0\",",
+            "\"data\":\"", vm.toString(data), "\",",
+            "\"contractMethod\":", contractMethod, ",",
+            "\"contractInputsValues\":", contractInputsValues,
+            "}"
+        );
+
+        return finalJson;
     }
 }

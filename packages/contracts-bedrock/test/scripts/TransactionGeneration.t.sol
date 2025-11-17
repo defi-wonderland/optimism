@@ -43,7 +43,8 @@ contract TransactionGenerationTest is Test {
             l1ERC721BridgeProxy: payable(0x4200000000000000000000000000000000000060),
             l2ImplDeployerAddress: L2_IMPLEMENTATIONS_DEPLOYER,
             l2cmName: "XForkContractsManager",
-            hardForkName: "XFork"
+            hardForkName: "XFork",
+            proxyAdminAddress: Predeploys.PROXY_ADMIN
         });
     }
 
