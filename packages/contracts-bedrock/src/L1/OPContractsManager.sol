@@ -913,6 +913,8 @@ contract OPContractsManagerUpgrader is OPContractsManagerBase {
         // Upgrade the SystemConfig first.
         upgradeTo(proxyAdmin, address(_opChainConfig.systemConfigProxy), _impls.systemConfigImpl);
 
+        _opChainConfig.systemConfigProxy.setWhatever(true);
+
         // Grab the OptimismPortal contract.
         IOptimismPortal optimismPortal = IOptimismPortal(payable(_opChainConfig.systemConfigProxy.optimismPortal()));
 
@@ -1684,17 +1686,20 @@ contract OPContractsManagerDeployer is OPContractsManagerBase {
         return abi.encodeCall(
             ISystemConfig.initialize,
             (
-                _input.roles.systemConfigOwner,
-                _input.basefeeScalar,
-                _input.blobBasefeeScalar,
-                bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
-                _input.gasLimit,
-                _input.roles.unsafeBlockSigner,
-                referenceResourceConfig,
-                chainIdToBatchInboxAddress(_input.l2ChainId),
-                opChainAddrs,
-                _input.l2ChainId,
-                _superchainConfig
+                ISystemConfig.SystemConfigInitData({
+                    owner: payable(_input.roles.systemConfigOwner),
+                    basefeeScalar: _input.basefeeScalar,
+                    blobbasefeeScalar: _input.blobBasefeeScalar,
+                    batcherHash: bytes32(uint256(uint160(_input.roles.batcher))), // batcherHash
+                    gasLimit: _input.gasLimit,
+                    unsafeBlockSigner: _input.roles.unsafeBlockSigner,
+                    config: referenceResourceConfig,
+                    batchInbox: chainIdToBatchInboxAddress(_input.l2ChainId),
+                    addresses: opChainAddrs,
+                    l2ChainId: _input.l2ChainId,
+                    superchainConfig: _superchainConfig,
+                    whatever: _input.whatever
+                })
             )
         );
     }
@@ -2116,6 +2121,7 @@ contract OPContractsManager is ISemver {
         uint256 disputeSplitDepth;
         Duration disputeClockExtension;
         Duration disputeMaxClockDuration;
+        bool whatever;
     }
 
     /// @notice The full set of outputs from deploying a new OP Stack chain.

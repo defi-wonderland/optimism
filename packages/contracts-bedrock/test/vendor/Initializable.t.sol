@@ -171,31 +171,34 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(
                     systemConfig.initialize,
                     (
-                        address(0xdead),
-                        0,
-                        0,
-                        bytes32(0),
-                        1,
-                        address(0),
-                        IResourceMetering.ResourceConfig({
-                            maxResourceLimit: 1,
-                            elasticityMultiplier: 1,
-                            baseFeeMaxChangeDenominator: 2,
-                            minimumBaseFee: 0,
-                            systemTxMaxGas: 0,
-                            maximumBaseFee: 0
-                        }),
-                        address(0),
-                        ISystemConfig.Addresses({
-                            l1CrossDomainMessenger: address(0),
-                            l1ERC721Bridge: address(0),
-                            l1StandardBridge: address(0),
-                            optimismPortal: address(0),
-                            optimismMintableERC20Factory: address(0),
-                            delayedWETH: address(0)
-                        }),
-                        0,
-                        ISuperchainConfig(address(0))
+                        ISystemConfig.SystemConfigInitData({
+                            owner: payable(address(0xdead)),
+                            basefeeScalar: 0,
+                            blobbasefeeScalar: 0,
+                            batcherHash: bytes32(0),
+                            gasLimit: 1,
+                            unsafeBlockSigner: address(0),
+                            config: IResourceMetering.ResourceConfig({
+                                maxResourceLimit: 1,
+                                elasticityMultiplier: 1,
+                                baseFeeMaxChangeDenominator: 2,
+                                minimumBaseFee: 0,
+                                systemTxMaxGas: 0,
+                                maximumBaseFee: 0
+                            }),
+                            batchInbox: address(0),
+                            addresses: ISystemConfig.Addresses({
+                                l1CrossDomainMessenger: address(0),
+                                l1ERC721Bridge: address(0),
+                                l1StandardBridge: address(0),
+                                optimismPortal: address(0),
+                                optimismMintableERC20Factory: address(0),
+                                delayedWETH: address(0)
+                            }),
+                            l2ChainId: 0,
+                            superchainConfig: ISuperchainConfig(address(0)),
+                            whatever: false
+                        })
                     )
                 )
             })
@@ -208,31 +211,34 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(
                     systemConfig.initialize,
                     (
-                        address(0xdead),
-                        0,
-                        0,
-                        bytes32(0),
-                        1,
-                        address(0),
-                        IResourceMetering.ResourceConfig({
-                            maxResourceLimit: 1,
-                            elasticityMultiplier: 1,
-                            baseFeeMaxChangeDenominator: 2,
-                            minimumBaseFee: 0,
-                            systemTxMaxGas: 0,
-                            maximumBaseFee: 0
-                        }),
-                        address(0),
-                        ISystemConfig.Addresses({
-                            l1CrossDomainMessenger: address(0),
-                            l1ERC721Bridge: address(0),
-                            l1StandardBridge: address(0),
-                            optimismPortal: address(0),
-                            optimismMintableERC20Factory: address(0),
-                            delayedWETH: address(0)
-                        }),
-                        0,
-                        ISuperchainConfig(address(0))
+                        ISystemConfig.SystemConfigInitData({
+                            owner: payable(address(0xdead)),
+                            basefeeScalar: 0,
+                            blobbasefeeScalar: 0,
+                            batcherHash: bytes32(0),
+                            gasLimit: 1,
+                            unsafeBlockSigner: address(0),
+                            config: IResourceMetering.ResourceConfig({
+                                maxResourceLimit: 1,
+                                elasticityMultiplier: 1,
+                                baseFeeMaxChangeDenominator: 2,
+                                minimumBaseFee: 0,
+                                systemTxMaxGas: 0,
+                                maximumBaseFee: 0
+                            }),
+                            batchInbox: address(0),
+                            addresses: ISystemConfig.Addresses({
+                                l1CrossDomainMessenger: address(0),
+                                l1ERC721Bridge: address(0),
+                                l1StandardBridge: address(0),
+                                optimismPortal: address(0),
+                                optimismMintableERC20Factory: address(0),
+                                delayedWETH: address(0)
+                            }),
+                            l2ChainId: 0,
+                            superchainConfig: ISuperchainConfig(address(0)),
+                            whatever: false
+                        })
                     )
                 )
             })

@@ -151,24 +151,27 @@ contract SystemConfig_Initialize_Test is SystemConfig_TestInit {
 
         vm.expectRevert("SystemConfig: gas limit too low");
         systemConfig.initialize({
-            _owner: alice,
-            _basefeeScalar: basefeeScalar,
-            _blobbasefeeScalar: blobbasefeeScalar,
-            _batcherHash: bytes32(hex"abcd"),
-            _gasLimit: minimumGasLimit - 1,
-            _unsafeBlockSigner: address(1),
-            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
-            _batchInbox: address(0),
-            _addresses: ISystemConfig.Addresses({
-                l1CrossDomainMessenger: address(0),
-                l1ERC721Bridge: address(0),
-                l1StandardBridge: address(0),
-                optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0),
-                delayedWETH: address(0)
-            }),
-            _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _initData: ISystemConfig.SystemConfigInitData({
+                owner: payable(alice),
+                basefeeScalar: basefeeScalar,
+                blobbasefeeScalar: blobbasefeeScalar,
+                batcherHash: bytes32(hex"abcd"),
+                gasLimit: minimumGasLimit - 1,
+                unsafeBlockSigner: address(1),
+                config: Constants.DEFAULT_RESOURCE_CONFIG(),
+                batchInbox: address(0),
+                addresses: ISystemConfig.Addresses({
+                    l1CrossDomainMessenger: address(0),
+                    l1ERC721Bridge: address(0),
+                    l1StandardBridge: address(0),
+                    optimismPortal: address(0),
+                    optimismMintableERC20Factory: address(0),
+                    delayedWETH: address(0)
+                }),
+                l2ChainId: 1234,
+                superchainConfig: ISuperchainConfig(address(0)),
+                whatever: false
+            })
         });
     }
 
@@ -208,24 +211,27 @@ contract SystemConfig_Initialize_Test is SystemConfig_TestInit {
         // Call the `initialize` function with the sender
         vm.prank(_sender);
         systemConfig.initialize({
-            _owner: alice,
-            _basefeeScalar: basefeeScalar,
-            _blobbasefeeScalar: blobbasefeeScalar,
-            _batcherHash: bytes32(hex"abcd"),
-            _gasLimit: minimumGasLimit - 1,
-            _unsafeBlockSigner: address(1),
-            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
-            _batchInbox: address(0),
-            _addresses: ISystemConfig.Addresses({
-                l1CrossDomainMessenger: address(0),
-                l1ERC721Bridge: address(0),
-                l1StandardBridge: address(0),
-                optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0),
-                delayedWETH: address(0)
-            }),
-            _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _initData: ISystemConfig.SystemConfigInitData({
+                owner: payable(alice),
+                basefeeScalar: basefeeScalar,
+                blobbasefeeScalar: blobbasefeeScalar,
+                batcherHash: bytes32(hex"abcd"),
+                gasLimit: minimumGasLimit - 1,
+                unsafeBlockSigner: address(1),
+                config: Constants.DEFAULT_RESOURCE_CONFIG(),
+                batchInbox: address(0),
+                addresses: ISystemConfig.Addresses({
+                    l1CrossDomainMessenger: address(0),
+                    l1ERC721Bridge: address(0),
+                    l1StandardBridge: address(0),
+                    optimismPortal: address(0),
+                    optimismMintableERC20Factory: address(0),
+                    delayedWETH: address(0)
+                }),
+                l2ChainId: 1234,
+                superchainConfig: ISuperchainConfig(address(0)),
+                whatever: false
+            })
         });
     }
 }
@@ -243,24 +249,27 @@ contract SystemConfig_StartBlock_Test is SystemConfig_TestInit {
         // Initialize and check that StartBlock updates to current block number
         vm.prank(address(systemConfig.proxyAdmin()));
         systemConfig.initialize({
-            _owner: alice,
-            _basefeeScalar: basefeeScalar,
-            _blobbasefeeScalar: blobbasefeeScalar,
-            _batcherHash: bytes32(hex"abcd"),
-            _gasLimit: gasLimit,
-            _unsafeBlockSigner: address(1),
-            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
-            _batchInbox: address(0),
-            _addresses: ISystemConfig.Addresses({
-                l1CrossDomainMessenger: address(0),
-                l1ERC721Bridge: address(0),
-                l1StandardBridge: address(0),
-                optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0),
-                delayedWETH: address(0)
-            }),
-            _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _initData: ISystemConfig.SystemConfigInitData({
+                owner: payable(alice),
+                basefeeScalar: basefeeScalar,
+                blobbasefeeScalar: blobbasefeeScalar,
+                batcherHash: bytes32(hex"abcd"),
+                gasLimit: gasLimit,
+                unsafeBlockSigner: address(1),
+                config: Constants.DEFAULT_RESOURCE_CONFIG(),
+                batchInbox: address(0),
+                addresses: ISystemConfig.Addresses({
+                    l1CrossDomainMessenger: address(0),
+                    l1ERC721Bridge: address(0),
+                    l1StandardBridge: address(0),
+                    optimismPortal: address(0),
+                    optimismMintableERC20Factory: address(0),
+                    delayedWETH: address(0)
+                }),
+                l2ChainId: 1234,
+                superchainConfig: ISuperchainConfig(address(0)),
+                whatever: false
+            })
         });
         assertEq(systemConfig.startBlock(), block.number);
     }
@@ -275,24 +284,27 @@ contract SystemConfig_StartBlock_Test is SystemConfig_TestInit {
         // Initialize and check that StartBlock doesn't update
         vm.prank(address(systemConfig.proxyAdmin()));
         systemConfig.initialize({
-            _owner: alice,
-            _basefeeScalar: basefeeScalar,
-            _blobbasefeeScalar: blobbasefeeScalar,
-            _batcherHash: bytes32(hex"abcd"),
-            _gasLimit: gasLimit,
-            _unsafeBlockSigner: address(1),
-            _config: Constants.DEFAULT_RESOURCE_CONFIG(),
-            _batchInbox: address(0),
-            _addresses: ISystemConfig.Addresses({
-                l1CrossDomainMessenger: address(0),
-                l1ERC721Bridge: address(0),
-                l1StandardBridge: address(0),
-                optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0),
-                delayedWETH: address(0)
-            }),
-            _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _initData: ISystemConfig.SystemConfigInitData({
+                owner: payable(alice),
+                basefeeScalar: basefeeScalar,
+                blobbasefeeScalar: blobbasefeeScalar,
+                batcherHash: bytes32(hex"abcd"),
+                gasLimit: gasLimit,
+                unsafeBlockSigner: address(1),
+                config: Constants.DEFAULT_RESOURCE_CONFIG(),
+                batchInbox: address(0),
+                addresses: ISystemConfig.Addresses({
+                    l1CrossDomainMessenger: address(0),
+                    l1ERC721Bridge: address(0),
+                    l1StandardBridge: address(0),
+                    optimismPortal: address(0),
+                    optimismMintableERC20Factory: address(0),
+                    delayedWETH: address(0)
+                }),
+                l2ChainId: 1234,
+                superchainConfig: ISuperchainConfig(address(0)),
+                whatever: false
+            })
         });
         assertEq(systemConfig.startBlock(), 1);
     }
@@ -573,24 +585,27 @@ contract SystemConfig_SetResourceConfig_Test is SystemConfig_TestInit {
         vm.prank(address(systemConfig.proxyAdmin()));
         vm.expectRevert(bytes(revertMessage));
         systemConfig.initialize({
-            _owner: address(0xdEaD),
-            _basefeeScalar: 0,
-            _blobbasefeeScalar: 0,
-            _batcherHash: bytes32(0),
-            _gasLimit: gasLimit,
-            _unsafeBlockSigner: address(0),
-            _config: config,
-            _batchInbox: address(0),
-            _addresses: ISystemConfig.Addresses({
-                l1CrossDomainMessenger: address(0),
-                l1ERC721Bridge: address(0),
-                l1StandardBridge: address(0),
-                optimismPortal: address(0),
-                optimismMintableERC20Factory: address(0),
-                delayedWETH: address(0)
-            }),
-            _l2ChainId: 1234,
-            _superchainConfig: ISuperchainConfig(address(0))
+            _initData: ISystemConfig.SystemConfigInitData({
+                owner: payable(address(0xdEaD)),
+                basefeeScalar: 0,
+                blobbasefeeScalar: 0,
+                batcherHash: bytes32(0),
+                gasLimit: gasLimit,
+                unsafeBlockSigner: address(0),
+                config: config,
+                batchInbox: address(0),
+                addresses: ISystemConfig.Addresses({
+                    l1CrossDomainMessenger: address(0),
+                    l1ERC721Bridge: address(0),
+                    l1StandardBridge: address(0),
+                    optimismPortal: address(0),
+                    optimismMintableERC20Factory: address(0),
+                    delayedWETH: address(0)
+                }),
+                l2ChainId: 1234,
+                superchainConfig: ISuperchainConfig(address(0)),
+                whatever: false
+            })
         });
     }
 }

@@ -34,6 +34,7 @@ const (
 	Eip1559Elasticity               uint64 = 6
 
 	UseRevenueShare = true
+	Whatever        = true
 
 	ContractsV160Tag        = "op-contracts/v1.6.0"
 	ContractsV180Tag        = "op-contracts/v1.8.0-rc.4"

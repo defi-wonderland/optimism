@@ -90,6 +90,7 @@ contract DeployConfig is Script {
     bytes32 public devFeatureBitmap;
 
     bool public useRevenueShare;
+    bool public whatever;
     address public chainFeesRecipient;
     /// @notice This is not read from JSON because it is hardcoded in the deployer. It is overwritten with its setter
     ///         for testing.
@@ -178,6 +179,7 @@ contract DeployConfig is Script {
         faultGameV2SplitDepth = _readOr(_json, "$.faultGameV2SplitDepth", 30);
         faultGameV2ClockExtension = _readOr(_json, "$.faultGameV2ClockExtension", 10800);
         faultGameV2MaxClockDuration = _readOr(_json, "$.faultGameV2MaxClockDuration", 302400);
+        whatever = _readOr(_json, "$.whatever", false);
     }
 
     function fork() public view returns (Fork fork_) {
@@ -232,6 +234,11 @@ contract DeployConfig is Script {
     /// @notice Allow the `useRevenueShare` config to be overridden in testing environments
     function setUseRevenueShare(bool _useRevenueShare) public {
         useRevenueShare = _useRevenueShare;
+    }
+
+    /// @notice Allow the `whatever` config to be overridden in testing environments
+    function setWhatever(bool _whatever) public {
+        whatever = _whatever;
     }
 
     /// @notice Allow the `l1FeesDepositor` config to be overridden in testing environments

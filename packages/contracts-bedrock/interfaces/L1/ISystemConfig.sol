@@ -26,6 +26,21 @@ interface ISystemConfig is IProxyAdminOwnedBase {
         address delayedWETH;
     }
 
+    struct SystemConfigInitData {
+        address payable owner;
+        uint32 basefeeScalar;
+        uint32 blobbasefeeScalar;
+        bytes32 batcherHash;
+        uint64 gasLimit;
+        address unsafeBlockSigner;
+        IResourceMetering.ResourceConfig config;
+        address batchInbox;
+        Addresses addresses;
+        uint256 l2ChainId;
+        ISuperchainConfig superchainConfig;
+        bool whatever;
+    }
+
     error ReinitializableBase_ZeroInitVersion();
     error SystemConfig_InvalidFeatureState();
 
@@ -53,20 +68,7 @@ interface ISystemConfig is IProxyAdminOwnedBase {
     function eip1559Denominator() external view returns (uint32);
     function eip1559Elasticity() external view returns (uint32);
     function getAddresses() external view returns (Addresses memory);
-    function initialize(
-        address _owner,
-        uint32 _basefeeScalar,
-        uint32 _blobbasefeeScalar,
-        bytes32 _batcherHash,
-        uint64 _gasLimit,
-        address _unsafeBlockSigner,
-        IResourceMetering.ResourceConfig memory _config,
-        address _batchInbox,
-        Addresses memory _addresses,
-        uint256 _l2ChainId,
-        ISuperchainConfig _superchainConfig
-    )
-        external;
+    function initialize(SystemConfigInitData memory _initData) external;
     function initVersion() external view returns (uint8);
     function l1CrossDomainMessenger() external view returns (address addr_);
     function l1ERC721Bridge() external view returns (address addr_);
@@ -95,6 +97,7 @@ interface ISystemConfig is IProxyAdminOwnedBase {
     function setEIP1559Params(uint32 _denominator, uint32 _elasticity) external;
     function setMinBaseFee(uint64 _minBaseFee) external;
     function setDAFootprintGasScalar(uint16 _daFootprintGasScalar) external;
+    function setWhatever(bool _whatever) external;
     function startBlock() external view returns (uint256 startBlock_);
     function transferOwnership(address newOwner) external; // nosemgrep
     function unsafeBlockSigner() external view returns (address addr_);
@@ -104,6 +107,6 @@ interface ISystemConfig is IProxyAdminOwnedBase {
     function guardian() external view returns (address);
     function setFeature(bytes32 _feature, bool _enabled) external;
     function isFeatureEnabled(bytes32) external view returns (bool);
-
+    function whatever() external view returns (bool);
     function __constructor__() external;
 }

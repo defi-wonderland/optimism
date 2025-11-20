@@ -172,31 +172,34 @@ contract SetDisputeGameImpl_Test is Test {
         return abi.encodeCall(
             systemConfigImpl.initialize,
             (
-                address(this),
-                1000,
-                1000,
-                bytes32(0),
-                30_000_000,
-                address(1),
-                IResourceMetering.ResourceConfig({
-                    maxResourceLimit: 20_000_000,
-                    elasticityMultiplier: 10,
-                    baseFeeMaxChangeDenominator: 8,
-                    minimumBaseFee: 100_000_000,
-                    systemTxMaxGas: 1_000_000,
-                    maximumBaseFee: type(uint128).max
-                }),
-                address(2),
-                SystemConfig.Addresses({
-                    l1CrossDomainMessenger: address(3),
-                    l1ERC721Bridge: address(4),
-                    l1StandardBridge: address(5),
-                    optimismPortal: address(6),
-                    optimismMintableERC20Factory: address(7),
-                    delayedWETH: address(8)
-                }),
-                10,
-                ISuperchainConfig(address(supConfigProxy))
+                SystemConfig.SystemConfigInitData({
+                    owner: payable(address(this)),
+                    basefeeScalar: 1000,
+                    blobbasefeeScalar: 1000,
+                    batcherHash: bytes32(0),
+                    gasLimit: 30_000_000,
+                    unsafeBlockSigner: address(1),
+                    config: IResourceMetering.ResourceConfig({
+                        maxResourceLimit: 20_000_000,
+                        elasticityMultiplier: 10,
+                        baseFeeMaxChangeDenominator: 8,
+                        minimumBaseFee: 100_000_000,
+                        systemTxMaxGas: 1_000_000,
+                        maximumBaseFee: type(uint128).max
+                    }),
+                    batchInbox: address(2),
+                    addresses: SystemConfig.Addresses({
+                        l1CrossDomainMessenger: address(3),
+                        l1ERC721Bridge: address(4),
+                        l1StandardBridge: address(5),
+                        optimismPortal: address(6),
+                        optimismMintableERC20Factory: address(7),
+                        delayedWETH: address(8)
+                    }),
+                    l2ChainId: 10,
+                    superchainConfig: ISuperchainConfig(address(supConfigProxy)),
+                    whatever: false
+                })
             )
         );
     }

@@ -31,24 +31,27 @@ contract SystemConfig_GasLimitBoundaries_Invariant is Test {
             abi.encodeCall(
                 configImpl.initialize,
                 (
-                    address(0xbeef), // owner
-                    2100, // overhead
-                    1000000, // scalar
-                    bytes32(hex"abcd"), // batcher hash
-                    30_000_000, // gas limit
-                    address(1), // unsafe block signer
-                    Constants.DEFAULT_RESOURCE_CONFIG(),
-                    address(0), // _batchInbox
-                    ISystemConfig.Addresses({ // _addrs
-                        l1CrossDomainMessenger: address(0),
-                        l1ERC721Bridge: address(0),
-                        l1StandardBridge: address(0),
-                        optimismPortal: address(0),
-                        optimismMintableERC20Factory: address(0),
-                        delayedWETH: address(0)
-                    }),
-                    1234, // _l2ChainId
-                    ISuperchainConfig(address(0)) // _superchainConfig
+                    ISystemConfig.SystemConfigInitData({
+                        owner: payable(address(0xbeef)),
+                        basefeeScalar: 2100,
+                        blobbasefeeScalar: 1000000,
+                        batcherHash: bytes32(hex"abcd"),
+                        gasLimit: 30_000_000,
+                        unsafeBlockSigner: address(1),
+                        config: Constants.DEFAULT_RESOURCE_CONFIG(),
+                        batchInbox: address(0),
+                        addresses: ISystemConfig.Addresses({
+                            l1CrossDomainMessenger: address(0),
+                            l1ERC721Bridge: address(0),
+                            l1StandardBridge: address(0),
+                            optimismPortal: address(0),
+                            optimismMintableERC20Factory: address(0),
+                            delayedWETH: address(0)
+                        }),
+                        l2ChainId: 1234,
+                        superchainConfig: ISuperchainConfig(address(0)),
+                        whatever: false
+                    })
                 )
             )
         );

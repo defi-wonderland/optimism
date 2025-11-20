@@ -43,6 +43,8 @@ type DeployOPChainInput struct {
 
 	OperatorFeeScalar   uint32
 	OperatorFeeConstant uint64
+
+	Whatever bool
 }
 
 type DeployOPChainOutput struct {

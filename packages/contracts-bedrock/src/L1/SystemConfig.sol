@@ -32,6 +32,7 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     /// @custom:value OPERATOR_FEE_PARAMS Represents an update to operator fee parameters.
     /// @custom:value MIN_BASE_FEE        Represents an update to the minimum base fee.
     /// @custom:value DA_FOOTPRINT_GAS_SCALAR Represents an update to the DA footprint gas scalar.
+    /// @custom:value WHATEVER             Represents an update to the whatever flag.
     enum UpdateType {
         BATCHER,
         FEE_SCALARS,
@@ -40,7 +41,8 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         EIP_1559_PARAMS,
         OPERATOR_FEE_PARAMS,
         MIN_BASE_FEE,
-        DA_FOOTPRINT_GAS_SCALAR
+        DA_FOOTPRINT_GAS_SCALAR,
+        WHATEVER
     }
 
     /// @notice Struct representing the addresses of L1 system contracts. These should be the
@@ -53,6 +55,21 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         address optimismPortal;
         address optimismMintableERC20Factory;
         address delayedWETH;
+    }
+
+    struct SystemConfigInitData {
+        address payable owner;
+        uint32 basefeeScalar;
+        uint32 blobbasefeeScalar;
+        bytes32 batcherHash;
+        uint64 gasLimit;
+        address unsafeBlockSigner;
+        IResourceMetering.ResourceConfig config;
+        address batchInbox;
+        SystemConfig.Addresses addresses;
+        uint256 l2ChainId;
+        ISuperchainConfig superchainConfig;
+        bool whatever;
     }
 
     /// @notice Version identifier, used for upgrades.
@@ -169,6 +186,9 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
     ///         respectively.
     error SystemConfig_InvalidFeatureState();
 
+    /// @notice Whatever.
+    bool public whatever;
+
     /// @notice Semantic version.
     /// @custom:semver 3.12.0
     function version() public pure virtual returns (string memory) {
@@ -185,60 +205,33 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
 
     /// @notice Initializer.
     ///         The resource config must be set before the require check.
-    /// @param _owner             Initial owner of the contract.
-    /// @param _basefeeScalar     Initial basefee scalar value.
-    /// @param _blobbasefeeScalar Initial blobbasefee scalar value.
-    /// @param _batcherHash       Initial batcher hash.
-    /// @param _gasLimit          Initial gas limit.
-    /// @param _unsafeBlockSigner Initial unsafe block signer address.
-    /// @param _config            Initial ResourceConfig.
-    /// @param _batchInbox        Batch inbox address. An identifier for the op-node to find
-    ///                           canonical data.
-    /// @param _addresses         Set of L1 contract addresses. These should be the proxies.
-    /// @param _l2ChainId         The L2 chain ID that this SystemConfig configures.
-    /// @param _superchainConfig  The SuperchainConfig contract address.
-    function initialize(
-        address _owner,
-        uint32 _basefeeScalar,
-        uint32 _blobbasefeeScalar,
-        bytes32 _batcherHash,
-        uint64 _gasLimit,
-        address _unsafeBlockSigner,
-        IResourceMetering.ResourceConfig memory _config,
-        address _batchInbox,
-        SystemConfig.Addresses memory _addresses,
-        uint256 _l2ChainId,
-        ISuperchainConfig _superchainConfig
-    )
-        public
-        reinitializer(initVersion())
-    {
+    /// @param _initData          Initialization data.
+    function initialize(SystemConfigInitData memory _initData) public reinitializer(initVersion()) {
         // Initialization transactions must come from the ProxyAdmin or its owner.
         _assertOnlyProxyAdminOrProxyAdminOwner();
 
         // Now perform initialization logic.
         __Ownable_init();
-        transferOwnership(_owner);
+        transferOwnership(_initData.owner);
 
         // These are set in ascending order of their UpdateTypes.
-        _setBatcherHash(_batcherHash);
-        _setGasConfigEcotone({ _basefeeScalar: _basefeeScalar, _blobbasefeeScalar: _blobbasefeeScalar });
-        _setGasLimit(_gasLimit);
+        _setBatcherHash(_initData.batcherHash);
+        _setGasConfigEcotone({ _basefeeScalar: _initData.basefeeScalar, _blobbasefeeScalar: _initData.blobbasefeeScalar });
+        _setGasLimit(_initData.gasLimit);
 
-        Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _unsafeBlockSigner);
-        Storage.setAddress(BATCH_INBOX_SLOT, _batchInbox);
-        Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _addresses.l1CrossDomainMessenger);
-        Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _addresses.l1ERC721Bridge);
-        Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _addresses.l1StandardBridge);
-        Storage.setAddress(OPTIMISM_PORTAL_SLOT, _addresses.optimismPortal);
-        Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _addresses.optimismMintableERC20Factory);
-        Storage.setAddress(DELAYED_WETH_SLOT, _addresses.delayedWETH);
+        Storage.setAddress(UNSAFE_BLOCK_SIGNER_SLOT, _initData.unsafeBlockSigner);
+        Storage.setAddress(BATCH_INBOX_SLOT, _initData.batchInbox);
+        Storage.setAddress(L1_CROSS_DOMAIN_MESSENGER_SLOT, _initData.addresses.l1CrossDomainMessenger);
+        Storage.setAddress(L1_ERC_721_BRIDGE_SLOT, _initData.addresses.l1ERC721Bridge);
+        Storage.setAddress(L1_STANDARD_BRIDGE_SLOT, _initData.addresses.l1StandardBridge);
+        Storage.setAddress(OPTIMISM_PORTAL_SLOT, _initData.addresses.optimismPortal);
+        Storage.setAddress(OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT, _initData.addresses.optimismMintableERC20Factory);
+        Storage.setAddress(DELAYED_WETH_SLOT, _initData.addresses.delayedWETH);
         _setStartBlock();
-
-        _setResourceConfig(_config);
-
-        l2ChainId = _l2ChainId;
-        superchainConfig = _superchainConfig;
+        _setResourceConfig(_initData.config);
+        l2ChainId = _initData.l2ChainId;
+        superchainConfig = _initData.superchainConfig;
+        whatever = _initData.whatever;
     }
 
     /// @notice Returns the minimum L2 gas limit that can be safely set for the system to
@@ -524,6 +517,16 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
         );
 
         _resourceConfig = _config;
+    }
+
+    /// @notice Sets the whatever flag. Can only be called by the ProxyAdmin or its owner.
+    ///         NOTE: Depending on whether we want to continually be able to update this flag or not, this function may
+    ///         be removed.
+    /// @param _whatever The new whatever flag value.
+    function setWhatever(bool _whatever) external {
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+        whatever = _whatever;
+        emit ConfigUpdate(VERSION, UpdateType.WHATEVER, abi.encode(_whatever));
     }
 
     /// @notice Sets a feature flag enabled or disabled. Can only be called by the ProxyAdmin or
