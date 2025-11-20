@@ -44,7 +44,7 @@ type DeployOPChainInput struct {
 	OperatorFeeScalar   uint32
 	OperatorFeeConstant uint64
 
-	UseCustomGasToken   bool
+	UseCustomGasToken bool
 }
 
 type DeployOPChainOutput struct {
