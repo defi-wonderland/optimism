@@ -2312,9 +2312,9 @@ contract OPContractsManager is ISemver {
 
     /// @notice Modifier that reverts if OPCM v2 is enabled via dev feature flag.
     modifier revertIfV2Enabled() {
-        // TODO: This revert should be conditionally reached if the dev feature flag is enabled.
-        revert OPContractsManager_V1Disabled();
-        // This line is never reached but is needed to satisfy the compiler.
+        if (isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
+            revert OPContractsManager_V1Disabled();
+        }
         _;
     }
 
