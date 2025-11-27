@@ -68,14 +68,15 @@ contract DeployOPChain is Script {
 
             vm.broadcast(msg.sender);
             IOPContractsManagerV2.ChainContracts memory chainContracts = opcmV2.deploy(config);
-            output_ = fromChainContractsToOutput(chainContracts);
+            output_ = fromOPCMV2OutputToOutput(chainContracts);
         } else {
             IOPContractsManager opcm = IOPContractsManager(_input.opcm);
+            IOPContractsManager.DeployInput memory deployInput = toOPCMV1DeployInput(_input);
 
             vm.broadcast(msg.sender);
-            IOPContractsManager.DeployOutput memory deployOutput = opcm.deploy(toOPCMV1DeployInput(_input));
+            IOPContractsManager.DeployOutput memory deployOutput = opcm.deploy(deployInput);
 
-            output_ = fromDeployOutputToOutput(deployOutput);
+            output_ = fromOPCMV1OutputToOutput(deployOutput);
         }
 
         checkOutput(_input, output_);
@@ -110,32 +111,9 @@ contract DeployOPChain is Script {
         return DevFeatures.isDevFeatureEnabled(opcm.devFeatureBitmap(), DevFeatures.DEPLOY_V2_DISPUTE_GAMES);
     }
 
-    function toDeployOutput(IOPContractsManagerV2.ChainContracts memory _chainContracts)
-        internal
-        pure
-        returns (Output memory output_)
-    {
-        output_ = Output({
-            opChainProxyAdmin: IProxyAdmin(address(_chainContracts.proxyAdmin)),
-            addressManager: IAddressManager(address(_chainContracts.addressManager)),
-            l1ERC721BridgeProxy: IL1ERC721Bridge(address(_chainContracts.l1ERC721Bridge)),
-            systemConfigProxy: ISystemConfig(address(_chainContracts.systemConfig)),
-            optimismMintableERC20FactoryProxy: IOptimismMintableERC20Factory(
-                address(_chainContracts.optimismMintableERC20Factory)
-            ),
-            l1StandardBridgeProxy: IL1StandardBridge(payable(address(_chainContracts.l1StandardBridge))),
-            l1CrossDomainMessengerProxy: IL1CrossDomainMessenger(address(_chainContracts.l1CrossDomainMessenger)),
-            optimismPortalProxy: IOptimismPortal(payable(address(_chainContracts.optimismPortal))),
-            ethLockboxProxy: IETHLockbox(address(_chainContracts.ethLockbox)),
-            disputeGameFactoryProxy: IDisputeGameFactory(address(_chainContracts.disputeGameFactory)),
-            anchorStateRegistryProxy: IAnchorStateRegistry(address(_chainContracts.anchorStateRegistry)),
-            faultDisputeGame: IFaultDisputeGame(address(0)), // V2 uses shared implementations
-            permissionedDisputeGame: IPermissionedDisputeGame(address(0)), // V2 uses shared implementations
-            delayedWETHPermissionedGameProxy: IDelayedWETH(payable(address(_chainContracts.delayedWETH))),
-            delayedWETHPermissionlessGameProxy: IDelayedWETH(payable(address(0))) // Not deployed in V2
-         });
-    }
-
+    /// @notice Converts Types.DeployOPChainInput to IOPContractsManager.DeployInput.
+    /// @param _input The input parameters.
+    /// @return deployInput_ The deployed input parameters.
     function toOPCMV1DeployInput(Types.DeployOPChainInput memory _input)
         internal
         pure
@@ -167,14 +145,17 @@ contract DeployOPChain is Script {
         });
     }
 
-    /// @notice Converts v1 DeployInput to v2 FullConfig format
+    /// @notice Converts Types.DeployOPChainInput to IOPContractsManagerV2.FullConfig.
+    /// @param _input The input parameters.
+    /// @param _opcmV2 The OPCM v2 contract.
+    /// @return config_ The deployed input parameters.
     function toOPCMV2DeployInput(
         Types.DeployOPChainInput memory _input,
         IOPContractsManagerV2 _opcmV2
     )
         internal
         view
-        returns (IOPContractsManagerV2.FullConfig memory)
+        returns (IOPContractsManagerV2.FullConfig memory config_)
     {
         // Build dispute game configs - OPCMV2 requires exactly 3 configs: CANNON, PERMISSIONED_CANNON, CANNON_KONA
         IOPContractsManagerV2.DisputeGameConfig[] memory disputeGameConfigs =
@@ -222,7 +203,7 @@ contract DeployOPChain is Script {
             gameArgs: abi.encode(cannonKonaConfig)
         });
 
-        return IOPContractsManagerV2.FullConfig({
+        config_ = IOPContractsManagerV2.FullConfig({
             saltMixer: _input.saltMixer,
             superchainConfig: ISuperchainConfig(_opcmV2.implementations().superchainConfigImpl),
             proxyAdminOwner: _input.opChainProxyAdminOwner,
@@ -240,13 +221,15 @@ contract DeployOPChain is Script {
         });
     }
 
-    /// @notice Converts v2 ChainContracts to v1 Output format
-    function fromChainContractsToOutput(IOPContractsManagerV2.ChainContracts memory _chainContracts)
+    /// @notice Converts IOPContractsManagerV2.ChainContracts to Output.
+    /// @param _chainContracts The chain contracts.
+    /// @return output_ The output parameters.
+    function fromOPCMV2OutputToOutput(IOPContractsManagerV2.ChainContracts memory _chainContracts)
         internal
         pure
-        returns (Output memory)
+        returns (Output memory output_)
     {
-        return Output({
+        output_ = Output({
             opChainProxyAdmin: _chainContracts.proxyAdmin,
             addressManager: _chainContracts.addressManager,
             l1ERC721BridgeProxy: _chainContracts.l1ERC721Bridge,
@@ -265,7 +248,10 @@ contract DeployOPChain is Script {
         });
     }
 
-    function fromDeployOutputToOutput(IOPContractsManager.DeployOutput memory _deployOutput)
+    /// @notice Converts IOPContractsManager.DeployOutput to Output.
+    /// @param _deployOutput The deploy output.
+    /// @return output_ The output parameters.
+    function fromOPCMV1OutputToOutput(IOPContractsManager.DeployOutput memory _deployOutput)
         internal
         pure
         returns (Output memory output_)
