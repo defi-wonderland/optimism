@@ -205,7 +205,8 @@ contract DeployOPChain is Script {
 
         config_ = IOPContractsManagerV2.FullConfig({
             saltMixer: _input.saltMixer,
-            superchainConfig: ISuperchainConfig(_opcmV2.implementations().superchainConfigImpl),
+            // TODO: Add superchain config to OPCM v2.
+            superchainConfig: ISuperchainConfig(address(0)),
             proxyAdminOwner: _input.opChainProxyAdminOwner,
             systemConfigOwner: _input.systemConfigOwner,
             unsafeBlockSigner: _input.unsafeBlockSigner,
@@ -361,7 +362,8 @@ contract DeployOPChain is Script {
             // OPCM v2: use implementations from v2 contract
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_i.opcm);
             expectedPDGImpl = opcmV2.implementations().permissionedDisputeGameV2Impl;
-            superchainConfig = ISuperchainConfig(opcmV2.implementations().superchainConfigImpl);
+            // TODO: Add superchain config to OPCM v2.
+            superchainConfig = ISuperchainConfig(address(0));
         } else {
             // OPCM v1: use implementations from v1 contract
             IOPContractsManager opcm = IOPContractsManager(_i.opcm);
