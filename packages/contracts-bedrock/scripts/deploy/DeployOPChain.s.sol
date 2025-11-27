@@ -64,7 +64,7 @@ contract DeployOPChain is Script {
 
         if (useV2) {
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_input.opcm);
-            IOPContractsManagerV2.FullConfig memory config = toOPCMV2DeployInput(_input, opcmV2);
+            IOPContractsManagerV2.FullConfig memory config = toOPCMV2DeployInput(_input);
 
             vm.broadcast(msg.sender);
             IOPContractsManagerV2.ChainContracts memory chainContracts = opcmV2.deploy(config);
@@ -147,14 +147,10 @@ contract DeployOPChain is Script {
 
     /// @notice Converts Types.DeployOPChainInput to IOPContractsManagerV2.FullConfig.
     /// @param _input The input parameters.
-    /// @param _opcmV2 The OPCM v2 contract.
     /// @return config_ The deployed input parameters.
-    function toOPCMV2DeployInput(
-        Types.DeployOPChainInput memory _input,
-        IOPContractsManagerV2 _opcmV2
-    )
+    function toOPCMV2DeployInput(Types.DeployOPChainInput memory _input)
         internal
-        view
+        pure
         returns (IOPContractsManagerV2.FullConfig memory config_)
     {
         // Build dispute game configs - OPCMV2 requires exactly 3 configs: CANNON, PERMISSIONED_CANNON, CANNON_KONA
