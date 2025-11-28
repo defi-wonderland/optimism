@@ -2235,7 +2235,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase, DisputeGames 
         input.l2ChainId = 0;
 
         vm.expectRevert(IOPContractsManager.InvalidChainId.selector);
-        opcm.deploy(input);
+        IOPContractsManager(opcmAddr).deploy(input);
     }
 
     function test_deploy_l2ChainIdEqualsCurrentChainId_reverts() public {
@@ -2243,19 +2243,19 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase, DisputeGames 
         input.l2ChainId = block.chainid;
 
         vm.expectRevert(IOPContractsManager.InvalidChainId.selector);
-        opcm.deploy(input);
+        IOPContractsManager(opcmAddr).deploy(input);
     }
 
     function test_deploy_succeeds() public {
         vm.expectEmit(true, true, true, false); // TODO precompute the expected `deployOutput`.
         emit Deployed(deployOPChainInput.l2ChainId, address(this), bytes(""));
-        opcm.deploy(toOPCMDeployInput(deployOPChainInput));
+        IOPContractsManager(opcmAddr).deploy(toOPCMDeployInput(deployOPChainInput));
     }
 
     /// @notice Test that deploy sets the permissioned dispute game implementation
     function test_deployPermissioned_succeeds() public {
         // Sanity-check setup is consistent with devFeatures flag
-        IOPContractsManager.Implementations memory impls = opcm.implementations();
+        IOPContractsManager.Implementations memory impls = IOPContractsManager(opcmAddr).implementations();
         address pdgImpl = address(impls.permissionedDisputeGameV2Impl);
         address fdgImpl = address(impls.faultDisputeGameV2Impl);
         assertFalse(pdgImpl == address(0), "PDG implementation address should be non-zero");
@@ -2263,7 +2263,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase, DisputeGames 
 
         // Run OPCM.deploy
         IOPContractsManager.DeployInput memory opcmInput = toOPCMDeployInput(deployOPChainInput);
-        IOPContractsManager.DeployOutput memory opcmOutput = opcm.deploy(opcmInput);
+        IOPContractsManager.DeployOutput memory opcmOutput = IOPContractsManager(opcmAddr).deploy(opcmInput);
 
         // Verify that the DisputeGameFactory has registered an implementation for the PERMISSIONED_CANNON game type
         address actualPDGAddress = address(opcmOutput.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON));
