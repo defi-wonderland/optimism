@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
@@ -107,7 +108,7 @@ func makeDCI(intent *state.Intent, thisIntent *state.ChainIntent, chainID common
 	// Select which OPCM to use based on dev feature flag
 	opcmAddr := st.ImplementationsDeployment.OpcmImpl
 	if devFeatureBitmap, ok := intent.GlobalDeployOverrides["devFeatureBitmap"].(common.Hash); ok {
-		opcmV2Flag := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000")
+		opcmV2Flag := deployer.OPCMV2DevFlag
 		if isDevFeatureEnabled(devFeatureBitmap, opcmV2Flag) && st.ImplementationsDeployment.OpcmV2Impl != (common.Address{}) {
 			opcmAddr = st.ImplementationsDeployment.OpcmV2Impl
 		}
