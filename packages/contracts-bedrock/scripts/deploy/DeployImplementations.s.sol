@@ -211,6 +211,7 @@ contract DeployImplementations is Script {
         IOPContractsManager.Blueprints memory _blueprints
     )
         private
+        returns (IOPContractsManagerV2 opcmV2_)
     {
         IOPContractsManager.Implementations memory implementations = IOPContractsManager.Implementations({
             superchainConfigImpl: address(_output.superchainConfigImpl),
@@ -272,7 +273,7 @@ contract DeployImplementations is Script {
         // Deploy OPCM V2 components
         deployOPCMContainer(_input, _output, blueprintsV2, implementationsV2);
         deployOPCMStandardValidator(_input, _output, implementations);
-        deployOPCMV2(_output);
+        opcmV2_ = deployOPCMV2(_output);
 
         // Set OPCM V1 addresses to zero (not deployed)
         _output.opcm = IOPContractsManager(address(0));
@@ -281,6 +282,8 @@ contract DeployImplementations is Script {
         _output.opcmDeployer = IOPContractsManagerDeployer(address(0));
         _output.opcmUpgrader = IOPContractsManagerUpgrader(address(0));
         _output.opcmInteropMigrator = IOPContractsManagerInteropMigrator(address(0));
+
+        return opcmV2_;
     }
 
     /// @notice Encodes the constructor of the OPContractsManager contract. Used to avoid stack too
@@ -341,7 +344,9 @@ contract DeployImplementations is Script {
         bool deployV2 = DevFeatures.isDevFeatureEnabled(_input.devFeatureBitmap, DevFeatures.OPCM_V2);
 
         if (deployV2) {
-            createOPCMContractV2(_input, _output, blueprints);
+            IOPContractsManagerV2 opcmV2 = createOPCMContractV2(_input, _output, blueprints);
+            vm.label(address(opcmV2), "OPContractsManagerV2");
+            _output.opcmV2 = opcmV2;
         } else {
             IOPContractsManager opcm = createOPCMContract(_input, _output, blueprints);
             vm.label(address(opcm), "OPContractsManager");
@@ -813,8 +818,8 @@ contract DeployImplementations is Script {
         _output.opcmStandardValidator = impl;
     }
 
-    function deployOPCMV2(Output memory _output) private {
-        IOPContractsManagerV2 impl = IOPContractsManagerV2(
+    function deployOPCMV2(Output memory _output) private returns (IOPContractsManagerV2 opcmV2_) {
+        opcmV2_ = IOPContractsManagerV2(
             DeployUtils.createDeterministic({
                 _name: "OPContractsManagerV2.sol:OPContractsManagerV2",
                 _args: DeployUtils.encodeConstructor(
@@ -825,8 +830,7 @@ contract DeployImplementations is Script {
                 _salt: _salt
             })
         );
-        vm.label(address(impl), "OPContractsManagerV2Impl");
-        _output.opcmV2 = impl;
+        vm.label(address(opcmV2_), "OPContractsManagerV2Impl");
     }
 
     function deployStorageSetterImpl(Output memory _output) private {
