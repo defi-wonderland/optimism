@@ -362,7 +362,6 @@ func TestEndToEndApply(t *testing.T) {
 		require.Equal(t, amount, account.Balance, "Native asset liquidity predeploy should have the configured balance")
 	})
 
-	// TODO: Add tests for OPCMV2
 	t.Run("OPCMV2 deployment", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
