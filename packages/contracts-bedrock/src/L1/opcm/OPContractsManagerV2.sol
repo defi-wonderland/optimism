@@ -121,6 +121,8 @@ contract OPContractsManagerV2 is ISemver {
         IResourceMetering.ResourceConfig resourceConfig;
         // Dispute game configuration.
         DisputeGameConfig[] disputeGameConfigs;
+        // CGT
+        bool useCustomGasToken;
     }
 
     /// @notice Partial input required for an upgrade.
@@ -606,7 +608,16 @@ contract OPContractsManagerV2 is ISemver {
                 ),
                 (GameType)
             ),
-            disputeGameConfigs: _upgradeInput.disputeGameConfigs
+            disputeGameConfigs: _upgradeInput.disputeGameConfigs,
+            useCustomGasToken: abi.decode(
+                _loadBytes(
+                    address(_chainContracts.systemConfig),
+                    _chainContracts.systemConfig.isCustomGasToken.selector,
+                    "overrides.cfg.useCustomGasToken",
+                    _upgradeInput.extraInstructions
+                ),
+                (bool)
+            )
         });
     }
 
@@ -808,6 +819,11 @@ contract OPContractsManagerV2 is ISemver {
             _cts.disputeGameFactory.setInitBond(
                 _cfg.disputeGameConfigs[i].gameType, _cfg.disputeGameConfigs[i].initBond
             );
+        }
+
+        // If the custom gas token feature was requested, enable it in the SystemConfig.
+        if (_cfg.useCustomGasToken) {
+            _cts.systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
         }
 
         // If critical transfer is allowed, tranfer ownership of the DisputeGameFactory and
