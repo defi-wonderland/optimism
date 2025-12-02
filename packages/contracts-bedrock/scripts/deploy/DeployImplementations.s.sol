@@ -213,28 +213,7 @@ contract DeployImplementations is Script {
         private
         returns (IOPContractsManagerV2 opcmV2_)
     {
-        IOPContractsManager.Implementations memory implementations = IOPContractsManager.Implementations({
-            superchainConfigImpl: address(_output.superchainConfigImpl),
-            protocolVersionsImpl: address(_output.protocolVersionsImpl),
-            l1ERC721BridgeImpl: address(_output.l1ERC721BridgeImpl),
-            optimismPortalImpl: address(_output.optimismPortalImpl),
-            optimismPortalInteropImpl: address(_output.optimismPortalInteropImpl),
-            ethLockboxImpl: address(_output.ethLockboxImpl),
-            systemConfigImpl: address(_output.systemConfigImpl),
-            optimismMintableERC20FactoryImpl: address(_output.optimismMintableERC20FactoryImpl),
-            l1CrossDomainMessengerImpl: address(_output.l1CrossDomainMessengerImpl),
-            l1StandardBridgeImpl: address(_output.l1StandardBridgeImpl),
-            disputeGameFactoryImpl: address(_output.disputeGameFactoryImpl),
-            anchorStateRegistryImpl: address(_output.anchorStateRegistryImpl),
-            delayedWETHImpl: address(_output.delayedWETHImpl),
-            mipsImpl: address(_output.mipsSingleton),
-            faultDisputeGameV2Impl: address(_output.faultDisputeGameV2Impl),
-            permissionedDisputeGameV2Impl: address(_output.permissionedDisputeGameV2Impl),
-            superFaultDisputeGameImpl: address(_output.superFaultDisputeGameImpl),
-            superPermissionedDisputeGameImpl: address(_output.superPermissionedDisputeGameImpl)
-        });
-
-        IOPContractsManagerContainer.Implementations memory implementationsV2 = IOPContractsManagerContainer
+        IOPContractsManagerContainer.Implementations memory implementations = IOPContractsManagerContainer
             .Implementations({
             superchainConfigImpl: address(_output.superchainConfigImpl),
             protocolVersionsImpl: address(_output.protocolVersionsImpl),
@@ -258,7 +237,7 @@ contract DeployImplementations is Script {
         });
 
         // Convert blueprints to V2 blueprints
-        IOPContractsManagerContainer.Blueprints memory blueprintsV2 = IOPContractsManagerContainer.Blueprints({
+        IOPContractsManagerContainer.Blueprints memory blueprints = IOPContractsManagerContainer.Blueprints({
             addressManager: _blueprints.addressManager,
             proxy: _blueprints.proxy,
             proxyAdmin: _blueprints.proxyAdmin,
@@ -271,8 +250,8 @@ contract DeployImplementations is Script {
         });
 
         // Deploy OPCM V2 components
-        deployOPCMContainer(_input, _output, blueprintsV2, implementationsV2);
-        deployOPCMStandardValidator(_input, _output, implementations);
+        deployOPCMContainer(_input, _output, blueprints, implementations);
+        deployOPCMStandardValidatorV2(_input, _output, implementations);
         opcmV2_ = deployOPCMV2(_output);
 
         // Set OPCM V1 addresses to zero (not deployed)
@@ -778,6 +757,50 @@ contract DeployImplementations is Script {
         Input memory _input,
         Output memory _output,
         IOPContractsManager.Implementations memory _implementations
+    )
+        private
+    {
+        IOPContractsManagerStandardValidator.Implementations memory opcmImplementations;
+        opcmImplementations.l1ERC721BridgeImpl = _implementations.l1ERC721BridgeImpl;
+        opcmImplementations.optimismPortalImpl = _implementations.optimismPortalImpl;
+        opcmImplementations.optimismPortalInteropImpl = _implementations.optimismPortalInteropImpl;
+        opcmImplementations.ethLockboxImpl = _implementations.ethLockboxImpl;
+        opcmImplementations.systemConfigImpl = _implementations.systemConfigImpl;
+        opcmImplementations.optimismMintableERC20FactoryImpl = _implementations.optimismMintableERC20FactoryImpl;
+        opcmImplementations.l1CrossDomainMessengerImpl = _implementations.l1CrossDomainMessengerImpl;
+        opcmImplementations.l1StandardBridgeImpl = _implementations.l1StandardBridgeImpl;
+        opcmImplementations.disputeGameFactoryImpl = _implementations.disputeGameFactoryImpl;
+        opcmImplementations.anchorStateRegistryImpl = _implementations.anchorStateRegistryImpl;
+        opcmImplementations.delayedWETHImpl = _implementations.delayedWETHImpl;
+        opcmImplementations.mipsImpl = _implementations.mipsImpl;
+
+        IOPContractsManagerStandardValidator impl = IOPContractsManagerStandardValidator(
+            DeployUtils.createDeterministic({
+                _name: "OPContractsManagerStandardValidator.sol:OPContractsManagerStandardValidator",
+                _args: DeployUtils.encodeConstructor(
+                    abi.encodeCall(
+                        IOPContractsManagerStandardValidator.__constructor__,
+                        (
+                            opcmImplementations,
+                            _input.superchainConfigProxy,
+                            _input.l1ProxyAdminOwner,
+                            _input.challenger,
+                            _input.withdrawalDelaySeconds,
+                            _input.devFeatureBitmap
+                        )
+                    )
+                ),
+                _salt: _salt
+            })
+        );
+        vm.label(address(impl), "OPContractsManagerStandardValidatorImpl");
+        _output.opcmStandardValidator = impl;
+    }
+
+    function deployOPCMStandardValidatorV2(
+        Input memory _input,
+        Output memory _output,
+        IOPContractsManagerContainer.Implementations memory _implementations
     )
         private
     {
