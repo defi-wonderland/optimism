@@ -844,7 +844,7 @@ contract DeployImplementations is Script {
     function deployOPCMV2(Output memory _output) private returns (IOPContractsManagerV2 opcmV2_) {
         opcmV2_ = IOPContractsManagerV2(
             DeployUtils.createDeterministic({
-                _name: "OPContractsManagerV2.sol:OPContractsManagerV2",
+                _name: "OPContractsManagerV2",
                 _args: DeployUtils.encodeConstructor(
                     abi.encodeCall(
                         IOPContractsManagerV2.__constructor__, (_output.opcmContainer, _output.opcmStandardValidator)
@@ -853,7 +853,7 @@ contract DeployImplementations is Script {
                 _salt: _salt
             })
         );
-        vm.label(address(opcmV2_), "OPContractsManagerV2Impl");
+        vm.label(address(opcmV2_), "OPContractsManagerV2");
     }
 
     function deployStorageSetterImpl(Output memory _output) private {
