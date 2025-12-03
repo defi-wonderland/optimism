@@ -30,7 +30,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         super.setUp();
 
         disbursementInterval = feeSplitter.feeDisbursementInterval();
-
     }
 
     /// @notice Helper to fund vaults
@@ -113,8 +112,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
         // Use 10 ETH as the minimum withdrawal amount for this test's hardcoded math
         vm.prank(proxyAdminOwner);
         l1Withdrawer.setMinWithdrawalAmount(10 ether);
-
-        // Configure vaults to withdraw to FeeSplitter
 
         // Get recipient addresses
         address shareRecipient = superchainRevSharesCalculator.shareRecipient();
@@ -250,8 +247,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
             superchainRevSharesCalculator.getRecipientsAndAmounts(_sequencerFees, _baseFees, _operatorFees, _l1Fees);
             return;
         }
-
-        // Configure vaults for disbursement
 
         {
             // Get share info from calculator first
