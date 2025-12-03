@@ -31,9 +31,6 @@ contract RevenueSharingIntegration_Test is CommonTest {
 
         disbursementInterval = feeSplitter.feeDisbursementInterval();
 
-        // Use 10 as the minimum withdrawal amount for L1Withdrawer
-        vm.prank(proxyAdminOwner);
-        l1Withdrawer.setMinWithdrawalAmount(10 ether);
     }
 
     /// @notice Helper to fund vaults
@@ -113,6 +110,10 @@ contract RevenueSharingIntegration_Test is CommonTest {
     // | 0/0/0/0          | 2.5          | 205.55       | Accumulating                   |
     // |__________________|______________|______________|________________________________|
     function test_revenueSharing_fullFlow_succeeds() public {
+        // Use 10 ETH as the minimum withdrawal amount for this test's hardcoded math
+        vm.prank(proxyAdminOwner);
+        l1Withdrawer.setMinWithdrawalAmount(10 ether);
+
         // Configure vaults to withdraw to FeeSplitter
 
         // Get recipient addresses
