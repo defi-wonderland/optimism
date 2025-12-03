@@ -294,6 +294,9 @@ contract OPContractsManagerV2 is ISemver {
             ) {
                 // Unified DelayedWETH is being deployed for the first time.
                 // TODO:(#?????): Remove this allowance after unified DelayedWETH is deployed.
+            } else if (LibString.eq(_extraInstructions[i].key, "overrides.cfg.useCustomGasToken")) {
+                // Custom Gas Token is being enabled for the first time.
+                // TODO:(#?????): Remove this allowance after custom gas token is deployed.
             } else {
                 revert OPContractsManagerV2_InvalidUpgradeInstruction();
             }
