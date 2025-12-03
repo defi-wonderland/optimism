@@ -822,7 +822,7 @@ contract OPContractsManagerV2 is ISemver {
         }
 
         // If the custom gas token feature was requested, enable it in the SystemConfig.
-        if (_cfg.useCustomGasToken) {
+        if (_cfg.useCustomGasToken && !_cts.systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN)) {
             _cts.systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
         }
 
