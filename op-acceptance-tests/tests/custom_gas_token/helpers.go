@@ -3,10 +3,12 @@ package custom_gas_token
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-devstack/devtest"
 	"github.com/ethereum-optimism/optimism/op-devstack/presets"
+	"github.com/ethereum-optimism/optimism/op-service/txintent/bindings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -101,5 +103,27 @@ func ensureCGTOrSkip(t devtest.T, sys *presets.Minimal) (string, string) {
 func SkipIfCGT(t devtest.T, sys *presets.Minimal) {
 	if isCGTEnabled(t, sys) {
 		t.Skip("Test skipped: CGT is enabled (test requires native ETH)")
+	}
+}
+
+// newL1PortalBinding creates a binding for the L1 OptimismPortal2 contract.
+func newL1PortalBinding(t devtest.T, sys *presets.Minimal) bindings.OptimismPortal2 {
+	return bindings.NewBindings[bindings.OptimismPortal2](
+		bindings.WithClient(sys.L1EL.EthClient()),
+		bindings.WithTo(sys.L2Chain.DepositContractAddr()),
+		bindings.WithTest(t),
+	)
+}
+
+// newWithdrawalTxWithValue creates a minimal WithdrawalTransaction with the given value.
+// Used to test CGT mode rejection of withdrawals with value > 0.
+func newWithdrawalTxWithValue(value int64) bindings.WithdrawalTransaction {
+	return bindings.WithdrawalTransaction{
+		Nonce:    big.NewInt(0),
+		Sender:   common.Address{},
+		Target:   common.Address{},
+		Value:    big.NewInt(value),
+		GasLimit: big.NewInt(0),
+		Data:     []byte{},
 	}
 }
