@@ -829,6 +829,9 @@ contract OPContractsManagerV2 is ISemver {
 
         // If the custom gas token feature was requested, enable it in the SystemConfig.
         if (_cfg.useCustomGasToken && !_cts.systemConfig.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN)) {
+            // NOTE: Enabling the custom gas token feature is only allowed during initial deployment to prevent
+            // chains from enabling it during upgrades. Passing in true for this flag during an upgrade is considered an
+            // error and will revert.
             if (!_isInitialDeployment) {
                 revert OPContractsManagerV2_CannotUpgradeToCustomGasToken();
             }
