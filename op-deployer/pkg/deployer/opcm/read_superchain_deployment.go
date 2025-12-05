@@ -6,12 +6,12 @@ import (
 )
 
 type ReadSuperchainDeploymentInput struct {
-	OPCMAddress           common.Address `abi:"opcmAddress"` // TODO: Deprecate OPCMAddress field in OPCM v2
+	OPCMAddress           common.Address `abi:"opcmAddress"` // TODO: Remove OPCMAddress field when OPCMv1 gets deprecated
 	SuperchainConfigProxy common.Address `abi:"superchainConfigProxy"`
 }
 
 type ReadSuperchainDeploymentOutput struct {
-	// TODO: Deprecate ProtocolVersions fields in OPCM v2
+	// TODO: Remove ProtocolVersions fields when OPCMv1 gets deprecated
 	ProtocolVersionsImpl       common.Address
 	ProtocolVersionsProxy      common.Address
 	ProtocolVersionsOwner      common.Address

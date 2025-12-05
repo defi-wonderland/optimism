@@ -147,8 +147,8 @@ func immutableErr(field string, was, is any) error {
 	return fmt.Errorf("%s is immutable: was %v, is %v", field, was, is)
 }
 
-// TODO: Deprecate OPCMAddress field in OPCM v2
-// TODO: Deprecate ProtocolVersions fields in OPCM v2
+// TODO: Remove OPCMAddress field when OPCMv1 gets deprecated
+// TODO: Remove ProtocolVersions fields when OPCMv1 gets deprecated
 func PopulateSuperchainState(host *script.Host, opcmAddr common.Address, superchainConfigProxy common.Address) (*addresses.SuperchainContracts, *addresses.SuperchainRoles, error) {
 	readScript, err := opcm.NewReadSuperchainDeploymentScript(host)
 	if err != nil {

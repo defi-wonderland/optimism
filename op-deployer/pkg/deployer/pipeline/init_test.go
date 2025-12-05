@@ -295,13 +295,13 @@ func TestPopulateSuperchainState_OPCMV2(t *testing.T) {
 		SuperchainProxyAdminImpl: common.HexToAddress("0x189aBAAaa82DfC015A588A7dbaD6F13b1D3485Bc"),
 		SuperchainConfigProxy:    superchain.SuperchainConfigAddr,
 		SuperchainConfigImpl:     common.HexToAddress("0x4da82a327773965b8d4D85Fa3dB8249b387458E7"),
-		// TODO: Deprecate ProtocolVersions fields in OPCM v2
+		// TODO: Remove ProtocolVersions fields when OPCMv1 gets deprecated
 		ProtocolVersionsProxy: common.Address{},
 		ProtocolVersionsImpl:  common.Address{},
 	}, *dep)
 	require.Equal(t, addresses.SuperchainRoles{
 		SuperchainProxyAdminOwner: common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2"),
-		// TODO: Deprecate ProtocolVersions fields in OPCM v2
+		// TODO: Remove ProtocolVersions fields when OPCMv1 gets deprecated
 		ProtocolVersionsOwner: common.Address{},
 		SuperchainGuardian:    common.HexToAddress("0x7a50f00e8D05b95F98fE38d8BeE366a7324dCf7E"),
 	}, *roles)
