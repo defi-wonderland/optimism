@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -110,11 +111,31 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string) error {
 		return fmt.Errorf("create the deployer cache dir: %w", err)
 	}
 
+	// Derive funder account from mnemonic (used as test account and LC owner for CGT mode).
+	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
+	if err != nil {
+		return fmt.Errorf("new mnemonic dev keys: %w", err)
+	}
+	const funderIndex = 10_000 // see sysgo/deployer.go.
+	funderUserKey := devkeys.UserKey(funderIndex)
+	funderAddress, err := hd.Address(funderUserKey)
+	if err != nil {
+		return fmt.Errorf("address: %w", err)
+	}
+	funderPrivKey, err := hd.Secret(funderUserKey)
+	if err != nil {
+		return fmt.Errorf("secret: %w", err)
+	}
+
+	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
+	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
+	fmt.Fprintf(stderr, "L1 Node URL: %s\n", "http://127.0.0.1:8544")
+	fmt.Fprintf(stderr, "L2 Node URL: %s\n", "http://127.0.0.1:8545")
+
 	devtest.RootContext = ctx
 
 	p := newP(ctx, stderr)
 	defer p.Close()
-
 	ids := sysgo.NewDefaultMinimalSystemIDs(sysgo.DefaultL1ID, sysgo.DefaultL2AID)
 	opts := stack.Combine(
 		sysgo.WithMnemonicKeys(devkeys.TestMnemonic),
@@ -124,6 +145,9 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string) error {
 			sysgo.WithEmbeddedContractSources(),
 			sysgo.WithCommons(ids.L1.ChainID()),
 			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
+			// MockSafe aliased address (L1: 0x8bcE16Ef26038f8EF673C3261a44230523014D4b + alias offset)
+			// This allows testing the FaucetDeployer flow via delegatecall from MockSafe
+			sysgo.WithCustomGasToken("TestToken", "TST", new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1e18)), common.HexToAddress("0x9cdf16ef26038f8ef673c3261a44230523015e5c")),
 		),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 
@@ -170,26 +194,6 @@ func newP(ctx context.Context, stderr io.Writer) devtest.P {
 }
 
 func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) error {
-	// Print available account.
-	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
-	if err != nil {
-		return fmt.Errorf("new mnemonic dev keys: %w", err)
-	}
-	const funderIndex = 10_000 // see sysgo/deployer.go.
-	funderUserKey := devkeys.UserKey(funderIndex)
-	funderAddress, err := hd.Address(funderUserKey)
-	if err != nil {
-		return fmt.Errorf("address: %w", err)
-	}
-	funderPrivKey, err := hd.Secret(funderUserKey)
-	if err != nil {
-		return fmt.Errorf("secret: %w", err)
-	}
-
-	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
-	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
-	fmt.Fprintf(stderr, "EL Node URL: %s\n", "http://localhost:8545")
-
 	t := &testingT{
 		ctx:      ctx,
 		cleanups: make([]func(), 0),

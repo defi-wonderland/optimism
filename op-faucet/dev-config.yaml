@@ -1,0 +1,8 @@
+faucets:
+  l2-devnet:
+    el_rpc: http://127.0.0.1:8545
+    chain_id: 901
+    tx_cfg:
+      private_key: "0xd9fb56b9574ed61ab0478a607166eeb3a80b1b91ab1bf00f45932105d07b5e11"
+defaults:
+  901: l2-devnet

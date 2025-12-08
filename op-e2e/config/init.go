@@ -418,6 +418,13 @@ func defaultIntent(root string, loc *artifacts.Locator, deployer common.Address,
 				},
 				UseRevenueShare:    true,
 				ChainFeesRecipient: common.HexToAddress("0xBcd4042DE499D14e55001CcbB24a551F3b954096"),
+				CustomGasToken: state.CustomGasToken{
+					Name:             "TestToken",
+					Symbol:           "TST",
+					InitialLiquidity: (*hexutil.Big)(new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1e18))),
+					// Use Anvil address to test purposes
+					LiquidityControllerOwner: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+				},
 				AdditionalDisputeGames: []state.AdditionalDisputeGame{
 					{
 						ChainProofParams: state.ChainProofParams{
