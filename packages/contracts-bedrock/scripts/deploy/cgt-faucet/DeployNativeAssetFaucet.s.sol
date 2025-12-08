@@ -19,6 +19,8 @@ interface ICreate2Deployer {
 /// @title DeployNativeAssetFaucet
 /// @notice Script to deploy NativeAssetFaucet to L2 via deposit transactions
 contract DeployNativeAssetFaucet is Script {
+    address deployer;
+
     /// @notice Deploys and authorizes the NativeAssetFaucet on L2.
     /// @param _portal The OptimismPortal2 contract address.
     /// @param _owner The owner of the faucet.
@@ -35,32 +37,28 @@ contract DeployNativeAssetFaucet is Script {
         public
         returns (address)
     {
+        deployer = msg.sender;
+
         console.log("=== DeployNativeAssetFaucet ===");
         console.log("Portal:", _portal);
         console.log("Owner:", _owner);
         console.log("Permissionless Amount:", _permissionlessAmount);
         console.log("Gas Limit:", _gasLimit);
         console.log("Salt Seed:", _saltSeed);
+        console.log("Deployer:", deployer);
 
         // Calculate the faucet address
         address faucetAddress = computeFaucetAddress(_owner, _permissionlessAmount, _saltSeed);
         console.log("Computed Faucet Address:", faucetAddress);
 
-        vm.startBroadcast();
-
         // Step 1: Deploy faucet via CREATE2
-        console.log("\n=== Step 1: Deploying NativeAssetFaucet via CREATE2 ===");
         deployFaucet(IOptimismPortal2(payable(_portal)), _owner, _permissionlessAmount, _gasLimit, _saltSeed);
 
         // Step 2: Authorize faucet as minter in LiquidityController
-        console.log("\n=== Step 2: Authorizing faucet as minter ===");
         authorizeFaucet(IOptimismPortal2(payable(_portal)), faucetAddress, _gasLimit);
-
-        vm.stopBroadcast();
 
         console.log("\n=== Deployment Complete ===");
         console.log("Faucet will be deployed at:", faucetAddress);
-        console.log("Wait for L2 to process the deposit transactions (~10-15 seconds)");
 
         return faucetAddress;
     }
@@ -79,6 +77,7 @@ contract DeployNativeAssetFaucet is Script {
             bytes.concat(type(NativeAssetFaucet).creationCode, abi.encode(_owner, _permissionlessAmount));
         bytes32 salt = keccak256(abi.encodePacked(_saltSeed, ":", _owner));
 
+        vm.broadcast(deployer);
         _portal.depositTransaction({
             _to: Preinstalls.Create2Deployer,
             _value: 0,
@@ -86,12 +85,11 @@ contract DeployNativeAssetFaucet is Script {
             _isCreation: false,
             _data: abi.encodeCall(ICreate2Deployer.deploy, (0, salt, initCode))
         });
-
-        console.log("Deposit transaction sent for CREATE2 deployment");
     }
 
     /// @notice Authorizes the faucet as a minter in LiquidityController
     function authorizeFaucet(IOptimismPortal2 _portal, address _faucet, uint64 _gasLimit) internal {
+        vm.broadcast(deployer);
         _portal.depositTransaction({
             _to: Predeploys.LIQUIDITY_CONTROLLER,
             _value: 0,
@@ -99,8 +97,6 @@ contract DeployNativeAssetFaucet is Script {
             _isCreation: false,
             _data: abi.encodeCall(ILiquidityController.authorizeMinter, (_faucet))
         });
-
-        console.log("Deposit transaction sent for authorizeMinter");
     }
 
     /// @notice Computes the CREATE2 address for the faucet
