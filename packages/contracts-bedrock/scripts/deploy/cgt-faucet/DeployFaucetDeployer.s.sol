@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import { Script } from "forge-std/Script.sol";
-import { console } from "forge-std/console.sol";
+import { console2 as console } from "forge-std/console2.sol";
 
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { FaucetDeployer } from "scripts/deploy/cgt-faucet/FaucetDeployer.sol";
@@ -15,18 +15,16 @@ contract DeployFaucetDeployer is Script {
     /// @notice The CREATE2 Deployer predeploy address on L2
     address constant CREATE2_DEPLOYER = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
 
-    function run() external {
-        // Get environment variables
-        address payable portal = payable(vm.envAddress("PORTAL"));
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-
+    /// @notice Deploys the FaucetDeployer contract on L1.
+    /// @param _portal The OptimismPortal2 contract address.
+    function run(address _portal) public returns (FaucetDeployer) {
         console.log("=== DeployFaucetDeployer ===");
-        console.log("Portal:", portal);
+        console.log("Portal:", _portal);
         console.log("CREATE2 Deployer:", CREATE2_DEPLOYER);
 
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast();
 
-        FaucetDeployer faucetDeployer = new FaucetDeployer(IOptimismPortal2(portal), CREATE2_DEPLOYER);
+        FaucetDeployer faucetDeployer = new FaucetDeployer(IOptimismPortal2(payable(_portal)), CREATE2_DEPLOYER);
 
         vm.stopBroadcast();
 
@@ -37,5 +35,7 @@ contract DeployFaucetDeployer is Script {
         console.log("   faucetDeployer.deployAndAuthorize(faucetOwner, permissionlessAmount, gasLimit)");
         console.log("2. From faucet owner (Safe), delegatecall:");
         console.log("   faucetDeployer.mint(faucetAddress, recipient, amount, gasLimit)");
+
+        return faucetDeployer;
     }
 }
