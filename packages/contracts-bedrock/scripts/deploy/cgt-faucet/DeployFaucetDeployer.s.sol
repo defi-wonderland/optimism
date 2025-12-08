@@ -5,7 +5,7 @@ import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
-import { FaucetDeployer } from "src/L1/FaucetDeployer.sol";
+import { FaucetDeployer } from "scripts/deploy/cgt-faucet/FaucetDeployer.sol";
 
 /// @title DeployFaucetDeployer
 /// @notice Script to deploy the FaucetDeployer contract on L1.

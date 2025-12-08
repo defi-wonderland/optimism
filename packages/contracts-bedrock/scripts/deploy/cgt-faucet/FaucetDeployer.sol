@@ -8,7 +8,7 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
-import { NativeAssetFaucet } from "src/L2/NativeAssetFaucet.sol";
+import { NativeAssetFaucet } from "scripts/deploy/cgt-faucet/NativeAssetFaucet.sol";
 
 /// @title ICreate2Deployer
 /// @notice Interface for the CREATE2 Deployer predeploy
