@@ -7,6 +7,7 @@ import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 import { NativeAssetFaucet } from "scripts/deploy/cgt-faucet/NativeAssetFaucet.sol";
 
@@ -25,18 +26,13 @@ contract FaucetDeployer {
     /// @notice The address of the OptimismPortal2 on L1.
     IOptimismPortal2 public immutable portal;
 
-    /// @notice The address of the CREATE2 Deployer predeploy on L2.
-    address public immutable create2Deployer;
-
     /// @notice The salt prefix for the Faucet system.
     string internal constant SALT_SEED = "Faucet";
 
-    /// @notice Constructor to set the OptimismPortal2 and CREATE2 Deployer addresses
+    /// @notice Constructor to set the OptimismPortal2 address
     /// @param _portal The address of the OptimismPortal2 on L1
-    /// @param _create2Deployer The address of the CREATE2 Deployer predeploy on L2
-    constructor(IOptimismPortal2 _portal, address _create2Deployer) {
+    constructor(IOptimismPortal2 _portal) {
         portal = _portal;
-        create2Deployer = _create2Deployer;
     }
 
     /// @notice Deploys a NativeAssetFaucet via CREATE2 on L2 and authorizes it as a minter.
@@ -62,7 +58,7 @@ contract FaucetDeployer {
 
         // Deploy the faucet via CREATE2
         portal.depositTransaction({
-            _to: create2Deployer,
+            _to: Preinstalls.Create2Deployer,
             _value: 0,
             _gasLimit: _gasLimit,
             _isCreation: false,
@@ -99,8 +95,8 @@ contract FaucetDeployer {
     /// @param _salt The salt used for CREATE2 deployment
     /// @param _initCode The initialization code
     /// @return The computed CREATE2 address
-    function computeCreate2Address(bytes32 _salt, bytes memory _initCode) public view returns (address) {
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), create2Deployer, _salt, keccak256(_initCode)));
+    function computeCreate2Address(bytes32 _salt, bytes memory _initCode) public pure returns (address) {
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), Preinstalls.Create2Deployer, _salt, keccak256(_initCode)));
         return address(uint160(uint256(hash)));
     }
 }
