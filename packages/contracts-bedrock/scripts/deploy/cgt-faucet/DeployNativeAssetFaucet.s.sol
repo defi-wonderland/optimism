@@ -19,7 +19,6 @@ interface ICreate2Deployer {
 /// @title DeployNativeAssetFaucet
 /// @notice Script to deploy NativeAssetFaucet to L2 via deposit transactions
 contract DeployNativeAssetFaucet is Script {
-
     /// @notice Deploys and authorizes the NativeAssetFaucet on L2.
     /// @param _portal The OptimismPortal2 contract address.
     /// @param _owner The owner of the faucet.

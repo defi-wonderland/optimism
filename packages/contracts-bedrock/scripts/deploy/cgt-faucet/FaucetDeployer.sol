@@ -96,7 +96,8 @@ contract FaucetDeployer {
     /// @param _initCode The initialization code
     /// @return The computed CREATE2 address
     function computeCreate2Address(bytes32 _salt, bytes memory _initCode) public pure returns (address) {
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), Preinstalls.Create2Deployer, _salt, keccak256(_initCode)));
+        bytes32 hash =
+            keccak256(abi.encodePacked(bytes1(0xff), Preinstalls.Create2Deployer, _salt, keccak256(_initCode)));
         return address(uint160(uint256(hash)));
     }
 }

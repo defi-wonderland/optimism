@@ -12,7 +12,6 @@ import { FaucetDeployer } from "scripts/deploy/cgt-faucet/FaucetDeployer.sol";
 ///         The FaucetDeployer is used by multisigs (via delegatecall) to deploy
 ///         and manage NativeAssetFaucet contracts on L2.
 contract DeployFaucetDeployer is Script {
-
     /// @notice Deploys the FaucetDeployer contract on L1.
     /// @param _portal The OptimismPortal2 contract address.
     function run(address _portal) public returns (FaucetDeployer) {
