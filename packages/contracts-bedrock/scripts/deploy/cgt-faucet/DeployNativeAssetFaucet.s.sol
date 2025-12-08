@@ -7,6 +7,7 @@ import { console2 as console } from "forge-std/console2.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { NativeAssetFaucet } from "scripts/deploy/cgt-faucet/NativeAssetFaucet.sol";
 
 /// @title ICreate2Deployer
@@ -18,8 +19,6 @@ interface ICreate2Deployer {
 /// @title DeployNativeAssetFaucet
 /// @notice Script to deploy NativeAssetFaucet to L2 via deposit transactions
 contract DeployNativeAssetFaucet is Script {
-    /// @notice The CREATE2 Deployer predeploy address
-    address constant CREATE2_DEPLOYER = 0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2;
 
     /// @notice Deploys and authorizes the NativeAssetFaucet on L2.
     /// @param _portal The OptimismPortal2 contract address.
@@ -82,7 +81,7 @@ contract DeployNativeAssetFaucet is Script {
         bytes32 salt = keccak256(abi.encodePacked(_saltSeed, ":", _owner));
 
         _portal.depositTransaction({
-            _to: CREATE2_DEPLOYER,
+            _to: Preinstalls.Create2Deployer,
             _value: 0,
             _gasLimit: _gasLimit,
             _isCreation: false,
@@ -118,7 +117,7 @@ contract DeployNativeAssetFaucet is Script {
         bytes memory initCode =
             bytes.concat(type(NativeAssetFaucet).creationCode, abi.encode(_owner, _permissionlessAmount));
         bytes32 salt = keccak256(abi.encodePacked(_saltSeed, ":", _owner));
-        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), CREATE2_DEPLOYER, salt, keccak256(initCode)));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), Preinstalls.Create2Deployer, salt, keccak256(initCode)));
         return address(uint160(uint256(hash)));
     }
 }
