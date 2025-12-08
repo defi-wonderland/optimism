@@ -117,11 +117,14 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
         // Dispute game configuration.
         DisputeGameConfig[] disputeGameConfigs;
 <<<<<<< HEAD
+<<<<<<< HEAD
         // CGT
 =======
         // Feature flags.
 >>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
         bool useCustomGasToken;
+=======
+>>>>>>> a324054f0a (fix: remove cgt & fix tests (#736))
     }
 
     /// @notice Partial input required for an upgrade.
@@ -631,6 +634,7 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
                 (GameType)
             ),
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             disputeGameConfigs: _upgradeInput.disputeGameConfigs,
 >>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
@@ -643,6 +647,9 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
                 ),
                 (bool)
             )
+=======
+            disputeGameConfigs: _upgradeInput.disputeGameConfigs
+>>>>>>> a324054f0a (fix: remove cgt & fix tests (#736))
         });
     }
 
@@ -846,6 +853,7 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
             );
         }
 
+<<<<<<< HEAD
         // If the custom gas token feature was requested, enable it in the SystemConfig.
 <<<<<<< HEAD
         // If the cgt is enabled, we skip this step.
@@ -863,6 +871,8 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
             _cts.systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
         }
 
+=======
+>>>>>>> a324054f0a (fix: remove cgt & fix tests (#736))
         // If critical transfer is allowed, tranfer ownership of the DisputeGameFactory and
         // ProxyAdmin to the PAO. During deployments, this means transferring ownership from the
         // OPCM contract to the target PAO. During upgrades, this would theoretically mean

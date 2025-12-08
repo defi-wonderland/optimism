@@ -20,9 +20,6 @@ var (
 <<<<<<< HEAD
 =======
 
-	// CustomGasTokenDevFlag enables the custom gas token.
-	CustomGasTokenDevFlag = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000001000")
-
 	// OPCMV2DevFlag enables the OPContractsManagerV2 contract.
 	OPCMV2DevFlag = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000")
 >>>>>>> 0e060a5e78 (feat: OPCM v2 support on for op-deployer (#701))
