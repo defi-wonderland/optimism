@@ -621,7 +621,7 @@ contract OPContractsManagerUtils_IsMatchingInstructionByKey_Test is OPContractsM
     }
 
     /// @notice Tests that isMatchingInstructionKey returns false when the instruction does not match the key.
-    function test_isMatchingInstructionByKey_fails() public view {
+    function test_isMatchingInstructionByKey_notMatchingKey_fails() public view {
         assertEq(
             utils.isMatchingInstructionByKey(
                 OPContractsManagerUtils.ExtraInstruction({ key: "testKey", data: bytes("testData") }), "wrongKey"
