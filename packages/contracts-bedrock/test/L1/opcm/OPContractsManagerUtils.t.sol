@@ -608,3 +608,25 @@ contract OPContractsManagerUtils_ContractsContainer_Test is OPContractsManagerUt
         assertEq(address(utils.contractsContainer()), address(container));
     }
 }
+
+/// @title OPContractsManagerUtils_IsMatchingInstructionByKey_Test
+/// @notice Tests the isMatchingInstructionByKey function.
+contract OPContractsManagerUtils_IsMatchingInstructionByKey_Test is OPContractsManagerUtils_TestInit {
+    /// @notice Tests that isMatchingInstructionByKey returns true when the instruction matches the key.
+    function testFuzz_isMatchingInstructionByKey_succeeds(OPContractsManagerUtils.ExtraInstruction memory _instruction)
+        public
+        view
+    {
+        assertEq(utils.isMatchingInstructionByKey(_instruction, _instruction.key), true);
+    }
+
+    /// @notice Tests that isMatchingInstructionKey returns false when the instruction does not match the key.
+    function test_isMatchingInstructionByKey_fails() public view {
+        assertEq(
+            utils.isMatchingInstructionByKey(
+                OPContractsManagerUtils.ExtraInstruction({ key: "testKey", data: bytes("testData") }), "wrongKey"
+            ),
+            false
+        );
+    }
+}
