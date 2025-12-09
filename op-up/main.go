@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -65,6 +66,12 @@ var (
 			return filepath.Join(parentDir, ".op-up")
 		}(),
 	}
+	cgtFlag = &cli.BoolFlag{
+		Name:    "cgt",
+		Usage:   "enable custom gas token mode",
+		EnvVars: opservice.PrefixEnvVar(envPrefix, "CGT"),
+		Value:   false,
+	}
 )
 
 func main() {
@@ -83,7 +90,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	app.Version = opservice.FormatVersion(Version, GitCommit, GitDate, VersionMeta)
 	app.Name = "op-up"
 	app.Usage = "deploys an in-memory OP Stack devnet."
-	app.Flags = cliapp.ProtectFlags([]cli.Flag{dirFlag})
+	app.Flags = cliapp.ProtectFlags([]cli.Flag{dirFlag, cgtFlag})
 	// The default OnUsageError behavior will print the error twice: once in the cli package and
 	// once in our main function.
 	// The function below prints help and returns the error for further handling/error messages.
@@ -94,12 +101,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	app.Action = func(cliCtx *cli.Context) error {
-		return runOpUp(cliCtx.Context, cliCtx.App.ErrWriter, cliCtx.String(dirFlag.Name))
+		return runOpUp(cliCtx.Context, cliCtx.App.ErrWriter, cliCtx.String(dirFlag.Name), cliCtx.Bool(cgtFlag.Name))
 	}
 	return app.RunContext(ctx, args)
 }
 
-func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string) error {
+func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string, cgtMode bool) error {
 	fmt.Fprintf(stderr, "%s\n", asciiArt)
 
 	if err := os.MkdirAll(opUpDir, 0o755); err != nil {
@@ -110,21 +117,51 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string) error {
 		return fmt.Errorf("create the deployer cache dir: %w", err)
 	}
 
+	// Derive funder account from mnemonic (used as test account and LC owner for CGT mode).
+	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
+	if err != nil {
+		return fmt.Errorf("new mnemonic dev keys: %w", err)
+	}
+	const funderIndex = 10_000 // see sysgo/deployer.go.
+	funderUserKey := devkeys.UserKey(funderIndex)
+	funderAddress, err := hd.Address(funderUserKey)
+	if err != nil {
+		return fmt.Errorf("address: %w", err)
+	}
+	funderPrivKey, err := hd.Secret(funderUserKey)
+	if err != nil {
+		return fmt.Errorf("secret: %w", err)
+	}
+
+	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
+	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
+	fmt.Fprintf(stderr, "L1 Node URL: %s\n", "http://127.0.0.1:8544")
+	fmt.Fprintf(stderr, "L2 Node URL: %s\n", "http://127.0.0.1:8545")
+
 	devtest.RootContext = ctx
 
 	p := newP(ctx, stderr)
 	defer p.Close()
-
 	ids := sysgo.NewDefaultMinimalSystemIDs(sysgo.DefaultL1ID, sysgo.DefaultL2AID)
+
+	// Build deployer options based on mode
+	deployerOpts := []sysgo.DeployerOption{
+		sysgo.WithEmbeddedContractSources(),
+		sysgo.WithCommons(ids.L1.ChainID()),
+		sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
+	}
+	if cgtMode {
+		fmt.Fprintf(stderr, "Custom Gas Token mode enabled\n")
+		deployerOpts = append(deployerOpts,
+			sysgo.WithCustomGasToken("TestToken", "TST", new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1e18)), funderAddress),
+		)
+	}
+
 	opts := stack.Combine(
 		sysgo.WithMnemonicKeys(devkeys.TestMnemonic),
 
 		sysgo.WithDeployer(),
-		sysgo.WithDeployerOptions(
-			sysgo.WithEmbeddedContractSources(),
-			sysgo.WithCommons(ids.L1.ChainID()),
-			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
-		),
+		sysgo.WithDeployerOptions(deployerOpts...),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 
 		sysgo.WithL1Nodes(ids.L1EL, ids.L1CL),
@@ -170,26 +207,6 @@ func newP(ctx context.Context, stderr io.Writer) devtest.P {
 }
 
 func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) error {
-	// Print available account.
-	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
-	if err != nil {
-		return fmt.Errorf("new mnemonic dev keys: %w", err)
-	}
-	const funderIndex = 10_000 // see sysgo/deployer.go.
-	funderUserKey := devkeys.UserKey(funderIndex)
-	funderAddress, err := hd.Address(funderUserKey)
-	if err != nil {
-		return fmt.Errorf("address: %w", err)
-	}
-	funderPrivKey, err := hd.Secret(funderUserKey)
-	if err != nil {
-		return fmt.Errorf("secret: %w", err)
-	}
-
-	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
-	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
-	fmt.Fprintf(stderr, "EL Node URL: %s\n", "http://localhost:8545")
-
 	t := &testingT{
 		ctx:      ctx,
 		cleanups: make([]func(), 0),
@@ -202,7 +219,14 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 		return fmt.Errorf("need one l2 network, got: %d", len(l2Networks))
 	}
 	l2Net := l2Networks[0]
-	elNode := l2Net.L2ELNode(match.FirstL2EL)
+	l2Node := l2Net.L2ELNode(match.FirstL2EL)
+
+	l1Networks := sys.L1Networks()
+	if len(l1Networks) != 1 {
+		return fmt.Errorf("need one l1 network, got: %d", len(l1Networks))
+	}
+	l1Net := l1Networks[0]
+	l1Node := l1Net.L1ELNode(match.FirstL1EL)
 
 	// Log on new blocks.
 	go func() {
@@ -213,7 +237,7 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 			case <-ctx.Done():
 				return
 			case <-time.After(blockPollInterval):
-				unsafe, err := elNode.EthClient().BlockRefByLabel(ctx, eth.Unsafe)
+				unsafe, err := l2Node.EthClient().BlockRefByLabel(ctx, eth.Unsafe)
 				if err != nil {
 					continue
 				}
@@ -225,10 +249,17 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 		}
 	}()
 
+	// Proxy L1 EL requests.
+	go func() {
+		if err := proxyEL(stderr, l1Node.EthClient().RPC(), 8544); err != nil {
+			fmt.Fprintf(stderr, "L1 proxy error: %v\n", err)
+		}
+	}()
+
 	// Proxy L2 EL requests.
 	go func() {
-		if err := proxyEL(stderr, elNode.L2EthClient().RPC()); err != nil {
-			fmt.Fprintf(stderr, "error: %v", err)
+		if err := proxyEL(stderr, l2Node.L2EthClient().RPC(), 8545); err != nil {
+			fmt.Fprintf(stderr, "L2 proxy error: %v\n", err)
 		}
 	}()
 
@@ -239,9 +270,9 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 
 // proxyEL is a hacky way to intercept EL json rpc requests for logging to get around log filtering
 // bugs.
-func proxyEL(stderr io.Writer, client client.RPC) error {
-	// Set up the HTTP handler for all incoming requests.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+func proxyEL(stderr io.Writer, rpcClient client.RPC, port int) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Ensure the request method is POST, as JSON RPC typically uses POST.
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -303,7 +334,7 @@ func proxyEL(stderr io.Writer, client client.RPC) error {
 
 		// Use the rpc.Client to make the actual call to the backend Ethereum node.
 		// The `callParams...` syntax unpacks the slice into variadic arguments.
-		err = client.CallContext(ctx, &rpcResult, method, callParams...)
+		err = rpcClient.CallContext(ctx, &rpcResult, method, callParams...)
 		if err != nil {
 			message := fmt.Sprintf("RPC call to backend failed for method '%s': %v", method, err)
 			// If the RPC call to the backend fails, construct a JSON RPC error response.
@@ -349,8 +380,9 @@ func proxyEL(stderr io.Writer, client client.RPC) error {
 	})
 
 	// Start the HTTP server.
-	if err := http.ListenAndServe("localhost:8545", nil); err != nil {
-		return fmt.Errorf("listen and server: %w", err)
+	addr := fmt.Sprintf("localhost:%d", port)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		return fmt.Errorf("listen and serve on %s: %w", addr, err)
 	}
 	return nil
 }
