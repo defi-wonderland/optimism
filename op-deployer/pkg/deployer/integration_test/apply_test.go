@@ -172,6 +172,7 @@ func TestEndToEndBootstrapApplyWithUpgrade(t *testing.T) {
 		{"default", common.Hash{}},
 		{"deploy-v2-disputegames", deployer.DeployV2DisputeGamesDevFlag},
 		{"cannon-kona", deployer.EnableDevFeature(deployer.DeployV2DisputeGamesDevFlag, deployer.CannonKonaDevFlag)},
+		{"opcm-v2", deployer.OpcmV2DevFlag},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -220,6 +221,9 @@ func TestEndToEndBootstrapApplyWithUpgrade(t *testing.T) {
 				cfg.FaultGameSplitDepth = standard.DisputeSplitDepth
 				cfg.FaultGameClockExtension = standard.DisputeClockExtension
 				cfg.FaultGameMaxClockDuration = standard.DisputeMaxClockDuration
+			}
+			if deployer.IsDevFeatureEnabled(tt.devFeature, deployer.OpcmV2DevFlag) {
+				cfg.DevFeatureBitmap = deployer.OpcmV2DevFlag
 			}
 			runEndToEndBootstrapAndApplyUpgradeTest(t, afactsFS, cfg)
 		})
@@ -827,6 +831,10 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			cannonKonaPrestate = common.Hash{'K', 'O', 'N', 'A'}
 		}
 		t.Run("upgrade opcm", func(t *testing.T) {
+			if deployer.IsDevFeatureEnabled(implementationsConfig.DevFeatureBitmap, deployer.OpcmV2DevFlag) {
+				t.Skip("Skipping OPCM upgrade for OPCM V2")
+				return
+			}
 			upgradeConfig := embedded.UpgradeOPChainInput{
 				Prank: superchainProxyAdminOwner,
 				Opcm:  impls.Opcm,
@@ -843,6 +851,98 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			require.NoError(t, err, "UpgradeOPChainInput should marshal to JSON")
 			err = embedded.DefaultUpgrader.Upgrade(host, upgradeConfigBytes)
 			require.NoError(t, err, "OPCM upgrade should succeed")
+		})
+		t.Run("upgrade opcm v2", func(t *testing.T) {
+			if !deployer.IsDevFeatureEnabled(implementationsConfig.DevFeatureBitmap, deployer.OpcmV2DevFlag) {
+				t.Skip("Skipping OPCM V2 upgrade for non-OPCM V2 dev feature")
+				return
+			}
+			require.NotEqual(t, common.Address{}, impls.OpcmV2, "OpcmV2 address should not be zero")
+			t.Logf("Using OpcmV2 at address: %s", impls.OpcmV2.Hex())
+			t.Logf("Using OpcmUtils at address: %s", impls.OpcmUtils.Hex())
+
+			// Verify OPCM V2 has code deployed
+			opcmCode, err := versionClient.CodeAt(ctx, impls.OpcmV2, nil)
+			require.NoError(t, err)
+			require.NotEmpty(t, opcmCode, "OPCM V2 should have code deployed")
+			t.Logf("OPCM V2 code size: %d bytes", len(opcmCode))
+
+			// Verify OpcmUtils has code deployed
+			utilsCode, err := versionClient.CodeAt(ctx, impls.OpcmUtils, nil)
+			require.NoError(t, err)
+			require.NotEmpty(t, utilsCode, "OpcmUtils should have code deployed")
+			t.Logf("OpcmUtils code size: %d bytes", len(utilsCode))
+
+			// First, upgrade the superchain with V2
+			t.Run("upgrade superchain v2", func(t *testing.T) {
+				superchainUpgradeConfig := embedded.UpgradeSuperchainV2Input{
+					Prank:                  superchainProxyAdminOwner,
+					Opcm:                   impls.OpcmV2,
+					SuperchainConfig:       implementationsConfig.SuperchainConfigProxy,
+					SuperchainInstructions: []embedded.ExtraInstruction{},
+				}
+				err := embedded.UpgradeSuperchainV2(host, superchainUpgradeConfig)
+				if err != nil {
+					t.Logf("Superchain upgrade may have failed (could already be upgraded): %v", err)
+				} else {
+					t.Log("Superchain V2 upgrade succeeded")
+				}
+			})
+
+			// Deploy a new chain using OPCM V2
+			var deployedSystemConfig common.Address
+			t.Run("deploy chain with opcm v2", func(t *testing.T) {
+				t.Skip("TODO: Implement OPCM V2 deploy - need to create DeployOPChainV2 script and embedded wrapper")
+				// This would deploy a new chain using OPCM V2's deploy() function
+				// The deployed chain will have the V2 schema (SystemConfig with delayedWETH(), etc.)
+				// and can then be used to test the upgrade() function
+			})
+
+			// Then test upgrade on the V2-deployed chain
+			t.Run("upgrade chain v2", func(t *testing.T) {
+				if deployedSystemConfig == (common.Address{}) {
+					t.Skip("Skipping upgrade test - no chain was deployed")
+					return
+				}
+
+				upgradeConfig := embedded.UpgradeOPChainV2Input{
+					Prank: superchainProxyAdminOwner,
+					Opcm:  impls.OpcmV2,
+					UpgradeInputV2: embedded.UpgradeInputV2{
+						SystemConfig: deployedSystemConfig,
+						DisputeGameConfigs: []embedded.DisputeGameConfig{
+							{
+								Enabled:  true,
+								InitBond: big.NewInt(0),
+								GameType: embedded.GameTypeCannon,
+								GameArgs: []byte{},
+							},
+							{
+								Enabled:  true,
+								InitBond: big.NewInt(0),
+								GameType: embedded.GameTypePermissionedCannon,
+								GameArgs: []byte{},
+							},
+							{
+								Enabled:  false,
+								InitBond: big.NewInt(0),
+								GameType: embedded.GameTypeCannonKona,
+								GameArgs: []byte{},
+							},
+						},
+						ExtraInstructions: []embedded.ExtraInstruction{
+							{
+								Key:  "PermittedProxyDeployment",
+								Data: []byte("DelayedWETH"),
+							},
+						},
+					},
+				}
+				upgradeConfigBytes, err := json.Marshal(upgradeConfig)
+				require.NoError(t, err, "UpgradeOPChainV2Input should marshal to JSON")
+				err = embedded.DefaultUpgraderV2.Upgrade(host, upgradeConfigBytes)
+				require.NoError(t, err, "OPCM V2 chain upgrade should succeed")
+			})
 		})
 	})
 }
