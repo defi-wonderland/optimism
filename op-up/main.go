@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -65,6 +66,12 @@ var (
 			return filepath.Join(parentDir, ".op-up")
 		}(),
 	}
+	cgtFlag = &cli.BoolFlag{
+		Name:    "cgt",
+		Usage:   "enable custom gas token mode",
+		EnvVars: opservice.PrefixEnvVar(envPrefix, "CGT"),
+		Value:   false,
+	}
 )
 
 func main() {
@@ -83,7 +90,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	app.Version = opservice.FormatVersion(Version, GitCommit, GitDate, VersionMeta)
 	app.Name = "op-up"
 	app.Usage = "deploys an in-memory OP Stack devnet."
-	app.Flags = cliapp.ProtectFlags([]cli.Flag{dirFlag})
+	app.Flags = cliapp.ProtectFlags([]cli.Flag{dirFlag, cgtFlag})
 	// The default OnUsageError behavior will print the error twice: once in the cli package and
 	// once in our main function.
 	// The function below prints help and returns the error for further handling/error messages.
@@ -94,12 +101,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	app.Action = func(cliCtx *cli.Context) error {
-		return runOpUp(cliCtx.Context, cliCtx.App.ErrWriter, cliCtx.String(dirFlag.Name))
+		return runOpUp(cliCtx.Context, cliCtx.App.ErrWriter, cliCtx.String(dirFlag.Name), cliCtx.Bool(cgtFlag.Name))
 	}
 	return app.RunContext(ctx, args)
 }
 
-func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string) error {
+func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string, cgtMode bool) error {
 	fmt.Fprintf(stderr, "%s\n", asciiArt)
 
 	if err := os.MkdirAll(opUpDir, 0o755); err != nil {
@@ -110,21 +117,51 @@ func runOpUp(ctx context.Context, stderr io.Writer, opUpDir string) error {
 		return fmt.Errorf("create the deployer cache dir: %w", err)
 	}
 
+	// Derive funder account from mnemonic (used as test account and LC owner for CGT mode).
+	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
+	if err != nil {
+		return fmt.Errorf("new mnemonic dev keys: %w", err)
+	}
+	const funderIndex = 10_000 // see sysgo/deployer.go.
+	funderUserKey := devkeys.UserKey(funderIndex)
+	funderAddress, err := hd.Address(funderUserKey)
+	if err != nil {
+		return fmt.Errorf("address: %w", err)
+	}
+	funderPrivKey, err := hd.Secret(funderUserKey)
+	if err != nil {
+		return fmt.Errorf("secret: %w", err)
+	}
+
+	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
+	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
+	fmt.Fprintf(stderr, "L1 Node URL: %s\n", "http://127.0.0.1:8544")
+	fmt.Fprintf(stderr, "L2 Node URL: %s\n", "http://127.0.0.1:8545")
+
 	devtest.RootContext = ctx
 
 	p := newP(ctx, stderr)
 	defer p.Close()
-
 	ids := sysgo.NewDefaultMinimalSystemIDs(sysgo.DefaultL1ID, sysgo.DefaultL2AID)
+
+	// Build deployer options based on mode
+	deployerOpts := []sysgo.DeployerOption{
+		sysgo.WithEmbeddedContractSources(),
+		sysgo.WithCommons(ids.L1.ChainID()),
+		sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
+	}
+	if cgtMode {
+		fmt.Fprintf(stderr, "Custom Gas Token mode enabled\n")
+		deployerOpts = append(deployerOpts,
+			sysgo.WithCustomGasToken("TestToken", "TST", new(big.Int).Mul(big.NewInt(1000000), big.NewInt(1e18)), funderAddress),
+		)
+	}
+
 	opts := stack.Combine(
 		sysgo.WithMnemonicKeys(devkeys.TestMnemonic),
 
 		sysgo.WithDeployer(),
-		sysgo.WithDeployerOptions(
-			sysgo.WithEmbeddedContractSources(),
-			sysgo.WithCommons(ids.L1.ChainID()),
-			sysgo.WithPrefundedL2(ids.L1.ChainID(), ids.L2.ChainID()),
-		),
+		sysgo.WithDeployerOptions(deployerOpts...),
 		sysgo.WithDeployerPipelineOption(sysgo.WithDeployerCacheDir(deployerCacheDir)),
 
 		sysgo.WithL1Nodes(ids.L1EL, ids.L1CL),
@@ -170,26 +207,6 @@ func newP(ctx context.Context, stderr io.Writer) devtest.P {
 }
 
 func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) error {
-	// Print available account.
-	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
-	if err != nil {
-		return fmt.Errorf("new mnemonic dev keys: %w", err)
-	}
-	const funderIndex = 10_000 // see sysgo/deployer.go.
-	funderUserKey := devkeys.UserKey(funderIndex)
-	funderAddress, err := hd.Address(funderUserKey)
-	if err != nil {
-		return fmt.Errorf("address: %w", err)
-	}
-	funderPrivKey, err := hd.Secret(funderUserKey)
-	if err != nil {
-		return fmt.Errorf("secret: %w", err)
-	}
-
-	fmt.Fprintf(stderr, "Test Account Address: %s\n", funderAddress)
-	fmt.Fprintf(stderr, "Test Account Private Key: %s\n", "0x"+common.Bytes2Hex(crypto.FromECDSA(funderPrivKey)))
-	fmt.Fprintf(stderr, "EL Node URL: %s\n", "http://localhost:8545")
-
 	t := &testingT{
 		ctx:      ctx,
 		cleanups: make([]func(), 0),
