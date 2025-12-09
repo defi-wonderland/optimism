@@ -617,16 +617,18 @@ contract OPContractsManagerUtils_IsMatchingInstructionByKey_Test is OPContractsM
         public
         view
     {
-        assertEq(utils.isMatchingInstructionByKey(_instruction, _instruction.key), true);
+        assertTrue(utils.isMatchingInstructionByKey(_instruction, _instruction.key));
     }
 
     /// @notice Tests that isMatchingInstructionKey returns false when the instruction does not match the key.
-    function test_isMatchingInstructionByKey_notMatchingKey_fails() public view {
-        assertEq(
-            utils.isMatchingInstructionByKey(
-                OPContractsManagerUtils.ExtraInstruction({ key: "testKey", data: bytes("testData") }), "wrongKey"
-            ),
-            false
-        );
+    function testFuzz_isMatchingInstructionByKey_notMatchingKey_fails(
+        OPContractsManagerUtils.ExtraInstruction memory _instruction
+    )
+        public
+        view
+    {
+        // Create a key that is not the same as the instruction key.
+        string memory _key = string.concat("not:", _instruction.key);
+        assertFalse(utils.isMatchingInstructionByKey(_instruction, _key));
     }
 }
