@@ -219,7 +219,14 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 		return fmt.Errorf("need one l2 network, got: %d", len(l2Networks))
 	}
 	l2Net := l2Networks[0]
-	elNode := l2Net.L2ELNode(match.FirstL2EL)
+	l2Node := l2Net.L2ELNode(match.FirstL2EL)
+
+	l1Networks := sys.L1Networks()
+	if len(l1Networks) != 1 {
+		return fmt.Errorf("need one l1 network, got: %d", len(l1Networks))
+	}
+	l1Net := l1Networks[0]
+	l1Node := l1Net.L1ELNode(match.FirstL1EL)
 
 	// Log on new blocks.
 	go func() {
@@ -230,7 +237,7 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 			case <-ctx.Done():
 				return
 			case <-time.After(blockPollInterval):
-				unsafe, err := elNode.EthClient().BlockRefByLabel(ctx, eth.Unsafe)
+				unsafe, err := l2Node.EthClient().BlockRefByLabel(ctx, eth.Unsafe)
 				if err != nil {
 					continue
 				}
@@ -242,10 +249,17 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 		}
 	}()
 
+	// Proxy L1 EL requests.
+	go func() {
+		if err := proxyEL(stderr, l1Node.EthClient().RPC(), 8544); err != nil {
+			fmt.Fprintf(stderr, "L1 proxy error: %v\n", err)
+		}
+	}()
+
 	// Proxy L2 EL requests.
 	go func() {
-		if err := proxyEL(stderr, elNode.L2EthClient().RPC()); err != nil {
-			fmt.Fprintf(stderr, "error: %v", err)
+		if err := proxyEL(stderr, l2Node.L2EthClient().RPC(), 8545); err != nil {
+			fmt.Fprintf(stderr, "L2 proxy error: %v\n", err)
 		}
 	}()
 
@@ -256,9 +270,9 @@ func runSysgo(ctx context.Context, stderr io.Writer, orch *sysgo.Orchestrator) e
 
 // proxyEL is a hacky way to intercept EL json rpc requests for logging to get around log filtering
 // bugs.
-func proxyEL(stderr io.Writer, client client.RPC) error {
-	// Set up the HTTP handler for all incoming requests.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+func proxyEL(stderr io.Writer, rpcClient client.RPC, port int) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Ensure the request method is POST, as JSON RPC typically uses POST.
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -320,7 +334,7 @@ func proxyEL(stderr io.Writer, client client.RPC) error {
 
 		// Use the rpc.Client to make the actual call to the backend Ethereum node.
 		// The `callParams...` syntax unpacks the slice into variadic arguments.
-		err = client.CallContext(ctx, &rpcResult, method, callParams...)
+		err = rpcClient.CallContext(ctx, &rpcResult, method, callParams...)
 		if err != nil {
 			message := fmt.Sprintf("RPC call to backend failed for method '%s': %v", method, err)
 			// If the RPC call to the backend fails, construct a JSON RPC error response.
@@ -366,8 +380,9 @@ func proxyEL(stderr io.Writer, client client.RPC) error {
 	})
 
 	// Start the HTTP server.
-	if err := http.ListenAndServe("localhost:8545", nil); err != nil {
-		return fmt.Errorf("listen and server: %w", err)
+	addr := fmt.Sprintf("localhost:%d", port)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		return fmt.Errorf("listen and serve on %s: %w", addr, err)
 	}
 	return nil
 }
