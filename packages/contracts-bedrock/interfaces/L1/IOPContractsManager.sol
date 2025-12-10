@@ -300,7 +300,7 @@ interface IOPContractsManager {
 
     error InvalidDevFeatureAccess(bytes32 devFeature);
 
-    error OPContractsManager_V1Disabled();
+    error OPContractsManager_V2Enabled();
 
     // -------- Methods --------
 
