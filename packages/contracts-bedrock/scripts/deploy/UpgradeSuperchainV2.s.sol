@@ -21,13 +21,10 @@ contract UpgradeSuperchainInput is BaseDeployIO {
         else revert("UpgradeSuperchainInput: unknown selector");
     }
 
-    function set(bytes4 _sel, OPContractsManagerV2.SuperchainUpgradeInput memory _value) public {
-        require(
-            address(_value.superchainConfig) != address(0),
-            "UpgradeSuperchainInput: cannot set empty superchain upgrade input"
-        );
+    function set(bytes4 _sel, bytes memory _value) public {
+        require(_value.length > 0, "UpgradeSuperchainInput: cannot set empty superchain upgrade input");
 
-        if (_sel == this.superchainUpgradeInput.selector) _superchainUpgradeInput = abi.encode(_value);
+        if (_sel == this.superchainUpgradeInput.selector) _superchainUpgradeInput = _value;
         else revert("UpgradeSuperchainInput: unknown selector");
     }
 

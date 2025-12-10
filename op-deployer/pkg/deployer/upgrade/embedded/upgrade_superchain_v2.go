@@ -12,8 +12,8 @@ import (
 type UpgradeSuperchainV2Input struct {
 	Prank                  common.Address     `json:"prank"`
 	Opcm                   common.Address     `json:"opcm"`
-	SuperchainConfig       common.Address     `json:"superchainConfig"`
-	SuperchainInstructions []ExtraInstruction `json:"superchainInstructions"`
+	SuperchainConfig       common.Address     `evm:"-" json:"superchainConfig"`
+	SuperchainInstructions []ExtraInstruction `evm:"-" json:"superchainInstructions"`
 }
 
 type SuperchainUpgradeInputV2 struct {

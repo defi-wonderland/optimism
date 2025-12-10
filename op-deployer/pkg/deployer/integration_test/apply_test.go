@@ -892,10 +892,62 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			// Deploy a new chain using OPCM V2
 			var deployedSystemConfig common.Address
 			t.Run("deploy chain with opcm v2", func(t *testing.T) {
-				t.Skip("TODO: Implement OPCM V2 deploy - need to create DeployOPChainV2 script and embedded wrapper")
-				// This would deploy a new chain using OPCM V2's deploy() function
-				// The deployed chain will have the V2 schema (SystemConfig with delayedWETH(), etc.)
-				// and can then be used to test the upgrade() function
+				// Construct FullConfig for deploy
+				deployInput := embedded.DeployOPChainV2Input{
+					Opcm: impls.OpcmV2,
+					FullConfigV2: embedded.FullConfigV2{
+						SaltMixer:         "test-salt-mixer-v2",
+						SuperchainConfig:  implementationsConfig.SuperchainConfigProxy,
+						ProxyAdminOwner:   superchainProxyAdminOwner,
+						SystemConfigOwner: superchainProxyAdminOwner,
+						UnsafeBlockSigner: superchainProxyAdminOwner,
+						Batcher:           superchainProxyAdminOwner,
+						StartingAnchorRoot: embedded.Proposal{
+							Root:             [32]byte{'D', 'E', 'A', 'D'},
+							L2SequenceNumber: 0,
+						},
+						StartingRespectedGameType: 1, // PERMISSIONED_CANNON
+						BasefeeScalar:             1368,
+						BlobBasefeeScalar:         810949,
+						GasLimit:                  30000000,
+						L2ChainId:                 big.NewInt(999999999),
+						ResourceConfig: embedded.ResourceConfig{
+							MaxResourceLimit:            20000000,
+							ElasticityMultiplier:        10,
+							BaseFeeMaxChangeDenominator: 8,
+							MinimumBaseFee:              1000000000,
+							SystemTxMaxGas:              1000000,
+							MaximumResourceLimit:        20000000,
+						},
+						DisputeGameConfigs: []embedded.DisputeGameConfig{
+							{
+								Enabled:  false,
+								InitBond: big.NewInt(0),
+								GameType: embedded.GameTypeCannon,
+								GameArgs: mustEncodeGameArgs(common.Hash{'C', 'A', 'N', 'N', 'O', 'N'}, common.Address{}, common.Address{}),
+							},
+							{
+								Enabled:  true,
+								InitBond: big.NewInt(0),
+								GameType: embedded.GameTypePermissionedCannon,
+								GameArgs: mustEncodeGameArgs(common.Hash{'C', 'A', 'N', 'N', 'O', 'N'}, superchainProxyAdminOwner, superchainProxyAdminOwner),
+							},
+							{
+								Enabled:  false,
+								InitBond: big.NewInt(0),
+								GameType: embedded.GameTypeCannonKona,
+								GameArgs: mustEncodeGameArgs(common.Hash{'K', 'O', 'N', 'A'}, common.Address{}, common.Address{}),
+							},
+						},
+					},
+				}
+
+				output, err := embedded.DeployOPChainV2(host, deployInput)
+				require.NoError(t, err, "OPCM V2 deploy should succeed")
+				require.NotEqual(t, common.Address{}, output.ChainContractsV2.SystemConfig, "SystemConfig should be deployed")
+
+				deployedSystemConfig = output.ChainContractsV2.SystemConfig
+				t.Logf("Deployed SystemConfig at: %s", deployedSystemConfig.Hex())
 			})
 
 			// Then test upgrade on the V2-deployed chain
@@ -945,6 +997,15 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			})
 		})
 	})
+}
+
+func mustEncodeGameArgs(absolutePrestate common.Hash, proposer, challenger common.Address) []byte {
+	// Encode as (bytes32 absolutePrestate, address proposer, address challenger)
+	result := make([]byte, 96)
+	copy(result[0:32], absolutePrestate[:])
+	copy(result[44:64], proposer[:])
+	copy(result[76:96], challenger[:])
+	return result
 }
 
 func needsSuperchainConfigUpgrade(
