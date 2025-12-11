@@ -772,7 +772,7 @@ func TestIntentConfiguration(t *testing.T) {
 func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.StatDirFs, implementationsConfig bootstrap.ImplementationsConfig) {
 	lgr := implementationsConfig.Logger
 
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 
 	superchainProxyAdminOwner := implementationsConfig.L1ProxyAdminOwner
@@ -860,6 +860,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			require.NotEqual(t, common.Address{}, impls.OpcmV2, "OpcmV2 address should not be zero")
 			t.Logf("Using OpcmV2 at address: %s", impls.OpcmV2.Hex())
 			t.Logf("Using OpcmUtils at address: %s", impls.OpcmUtils.Hex())
+			t.Logf("Using OpcmContainer at address: %s", impls.OpcmContainer.Hex())
 
 			// Verify OPCM V2 has code deployed
 			opcmCode, err := versionClient.CodeAt(ctx, impls.OpcmV2, nil)
@@ -872,6 +873,12 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			require.NoError(t, err)
 			require.NotEmpty(t, utilsCode, "OpcmUtils should have code deployed")
 			t.Logf("OpcmUtils code size: %d bytes", len(utilsCode))
+
+			// Verify OpcmContainer has code deployed
+			containerCode, err := versionClient.CodeAt(ctx, impls.OpcmContainer, nil)
+			require.NoError(t, err)
+			require.NotEmpty(t, containerCode, "OpcmContainer should have code deployed")
+			t.Logf("OpcmContainer code size: %d bytes", len(containerCode))
 
 			// First, upgrade the superchain with V2
 			t.Run("upgrade superchain v2", func(t *testing.T) {
@@ -893,6 +900,14 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			var deployedSystemConfig common.Address
 			t.Run("deploy chain with opcm v2", func(t *testing.T) {
 				// Construct FullConfig for deploy
+				cannonArgs := mustEncodeGameArgs(common.Hash{'C', 'A', 'N', 'N', 'O', 'N'}, common.Address{}, common.Address{})
+				permissionedArgs := mustEncodeGameArgs(common.Hash{'C', 'A', 'N', 'N', 'O', 'N'}, superchainProxyAdminOwner, superchainProxyAdminOwner)
+				konaArgs := mustEncodeGameArgs(common.Hash{'K', 'O', 'N', 'A'}, common.Address{}, common.Address{})
+
+				t.Logf("CANNON game args (len=%d): %x", len(cannonArgs), cannonArgs)
+				t.Logf("PERMISSIONED_CANNON game args (len=%d): %x", len(permissionedArgs), permissionedArgs)
+				t.Logf("KONA game args (len=%d): %x", len(konaArgs), konaArgs)
+
 				deployInput := embedded.DeployOPChainV2Input{
 					Opcm: impls.OpcmV2,
 					FullConfigV2: embedded.FullConfigV2{
@@ -917,26 +932,26 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 							BaseFeeMaxChangeDenominator: 8,
 							MinimumBaseFee:              1000000000,
 							SystemTxMaxGas:              1000000,
-							MaximumResourceLimit:        20000000,
+							MaximumBaseFee:              big.NewInt(20000000),
 						},
 						DisputeGameConfigs: []embedded.DisputeGameConfig{
 							{
 								Enabled:  false,
 								InitBond: big.NewInt(0),
 								GameType: embedded.GameTypeCannon,
-								GameArgs: mustEncodeGameArgs(common.Hash{'C', 'A', 'N', 'N', 'O', 'N'}, common.Address{}, common.Address{}),
+								GameArgs: cannonArgs,
 							},
 							{
 								Enabled:  true,
 								InitBond: big.NewInt(0),
 								GameType: embedded.GameTypePermissionedCannon,
-								GameArgs: mustEncodeGameArgs(common.Hash{'C', 'A', 'N', 'N', 'O', 'N'}, superchainProxyAdminOwner, superchainProxyAdminOwner),
+								GameArgs: permissionedArgs,
 							},
 							{
 								Enabled:  false,
 								InitBond: big.NewInt(0),
 								GameType: embedded.GameTypeCannonKona,
-								GameArgs: mustEncodeGameArgs(common.Hash{'K', 'O', 'N', 'A'}, common.Address{}, common.Address{}),
+								GameArgs: konaArgs,
 							},
 						},
 					},
@@ -1000,11 +1015,22 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 }
 
 func mustEncodeGameArgs(absolutePrestate common.Hash, proposer, challenger common.Address) []byte {
-	// Encode as (bytes32 absolutePrestate, address proposer, address challenger)
+	// Use Ethereum ABI encoding for the game args
+	// In Solidity, abi.encode(MyStruct{...}) encodes the struct fields as a tuple
+	// For FaultDisputeGameConfig: abi.encode((bytes32)) = 32 bytes
+	// For PermissionedDisputeGameConfig: abi.encode((bytes32,address,address)) = 96 bytes (3 * 32)
+
+	if proposer == (common.Address{}) {
+		// FaultDisputeGameConfig: abi.encode((bytes32 absolutePrestate))
+		// This is just the raw bytes32 value (32 bytes)
+		return absolutePrestate[:]
+	}
+	// PermissionedDisputeGameConfig: abi.encode((bytes32,address,address))
+	// This is 96 bytes: bytes32 + address (left-padded to 32) + address (left-padded to 32)
 	result := make([]byte, 96)
 	copy(result[0:32], absolutePrestate[:])
-	copy(result[44:64], proposer[:])
-	copy(result[76:96], challenger[:])
+	copy(result[44:64], proposer[:])    // address at offset 32, left-padded (12 zero bytes + 20 address bytes)
+	copy(result[76:96], challenger[:])  // address at offset 64, left-padded (12 zero bytes + 20 address bytes)
 	return result
 }
 

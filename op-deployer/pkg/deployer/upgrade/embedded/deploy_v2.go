@@ -38,12 +38,12 @@ type Proposal struct {
 }
 
 type ResourceConfig struct {
-	MaxResourceLimit            uint32 `json:"maxResourceLimit"`
-	ElasticityMultiplier        uint8  `json:"elasticityMultiplier"`
-	BaseFeeMaxChangeDenominator uint8  `json:"baseFeeMaxChangeDenominator"`
-	MinimumBaseFee              uint32 `json:"minimumBaseFee"`
-	SystemTxMaxGas              uint32 `json:"systemTxMaxGas"`
-	MaximumResourceLimit        uint32 `json:"maximumResourceLimit"`
+	MaxResourceLimit            uint32   `json:"maxResourceLimit"`
+	ElasticityMultiplier        uint8    `json:"elasticityMultiplier"`
+	BaseFeeMaxChangeDenominator uint8    `json:"baseFeeMaxChangeDenominator"`
+	MinimumBaseFee              uint32   `json:"minimumBaseFee"`
+	SystemTxMaxGas              uint32   `json:"systemTxMaxGas"`
+	MaximumBaseFee              *big.Int `json:"maximumBaseFee"`
 }
 
 type DeployOPChainV2Output struct {
@@ -59,28 +59,28 @@ func (d *DeployOPChainV2Output) SetChainContracts(data []byte) error {
 }
 
 type ChainContracts struct {
+	SystemConfig                     common.Address `json:"systemConfig"`
 	ProxyAdmin                       common.Address `json:"proxyAdmin"`
 	AddressManager                   common.Address `json:"addressManager"`
-	L1ERC721Bridge                   common.Address `json:"l1ERC721Bridge"`
-	SystemConfig                     common.Address `json:"systemConfig"`
-	OptimismMintableERC20Factory     common.Address `json:"optimismMintableERC20Factory"`
-	L1StandardBridge                 common.Address `json:"l1StandardBridge"`
 	L1CrossDomainMessenger           common.Address `json:"l1CrossDomainMessenger"`
+	L1ERC721Bridge                   common.Address `json:"l1ERC721Bridge"`
+	L1StandardBridge                 common.Address `json:"l1StandardBridge"`
 	OptimismPortal                   common.Address `json:"optimismPortal"`
+	EthLockbox                       common.Address `json:"ethLockbox"`
+	OptimismMintableERC20Factory     common.Address `json:"optimismMintableERC20Factory"`
 	DisputeGameFactory               common.Address `json:"disputeGameFactory"`
 	AnchorStateRegistry              common.Address `json:"anchorStateRegistry"`
 	DelayedWETH                      common.Address `json:"delayedWETH"`
-	EthLockbox                       common.Address `json:"ethLockbox"`
 }
 
 var fullConfigEncoder = w3.MustNewFunc(
-	"dummy((string saltMixer,address superchainConfig,address proxyAdminOwner,address systemConfigOwner,address unsafeBlockSigner,address batcher,(bytes32 root,uint64 l2SequenceNumber) startingAnchorRoot,uint32 startingRespectedGameType,uint32 basefeeScalar,uint32 blobBasefeeScalar,uint64 gasLimit,uint256 l2ChainId,(uint32 maxResourceLimit,uint8 elasticityMultiplier,uint8 baseFeeMaxChangeDenominator,uint32 minimumBaseFee,uint32 systemTxMaxGas,uint32 maximumResourceLimit) resourceConfig,(bool enabled,uint256 initBond,uint32 gameType,bytes gameArgs)[] disputeGameConfigs))",
+	"dummy((string saltMixer,address superchainConfig,address proxyAdminOwner,address systemConfigOwner,address unsafeBlockSigner,address batcher,(bytes32 root,uint256 l2SequenceNumber) startingAnchorRoot,uint32 startingRespectedGameType,uint32 basefeeScalar,uint32 blobBasefeeScalar,uint64 gasLimit,uint256 l2ChainId,(uint32 maxResourceLimit,uint8 elasticityMultiplier,uint8 baseFeeMaxChangeDenominator,uint32 minimumBaseFee,uint32 systemTxMaxGas,uint128 maximumBaseFee) resourceConfig,(bool enabled,uint256 initBond,uint32 gameType,bytes gameArgs)[] disputeGameConfigs))",
 	"",
 )
 
 var chainContractsEncoder = w3.MustNewFunc(
 	"dummy()",
-	"(address proxyAdmin,address addressManager,address l1ERC721Bridge,address systemConfig,address optimismMintableERC20Factory,address l1StandardBridge,address l1CrossDomainMessenger,address optimismPortal,address disputeGameFactory,address anchorStateRegistry,address delayedWETH,address ethLockbox)",
+	"(address systemConfig,address proxyAdmin,address addressManager,address l1CrossDomainMessenger,address l1ERC721Bridge,address l1StandardBridge,address optimismPortal,address ethLockbox,address optimismMintableERC20Factory,address disputeGameFactory,address anchorStateRegistry,address delayedWETH)",
 )
 
 func (d *DeployOPChainV2Input) FullConfig() ([]byte, error) {
