@@ -3,11 +3,8 @@ pragma solidity 0.8.15;
 
 import { Script } from "forge-std/Script.sol";
 
-<<<<<<< HEAD
-=======
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
 import { Constants } from "src/libraries/Constants.sol";
->>>>>>> 0e060a5e78 (feat: OPCM v2 support on for op-deployer (#701))
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Solarray } from "scripts/libraries/Solarray.sol";
 import { ChainAssertions } from "scripts/deploy/ChainAssertions.sol";
@@ -146,8 +143,6 @@ contract DeployOPChain is Script {
         });
     }
 
-<<<<<<< HEAD
-=======
     /// @notice Converts Types.DeployOPChainInput to IOPContractsManagerV2.FullConfig.
     /// @param _input The input parameters.
     /// @return config_ The deployed input parameters.
@@ -274,7 +269,6 @@ contract DeployOPChain is Script {
         });
     }
 
->>>>>>> 0e060a5e78 (feat: OPCM v2 support on for op-deployer (#701))
     // -------- Validations --------
 
     function checkInput(Types.DeployOPChainInput memory _i) public view {
@@ -321,8 +315,6 @@ contract DeployOPChain is Script {
             address(_o.ethLockboxProxy)
         );
 
-<<<<<<< HEAD
-=======
         // OPCM v2 always uses v2 dispute games, so only check v1 feature flag if v2 is not enabled
         bool useV2Games = isDevFeatureOpcmV2Enabled(_i.opcm)
             || (!isDevFeatureOpcmV2Enabled(_i.opcm) && isDevFeatureV2DisputeGamesEnabled(_i.opcm));
@@ -336,7 +328,6 @@ contract DeployOPChain is Script {
             // address(_o.faultDisputeGame()),
         }
 
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
         DeployUtils.assertValidContractAddresses(Solarray.extend(addrs1, addrs2));
         _assertValidDeploy(_i, _o);
     }
@@ -359,11 +350,6 @@ contract DeployOPChain is Script {
             SuperchainConfig: address(_i.superchainConfig)
         });
 
-<<<<<<< HEAD
-        // Check dispute games
-        // With v2 game contracts enabled, we use the predeployed pdg implementation
-        address expectedPDGImpl = IOPContractsManager(_i.opcm).implementations().permissionedDisputeGameV2Impl;
-=======
         // Check dispute games and get superchain config
         address expectedPDGImpl = address(_o.permissionedDisputeGame);
 
@@ -374,13 +360,10 @@ contract DeployOPChain is Script {
         } else {
             // OPCM v1: use implementations from v1 contract
             IOPContractsManager opcm = IOPContractsManager(_i.opcm);
-            if (isDevFeatureV2DisputeGamesEnabled(_i.opcm)) {
-                // With v2 game contracts enabled, we use the predeployed pdg implementation
-                expectedPDGImpl = opcm.implementations().permissionedDisputeGameV2Impl;
-            }
+            // With v2 game contracts enabled, we use the predeployed pdg implementation
+            expectedPDGImpl = opcm.implementations().permissionedDisputeGameV2Impl;
         }
 
->>>>>>> 0e060a5e78 (feat: OPCM v2 support on for op-deployer (#701))
         ChainAssertions.checkDisputeGameFactory(
             _o.disputeGameFactoryProxy, _i.opChainProxyAdminOwner, expectedPDGImpl, true
         );

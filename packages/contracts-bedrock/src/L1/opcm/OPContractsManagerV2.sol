@@ -116,15 +116,8 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
         IResourceMetering.ResourceConfig resourceConfig;
         // Dispute game configuration.
         DisputeGameConfig[] disputeGameConfigs;
-<<<<<<< HEAD
-<<<<<<< HEAD
         // CGT
-=======
-        // Feature flags.
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
         bool useCustomGasToken;
-=======
->>>>>>> a324054f0a (fix: remove cgt & fix tests (#736))
     }
 
     /// @notice Partial input required for an upgrade.
@@ -633,11 +626,6 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
                 ),
                 (GameType)
             ),
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-            disputeGameConfigs: _upgradeInput.disputeGameConfigs,
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
             useCustomGasToken: abi.decode(
                 _loadBytes(
                     address(_chainContracts.systemConfig),
@@ -647,9 +635,6 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
                 ),
                 (bool)
             )
-=======
-            disputeGameConfigs: _upgradeInput.disputeGameConfigs
->>>>>>> a324054f0a (fix: remove cgt & fix tests (#736))
         });
     }
 
@@ -853,9 +838,7 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
             );
         }
 
-<<<<<<< HEAD
         // If the custom gas token feature was requested, enable it in the SystemConfig.
-<<<<<<< HEAD
         // If the cgt is enabled, we skip this step.
         if (_cfg.useCustomGasToken && !_cts.systemConfig.isCustomGasToken()) {
             // NOTE: Enabling the custom gas token feature is only allowed during initial deployment to prevent
@@ -865,14 +848,9 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
             if (!_isInitialDeployment) {
                 revert OPContractsManagerV2_CannotUpgradeToCustomGasToken();
             }
-=======
-        if (_cfg.useCustomGasToken) {
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
             _cts.systemConfig.setFeature(Features.CUSTOM_GAS_TOKEN, true);
         }
 
-=======
->>>>>>> a324054f0a (fix: remove cgt & fix tests (#736))
         // If critical transfer is allowed, tranfer ownership of the DisputeGameFactory and
         // ProxyAdmin to the PAO. During deployments, this means transferring ownership from the
         // OPCM contract to the target PAO. During upgrades, this would theoretically mean
@@ -927,7 +905,7 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
                 _cfg.gasLimit,
                 _cfg.unsafeBlockSigner,
                 _cfg.resourceConfig,
-                chainIdToBatchInboxAddress(_cfg.l2ChainId),
+                _chainIdToBatchInboxAddress(_cfg.l2ChainId),
                 addrs,
                 _cfg.l2ChainId,
                 _cfg.superchainConfig
@@ -1016,247 +994,4 @@ contract OPContractsManagerV2 is ISemver, OPContractsManagerUtilsCaller {
     function isDevFeatureEnabled(bytes32 _feature) public view returns (bool) {
         return contractsContainer.isDevFeatureEnabled(_feature);
     }
-<<<<<<< HEAD
-=======
-
-    /// @notice Maps an L2 chain ID to an L1 batch inbox address as defined by the standard
-    ///         configuration's convention. This convention is
-    ///         `versionByte || keccak256(bytes32(chainId))[:19]`, where || denotes concatenation,
-    ///         versionByte is 0x00, and chainId is a uint256.
-    ///         https://specs.optimism.io/protocol/configurability.html#consensus-parameters
-    /// @param _l2ChainId The L2 chain ID to map to an L1 batch inbox address.
-    /// @return Chain ID mapped to an L1 batch inbox address.
-    function chainIdToBatchInboxAddress(uint256 _l2ChainId) public pure returns (address) {
-        bytes1 versionByte = 0x00;
-        bytes32 hashedChainId = keccak256(bytes.concat(bytes32(_l2ChainId)));
-        bytes19 first19Bytes = bytes19(hashedChainId);
-        return address(uint160(bytes20(bytes.concat(versionByte, first19Bytes))));
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    //                       INTERNAL UTILITY FUNCTIONS                      //
-    ///////////////////////////////////////////////////////////////////////////
-
-    /// @notice Computes a unique salt for a contract deployment.
-    /// @param _l2ChainId The L2 chain ID of the chain being deployed to.
-    /// @param _saltMixer The salt mixer to use for the deployment.
-    /// @param _contractName The name of the contract to deploy.
-    /// @return The computed salt.
-    function _computeSalt(
-        uint256 _l2ChainId,
-        string memory _saltMixer,
-        string memory _contractName
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encode(_l2ChainId, _saltMixer, _contractName));
-    }
-
-    /// @notice Helper function to check if a given instruction is present in a list of extra
-    ///         upgrade instructions.
-    /// @param _instructions The list of extra upgrade instructions.
-    /// @param _key The key of the instruction to check for.
-    /// @param _data The data of the instruction to check for.
-    /// @return True if the instruction is present, false otherwise.
-    function _hasInstruction(
-        ExtraInstruction[] memory _instructions,
-        string memory _key,
-        bytes memory _data
-    )
-        internal
-        pure
-        returns (bool)
-    {
-        for (uint256 i = 0; i < _instructions.length; i++) {
-            if (LibString.eq(_instructions[i].key, _key) && LibString.eq(string(_instructions[i].data), string(_data)))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Helper function to get an instruction by key.
-    /// @param _instructions The list of extra upgrade instructions.
-    /// @param _key The key of the instruction to get.
-    /// @return The instruction, or an empty instruction if the instruction is not found.
-    function _getInstructionByKey(
-        ExtraInstruction[] memory _instructions,
-        string memory _key
-    )
-        internal
-        pure
-        returns (ExtraInstruction memory)
-    {
-        for (uint256 i = 0; i < _instructions.length; i++) {
-            if (LibString.eq(_instructions[i].key, _key)) {
-                return _instructions[i];
-            }
-        }
-        return ExtraInstruction({ key: "", data: bytes("") });
-    }
-
-    /// @notice Helper function to load data from a source contract as bytes.
-    /// @param _source The source contract to load the data from.
-    /// @param _selector The selector of the function to call on the source contract.
-    /// @param _name The name of the field to load.
-    /// @param _instructions The extra upgrade instructions for the data load.
-    /// @return Data retrieved from the source contract.
-    function _loadBytes(
-        address _source,
-        bytes4 _selector,
-        string memory _name,
-        ExtraInstruction[] memory _instructions
-    )
-        internal
-        view
-        returns (bytes memory)
-    {
-        // If an override exists for this load, return the override data.
-        ExtraInstruction memory overrideInstruction = _getInstructionByKey(_instructions, _name);
-        if (bytes(overrideInstruction.key).length > 0) {
-            return overrideInstruction.data;
-        }
-
-        // Otherwise, load the data from the source contract.
-        (bool success, bytes memory result) = address(_source).staticcall(abi.encodePacked(_selector));
-        if (!success) {
-            revert OPContractsManagerV2_ConfigLoadFailed(_name);
-        }
-
-        // Return the loaded data.
-        return result;
-    }
-
-    /// @notice Attempts to load a proxy from a source function where the proxy should be found. If
-    ///         the proxy isn't found at the source, or the call to the source fails, we build a
-    ///         new proxy instead. Calls to source contracts MUST NOT fail under any circumstances
-    ///         other than the function not existing (which can happen in an upgrade scenario).
-    /// @param _source The source contract to load the proxy from.
-    /// @param _selector The selector of the function to call on the source contract.
-    /// @param _args The basic arguments for the proxy deployment.
-    /// @param _contractName The name of the contract to deploy.
-    /// @param _instructions The extra upgrade instructions for the proxy deployment.
-    /// @return The address of the loaded or built proxy.
-    function _loadOrDeployProxy(
-        address _source,
-        bytes4 _selector,
-        ProxyDeployArgs memory _args,
-        string memory _contractName,
-        ExtraInstruction[] memory _instructions
-    )
-        internal
-        returns (address payable)
-    {
-        // Loads are allowed to fail ONLY if the user explicitly permitted it (or if this is a
-        // deployment and the "ALL" permission is set).
-        bool loadCanFail = _hasInstruction(_instructions, PERMITTED_PROXY_DEPLOYMENT_KEY, bytes(_contractName))
-            || _hasInstruction(_instructions, PERMITTED_PROXY_DEPLOYMENT_KEY, PERMIT_ALL_CONTRACTS_INSTRUCTION);
-
-        // Try to load the proxy from the source.
-        (bool success, bytes memory result) = address(_source).staticcall(abi.encodePacked(_selector));
-
-        // If the load succeeded and the result is not a zero address, return the result.
-        if (success && abi.decode(result, (address)) != address(0)) {
-            return payable(abi.decode(result, (address)));
-        } else if (!loadCanFail) {
-            // Load not permitted to fail but did, revert.
-            revert OPContractsManagerV2_ProxyMustLoad(_contractName);
-        }
-
-        // We've failed to load, but we allowed that failure.
-        // Deploy the right proxy depending on the contract name.
-        address ret;
-        if (LibString.eq(_contractName, "L1StandardBridge")) {
-            // L1StandardBridge is a special case ChugSplashProxy (legacy).
-            ret = Blueprint.deployFrom(
-                blueprints().l1ChugSplashProxy,
-                _computeSalt(_args.l2ChainId, _args.saltMixer, "L1StandardBridge"),
-                abi.encode(_args.proxyAdmin)
-            );
-
-            // ChugSplashProxy requires setting the proxy type on the ProxyAdmin.
-            _args.proxyAdmin.setProxyType(ret, IProxyAdmin.ProxyType.CHUGSPLASH);
-        } else if (LibString.eq(_contractName, "L1CrossDomainMessenger")) {
-            // L1CrossDomainMessenger is a special case ResolvedDelegateProxy (legacy).
-            string memory l1XdmName = "OVM_L1CrossDomainMessenger";
-            ret = Blueprint.deployFrom(
-                blueprints().resolvedDelegateProxy,
-                _computeSalt(_args.l2ChainId, _args.saltMixer, "L1CrossDomainMessenger"),
-                abi.encode(_args.addressManager, l1XdmName)
-            );
-
-            // ResolvedDelegateProxy requires setting the proxy type on the ProxyAdmin.
-            _args.proxyAdmin.setProxyType(ret, IProxyAdmin.ProxyType.RESOLVED);
-            _args.proxyAdmin.setImplementationName(ret, l1XdmName);
-        } else {
-            // Otherwise this is a normal proxy.
-            ret = Blueprint.deployFrom(
-                blueprints().proxy,
-                _computeSalt(_args.l2ChainId, _args.saltMixer, _contractName),
-                abi.encode(_args.proxyAdmin)
-            );
-        }
-
-        // Emit the proxy creation event.
-        emit ProxyCreation(_contractName, ret);
-
-        // Return the final deployment result.
-        return payable(ret);
-    }
-
-    /// @notice Upgrades a contract by resetting the initialized slot and calling the initializer.
-    /// @param _proxyAdmin The proxy admin of the contract.
-    /// @param _target The target of the contract.
-    /// @param _implementation The implementation of the contract.
-    /// @param _data The data to call the initializer with.
-    function _upgrade(IProxyAdmin _proxyAdmin, address _target, address _implementation, bytes memory _data) internal {
-        _upgrade(_proxyAdmin, _target, _implementation, _data, bytes32(0), 0);
-    }
-
-    /// @notice Upgrades a contract by resetting the initialized slot and calling the initializer.
-    /// @param _proxyAdmin The proxy admin of the contract.
-    /// @param _target The target of the contract.
-    /// @param _implementation The implementation of the contract.
-    /// @param _data The data to call the initializer with.
-    /// @param _slot The slot where the initialized value is located.
-    /// @param _offset The offset of the initializer value in the slot.
-    function _upgrade(
-        IProxyAdmin _proxyAdmin,
-        address _target,
-        address _implementation,
-        bytes memory _data,
-        bytes32 _slot,
-        uint8 _offset
-    )
-        internal
-    {
-        // Check to make sure that we're not downgrading. Downgrades aren't inherently dangerous
-        // but we also don't test for them so we don't really know if a specific downgrade will be
-        // dangerous or not. It's easier to just revert instead.
-        // NOTE: We DO allow upgrades to the same version, which makes it possible to use this
-        //       function to both upgrade and then later perform management actions like changing
-        //       the prestate for the fault dispute games.
-        if (
-            _proxyAdmin.getProxyImplementation(payable(_target)) != address(0)
-                && SemverComp.gt(ISemver(_target).version(), ISemver(_implementation).version())
-        ) {
-            revert OPContractsManagerV2_DowngradeNotAllowed(address(_target));
-        }
-
-        // Upgrade to StorageSetter.
-        _proxyAdmin.upgrade(payable(_target), address(implementations().storageSetterImpl));
-
-        // Otherwise, we need to reset the initialized slot and call the initializer.
-        // Reset the initialized slot by zeroing the single byte at `_offset` (from the right).
-        bytes32 current = IStorageSetter(_target).getBytes32(_slot);
-        uint256 mask = ~(uint256(0xff) << (uint256(_offset) * 8));
-        IStorageSetter(_target).setBytes32(_slot, bytes32(uint256(current) & mask));
-
-        // Upgrade to the implementation and call the initializer.
-        _proxyAdmin.upgradeAndCall(payable(address(_target)), _implementation, _data);
-    }
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
 }

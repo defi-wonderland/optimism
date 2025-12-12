@@ -68,7 +68,6 @@ contract DeployImplementations_Test is Test, FeatureFlags {
             "FaultDisputeGameV2 maxClockDuration incorrect"
         );
 
-<<<<<<< HEAD
         // Validate constructor args for PermissionedDisputeGameV2
         assertEq(
             output.permissionedDisputeGameV2Impl.maxGameDepth(), 73, "PermissionedDisputeGameV2 maxGameDepth incorrect"
@@ -86,86 +85,6 @@ contract DeployImplementations_Test is Test, FeatureFlags {
             302400,
             "PermissionedDisputeGameV2 maxClockDuration incorrect"
         );
-=======
-            // Validate constructor args for PermissionedDisputeGameV2
-            assertEq(
-                output.permissionedDisputeGameV2Impl.maxGameDepth(),
-                73,
-                "PermissionedDisputeGameV2 maxGameDepth incorrect"
-            );
-            assertEq(
-                output.permissionedDisputeGameV2Impl.splitDepth(), 30, "PermissionedDisputeGameV2 splitDepth incorrect"
-            );
-            assertEq(
-                output.permissionedDisputeGameV2Impl.clockExtension().raw(),
-                10800,
-                "PermissionedDisputeGameV2 clockExtension incorrect"
-            );
-            assertEq(
-                output.permissionedDisputeGameV2Impl.maxClockDuration().raw(),
-                302400,
-                "PermissionedDisputeGameV2 maxClockDuration incorrect"
-            );
-
-            // Ensure legacy blueprints were not deployed
-            if (!isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
-                assertEq(
-                    output.opcm.blueprints().permissionedDisputeGame1,
-                    address(0),
-                    "PermissionedDisputeGame1 blueprint should not be deployed"
-                );
-                assertEq(
-                    output.opcm.blueprints().permissionedDisputeGame2,
-                    address(0),
-                    "PermissionedDisputeGame2 blueprint should not be deployed"
-                );
-                assertEq(
-                    output.opcm.blueprints().permissionlessDisputeGame1,
-                    address(0),
-                    "PermissionlessDisputeGame1 blueprint should not be deployed"
-                );
-                assertEq(
-                    output.opcm.blueprints().permissionlessDisputeGame2,
-                    address(0),
-                    "PermissionlessDisputeGame2 blueprint should not be deployed"
-                );
-            } else {
-                assertEq(
-                    output.opcmV2.blueprints().permissionedDisputeGame1,
-                    address(0),
-                    "PermissionedDisputeGame1 blueprint should not be deployed"
-                );
-                assertEq(
-                    output.opcmV2.blueprints().permissionedDisputeGame2,
-                    address(0),
-                    "PermissionedDisputeGame2 blueprint should not be deployed"
-                );
-                assertEq(
-                    output.opcmV2.blueprints().permissionlessDisputeGame1,
-                    address(0),
-                    "PermissionlessDisputeGame1 blueprint should not be deployed"
-                );
-                assertEq(
-                    output.opcmV2.blueprints().permissionlessDisputeGame2,
-                    address(0),
-                    "PermissionlessDisputeGame2 blueprint should not be deployed"
-                );
-            }
-        } else {
-            assertEq(address(output.faultDisputeGameV2Impl), address(0), "FaultDisputeGameV2 should not be deployed");
-            assertEq(
-                address(output.permissionedDisputeGameV2Impl),
-                address(0),
-                "PermissionedDisputeGameV2 should not be deployed"
-            );
-
-            // Ensure other contracts are still deployed
-            assertNotEq(address(output.systemConfigImpl), address(0), "SystemConfig should still be deployed");
-            assertNotEq(
-                address(output.disputeGameFactoryImpl), address(0), "DisputeGameFactory should still be deployed"
-            );
-        }
->>>>>>> 62dd7c2364 (feat: add opcmv2 flag to deployImplementations and apply opcmv2 deployment test)
 
         // for the super DG implementation deployments
         if (isDevFeatureEnabled(DevFeatures.OPTIMISM_PORTAL_INTEROP)) {

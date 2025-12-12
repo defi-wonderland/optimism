@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import { Test } from "forge-std/Test.sol";
 import { FeatureFlags } from "test/setup/FeatureFlags.sol";
 import { Features } from "src/libraries/Features.sol";
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 import { DeploySuperchain } from "scripts/deploy/DeploySuperchain.s.sol";
 import { DeployImplementations } from "scripts/deploy/DeployImplementations.s.sol";
@@ -226,37 +227,17 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
 
         // Check dispute game deployments
         // Validate permissionedDisputeGame (PDG) address
-<<<<<<< HEAD
-        IOPContractsManager.Implementations memory impls = opcm.implementations();
-        address expectedPDGAddress = impls.permissionedDisputeGameV2Impl;
-=======
-        bool isDeployV2Games = isDevFeatureEnabled(DevFeatures.DEPLOY_V2_DISPUTE_GAMES);
         IOPContractsManager.Implementations memory impls = IOPContractsManager(opcmAddr).implementations();
-        address expectedPDGAddress =
-            isDeployV2Games ? impls.permissionedDisputeGameV2Impl : address(doo.permissionedDisputeGame);
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
+        address expectedPDGAddress = impls.permissionedDisputeGameV2Impl;
         address actualPDGAddress = address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON));
         assertNotEq(actualPDGAddress, address(0), "PDG address should be non-zero");
         assertEq(actualPDGAddress, expectedPDGAddress, "PDG address should match expected address");
 
-<<<<<<< HEAD
-        // Check PDG getters
-        IPermissionedDisputeGame pdg = IPermissionedDisputeGame(actualPDGAddress);
-        bytes32 expectedPrestate = bytes32(0);
-        assertEq(pdg.l2BlockNumber(), 0, "3000");
-        assertEq(Claim.unwrap(pdg.absolutePrestate()), expectedPrestate, "3100");
-        assertEq(Duration.unwrap(pdg.clockExtension()), 10800, "3200");
-        assertEq(Duration.unwrap(pdg.maxClockDuration()), 302400, "3300");
-        assertEq(pdg.splitDepth(), 30, "3400");
-        assertEq(pdg.maxGameDepth(), 73, "3500");
-=======
         // Skip PDG getter checks for OPCM v2 (game args are passed at creation time)
         if (!isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
             // Check PDG getters
             IPermissionedDisputeGame pdg = IPermissionedDisputeGame(actualPDGAddress);
-            bytes32 expectedPrestate = isDeployV2Games
-                ? bytes32(0)
-                : bytes32(0x038512e02c4c3f7bdaec27d00edf55b7155e0905301e1a88083e4e0a6764d54c);
+            bytes32 expectedPrestate = bytes32(0);
             assertEq(pdg.l2BlockNumber(), 0, "3000");
             assertEq(Claim.unwrap(pdg.absolutePrestate()), expectedPrestate, "3100");
             assertEq(Duration.unwrap(pdg.clockExtension()), 10800, "3200");
@@ -264,7 +245,6 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
             assertEq(pdg.splitDepth(), 30, "3400");
             assertEq(pdg.maxGameDepth(), 73, "3500");
         }
->>>>>>> e805bdc320 (fix: add superchainConfig input & fix tests in deployopchain (#705))
 
         // Verify custom gas token feature is set as seeded
         assertEq(

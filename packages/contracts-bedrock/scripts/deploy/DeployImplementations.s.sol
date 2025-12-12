@@ -245,22 +245,10 @@ contract DeployImplementations is Script {
             resolvedDelegateProxy: _blueprints.resolvedDelegateProxy
         });
 
-<<<<<<< HEAD
-        deployOPCMBPImplsContainer(_input, _output, _blueprints, implementations);
-        deployOPCMContainer(_input, _output, blueprintsV2, implementationsV2);
-        deployOPCMGameTypeAdder(_output);
-        deployOPCMDeployer(_input, _output);
-        deployOPCMUpgrader(_output);
-        deployOPCMInteropMigrator(_output);
-        deployOPCMStandardValidator(_input, _output, implementations);
-        deployOPCMUtils(_output);
-        deployOPCMV2(_output);
-=======
         // Deploy OPCM V2 components
         deployOPCMContainer(_input, _output, blueprints, implementations);
         deployOPCMStandardValidatorV2(_input, _output, implementations);
         opcmV2_ = deployOPCMV2(_output);
->>>>>>> 62dd7c2364 (feat: add opcmv2 flag to deployImplementations and apply opcmv2 deployment test)
 
         // Set OPCM V1 addresses to zero (not deployed)
         _output.opcm = IOPContractsManager(address(0));
@@ -801,7 +789,6 @@ contract DeployImplementations is Script {
         _output.opcmStandardValidator = impl;
     }
 
-<<<<<<< HEAD
     function deployOPCMUtils(Output memory _output) private {
         IOPContractsManagerUtils impl = IOPContractsManagerUtils(
             DeployUtils.createDeterministic({
@@ -816,9 +803,6 @@ contract DeployImplementations is Script {
         _output.opcmUtils = impl;
     }
 
-    function deployOPCMV2(Output memory _output) private {
-        IOPContractsManagerV2 impl = IOPContractsManagerV2(
-=======
     function deployOPCMStandardValidatorV2(
         Input memory _input,
         Output memory _output,
@@ -841,7 +825,6 @@ contract DeployImplementations is Script {
         opcmImplementations.mipsImpl = _implementations.mipsImpl;
 
         IOPContractsManagerStandardValidator impl = IOPContractsManagerStandardValidator(
->>>>>>> 62dd7c2364 (feat: add opcmv2 flag to deployImplementations and apply opcmv2 deployment test)
             DeployUtils.createDeterministic({
                 _name: "OPContractsManagerStandardValidator.sol:OPContractsManagerStandardValidator",
                 _args: DeployUtils.encodeConstructor(
@@ -981,8 +964,6 @@ contract DeployImplementations is Script {
 
         DeployUtils.assertValidContractAddresses(Solarray.extend(addrs1, addrs2));
 
-<<<<<<< HEAD
-=======
         // Validate OPCM V2 flag
         if (DevFeatures.isDevFeatureEnabled(_input.devFeatureBitmap, DevFeatures.OPCM_V2)) {
             require(
@@ -1004,18 +985,6 @@ contract DeployImplementations is Script {
             );
         }
 
-        // Validate V2 contracts not deployed when flag is disabled
-        if (!DevFeatures.isDevFeatureEnabled(_input.devFeatureBitmap, DevFeatures.DEPLOY_V2_DISPUTE_GAMES)) {
-            require(
-                address(_output.faultDisputeGameV2Impl) == address(0),
-                "DeployImplementations: V2 flag disabled but FaultDisputeGameV2 was deployed"
-            );
-            require(
-                address(_output.permissionedDisputeGameV2Impl) == address(0),
-                "DeployImplementations: V2 flag disabled but PermissionedDisputeGameV2 was deployed"
-            );
-        }
->>>>>>> 62dd7c2364 (feat: add opcmv2 flag to deployImplementations and apply opcmv2 deployment test)
         if (!DevFeatures.isDevFeatureEnabled(_input.devFeatureBitmap, DevFeatures.OPTIMISM_PORTAL_INTEROP)) {
             require(
                 address(_output.superFaultDisputeGameImpl) == address(0),

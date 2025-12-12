@@ -308,13 +308,7 @@ contract Deploy is Deployer {
         }
         artifacts.save("DelayedWETHImpl", address(dio.delayedWETHImpl));
         artifacts.save("PreimageOracle", address(dio.preimageOracleSingleton));
-<<<<<<< HEAD
         artifacts.save("PermissionedDisputeGame", address(dio.permissionedDisputeGameV2Impl));
-=======
-        if (DevFeatures.isDevFeatureEnabled(cfg.devFeatureBitmap(), DevFeatures.DEPLOY_V2_DISPUTE_GAMES)) {
-            artifacts.save("PermissionedDisputeGame", address(dio.permissionedDisputeGameV2Impl));
-        }
->>>>>>> 62dd7c2364 (feat: add opcmv2 flag to deployImplementations and apply opcmv2 deployment test)
 
         // Get a contract set from the implementation addresses which were just deployed.
         Types.ContractSet memory impls = ChainAssertions.dioToContractSet(dio);
@@ -388,12 +382,6 @@ contract Deploy is Deployer {
         artifacts.save("AnchorStateRegistryProxy", address(deployOutput.anchorStateRegistryProxy));
         artifacts.save("OptimismPortalProxy", address(deployOutput.optimismPortalProxy));
         artifacts.save("OptimismPortal2Proxy", address(deployOutput.optimismPortalProxy));
-<<<<<<< HEAD
-=======
-        if (!DevFeatures.isDevFeatureEnabled(cfg.devFeatureBitmap(), DevFeatures.DEPLOY_V2_DISPUTE_GAMES)) {
-            artifacts.save("PermissionedDisputeGame", address(deployOutput.permissionedDisputeGame));
-        }
->>>>>>> 62dd7c2364 (feat: add opcmv2 flag to deployImplementations and apply opcmv2 deployment test)
 
         // Check if the permissionless game implementation is already set
         IDisputeGameFactory factory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
