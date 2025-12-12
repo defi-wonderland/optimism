@@ -45,8 +45,8 @@ type DisputeGameConfig struct {
 
 // ExtraInstruction represents additional upgrade instructions.
 type ExtraInstruction struct {
-	Key  string
-	Data []byte
+	Key  string `json:"key"`
+	Data []byte `json:"data"`
 }
 
 var upgradeInputEncoder = w3.MustNewFunc(
@@ -94,7 +94,7 @@ type UpgradeOPChain struct {
 
 // Upgrade executes the OP Chain upgrade script.
 func Upgrade(host *script.Host, input UpgradeOPChainInput) error {
-	return opcm.RunScriptVoid(host, input, "UpgradeOPChainV2.s.sol", "UpgradeOPChain")
+	return opcm.RunScriptVoid(host, input, "UpgradeOPChain.s.sol", "UpgradeOPChain")
 }
 
 // Upgrader implements the upgrade interface for v5.0.0.
