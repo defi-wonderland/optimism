@@ -25,7 +25,7 @@ const (
 type UpgradeOPChainInput struct {
 	Prank          common.Address `json:"prank"`
 	Opcm           common.Address `json:"opcm"`
-	UpgradeInputV2 UpgradeInputV2 `evm:"-" json:"upgradeInputV2"`
+	UpgradeInputV2 UpgradeInputV2 `evm:"-" json:"upgradeInput"`
 }
 
 // UpgradeInput contains the configuration for upgrading an OP Chain.
