@@ -248,6 +248,7 @@ contract DeployImplementations is Script {
         // Deploy OPCM V2 components
         deployOPCMContainer(_input, _output, blueprints, implementations);
         deployOPCMStandardValidatorV2(_input, _output, implementations);
+        deployOPCMUtils(_output);
         opcmV2_ = deployOPCMV2(_output);
 
         // Set OPCM V1 addresses to zero (not deployed)
@@ -823,6 +824,8 @@ contract DeployImplementations is Script {
         opcmImplementations.anchorStateRegistryImpl = _implementations.anchorStateRegistryImpl;
         opcmImplementations.delayedWETHImpl = _implementations.delayedWETHImpl;
         opcmImplementations.mipsImpl = _implementations.mipsImpl;
+        opcmImplementations.faultDisputeGameImpl = _implementations.faultDisputeGameV2Impl;
+        opcmImplementations.permissionedDisputeGameImpl = _implementations.permissionedDisputeGameV2Impl;
 
         IOPContractsManagerStandardValidator impl = IOPContractsManagerStandardValidator(
             DeployUtils.createDeterministic({
