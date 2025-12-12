@@ -81,6 +81,8 @@ interface IOPContractsManagerV2 {
         uint256 l2ChainId;
         IResourceMetering.ResourceConfig resourceConfig;
         DisputeGameConfig[] disputeGameConfigs;
+        // CGT
+        bool useCustomGasToken;
     }
 
     struct ExtraInstruction {
