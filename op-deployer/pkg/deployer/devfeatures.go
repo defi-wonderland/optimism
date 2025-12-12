@@ -19,7 +19,7 @@ var (
 	DeployV2DisputeGamesDevFlag = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000100")
 
 	// OpcmV2DevFlag enables deployment of OPCM V2.
-	OpcmV2DevFlag = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000001000")
+	OpcmV2DevFlag = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000")
 )
 
 // IsDevFeatureEnabled checks if a specific development feature is enabled in a feature bitmap.
