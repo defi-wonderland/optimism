@@ -31,7 +31,7 @@ func TestUpgradeOPChainInput_UpgradeInput(t *testing.T) {
 			},
 		},
 	}
-	data, err := input.UpgradeInput()
+	data, err := encodeUpgradeInput(input.UpgradeInputV2)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
