@@ -12,12 +12,12 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 contract ReadSuperchainDeployment is Script {
     struct Input {
-        IOPContractsManager opcmAddress; // TODO: Remove OPCMAddress field when OPCMv1 gets deprecated
+        IOPContractsManager opcmAddress; // TODO(#18612): Remove OPCMAddress field when OPCMv1 gets deprecated
         ISuperchainConfig superchainConfigProxy;
     }
 
     struct Output {
-        // TODO: Remove ProtocolVersions fields when OPCMv1 gets deprecated
+        // TODO(#18612): Remove ProtocolVersions fields when OPCMv1 gets deprecated
         IProtocolVersions protocolVersionsImpl;
         IProtocolVersions protocolVersionsProxy;
         address protocolVersionsOwner;
