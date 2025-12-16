@@ -62,7 +62,6 @@ const (
 // OPChainConfig represents the configuration for an OP Chain upgrade on OPCM v1.
 type OPChainConfig struct {
 	SystemConfigProxy  common.Address `json:"systemConfigProxy"`
-	ProxyAdmin         common.Address `json:"proxyAdmin"`
 	CannonPrestate     common.Hash    `json:"cannonPrestate"`
 	CannonKonaPrestate common.Hash    `json:"cannonKonaPrestate"`
 }
@@ -70,7 +69,7 @@ type OPChainConfig struct {
 var upgradeInputEncoder = w3.MustNewFunc("dummy((address systemConfig,(bool enabled,uint256 initBond,uint32 gameType,bytes gameArgs)[] disputeGameConfigs,(string key,bytes data)[] extraInstructions))",
 	"")
 
-var opChainConfigEncoder = w3.MustNewFunc("dummy((address systemConfigProxy,address proxyAdmin,bytes32 cannonPrestate,bytes32 cannonKonaPrestate)[])", "")
+var opChainConfigEncoder = w3.MustNewFunc("dummy((address systemConfigProxy,bytes32 cannonPrestate,bytes32 cannonKonaPrestate)[])", "")
 
 func (u *UpgradeOPChainInput) EncodedOpChainConfigs() ([]byte, error) {
 	data, err := opChainConfigEncoder.EncodeArgs(u.ChainConfigs)
