@@ -5,26 +5,25 @@ import (
 	"math/big"
 	"testing"
 
-	v200 "github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/upgrade/v2_0_0"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUpgradeOPChainInput_UpgradeInput(t *testing.T) {
-	input := &v200.UpgradeOPChainInput{
+	input := &UpgradeOPChainInput{
 		Prank: common.Address{0xaa},
 		Opcm:  common.Address{0xbb},
-		UpgradeInputV2: &v200.UpgradeInputV2{
+		UpgradeInputV2: &UpgradeInputV2{
 			SystemConfig: common.Address{0x01},
-			DisputeGameConfigs: []v200.DisputeGameConfig{
+			DisputeGameConfigs: []DisputeGameConfig{
 				{
 					Enabled:  true,
 					InitBond: big.NewInt(1000),
-					GameType: v200.GameTypeCannon,
+					GameType: GameTypeCannon,
 					GameArgs: []byte{0x01, 0x02, 0x03},
 				},
 			},
-			ExtraInstructions: []v200.ExtraInstruction{
+			ExtraInstructions: []ExtraInstruction{
 				{
 					Key:  "test-key",
 					Data: []byte{0x04, 0x05, 0x06},
