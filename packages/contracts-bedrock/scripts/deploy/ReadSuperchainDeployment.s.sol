@@ -10,7 +10,6 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { SemverComp } from "src/libraries/SemverComp.sol";
-import { console } from "forge-std/console.sol";
 
 contract ReadSuperchainDeployment is Script {
     struct Input {
@@ -35,14 +34,11 @@ contract ReadSuperchainDeployment is Script {
 
     function run(Input memory _input) public returns (Output memory output_) {
         // Determine OPCM version by checking the semver or if the OPCM address is set. OPCM v2 starts at version 6.0.0.
-        //
         IOPContractsManager opcm = IOPContractsManager(_input.opcmAddress);
         bool isOPCMV2;
         if (address(opcm) == address(0)) {
-            console.log("OPCM address is 0");
             isOPCMV2 = true;
         } else {
-            console.log("OPCM code length: %s", address(opcm).code.length);
             require(address(opcm).code.length > 0, "ReadSuperchainDeployment: OPCM address has no code");
             isOPCMV2 = SemverComp.gte(opcm.version(), "6.0.0");
         }
