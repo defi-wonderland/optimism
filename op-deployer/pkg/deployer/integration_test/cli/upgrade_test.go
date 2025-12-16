@@ -74,7 +74,7 @@ func TestCLIUpgrade(t *testing.T) {
 			testConfig := v2_0_0.UpgradeOPChainInput{
 				Prank: l1ProxyAdminOwner,
 				Opcm:  opcm,
-				ChainConfigs: []v2_0_0.OPChainConfig{
+				EncodedChainConfigs: []v2_0_0.OPChainConfig{
 					{
 						SystemConfigProxy: systemConfigProxy,
 						ProxyAdmin:        proxyAdminImpl,

@@ -12,7 +12,7 @@ func TestUpgradeOPChainInput_OpChainConfigs(t *testing.T) {
 	input := &UpgradeOPChainInput{
 		Prank: common.Address{0xaa},
 		Opcm:  common.Address{0xbb},
-		ChainConfigs: []OPChainConfig{
+		EncodedChainConfigs: []OPChainConfig{
 			{
 				SystemConfigProxy: common.Address{0x01},
 				ProxyAdmin:        common.Address{0x02},
@@ -25,7 +25,7 @@ func TestUpgradeOPChainInput_OpChainConfigs(t *testing.T) {
 			},
 		},
 	}
-	data, err := input.EncodedOpChainConfigs()
+	data, err := input.OpChainConfigs()
 	require.NoError(t, err)
 	require.Equal(
 		t,
