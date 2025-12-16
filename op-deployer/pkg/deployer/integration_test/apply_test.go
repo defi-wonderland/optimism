@@ -907,7 +907,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 					Prank: superchainProxyAdminOwner,
 					Opcm:  impls.OpcmV2,
 					UpgradeInputV2: &embedded.UpgradeInputV2{
-						SystemConfig: impls.SystemConfigImpl,
+						SystemConfig: common.HexToAddress("034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
 						DisputeGameConfigs: []embedded.DisputeGameConfig{
 							{
 								Enabled:  true,
