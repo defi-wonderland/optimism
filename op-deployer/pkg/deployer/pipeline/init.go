@@ -28,62 +28,39 @@ func InitLiveStrategy(ctx context.Context, env *Env, intent *state.Intent, st *s
 	}
 
 	hasPredeployedOPCM := intent.OPCMAddress != nil
+	hasSuperchainConfigProxy := intent.SuperchainConfigProxy != nil
 
-	var opcmV2Enabled bool
-	if devFeatureBitmap, ok := intent.GlobalDeployOverrides["devFeatureBitmap"].(common.Hash); ok {
-		opcmV2Flag := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000")
-		opcmV2Enabled = isDevFeatureEnabled(devFeatureBitmap, opcmV2Flag)
-	}
-
-	if hasPredeployedOPCM && !opcmV2Enabled {
-		if intent.SuperchainConfigProxy != nil {
-			return fmt.Errorf("cannot set superchain config proxy for predeployed OPCM")
-		}
-
+	if hasPredeployedOPCM || hasSuperchainConfigProxy {
 		if intent.SuperchainRoles != nil {
-			return fmt.Errorf("cannot set superchain roles for predeployed OPCM")
+			return fmt.Errorf("cannot set superchain roles when using predeployed OPCM or SuperchainConfig")
 		}
 
-		// Use OPCMv1 to populate superchain state.
-		// When using OPCMv1, we only provide the OPCM address (superchainConfigProxy is zero).
+		opcmAddr := common.Address{}
+		if hasPredeployedOPCM {
+			opcmAddr = *intent.OPCMAddress
+		}
+
+		superchainConfigAddr := common.Address{}
+		if hasSuperchainConfigProxy {
+			superchainConfigAddr = *intent.SuperchainConfigProxy
+		}
+
 		// The ReadSuperchainDeployment script (packages/contracts-bedrock/scripts/deploy/ReadSuperchainDeployment.s.sol)
-		// detects OPCM v1 mode when superchainConfigProxy is zero, then queries the OPCM contract to discover:
-		// - ProtocolVersions contract address via opcm.protocolVersions()
-		// - SuperchainConfig contract address via opcm.superchainConfig()
-		// - All related proxy admin addresses, implementations, and role addresses
-		superDeployment, superRoles, err := PopulateSuperchainState(env.L1ScriptHost, *intent.OPCMAddress, common.Address{})
+		// uses the OPCM's semver version (>= 6.0.0 indicates v2) to determine how to populate the superchain state:
+		// - OPCMv1 (< 6.0.0): Queries the OPCM contract to get SuperchainConfig and ProtocolVersions
+		// - OPCMv2 (>= 6.0.0): Uses the provided SuperchainConfigProxy address; ProtocolVersions is deprecated
+		superDeployment, superRoles, err := PopulateSuperchainState(env.L1ScriptHost, opcmAddr, superchainConfigAddr)
 		if err != nil {
 			return fmt.Errorf("error populating superchain state: %w", err)
 		}
 		st.SuperchainDeployment = superDeployment
 		st.SuperchainRoles = superRoles
-		if st.ImplementationsDeployment == nil {
+
+		if hasPredeployedOPCM && st.ImplementationsDeployment == nil {
 			st.ImplementationsDeployment = &addresses.ImplementationsContracts{
-				OpcmImpl: *intent.OPCMAddress,
+				OpcmImpl: opcmAddr,
 			}
 		}
-	}
-
-	hasSuperchainConfigProxy := intent.SuperchainConfigProxy != nil
-	if hasSuperchainConfigProxy && opcmV2Enabled {
-		if intent.SuperchainRoles != nil {
-			return fmt.Errorf("cannot set superchain roles for superchain config proxy")
-		}
-
-		// Use OPCMv2 to populate superchain state.
-		// When using OPCMv2, we provide the SuperchainConfigProxy address while the OPCM address is zero.
-		// The ReadSuperchainDeployment script (packages/contracts-bedrock/scripts/deploy/ReadSuperchainDeployment.s.sol)
-		// detects OPCM v2 mode when superchainConfigProxy is non-zero, then queries the SuperchainConfig contract
-		// to discover the implementation address, proxy admin, guardian, and proxy admin owner.
-		// In OPCMv2, ProtocolVersions is being removed. Therefore, the ProtocolVersions-related fields
-		// (protocolVersionsImpl, protocolVersionsProxy, protocolVersionsOwner, recommendedProtocolVersion,
-		// requiredProtocolVersion) are intentionally left uninitialized.
-		superDeployment, superRoles, err := PopulateSuperchainState(env.L1ScriptHost, common.Address{}, *intent.SuperchainConfigProxy)
-		if err != nil {
-			return fmt.Errorf("error populating superchain state: %w", err)
-		}
-		st.SuperchainDeployment = superDeployment
-		st.SuperchainRoles = superRoles
 	}
 
 	l1ChainID, err := env.L1Client.ChainID(ctx)
