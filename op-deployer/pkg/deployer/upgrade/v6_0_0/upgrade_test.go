@@ -1,29 +1,30 @@
-package v5_0_0
+package v6_0_0
 
 import (
 	"encoding/hex"
 	"math/big"
 	"testing"
 
+	v200 "github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/upgrade/v2_0_0"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUpgradeOPChainInput_UpgradeInput(t *testing.T) {
-	input := &UpgradeOPChainInput{
+	input := &v200.UpgradeOPChainInput{
 		Prank: common.Address{0xaa},
 		Opcm:  common.Address{0xbb},
-		UpgradeInputV2: UpgradeInputV2{
+		UpgradeInputV2: &v200.UpgradeInputV2{
 			SystemConfig: common.Address{0x01},
-			DisputeGameConfigs: []DisputeGameConfig{
+			DisputeGameConfigs: []v200.DisputeGameConfig{
 				{
 					Enabled:  true,
 					InitBond: big.NewInt(1000),
-					GameType: GameTypeCannon,
+					GameType: v200.GameTypeCannon,
 					GameArgs: []byte{0x01, 0x02, 0x03},
 				},
 			},
-			ExtraInstructions: []ExtraInstruction{
+			ExtraInstructions: []v200.ExtraInstruction{
 				{
 					Key:  "test-key",
 					Data: []byte{0x04, 0x05, 0x06},
@@ -31,7 +32,7 @@ func TestUpgradeOPChainInput_UpgradeInput(t *testing.T) {
 			},
 		},
 	}
-	data, err := encodeUpgradeInput(input.UpgradeInputV2)
+	data, err := input.EncodedUpgradeInputV2()
 
 	require.NoError(t, err)
 	require.NotEmpty(t, data)

@@ -838,7 +838,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			upgradeConfig := embedded.UpgradeOPChainInput{
 				Prank: superchainProxyAdminOwner,
 				Opcm:  impls.Opcm,
-				EncodedChainConfigs: []embedded.OPChainConfig{
+				ChainConfigs: []embedded.OPChainConfig{
 					{
 						SystemConfigProxy:  common.HexToAddress("034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
 						CannonPrestate:     common.Hash{'C', 'A', 'N', 'N', 'O', 'N'},
@@ -882,13 +882,18 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 
 			// First, upgrade the superchain with V2
 			t.Run("upgrade superchain v2", func(t *testing.T) {
-				superchainUpgradeConfig := embedded.UpgradeSuperchainV2Input{
-					Prank:                  superchainProxyAdminOwner,
-					Opcm:                   impls.OpcmV2,
-					SuperchainConfig:       implementationsConfig.SuperchainConfigProxy,
-					SuperchainInstructions: []embedded.ExtraInstruction{},
+				superchainUpgradeConfig := embedded.UpgradeSuperchainConfigInput{
+					Prank:            superchainProxyAdminOwner,
+					Opcm:             impls.OpcmV2,
+					SuperchainConfig: implementationsConfig.SuperchainConfigProxy,
+					ExtraInstructions: []embedded.ExtraInstruction{
+						{
+							Key:  "PermittedProxyDeployment",
+							Data: []byte("DelayedWETH"),
+						},
+					},
 				}
-				err := embedded.UpgradeSuperchainV2(host, superchainUpgradeConfig)
+				err := embedded.UpgradeSuperchainConfig(host, superchainUpgradeConfig)
 				if err != nil {
 					t.Logf("Superchain upgrade may have failed (could already be upgraded): %v", err)
 				} else {
@@ -1007,7 +1012,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 				}
 				upgradeConfigBytes, err := json.Marshal(upgradeConfig)
 				require.NoError(t, err, "UpgradeOPChainV2Input should marshal to JSON")
-				err = embedded.DefaultUpgraderV2.Upgrade(host, upgradeConfigBytes)
+				err = embedded.DefaultUpgrader.Upgrade(host, upgradeConfigBytes)
 				require.NoError(t, err, "OPCM V2 chain upgrade should succeed")
 			})
 		})
