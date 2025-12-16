@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
@@ -167,15 +166,4 @@ func PopulateSuperchainState(host *script.Host, opcmAddr common.Address, superch
 		ProtocolVersionsOwner:     out.ProtocolVersionsOwner,
 	}
 	return deployment, roles, nil
-}
-
-// isDevFeatureEnabled checks if a specific development feature is enabled in a feature bitmap.
-// This mirrors the function in devfeatures.go to avoid import cycles.
-func isDevFeatureEnabled(bitmap, flag common.Hash) bool {
-	b := new(big.Int).SetBytes(bitmap[:])
-	f := new(big.Int).SetBytes(flag[:])
-
-	featuresIsNonZero := f.Cmp(big.NewInt(0)) != 0
-	bitmapContainsFeatures := new(big.Int).And(b, f).Cmp(f) == 0
-	return featuresIsNonZero && bitmapContainsFeatures
 }
