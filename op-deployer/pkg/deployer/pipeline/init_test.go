@@ -38,7 +38,7 @@ func TestInitLiveStrategy_OPCMReuseLogicSepolia(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
@@ -515,7 +515,7 @@ func TestInitLiveStrategy_OPCMV2WithSuperchainConfigProxy(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
@@ -596,7 +596,7 @@ func TestInitLiveStrategy_OPCMV2WithSuperchainConfigProxyAndRoles_reverts(t *tes
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
@@ -655,7 +655,7 @@ func TestInitLiveStrategy_OPCMV1WithSuperchainConfigProxy(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
@@ -729,7 +729,7 @@ func TestInitLiveStrategy_OPCMV1WithSuperchainRoles_reverts(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
@@ -784,7 +784,7 @@ func TestInitLiveStrategy_FlowSelection_OPCMV1(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
@@ -857,7 +857,7 @@ func TestInitLiveStrategy_FlowSelection_OPCMV2(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())
