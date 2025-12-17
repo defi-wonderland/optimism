@@ -128,7 +128,7 @@ func (u *Upgrader) Upgrade(host *script.Host, input json.RawMessage) error {
 }
 
 func (u *Upgrader) ArtifactsURL() string {
-	// TODO: Add an actual resource locator that points to this set of artifacts.
+	// TODO(#18633): Add an actual resource locator that points to this set of artifacts.
 	return artifacts.CreateHttpLocator("")
 }
 
