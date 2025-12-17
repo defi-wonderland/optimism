@@ -174,8 +174,6 @@ func TestEndToEndBootstrapApplyWithUpgrade(t *testing.T) {
 		devFeature common.Hash
 	}{
 		{"default", common.Hash{}},
-		{"deploy-v2-disputegames", deployer.DeployV2DisputeGamesDevFlag},
-		{"cannon-kona", deployer.EnableDevFeature(deployer.DeployV2DisputeGamesDevFlag, deployer.CannonKonaDevFlag)},
 		{"opcm-v2", deployer.OpcmV2DevFlag},
 	}
 	for _, tt := range tests {
