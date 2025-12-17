@@ -33,7 +33,7 @@ contract ReadSuperchainDeployment is Script {
     }
 
     function run(Input memory _input) public returns (Output memory output_) {
-        // Determine OPCM version by checking the semver or if the OPCM address is set. OPCM v2 starts at version 6.0.0.
+        // Determine OPCM version by checking the semver or if the OPCM address is set. OPCM v2 starts at version 7.0.0.
         IOPContractsManager opcm = IOPContractsManager(_input.opcmAddress);
         bool isOPCMV2;
         if (address(opcm) == address(0)) {
