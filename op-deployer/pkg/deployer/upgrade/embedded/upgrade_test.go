@@ -2,6 +2,7 @@ package embedded
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -85,4 +86,188 @@ func TestUpgradeOPChainInput_OpChainConfigs(t *testing.T) {
 		"bb00000000000000000000000000000000000000000000000000000000000000" // cannonKonaPrestate
 
 	require.Equal(t, expected, hex.EncodeToString(data))
+}
+
+func TestUpgrader_ShouldAllowV1_ValidationErrors(t *testing.T) {
+	tests := []struct {
+		name          string
+		shouldAllowV1 bool
+		input         UpgradeOPChainInput
+		errorContains string
+	}{
+		{
+			name:          "ShouldAllowV1=false, V2 input missing - validation fails",
+			shouldAllowV1: false,
+			input: UpgradeOPChainInput{
+				Prank:        common.Address{0xaa},
+				Opcm:         common.Address{0xbb},
+				ChainConfigs: []OPChainConfig{{SystemConfigProxy: common.Address{0x01}}},
+			},
+			errorContains: "failed to read the upgrade input v2",
+		},
+		{
+			name:          "ShouldAllowV1=false, neither input provided - validation fails",
+			shouldAllowV1: false,
+			input: UpgradeOPChainInput{
+				Prank: common.Address{0xaa},
+				Opcm:  common.Address{0xbb},
+			},
+			errorContains: "failed to read the upgrade input v2",
+		},
+		{
+			name:          "ShouldAllowV1=true, neither input provided - validation fails",
+			shouldAllowV1: true,
+			input: UpgradeOPChainInput{
+				Prank: common.Address{0xaa},
+				Opcm:  common.Address{0xbb},
+			},
+			errorContains: "failed to read either an upgrade input or config array",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			upgrader := &Upgrader{
+				ShouldAllowV1: tt.shouldAllowV1,
+			}
+
+			// Convert input to JSON to test the Upgrader.Upgrade method
+			inputJSON, err := json.Marshal(tt.input)
+			require.NoError(t, err)
+
+			// Call Upgrade with nil host - validation should fail before script execution
+			err = upgrader.Upgrade(nil, inputJSON)
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tt.errorContains)
+		})
+	}
+}
+
+func TestUpgrader_ShouldAllowV1_ValidationPasses(t *testing.T) {
+	tests := []struct {
+		name          string
+		shouldAllowV1 bool
+		input         UpgradeOPChainInput
+		description   string
+	}{
+		{
+			name:          "ShouldAllowV1=false, V2 input provided",
+			shouldAllowV1: false,
+			input: UpgradeOPChainInput{
+				Prank: common.Address{0xaa},
+				Opcm:  common.Address{0xbb},
+				UpgradeInputV2: &UpgradeInputV2{
+					SystemConfig: common.Address{0x01},
+					DisputeGameConfigs: []DisputeGameConfig{
+						{
+							Enabled:  true,
+							InitBond: big.NewInt(1000),
+							GameType: GameTypeCannon,
+							GameArgs: []byte{0x01, 0x02},
+						},
+					},
+				},
+			},
+			description: "Validation should pass when V2 input is provided and ShouldAllowV1 is false",
+		},
+		{
+			name:          "ShouldAllowV1=true, V2 input provided",
+			shouldAllowV1: true,
+			input: UpgradeOPChainInput{
+				Prank: common.Address{0xaa},
+				Opcm:  common.Address{0xbb},
+				UpgradeInputV2: &UpgradeInputV2{
+					SystemConfig: common.Address{0x01},
+					DisputeGameConfigs: []DisputeGameConfig{
+						{
+							Enabled:  true,
+							InitBond: big.NewInt(1000),
+							GameType: GameTypeCannon,
+							GameArgs: []byte{0x01, 0x02},
+						},
+					},
+				},
+			},
+			description: "Validation should pass when V2 input is provided and ShouldAllowV1 is true",
+		},
+		{
+			name:          "ShouldAllowV1=true, only V1 input provided",
+			shouldAllowV1: true,
+			input: UpgradeOPChainInput{
+				Prank: common.Address{0xaa},
+				Opcm:  common.Address{0xbb},
+				ChainConfigs: []OPChainConfig{
+					{
+						SystemConfigProxy:  common.Address{0x01},
+						CannonPrestate:     common.Hash{0xaa},
+						CannonKonaPrestate: common.Hash{0xbb},
+					},
+				},
+			},
+			description: "Validation should pass when V1 input is provided and ShouldAllowV1 is true",
+		},
+		{
+			name:          "ShouldAllowV1=true, both inputs provided",
+			shouldAllowV1: true,
+			input: UpgradeOPChainInput{
+				Prank: common.Address{0xaa},
+				Opcm:  common.Address{0xbb},
+				UpgradeInputV2: &UpgradeInputV2{
+					SystemConfig: common.Address{0x01},
+					DisputeGameConfigs: []DisputeGameConfig{
+						{
+							Enabled:  true,
+							InitBond: big.NewInt(1000),
+							GameType: GameTypeCannon,
+							GameArgs: []byte{0x01, 0x02},
+						},
+					},
+				},
+				ChainConfigs: []OPChainConfig{
+					{
+						SystemConfigProxy:  common.Address{0x02},
+						CannonPrestate:     common.Hash{0xcc},
+						CannonKonaPrestate: common.Hash{0xdd},
+					},
+				},
+			},
+			description: "Validation should pass when both inputs are provided and ShouldAllowV1 is true (should prefer V2)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify that encoding works (validation passes)
+			// We test the encoding separately since we can't test the full Upgrade flow without a script host
+			upgradeInput := tt.input
+
+			// Test that the correct encoding path would be chosen
+			if !tt.shouldAllowV1 {
+				// Should require V2
+				require.NotNil(t, upgradeInput.UpgradeInputV2, "V2 input should be present when ShouldAllowV1 is false")
+				_, err := upgradeInput.EncodedUpgradeInputV2()
+				require.NoError(t, err, "V2 encoding should succeed")
+			} else {
+				// Can use V2 or V1
+				if upgradeInput.UpgradeInputV2 != nil {
+					_, err := upgradeInput.EncodedUpgradeInputV2()
+					require.NoError(t, err, "V2 encoding should succeed when V2 input is present")
+				} else if len(upgradeInput.ChainConfigs) > 0 {
+					_, err := upgradeInput.EncodedOpChainConfigs()
+					require.NoError(t, err, "V1 encoding should succeed when V1 input is present")
+				}
+			}
+		})
+	}
+}
+
+func TestUpgrader_DefaultUpgraders(t *testing.T) {
+	t.Run("DefaultUpgrader allows V1", func(t *testing.T) {
+		require.True(t, DefaultUpgrader.ShouldAllowV1)
+	})
+
+	t.Run("DefaultUpgraderNoV1 does not allow V1", func(t *testing.T) {
+		require.False(t, DefaultUpgraderNoV1.ShouldAllowV1)
+	})
 }
