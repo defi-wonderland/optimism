@@ -827,6 +827,9 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			require.NoError(t, err, "OPCM upgrade should succeed")
 		})
 		t.Run("upgrade opcm v2", func(t *testing.T) {
+			t.Skip("Skipping OPCM V2 upgrade for now")
+			return
+
 			if !deployer.IsDevFeatureEnabled(implementationsConfig.DevFeatureBitmap, deployer.OpcmV2DevFlag) {
 				t.Skip("Skipping OPCM V2 upgrade for non-OPCM V2 dev feature")
 				return

@@ -92,16 +92,26 @@ type UpgradeOPChain struct {
 	Run func(input common.Address)
 }
 
-func Upgrade(host *script.Host, input UpgradeOPChainInput) error {
-	// We need to check which of the two versions of the input we are using.
+func Upgrade(host *script.Host, input UpgradeOPChainInput, shouldAllowV1 bool) error {
+	// Determine which input format to use and encode it
 	var encodedUpgradeInput []byte
 	var encodedError error
-	if input.UpgradeInputV2 == nil && len(input.ChainConfigs) == 0 {
-		return fmt.Errorf("failed to read either an upgrade input or config array")
-	} else if input.UpgradeInputV2 != nil {
+
+	if !shouldAllowV1 {
+		// If V1 is not allowed, require V2 input
+		if input.UpgradeInputV2 == nil {
+			return fmt.Errorf("failed to read the upgrade input v2")
+		}
 		encodedUpgradeInput, encodedError = input.EncodedUpgradeInputV2()
-	} else {
+	} else if input.UpgradeInputV2 != nil {
+		// Prefer V2 input if present
+		encodedUpgradeInput, encodedError = input.EncodedUpgradeInputV2()
+	} else if len(input.ChainConfigs) > 0 {
+		// Fall back to V1 input if V2 is not present
 		encodedUpgradeInput, encodedError = input.EncodedOpChainConfigs()
+	} else {
+		// Neither input format is present
+		return fmt.Errorf("failed to read either an upgrade input or config array")
 	}
 
 	if encodedError != nil {
@@ -116,18 +126,26 @@ func Upgrade(host *script.Host, input UpgradeOPChainInput) error {
 	return opcm.RunScriptVoid[ScriptInput](host, scriptInput, "UpgradeOPChain.s.sol", "UpgradeOPChain")
 }
 
-type Upgrader struct{}
+type Upgrader struct {
+	ShouldAllowV1 bool
+}
 
 func (u *Upgrader) Upgrade(host *script.Host, input json.RawMessage) error {
 	var upgradeInput UpgradeOPChainInput
 	if err := json.Unmarshal(input, &upgradeInput); err != nil {
 		return fmt.Errorf("failed to unmarshal input: %w", err)
 	}
-	return Upgrade(host, upgradeInput)
+	return Upgrade(host, upgradeInput, u.ShouldAllowV1)
 }
 
 func (u *Upgrader) ArtifactsURL() string {
 	return artifacts.EmbeddedLocatorString
 }
 
-var DefaultUpgrader = new(Upgrader)
+var DefaultUpgrader = &Upgrader{
+	ShouldAllowV1: true,
+}
+
+var DefaultUpgraderNoV1 = &Upgrader{
+	ShouldAllowV1: false,
+}
