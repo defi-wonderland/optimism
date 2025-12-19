@@ -135,7 +135,7 @@ var (
 		EnvVars: deployer.PrefixEnvVar("CHAIN_ID"),
 	}
 
-	// AddGameType & Migrate Interop V2 Flags
+	// AddGameType & Migrate Interop OPCM V2 Flags
 	// These flags are used for the upgrade command, which is used under the hood for the add-game-type-v2 and migrate-v2 commands.
 	ConfigFlag = &cli.StringFlag{
 		Name:  "config",
@@ -180,7 +180,7 @@ var Commands = cli.Commands{
 		Action: AddGameTypeCLI,
 	},
 	&cli.Command{
-		Name:  "add-game-type-v2",
+		Name:  "add-game-type-opcm-v2",
 		Usage: "adds a new game type to the chain using the OPContractsManager V2",
 		Flags: append([]cli.Flag{
 			deployer.L1RPCURLFlag,
@@ -188,7 +188,7 @@ var Commands = cli.Commands{
 			OverrideArtifactsURLFlag,
 			OutfileFlag,
 		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
-		Action: AddGameTypeV2CLI,
+		Action: AddGameTypeOPCMV2CLI,
 	},
 	&cli.Command{
 		Name:  "migrate",
