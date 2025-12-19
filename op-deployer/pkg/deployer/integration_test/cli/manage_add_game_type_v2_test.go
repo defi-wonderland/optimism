@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/upgrade/embedded"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 	t.Run("missing required flag --config", func(t *testing.T) {
 		runner := NewCLITestRunnerWithNetwork(t)
 		runner.ExpectErrorContains(t, []string{
-			"manage", "add-game-type-v2",
+			"manage", "add-game-type-opcm-v2",
 			"--l1-rpc-url", runner.l1RPC,
 		}, nil, "missing required flag: config")
 	})
@@ -45,7 +46,7 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 		require.NoError(t, os.WriteFile(configFile, configData, 0o644))
 
 		runner.ExpectErrorContains(t, []string{
-			"manage", "add-game-type-v2",
+			"manage", "add-game-type-opcm-v2",
 			"--config", configFile,
 		}, nil, "missing required flag: l1-rpc-url")
 	})
@@ -53,7 +54,7 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 	t.Run("invalid config file path", func(t *testing.T) {
 		runner := NewCLITestRunnerWithNetwork(t)
 		runner.ExpectErrorContains(t, []string{
-			"manage", "add-game-type-v2",
+			"manage", "add-game-type-opcm-v2",
 			"--config", "/nonexistent/path/config.json",
 			"--l1-rpc-url", runner.l1RPC,
 		}, nil, "failed to read config file")
@@ -68,7 +69,7 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 		require.NoError(t, os.WriteFile(configFile, []byte("{invalid json}"), 0o644))
 
 		runner.ExpectErrorContains(t, []string{
-			"manage", "add-game-type-v2",
+			"manage", "add-game-type-opcm-v2",
 			"--config", configFile,
 			"--l1-rpc-url", runner.l1RPC,
 		}, nil, "failed to upgrade")
@@ -89,7 +90,7 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 		require.NoError(t, os.WriteFile(configFile, configData, 0o644))
 
 		runner.ExpectErrorContains(t, []string{
-			"manage", "add-game-type-v2",
+			"manage", "add-game-type-opcm-v2",
 			"--config", configFile,
 			"--l1-rpc-url", runner.l1RPC,
 		}, nil, "failed to upgrade")
@@ -97,6 +98,10 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 }
 
 func TestManageAddGameTypeV2_Integration(t *testing.T) {
+	// TODO(#????): Update this to use an actual deployed OPCM V2 contract
+	t.Skip("Skipping until we have a deployed OPCM V2 contract")
+	return
+
 	runner := NewCLITestRunnerWithNetwork(t)
 	workDir := runner.GetWorkDir()
 
@@ -108,6 +113,26 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 	opcmV2, err := standard.OPCMImplAddressFor(11155111, standard.ContractsV500Tag)
 	require.NoError(t, err)
 
+	bytes32Type, err := abi.NewType("bytes32", "", nil)
+	require.NoError(t, err)
+	addressType, err := abi.NewType("address", "", nil)
+	require.NoError(t, err)
+
+	// FaultDisputeGameConfig just needs absolutePrestate (bytes32)
+	testPrestate := common.Hash{'P', 'R', 'E', 'S', 'T', 'A', 'T', 'E'}
+	cannonArgs, err := abi.Arguments{{Type: bytes32Type}}.Pack(testPrestate)
+	require.NoError(t, err)
+
+	// PermissionedDisputeGameConfig needs absolutePrestate, proposer, challenger
+	testProposer := common.Address{'P'}
+	testChallenger := common.Address{'C'}
+	permissionedArgs, err := abi.Arguments{
+		{Type: bytes32Type},
+		{Type: addressType},
+		{Type: addressType},
+	}.Pack(testPrestate, testProposer, testChallenger)
+	require.NoError(t, err)
+
 	testConfig := embedded.UpgradeOPChainInput{
 		Prank: l1ProxyAdminOwner,
 		Opcm:  opcmV2,
@@ -116,15 +141,31 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 			DisputeGameConfigs: []embedded.DisputeGameConfig{
 				{
 					Enabled:  true,
-					InitBond: big.NewInt(1000000000000000000), // 1 ETH
+					InitBond: big.NewInt(1000000000000000000),
 					GameType: embedded.GameTypeCannon,
-					GameArgs: []byte{},
+					GameArgs: cannonArgs,
+				},
+				{
+					Enabled:  true,
+					InitBond: big.NewInt(1000000000000000000),
+					GameType: embedded.GameTypePermissionedCannon,
+					GameArgs: permissionedArgs,
+				},
+				{
+					Enabled:  false,
+					InitBond: big.NewInt(0),
+					GameType: embedded.GameTypeCannonKona,
+					GameArgs: []byte{}, // Disabled games don't need args
 				},
 			},
 			ExtraInstructions: []embedded.ExtraInstruction{
 				{
 					Key:  "PermittedProxyDeployment",
 					Data: []byte("DelayedWETH"),
+				},
+				{
+					Key:  "overrides.cfg.useCustomGasToken",
+					Data: make([]byte, 32),
 				},
 			},
 		},
@@ -139,7 +180,7 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 
 	// Run the CLI command
 	output := runner.ExpectSuccess(t, []string{
-		"manage", "add-game-type-v2",
+		"manage", "add-game-type-opcm-v2",
 		"--config", configFile,
 		"--l1-rpc-url", runner.l1RPC,
 		"--outfile", outputFile,
@@ -164,6 +205,10 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 	// Verify the calldata has the correct function selector for opcm.upgrade
 	// The selector for upgrade(address,bytes) is 0xff2dd5a1
 	dataHex := hex.EncodeToString(dump[0].Data)
+	prefix := dataHex
+	if len(prefix) > 8 {
+		prefix = prefix[:8]
+	}
 	require.True(t, strings.HasPrefix(dataHex, "ff2dd5a1"),
-		"calldata should have opcm.upgrade function selector ff2dd5a1, got: %s", dataHex[:8])
+		"calldata should have opcm.upgrade function selector ff2dd5a1, got: %s", prefix)
 }
