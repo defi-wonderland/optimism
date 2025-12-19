@@ -301,7 +301,8 @@ func AddGameType(ctx context.Context, cfg AddGameTypeConfig) (opcm.AddGameTypeOu
 }
 
 // AddGameTypeV2CLI is the CLI command for adding a new game type to the chain using the OPContractsManager V2
-// This command is an alias for the upgrade command with the default upgrader that does not allow V1 input.
+// This command is just an alias for the upgrade command with the default upgrader, therefore users can perform V1 upgrades
+// through it.
 func AddGameTypeV2CLI(cliCtx *cli.Context) error {
-	return upgrade.UpgradeCLI(embedded.DefaultUpgraderNoV1)(cliCtx)
+	return upgrade.UpgradeCLI(embedded.DefaultUpgrader)(cliCtx)
 }

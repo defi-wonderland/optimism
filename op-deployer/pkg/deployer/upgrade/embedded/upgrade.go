@@ -92,18 +92,12 @@ type UpgradeOPChain struct {
 	Run func(input common.Address)
 }
 
-func Upgrade(host *script.Host, input UpgradeOPChainInput, shouldAllowV1 bool) error {
+func Upgrade(host *script.Host, input UpgradeOPChainInput) error {
 	// Determine which input format to use and encode it
 	var encodedUpgradeInput []byte
 	var encodedError error
 
-	if !shouldAllowV1 {
-		// If V1 is not allowed, require V2 input
-		if input.UpgradeInputV2 == nil {
-			return fmt.Errorf("failed to read the upgrade input v2")
-		}
-		encodedUpgradeInput, encodedError = input.EncodedUpgradeInputV2()
-	} else if input.UpgradeInputV2 != nil {
+	if input.UpgradeInputV2 != nil {
 		// Prefer V2 input if present
 		encodedUpgradeInput, encodedError = input.EncodedUpgradeInputV2()
 	} else if len(input.ChainConfigs) > 0 {
@@ -126,26 +120,18 @@ func Upgrade(host *script.Host, input UpgradeOPChainInput, shouldAllowV1 bool) e
 	return opcm.RunScriptVoid[ScriptInput](host, scriptInput, "UpgradeOPChain.s.sol", "UpgradeOPChain")
 }
 
-type Upgrader struct {
-	ShouldAllowV1 bool
-}
+type Upgrader struct{}
 
 func (u *Upgrader) Upgrade(host *script.Host, input json.RawMessage) error {
 	var upgradeInput UpgradeOPChainInput
 	if err := json.Unmarshal(input, &upgradeInput); err != nil {
 		return fmt.Errorf("failed to unmarshal input: %w", err)
 	}
-	return Upgrade(host, upgradeInput, u.ShouldAllowV1)
+	return Upgrade(host, upgradeInput)
 }
 
 func (u *Upgrader) ArtifactsURL() string {
 	return artifacts.EmbeddedLocatorString
 }
 
-var DefaultUpgrader = &Upgrader{
-	ShouldAllowV1: true,
-}
-
-var DefaultUpgraderNoV1 = &Upgrader{
-	ShouldAllowV1: false,
-}
+var DefaultUpgrader = new(Upgrader)
