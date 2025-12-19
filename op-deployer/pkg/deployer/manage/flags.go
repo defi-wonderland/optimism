@@ -187,7 +187,6 @@ var Commands = cli.Commands{
 			ConfigFlag,
 			OverrideArtifactsURLFlag,
 			OutfileFlag,
-			deployer.PrivateKeyFlag,
 		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
 		Action: AddGameTypeV2CLI,
 	},

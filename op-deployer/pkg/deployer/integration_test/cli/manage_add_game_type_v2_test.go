@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/hex"
 	"encoding/json"
-	"log/slog"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -13,8 +12,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/upgrade/embedded"
-	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/ethereum-optimism/optimism/op-service/testutils/devnet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -100,21 +97,14 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 }
 
 func TestManageAddGameTypeV2_Integration(t *testing.T) {
-	lgr := testlog.Logger(t, slog.LevelDebug)
-	forkedL1, stopL1, err := devnet.NewForkedSepolia(lgr)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, stopL1())
-	})
-
-	runner := NewCLITestRunnerWithNetwork(t, WithL1RPC(forkedL1.RPCUrl()))
+	runner := NewCLITestRunnerWithNetwork(t)
 	workDir := runner.GetWorkDir()
 
-	// op-sepolia values for testing
+	// Test values - using arbitrary addresses for testing
 	l1ProxyAdminOwner := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
 	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
 
-	// Get OPCM V2 address from standard
+	// Get OPCM V2 address from standard (using Sepolia chain ID for address lookup)
 	opcmV2, err := standard.OPCMImplAddressFor(11155111, standard.ContractsV500Tag)
 	require.NoError(t, err)
 
@@ -148,9 +138,10 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 	require.NoError(t, os.WriteFile(configFile, configData, 0o644))
 
 	// Run the CLI command
-	output := runner.ExpectSuccessWithNetwork(t, []string{
+	output := runner.ExpectSuccess(t, []string{
 		"manage", "add-game-type-v2",
 		"--config", configFile,
+		"--l1-rpc-url", runner.l1RPC,
 		"--outfile", outputFile,
 	}, nil)
 
