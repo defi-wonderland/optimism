@@ -39,12 +39,9 @@ contract UpgradeOPChainInput_Test is Test {
         input.upgradeInput();
     }
 
-    function test_setAddress_succeeds() public {
-        address mockPrank = makeAddr("prank");
-        address mockOPCM = makeAddr("opcm");
-
-        // Create mock contract at OPCM address
-        vm.etch(mockOPCM, hex"01");
+    function testFuzz_setAddress_succeeds(address mockPrank, address mockOPCM) public {
+        vm.assume(mockPrank != address(0));
+        vm.assume(mockOPCM != address(0));
 
         input.set(input.prank.selector, mockPrank);
         input.set(input.opcm.selector, mockOPCM);
@@ -53,32 +50,41 @@ contract UpgradeOPChainInput_Test is Test {
         assertEq(input.opcm(), mockOPCM);
     }
 
-    function test_setOpChainConfigs_succeeds() public {
+    function testFuzz_setOpChainConfigs_succeeds(
+        address systemConfig1,
+        address systemConfig2,
+        bytes32 prestate1,
+        bytes32 konaPrestate1,
+        bytes32 prestate2,
+        bytes32 konaPrestate2
+    )
+        public
+    {
+        // Assume non-zero addresses for system configs
+        vm.assume(systemConfig1 != address(0));
+        vm.assume(systemConfig2 != address(0));
+        assumeNotPrecompile(systemConfig1);
+        assumeNotPrecompile(systemConfig2);
+
         // Create sample OpChainConfig array
         OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](2);
 
         // Setup mock addresses and contracts for first config
-        address systemConfig1 = makeAddr("systemConfig1");
-        address proxyAdmin1 = makeAddr("proxyAdmin1");
         vm.etch(systemConfig1, hex"01");
-        vm.etch(proxyAdmin1, hex"01");
 
         configs[0] = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(systemConfig1),
-            cannonPrestate: Claim.wrap(bytes32(uint256(1))),
-            cannonKonaPrestate: Claim.wrap(bytes32(uint256(2)))
+            cannonPrestate: Claim.wrap(prestate1),
+            cannonKonaPrestate: Claim.wrap(konaPrestate1)
         });
 
         // Setup mock addresses and contracts for second config
-        address systemConfig2 = makeAddr("systemConfig2");
-        address proxyAdmin2 = makeAddr("proxyAdmin2");
         vm.etch(systemConfig2, hex"01");
-        vm.etch(proxyAdmin2, hex"01");
 
         configs[1] = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(systemConfig2),
-            cannonPrestate: Claim.wrap(bytes32(uint256(2))),
-            cannonKonaPrestate: Claim.wrap(bytes32(uint256(3)))
+            cannonPrestate: Claim.wrap(prestate2),
+            cannonKonaPrestate: Claim.wrap(konaPrestate2)
         });
 
         input.set(input.upgradeInput.selector, configs);
@@ -89,28 +95,44 @@ contract UpgradeOPChainInput_Test is Test {
         // Additional verification of stored claims if needed
         OPContractsManager.OpChainConfig[] memory decodedConfigs =
             abi.decode(storedConfigs, (OPContractsManager.OpChainConfig[]));
-        assertEq(Claim.unwrap(decodedConfigs[0].cannonPrestate), bytes32(uint256(1)));
-        assertEq(Claim.unwrap(decodedConfigs[1].cannonPrestate), bytes32(uint256(2)));
+        assertEq(Claim.unwrap(decodedConfigs[0].cannonPrestate), prestate1);
+        assertEq(Claim.unwrap(decodedConfigs[1].cannonPrestate), prestate2);
+        assertEq(Claim.unwrap(decodedConfigs[0].cannonKonaPrestate), konaPrestate1);
+        assertEq(Claim.unwrap(decodedConfigs[1].cannonKonaPrestate), konaPrestate2);
     }
 
     /// @notice Tests that the upgrade input can be set using the OPContractsManagerV2.UpgradeInput type.
-    function test_setUpgradeInputV2_succeeds() public {
+    function testFuzz_setUpgradeInputV2_succeeds(
+        address systemConfig,
+        bool enabled,
+        uint256 initBond,
+        uint32 gameType,
+        bytes memory gameArgs,
+        string memory extraKey,
+        bytes memory extraData
+    )
+        public
+    {
+        // Assume non-zero address for system config
+        vm.assume(systemConfig != address(0));
+        vm.assume(initBond > 0);
+
         // Create sample UpgradeInputV2
         OPContractsManagerV2.DisputeGameConfig[] memory disputeGameConfigs =
             new OPContractsManagerV2.DisputeGameConfig[](1);
         disputeGameConfigs[0] = OPContractsManagerV2.DisputeGameConfig({
-            enabled: true,
-            initBond: 1000,
-            gameType: GameType.wrap(1),
-            gameArgs: abi.encode("test")
+            enabled: enabled,
+            initBond: initBond,
+            gameType: GameType.wrap(gameType),
+            gameArgs: gameArgs
         });
 
         IOPContractsManagerUtils.ExtraInstruction[] memory extraInstructions =
             new IOPContractsManagerUtils.ExtraInstruction[](1);
-        extraInstructions[0] = IOPContractsManagerUtils.ExtraInstruction({ key: "test", data: abi.encode("test") });
+        extraInstructions[0] = IOPContractsManagerUtils.ExtraInstruction({ key: extraKey, data: extraData });
 
         OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
-            systemConfig: ISystemConfig(makeAddr("systemConfig")),
+            systemConfig: ISystemConfig(systemConfig),
             disputeGameConfigs: disputeGameConfigs,
             extraInstructions: extraInstructions
         });
@@ -127,19 +149,14 @@ contract UpgradeOPChainInput_Test is Test {
         assertEq(address(decodedUpgradeInput.systemConfig), address(upgradeInput.systemConfig));
         // Check dispute game configs match
         assertEq(decodedUpgradeInput.disputeGameConfigs.length, disputeGameConfigs.length);
-        assertEq(decodedUpgradeInput.disputeGameConfigs[0].enabled, disputeGameConfigs[0].enabled);
-        assertEq(decodedUpgradeInput.disputeGameConfigs[0].initBond, disputeGameConfigs[0].initBond);
-        assertEq(
-            GameType.unwrap(decodedUpgradeInput.disputeGameConfigs[0].gameType),
-            GameType.unwrap(disputeGameConfigs[0].gameType)
-        );
-        assertEq(
-            keccak256(decodedUpgradeInput.disputeGameConfigs[0].gameArgs), keccak256(disputeGameConfigs[0].gameArgs)
-        );
+        assertEq(decodedUpgradeInput.disputeGameConfigs[0].enabled, enabled);
+        assertEq(decodedUpgradeInput.disputeGameConfigs[0].initBond, initBond);
+        assertEq(GameType.unwrap(decodedUpgradeInput.disputeGameConfigs[0].gameType), gameType);
+        assertEq(keccak256(decodedUpgradeInput.disputeGameConfigs[0].gameArgs), keccak256(gameArgs));
         // Check extra instructions match
         assertEq(decodedUpgradeInput.extraInstructions.length, extraInstructions.length);
-        assertEq(decodedUpgradeInput.extraInstructions[0].key, extraInstructions[0].key);
-        assertEq(keccak256(decodedUpgradeInput.extraInstructions[0].data), keccak256(extraInstructions[0].data));
+        assertEq(decodedUpgradeInput.extraInstructions[0].key, extraKey);
+        assertEq(keccak256(decodedUpgradeInput.extraInstructions[0].data), keccak256(extraData));
     }
 
     function test_setAddress_withZeroAddress_reverts() public {
@@ -157,16 +174,20 @@ contract UpgradeOPChainInput_Test is Test {
         input.set(input.upgradeInput.selector, emptyConfigs);
     }
 
-    function test_set_withInvalidSelector_reverts() public {
+    function testFuzz_set_withInvalidSelector_reverts(bytes4 invalidSelector, address testAddr) public {
+        // Assume the selector is not one of the valid selectors
+        vm.assume(invalidSelector != input.prank.selector);
+        vm.assume(invalidSelector != input.opcm.selector);
+        vm.assume(invalidSelector != input.upgradeInput.selector);
+        vm.assume(testAddr != address(0));
+
         vm.expectRevert("UpgradeOPCMInput: unknown selector");
-        input.set(bytes4(0xdeadbeef), makeAddr("test"));
+        input.set(invalidSelector, testAddr);
 
         // Create a single config for testing invalid selector
         OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
         address mockSystemConfig = makeAddr("systemConfig");
-        address mockProxyAdmin = makeAddr("proxyAdmin");
         vm.etch(mockSystemConfig, hex"01");
-        vm.etch(mockProxyAdmin, hex"01");
 
         configs[0] = OPContractsManager.OpChainConfig({
             systemConfigProxy: ISystemConfig(mockSystemConfig),
@@ -175,7 +196,7 @@ contract UpgradeOPChainInput_Test is Test {
         });
 
         vm.expectRevert("UpgradeOPCMInput: unknown selector");
-        input.set(bytes4(0xdeadbeef), configs);
+        input.set(invalidSelector, configs);
     }
 }
 
@@ -230,20 +251,29 @@ contract UpgradeOPChain_Test is Test {
         mockOPCM = new MockOPCMV1();
         uoci = new UpgradeOPChainInput();
         uoci.set(uoci.opcm.selector, address(mockOPCM));
-        config = OPContractsManager.OpChainConfig({
-            systemConfigProxy: ISystemConfig(makeAddr("systemConfigProxy")),
-            cannonPrestate: Claim.wrap(keccak256("cannonPrestate")),
-            cannonKonaPrestate: Claim.wrap(keccak256("cannonKonaPrestate"))
-        });
-        OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
-        configs[0] = config;
-        uoci.set(uoci.upgradeInput.selector, configs);
         prank = makeAddr("prank");
         uoci.set(uoci.prank.selector, prank);
         upgradeOPChain = new UpgradeOPChain();
     }
 
-    function test_upgrade_succeeds() public {
+    function testFuzz_upgrade_succeeds(
+        address systemConfigProxy,
+        bytes32 cannonPrestate,
+        bytes32 cannonKonaPrestate
+    )
+        public
+    {
+        vm.assume(systemConfigProxy != address(0));
+
+        config = OPContractsManager.OpChainConfig({
+            systemConfigProxy: ISystemConfig(systemConfigProxy),
+            cannonPrestate: Claim.wrap(cannonPrestate),
+            cannonKonaPrestate: Claim.wrap(cannonKonaPrestate)
+        });
+        OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
+        configs[0] = config;
+        uoci.set(uoci.upgradeInput.selector, configs);
+
         // UpgradeCalled should be emitted by the prank since it's a delegate call.
         vm.expectEmit(address(prank));
         emit UpgradeCalled(
@@ -277,12 +307,31 @@ contract UpgradeOPChain_TestV2 is Test {
         upgradeOPChain = new UpgradeOPChain();
     }
 
-    function test_upgrade_succeeds() public {
+    function testFuzz_upgrade_succeeds(
+        address systemConfig,
+        bool enabled,
+        uint256 initBond,
+        uint32 gameType,
+        bytes memory gameArgs
+    )
+        public
+    {
+        vm.assume(systemConfig != address(0));
+
         // NOTE: Setting the upgrade input here to avoid `Copying of type struct OPContractsManagerV2.DisputeGameConfig
         // memory[] memory to storage not yet supported.` error.
+        OPContractsManagerV2.DisputeGameConfig[] memory disputeGameConfigs =
+            new OPContractsManagerV2.DisputeGameConfig[](1);
+        disputeGameConfigs[0] = OPContractsManagerV2.DisputeGameConfig({
+            enabled: enabled,
+            initBond: initBond,
+            gameType: GameType.wrap(gameType),
+            gameArgs: gameArgs
+        });
+
         OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
-            systemConfig: ISystemConfig(makeAddr("systemConfig")),
-            disputeGameConfigs: new OPContractsManagerV2.DisputeGameConfig[](1),
+            systemConfig: ISystemConfig(systemConfig),
+            disputeGameConfigs: disputeGameConfigs,
             extraInstructions: new IOPContractsManagerUtils.ExtraInstruction[](0)
         });
         uoci.set(uoci.upgradeInput.selector, upgradeInput);
