@@ -935,10 +935,8 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			// Then test upgrade on the V2-deployed chain
 			t.Run("upgrade chain v2", func(t *testing.T) {
 				// ABI-encode game args for FaultDisputeGameConfig{absolutePrestate}
-				bytes32Type, err := abi.NewType("bytes32", "", nil)
-				require.NoError(t, err)
-				addressType, err := abi.NewType("address", "", nil)
-				require.NoError(t, err)
+				bytes32Type := deployer.Bytes32Type
+				addressType := deployer.AddressType
 
 				// FaultDisputeGameConfig just needs absolutePrestate (bytes32)
 				testPrestate := common.Hash{'P', 'R', 'E', 'S', 'T', 'A', 'T', 'E'}

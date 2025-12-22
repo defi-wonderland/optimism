@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/broadcaster"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/upgrade/embedded"
@@ -113,10 +114,8 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 	opcmV2, err := standard.OPCMImplAddressFor(11155111, standard.ContractsV500Tag)
 	require.NoError(t, err)
 
-	bytes32Type, err := abi.NewType("bytes32", "", nil)
-	require.NoError(t, err)
-	addressType, err := abi.NewType("address", "", nil)
-	require.NoError(t, err)
+	bytes32Type := deployer.Bytes32Type
+	addressType := deployer.AddressType
 
 	// FaultDisputeGameConfig just needs absolutePrestate (bytes32)
 	testPrestate := common.Hash{'P', 'R', 'E', 'S', 'T', 'A', 'T', 'E'}
