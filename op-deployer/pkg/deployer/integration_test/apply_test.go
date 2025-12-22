@@ -914,15 +914,10 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 			// First, upgrade the superchain with V2
 			t.Run("upgrade superchain v2", func(t *testing.T) {
 				superchainUpgradeConfig := embedded.UpgradeSuperchainConfigInput{
-					Prank:            superchainProxyAdminOwner,
-					Opcm:             impls.OpcmV2,
-					SuperchainConfig: implementationsConfig.SuperchainConfigProxy,
-					ExtraInstructions: []embedded.ExtraInstruction{
-						{
-							Key:  "PermittedProxyDeployment",
-							Data: []byte("DelayedWETH"),
-						},
-					},
+					Prank:             superchainProxyAdminOwner,
+					Opcm:              impls.OpcmV2,
+					SuperchainConfig:  implementationsConfig.SuperchainConfigProxy,
+					ExtraInstructions: []embedded.ExtraInstruction{},
 				}
 				err := embedded.UpgradeSuperchainConfig(host, superchainUpgradeConfig)
 				if err != nil {
