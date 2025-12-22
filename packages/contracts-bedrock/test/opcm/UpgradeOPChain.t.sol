@@ -23,31 +23,37 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 
 contract UpgradeOPChainInput_Test is Test {
     UpgradeOPChainInput input;
+    MockOPCMV1 _mockOPCM;
 
     function setUp() public {
         input = new UpgradeOPChainInput();
+        _mockOPCM = new MockOPCMV1();
+        input.set(input.opcm.selector, address(_mockOPCM));
     }
 
     function test_getters_whenNotSet_reverts() public {
+        UpgradeOPChainInput freshInput = new UpgradeOPChainInput();
+
         vm.expectRevert("UpgradeOPCMInput: prank not set");
-        input.prank();
+        freshInput.prank();
 
         vm.expectRevert("UpgradeOPCMInput: not set");
-        input.opcm();
+        freshInput.opcm();
 
         vm.expectRevert("UpgradeOPCMInput: not set");
-        input.upgradeInput();
+        freshInput.upgradeInput();
     }
 
     function testFuzz_setAddress_succeeds(address mockPrank, address mockOPCM) public {
         vm.assume(mockPrank != address(0));
         vm.assume(mockOPCM != address(0));
 
-        input.set(input.prank.selector, mockPrank);
-        input.set(input.opcm.selector, mockOPCM);
+        UpgradeOPChainInput freshInput = new UpgradeOPChainInput();
+        freshInput.set(freshInput.prank.selector, mockPrank);
+        freshInput.set(freshInput.opcm.selector, mockOPCM);
 
-        assertEq(input.prank(), mockPrank);
-        assertEq(input.opcm(), mockOPCM);
+        assertEq(freshInput.prank(), mockPrank);
+        assertEq(freshInput.opcm(), mockOPCM);
     }
 
     function testFuzz_setOpChainConfigs_succeeds(
@@ -99,6 +105,90 @@ contract UpgradeOPChainInput_Test is Test {
         assertEq(Claim.unwrap(decodedConfigs[1].cannonPrestate), prestate2);
         assertEq(Claim.unwrap(decodedConfigs[0].cannonKonaPrestate), konaPrestate1);
         assertEq(Claim.unwrap(decodedConfigs[1].cannonKonaPrestate), konaPrestate2);
+    }
+
+    function test_setAddress_withZeroAddress_reverts() public {
+        UpgradeOPChainInput freshInput = new UpgradeOPChainInput();
+
+        vm.expectRevert("UpgradeOPCMInput: cannot set zero address");
+        freshInput.set(freshInput.prank.selector, address(0));
+
+        vm.expectRevert("UpgradeOPCMInput: cannot set zero address");
+        freshInput.set(freshInput.opcm.selector, address(0));
+    }
+
+    function test_setOpChainConfigs_withEmptyArray_reverts() public {
+        OPContractsManager.OpChainConfig[] memory emptyConfigs = new OPContractsManager.OpChainConfig[](0);
+
+        vm.expectRevert("UpgradeOPCMInput: cannot set empty array");
+        input.set(input.upgradeInput.selector, emptyConfigs);
+    }
+
+    function testFuzz_set_withInvalidSelector_reverts(bytes4 invalidSelector, address testAddr) public {
+        // Assume the selector is not one of the valid selectors
+        vm.assume(invalidSelector != input.prank.selector);
+        vm.assume(invalidSelector != input.opcm.selector);
+        vm.assume(invalidSelector != input.upgradeInput.selector);
+        vm.assume(testAddr != address(0));
+
+        vm.expectRevert("UpgradeOPCMInput: unknown selector");
+        input.set(invalidSelector, testAddr);
+
+        // Create a single config for testing invalid selector
+        OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
+        address mockSystemConfig = makeAddr("systemConfig");
+        vm.etch(mockSystemConfig, hex"01");
+
+        configs[0] = OPContractsManager.OpChainConfig({
+            systemConfigProxy: ISystemConfig(mockSystemConfig),
+            cannonPrestate: Claim.wrap(bytes32(uint256(1))),
+            cannonKonaPrestate: Claim.wrap(bytes32(uint256(2)))
+        });
+
+        vm.expectRevert("UpgradeOPCMInput: unknown selector");
+        input.set(invalidSelector, configs);
+    }
+
+    function testFuzz_setUpgradeInputV2_onV1OPCM_reverts(
+        address systemConfig,
+        bool enabled,
+        uint256 initBond,
+        uint32 gameType
+    )
+        public
+    {
+        vm.assume(systemConfig != address(0));
+        vm.assume(initBond > 0);
+
+        // Try to set V2 input when V1 is enabled
+        OPContractsManagerV2.DisputeGameConfig[] memory disputeGameConfigs =
+            new OPContractsManagerV2.DisputeGameConfig[](1);
+        disputeGameConfigs[0] = OPContractsManagerV2.DisputeGameConfig({
+            enabled: enabled,
+            initBond: initBond,
+            gameType: GameType.wrap(gameType),
+            gameArgs: abi.encode("test")
+        });
+
+        OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
+            systemConfig: ISystemConfig(systemConfig),
+            disputeGameConfigs: disputeGameConfigs,
+            extraInstructions: new IOPContractsManagerUtils.ExtraInstruction[](0)
+        });
+
+        vm.expectRevert("UpgradeOPCMInput: cannot set OPCM v2 upgrade input when OPCM v1 is enabled");
+        input.set(input.upgradeInput.selector, upgradeInput);
+    }
+}
+
+contract UpgradeOPChainInput_TestV2 is Test {
+    UpgradeOPChainInput input;
+    MockOPCMV2 mockOPCM;
+
+    function setUp() public {
+        input = new UpgradeOPChainInput();
+        mockOPCM = new MockOPCMV2();
+        input.set(input.opcm.selector, address(mockOPCM));
     }
 
     /// @notice Tests that the upgrade input can be set using the OPContractsManagerV2.UpgradeInput type.
@@ -159,44 +249,49 @@ contract UpgradeOPChainInput_Test is Test {
         assertEq(keccak256(decodedUpgradeInput.extraInstructions[0].data), keccak256(extraData));
     }
 
-    function test_setAddress_withZeroAddress_reverts() public {
-        vm.expectRevert("UpgradeOPCMInput: cannot set zero address");
-        input.set(input.prank.selector, address(0));
-
-        vm.expectRevert("UpgradeOPCMInput: cannot set zero address");
-        input.set(input.opcm.selector, address(0));
-    }
-
-    function test_setOpChainConfigs_withEmptyArray_reverts() public {
-        OPContractsManager.OpChainConfig[] memory emptyConfigs = new OPContractsManager.OpChainConfig[](0);
-
-        vm.expectRevert("UpgradeOPCMInput: cannot set empty array");
-        input.set(input.upgradeInput.selector, emptyConfigs);
-    }
-
-    function testFuzz_set_withInvalidSelector_reverts(bytes4 invalidSelector, address testAddr) public {
-        // Assume the selector is not one of the valid selectors
-        vm.assume(invalidSelector != input.prank.selector);
-        vm.assume(invalidSelector != input.opcm.selector);
-        vm.assume(invalidSelector != input.upgradeInput.selector);
-        vm.assume(testAddr != address(0));
-
-        vm.expectRevert("UpgradeOPCMInput: unknown selector");
-        input.set(invalidSelector, testAddr);
-
-        // Create a single config for testing invalid selector
-        OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
-        address mockSystemConfig = makeAddr("systemConfig");
-        vm.etch(mockSystemConfig, hex"01");
-
-        configs[0] = OPContractsManager.OpChainConfig({
-            systemConfigProxy: ISystemConfig(mockSystemConfig),
-            cannonPrestate: Claim.wrap(bytes32(uint256(1))),
-            cannonKonaPrestate: Claim.wrap(bytes32(uint256(2)))
+    function testFuzz_setUpgradeInputV2_withZeroSystemConfig_reverts() public {
+        OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
+            systemConfig: ISystemConfig(address(0)),
+            disputeGameConfigs: new OPContractsManagerV2.DisputeGameConfig[](1),
+            extraInstructions: new IOPContractsManagerUtils.ExtraInstruction[](0)
         });
 
-        vm.expectRevert("UpgradeOPCMInput: unknown selector");
-        input.set(invalidSelector, configs);
+        vm.expectRevert("UpgradeOPCMInput: cannot set zero address");
+        input.set(input.upgradeInput.selector, upgradeInput);
+    }
+
+    function testFuzz_setUpgradeInputV2_withEmptyDisputeGameConfigs_reverts(address systemConfig) public {
+        vm.assume(systemConfig != address(0));
+
+        OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
+            systemConfig: ISystemConfig(systemConfig),
+            disputeGameConfigs: new OPContractsManagerV2.DisputeGameConfig[](0),
+            extraInstructions: new IOPContractsManagerUtils.ExtraInstruction[](0)
+        });
+
+        vm.expectRevert("UpgradeOPCMInput: cannot set empty dispute game configs array");
+        input.set(input.upgradeInput.selector, upgradeInput);
+    }
+
+    function testFuzz_setUpgradeInputV1_onV2OPCM_reverts(
+        address systemConfigProxy,
+        bytes32 cannonPrestate,
+        bytes32 cannonKonaPrestate
+    )
+        public
+    {
+        vm.assume(systemConfigProxy != address(0));
+
+        // Try to set V1 input when V2 is enabled
+        OPContractsManager.OpChainConfig[] memory configs = new OPContractsManager.OpChainConfig[](1);
+        configs[0] = OPContractsManager.OpChainConfig({
+            systemConfigProxy: ISystemConfig(systemConfigProxy),
+            cannonPrestate: Claim.wrap(cannonPrestate),
+            cannonKonaPrestate: Claim.wrap(cannonKonaPrestate)
+        });
+
+        vm.expectRevert("UpgradeOPCMInput: cannot set OPCM v1 upgrade input when OPCM v2 is enabled");
+        input.set(input.upgradeInput.selector, configs);
     }
 }
 
