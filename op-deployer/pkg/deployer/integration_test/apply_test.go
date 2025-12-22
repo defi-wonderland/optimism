@@ -980,6 +980,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 								Key:  "PermittedProxyDeployment",
 								Data: []byte("DelayedWETH"),
 							},
+							// TODO(#18502): Remove the extra instruction for custom gas token after U18 ships.
 							{
 								Key:  "overrides.cfg.useCustomGasToken",
 								Data: make([]byte, 32),
