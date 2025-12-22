@@ -871,7 +871,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 				Opcm:  impls.Opcm,
 				ChainConfigs: []embedded.OPChainConfig{
 					{
-						SystemConfigProxy:  common.HexToAddress("034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
+						SystemConfigProxy:  deployer.DefaultSystemConfigProxySepolia,
 						CannonPrestate:     common.Hash{'C', 'A', 'N', 'N', 'O', 'N'},
 						CannonKonaPrestate: common.Hash{'K', 'O', 'N', 'A'},
 					},
@@ -957,7 +957,7 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 					Prank: superchainProxyAdminOwner,
 					Opcm:  impls.OpcmV2,
 					UpgradeInputV2: &embedded.UpgradeInputV2{
-						SystemConfig: common.HexToAddress("034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
+						SystemConfig: deployer.DefaultSystemConfigProxySepolia,
 						DisputeGameConfigs: []embedded.DisputeGameConfig{
 							{
 								Enabled:  true,
