@@ -118,6 +118,18 @@ var (
 		Usage:   "Starting anchor L2 sequence number.",
 		EnvVars: deployer.PrefixEnvVar("STARTING_ANCHOR_L2_SEQUENCE_NUMBER"),
 	}
+	StartingRespectedGameTypeFlag = &cli.Uint64Flag{
+		Name:    "starting-respected-game-type",
+		Usage:   "Starting respected game type for OPCM v2 migration. Defaults to 0 (Cannon).",
+		EnvVars: deployer.PrefixEnvVar("STARTING_RESPECTED_GAME_TYPE"),
+		Value:   0,
+	}
+	DisputeGameEnabledFlag = &cli.BoolFlag{
+		Name:    "dispute-game-enabled",
+		Usage:   "Whether the dispute game should be enabled. Used for OPCM v2 migration.",
+		EnvVars: deployer.PrefixEnvVar("DISPUTE_GAME_ENABLED"),
+		Value:   true,
+	}
 	SaltMixerFlag = &cli.StringFlag{
 		Name:    "salt-mixer",
 		Usage:   "String value for the salt mixer, used in CREATE2 address calculation. Default to keccak256(\"op-stack-contract-impls-salt-v0\").",
@@ -173,23 +185,27 @@ var Commands = cli.Commands{
 			deployer.ArtifactsLocatorFlag,
 			L1ProxyAdminOwnerFlag,
 			OPCMImplFlag,
+			// V1 specific flags
 			PermissionlessFlag,
-			StartingAnchorRootFlag,
-			StartingAnchorL2SequenceNumberFlag,
 			ProposerFlag,
 			ChallengerFlag,
 			DisputeMaxGameDepthFlag,
 			DisputeSplitDepthFlag,
-			InitialBondFlag,
 			DisputeClockExtensionFlag,
 			DisputeMaxClockDurationFlag,
-			//
-			// The following flags represent one item in The EncodedChainConfigs array
-			//
-			SystemConfigProxyFlag,
-			OPChainProxyAdminFlag,
 			DisputeAbsolutePrestateCannonFlag,
 			DisputeAbsolutePrestateCannonKonaFlag,
+			// Common flags (used by both V1 and V2)
+			StartingAnchorRootFlag,
+			StartingAnchorL2SequenceNumberFlag,
+			InitialBondFlag,
+			SystemConfigProxyFlag,
+			OPChainProxyAdminFlag,
+			// V2 specific flags
+			StartingRespectedGameTypeFlag,
+			DisputeGameEnabledFlag,
+			DisputeGameTypeFlag,
+			DisputeAbsolutePrestateFlag,
 		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
 		Action: MigrateCLI,
 	},

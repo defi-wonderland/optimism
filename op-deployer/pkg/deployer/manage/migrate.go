@@ -22,34 +22,59 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/lmittmann/w3"
 	"github.com/urfave/cli/v2"
 )
 
-type InteropMigrationInput struct {
-	Prank common.Address `json:"prank"`
-	Opcm  common.Address `json:"opcm"`
-
-	UsePermissionlessGame          bool           `json:"usePermissionlessGame"`
-	StartingAnchorRoot             common.Hash    `json:"startingAnchorRoot"`
-	StartingAnchorL2SequenceNumber *big.Int       `json:"startingAnchorL2SequenceNumber"`
-	Proposer                       common.Address `json:"proposer"`
-	Challenger                     common.Address `json:"challenger"`
-	MaxGameDepth                   uint64         `json:"maxGameDepth"`
-	SplitDepth                     uint64         `json:"splitDepth"`
-	InitBond                       *big.Int       `json:"initBond"`
-	ClockExtension                 uint64         `json:"clockExtension"`
-	MaxClockDuration               uint64         `json:"maxClockDuration"`
-
-	EncodedChainConfigs []OPChainConfig `evm:"-" json:"chainConfigs"`
+// ScriptInput represents the input struct that is actually passed to the script.
+// It contains the prank, opcm, and migrate input.
+type ScriptInput struct {
+	Prank        common.Address `evm:"prank"`
+	Opcm         common.Address `evm:"opcm"`
+	MigrateInput []byte         `evm:"migrateInput"`
 }
 
-func (u *InteropMigrationInput) OpChainConfigs() ([]byte, error) {
-	data, err := opChainConfigEncoder.EncodeArgs(u.EncodedChainConfigs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to encode chain configs: %w", err)
-	}
-	return data[4:], nil
+// InteropMigrationInput represents the struct that is read from the config file.
+// It contains both fields for the old and new migrate input.
+type InteropMigrationInput struct {
+	Prank          common.Address  `json:"prank"`
+	Opcm           common.Address  `json:"opcm"`
+	MigrateInputV1 *MigrateInputV1 `json:"migrateInputV1,omitempty"`
+	MigrateInputV2 *MigrateInputV2 `json:"migrateInput,omitempty"`
+}
+
+// MigrateInputV1 represents the old migrate input in OPCM v1.
+type MigrateInputV1 struct {
+	UsePermissionlessGame          bool            `json:"usePermissionlessGame"`
+	StartingAnchorRoot             common.Hash     `json:"startingAnchorRoot"`
+	StartingAnchorL2SequenceNumber *big.Int        `json:"startingAnchorL2SequenceNumber"`
+	Proposer                       common.Address  `json:"proposer"`
+	Challenger                     common.Address  `json:"challenger"`
+	MaxGameDepth                   uint64          `json:"maxGameDepth"`
+	SplitDepth                     uint64          `json:"splitDepth"`
+	InitBond                       *big.Int        `json:"initBond"`
+	ClockExtension                 uint64          `json:"clockExtension"`
+	MaxClockDuration               uint64          `json:"maxClockDuration"`
+	OpChainConfigs                 []OPChainConfig `json:"opChainConfigs"`
+}
+
+// MigrateInputV2 represents the new migrate input in OPCM v2.
+type MigrateInputV2 struct {
+	ChainSystemConfigs        []common.Address    `json:"chainSystemConfigs"`
+	DisputeGameConfigs        []DisputeGameConfig `json:"disputeGameConfigs"`
+	StartingAnchorRoot        Proposal            `json:"startingAnchorRoot"`
+	StartingRespectedGameType uint32              `json:"startingRespectedGameType"`
+}
+
+type DisputeGameConfig struct {
+	Enabled  bool        `json:"enabled"`
+	InitBond *big.Int    `json:"initBond"`
+	GameType uint32      `json:"gameType"`
+	GameArgs common.Hash `json:"gameArgs"`
+}
+
+type Proposal struct {
+	Root           common.Hash `json:"root"`
+	SequenceNumber *big.Int    `json:"sequenceNumber"`
 }
 
 type OPChainConfig struct {
@@ -66,14 +91,28 @@ func (output *InteropMigrationOutput) CheckOutput(input common.Address) error {
 	return nil
 }
 
-var opChainConfigEncoder = w3.MustNewFunc("dummy((address systemConfigProxy, bytes32 cannonPrestate, bytes32 cannonKonaPrestate)[])", "")
-
-type InteropMigration struct {
-	Run func(input common.Address)
-}
-
 func Migrate(host *script.Host, input InteropMigrationInput) (InteropMigrationOutput, error) {
-	return opcm.RunScriptSingle[InteropMigrationInput, InteropMigrationOutput](host, input, "InteropMigration.s.sol", "InteropMigration")
+	// We need to check which of the two versions of the input we are using.
+	var encodedMigrateInput []byte
+	var encodedError error
+	if input.MigrateInputV2 == nil && input.MigrateInputV1 == nil {
+		return InteropMigrationOutput{}, fmt.Errorf("failed to read either a migrate input v1 or v2")
+	} else if input.MigrateInputV2 != nil {
+		encodedMigrateInput, encodedError = json.Marshal(input.MigrateInputV2)
+	} else {
+		encodedMigrateInput, encodedError = json.Marshal(input.MigrateInputV1)
+	}
+
+	if encodedError != nil {
+		return InteropMigrationOutput{}, encodedError
+	}
+
+	scriptInput := ScriptInput{
+		Prank:        input.Prank,
+		Opcm:         input.Opcm,
+		MigrateInput: encodedMigrateInput,
+	}
+	return opcm.RunScriptSingle[ScriptInput, InteropMigrationOutput](host, scriptInput, "InteropMigration.s.sol", "InteropMigration")
 }
 
 func MigrateCLI(cliCtx *cli.Context) error {
@@ -95,27 +134,74 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to parse private key: %w", err)
 	}
 
+	// Get L1 RPC to check OPCM version
+	l1RPC, err := rpc.Dial(l1RPCUrl)
+	if err != nil {
+		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
+	}
+	l1Client := ethclient.NewClient(l1RPC)
+
+	// Check if OPCM v2 is enabled
+	opcmAddr := common.HexToAddress(cliCtx.String(OPCMImplFlag.Name))
+	opcmContract := opcm.NewContract(opcmAddr, l1Client)
+	opcmV2Flag := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000") // DevFeatures.OPCM_V2
+	useV2, err := opcmContract.IsDevFeatureEnabled(ctx, opcmV2Flag)
+	if err != nil {
+		return fmt.Errorf("failed to check if OPCM v2 is enabled: %w", err)
+	}
+
 	input := InteropMigrationInput{
-		Prank:                          common.Address{}, // The current CLI does not support prank address, so we set it to zero.
-		Opcm:                           common.HexToAddress(cliCtx.String(OPCMImplFlag.Name)),
-		UsePermissionlessGame:          cliCtx.Bool(PermissionlessFlag.Name),
-		StartingAnchorRoot:             common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
-		StartingAnchorL2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
-		Proposer:                       common.HexToAddress(cliCtx.String(ProposerFlag.Name)),
-		Challenger:                     common.HexToAddress(cliCtx.String(ChallengerFlag.Name)),
-		MaxGameDepth:                   cliCtx.Uint64(DisputeMaxGameDepthFlag.Name),
-		SplitDepth:                     cliCtx.Uint64(DisputeSplitDepthFlag.Name),
-		InitBond:                       big.NewInt(int64(cliCtx.Uint64(InitialBondFlag.Name))),
-		ClockExtension:                 cliCtx.Uint64(DisputeClockExtensionFlag.Name),
-		MaxClockDuration:               cliCtx.Uint64(DisputeMaxClockDurationFlag.Name),
-		// At the moment we only support a single chain config
-		EncodedChainConfigs: []OPChainConfig{
-			{
-				SystemConfigProxy:  common.HexToAddress(cliCtx.String(SystemConfigProxyFlag.Name)),
-				CannonPrestate:     common.HexToHash(cliCtx.String(DisputeAbsolutePrestateCannonFlag.Name)),
-				CannonKonaPrestate: common.HexToHash(cliCtx.String(DisputeAbsolutePrestateCannonKonaFlag.Name)),
+		Prank: common.Address{}, // The current CLI does not support prank address, so we set it to zero.
+		Opcm:  opcmAddr,
+	}
+
+	initBondStr := cliCtx.String(InitialBondFlag.Name)
+	initBond, ok := new(big.Int).SetString(initBondStr, 10)
+	if !ok {
+		return fmt.Errorf("failed to parse initial bond: %s", initBondStr)
+	}
+	if useV2 {
+		// V2 Migration Input
+		input.MigrateInputV2 = &MigrateInputV2{
+			ChainSystemConfigs: []common.Address{
+				common.HexToAddress(cliCtx.String(SystemConfigProxyFlag.Name)),
 			},
-		},
+			DisputeGameConfigs: []DisputeGameConfig{
+				{
+					Enabled:  cliCtx.Bool(DisputeGameEnabledFlag.Name),
+					InitBond: initBond,
+					GameType: uint32(cliCtx.Uint64(DisputeGameTypeFlag.Name)),
+					GameArgs: common.HexToHash(cliCtx.String(DisputeAbsolutePrestateFlag.Name)),
+				},
+			},
+			StartingAnchorRoot: Proposal{
+				Root:           common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
+				SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
+			},
+			StartingRespectedGameType: uint32(cliCtx.Uint64(StartingRespectedGameTypeFlag.Name)),
+		}
+	} else {
+		// V1 Migration Input
+		input.MigrateInputV1 = &MigrateInputV1{
+			UsePermissionlessGame:          cliCtx.Bool(PermissionlessFlag.Name),
+			StartingAnchorRoot:             common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
+			StartingAnchorL2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
+			Proposer:                       common.HexToAddress(cliCtx.String(ProposerFlag.Name)),
+			Challenger:                     common.HexToAddress(cliCtx.String(ChallengerFlag.Name)),
+			MaxGameDepth:                   cliCtx.Uint64(DisputeMaxGameDepthFlag.Name),
+			SplitDepth:                     cliCtx.Uint64(DisputeSplitDepthFlag.Name),
+			InitBond:                       initBond,
+			ClockExtension:                 cliCtx.Uint64(DisputeClockExtensionFlag.Name),
+			MaxClockDuration:               cliCtx.Uint64(DisputeMaxClockDurationFlag.Name),
+			// At the moment we only support a single chain config
+			OpChainConfigs: []OPChainConfig{
+				{
+					SystemConfigProxy:  common.HexToAddress(cliCtx.String(SystemConfigProxyFlag.Name)),
+					CannonPrestate:     common.HexToHash(cliCtx.String(DisputeAbsolutePrestateCannonFlag.Name)),
+					CannonKonaPrestate: common.HexToHash(cliCtx.String(DisputeAbsolutePrestateCannonKonaFlag.Name)),
+				},
+			},
+		}
 	}
 
 	artifactsLocatorStr := cliCtx.String(deployer.ArtifactsLocatorFlag.Name)
@@ -130,12 +216,6 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to download artifacts: %w", err)
 	}
 
-	l1RPC, err := rpc.Dial(l1RPCUrl)
-	if err != nil {
-		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
-	}
-
-	l1Client := ethclient.NewClient(l1RPC)
 	l1ChainID, err := l1Client.ChainID(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get chain ID: %w", err)
