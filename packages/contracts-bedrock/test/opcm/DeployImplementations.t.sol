@@ -437,6 +437,13 @@ contract DeployImplementations_Test is Test, FeatureFlags {
         deployImplementations.run(input);
     }
 
+    function test_challenger_zeroAddress_reverts() public {
+        DeployImplementations.Input memory input = defaultInput();
+        input.challenger = address(0);
+        vm.expectRevert("DeployImplementations: challenger not set");
+        deployImplementations.run(input);
+    }
+
     function test_run_nullInput_reverts() public {
         DeployImplementations.Input memory input;
 

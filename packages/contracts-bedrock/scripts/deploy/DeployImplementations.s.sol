@@ -926,6 +926,7 @@ contract DeployImplementations is Script {
             address(_input.superchainProxyAdmin) != address(0), "DeployImplementations: superchainProxyAdmin not set"
         );
         require(address(_input.l1ProxyAdminOwner) != address(0), "DeployImplementations: L1ProxyAdminOwner not set");
+        require(address(_input.challenger) != address(0), "DeployImplementations: challenger not set");
     }
 
     function assertValidOutput(Input memory _input, Output memory _output) private {
