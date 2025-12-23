@@ -104,11 +104,6 @@ contract DeployOPChain is Script {
         return IOPContractsManager(_opcmAddr).isDevFeatureEnabled(DevFeatures.OPCM_V2);
     }
 
-    function isDevFeatureV2DisputeGamesEnabled(address _opcmAddr) internal view returns (bool) {
-        IOPContractsManager opcm = IOPContractsManager(_opcmAddr);
-        return DevFeatures.isDevFeatureEnabled(opcm.devFeatureBitmap(), DevFeatures.DEPLOY_V2_DISPUTE_GAMES);
-    }
-
     /// @notice Converts Types.DeployOPChainInput to IOPContractsManager.DeployInput.
     /// @param _input The input parameters.
     /// @return deployInput_ The deployed input parameters.
