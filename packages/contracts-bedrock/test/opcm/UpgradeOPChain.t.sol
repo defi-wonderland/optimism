@@ -31,6 +31,8 @@ contract UpgradeOPChainInput_Test is Test {
         input.set(input.opcm.selector, address(_mockOPCM));
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when the upgrade input is not
+    /// completely set.
     function test_getters_whenNotSet_reverts() public {
         UpgradeOPChainInput freshInput = new UpgradeOPChainInput();
 
@@ -44,6 +46,8 @@ contract UpgradeOPChainInput_Test is Test {
         freshInput.upgradeInput();
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly sets the upgrade input with
+    /// the address type.
     function testFuzz_setAddress_succeeds(address mockPrank, address mockOPCM) public {
         vm.assume(mockPrank != address(0));
         vm.assume(mockOPCM != address(0));
@@ -56,6 +60,8 @@ contract UpgradeOPChainInput_Test is Test {
         assertEq(freshInput.opcm(), mockOPCM);
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly sets the upgrade input with
+    /// the OPContractsManager.OpChainConfig[] type.
     function testFuzz_setOpChainConfigs_succeeds(
         address systemConfig1,
         address systemConfig2,
@@ -107,6 +113,8 @@ contract UpgradeOPChainInput_Test is Test {
         assertEq(Claim.unwrap(decodedConfigs[1].cannonKonaPrestate), konaPrestate2);
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// a zero address.
     function test_setAddress_withZeroAddress_reverts() public {
         UpgradeOPChainInput freshInput = new UpgradeOPChainInput();
 
@@ -117,6 +125,8 @@ contract UpgradeOPChainInput_Test is Test {
         freshInput.set(freshInput.opcm.selector, address(0));
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// an empty array.
     function test_setOpChainConfigs_withEmptyArray_reverts() public {
         OPContractsManager.OpChainConfig[] memory emptyConfigs = new OPContractsManager.OpChainConfig[](0);
 
@@ -124,6 +134,8 @@ contract UpgradeOPChainInput_Test is Test {
         input.set(input.upgradeInput.selector, emptyConfigs);
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// an invalid selector.
     function testFuzz_set_withInvalidSelector_reverts(bytes4 invalidSelector, address testAddr) public {
         // Assume the selector is not one of the valid selectors
         vm.assume(invalidSelector != input.prank.selector);
@@ -149,6 +161,8 @@ contract UpgradeOPChainInput_Test is Test {
         input.set(invalidSelector, configs);
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// OPCM v2 input when OPCM v1 is enabled.
     function testFuzz_setUpgradeInputV2_onV1OPCM_reverts(
         address systemConfig,
         bool enabled,
@@ -249,6 +263,8 @@ contract UpgradeOPChainInput_TestV2 is Test {
         assertEq(keccak256(decodedUpgradeInput.extraInstructions[0].data), keccak256(extraData));
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// a zero system config.
     function testFuzz_setUpgradeInputV2_withZeroSystemConfig_reverts() public {
         OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
             systemConfig: ISystemConfig(address(0)),
@@ -260,6 +276,8 @@ contract UpgradeOPChainInput_TestV2 is Test {
         input.set(input.upgradeInput.selector, upgradeInput);
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// an empty dispute game configs array.
     function testFuzz_setUpgradeInputV2_withEmptyDisputeGameConfigs_reverts(address systemConfig) public {
         vm.assume(systemConfig != address(0));
 
@@ -273,6 +291,8 @@ contract UpgradeOPChainInput_TestV2 is Test {
         input.set(input.upgradeInput.selector, upgradeInput);
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly reverts when setting the upgrade input with
+    /// OPCM v1 input when OPCM v2 is enabled.
     function testFuzz_setUpgradeInputV1_onV2OPCM_reverts(
         address systemConfigProxy,
         bytes32 cannonPrestate,
@@ -351,6 +371,9 @@ contract UpgradeOPChain_Test is Test {
         upgradeOPChain = new UpgradeOPChain();
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly encodes and passes down the upgrade input
+    /// arguments to the OPCM contract's upgrade function.
+    /// @dev It does not test the actual upgrade functionality.
     function testFuzz_upgrade_succeeds(
         address systemConfigProxy,
         bytes32 cannonPrestate,
@@ -402,6 +425,9 @@ contract UpgradeOPChain_TestV2 is Test {
         upgradeOPChain = new UpgradeOPChain();
     }
 
+    /// @notice This test verifies that the UpgradeOPChain script correctly encodes and passes down the upgrade input
+    /// arguments to the OPCM contract's upgrade function.
+    /// @dev It does not test the actual upgrade functionality.
     function testFuzz_upgrade_succeeds(
         address systemConfig,
         bool enabled,
