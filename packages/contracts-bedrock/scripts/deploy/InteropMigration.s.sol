@@ -13,6 +13,7 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
+import { SemverComp } from "src/libraries/SemverComp.sol";
 
 contract InteropMigrationInput is BaseDeployIO {
     address internal _prank;
@@ -79,10 +80,15 @@ contract InteropMigrationOutput is BaseDeployIO {
 
 contract InteropMigration is Script {
     function run(InteropMigrationInput _imi, InteropMigrationOutput _imo) public {
-        address opcmAddr = _imi.opcm();
-
-        // First, we need to check what version of OPCM is being used.
-        bool useOPCMv2 = IOPContractsManager(opcmAddr).isDevFeatureEnabled(DevFeatures.OPCM_V2);
+        // Determine OPCM version by checking the semver or if the OPCM address is set. OPCM v2 starts at version 7.0.0.
+        IOPContractsManager opcm = IOPContractsManager(_imi.opcm());
+        bool useOPCMv2;
+        if (address(opcm) == address(0)) {
+            useOPCMv2 = true;
+        } else {
+            require(address(opcm).code.length > 0, "ReadSuperchainDeployment: OPCM address has no code");
+            useOPCMv2 = SemverComp.gte(opcm.version(), "7.0.0");
+        }
 
         // Etch DummyCaller contract. This contract is used to mimic the contract that is used
         // as the source of the delegatecall to the OPCM. In practice this will be the governance
@@ -90,7 +96,7 @@ contract InteropMigration is Script {
         address prank = _imi.prank();
         bytes memory code = _getDummyCallerCode(useOPCMv2);
         vm.etch(prank, code);
-        vm.store(prank, bytes32(0), bytes32(uint256(uint160(opcmAddr))));
+        vm.store(prank, bytes32(0), bytes32(uint256(uint160(address(opcm)))));
         vm.label(prank, "DummyCaller");
 
         // Call into the DummyCaller. This will perform the delegatecall under the hood and

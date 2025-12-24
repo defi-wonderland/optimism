@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
@@ -22,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/lmittmann/w3"
 	"github.com/urfave/cli/v2"
 )
 
@@ -44,17 +46,20 @@ type InteropMigrationInput struct {
 
 // MigrateInputV1 represents the old migrate input in OPCM v1.
 type MigrateInputV1 struct {
-	UsePermissionlessGame          bool            `json:"usePermissionlessGame"`
-	StartingAnchorRoot             common.Hash     `json:"startingAnchorRoot"`
-	StartingAnchorL2SequenceNumber *big.Int        `json:"startingAnchorL2SequenceNumber"`
-	Proposer                       common.Address  `json:"proposer"`
-	Challenger                     common.Address  `json:"challenger"`
-	MaxGameDepth                   uint64          `json:"maxGameDepth"`
-	SplitDepth                     uint64          `json:"splitDepth"`
-	InitBond                       *big.Int        `json:"initBond"`
-	ClockExtension                 uint64          `json:"clockExtension"`
-	MaxClockDuration               uint64          `json:"maxClockDuration"`
-	OpChainConfigs                 []OPChainConfig `json:"opChainConfigs"`
+	UsePermissionlessGame bool            `json:"usePermissionlessGame"`
+	StartingAnchorRoot    Proposal        `json:"startingAnchorRoot"`
+	GameParameters        GameParameters  `json:"gameParameters"`
+	OpChainConfigs        []OPChainConfig `json:"opChainConfigs"`
+}
+
+type GameParameters struct {
+	Proposer         common.Address `json:"proposer"`
+	Challenger       common.Address `json:"challenger"`
+	MaxGameDepth     *big.Int       `json:"maxGameDepth"`
+	SplitDepth       *big.Int       `json:"splitDepth"`
+	InitBond         *big.Int       `json:"initBond"`
+	ClockExtension   *big.Int       `json:"clockExtension"`
+	MaxClockDuration *big.Int       `json:"maxClockDuration"`
 }
 
 // MigrateInputV2 represents the new migrate input in OPCM v2.
@@ -66,15 +71,15 @@ type MigrateInputV2 struct {
 }
 
 type DisputeGameConfig struct {
-	Enabled  bool        `json:"enabled"`
-	InitBond *big.Int    `json:"initBond"`
-	GameType uint32      `json:"gameType"`
-	GameArgs common.Hash `json:"gameArgs"`
+	Enabled  bool     `json:"enabled"`
+	InitBond *big.Int `json:"initBond"`
+	GameType uint32   `json:"gameType"`
+	GameArgs []byte   `json:"gameArgs"`
 }
 
 type Proposal struct {
-	Root           common.Hash `json:"root"`
-	SequenceNumber *big.Int    `json:"sequenceNumber"`
+	Root             common.Hash `json:"root"`
+	L2SequenceNumber *big.Int    `json:"l2SequenceNumber"`
 }
 
 type OPChainConfig struct {
@@ -85,6 +90,43 @@ type OPChainConfig struct {
 
 type InteropMigrationOutput struct {
 	DisputeGameFactory common.Address `json:"disputeGameFactory"`
+}
+
+// ABI encoders for migrate inputs
+// Note: Duration is uint64 in Solidity but we encode as uint256 since w3 doesn't support uint64
+// This works because ABI encoding pads all uints to 32 bytes, and our values fit in uint64
+var migrateInputV1Encoder = w3.MustNewFunc(
+	"dummy((bool usePermissionlessGame,(bytes32 root,uint256 l2SequenceNumber) startingAnchorRoot,(address proposer,address challenger,uint256 maxGameDepth,uint256 splitDepth,uint256 initBond,uint256 clockExtension,uint256 maxClockDuration) gameParameters,(address systemConfigProxy,bytes32 cannonPrestate,bytes32 cannonKonaPrestate)[] opChainConfigs))",
+	"",
+)
+
+var migrateInputV2Encoder = w3.MustNewFunc(
+	"dummy((address[] chainSystemConfigs,(bool enabled,uint256 initBond,uint32 gameType,bytes gameArgs)[] disputeGameConfigs,(bytes32 root,uint256 l2SequenceNumber) startingAnchorRoot,uint32 startingRespectedGameType))",
+	"",
+)
+
+func (i *InteropMigrationInput) EncodedMigrateInputV1() ([]byte, error) {
+	if i.MigrateInputV1 == nil {
+		return nil, fmt.Errorf("MigrateInputV1 is nil")
+	}
+	data, err := migrateInputV1Encoder.EncodeArgs(i.MigrateInputV1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode migrate input v1: %w", err)
+	}
+	// Skip the function selector (first 4 bytes)
+	return data[4:], nil
+}
+
+func (i *InteropMigrationInput) EncodedMigrateInputV2() ([]byte, error) {
+	if i.MigrateInputV2 == nil {
+		return nil, fmt.Errorf("MigrateInputV2 is nil")
+	}
+	data, err := migrateInputV2Encoder.EncodeArgs(i.MigrateInputV2)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode migrate input v2: %w", err)
+	}
+	// Skip the function selector (first 4 bytes)
+	return data[4:], nil
 }
 
 func (output *InteropMigrationOutput) CheckOutput(input common.Address) error {
@@ -98,9 +140,9 @@ func Migrate(host *script.Host, input InteropMigrationInput) (InteropMigrationOu
 	if input.MigrateInputV2 == nil && input.MigrateInputV1 == nil {
 		return InteropMigrationOutput{}, fmt.Errorf("failed to read either a migrate input v1 or v2")
 	} else if input.MigrateInputV2 != nil {
-		encodedMigrateInput, encodedError = json.Marshal(input.MigrateInputV2)
+		encodedMigrateInput, encodedError = input.EncodedMigrateInputV2()
 	} else {
-		encodedMigrateInput, encodedError = json.Marshal(input.MigrateInputV1)
+		encodedMigrateInput, encodedError = input.EncodedMigrateInputV1()
 	}
 
 	if encodedError != nil {
@@ -141,13 +183,20 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	}
 	l1Client := ethclient.NewClient(l1RPC)
 
-	// Check if OPCM v2 is enabled
+	// Check OPCM version to determine if we should use v1 or v2 migration input
 	opcmAddr := common.HexToAddress(cliCtx.String(OPCMImplFlag.Name))
 	opcmContract := opcm.NewContract(opcmAddr, l1Client)
-	opcmV2Flag := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000") // DevFeatures.OPCM_V2
-	useV2, err := opcmContract.IsDevFeatureEnabled(ctx, opcmV2Flag)
+
+	versionStr, err := opcmContract.GenericStringGetter(ctx, "version")
 	if err != nil {
-		return fmt.Errorf("failed to check if OPCM v2 is enabled: %w", err)
+		return fmt.Errorf("failed to get OPCM version: %w", err)
+	}
+
+	// Parse version string (format: "major.minor.patch")
+	// If version < 7.0.0, use v1, otherwise use v2
+	useV2, err := isVersionAtLeast(versionStr, 7, 0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to parse OPCM version %s: %w", versionStr, err)
 	}
 
 	input := InteropMigrationInput{
@@ -171,28 +220,32 @@ func MigrateCLI(cliCtx *cli.Context) error {
 					Enabled:  cliCtx.Bool(DisputeGameEnabledFlag.Name),
 					InitBond: initBond,
 					GameType: uint32(cliCtx.Uint64(DisputeGameTypeFlag.Name)),
-					GameArgs: common.HexToHash(cliCtx.String(DisputeAbsolutePrestateFlag.Name)),
+					GameArgs: common.FromHex(cliCtx.String(DisputeAbsolutePrestateFlag.Name)),
 				},
 			},
 			StartingAnchorRoot: Proposal{
-				Root:           common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
-				SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
+				Root:             common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
+				L2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
 			},
 			StartingRespectedGameType: uint32(cliCtx.Uint64(StartingRespectedGameTypeFlag.Name)),
 		}
 	} else {
 		// V1 Migration Input
 		input.MigrateInputV1 = &MigrateInputV1{
-			UsePermissionlessGame:          cliCtx.Bool(PermissionlessFlag.Name),
-			StartingAnchorRoot:             common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
-			StartingAnchorL2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
-			Proposer:                       common.HexToAddress(cliCtx.String(ProposerFlag.Name)),
-			Challenger:                     common.HexToAddress(cliCtx.String(ChallengerFlag.Name)),
-			MaxGameDepth:                   cliCtx.Uint64(DisputeMaxGameDepthFlag.Name),
-			SplitDepth:                     cliCtx.Uint64(DisputeSplitDepthFlag.Name),
-			InitBond:                       initBond,
-			ClockExtension:                 cliCtx.Uint64(DisputeClockExtensionFlag.Name),
-			MaxClockDuration:               cliCtx.Uint64(DisputeMaxClockDurationFlag.Name),
+			UsePermissionlessGame: cliCtx.Bool(PermissionlessFlag.Name),
+			StartingAnchorRoot: Proposal{
+				Root:             common.HexToHash(cliCtx.String(StartingAnchorRootFlag.Name)),
+				L2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
+			},
+			GameParameters: GameParameters{
+				Proposer:         common.HexToAddress(cliCtx.String(ProposerFlag.Name)),
+				Challenger:       common.HexToAddress(cliCtx.String(ChallengerFlag.Name)),
+				MaxGameDepth:     new(big.Int).SetUint64(cliCtx.Uint64(DisputeMaxGameDepthFlag.Name)),
+				SplitDepth:       new(big.Int).SetUint64(cliCtx.Uint64(DisputeSplitDepthFlag.Name)),
+				InitBond:         initBond,
+				ClockExtension:   new(big.Int).SetUint64(cliCtx.Uint64(DisputeClockExtensionFlag.Name)),
+				MaxClockDuration: new(big.Int).SetUint64(cliCtx.Uint64(DisputeMaxClockDurationFlag.Name)),
+			},
 			// At the moment we only support a single chain config
 			OpChainConfigs: []OPChainConfig{
 				{
@@ -258,4 +311,56 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	}
 
 	return nil
+}
+
+// isVersionAtLeast parses a semver string (e.g., "6.0.0" or "7.1.2") and checks if it's >= the target version
+func isVersionAtLeast(versionStr string, targetMajor, targetMinor, targetPatch int) (bool, error) {
+	// Remove any "v" prefix if present
+	versionStr = strings.TrimPrefix(versionStr, "v")
+
+	// Split version string by "."
+	parts := strings.Split(versionStr, ".")
+	if len(parts) < 2 {
+		return false, fmt.Errorf("invalid version format: %s", versionStr)
+	}
+
+	// Parse major version
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false, fmt.Errorf("invalid major version: %s", parts[0])
+	}
+
+	// Parse minor version
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return false, fmt.Errorf("invalid minor version: %s", parts[1])
+	}
+
+	// Parse patch version if present (optional)
+	patch := 0
+	if len(parts) >= 3 {
+		patch, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return false, fmt.Errorf("invalid patch version: %s", parts[2])
+		}
+	}
+
+	// Compare versions
+	if major > targetMajor {
+		return true, nil
+	}
+	if major < targetMajor {
+		return false, nil
+	}
+
+	// major == targetMajor
+	if minor > targetMinor {
+		return true, nil
+	}
+	if minor < targetMinor {
+		return false, nil
+	}
+
+	// major == targetMajor && minor == targetMinor
+	return patch >= targetPatch, nil
 }

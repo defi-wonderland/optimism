@@ -52,33 +52,31 @@ func (c *Contract) GenericAddressGetter(ctx context.Context, functionName string
 	return c.callContractMethod(ctx, functionName, abi.Arguments{})
 }
 
-func (c *Contract) IsDevFeatureEnabled(ctx context.Context, feature common.Hash) (bool, error) {
+func (c *Contract) GenericStringGetter(ctx context.Context, functionName string) (string, error) {
+	return c.callContractMethodString(ctx, functionName, abi.Arguments{})
+}
+
+func (c *Contract) callContractMethodString(ctx context.Context, methodName string, inputs abi.Arguments, args ...interface{}) (string, error) {
 	method := abi.NewMethod(
-		"isDevFeatureEnabled",
-		"isDevFeatureEnabled",
+		methodName,
+		methodName,
 		abi.Function,
 		"view",
 		true,
 		false,
+		inputs,
 		abi.Arguments{
 			abi.Argument{
-				Name:    "_feature",
-				Type:    mustType("bytes32"),
-				Indexed: false,
-			},
-		},
-		abi.Arguments{
-			abi.Argument{
-				Name:    "",
-				Type:    mustType("bool"),
+				Name:    "string",
+				Type:    mustType("string"),
 				Indexed: false,
 			},
 		},
 	)
 
-	calldata, err := method.Inputs.Pack(feature)
+	calldata, err := method.Inputs.Pack(args...)
 	if err != nil {
-		return false, fmt.Errorf("failed to pack inputs: %w", err)
+		return "", fmt.Errorf("failed to pack inputs: %w", err)
 	}
 
 	msg := ethereum.CallMsg{
@@ -87,21 +85,21 @@ func (c *Contract) IsDevFeatureEnabled(ctx context.Context, feature common.Hash)
 	}
 	result, err := c.client.CallContract(ctx, msg, nil)
 	if err != nil {
-		return false, fmt.Errorf("failed to call contract: %w", err)
+		return "", fmt.Errorf("failed to call contract: %w", err)
 	}
 
 	out, err := method.Outputs.Unpack(result)
 	if err != nil {
-		return false, fmt.Errorf("failed to unpack result: %w", err)
+		return "", fmt.Errorf("failed to unpack result: %w", err)
 	}
 	if len(out) != 1 {
-		return false, fmt.Errorf("unexpected output length: %d", len(out))
+		return "", fmt.Errorf("unexpected output length: %d", len(out))
 	}
-	enabled, ok := out[0].(bool)
+	str, ok := out[0].(string)
 	if !ok {
-		return false, fmt.Errorf("unexpected type: %T", out[0])
+		return "", fmt.Errorf("unexpected type: %T", out[0])
 	}
-	return enabled, nil
+	return str, nil
 }
 
 func (c *Contract) callContractMethod(ctx context.Context, methodName string, inputs abi.Arguments, args ...interface{}) (common.Address, error) {

@@ -21,7 +21,7 @@ import (
 )
 
 func TestInteropMigration(t *testing.T) {
-	t.Skip("Skipped until the sepolia opcm supports the interop migration")
+	t.Skip("Skipped until the sepolia opcm supports the interop migration (missing superFaultDisputeGameImpl and superPermissionedDisputeGameImpl)")
 
 	lgr := testlog.Logger(t, slog.LevelDebug)
 
@@ -56,19 +56,25 @@ func TestInteropMigration(t *testing.T) {
 		Prank: pao,
 		Opcm:  common.HexToAddress("0xaf334f4537e87f5155d135392ff6d52f1866465e"),
 		MigrateInputV1: &MigrateInputV1{
-			UsePermissionlessGame:          true,
-			StartingAnchorL2SequenceNumber: big.NewInt(1),
-			Proposer:                       common.Address{'A'},
-			Challenger:                     common.Address{'B'},
-			MaxGameDepth:                   10,
-			SplitDepth:                     10,
-			InitBond:                       big.NewInt(1000000000000000000), // 1 ETH
-			ClockExtension:                 10,
-			MaxClockDuration:               10,
+			UsePermissionlessGame: true,
+			StartingAnchorRoot: Proposal{
+				Root:             common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
+				L2SequenceNumber: big.NewInt(1),
+			},
+			GameParameters: GameParameters{
+				Proposer:         common.Address{'A'},
+				Challenger:       common.Address{'B'},
+				MaxGameDepth:     big.NewInt(10),
+				SplitDepth:       big.NewInt(10),
+				InitBond:         big.NewInt(1000000000000000000), // 1 ETH
+				ClockExtension:   big.NewInt(10),
+				MaxClockDuration: big.NewInt(10),
+			},
 			OpChainConfigs: []OPChainConfig{
 				{
-					SystemConfigProxy: common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
-					CannonPrestate:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"),
+					SystemConfigProxy:  common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
+					CannonPrestate:     common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"),
+					CannonKonaPrestate: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000fed"),
 				},
 			},
 		},
@@ -127,12 +133,12 @@ func TestInteropMigrationV2(t *testing.T) {
 					Enabled:  true,
 					InitBond: big.NewInt(1000000000000000000), // 1 ETH
 					GameType: 0,                               // Cannon
-					GameArgs: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"),
+					GameArgs: common.FromHex("0x0000000000000000000000000000000000000000000000000000000000000abc"),
 				},
 			},
 			StartingAnchorRoot: Proposal{
-				Root:           common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
-				SequenceNumber: big.NewInt(1),
+				Root:             common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
+				L2SequenceNumber: big.NewInt(1),
 			},
 			StartingRespectedGameType: 0, // Cannon
 		},
@@ -229,7 +235,7 @@ func TestMigrateCLI_V2Flags(t *testing.T) {
 	initBond, ok := new(big.Int).SetString(initBondStr, 10)
 	require.True(t, ok)
 	gameType := uint32(ctx.Uint64(DisputeGameTypeFlag.Name))
-	gameArgs := common.HexToHash(ctx.String(DisputeAbsolutePrestateFlag.Name))
+	gameArgs := common.FromHex(ctx.String(DisputeAbsolutePrestateFlag.Name))
 	startingAnchorRoot := common.HexToHash(ctx.String(StartingAnchorRootFlag.Name))
 	startingAnchorL2SeqNum := ctx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)
 	startingRespectedGameType := uint32(ctx.Uint64(StartingRespectedGameTypeFlag.Name))
@@ -240,7 +246,7 @@ func TestMigrateCLI_V2Flags(t *testing.T) {
 	require.True(t, disputeGameEnabled)
 	require.Equal(t, big.NewInt(1000000000000000000), initBond)
 	require.Equal(t, uint32(0), gameType)
-	require.Equal(t, common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"), gameArgs)
+	require.Equal(t, common.FromHex("0x0000000000000000000000000000000000000000000000000000000000000abc"), gameArgs)
 	require.Equal(t, common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"), startingAnchorRoot)
 	require.Equal(t, uint64(1), startingAnchorL2SeqNum)
 	require.Equal(t, uint32(0), startingRespectedGameType)

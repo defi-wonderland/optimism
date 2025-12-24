@@ -96,9 +96,9 @@ contract UpgradeOPChainInput_Test is Test {
     /// @notice Tests that the upgrade input can be set using the OPContractsManagerV2.UpgradeInput type.
     function test_setUpgradeInputV2_succeeds() public {
         // Create sample UpgradeInputV2
-        OPContractsManagerV2.DisputeGameConfig[] memory disputeGameConfigs =
-            new OPContractsManagerV2.DisputeGameConfig[](1);
-        disputeGameConfigs[0] = OPContractsManagerV2.DisputeGameConfig({
+        IOPContractsManagerUtils.DisputeGameConfig[] memory disputeGameConfigs =
+            new IOPContractsManagerUtils.DisputeGameConfig[](1);
+        disputeGameConfigs[0] = IOPContractsManagerUtils.DisputeGameConfig({
             enabled: true,
             initBond: 1000,
             gameType: GameType.wrap(1),
@@ -200,7 +200,7 @@ contract MockOPCMV1 {
 contract MockOPCMV2 {
     event UpgradeCalled(
         address indexed systemConfig,
-        OPContractsManagerV2.DisputeGameConfig[] indexed disputeGameConfigs,
+        IOPContractsManagerUtils.DisputeGameConfig[] indexed disputeGameConfigs,
         IOPContractsManagerUtils.ExtraInstruction[] indexed extraInstructions
     );
 
@@ -263,7 +263,7 @@ contract UpgradeOPChain_TestV2 is Test {
 
     event UpgradeCalled(
         address indexed systemConfig,
-        OPContractsManagerV2.DisputeGameConfig[] indexed disputeGameConfigs,
+        IOPContractsManagerUtils.DisputeGameConfig[] indexed disputeGameConfigs,
         IOPContractsManagerUtils.ExtraInstruction[] indexed extraInstructions
     );
 
@@ -282,7 +282,7 @@ contract UpgradeOPChain_TestV2 is Test {
         // memory[] memory to storage not yet supported.` error.
         OPContractsManagerV2.UpgradeInput memory upgradeInput = OPContractsManagerV2.UpgradeInput({
             systemConfig: ISystemConfig(makeAddr("systemConfig")),
-            disputeGameConfigs: new OPContractsManagerV2.DisputeGameConfig[](1),
+            disputeGameConfigs: new IOPContractsManagerUtils.DisputeGameConfig[](1),
             extraInstructions: new IOPContractsManagerUtils.ExtraInstruction[](0)
         });
         uoci.set(uoci.upgradeInput.selector, upgradeInput);

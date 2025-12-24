@@ -97,13 +97,12 @@ contract InteropMigrationInput_Test is Test {
             gameArgs: abi.encodePacked(bytes32(uint256(0xabc)))
         });
 
-        IOPContractsManagerMigrator.MigrateInput memory migrateInput =
-            IOPContractsManagerMigrator.MigrateInput({
-                chainSystemConfigs: systemConfigs,
-                disputeGameConfigs: gameConfigs,
-                startingAnchorRoot: Proposal({ root: Hash.wrap(bytes32(uint256(1))), l2SequenceNumber: 100 }),
-                startingRespectedGameType: GameType.wrap(0)
-            });
+        IOPContractsManagerMigrator.MigrateInput memory migrateInput = IOPContractsManagerMigrator.MigrateInput({
+            chainSystemConfigs: systemConfigs,
+            disputeGameConfigs: gameConfigs,
+            startingAnchorRoot: Proposal({ root: Hash.wrap(bytes32(uint256(1))), l2SequenceNumber: 100 }),
+            startingRespectedGameType: GameType.wrap(0)
+        });
 
         input.set(input.migrateInput.selector, migrateInput);
 
@@ -135,11 +134,8 @@ contract MockOPCM {
         opcmV2Enabled = _opcmV2Enabled;
     }
 
-    function isDevFeatureEnabled(bytes32 _feature) public view returns (bool) {
-        if (_feature == DevFeatures.OPCM_V2) {
-            return opcmV2Enabled;
-        }
-        return false;
+    function version() public view returns (string memory) {
+        return opcmV2Enabled ? "7.0.0" : "6.0.0";
     }
 
     function migrate(IOPContractsManagerInteropMigrator.MigrateInput memory _input) public {
@@ -149,9 +145,7 @@ contract MockOPCM {
     }
 
     function migrate(IOPContractsManagerMigrator.MigrateInput memory _input) public {
-        emit MigrateV2Called(
-            address(_input.chainSystemConfigs[0]), GameType.unwrap(_input.startingRespectedGameType)
-        );
+        emit MigrateV2Called(address(_input.chainSystemConfigs[0]), GameType.unwrap(_input.startingRespectedGameType));
     }
 }
 
@@ -260,13 +254,12 @@ contract InteropMigrationV2_Test is Test {
             gameArgs: abi.encodePacked(bytes32(uint256(0xabc)))
         });
 
-        IOPContractsManagerMigrator.MigrateInput memory migrateInput =
-            IOPContractsManagerMigrator.MigrateInput({
-                chainSystemConfigs: systemConfigs,
-                disputeGameConfigs: gameConfigs,
-                startingAnchorRoot: Proposal({ root: Hash.wrap(bytes32(uint256(1))), l2SequenceNumber: 100 }),
-                startingRespectedGameType: GameType.wrap(0)
-            });
+        IOPContractsManagerMigrator.MigrateInput memory migrateInput = IOPContractsManagerMigrator.MigrateInput({
+            chainSystemConfigs: systemConfigs,
+            disputeGameConfigs: gameConfigs,
+            startingAnchorRoot: Proposal({ root: Hash.wrap(bytes32(uint256(1))), l2SequenceNumber: 100 }),
+            startingRespectedGameType: GameType.wrap(0)
+        });
 
         input.set(input.migrateInput.selector, migrateInput);
 
