@@ -28,7 +28,8 @@ import (
 )
 
 // ScriptInput represents the input struct that is actually passed to the script.
-// It contains the prank, opcm, and migrate input.
+// It contains the prank address, OPCM address, and ABI-encoded migrate input.
+// The migrateInput field contains either encoded MigrateInputV1 or MigrateInputV2.
 type ScriptInput struct {
 	Prank        common.Address `evm:"prank"`
 	Opcm         common.Address `evm:"opcm"`
@@ -36,7 +37,8 @@ type ScriptInput struct {
 }
 
 // InteropMigrationInput represents the struct that is read from the config file.
-// It contains both fields for the old and new migrate input.
+// It contains both fields for the old and new migrate input to support both OPCM v1 and v2.
+// Only one of MigrateInputV1 or MigrateInputV2 should be set.
 type InteropMigrationInput struct {
 	Prank          common.Address  `json:"prank"`
 	Opcm           common.Address  `json:"opcm"`
@@ -44,7 +46,9 @@ type InteropMigrationInput struct {
 	MigrateInputV2 *MigrateInputV2 `json:"migrateInput,omitempty"`
 }
 
-// MigrateInputV1 represents the old migrate input in OPCM v1.
+// MigrateInputV1 represents the migrate input format for OPCM v1 (< 7.0.0).
+// This format is used for the interop migration on chains using older OPCM versions.
+// Corresponds to IOPContractsManagerInteropMigrator.MigrateInput
 type MigrateInputV1 struct {
 	UsePermissionlessGame bool            `json:"usePermissionlessGame"`
 	StartingAnchorRoot    Proposal        `json:"startingAnchorRoot"`
@@ -52,6 +56,8 @@ type MigrateInputV1 struct {
 	OpChainConfigs        []OPChainConfig `json:"opChainConfigs"`
 }
 
+// GameParameters defines the configuration parameters for the fault dispute game.
+// Corresponds to IOPContractsManagerInteropMigrator.GameParameters
 type GameParameters struct {
 	Proposer         common.Address `json:"proposer"`
 	Challenger       common.Address `json:"challenger"`
@@ -62,7 +68,16 @@ type GameParameters struct {
 	MaxClockDuration *big.Int       `json:"maxClockDuration"`
 }
 
-// MigrateInputV2 represents the new migrate input in OPCM v2.
+// OPChainConfig contains per-chain configuration for OPCM v1 migrations.
+// Corresponds to IOPContractsManagerInteropMigrator.OPChainConfig
+type OPChainConfig struct {
+	SystemConfigProxy  common.Address `json:"systemConfigProxy"`
+	CannonPrestate     common.Hash    `json:"cannonPrestate"`
+	CannonKonaPrestate common.Hash    `json:"cannonKonaPrestate"`
+}
+
+// MigrateInputV2 represents the migrate input format for OPCM v2 (>= 7.0.0).
+// Corresponds to IOPContractsManagerMigrator.MigrateInput
 type MigrateInputV2 struct {
 	ChainSystemConfigs        []common.Address    `json:"chainSystemConfigs"`
 	DisputeGameConfigs        []DisputeGameConfig `json:"disputeGameConfigs"`
@@ -70,6 +85,8 @@ type MigrateInputV2 struct {
 	StartingRespectedGameType uint32              `json:"startingRespectedGameType"`
 }
 
+// DisputeGameConfig defines the configuration for a specific dispute game type.
+// Corresponds to IOPContractsManagerMigrator.DisputeGameConfig
 type DisputeGameConfig struct {
 	Enabled  bool     `json:"enabled"`
 	InitBond *big.Int `json:"initBond"`
@@ -77,17 +94,14 @@ type DisputeGameConfig struct {
 	GameArgs []byte   `json:"gameArgs"`
 }
 
+// Proposal represents an L2 output root proposal used as the starting anchor for dispute games.
+// Both present in MigrateInputV1 and MigrateInputV2.
 type Proposal struct {
 	Root             common.Hash `json:"root"`
 	L2SequenceNumber *big.Int    `json:"l2SequenceNumber"`
 }
 
-type OPChainConfig struct {
-	SystemConfigProxy  common.Address `json:"systemConfigProxy"`
-	CannonPrestate     common.Hash    `json:"cannonPrestate"`
-	CannonKonaPrestate common.Hash    `json:"cannonKonaPrestate"`
-}
-
+// InteropMigrationOutput contains the output of the interop migration script.
 type InteropMigrationOutput struct {
 	DisputeGameFactory common.Address `json:"disputeGameFactory"`
 }
