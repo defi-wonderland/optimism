@@ -155,55 +155,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         DeployOPChain.Output memory doo = deployOPChain.run(deployOPChainInput);
         // Basic non-zero and code checks are covered inside run->checkOutput.
         // Additonal targeted assertions added below.
-
-        IPermissionedDisputeGame pdg = getPermissionedDisputeGame(doo);
-        assertEq(pdg.splitDepth(), disputeSplitDepth, "PDG splitDepth");
-        assertEq(pdg.maxGameDepth(), disputeMaxGameDepth, "PDG maxGameDepth");
-        assertEq(Duration.unwrap(pdg.clockExtension()), Duration.unwrap(disputeClockExtension), "PDG clockExtension");
-        assertEq(
-            Duration.unwrap(pdg.maxClockDuration()), Duration.unwrap(disputeMaxClockDuration), "PDG maxClockDuration"
-        );
-
-        // For v2 contracts, some immutable args are passed in at game creation time from DGF.gameArgs
-        assertEq(address(pdg.proposer()), address(0), "PDG proposer");
-        assertEq(address(pdg.challenger()), address(0), "PDG challenger");
-        assertEq(Claim.unwrap(pdg.absolutePrestate()), bytes32(0), "PDG absolutePrestate");
-
-        // Custom gas token feature should reflect input
-        assertEq(doo.systemConfigProxy.isCustomGasToken(), useCustomGasToken, "SystemConfig isCustomGasToken");
-        assertEq(
-            doo.systemConfigProxy.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN),
-            useCustomGasToken,
-            "SystemConfig CUSTOM_GAS_TOKEN feature"
-        );
-
-        // Verify superchainConfig is set correctly
-        assertEq(
-            address(doo.systemConfigProxy.superchainConfig()),
-            address(deployOPChainInput.superchainConfig),
-            "superchainConfig mismatch"
-        );
-
-        // OPCM v2 specific assertions
-        if (isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
-            // PERMISSIONED_CANNON must always be enabled with 0.08 ether init bond
-            assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.PERMISSIONED_CANNON), 0.08 ether);
-            assertNotEq(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON)), address(0));
-
-            // CANNON is only enabled if it's the starting game type
-            bool cannonEnabled = deployOPChainInput.disputeGameType.raw() == GameTypes.CANNON.raw();
-            assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.CANNON), cannonEnabled ? 0.08 ether : 0);
-            if (cannonEnabled) {
-                assertNotEq(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.CANNON)), address(0));
-            }
-
-            // CANNON_KONA is only enabled if it's the starting game type
-            bool cannonKonaEnabled = deployOPChainInput.disputeGameType.raw() == GameTypes.CANNON_KONA.raw();
-            assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.CANNON_KONA), cannonKonaEnabled ? 0.08 ether : 0);
-            if (cannonKonaEnabled) {
-                assertNotEq(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.CANNON_KONA)), address(0));
-            }
-        }
+        _checkDeploymentAssertions(doo);
     }
 
     function testFuzz_run_memory_succeeds(bytes32 _seed) public {
@@ -286,10 +238,8 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         bytes memory outputBytes = deployOPChain.runWithBytes(inputBytes);
         DeployOPChain.Output memory doo = abi.decode(outputBytes, (DeployOPChain.Output));
 
-        // Verify basic outputs
-        assertNotEq(address(doo.opChainProxyAdmin), address(0), "opChainProxyAdmin should be non-zero");
-        assertNotEq(address(doo.systemConfigProxy), address(0), "systemConfigProxy should be non-zero");
-        assertNotEq(address(doo.disputeGameFactoryProxy), address(0), "disputeGameFactoryProxy should be non-zero");
+        // covers basic non-zero and code checks are covered inside run->checkOutput.
+        _checkDeploymentAssertions(doo);
     }
 
     function test_run_cannonGameType_succeeds() public {
@@ -348,6 +298,60 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
 
         // CANNON should not be enabled
         assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.CANNON), 0, "CANNON init bond");
+    }
+
+    /// @notice Checks for additional assertions that are not covered by the basic non-zero and code checks in
+    /// `DeployOPChain.checkOutput`.
+    /// @param doo The output of the deployment.
+    function _checkDeploymentAssertions(DeployOPChain.Output memory doo) internal view {
+        IPermissionedDisputeGame pdg = getPermissionedDisputeGame(doo);
+        assertEq(pdg.splitDepth(), disputeSplitDepth, "PDG splitDepth");
+        assertEq(pdg.maxGameDepth(), disputeMaxGameDepth, "PDG maxGameDepth");
+        assertEq(Duration.unwrap(pdg.clockExtension()), Duration.unwrap(disputeClockExtension), "PDG clockExtension");
+        assertEq(
+            Duration.unwrap(pdg.maxClockDuration()), Duration.unwrap(disputeMaxClockDuration), "PDG maxClockDuration"
+        );
+
+        // For v2 contracts, some immutable args are passed in at game creation time from DGF.gameArgs
+        assertEq(address(pdg.proposer()), address(0), "PDG proposer");
+        assertEq(address(pdg.challenger()), address(0), "PDG challenger");
+        assertEq(Claim.unwrap(pdg.absolutePrestate()), bytes32(0), "PDG absolutePrestate");
+
+        // Custom gas token feature should reflect input
+        assertEq(doo.systemConfigProxy.isCustomGasToken(), useCustomGasToken, "SystemConfig isCustomGasToken");
+        assertEq(
+            doo.systemConfigProxy.isFeatureEnabled(Features.CUSTOM_GAS_TOKEN),
+            useCustomGasToken,
+            "SystemConfig CUSTOM_GAS_TOKEN feature"
+        );
+
+        // Verify superchainConfig is set correctly
+        assertEq(
+            address(doo.systemConfigProxy.superchainConfig()),
+            address(deployOPChainInput.superchainConfig),
+            "superchainConfig mismatch"
+        );
+
+        // OPCM v2 specific assertions
+        if (isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
+            // PERMISSIONED_CANNON must always be enabled with 0.08 ether init bond
+            assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.PERMISSIONED_CANNON), 0.08 ether);
+            assertNotEq(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON)), address(0));
+
+            // CANNON is only enabled if it's the starting game type
+            bool cannonEnabled = deployOPChainInput.disputeGameType.raw() == GameTypes.CANNON.raw();
+            assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.CANNON), cannonEnabled ? 0.08 ether : 0);
+            if (cannonEnabled) {
+                assertNotEq(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.CANNON)), address(0));
+            }
+
+            // CANNON_KONA is only enabled if it's the starting game type
+            bool cannonKonaEnabled = deployOPChainInput.disputeGameType.raw() == GameTypes.CANNON_KONA.raw();
+            assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.CANNON_KONA), cannonKonaEnabled ? 0.08 ether : 0);
+            if (cannonKonaEnabled) {
+                assertNotEq(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.CANNON_KONA)), address(0));
+            }
+        }
     }
 }
 
