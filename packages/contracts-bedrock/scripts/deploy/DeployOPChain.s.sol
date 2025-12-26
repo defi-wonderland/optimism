@@ -30,6 +30,11 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { GameTypes } from "src/dispute/lib/Types.sol";
 
 contract DeployOPChain is Script {
+    /// @notice The default init bond for the dispute games.
+    uint256 internal constant DEFAULT_INIT_BOND = 0.08 ether;
+
+    /// @notice The output of the DeployOPChain script. This is the same as the DeployOPChainOutput type in the
+    /// op-deployer package.
     struct Output {
         IProxyAdmin opChainProxyAdmin;
         IAddressManager addressManager;
@@ -161,7 +166,7 @@ contract DeployOPChain is Script {
 
         disputeGameConfigs[0] = IOPContractsManagerV2.DisputeGameConfig({
             enabled: cannonEnabled,
-            initBond: cannonEnabled ? 0.08 ether : 0, // Standard init bond if enabled
+            initBond: cannonEnabled ? DEFAULT_INIT_BOND : 0,
             gameType: GameTypes.CANNON,
             gameArgs: abi.encode(cannonConfig)
         });
@@ -176,7 +181,7 @@ contract DeployOPChain is Script {
 
         disputeGameConfigs[1] = IOPContractsManagerV2.DisputeGameConfig({
             enabled: permissionedCannonEnabled,
-            initBond: 0.08 ether, // Standard init bond
+            initBond: DEFAULT_INIT_BOND,
             gameType: GameTypes.PERMISSIONED_CANNON,
             gameArgs: abi.encode(pdgConfig)
         });
@@ -187,7 +192,7 @@ contract DeployOPChain is Script {
 
         disputeGameConfigs[2] = IOPContractsManagerV2.DisputeGameConfig({
             enabled: cannonKonaEnabled,
-            initBond: cannonKonaEnabled ? 0.08 ether : 0, // Standard init bond if enabled
+            initBond: cannonKonaEnabled ? DEFAULT_INIT_BOND : 0,
             gameType: GameTypes.CANNON_KONA,
             gameArgs: abi.encode(cannonKonaConfig)
         });
