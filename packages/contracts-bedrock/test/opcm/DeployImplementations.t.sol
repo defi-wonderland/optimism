@@ -437,13 +437,8 @@ contract DeployImplementations_Test is Test, FeatureFlags {
         deployImplementations.run(input);
     }
 
-    function test_challenger_zeroAddress_reverts() public {
-        DeployImplementations.Input memory input = defaultInput();
-        input.challenger = address(0);
-        vm.expectRevert("DeployImplementations: challenger not set");
-        deployImplementations.run(input);
-    }
-
+    /// @notice Test that the deployImplementations function reverts when a required input property is set to not set or
+    /// zero.
     function test_run_nullInput_reverts() public {
         DeployImplementations.Input memory input;
 
@@ -495,6 +490,11 @@ contract DeployImplementations_Test is Test, FeatureFlags {
         input = defaultInput();
         input.l1ProxyAdminOwner = address(0);
         vm.expectRevert("DeployImplementations: L1ProxyAdminOwner not set");
+        deployImplementations.run(input);
+
+        input = defaultInput();
+        input.challenger = address(0);
+        vm.expectRevert("DeployImplementations: challenger not set");
         deployImplementations.run(input);
     }
 
