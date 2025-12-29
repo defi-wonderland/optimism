@@ -61,11 +61,11 @@ type MigrateInputV1 struct {
 type GameParameters struct {
 	Proposer         common.Address `json:"proposer"`
 	Challenger       common.Address `json:"challenger"`
-	MaxGameDepth     *big.Int       `json:"maxGameDepth"`
-	SplitDepth       *big.Int       `json:"splitDepth"`
+	MaxGameDepth     uint64         `json:"maxGameDepth"`
+	SplitDepth       uint64         `json:"splitDepth"`
 	InitBond         *big.Int       `json:"initBond"`
-	ClockExtension   *big.Int       `json:"clockExtension"`
-	MaxClockDuration *big.Int       `json:"maxClockDuration"`
+	ClockExtension   uint64         `json:"clockExtension"`
+	MaxClockDuration uint64         `json:"maxClockDuration"`
 }
 
 // OPChainConfig contains per-chain configuration for OPCM v1 migrations.
@@ -254,11 +254,11 @@ func MigrateCLI(cliCtx *cli.Context) error {
 			GameParameters: GameParameters{
 				Proposer:         common.HexToAddress(cliCtx.String(ProposerFlag.Name)),
 				Challenger:       common.HexToAddress(cliCtx.String(ChallengerFlag.Name)),
-				MaxGameDepth:     new(big.Int).SetUint64(cliCtx.Uint64(DisputeMaxGameDepthFlag.Name)),
-				SplitDepth:       new(big.Int).SetUint64(cliCtx.Uint64(DisputeSplitDepthFlag.Name)),
-				InitBond:         initBond,
-				ClockExtension:   new(big.Int).SetUint64(cliCtx.Uint64(DisputeClockExtensionFlag.Name)),
-				MaxClockDuration: new(big.Int).SetUint64(cliCtx.Uint64(DisputeMaxClockDurationFlag.Name)),
+				MaxGameDepth:     cliCtx.Uint64(DisputeMaxGameDepthFlag.Name),
+				SplitDepth:       cliCtx.Uint64(DisputeSplitDepthFlag.Name),
+				InitBond:         big.NewInt(int64(cliCtx.Uint64(InitialBondFlag.Name))),
+				ClockExtension:   cliCtx.Uint64(DisputeClockExtensionFlag.Name),
+				MaxClockDuration: cliCtx.Uint64(DisputeMaxClockDurationFlag.Name),
 			},
 			// At the moment we only support a single chain config
 			OpChainConfigs: []OPChainConfig{

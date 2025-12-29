@@ -64,11 +64,11 @@ func TestInteropMigration(t *testing.T) {
 			GameParameters: GameParameters{
 				Proposer:         common.Address{'A'},
 				Challenger:       common.Address{'B'},
-				MaxGameDepth:     big.NewInt(10),
-				SplitDepth:       big.NewInt(10),
+				MaxGameDepth:     10,
+				SplitDepth:       10,
 				InitBond:         big.NewInt(1000000000000000000), // 1 ETH
-				ClockExtension:   big.NewInt(10),
-				MaxClockDuration: big.NewInt(10),
+				ClockExtension:   10,
+				MaxClockDuration: 10,
 			},
 			OpChainConfigs: []OPChainConfig{
 				{
@@ -283,9 +283,10 @@ func TestMigrateCLI_MissingRequiredFlags(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Verify that the expected flag is not set
-			if tc.expectedErr == OPCMImplFlag.Name {
+			switch tc.expectedErr {
+			case OPCMImplFlag.Name:
 				require.Empty(t, ctx.String(OPCMImplFlag.Name))
-			} else if tc.expectedErr == SystemConfigProxyFlag.Name {
+			case SystemConfigProxyFlag.Name:
 				require.Empty(t, ctx.String(SystemConfigProxyFlag.Name))
 			}
 		})
