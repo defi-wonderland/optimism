@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
@@ -208,7 +207,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 
 	// Parse version string (format: "major.minor.patch")
 	// If version < 7.0.0, use v1, otherwise use v2
-	useV2, err := isVersionAtLeast(versionStr, 7, 0, 0)
+	useV2, err := deployer.IsVersionAtLeast(versionStr, 7, 0, 0)
 	if err != nil {
 		return fmt.Errorf("failed to parse OPCM version %s: %w", versionStr, err)
 	}
@@ -325,56 +324,4 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	}
 
 	return nil
-}
-
-// isVersionAtLeast parses a semver string (e.g., "6.0.0" or "7.1.2") and checks if it's >= the target version
-func isVersionAtLeast(versionStr string, targetMajor, targetMinor, targetPatch int) (bool, error) {
-	// Remove any "v" prefix if present
-	versionStr = strings.TrimPrefix(versionStr, "v")
-
-	// Split version string by "."
-	parts := strings.Split(versionStr, ".")
-	if len(parts) < 2 {
-		return false, fmt.Errorf("invalid version format: %s", versionStr)
-	}
-
-	// Parse major version
-	major, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return false, fmt.Errorf("invalid major version: %s", parts[0])
-	}
-
-	// Parse minor version
-	minor, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return false, fmt.Errorf("invalid minor version: %s", parts[1])
-	}
-
-	// Parse patch version if present (optional)
-	patch := 0
-	if len(parts) >= 3 {
-		patch, err = strconv.Atoi(parts[2])
-		if err != nil {
-			return false, fmt.Errorf("invalid patch version: %s", parts[2])
-		}
-	}
-
-	// Compare versions
-	if major > targetMajor {
-		return true, nil
-	}
-	if major < targetMajor {
-		return false, nil
-	}
-
-	// major == targetMajor
-	if minor > targetMinor {
-		return true, nil
-	}
-	if minor < targetMinor {
-		return false, nil
-	}
-
-	// major == targetMajor && minor == targetMinor
-	return patch >= targetPatch, nil
 }
