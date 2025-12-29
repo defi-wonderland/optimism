@@ -31,7 +31,7 @@ import { GameTypes } from "src/dispute/lib/Types.sol";
 
 contract DeployOPChain is Script {
     /// @notice The default init bond for the dispute games.
-    uint256 internal constant DEFAULT_INIT_BOND = 0.08 ether;
+    uint256 public constant DEFAULT_INIT_BOND = 0.08 ether;
 
     /// @notice The output of the DeployOPChain script. This is the same as the DeployOPChainOutput type in the
     /// op-deployer package.
