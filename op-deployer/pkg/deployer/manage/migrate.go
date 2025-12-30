@@ -122,7 +122,36 @@ func (i *InteropMigrationInput) EncodedMigrateInputV1() ([]byte, error) {
 	if i.MigrateInputV1 == nil {
 		return nil, fmt.Errorf("MigrateInputV1 is nil")
 	}
-	data, err := migrateInputV1Encoder.EncodeArgs(i.MigrateInputV1)
+
+	// Convert uint64 fields to *big.Int for encoding since w3 doesn't support uint64
+	encodableInput := struct {
+		UsePermissionlessGame bool
+		StartingAnchorRoot    Proposal
+		GameParameters        struct {
+			Proposer         common.Address
+			Challenger       common.Address
+			MaxGameDepth     *big.Int
+			SplitDepth       *big.Int
+			InitBond         *big.Int
+			ClockExtension   *big.Int
+			MaxClockDuration *big.Int
+		}
+		OpChainConfigs []OPChainConfig
+	}{
+		UsePermissionlessGame: i.MigrateInputV1.UsePermissionlessGame,
+		StartingAnchorRoot:    i.MigrateInputV1.StartingAnchorRoot,
+		OpChainConfigs:        i.MigrateInputV1.OpChainConfigs,
+	}
+
+	encodableInput.GameParameters.Proposer = i.MigrateInputV1.GameParameters.Proposer
+	encodableInput.GameParameters.Challenger = i.MigrateInputV1.GameParameters.Challenger
+	encodableInput.GameParameters.MaxGameDepth = new(big.Int).SetUint64(i.MigrateInputV1.GameParameters.MaxGameDepth)
+	encodableInput.GameParameters.SplitDepth = new(big.Int).SetUint64(i.MigrateInputV1.GameParameters.SplitDepth)
+	encodableInput.GameParameters.InitBond = i.MigrateInputV1.GameParameters.InitBond
+	encodableInput.GameParameters.ClockExtension = new(big.Int).SetUint64(i.MigrateInputV1.GameParameters.ClockExtension)
+	encodableInput.GameParameters.MaxClockDuration = new(big.Int).SetUint64(i.MigrateInputV1.GameParameters.MaxClockDuration)
+
+	data, err := migrateInputV1Encoder.EncodeArgs(encodableInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode migrate input v1: %w", err)
 	}
