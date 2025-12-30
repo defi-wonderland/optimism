@@ -3,6 +3,7 @@ package manage
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/script"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/bootstrap"
@@ -17,6 +19,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/integration_test/shared"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/testutil"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/upgrade/embedded"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
@@ -99,8 +102,6 @@ func TestInteropMigration(t *testing.T) {
 }
 
 func TestInteropMigrationV2(t *testing.T) {
-	// t.Skip("Interop migration requires a chain that was deployed by the OPCM being used. Bootstrapping fresh implementations doesn't establish this relationship. To test this properly would require deploying a full chain first.")
-
 	lgr := testlog.Logger(t, slog.LevelDebug)
 
 	forkedL1, stopL1, err := devnet.NewForkedSepolia(lgr)
@@ -150,7 +151,7 @@ func TestInteropMigrationV2(t *testing.T) {
 		ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
 		ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
 		DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
-		DevFeatureBitmap:                deployer.OPCMV2DevFlag, // Enable OPCM V2
+		DevFeatureBitmap:                deployer.EnableDevFeature(deployer.OPCMV2DevFlag, deployer.OptimismPortalInteropDevFlag), // Enable OPCM V2 and OptimismPortalInterop
 		SuperchainConfigProxy:           superchainOut.SuperchainConfigProxy,
 		ProtocolVersionsProxy:           superchainOut.ProtocolVersionsProxy,
 		SuperchainProxyAdmin:            superchainOut.SuperchainProxyAdmin,
@@ -182,16 +183,19 @@ func TestInteropMigrationV2(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	// Use a test SystemConfigProxy address (same as V1 test uses)
+	// This would normally be an actual deployed SystemConfig proxy for the chain being migrated
+	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
+	l1ProxyAdminOwner := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
+
+	upgradeChain(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.OpcmV2)
+
 	// Prepare game args for V2 - ABI encode the prestate
 	bytes32Type, err := abi.NewType("bytes32", "", nil)
 	require.NoError(t, err)
 	testPrestate := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc")
 	gameArgs, err := abi.Arguments{{Type: bytes32Type}}.Pack(testPrestate)
 	require.NoError(t, err)
-
-	// Use a test SystemConfigProxy address (same as V1 test uses)
-	// This would normally be an actual deployed SystemConfig proxy for the chain being migrated
-	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
 
 	// Define game type constants matching Solidity GameTypes library
 	const (
@@ -202,7 +206,7 @@ func TestInteropMigrationV2(t *testing.T) {
 	)
 
 	input := InteropMigrationInput{
-		Prank: superchainProxyAdminOwner,
+		Prank: l1ProxyAdminOwner,
 		Opcm:  impls.OpcmV2,
 		MigrateInputV2: &MigrateInputV2{
 			ChainSystemConfigs: []common.Address{
@@ -297,9 +301,9 @@ func TestInteropMigrationV2(t *testing.T) {
 
 	dump, err := bcast.Dump()
 	require.NoError(t, err)
-	require.Len(t, dump, 1, "Should have one transaction")
-	require.True(t, dump[0].Value.ToInt().Cmp(common.Big0) == 0, "Transaction value should be zero")
-	require.Equal(t, *dump[0].To, superchainProxyAdminOwner, "Transaction should be sent to prank address")
+	require.Len(t, dump, 2, "Should have two transactions")
+	require.True(t, dump[1].Value.ToInt().Cmp(common.Big0) == 0, "Transaction value should be zero")
+	require.Equal(t, l1ProxyAdminOwner, *dump[1].To, "Transaction should be sent to prank address")
 }
 
 func TestMigrateCLI_V1Flags(t *testing.T) {
@@ -495,4 +499,73 @@ func TestEncodedMigrateInputV2(t *testing.T) {
 		"aa00000000000000000000000000000000000000000000000000000000000000" // gameArgs data (prestate)
 
 	require.Equal(t, expected, hex.EncodeToString(data))
+}
+
+// upgradeChain upgrades a chain via OPCM V2 to ensure the OptimismPortal is upgraded to OptimismPortalInterop.
+// This is a prerequisite for the interop migration, as migrateToSuperRoots() requires the portal to already
+// be on the OptimismPortalInterop implementation.
+func upgradeChain(t *testing.T, host *script.Host, proxyAdminOwner, systemConfigProxy, opcm common.Address) {
+	// ABI-encode game args for FaultDisputeGameConfig{absolutePrestate}
+	bytes32Type, err := abi.NewType("bytes32", "", nil)
+	require.NoError(t, err)
+	addressType, err := abi.NewType("address", "", nil)
+	require.NoError(t, err)
+
+	// FaultDisputeGameConfig just needs absolutePrestate (bytes32)
+	testPrestate := common.Hash{'P', 'R', 'E', 'S', 'T', 'A', 'T', 'E'}
+	cannonArgs, err := abi.Arguments{{Type: bytes32Type}}.Pack(testPrestate)
+	require.NoError(t, err)
+
+	// PermissionedDisputeGameConfig needs absolutePrestate, proposer, challenger
+	testProposer := common.Address{'P'}
+	testChallenger := common.Address{'C'}
+	permissionedArgs, err := abi.Arguments{
+		{Type: bytes32Type},
+		{Type: addressType},
+		{Type: addressType},
+	}.Pack(testPrestate, testProposer, testChallenger)
+	require.NoError(t, err)
+
+	upgradeConfig := embedded.UpgradeOPChainInput{
+		Prank: proxyAdminOwner,
+		Opcm:  opcm,
+		UpgradeInputV2: &embedded.UpgradeInputV2{
+			SystemConfig: systemConfigProxy,
+			DisputeGameConfigs: []embedded.DisputeGameConfig{
+				{
+					Enabled:  true,
+					InitBond: big.NewInt(1000000000000000000),
+					GameType: embedded.GameTypeCannon,
+					GameArgs: cannonArgs,
+				},
+				{
+					Enabled:  true,
+					InitBond: big.NewInt(1000000000000000000),
+					GameType: embedded.GameTypePermissionedCannon,
+					GameArgs: permissionedArgs,
+				},
+				{
+					Enabled:  false,
+					InitBond: big.NewInt(0),
+					GameType: embedded.GameTypeCannonKona,
+					GameArgs: []byte{}, // Disabled games don't need args
+				},
+			},
+			ExtraInstructions: []embedded.ExtraInstruction{
+				{
+					Key:  "PermittedProxyDeployment",
+					Data: []byte("DelayedWETH"),
+				},
+				{
+					Key:  "overrides.cfg.useCustomGasToken",
+					Data: make([]byte, 32),
+				},
+			},
+		},
+	}
+
+	upgradeConfigBytes, err := json.Marshal(upgradeConfig)
+	require.NoError(t, err, "UpgradeOPChainV2Input should marshal to JSON")
+	err = embedded.DefaultUpgrader.Upgrade(host, upgradeConfigBytes)
+	require.NoError(t, err, "OPCM V2 chain upgrade should succeed")
 }
