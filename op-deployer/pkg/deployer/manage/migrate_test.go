@@ -33,8 +33,6 @@ import (
 )
 
 func TestInteropMigration(t *testing.T) {
-	t.Skip("Skipped until the sepolia opcm supports the interop migration (missing superFaultDisputeGameImpl and superPermissionedDisputeGameImpl)")
-
 	lgr := testlog.Logger(t, slog.LevelDebug)
 
 	forkedL1, stopL1, err := devnet.NewForkedSepolia(lgr)
@@ -45,9 +43,59 @@ func TestInteropMigration(t *testing.T) {
 	l1RPC := forkedL1.RPCUrl()
 
 	_, afactsFS := testutil.LocalArtifacts(t)
+	testCacheDir := testutils.IsolatedTestDirWithAutoCleanup(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
+	pkHex, _, _ := shared.DefaultPrivkey(t)
+
+	// Deploy superchain contracts first (required for OPCM deployment)
+	superchainProxyAdminOwner := common.Address{'S'}
+	superchainOut, err := bootstrap.Superchain(ctx, bootstrap.SuperchainConfig{
+		L1RPCUrl:                   l1RPC,
+		PrivateKey:                 pkHex,
+		ArtifactsLocator:           artifacts.EmbeddedLocator,
+		Logger:                     lgr,
+		SuperchainProxyAdminOwner:  superchainProxyAdminOwner,
+		ProtocolVersionsOwner:      common.Address{'P'},
+		Guardian:                   common.Address{'G'},
+		Paused:                     false,
+		RequiredProtocolVersion:    params.ProtocolVersionV0{Major: 1}.Encode(),
+		RecommendedProtocolVersion: params.ProtocolVersionV0{Major: 2}.Encode(),
+		CacheDir:                   testCacheDir,
+	})
+	require.NoError(t, err, "Failed to deploy superchain contracts")
+
+	// Deploy implementations with OPCM V1
+	impls, err := bootstrap.Implementations(ctx, bootstrap.ImplementationsConfig{
+		L1RPCUrl:                        l1RPC,
+		PrivateKey:                      pkHex,
+		ArtifactsLocator:                artifacts.EmbeddedLocator,
+		Logger:                          lgr,
+		MIPSVersion:                     int(standard.MIPSVersion),
+		WithdrawalDelaySeconds:          standard.WithdrawalDelaySeconds,
+		MinProposalSizeBytes:            standard.MinProposalSizeBytes,
+		ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
+		ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
+		DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
+		DevFeatureBitmap:                deployer.EnableDevFeature(common.Hash{}, deployer.OptimismPortalInteropDevFlag), // Enable OptimismPortalInterop but not OPCM V2
+		SuperchainConfigProxy:           superchainOut.SuperchainConfigProxy,
+		ProtocolVersionsProxy:           superchainOut.ProtocolVersionsProxy,
+		SuperchainProxyAdmin:            superchainOut.SuperchainProxyAdmin,
+		L1ProxyAdminOwner:               superchainProxyAdminOwner,
+		Challenger:                      common.Address{'C'},
+		CacheDir:                        testCacheDir,
+		FaultGameMaxGameDepth:           standard.DisputeMaxGameDepth,
+		FaultGameSplitDepth:             standard.DisputeSplitDepth,
+		FaultGameClockExtension:         standard.DisputeClockExtension,
+		FaultGameMaxClockDuration:       standard.DisputeMaxClockDuration,
+	})
+	require.NoError(t, err, "Failed to deploy implementations")
+
+	// Verify OPCM V1 was deployed correctly
+	require.NotEqual(t, common.Address{}, impls.Opcm, "OPCM V1 address should be set")
+	require.Equal(t, common.Address{}, impls.OpcmV2, "OPCM V2 address should be zero when V1 is deployed")
 
 	rpcClient, err := rpc.Dial(l1RPC)
 	require.NoError(t, err)
@@ -57,16 +105,22 @@ func TestInteropMigration(t *testing.T) {
 		ctx,
 		bcast,
 		lgr,
-		common.Address{'D'},
+		superchainProxyAdminOwner,
 		afactsFS,
 		rpcClient,
 	)
 	require.NoError(t, err)
 
-	pao := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
+	// Use a test SystemConfigProxy address
+	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
+	l1ProxyAdminOwner := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
+
+	// Upgrade the portal to OptimismPortalInterop as a prerequisite for the interop migration
+	upgradeChainV1(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.Opcm)
+
 	input := InteropMigrationInput{
-		Prank: pao,
-		Opcm:  common.HexToAddress("0xaf334f4537e87f5155d135392ff6d52f1866465e"),
+		Prank: l1ProxyAdminOwner,
+		Opcm:  impls.Opcm,
 		MigrateInputV1: &MigrateInputV1{
 			UsePermissionlessGame: true,
 			StartingAnchorRoot: Proposal{
@@ -76,15 +130,15 @@ func TestInteropMigration(t *testing.T) {
 			GameParameters: GameParameters{
 				Proposer:         common.Address{'A'},
 				Challenger:       common.Address{'B'},
-				MaxGameDepth:     10,
-				SplitDepth:       10,
+				MaxGameDepth:     73,
+				SplitDepth:       30,
 				InitBond:         big.NewInt(1000000000000000000), // 1 ETH
-				ClockExtension:   10,
-				MaxClockDuration: 10,
+				ClockExtension:   10800,
+				MaxClockDuration: 302400,
 			},
 			OpChainConfigs: []OPChainConfig{
 				{
-					SystemConfigProxy:  common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538"),
+					SystemConfigProxy:  systemConfigProxy,
 					CannonPrestate:     common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"),
 					CannonKonaPrestate: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000fed"),
 				},
@@ -97,8 +151,9 @@ func TestInteropMigration(t *testing.T) {
 
 	dump, err := bcast.Dump()
 	require.NoError(t, err)
-	require.True(t, dump[0].Value.ToInt().Cmp(common.Big0) == 0)
-	require.Equal(t, *dump[0].To, pao)
+	require.Len(t, dump, 2, "Should have two transactions")
+	require.True(t, dump[1].Value.ToInt().Cmp(common.Big0) == 0, "Transaction value should be zero")
+	require.Equal(t, l1ProxyAdminOwner, *dump[1].To, "Transaction should be sent to prank address")
 }
 
 func TestInteropMigrationV2(t *testing.T) {
@@ -189,7 +244,7 @@ func TestInteropMigrationV2(t *testing.T) {
 
 	// Upgrade the portal to OptimismPortalInterop a prerequisite for the interop migration
 	// as migrateToSuperRoots() requires it.
-	upgradeChain(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.OpcmV2)
+	upgradeChainV2(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.OpcmV2)
 
 	// Prepare game args for V2 - ABI encode the prestate
 	bytes32Type, err := abi.NewType("bytes32", "", nil)
@@ -499,8 +554,31 @@ func TestEncodedMigrateInputV2(t *testing.T) {
 	require.Equal(t, expected, hex.EncodeToString(data))
 }
 
+// upgradeChainV1 upgrades a chain via OPCM V1 using ChainConfigs array.
+func upgradeChainV1(t *testing.T, host *script.Host, proxyAdminOwner common.Address, systemConfigProxy common.Address, opcm common.Address) {
+	testPrestate := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc")
+	testKonaPrestate := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000fed")
+
+	upgradeConfig := embedded.UpgradeOPChainInput{
+		Prank: proxyAdminOwner,
+		Opcm:  opcm,
+		ChainConfigs: []embedded.OPChainConfig{
+			{
+				SystemConfigProxy:  systemConfigProxy,
+				CannonPrestate:     testPrestate,
+				CannonKonaPrestate: testKonaPrestate,
+			},
+		},
+	}
+
+	upgradeConfigBytes, err := json.Marshal(upgradeConfig)
+	require.NoError(t, err, "UpgradeOPChainInput should marshal to JSON")
+	err = embedded.DefaultUpgrader.Upgrade(host, upgradeConfigBytes)
+	require.NoError(t, err, "OPCM V1 chain upgrade should succeed")
+}
+
 // Upgrades a chain via OPCM V2 to ensure the OptimismPortal is upgraded to OptimismPortalInterop.
-func upgradeChain(t *testing.T, host *script.Host, proxyAdminOwner common.Address, systemConfigProxy common.Address, opcm common.Address) {
+func upgradeChainV2(t *testing.T, host *script.Host, proxyAdminOwner common.Address, systemConfigProxy common.Address, opcm common.Address) {
 	// ABI-encode game args for FaultDisputeGameConfig{absolutePrestate}
 	bytes32Type, err := abi.NewType("bytes32", "", nil)
 	require.NoError(t, err)
