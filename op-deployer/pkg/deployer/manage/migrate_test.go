@@ -391,6 +391,59 @@ func TestMigrateCLI_MissingRequiredFlags(t *testing.T) {
 	}
 }
 
+func TestEncodedMigrateInputV1(t *testing.T) {
+	input := &InteropMigrationInput{
+		Prank: common.Address{0xaa},
+		Opcm:  common.Address{0xbb},
+		MigrateInputV1: &MigrateInputV1{
+			UsePermissionlessGame: true,
+			StartingAnchorRoot: Proposal{
+				Root:             common.Hash{0xde},
+				L2SequenceNumber: big.NewInt(100),
+			},
+			GameParameters: GameParameters{
+				Proposer:         common.Address{0x11},
+				Challenger:       common.Address{0x22},
+				MaxGameDepth:     73,
+				SplitDepth:       30,
+				InitBond:         big.NewInt(1000),
+				ClockExtension:   10800,
+				MaxClockDuration: 302400,
+			},
+			OpChainConfigs: []OPChainConfig{
+				{
+					SystemConfigProxy:  common.Address{0x01},
+					CannonPrestate:     common.Hash{0xab},
+					CannonKonaPrestate: common.Hash{0xcd},
+				},
+			},
+		},
+	}
+
+	data, err := input.EncodedMigrateInputV1()
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	expected := "0000000000000000000000000000000000000000000000000000000000000020" + // offset to tuple
+		"0000000000000000000000000000000000000000000000000000000000000001" + // usePermissionlessGame (true)
+		"de00000000000000000000000000000000000000000000000000000000000000" + // startingAnchorRoot.root
+		"0000000000000000000000000000000000000000000000000000000000000064" + // startingAnchorRoot.l2SequenceNumber (100)
+		"0000000000000000000000001100000000000000000000000000000000000000" + // gameParameters.proposer
+		"0000000000000000000000002200000000000000000000000000000000000000" + // gameParameters.challenger
+		"0000000000000000000000000000000000000000000000000000000000000049" + // gameParameters.maxGameDepth (73)
+		"000000000000000000000000000000000000000000000000000000000000001e" + // gameParameters.splitDepth (30)
+		"00000000000000000000000000000000000000000000000000000000000003e8" + // gameParameters.initBond (1000)
+		"0000000000000000000000000000000000000000000000000000000000002a30" + // gameParameters.clockExtension (10800)
+		"0000000000000000000000000000000000000000000000000000000000049d40" + // gameParameters.maxClockDuration (302400)
+		"0000000000000000000000000000000000000000000000000000000000000160" + // offset to opChainConfigs (11 words * 32 = 352 = 0x160)
+		"0000000000000000000000000000000000000000000000000000000000000001" + // opChainConfigs.length (1)
+		"0000000000000000000000000100000000000000000000000000000000000000" + // opChainConfigs[0].systemConfigProxy
+		"ab00000000000000000000000000000000000000000000000000000000000000" + // opChainConfigs[0].cannonPrestate
+		"cd00000000000000000000000000000000000000000000000000000000000000" // opChainConfigs[0].cannonKonaPrestate
+
+	require.Equal(t, expected, hex.EncodeToString(data))
+}
+
 func TestEncodedMigrateInputV2(t *testing.T) {
 	// Prepare game args - ABI encode a prestate hash
 	bytes32Type, err := abi.NewType("bytes32", "", nil)
