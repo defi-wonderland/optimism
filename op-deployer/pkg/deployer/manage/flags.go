@@ -177,7 +177,7 @@ var Commands = cli.Commands{
 	},
 	&cli.Command{
 		Name:  "migrate",
-		Usage: "Migrates the chain to use superproofs",
+		Usage: "Migrates the chain to use superproofs (OPCM v1, version < 7.0.0)",
 		Flags: append([]cli.Flag{
 			deployer.CacheDirFlag,
 			deployer.L1RPCURLFlag,
@@ -185,7 +185,6 @@ var Commands = cli.Commands{
 			deployer.ArtifactsLocatorFlag,
 			L1ProxyAdminOwnerFlag,
 			OPCMImplFlag,
-			// V1 specific flags
 			PermissionlessFlag,
 			ProposerFlag,
 			ChallengerFlag,
@@ -195,18 +194,34 @@ var Commands = cli.Commands{
 			DisputeMaxClockDurationFlag,
 			DisputeAbsolutePrestateCannonFlag,
 			DisputeAbsolutePrestateCannonKonaFlag,
-			// Common flags (used by both V1 and V2)
 			StartingAnchorRootFlag,
 			StartingAnchorL2SequenceNumberFlag,
 			InitialBondFlag,
 			SystemConfigProxyFlag,
 			OPChainProxyAdminFlag,
-			// V2 specific flags
+		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
+		Action: MigrateCLI,
+	},
+	&cli.Command{
+		Name:  "migrate-v2",
+		Usage: "Migrates the chain to use superproofs (OPCM v2, version >= 7.0.0)",
+		Flags: append([]cli.Flag{
+			deployer.CacheDirFlag,
+			deployer.L1RPCURLFlag,
+			deployer.PrivateKeyFlag,
+			deployer.ArtifactsLocatorFlag,
+			L1ProxyAdminOwnerFlag,
+			OPCMImplFlag,
+			StartingAnchorRootFlag,
+			StartingAnchorL2SequenceNumberFlag,
+			InitialBondFlag,
+			SystemConfigProxyFlag,
+			OPChainProxyAdminFlag,
 			StartingRespectedGameTypeFlag,
 			DisputeGameEnabledFlag,
 			DisputeGameTypeFlag,
 			DisputeAbsolutePrestateFlag,
 		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
-		Action: MigrateCLI,
+		Action: MigrateCLIV2,
 	},
 }
