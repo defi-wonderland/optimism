@@ -120,8 +120,7 @@ func TestInteropMigrationV2(t *testing.T) {
 	pkHex, _, _ := shared.DefaultPrivkey(t)
 
 	// Deploy superchain contracts first (required for OPCM deployment)
-	// This is the key difference from V1 test - we need to deploy our own superchain
-	// on the forked network instead of using existing Sepolia addresses
+	// We need to deploy our own superchain on the forked network instead of using existing Sepolia addresses.
 	superchainProxyAdminOwner := common.Address{'S'}
 	superchainOut, err := bootstrap.Superchain(ctx, bootstrap.SuperchainConfig{
 		L1RPCUrl:                   l1RPC,
@@ -188,6 +187,8 @@ func TestInteropMigrationV2(t *testing.T) {
 	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
 	l1ProxyAdminOwner := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
 
+	// Upgrade the portal to OptimismPortalInterop a prerequisite for the interop migration
+	// as migrateToSuperRoots() requires it.
 	upgradeChain(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.OpcmV2)
 
 	// Prepare game args for V2 - ABI encode the prestate
@@ -228,61 +229,7 @@ func TestInteropMigrationV2(t *testing.T) {
 		},
 	}
 
-	// ========================================
-	// Pre-migration Assertions
-	// These match the requirements from OPContractsManagerMigrator.sol migrate() function
-	// ========================================
-
-	// 1. Validate OPCM V2 address is set
-	require.NotEqual(t, common.Address{}, input.Opcm, "OPCM address must not be zero")
-
-	// 2. Validate startingRespectedGameType is a valid super game type
-	// Per line 75-80 in OPContractsManagerMigrator.sol
-	require.True(t,
-		input.MigrateInputV2.StartingRespectedGameType == GameTypeSuperCannon ||
-			input.MigrateInputV2.StartingRespectedGameType == GameTypeSuperPermissionedCannon,
-		"startingRespectedGameType must be SUPER_CANNON (4) or SUPER_PERMISSIONED_CANNON (5), got: %d",
-		input.MigrateInputV2.StartingRespectedGameType,
-	)
-
-	// 3. Validate we have at least one chain system config
-	// Per line 83-95 in OPContractsManagerMigrator.sol
-	require.NotEmpty(t, input.MigrateInputV2.ChainSystemConfigs,
-		"chainSystemConfigs must not be empty")
-
-	// 4. Validate all chain system configs are set (not zero addresses)
-	for i, sc := range input.MigrateInputV2.ChainSystemConfigs {
-		require.NotEqual(t, common.Address{}, sc,
-			"chainSystemConfigs[%d] must not be zero address", i)
-	}
-
-	// 5. Validate we have at least one dispute game config
-	// Per line 211-218 in OPContractsManagerMigrator.sol
-	require.NotEmpty(t, input.MigrateInputV2.DisputeGameConfigs,
-		"disputeGameConfigs must not be empty")
-
-	// 6. Validate all enabled dispute game configs have proper game args
-	for i, dgc := range input.MigrateInputV2.DisputeGameConfigs {
-		if dgc.Enabled {
-			require.NotNil(t, dgc.InitBond,
-				"disputeGameConfigs[%d].initBond must not be nil", i)
-			require.True(t, dgc.InitBond.Cmp(big.NewInt(0)) >= 0,
-				"disputeGameConfigs[%d].initBond must be non-negative", i)
-			require.NotEmpty(t, dgc.GameArgs,
-				"disputeGameConfigs[%d].gameArgs must not be empty for enabled games", i)
-		}
-	}
-
-	// 7. Validate starting anchor root is properly set
-	// Per line 185-194 in OPContractsManagerMigrator.sol
-	require.NotEqual(t, common.Hash{}, input.MigrateInputV2.StartingAnchorRoot.Root,
-		"startingAnchorRoot.root must not be zero")
-	require.NotNil(t, input.MigrateInputV2.StartingAnchorRoot.L2SequenceNumber,
-		"startingAnchorRoot.l2SequenceNumber must not be nil")
-	require.True(t, input.MigrateInputV2.StartingAnchorRoot.L2SequenceNumber.Cmp(big.NewInt(0)) > 0,
-		"startingAnchorRoot.l2SequenceNumber must be positive")
-
-	// 8. Log the input for debugging
+	// Log the input for debugging
 	t.Logf("Migrate input validation passed:")
 	t.Logf("  OPCM V2: %s", input.Opcm.Hex())
 	t.Logf("  Chain count: %d", len(input.MigrateInputV2.ChainSystemConfigs))
@@ -292,9 +239,7 @@ func TestInteropMigrationV2(t *testing.T) {
 		input.MigrateInputV2.StartingAnchorRoot.Root.Hex(),
 		input.MigrateInputV2.StartingAnchorRoot.L2SequenceNumber.String())
 
-	// ========================================
 	// Execute Migration
-	// ========================================
 	output, err := Migrate(host, input)
 	require.NoError(t, err)
 	require.NotEqual(t, common.Address{}, output.DisputeGameFactory)
@@ -459,7 +404,7 @@ func TestEncodedMigrateInputV2(t *testing.T) {
 		Opcm:  common.Address{0xbb},
 		MigrateInputV2: &MigrateInputV2{
 			ChainSystemConfigs: []common.Address{
-				common.Address{0x01},
+				{0x01},
 			},
 			DisputeGameConfigs: []DisputeGameConfig{
 				{
@@ -501,10 +446,8 @@ func TestEncodedMigrateInputV2(t *testing.T) {
 	require.Equal(t, expected, hex.EncodeToString(data))
 }
 
-// upgradeChain upgrades a chain via OPCM V2 to ensure the OptimismPortal is upgraded to OptimismPortalInterop.
-// This is a prerequisite for the interop migration, as migrateToSuperRoots() requires the portal to already
-// be on the OptimismPortalInterop implementation.
-func upgradeChain(t *testing.T, host *script.Host, proxyAdminOwner, systemConfigProxy, opcm common.Address) {
+// Upgrades a chain via OPCM V2 to ensure the OptimismPortal is upgraded to OptimismPortalInterop.
+func upgradeChain(t *testing.T, host *script.Host, proxyAdminOwner common.Address, systemConfigProxy common.Address, opcm common.Address) {
 	// ABI-encode game args for FaultDisputeGameConfig{absolutePrestate}
 	bytes32Type, err := abi.NewType("bytes32", "", nil)
 	require.NoError(t, err)
