@@ -67,134 +67,11 @@ func TestInteropMigration(t *testing.T) {
 	})
 	require.NoError(t, err, "Failed to deploy superchain contracts")
 
-	// Deploy implementations with OPCM V1
-	impls, err := bootstrap.Implementations(ctx, bootstrap.ImplementationsConfig{
-		L1RPCUrl:                        l1RPC,
-		PrivateKey:                      pkHex,
-		ArtifactsLocator:                artifacts.EmbeddedLocator,
-		Logger:                          lgr,
-		MIPSVersion:                     int(standard.MIPSVersion),
-		WithdrawalDelaySeconds:          standard.WithdrawalDelaySeconds,
-		MinProposalSizeBytes:            standard.MinProposalSizeBytes,
-		ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
-		ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
-		DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
-		DevFeatureBitmap:                deployer.EnableDevFeature(common.Hash{}, deployer.OptimismPortalInteropDevFlag), // Enable OptimismPortalInterop but not OPCM V2
-		SuperchainConfigProxy:           superchainOut.SuperchainConfigProxy,
-		ProtocolVersionsProxy:           superchainOut.ProtocolVersionsProxy,
-		SuperchainProxyAdmin:            superchainOut.SuperchainProxyAdmin,
-		L1ProxyAdminOwner:               superchainProxyAdminOwner,
-		Challenger:                      common.Address{'C'},
-		CacheDir:                        testCacheDir,
-		FaultGameMaxGameDepth:           standard.DisputeMaxGameDepth,
-		FaultGameSplitDepth:             standard.DisputeSplitDepth,
-		FaultGameClockExtension:         standard.DisputeClockExtension,
-		FaultGameMaxClockDuration:       standard.DisputeMaxClockDuration,
-	})
-	require.NoError(t, err, "Failed to deploy implementations")
-
-	// Verify OPCM V1 was deployed correctly
-	require.NotEqual(t, common.Address{}, impls.Opcm, "OPCM V1 address should be set")
-	require.Equal(t, common.Address{}, impls.OpcmV2, "OPCM V2 address should be zero when V1 is deployed")
-
-	rpcClient, err := rpc.Dial(l1RPC)
-	require.NoError(t, err)
-
-	bcast := new(broadcaster.CalldataBroadcaster)
-	host, err := env.DefaultForkedScriptHost(
-		ctx,
-		bcast,
-		lgr,
-		superchainProxyAdminOwner,
-		afactsFS,
-		rpcClient,
-	)
-	require.NoError(t, err)
-
 	// Use a test SystemConfigProxy address
 	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
 	l1ProxyAdminOwner := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
 
-	// Upgrade the portal to OptimismPortalInterop as a prerequisite for the interop migration
-	upgradeChainV1(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.Opcm)
-
-	input := InteropMigrationInput{
-		Prank: l1ProxyAdminOwner,
-		Opcm:  impls.Opcm,
-		MigrateInputV1: &MigrateInputV1{
-			UsePermissionlessGame: true,
-			StartingAnchorRoot: Proposal{
-				Root:             common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
-				L2SequenceNumber: big.NewInt(1),
-			},
-			GameParameters: GameParameters{
-				Proposer:         common.Address{'A'},
-				Challenger:       common.Address{'B'},
-				MaxGameDepth:     73,
-				SplitDepth:       30,
-				InitBond:         big.NewInt(1000000000000000000), // 1 ETH
-				ClockExtension:   10800,
-				MaxClockDuration: 302400,
-			},
-			OpChainConfigs: []OPChainConfig{
-				{
-					SystemConfigProxy:  systemConfigProxy,
-					CannonPrestate:     common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"),
-					CannonKonaPrestate: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000fed"),
-				},
-			},
-		},
-	}
-	output, err := Migrate(host, input)
-	require.NoError(t, err)
-	require.NotEqual(t, common.Address{}, output.DisputeGameFactory)
-
-	dump, err := bcast.Dump()
-	require.NoError(t, err)
-	require.Len(t, dump, 2, "Should have two transactions")
-	require.True(t, dump[1].Value.ToInt().Cmp(common.Big0) == 0, "Transaction value should be zero")
-	require.Equal(t, l1ProxyAdminOwner, *dump[1].To, "Transaction should be sent to prank address")
-}
-
-func TestInteropMigrationV2(t *testing.T) {
-	lgr := testlog.Logger(t, slog.LevelDebug)
-
-	forkedL1, stopL1, err := devnet.NewForkedSepolia(lgr)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, stopL1())
-	})
-	l1RPC := forkedL1.RPCUrl()
-
-	_, afactsFS := testutil.LocalArtifacts(t)
-	testCacheDir := testutils.IsolatedTestDirWithAutoCleanup(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	pkHex, _, _ := shared.DefaultPrivkey(t)
-
-	// Deploy superchain contracts first (required for OPCM deployment)
-	// We need to deploy our own superchain on the forked network instead of using existing Sepolia addresses.
-	superchainProxyAdminOwner := common.Address{'S'}
-	superchainOut, err := bootstrap.Superchain(ctx, bootstrap.SuperchainConfig{
-		L1RPCUrl:                   l1RPC,
-		PrivateKey:                 pkHex,
-		ArtifactsLocator:           artifacts.EmbeddedLocator,
-		Logger:                     lgr,
-		SuperchainProxyAdminOwner:  superchainProxyAdminOwner,
-		ProtocolVersionsOwner:      common.Address{'P'},
-		Guardian:                   common.Address{'G'},
-		Paused:                     false,
-		RequiredProtocolVersion:    params.ProtocolVersionV0{Major: 1}.Encode(),
-		RecommendedProtocolVersion: params.ProtocolVersionV0{Major: 2}.Encode(),
-		CacheDir:                   testCacheDir,
-	})
-	require.NoError(t, err, "Failed to deploy superchain contracts")
-
-	// Deploy implementations with OPCM V2 enabled
-	// Use the superchain outputs from the previous step
-	impls, err := bootstrap.Implementations(ctx, bootstrap.ImplementationsConfig{
+	cfg := bootstrap.ImplementationsConfig{
 		L1RPCUrl:                        l1RPC,
 		PrivateKey:                      pkHex,
 		ArtifactsLocator:                artifacts.EmbeddedLocator,
@@ -205,7 +82,7 @@ func TestInteropMigrationV2(t *testing.T) {
 		ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
 		ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
 		DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
-		DevFeatureBitmap:                deployer.EnableDevFeature(deployer.OPCMV2DevFlag, deployer.OptimismPortalInteropDevFlag), // Enable OPCM V2 and OptimismPortalInterop
+		DevFeatureBitmap:                common.Hash{},
 		SuperchainConfigProxy:           superchainOut.SuperchainConfigProxy,
 		ProtocolVersionsProxy:           superchainOut.ProtocolVersionsProxy,
 		SuperchainProxyAdmin:            superchainOut.SuperchainProxyAdmin,
@@ -216,94 +93,139 @@ func TestInteropMigrationV2(t *testing.T) {
 		FaultGameSplitDepth:             standard.DisputeSplitDepth,
 		FaultGameClockExtension:         standard.DisputeClockExtension,
 		FaultGameMaxClockDuration:       standard.DisputeMaxClockDuration,
-	})
-	require.NoError(t, err, "Failed to deploy implementations")
-
-	// Verify OPCM V2 was deployed correctly
-	require.NotEqual(t, common.Address{}, impls.OpcmV2, "OPCM V2 address should be set")
-	require.Equal(t, common.Address{}, impls.Opcm, "OPCM V1 address should be zero when V2 is deployed")
-
-	rpcClient, err := rpc.Dial(l1RPC)
-	require.NoError(t, err)
-
-	bcast := new(broadcaster.CalldataBroadcaster)
-	host, err := env.DefaultForkedScriptHost(
-		ctx,
-		bcast,
-		lgr,
-		superchainProxyAdminOwner,
-		afactsFS,
-		rpcClient,
-	)
-	require.NoError(t, err)
-
-	// Use a test SystemConfigProxy address (same as V1 test uses)
-	// This would normally be an actual deployed SystemConfig proxy for the chain being migrated
-	systemConfigProxy := common.HexToAddress("0x034edD2A225f7f429A63E0f1D2084B9E0A93b538")
-	l1ProxyAdminOwner := common.HexToAddress("0x1Eb2fFc903729a0F03966B917003800b145F56E2")
-
-	// Upgrade the portal to OptimismPortalInterop a prerequisite for the interop migration
-	// as migrateToSuperRoots() requires it.
-	upgradeChainV2(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.OpcmV2)
-
-	// Prepare game args for V2 - ABI encode the prestate
-	bytes32Type, err := abi.NewType("bytes32", "", nil)
-	require.NoError(t, err)
-	testPrestate := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc")
-	gameArgs, err := abi.Arguments{{Type: bytes32Type}}.Pack(testPrestate)
-	require.NoError(t, err)
-
-	// Define game type constants matching Solidity GameTypes library
-	const (
-		GameTypeCannon                  = uint32(0)
-		GameTypePermissionedCannon      = uint32(1)
-		GameTypeSuperCannon             = uint32(4)
-		GameTypeSuperPermissionedCannon = uint32(5)
-	)
-
-	input := InteropMigrationInput{
-		Prank: l1ProxyAdminOwner,
-		Opcm:  impls.OpcmV2,
-		MigrateInputV2: &MigrateInputV2{
-			ChainSystemConfigs: []common.Address{
-				systemConfigProxy,
-			},
-			DisputeGameConfigs: []DisputeGameConfig{
-				{
-					Enabled:  true,
-					InitBond: big.NewInt(1000000000000000000), // 1 ETH
-					GameType: GameTypeCannon,                  // Must be SUPER_CANNON (4) or SUPER_PERMISSIONED_CANNON (5)
-					GameArgs: gameArgs,
-				},
-			},
-			StartingAnchorRoot: Proposal{
-				Root:             common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
-				L2SequenceNumber: big.NewInt(1),
-			},
-			StartingRespectedGameType: GameTypeSuperCannon,
-		},
 	}
 
-	// Log the input for debugging
-	t.Logf("Migrate input validation passed:")
-	t.Logf("  OPCM V2: %s", input.Opcm.Hex())
-	t.Logf("  Chain count: %d", len(input.MigrateInputV2.ChainSystemConfigs))
-	t.Logf("  Dispute game configs: %d", len(input.MigrateInputV2.DisputeGameConfigs))
-	t.Logf("  Starting respected game type: %d", input.MigrateInputV2.StartingRespectedGameType)
-	t.Logf("  Starting anchor root: %s @ block %s",
-		input.MigrateInputV2.StartingAnchorRoot.Root.Hex(),
-		input.MigrateInputV2.StartingAnchorRoot.L2SequenceNumber.String())
+	tests := []struct {
+		name       string
+		devFeature common.Hash
+	}{
+		{"opcm-v1", common.Hash{}},
+		{"opcm-v2", deployer.OPCMV2DevFlag},
+	}
 
-	// Execute Migration
-	output, err := Migrate(host, input)
-	require.NoError(t, err)
-	require.NotEqual(t, common.Address{}, output.DisputeGameFactory)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Deploy implementations with the specified dev feature
+			if tt.devFeature == (common.Hash{}) {
+				cfg.DevFeatureBitmap = deployer.EnableDevFeature(common.Hash{}, deployer.OptimismPortalInteropDevFlag)
+			} else {
+				cfg.DevFeatureBitmap = deployer.EnableDevFeature(tt.devFeature, deployer.OptimismPortalInteropDevFlag)
+			}
 
-	dump, err := bcast.Dump()
-	require.NoError(t, err)
-	require.Len(t, dump, 2, "Should have two transactions")
-	require.True(t, dump[1].Value.ToInt().Cmp(common.Big0) == 0, "Transaction value should be zero")
-	require.Equal(t, l1ProxyAdminOwner, *dump[1].To, "Transaction should be sent to prank address")
+			impls, err := bootstrap.Implementations(ctx, cfg)
+			require.NoError(t, err, "Failed to deploy implementations")
+
+			rpcClient, err := rpc.Dial(l1RPC)
+			require.NoError(t, err)
+
+			bcast := new(broadcaster.CalldataBroadcaster)
+			host, err := env.DefaultForkedScriptHost(
+				ctx,
+				bcast,
+				lgr,
+				superchainProxyAdminOwner,
+				afactsFS,
+				rpcClient,
+			)
+			require.NoError(t, err)
+
+			var input InteropMigrationInput
+			var opcmAddr common.Address
+
+			if deployer.IsDevFeatureEnabled(tt.devFeature, deployer.OPCMV2DevFlag) {
+				// OPCM V2 path
+				require.NotEqual(t, common.Address{}, impls.OpcmV2, "OPCM V2 address should be set")
+				require.Equal(t, common.Address{}, impls.Opcm, "OPCM V1 address should be zero when V2 is deployed")
+				opcmAddr = impls.OpcmV2
+
+				// Upgrade the portal to OptimismPortalInterop
+				upgradeChainV2(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.OpcmV2)
+
+				// Prepare game args for V2 - ABI encode the prestate
+				bytes32Type, err := abi.NewType("bytes32", "", nil)
+				require.NoError(t, err)
+				testPrestate := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc")
+				gameArgs, err := abi.Arguments{{Type: bytes32Type}}.Pack(testPrestate)
+				require.NoError(t, err)
+
+				// Define game type constants matching Solidity GameTypes library
+				const (
+					GameTypeCannon      = uint32(0)
+					GameTypeSuperCannon = uint32(4)
+				)
+
+				input = InteropMigrationInput{
+					Prank: l1ProxyAdminOwner,
+					Opcm:  opcmAddr,
+					MigrateInputV2: &MigrateInputV2{
+						ChainSystemConfigs: []common.Address{
+							systemConfigProxy,
+						},
+						DisputeGameConfigs: []DisputeGameConfig{
+							{
+								Enabled:  true,
+								InitBond: big.NewInt(1000000000000000000), // 1 ETH
+								GameType: GameTypeCannon,
+								GameArgs: gameArgs,
+							},
+						},
+						StartingAnchorRoot: Proposal{
+							Root:             common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
+							L2SequenceNumber: big.NewInt(1),
+						},
+						StartingRespectedGameType: GameTypeSuperCannon,
+					},
+				}
+			} else {
+				// OPCM V1 path
+				require.NotEqual(t, common.Address{}, impls.Opcm, "OPCM V1 address should be set")
+				require.Equal(t, common.Address{}, impls.OpcmV2, "OPCM V2 address should be zero when V1 is deployed")
+				opcmAddr = impls.Opcm
+
+				// Upgrade the portal to OptimismPortalInterop
+				upgradeChainV1(t, host, l1ProxyAdminOwner, systemConfigProxy, impls.Opcm)
+
+				input = InteropMigrationInput{
+					Prank: l1ProxyAdminOwner,
+					Opcm:  opcmAddr,
+					MigrateInputV1: &MigrateInputV1{
+						UsePermissionlessGame: true,
+						StartingAnchorRoot: Proposal{
+							Root:             common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000def"),
+							L2SequenceNumber: big.NewInt(1),
+						},
+						GameParameters: GameParameters{
+							Proposer:         common.Address{'A'},
+							Challenger:       common.Address{'B'},
+							MaxGameDepth:     73,
+							SplitDepth:       30,
+							InitBond:         big.NewInt(1000000000000000000), // 1 ETH
+							ClockExtension:   10800,
+							MaxClockDuration: 302400,
+						},
+						OpChainConfigs: []OPChainConfig{
+							{
+								SystemConfigProxy:  systemConfigProxy,
+								CannonPrestate:     common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000abc"),
+								CannonKonaPrestate: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000fed"),
+							},
+						},
+					},
+				}
+			}
+
+			// Execute Migration
+			output, err := Migrate(host, input)
+			require.NoError(t, err)
+			require.NotEqual(t, common.Address{}, output.DisputeGameFactory)
+
+			dump, err := bcast.Dump()
+			require.NoError(t, err)
+			require.Len(t, dump, 2, "Should have two transactions")
+			require.True(t, dump[1].Value.ToInt().Cmp(common.Big0) == 0, "Transaction value should be zero")
+			require.Equal(t, l1ProxyAdminOwner, *dump[1].To, "Transaction should be sent to prank address")
+		})
+	}
 }
 
 func TestMigrateCLI_V1Flags(t *testing.T) {
