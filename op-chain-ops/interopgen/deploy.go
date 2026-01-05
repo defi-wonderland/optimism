@@ -449,7 +449,7 @@ func MigrateInteropV2(
 				Root:             startingAnchorRoot,
 				L2SequenceNumber: big.NewInt(int64(l1GenesisTimestamp)),
 			},
-			StartingRespectedGameType: uint32(l2Cfgs[l2ChainID].DisputeGameType),
+			StartingRespectedGameType: l2Cfgs[l2ChainID].StartingRespectedGameType,
 		},
 	}
 	output, err := manage.Migrate(l1Host, imi)
