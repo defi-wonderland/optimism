@@ -70,6 +70,7 @@ func Deploy(logger log.Logger, fa *foundry.ArtifactsFS, srcFS *foundry.SourceMap
 	}
 	deployments.L1 = l1Deployment
 
+	// TODO: Branch to DeploySuperchainToL1V2 if devfeaturebitmap is set to OPCMv2
 	superDeployment, err := DeploySuperchainToL1(l1Host, opcmScripts, cfg.Superchain)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to deploy superchain to L1: %w", err)
@@ -89,6 +90,7 @@ func Deploy(logger log.Logger, fa *foundry.ArtifactsFS, srcFS *foundry.SourceMap
 		deployments.L2s[l2ChainID] = l2Deployment
 	}
 
+	// TODO: Branch to MigrateInteropV2 if devfeaturebitmap is set to OPCMv2
 	interopDeployment, err := MigrateInterop(l1Host, uint64(cfg.L1.L1GenesisBlockTimestamp), cfg.Superchain, superDeployment, cfg.L2s, deployments.L2s)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate interop: %w", err)
@@ -194,6 +196,55 @@ func DeploySuperchainToL1(l1Host *script.Host, opcmScripts *opcm.Scripts, superC
 		DisputeGameFinalityDelaySeconds: superCfg.Implementations.FaultProof.DisputeGameFinalityDelaySeconds,
 		MipsVersion:                     superCfg.Implementations.FaultProof.MipsVersion,
 		DevFeatureBitmap:                deployer.OptimismPortalInteropDevFlag,
+		FaultGameV2MaxGameDepth:         big.NewInt(73),
+		FaultGameV2SplitDepth:           big.NewInt(30),
+		FaultGameV2ClockExtension:       big.NewInt(10800),
+		FaultGameV2MaxClockDuration:     big.NewInt(302400),
+		SuperchainProxyAdmin:            superDeployment.SuperchainProxyAdmin,
+		SuperchainConfigProxy:           superDeployment.SuperchainConfigProxy,
+		ProtocolVersionsProxy:           superDeployment.ProtocolVersionsProxy,
+		L1ProxyAdminOwner:               superCfg.ProxyAdminOwner,
+		Challenger:                      superCfg.Challenger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy Implementations contracts: %w", err)
+	}
+
+	// Collect deployment addresses
+	// This could all be automatic once we have better output-contract typing/scripting
+	return &SuperchainDeployment{
+		Implementations:       Implementations(implementationsDeployment),
+		ProxyAdmin:            superDeployment.SuperchainProxyAdmin,
+		ProtocolVersions:      superDeployment.ProtocolVersionsImpl,
+		ProtocolVersionsProxy: superDeployment.ProtocolVersionsProxy,
+		SuperchainConfig:      superDeployment.SuperchainConfigImpl,
+		SuperchainConfigProxy: superDeployment.SuperchainConfigProxy,
+	}, nil
+}
+
+func DeploySuperchainToL1V2(l1Host *script.Host, opcmScripts *opcm.Scripts, superCfg *SuperchainConfig) (*SuperchainDeployment, error) {
+	l1Host.SetTxOrigin(superCfg.Deployer)
+
+	superDeployment, err := opcmScripts.DeploySuperchain.Run(opcm.DeploySuperchainInput{
+		SuperchainProxyAdminOwner:  superCfg.ProxyAdminOwner,
+		ProtocolVersionsOwner:      superCfg.ProtocolVersionsOwner,
+		Guardian:                   superCfg.SuperchainConfigGuardian,
+		Paused:                     superCfg.Paused,
+		RequiredProtocolVersion:    superCfg.RequiredProtocolVersion,
+		RecommendedProtocolVersion: superCfg.RecommendedProtocolVersion,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to deploy Superchain contracts: %w", err)
+	}
+
+	implementationsDeployment, err := opcmScripts.DeployImplementations.Run(opcm.DeployImplementationsInput{
+		WithdrawalDelaySeconds:          superCfg.Implementations.FaultProof.WithdrawalDelaySeconds,
+		MinProposalSizeBytes:            superCfg.Implementations.FaultProof.MinProposalSizeBytes,
+		ChallengePeriodSeconds:          superCfg.Implementations.FaultProof.ChallengePeriodSeconds,
+		ProofMaturityDelaySeconds:       superCfg.Implementations.FaultProof.ProofMaturityDelaySeconds,
+		DisputeGameFinalityDelaySeconds: superCfg.Implementations.FaultProof.DisputeGameFinalityDelaySeconds,
+		MipsVersion:                     superCfg.Implementations.FaultProof.MipsVersion,
+		DevFeatureBitmap:                deployer.EnableDevFeature(deployer.OptimismPortalInteropDevFlag, deployer.OPCMV2DevFlag),
 		FaultGameV2MaxGameDepth:         big.NewInt(73),
 		FaultGameV2SplitDepth:           big.NewInt(30),
 		FaultGameV2ClockExtension:       big.NewInt(10800),
@@ -359,6 +410,56 @@ func GenesisL2(l2Host *script.Host, cfg *L2Config, deployment *L2Deployment, mul
 	}
 
 	return nil
+}
+
+func MigrateInteropV2(
+	l1Host *script.Host, l1GenesisTimestamp uint64, superCfg *SuperchainConfig, superDeployment *SuperchainDeployment, l2Cfgs map[string]*L2Config, l2Deployments map[string]*L2Deployment,
+) (*InteropDeployment, error) {
+	l2ChainIDs := maps.Keys(l2Deployments)
+	sort.Strings(l2ChainIDs)
+	chainConfigs := make([]manage.OPChainConfig, len(l2Deployments))
+	for i, l2ChainID := range l2ChainIDs {
+		l2Deployment := l2Deployments[l2ChainID]
+		chainConfigs[i] = manage.OPChainConfig{
+			SystemConfigProxy: l2Deployment.SystemConfigProxy,
+			CannonPrestate:    l2Cfgs[l2ChainID].DisputeAbsolutePrestate,
+		}
+	}
+
+	// For now get the fault game parameters from the first chain
+	l2ChainID := l2ChainIDs[0]
+	// We don't have a super root at genesis. But stub the starting anchor root anyways to facilitate super DG testing.
+	startingAnchorRoot := common.Hash(opcm.PermissionedGameStartingAnchorRoot)
+	imi := manage.InteropMigrationInput{
+		Prank: superCfg.ProxyAdminOwner,
+		Opcm:  superDeployment.OpcmV2,
+		MigrateInputV2: &manage.MigrateInputV2{
+			ChainSystemConfigs: []common.Address{
+				l2Deployments[l2ChainID].SystemConfigProxy,
+			},
+			DisputeGameConfigs: []manage.DisputeGameConfig{
+				{
+					Enabled:  true,
+					InitBond: big.NewInt(0),
+					GameType: uint32(l2Cfgs[l2ChainID].DisputeGameType),
+					GameArgs: l2Cfgs[l2ChainID].DisputeAbsolutePrestate.Bytes(),
+				},
+			},
+			StartingAnchorRoot: manage.Proposal{
+				Root:             startingAnchorRoot,
+				L2SequenceNumber: big.NewInt(int64(l1GenesisTimestamp)),
+			},
+			StartingRespectedGameType: l2Cfgs[l2ChainID].StartingRespectedGameType,
+		},
+	}
+	output, err := manage.Migrate(l1Host, imi)
+	if err != nil {
+		return nil, fmt.Errorf("failed to migrate interop: %w", err)
+	}
+
+	return &InteropDeployment{
+		DisputeGameFactory: output.DisputeGameFactory,
+	}, nil
 }
 
 func CompleteL1(l1Host *script.Host, cfg *L1Config) (*L1Output, error) {
