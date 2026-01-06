@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
@@ -51,6 +52,7 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 		st             *state.State
 		expectedOpcm   common.Address
 		shouldThrowErr bool
+		expectedErrMsg string
 	}{
 		{
 			name:           "default_uses_opcm_v1",
@@ -60,6 +62,7 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 			st:             baseState,
 			expectedOpcm:   opcmV1Addr,
 			shouldThrowErr: false,
+			expectedErrMsg: "",
 		},
 		{
 			name: "opcm_v2_flag_enabled_with_v2_impl_uses_v2",
@@ -82,9 +85,10 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 			},
 			expectedOpcm:   opcmV2Addr,
 			shouldThrowErr: false,
+			expectedErrMsg: "",
 		},
 		{
-			name: "opcm_v2_flag_enabled_but_v2_impl_zero_falls_back_to_v1",
+			name: "opcm_v2_flag_enabled_but_v2_impl_zero_reverts",
 			intent: &state.Intent{
 				GlobalDeployOverrides: map[string]any{
 					"devFeatureBitmap": opcmV2Flag,
@@ -102,8 +106,28 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 					OpcmV2Impl: common.Address{}, // zero address
 				},
 			},
-			expectedOpcm:   opcmV1Addr,
-			shouldThrowErr: false,
+			expectedOpcm:   common.Address{},
+			shouldThrowErr: true,
+			expectedErrMsg: "OPCM implementation is not deployed",
+		},
+		{
+			name:       "opcm_v2_flag_disabled_but_opcm_impl_zero_reverts",
+			intent:     baseIntent,
+			thisIntent: baseChainIntent,
+			chainID:    chainID,
+			st: &state.State{
+				Create2Salt: salt,
+				SuperchainDeployment: &addresses.SuperchainContracts{
+					SuperchainConfigProxy: superchainConfig,
+				},
+				ImplementationsDeployment: &addresses.ImplementationsContracts{
+					OpcmImpl:   common.Address{}, // zero address
+					OpcmV2Impl: opcmV2Addr,
+				},
+			},
+			expectedOpcm:   common.Address{},
+			shouldThrowErr: true,
+			expectedErrMsg: "OPCM implementation is not deployed",
 		},
 		{
 			name: "opcm_v2_flag_not_enabled_uses_v1_even_if_v2_impl_set",
@@ -126,6 +150,7 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 			},
 			expectedOpcm:   opcmV1Addr,
 			shouldThrowErr: false,
+			expectedErrMsg: "",
 		},
 		{
 			name: "no_dev_feature_bitmap_uses_v1",
@@ -146,6 +171,7 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 			},
 			expectedOpcm:   opcmV1Addr,
 			shouldThrowErr: false,
+			expectedErrMsg: "",
 		},
 	}
 
@@ -155,6 +181,9 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 			if gotErr != nil {
 				if !tt.shouldThrowErr {
 					t.Errorf("makeDCI() failed: %v", gotErr)
+				}
+				if tt.expectedErrMsg != "" && !strings.Contains(gotErr.Error(), tt.expectedErrMsg) {
+					t.Errorf("makeDCI() error = %v, want error containing %q", gotErr, tt.expectedErrMsg)
 				}
 				return
 			}
