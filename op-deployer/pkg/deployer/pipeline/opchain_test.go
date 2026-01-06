@@ -108,7 +108,26 @@ func Test_makeDCI_OpcmAddress(t *testing.T) {
 			},
 			expectedOpcm:   common.Address{},
 			shouldThrowErr: true,
-			expectedErrMsg: "OPCMV2 implementation is not deployed",
+			expectedErrMsg: "OPCM implementation is not deployed",
+		},
+		{
+			name:       "opcm_v2_flag_disabled_but_opcm_impl_zero_reverts",
+			intent:     baseIntent,
+			thisIntent: baseChainIntent,
+			chainID:    chainID,
+			st: &state.State{
+				Create2Salt: salt,
+				SuperchainDeployment: &addresses.SuperchainContracts{
+					SuperchainConfigProxy: superchainConfig,
+				},
+				ImplementationsDeployment: &addresses.ImplementationsContracts{
+					OpcmImpl:   common.Address{}, // zero address
+					OpcmV2Impl: opcmV2Addr,
+				},
+			},
+			expectedOpcm:   common.Address{},
+			shouldThrowErr: true,
+			expectedErrMsg: "OPCM implementation is not deployed",
 		},
 		{
 			name: "opcm_v2_flag_not_enabled_uses_v1_even_if_v2_impl_set",
