@@ -68,8 +68,8 @@ contract DeployOPChain is Script {
     function run(Types.DeployOPChainInput memory _input) public returns (Output memory output_) {
         checkInput(_input);
 
-        // Check if OPCM v2 should be used.
-        bool useV2 = _isDevFeatureOpcmV2Enabled(_input.opcm);
+        // Check if OPCM v2 should be used, both v1 and v2 share the same interface for this function.
+        bool useV2 = IOPContractsManager(_input.opcm).isDevFeatureEnabled(DevFeatures.OPCM_V2);
 
         if (useV2) {
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_input.opcm);
@@ -108,14 +108,6 @@ contract DeployOPChain is Script {
     }
 
     // -------- Features --------
-
-    /// @notice Checks if OPCM v2 dev feature flag is enabled.
-    /// @param _opcmAddr The address of the OPCM contract being used.
-    /// @return True if OPCM v2 is enabled, false otherwise.
-    function _isDevFeatureOpcmV2Enabled(address _opcmAddr) internal view returns (bool) {
-        // Both v1 and v2 share the same interface for this function.
-        return IOPContractsManager(_opcmAddr).isDevFeatureEnabled(DevFeatures.OPCM_V2);
-    }
 
     /// @notice Converts Types.DeployOPChainInput to IOPContractsManager.DeployInput.
     /// @param _input The input parameters.
@@ -357,7 +349,7 @@ contract DeployOPChain is Script {
         // Check dispute games and get superchain config
         address expectedPDGImpl = address(_o.permissionedDisputeGame);
 
-        if (_isDevFeatureOpcmV2Enabled(_i.opcm)) {
+        if (IOPContractsManager(_i.opcm).isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
             // OPCM v2: use implementations from v2 contract
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_i.opcm);
             expectedPDGImpl = opcmV2.implementations().permissionedDisputeGameV2Impl;
