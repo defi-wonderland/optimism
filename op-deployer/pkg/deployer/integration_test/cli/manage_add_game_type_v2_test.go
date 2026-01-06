@@ -109,7 +109,7 @@ func TestManageAddGameTypeV2_CLI(t *testing.T) {
 
 // Tests the manage add-game-type-opcm-v2 command, from the CLI to the actual contract execution through the Solidity scripts.
 func TestManageAddGameTypeV2_Integration(t *testing.T) {
-	// TODO(#????): Update this to use an actual deployed OPCM V2 contract once we have one.
+	// TODO(#18718): Update this to use an actual deployed OPCM V2 contract once we have one.
 	// For now, we manually deploy the OPCM V2 contract using bootstrap.Implementations.
 	lgr := testlog.Logger(t, slog.LevelDebug)
 
@@ -227,7 +227,7 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 		"calldata should have opcmV2.upgrade function selector 0x8a847e2e, got: %s", prefix)
 }
 
-// TODO(#????): Remove this once we have a deployed OPCM V2 contract.
+// TODO(#18718): Remove this once we have a deployed OPCM V2 contract.
 // deployDependencies deploys the superchain contracts and OPCM V2 implementation
 // using the DeployImplementations script, and returns the OPCM V2 address
 func deployDependencies(t *testing.T, runner *CLITestRunner) common.Address {
