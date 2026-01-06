@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -207,6 +206,13 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 	data, err := os.ReadFile(outputFile)
 	require.NoError(t, err)
 
+	// Verify the file is not empty
+	require.NotEmpty(t, data, "output file should not be empty")
+
+	// Verify the file contains valid JSON
+	require.True(t, json.Valid(data), "output file should contain valid JSON")
+
+	// Verify the JSON can be unmarshaled into the expected structure
 	var dump []broadcaster.CalldataDump
 	require.NoError(t, json.Unmarshal(data, &dump))
 
@@ -218,13 +224,87 @@ func TestManageAddGameTypeV2_Integration(t *testing.T) {
 
 	// Verify the calldata has the correct function selector for opcm.upgrade
 	// The selector for `upgrade((address,(bool,uint256,uint32,bytes)[],(string,bytes)[]))` is 0x8a847e2e
-	dataHex := hex.EncodeToString(dump[0].Data)
-	prefix := dataHex
-	if len(prefix) > 8 {
-		prefix = prefix[:8]
+	calldata := dump[0].Data
+	require.GreaterOrEqual(t, len(calldata), 4, "calldata should be at least 4 bytes for function selector")
+
+	expectedSelector := common.FromHex("8a847e2e")
+	actualSelector := calldata[:4]
+	require.Equal(t, expectedSelector, actualSelector,
+		"calldata should contain opcmV2.upgrade function selector 0x8a847e2e, got: %s", hex.EncodeToString(actualSelector))
+
+	// Decode the calldata parameters to verify they match the input config
+	// The function signature is: upgrade((address systemConfig,(bool enabled,uint256 initBond,uint32 gameType,bytes gameArgs)[] disputeGameConfigs,(string key,bytes data)[] extraInstructions))
+	upgradeInputType, err := abi.NewType("tuple", "struct", []abi.ArgumentMarshaling{
+		{Name: "systemConfig", Type: "address"},
+		{Name: "disputeGameConfigs", Type: "tuple[]", Components: []abi.ArgumentMarshaling{
+			{Name: "enabled", Type: "bool"},
+			{Name: "initBond", Type: "uint256"},
+			{Name: "gameType", Type: "uint32"},
+			{Name: "gameArgs", Type: "bytes"},
+		}},
+		{Name: "extraInstructions", Type: "tuple[]", Components: []abi.ArgumentMarshaling{
+			{Name: "key", Type: "string"},
+			{Name: "data", Type: "bytes"},
+		}},
+	})
+	require.NoError(t, err, "failed to create upgrade input ABI type")
+
+	// Decode the parameters
+	// We need to skip the 4-byte function selector
+	decoded, err := abi.Arguments{{Type: upgradeInputType}}.Unpack(calldata[4:])
+	require.NoError(t, err, "failed to decode upgrade calldata")
+	require.Len(t, decoded, 1, "decoded calldata should have one argument")
+
+	// Extract the upgrade input struct
+	upgradeInputMap, ok := decoded[0].(map[string]interface{})
+	require.True(t, ok, "decoded upgrade input should be a map")
+
+	// Verify systemConfig address matches the input config
+	systemConfigAddr, ok := upgradeInputMap["systemConfig"].(common.Address)
+	require.True(t, ok, "systemConfig should be an address")
+	require.Equal(t, systemConfigProxy, systemConfigAddr,
+		"systemConfig address should match config: expected %s, got %s", systemConfigProxy.Hex(), systemConfigAddr.Hex())
+
+	// Verify disputeGameConfigs array length matches
+	disputeGameConfigs, ok := upgradeInputMap["disputeGameConfigs"].([]interface{})
+	require.True(t, ok, "disputeGameConfigs should be an array")
+	require.Len(t, disputeGameConfigs, len(testConfig.UpgradeInputV2.DisputeGameConfigs),
+		"disputeGameConfigs length should match config: expected %d, got %d",
+		len(testConfig.UpgradeInputV2.DisputeGameConfigs), len(disputeGameConfigs))
+
+	// Verify first dispute game config matches (Cannon - enabled)
+	if len(disputeGameConfigs) > 0 {
+		cfg0Map, ok := disputeGameConfigs[0].(map[string]interface{})
+		require.True(t, ok, "disputeGameConfig[0] should be a map")
+		enabled0, ok := cfg0Map["enabled"].(bool)
+		require.True(t, ok, "disputeGameConfig[0].enabled should be a bool")
+		require.True(t, enabled0, "disputeGameConfig[0] should be enabled (Cannon)")
+		gameType0, ok := cfg0Map["gameType"].(uint32)
+		require.True(t, ok, "disputeGameConfig[0].gameType should be a uint32")
+		require.Equal(t, uint32(embedded.GameTypeCannon), gameType0,
+			"disputeGameConfig[0].gameType should be Cannon (0), got %d", gameType0)
 	}
-	require.True(t, strings.HasPrefix(dataHex, "0x8a847e2e"),
-		"calldata should have opcmV2.upgrade function selector 0x8a847e2e, got: %s", prefix)
+
+	// Verify third dispute game config matches (CannonKona - disabled)
+	if len(disputeGameConfigs) > 2 {
+		cfg2Map, ok := disputeGameConfigs[2].(map[string]interface{})
+		require.True(t, ok, "disputeGameConfig[2] should be a map")
+		enabled2, ok := cfg2Map["enabled"].(bool)
+		require.True(t, ok, "disputeGameConfig[2].enabled should be a bool")
+		require.False(t, enabled2, "disputeGameConfig[2] should be disabled (CannonKona)")
+		gameType2, ok := cfg2Map["gameType"].(uint32)
+		require.True(t, ok, "disputeGameConfig[2].gameType should be a uint32")
+		require.Equal(t, uint32(embedded.GameTypeCannonKona), gameType2,
+			"disputeGameConfig[2].gameType should be CannonKona (8), got %d", gameType2)
+	}
+
+	// Verify extraInstructions array length matches
+	extraInstructions, ok := upgradeInputMap["extraInstructions"].([]interface{})
+	require.True(t, ok, "extraInstructions should be an array")
+	require.Len(t, extraInstructions, len(testConfig.UpgradeInputV2.ExtraInstructions),
+		"extraInstructions length should match config: expected %d, got %d",
+		len(testConfig.UpgradeInputV2.ExtraInstructions), len(extraInstructions))
+
 }
 
 // TODO(#18718): Remove this once we have a deployed OPCM V2 contract.
