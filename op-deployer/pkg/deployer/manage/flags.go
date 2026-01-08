@@ -165,7 +165,7 @@ var Commands = cli.Commands{
 		Action: AddGameTypeCLI,
 	},
 	&cli.Command{
-		Name:  "add-game-type-opcm-v2",
+		Name:  "add-game-type-v2",
 		Usage: "allows to add new game types to the chain using the OPContractsManager V2",
 		Flags: append([]cli.Flag{
 			deployer.L1RPCURLFlag,
