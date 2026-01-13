@@ -141,6 +141,43 @@ func TestCLIMigrateV1(t *testing.T) {
 		chain.Eip1559Denominator = standard.Eip1559Denominator
 		chain.Eip1559Elasticity = standard.Eip1559Elasticity
 	}
+
+	// Populate the state with predeployed superchain and implementations
+	// so the pipeline knows about them
+	st, err := pipeline.ReadState(workDir)
+	require.NoError(t, err)
+
+	// Set superchain deployment addresses
+	if st.SuperchainDeployment == nil {
+		st.SuperchainDeployment = &addresses.SuperchainContracts{
+			SuperchainConfigProxy:    superchainOut.SuperchainConfigProxy,
+			SuperchainConfigImpl:     superchainOut.SuperchainConfigImpl,
+			ProtocolVersionsProxy:    superchainOut.ProtocolVersionsProxy,
+			ProtocolVersionsImpl:     superchainOut.ProtocolVersionsImpl,
+			SuperchainProxyAdminImpl: superchainOut.SuperchainProxyAdmin,
+		}
+	}
+
+	// Set implementations deployment addresses
+	if st.ImplementationsDeployment == nil {
+		st.ImplementationsDeployment = &addresses.ImplementationsContracts{
+			OpcmImpl:                         impls.Opcm,
+			OptimismPortalImpl:               impls.OptimismPortalImpl,
+			DelayedWethImpl:                  impls.DelayedWETHImpl,
+			EthLockboxImpl:                   impls.ETHLockboxImpl,
+			SystemConfigImpl:                 impls.SystemConfigImpl,
+			L1CrossDomainMessengerImpl:       impls.L1CrossDomainMessengerImpl,
+			L1Erc721BridgeImpl:               impls.L1ERC721BridgeImpl,
+			L1StandardBridgeImpl:             impls.L1StandardBridgeImpl,
+			OptimismMintableErc20FactoryImpl: impls.OptimismMintableERC20FactoryImpl,
+			DisputeGameFactoryImpl:           impls.DisputeGameFactoryImpl,
+			AnchorStateRegistryImpl:          impls.AnchorStateRegistryImpl,
+			PreimageOracleImpl:               impls.PreimageOracleSingleton,
+			MipsImpl:                         impls.MipsSingleton,
+		}
+	}
+	require.NoError(t, pipeline.WriteState(workDir, st))
+
 	require.NoError(t, intent.WriteToFile(filepath.Join(workDir, "intent.toml")))
 
 	// Apply deployment
@@ -151,7 +188,7 @@ func TestCLIMigrateV1(t *testing.T) {
 	}, nil)
 
 	// Read state to get deployed addresses
-	st, err := pipeline.ReadState(workDir)
+	st, err = pipeline.ReadState(workDir)
 	require.NoError(t, err)
 	require.Len(t, st.Chains, 1)
 	systemConfigProxy := st.Chains[0].SystemConfigProxy
@@ -180,9 +217,19 @@ func TestCLIMigrateV1(t *testing.T) {
 	}, nil)
 
 	// Parse output to verify DisputeGameFactory was deployed
+	// Find the JSON output by looking for the opening brace
 	var migrationOutput manage.InteropMigrationOutput
-	err = json.Unmarshal([]byte(output), &migrationOutput)
-	require.NoError(t, err, "Failed to parse migration output")
+	jsonStart := strings.Index(output, "{")
+	if jsonStart == -1 {
+		t.Logf("Full output length: %d", len(output))
+		t.Logf("Full output: %q", output)
+		t.Fatalf("No JSON output found in output")
+	}
+	// Find the end of the JSON object
+	jsonEnd := strings.Index(output[jsonStart:], "}") + jsonStart + 1
+	jsonOutput := output[jsonStart:jsonEnd]
+	err = json.Unmarshal([]byte(jsonOutput), &migrationOutput)
+	require.NoError(t, err, "Failed to parse migration output: %s", jsonOutput)
 	require.NotEqual(t, common.Address{}, migrationOutput.DisputeGameFactory, "DisputeGameFactory should be deployed")
 }
 
@@ -204,8 +251,14 @@ func TestCLIMigrateV2(t *testing.T) {
 
 	pkHex, _, _ := shared.DefaultPrivkey(t)
 
+	privateKeyECDSA, err := crypto.HexToECDSA(strings.TrimPrefix(pkHex, "0x"))
+	require.NoError(t, err)
+	prank := crypto.PubkeyToAddress(privateKeyECDSA.PublicKey)
+
+	// Deploy superchain contracts first (required for OPCM deployment)
+	superchainProxyAdminOwner := prank
+
 	// Deploy superchain contracts first
-	superchainProxyAdminOwner := common.Address{'S'}
 	superchainOut, err := bootstrap.Superchain(ctx, bootstrap.SuperchainConfig{
 		L1RPCUrl:                   l1RPC,
 		PrivateKey:                 pkHex,
@@ -267,28 +320,55 @@ func TestCLIMigrateV2(t *testing.T) {
 	// Initialize intent and deploy chain
 	intent, _ := cliInitIntent(t, runner, l1ChainID, []common.Hash{l2ChainID.Bytes32()})
 
-	// if intent.SuperchainRoles == nil {
-	// 	intent.SuperchainRoles = &addresses.SuperchainRoles{}
-	// }
-	intent.SuperchainRoles = nil
+	if intent.SuperchainRoles == nil {
+		intent.SuperchainRoles = &addresses.SuperchainRoles{}
+	}
 
 	l1ChainIDBig := big.NewInt(int64(l1ChainID))
-	// intent.SuperchainRoles.SuperchainProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L1ProxyAdminOwnerRole.Key(l1ChainIDBig))
-	// intent.SuperchainRoles.SuperchainGuardian = shared.AddrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainIDBig))
-	// intent.SuperchainRoles.ProtocolVersionsOwner = shared.AddrFor(t, dk, devkeys.SuperchainDeployerKey.Key(l1ChainIDBig))
-	// intent.SuperchainRoles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
+	intent.SuperchainRoles.SuperchainProxyAdminOwner = superchainProxyAdminOwner
+	intent.SuperchainRoles.SuperchainGuardian = shared.AddrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainIDBig))
+	intent.SuperchainRoles.ProtocolVersionsOwner = superchainProxyAdminOwner
+	intent.SuperchainRoles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
 
-	// Populate the state with predeployed implementations so the pipeline knows about them
-	// This is necessary because when using a predeployed OPCM, the init stage only sets OpcmImpl
-	// but we need all implementation addresses for the OP Chain deployment to work correctly
-	// with OptimismPortalInterop. The DeployOPChain script reads devFeatureBitmap from OPCM
-	// to determine which portal implementation to use, so all implementations must be in state.
+	for _, chain := range intent.Chains {
+		chain.Roles.L1ProxyAdminOwner = superchainProxyAdminOwner
+		chain.Roles.L2ProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainIDBig))
+		chain.Roles.SystemConfigOwner = superchainProxyAdminOwner
+		chain.Roles.UnsafeBlockSigner = shared.AddrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainIDBig))
+		chain.Roles.Batcher = shared.AddrFor(t, dk, devkeys.BatcherRole.Key(l1ChainIDBig))
+		chain.Roles.Proposer = shared.AddrFor(t, dk, devkeys.ProposerRole.Key(l1ChainIDBig))
+		chain.Roles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
+
+		chain.BaseFeeVaultRecipient = shared.AddrFor(t, dk, devkeys.BaseFeeVaultRecipientRole.Key(l1ChainIDBig))
+		chain.L1FeeVaultRecipient = shared.AddrFor(t, dk, devkeys.L1FeeVaultRecipientRole.Key(l1ChainIDBig))
+		chain.SequencerFeeVaultRecipient = shared.AddrFor(t, dk, devkeys.SequencerFeeVaultRecipientRole.Key(l1ChainIDBig))
+		chain.OperatorFeeVaultRecipient = shared.AddrFor(t, dk, devkeys.OperatorFeeVaultRecipientRole.Key(l1ChainIDBig))
+
+		chain.Eip1559DenominatorCanyon = standard.Eip1559DenominatorCanyon
+		chain.Eip1559Denominator = standard.Eip1559Denominator
+		chain.Eip1559Elasticity = standard.Eip1559Elasticity
+	}
+
+	// Populate the state with predeployed superchain and implementations
+	// so the pipeline knows about them
 	st, err := pipeline.ReadState(workDir)
 	require.NoError(t, err)
 
+	// Set superchain deployment addresses
+	if st.SuperchainDeployment == nil {
+		st.SuperchainDeployment = &addresses.SuperchainContracts{
+			SuperchainConfigProxy:    superchainOut.SuperchainConfigProxy,
+			SuperchainConfigImpl:     superchainOut.SuperchainConfigImpl,
+			ProtocolVersionsProxy:    superchainOut.ProtocolVersionsProxy,
+			ProtocolVersionsImpl:     superchainOut.ProtocolVersionsImpl,
+			SuperchainProxyAdminImpl: superchainOut.SuperchainProxyAdmin,
+		}
+	}
+
+	// Set implementations deployment addresses
 	if st.ImplementationsDeployment == nil {
 		st.ImplementationsDeployment = &addresses.ImplementationsContracts{
-			OpcmV2Impl:                       impls.OpcmV2,
+			OpcmImpl:                         impls.OpcmV2,
 			OpcmContainerImpl:                impls.OpcmContainer,
 			OpcmUtilsImpl:                    impls.OpcmUtils,
 			OpcmMigratorImpl:                 impls.OpcmMigrator,
@@ -313,34 +393,13 @@ func TestCLIMigrateV2(t *testing.T) {
 			OpcmInteropMigratorImpl:          impls.OpcmInteropMigrator,
 			OpcmStandardValidatorImpl:        impls.OpcmStandardValidator,
 		}
-		require.NoError(t, pipeline.WriteState(workDir, st))
 	}
+	require.NoError(t, pipeline.WriteState(workDir, st))
 
-	for _, chain := range intent.Chains {
-		chain.Roles.L1ProxyAdminOwner = superchainProxyAdminOwner
-		chain.Roles.L2ProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainIDBig))
-		chain.Roles.SystemConfigOwner = superchainProxyAdminOwner
-		chain.Roles.UnsafeBlockSigner = shared.AddrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainIDBig))
-		chain.Roles.Batcher = shared.AddrFor(t, dk, devkeys.BatcherRole.Key(l1ChainIDBig))
-		chain.Roles.Proposer = shared.AddrFor(t, dk, devkeys.ProposerRole.Key(l1ChainIDBig))
-		chain.Roles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
-
-		chain.BaseFeeVaultRecipient = shared.AddrFor(t, dk, devkeys.BaseFeeVaultRecipientRole.Key(l1ChainIDBig))
-		chain.L1FeeVaultRecipient = shared.AddrFor(t, dk, devkeys.L1FeeVaultRecipientRole.Key(l1ChainIDBig))
-		chain.SequencerFeeVaultRecipient = shared.AddrFor(t, dk, devkeys.SequencerFeeVaultRecipientRole.Key(l1ChainIDBig))
-		chain.OperatorFeeVaultRecipient = shared.AddrFor(t, dk, devkeys.OperatorFeeVaultRecipientRole.Key(l1ChainIDBig))
-
-		chain.Eip1559DenominatorCanyon = standard.Eip1559DenominatorCanyon
-		chain.Eip1559Denominator = standard.Eip1559Denominator
-		chain.Eip1559Elasticity = standard.Eip1559Elasticity
-	}
-
+	// Set global deploy overrides with devFeatureBitmap for OPCM V2
 	intent.GlobalDeployOverrides = map[string]any{
 		"devFeatureBitmap": devFeatureBitmap,
 	}
-	// We need to set superchain config proxy if using OPCM v2
-	intent.OPCMAddress = &impls.OpcmV2
-	intent.SuperchainConfigProxy = &superchainOut.SuperchainConfigProxy
 
 	require.NoError(t, intent.WriteToFile(filepath.Join(workDir, "intent.toml")))
 
@@ -368,18 +427,28 @@ func TestCLIMigrateV2(t *testing.T) {
 		"--private-key", pkHex,
 		"--opcm-impl-address", impls.OpcmV2.Hex(),
 		"--system-config-proxy-address", systemConfigProxy.Hex(),
-		"--dispute-game-enabled", "true",
+		"--dispute-game-enabled",
 		"--dispute-game-type", "0", // GameTypeCannon (0), not SuperCannon (4)
 		"--dispute-absolute-prestate", "0x0000000000000000000000000000000000000000000000000000000000000abc",
 		"--starting-anchor-root", "0x0000000000000000000000000000000000000000000000000000000000000def",
 		"--starting-anchor-l2-sequence-number", "1",
-		"--starting-respected-game-type", "4", // GameTypeSuperCannon (4)
+		"--starting-respected-game-type", "5", // GameTypeSuperPermissionedCannon (5)
 		"--initial-bond", "1000000000000000000",
 	}, nil)
 
 	// Parse output to verify DisputeGameFactory was deployed
+	// Find the JSON output by looking for the opening brace
 	var migrationOutput manage.InteropMigrationOutput
-	err = json.Unmarshal([]byte(output), &migrationOutput)
-	require.NoError(t, err, "Failed to parse migration output")
+	jsonStart := strings.Index(output, "{")
+	if jsonStart == -1 {
+		t.Logf("Full output length: %d", len(output))
+		t.Logf("Full output: %q", output)
+		t.Fatalf("No JSON output found in output")
+	}
+	// Find the end of the JSON object
+	jsonEnd := strings.Index(output[jsonStart:], "}") + jsonStart + 1
+	jsonOutput := output[jsonStart:jsonEnd]
+	err = json.Unmarshal([]byte(jsonOutput), &migrationOutput)
+	require.NoError(t, err, "Failed to parse migration output: %s", jsonOutput)
 	require.NotEqual(t, common.Address{}, migrationOutput.DisputeGameFactory, "DisputeGameFactory should be deployed")
 }
