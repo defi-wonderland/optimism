@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum-optimism/optimism/op-service/testutils/devnet"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
@@ -46,8 +48,12 @@ func TestCLIMigrateV1(t *testing.T) {
 
 	pkHex, _, _ := shared.DefaultPrivkey(t)
 
+	privateKeyECDSA, err := crypto.HexToECDSA(strings.TrimPrefix(pkHex, "0x"))
+	require.NoError(t, err)
+	prank := crypto.PubkeyToAddress(privateKeyECDSA.PublicKey)
+
 	// Deploy superchain contracts first (required for OPCM deployment)
-	superchainProxyAdminOwner := common.Address{'S'}
+	superchainProxyAdminOwner := prank
 	superchainOut, err := bootstrap.Superchain(ctx, bootstrap.SuperchainConfig{
 		L1RPCUrl:                   l1RPC,
 		PrivateKey:                 pkHex,
@@ -94,7 +100,7 @@ func TestCLIMigrateV1(t *testing.T) {
 	require.Equal(t, common.Address{}, impls.OpcmV2, "OPCM V2 address should be zero when V1 is deployed")
 
 	// Set up a test chain
-	l1ChainID := uint64(devnet.DefaultChainID)
+	l1ChainID := uint64(11155111) // Sepolia chain ID
 	l2ChainID := uint256.NewInt(1)
 
 	dk, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
@@ -112,15 +118,15 @@ func TestCLIMigrateV1(t *testing.T) {
 	}
 
 	l1ChainIDBig := big.NewInt(int64(l1ChainID))
-	intent.SuperchainRoles.SuperchainProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L1ProxyAdminOwnerRole.Key(l1ChainIDBig))
+	intent.SuperchainRoles.SuperchainProxyAdminOwner = superchainProxyAdminOwner
 	intent.SuperchainRoles.SuperchainGuardian = shared.AddrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainIDBig))
-	intent.SuperchainRoles.ProtocolVersionsOwner = shared.AddrFor(t, dk, devkeys.SuperchainDeployerKey.Key(l1ChainIDBig))
+	intent.SuperchainRoles.ProtocolVersionsOwner = superchainProxyAdminOwner
 	intent.SuperchainRoles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
 
 	for _, chain := range intent.Chains {
-		chain.Roles.L1ProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainIDBig))
+		chain.Roles.L1ProxyAdminOwner = superchainProxyAdminOwner
 		chain.Roles.L2ProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainIDBig))
-		chain.Roles.SystemConfigOwner = shared.AddrFor(t, dk, devkeys.SystemConfigOwner.Key(l1ChainIDBig))
+		chain.Roles.SystemConfigOwner = superchainProxyAdminOwner
 		chain.Roles.UnsafeBlockSigner = shared.AddrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainIDBig))
 		chain.Roles.Batcher = shared.AddrFor(t, dk, devkeys.BatcherRole.Key(l1ChainIDBig))
 		chain.Roles.Proposer = shared.AddrFor(t, dk, devkeys.ProposerRole.Key(l1ChainIDBig))
@@ -154,6 +160,9 @@ func TestCLIMigrateV1(t *testing.T) {
 	output := runner.ExpectSuccessWithNetwork(t, []string{
 		"manage",
 		"migrate",
+		"--l1-rpc-url", l1RPC,
+		"--private-key", pkHex,
+		"--l1-proxy-admin-owner-address", superchainProxyAdminOwner.Hex(),
 		"--opcm-impl-address", impls.Opcm.Hex(),
 		"--system-config-proxy-address", systemConfigProxy.Hex(),
 		"--permissionless", "true",
@@ -212,6 +221,8 @@ func TestCLIMigrateV2(t *testing.T) {
 	})
 	require.NoError(t, err, "Failed to deploy superchain contracts")
 
+	devFeatureBitmap := deployer.EnableDevFeature(deployer.OPCMV2DevFlag, deployer.OptimismPortalInteropDevFlag)
+
 	// Deploy OPCM V2 implementations (with OPCMV2DevFlag)
 	cfg := bootstrap.ImplementationsConfig{
 		L1RPCUrl:                        l1RPC,
@@ -224,7 +235,7 @@ func TestCLIMigrateV2(t *testing.T) {
 		ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
 		ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
 		DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
-		DevFeatureBitmap:                deployer.EnableDevFeature(deployer.OPCMV2DevFlag, deployer.OptimismPortalInteropDevFlag),
+		DevFeatureBitmap:                devFeatureBitmap,
 		SuperchainConfigProxy:           superchainOut.SuperchainConfigProxy,
 		ProtocolVersionsProxy:           superchainOut.ProtocolVersionsProxy,
 		SuperchainProxyAdmin:            superchainOut.SuperchainProxyAdmin,
@@ -243,7 +254,7 @@ func TestCLIMigrateV2(t *testing.T) {
 	require.Equal(t, common.Address{}, impls.Opcm, "OPCM V1 address should be zero when V2 is deployed")
 
 	// Set up a test chain
-	l1ChainID := uint64(devnet.DefaultChainID)
+	l1ChainID := uint64(11155111) // Sepolia chain ID
 	l2ChainID := uint256.NewInt(1)
 
 	dk, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
@@ -256,20 +267,59 @@ func TestCLIMigrateV2(t *testing.T) {
 	// Initialize intent and deploy chain
 	intent, _ := cliInitIntent(t, runner, l1ChainID, []common.Hash{l2ChainID.Bytes32()})
 
-	if intent.SuperchainRoles == nil {
-		intent.SuperchainRoles = &addresses.SuperchainRoles{}
-	}
+	// if intent.SuperchainRoles == nil {
+	// 	intent.SuperchainRoles = &addresses.SuperchainRoles{}
+	// }
+	intent.SuperchainRoles = nil
 
 	l1ChainIDBig := big.NewInt(int64(l1ChainID))
-	intent.SuperchainRoles.SuperchainProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L1ProxyAdminOwnerRole.Key(l1ChainIDBig))
-	intent.SuperchainRoles.SuperchainGuardian = shared.AddrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainIDBig))
-	intent.SuperchainRoles.ProtocolVersionsOwner = shared.AddrFor(t, dk, devkeys.SuperchainDeployerKey.Key(l1ChainIDBig))
-	intent.SuperchainRoles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
+	// intent.SuperchainRoles.SuperchainProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L1ProxyAdminOwnerRole.Key(l1ChainIDBig))
+	// intent.SuperchainRoles.SuperchainGuardian = shared.AddrFor(t, dk, devkeys.SuperchainConfigGuardianKey.Key(l1ChainIDBig))
+	// intent.SuperchainRoles.ProtocolVersionsOwner = shared.AddrFor(t, dk, devkeys.SuperchainDeployerKey.Key(l1ChainIDBig))
+	// intent.SuperchainRoles.Challenger = shared.AddrFor(t, dk, devkeys.ChallengerRole.Key(l1ChainIDBig))
+
+	// Populate the state with predeployed implementations so the pipeline knows about them
+	// This is necessary because when using a predeployed OPCM, the init stage only sets OpcmImpl
+	// but we need all implementation addresses for the OP Chain deployment to work correctly
+	// with OptimismPortalInterop. The DeployOPChain script reads devFeatureBitmap from OPCM
+	// to determine which portal implementation to use, so all implementations must be in state.
+	st, err := pipeline.ReadState(workDir)
+	require.NoError(t, err)
+
+	if st.ImplementationsDeployment == nil {
+		st.ImplementationsDeployment = &addresses.ImplementationsContracts{
+			OpcmV2Impl:                       impls.OpcmV2,
+			OpcmContainerImpl:                impls.OpcmContainer,
+			OpcmUtilsImpl:                    impls.OpcmUtils,
+			OpcmMigratorImpl:                 impls.OpcmMigrator,
+			OptimismPortalInteropImpl:        impls.OptimismPortalInteropImpl,
+			OptimismPortalImpl:               impls.OptimismPortalImpl,
+			DelayedWethImpl:                  impls.DelayedWETHImpl,
+			EthLockboxImpl:                   impls.ETHLockboxImpl,
+			SystemConfigImpl:                 impls.SystemConfigImpl,
+			L1CrossDomainMessengerImpl:       impls.L1CrossDomainMessengerImpl,
+			L1Erc721BridgeImpl:               impls.L1ERC721BridgeImpl,
+			L1StandardBridgeImpl:             impls.L1StandardBridgeImpl,
+			OptimismMintableErc20FactoryImpl: impls.OptimismMintableERC20FactoryImpl,
+			DisputeGameFactoryImpl:           impls.DisputeGameFactoryImpl,
+			AnchorStateRegistryImpl:          impls.AnchorStateRegistryImpl,
+			PreimageOracleImpl:               impls.PreimageOracleSingleton,
+			MipsImpl:                         impls.MipsSingleton,
+			FaultDisputeGameV2Impl:           impls.FaultDisputeGameV2Impl,
+			PermissionedDisputeGameV2Impl:    impls.PermissionedDisputeGameV2Impl,
+			OpcmDeployerImpl:                 impls.OpcmDeployer,
+			OpcmGameTypeAdderImpl:            impls.OpcmGameTypeAdder,
+			OpcmUpgraderImpl:                 impls.OpcmUpgrader,
+			OpcmInteropMigratorImpl:          impls.OpcmInteropMigrator,
+			OpcmStandardValidatorImpl:        impls.OpcmStandardValidator,
+		}
+		require.NoError(t, pipeline.WriteState(workDir, st))
+	}
 
 	for _, chain := range intent.Chains {
-		chain.Roles.L1ProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainIDBig))
+		chain.Roles.L1ProxyAdminOwner = superchainProxyAdminOwner
 		chain.Roles.L2ProxyAdminOwner = shared.AddrFor(t, dk, devkeys.L2ProxyAdminOwnerRole.Key(l1ChainIDBig))
-		chain.Roles.SystemConfigOwner = shared.AddrFor(t, dk, devkeys.SystemConfigOwner.Key(l1ChainIDBig))
+		chain.Roles.SystemConfigOwner = superchainProxyAdminOwner
 		chain.Roles.UnsafeBlockSigner = shared.AddrFor(t, dk, devkeys.SequencerP2PRole.Key(l1ChainIDBig))
 		chain.Roles.Batcher = shared.AddrFor(t, dk, devkeys.BatcherRole.Key(l1ChainIDBig))
 		chain.Roles.Proposer = shared.AddrFor(t, dk, devkeys.ProposerRole.Key(l1ChainIDBig))
@@ -284,6 +334,14 @@ func TestCLIMigrateV2(t *testing.T) {
 		chain.Eip1559Denominator = standard.Eip1559Denominator
 		chain.Eip1559Elasticity = standard.Eip1559Elasticity
 	}
+
+	intent.GlobalDeployOverrides = map[string]any{
+		"devFeatureBitmap": devFeatureBitmap,
+	}
+	// We need to set superchain config proxy if using OPCM v2
+	intent.OPCMAddress = &impls.OpcmV2
+	intent.SuperchainConfigProxy = &superchainOut.SuperchainConfigProxy
+
 	require.NoError(t, intent.WriteToFile(filepath.Join(workDir, "intent.toml")))
 
 	// Apply deployment
@@ -294,23 +352,28 @@ func TestCLIMigrateV2(t *testing.T) {
 	}, nil)
 
 	// Read state to get deployed addresses
-	st, err := pipeline.ReadState(workDir)
+	st, err = pipeline.ReadState(workDir)
 	require.NoError(t, err)
 	require.Len(t, st.Chains, 1)
 	systemConfigProxy := st.Chains[0].SystemConfigProxy
 
 	// Run migrate-v2 command
+	// Note: dispute-game-type should be 0 (Cannon), not 4 (SuperCannon)
+	// Game type 4 is only for starting-respected-game-type
 	output := runner.ExpectSuccessWithNetwork(t, []string{
 		"manage",
 		"migrate-v2",
+		"--l1-proxy-admin-owner-address", superchainProxyAdminOwner.Hex(),
+		"--l1-rpc-url", l1RPC,
+		"--private-key", pkHex,
 		"--opcm-impl-address", impls.OpcmV2.Hex(),
 		"--system-config-proxy-address", systemConfigProxy.Hex(),
 		"--dispute-game-enabled", "true",
-		"--dispute-game-type", "0",
+		"--dispute-game-type", "0", // GameTypeCannon (0), not SuperCannon (4)
 		"--dispute-absolute-prestate", "0x0000000000000000000000000000000000000000000000000000000000000abc",
 		"--starting-anchor-root", "0x0000000000000000000000000000000000000000000000000000000000000def",
 		"--starting-anchor-l2-sequence-number", "1",
-		"--starting-respected-game-type", "4",
+		"--starting-respected-game-type", "4", // GameTypeSuperCannon (4)
 		"--initial-bond", "1000000000000000000",
 	}, nil)
 
