@@ -9,7 +9,6 @@ import { InteropMigrationInput, InteropMigration, InteropMigrationOutput } from 
 
 // Libraries
 import { Claim, Duration, Hash, GameType, Proposal } from "src/dispute/lib/Types.sol";
-import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 // Interfaces
 import { IOPContractsManagerInteropMigrator, IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
