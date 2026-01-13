@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
@@ -308,7 +307,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to run interop migration: %w", err)
 	}
 
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(cliCtx.App.Writer)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(output); err != nil {
 		return fmt.Errorf("failed to encode interop migration output: %w", err)
@@ -450,7 +449,7 @@ func MigrateCLIV2(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to run interop migration: %w", err)
 	}
 
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(cliCtx.App.Writer)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(output); err != nil {
 		return fmt.Errorf("failed to encode interop migration output: %w", err)
