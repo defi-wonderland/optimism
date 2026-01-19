@@ -10,6 +10,7 @@ import { IOPContractsManagerContainer } from "interfaces/L1/opcm/IOPContractsMan
 import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
 import { IStaticL1ChugSplashProxy } from "interfaces/legacy/IL1ChugSplashProxy.sol";
 import { SemverComp } from "src/libraries/SemverComp.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 contract ReadImplementationAddresses is Script {
     struct Input {
@@ -64,7 +65,7 @@ contract ReadImplementationAddresses is Script {
 
         // Check if OPCM v2 is being used
         require(address(_input.opcm).code.length > 0, "ReadImplementationAddresses: OPCM address has no code");
-        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), "7.0.0");
+        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), Constants.OPCM_V2_VERSION);
 
         if (isOPCMv2) {
             // Get implementations from OPCM V2

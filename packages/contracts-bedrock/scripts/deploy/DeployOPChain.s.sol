@@ -75,7 +75,7 @@ contract DeployOPChain is Script {
 
         // Check if OPCM v2 should be used, both v1 and v2 share the same interface for this function.
         require(address(_input.opcm).code.length > 0, "DeployOPChain: OPCM address has no code");
-        isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), "7.0.0");
+        isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), Constants.OPCM_V2_VERSION);
 
         if (isOPCMv2) {
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_input.opcm);

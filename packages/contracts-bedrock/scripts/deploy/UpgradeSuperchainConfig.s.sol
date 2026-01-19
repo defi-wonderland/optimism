@@ -8,6 +8,7 @@ import { IOPContractsManagerUtils } from "interfaces/L1/opcm/IOPContractsManager
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { DummyCaller } from "scripts/libraries/DummyCaller.sol";
 import { SemverComp } from "src/libraries/SemverComp.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 contract UpgradeSuperchainConfig is Script {
     struct Input {
@@ -24,7 +25,7 @@ contract UpgradeSuperchainConfig is Script {
 
         address opcm = _input.opcm;
 
-        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(opcm).version(), "7.0.0");
+        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(opcm).version(), Constants.OPCM_V2_VERSION);
 
         // Etch DummyCaller contract. This contract is used to mimic the contract that is used
         // as the source of the delegatecall to the OPCM. In practice this will be the governance

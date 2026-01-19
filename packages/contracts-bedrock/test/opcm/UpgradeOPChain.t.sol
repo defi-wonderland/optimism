@@ -15,6 +15,7 @@ import { UpgradeOPChain, UpgradeOPChainInput } from "scripts/deploy/UpgradeOPCha
 // Libraries
 import { Claim } from "src/dispute/lib/Types.sol";
 import { GameType } from "src/dispute/lib/LibUDT.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { IOPContractsManagerUtils } from "interfaces/L1/opcm/IOPContractsManagerUtils.sol";
@@ -346,7 +347,7 @@ contract MockOPCMV2 {
     );
 
     function version() public pure returns (string memory) {
-        return "7.0.0";
+        return Constants.OPCM_V2_VERSION;
     }
 
     function upgrade(OPContractsManagerV2.UpgradeInput memory _upgradeInput) public {
