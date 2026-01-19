@@ -75,7 +75,7 @@ contract UpgradeOPChain is Script {
         address opcm = _uoci.opcm();
 
         // First, we need to check what version of OPCM is being used.
-        bool useOPCMv2 = SemverComp.gte(OPContractsManager(opcm).version(), "7.0.0");
+        bool isOPCMv2 = SemverComp.gte(OPContractsManager(opcm).version(), "7.0.0");
 
         // Etch DummyCaller contract. This contract is used to mimic the contract that is used
         // as the source of the delegatecall to the OPCM. In practice this will be the governance
@@ -92,7 +92,7 @@ contract UpgradeOPChain is Script {
         // Call into the DummyCaller. This will perform the delegatecall under the hood.
         // The DummyCaller uses a fallback that reverts on failure, so no need to check success.
         vm.broadcast(msg.sender);
-        _upgrade(prank, useOPCMv2, upgradeInput);
+        _upgrade(prank, isOPCMv2, upgradeInput);
     }
 
     /// @notice Helper function to get the dummy caller code.
@@ -104,11 +104,11 @@ contract UpgradeOPChain is Script {
     /// @notice Helper function to upgrade the OPCM based on the OPCM version. Performs the decoding of the upgrade
     /// input and the delegatecall to the OPCM.
     /// @param _prank The address of the dummy caller contract.
-    /// @param _useOPCMv2 Whether to use OPCM v2.
+    /// @param _isOPCMv2 Whether to use OPCM v2.
     /// @param _upgradeInput The upgrade input.
-    function _upgrade(address _prank, bool _useOPCMv2, bytes memory _upgradeInput) internal {
+    function _upgrade(address _prank, bool _isOPCMv2, bytes memory _upgradeInput) internal {
         bytes memory data;
-        if (_useOPCMv2) {
+        if (_isOPCMv2) {
             data = abi.encodeCall(
                 OPContractsManagerV2.upgrade, abi.decode(_upgradeInput, (OPContractsManagerV2.UpgradeInput))
             );

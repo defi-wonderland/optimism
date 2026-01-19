@@ -35,7 +35,7 @@ contract DeployOPChain is Script {
     uint256 public constant DEFAULT_INIT_BOND = 0.08 ether;
 
     /// @notice Whether to use OPCM v2.
-    bool public useV2;
+    bool public isOPCMv2;
 
     /// @notice The output of the DeployOPChain script. This is the same as the DeployOPChainOutput type in the
     /// op-deployer package.
@@ -75,9 +75,9 @@ contract DeployOPChain is Script {
 
         // Check if OPCM v2 should be used, both v1 and v2 share the same interface for this function.
         require(address(_input.opcm).code.length > 0, "DeployOPChain: OPCM address has no code");
-        useV2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), "7.0.0");
+        isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), "7.0.0");
 
-        if (useV2) {
+        if (isOPCMv2) {
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_input.opcm);
             IOPContractsManagerV2.FullConfig memory config = _toOPCMV2DeployInput(_input);
 
@@ -355,7 +355,7 @@ contract DeployOPChain is Script {
         // Check dispute games and get superchain config
         address expectedPDGImpl = address(_o.permissionedDisputeGame);
 
-        if (useV2) {
+        if (isOPCMv2) {
             // OPCM v2: use implementations from v2 contract
             IOPContractsManagerV2 opcmV2 = IOPContractsManagerV2(_i.opcm);
             expectedPDGImpl = opcmV2.implementations().permissionedDisputeGameImpl;
