@@ -6,8 +6,8 @@ import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IOPContractsManagerV2 } from "interfaces/L1/opcm/IOPContractsManagerV2.sol";
 import { IOPContractsManagerUtils } from "interfaces/L1/opcm/IOPContractsManagerUtils.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
-import { DevFeatures } from "src/libraries/DevFeatures.sol";
 import { DummyCaller } from "scripts/libraries/DummyCaller.sol";
+import { SemverComp } from "src/libraries/SemverComp.sol";
 
 contract UpgradeSuperchainConfig is Script {
     struct Input {
@@ -22,10 +22,9 @@ contract UpgradeSuperchainConfig is Script {
         // Make sure the input is valid
         assertValidInput(_input);
 
-        // Both OPCM v1 and v2 implement the isDevFeatureEnabled function.
-        bool useOPCMv2 = IOPContractsManager(_input.opcm).isDevFeatureEnabled(DevFeatures.OPCM_V2);
-
         address opcm = _input.opcm;
+
+        bool useOPCMv2 = SemverComp.gte(IOPContractsManager(opcm).version(), "7.0.0");
 
         // Etch DummyCaller contract. This contract is used to mimic the contract that is used
         // as the source of the delegatecall to the OPCM. In practice this will be the governance
