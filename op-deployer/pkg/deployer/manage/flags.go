@@ -232,7 +232,6 @@ var Commands = cli.Commands{
 			StartingAnchorL2SequenceNumberFlag,
 			InitialBondFlag,
 			SystemConfigProxyFlag,
-			OPChainProxyAdminFlag,
 			StartingRespectedGameTypeFlag,
 			DisputeGameEnabledFlag,
 			DisputeGameTypeFlag,
