@@ -211,6 +211,19 @@ contract DeploySuperchain is Script {
                 ProtocolVersion.unwrap(_input.recommendedProtocolVersion) != 0,
                 "DeploySuperchain: recommendedProtocolVersion not set"
             );
+        } else {
+            require(
+                _input.protocolVersionsOwner == address(0),
+                "DeploySuperchain: protocolVersionsOwner should be set to 0 for OPCM v2"
+            );
+            require(
+                ProtocolVersion.unwrap(_input.requiredProtocolVersion) == 0,
+                "DeploySuperchain: requiredProtocolVersion should be set to 0 for OPCM v2"
+            );
+            require(
+                ProtocolVersion.unwrap(_input.recommendedProtocolVersion) == 0,
+                "DeploySuperchain: recommendedProtocolVersion should be set to 0 for OPCM v2"
+            );
         }
         require(_input.superchainProxyAdminOwner != address(0), "DeploySuperchain: superchainProxyAdminOwner not set");
     }

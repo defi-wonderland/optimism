@@ -242,11 +242,11 @@ contract Deploy is Deployer {
                 guardian: cfg.superchainConfigGuardian(),
                 // TODO: when DeployAuthSystem is done, finalSystemOwner should be replaced with the Foundation Upgrades
                 // Safe
-                protocolVersionsOwner: cfg.finalSystemOwner(),
+                protocolVersionsOwner: _isOPCMv2 ? address(0) : cfg.finalSystemOwner(),
                 superchainProxyAdminOwner: cfg.finalSystemOwner(),
                 paused: false,
-                recommendedProtocolVersion: bytes32(cfg.recommendedProtocolVersion()),
-                requiredProtocolVersion: bytes32(cfg.requiredProtocolVersion()),
+                recommendedProtocolVersion: _isOPCMv2 ? bytes32(0) : bytes32(cfg.recommendedProtocolVersion()),
+                requiredProtocolVersion: _isOPCMv2 ? bytes32(0) : bytes32(cfg.requiredProtocolVersion()),
                 isOPCMv2: _isOPCMv2
             })
         );
