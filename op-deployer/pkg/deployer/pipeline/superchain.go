@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 )
@@ -21,20 +22,26 @@ func DeploySuperchain(env *Env, intent *state.Intent, st *state.State) error {
 
 	lgr.Info("deploying superchain")
 	isOPCMv2 := false
+	protocolVersionsOwner := intent.SuperchainRoles.ProtocolVersionsOwner
+	requiredProtocolVersion := rollup.OPStackSupport
+	recommendedProtocolVersion := rollup.OPStackSupport
 	if devFeatureBitmap, ok := intent.GlobalDeployOverrides["devFeatureBitmap"].(common.Hash); ok {
 		opcmV2Flag := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000")
 		if isDevFeatureEnabled(devFeatureBitmap, opcmV2Flag) {
 			isOPCMv2 = true
+			intent.SuperchainRoles.ProtocolVersionsOwner = common.Address{}
+			requiredProtocolVersion = params.ProtocolVersion{}
+			recommendedProtocolVersion = params.ProtocolVersion{}
 		}
 	}
 	dso, err := env.Scripts.DeploySuperchain.Run(
 		opcm.DeploySuperchainInput{
 			SuperchainProxyAdminOwner:  intent.SuperchainRoles.SuperchainProxyAdminOwner,
-			ProtocolVersionsOwner:      intent.SuperchainRoles.ProtocolVersionsOwner,
+			ProtocolVersionsOwner:      protocolVersionsOwner,
 			Guardian:                   intent.SuperchainRoles.SuperchainGuardian,
 			Paused:                     false,
-			RequiredProtocolVersion:    rollup.OPStackSupport,
-			RecommendedProtocolVersion: rollup.OPStackSupport,
+			RequiredProtocolVersion:    requiredProtocolVersion,
+			RecommendedProtocolVersion: recommendedProtocolVersion,
 			IsOPCMv2:                   isOPCMv2,
 		},
 	)

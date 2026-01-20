@@ -42,6 +42,7 @@ type SuperchainConfig struct {
 	Paused                     bool
 	RequiredProtocolVersion    params.ProtocolVersion
 	RecommendedProtocolVersion params.ProtocolVersion
+	IsOPCMv2                   bool
 }
 
 func (c *SuperchainConfig) Check() error {
@@ -71,7 +72,7 @@ func (c *SuperchainConfig) Check() error {
 		return fmt.Errorf("superchain proxy admin owner must be specified")
 	}
 
-	if c.ProtocolVersionsOwner == (common.Address{}) {
+	if c.IsOPCMv2 && c.ProtocolVersionsOwner == (common.Address{}) {
 		return fmt.Errorf("protocol versions owner must be specified")
 	}
 
@@ -103,6 +104,14 @@ func SuperchainCLI(cliCtx *cli.Context) error {
 	recommendedVersionStr := cliCtx.String(RecommendedProtocolVersionFlagName)
 	outfile := cliCtx.String(OutfileFlagName)
 	cacheDir := cliCtx.String(deployer.CacheDirFlag.Name)
+
+	isOPCMv2 := false
+	if common.HexToHash(DevFeatureBitmapFlagName) == deployer.OPCMV2DevFlag {
+		isOPCMv2 = true
+		protocolVersionsOwner = common.Address{}
+		requiredVersionStr = ""
+		recommendedVersionStr = ""
+	}
 	cfg := SuperchainConfig{
 		L1RPCUrl:                  l1RPCUrl,
 		PrivateKey:                privateKey,
@@ -113,23 +122,25 @@ func SuperchainCLI(cliCtx *cli.Context) error {
 		ProtocolVersionsOwner:     protocolVersionsOwner,
 		Guardian:                  guardian,
 		Paused:                    paused,
+		IsOPCMv2:                  isOPCMv2,
 	}
 
 	// Default to op-geth params.OPStackSupport if not specified for required and recommended protocolversions
-	if requiredVersionStr != "" {
-		if err := cfg.RequiredProtocolVersion.UnmarshalText([]byte(requiredVersionStr)); err != nil {
-			return fmt.Errorf("failed to parse required protocol version: %w", err)
+	if !isOPCMv2 {
+		if requiredVersionStr != "" {
+			if err := cfg.RequiredProtocolVersion.UnmarshalText([]byte(requiredVersionStr)); err != nil {
+				return fmt.Errorf("failed to parse required protocol version: %w", err)
+			}
+		} else {
+			cfg.RequiredProtocolVersion = params.OPStackSupport
 		}
-	} else {
-		cfg.RequiredProtocolVersion = params.OPStackSupport
-	}
-
-	if recommendedVersionStr != "" {
-		if err := cfg.RecommendedProtocolVersion.UnmarshalText([]byte(recommendedVersionStr)); err != nil {
-			return fmt.Errorf("failed to parse recommended protocol version: %w", err)
+		if recommendedVersionStr != "" {
+			if err := cfg.RecommendedProtocolVersion.UnmarshalText([]byte(recommendedVersionStr)); err != nil {
+				return fmt.Errorf("failed to parse recommended protocol version: %w", err)
+			}
+		} else {
+			cfg.RecommendedProtocolVersion = params.OPStackSupport
 		}
-	} else {
-		cfg.RecommendedProtocolVersion = params.OPStackSupport
 	}
 
 	ctx := ctxinterrupt.WithCancelOnInterrupt(cliCtx.Context)
@@ -247,6 +258,7 @@ func Superchain(ctx context.Context, cfg SuperchainConfig) (opcm.DeploySuperchai
 			Paused:                     cfg.Paused,
 			RequiredProtocolVersion:    cfg.RequiredProtocolVersion,
 			RecommendedProtocolVersion: cfg.RecommendedProtocolVersion,
+			IsOPCMv2:                   cfg.IsOPCMv2,
 		},
 	)
 	if err != nil {

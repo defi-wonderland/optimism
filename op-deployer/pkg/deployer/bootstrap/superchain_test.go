@@ -64,6 +64,7 @@ func testSuperchain(t *testing.T, forkRPCURL string) {
 		RequiredProtocolVersion:    params.ProtocolVersionV0{Major: 1}.Encode(),
 		RecommendedProtocolVersion: params.ProtocolVersionV0{Major: 2}.Encode(),
 		CacheDir:                   testCacheDir,
+		IsOPCMv2:                   false,
 	})
 	require.NoError(t, err)
 

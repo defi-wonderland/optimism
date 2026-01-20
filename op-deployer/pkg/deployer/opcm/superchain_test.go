@@ -32,6 +32,7 @@ func TestNewDeploySuperchainScript(t *testing.T) {
 			Paused:                     true,
 			RecommendedProtocolVersion: params.ProtocolVersion{1},
 			RequiredProtocolVersion:    params.ProtocolVersion{2},
+			IsOPCMv2:                   false,
 		})
 
 		// And do some simple asserts
@@ -50,16 +51,16 @@ func TestNewDeploySuperchainScriptForge(t *testing.T) {
 	require.NoError(t, err)
 
 	deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
-	output, recompiled, err := deploySuperchain(context.Background(), DeploySuperchainInput{
+	output, _, err := deploySuperchain(context.Background(), DeploySuperchainInput{
 		Guardian:                   common.BigToAddress(big.NewInt(1)),
 		ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
 		SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
 		Paused:                     true,
 		RecommendedProtocolVersion: params.ProtocolVersion{1},
 		RequiredProtocolVersion:    params.ProtocolVersion{2},
+		IsOPCMv2:                   false,
 	})
 
 	require.NoError(t, err)
-	require.False(t, recompiled)
 	require.NotNil(t, output)
 }
