@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/state"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 )
@@ -19,7 +20,13 @@ func DeploySuperchain(env *Env, intent *state.Intent, st *state.State) error {
 	}
 
 	lgr.Info("deploying superchain")
-
+	isOPCMv2 := false
+	if devFeatureBitmap, ok := intent.GlobalDeployOverrides["devFeatureBitmap"].(common.Hash); ok {
+		opcmV2Flag := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000010000")
+		if isDevFeatureEnabled(devFeatureBitmap, opcmV2Flag) {
+			isOPCMv2 = true
+		}
+	}
 	dso, err := env.Scripts.DeploySuperchain.Run(
 		opcm.DeploySuperchainInput{
 			SuperchainProxyAdminOwner:  intent.SuperchainRoles.SuperchainProxyAdminOwner,
@@ -28,6 +35,7 @@ func DeploySuperchain(env *Env, intent *state.Intent, st *state.State) error {
 			Paused:                     false,
 			RequiredProtocolVersion:    rollup.OPStackSupport,
 			RecommendedProtocolVersion: rollup.OPStackSupport,
+			IsOPCMv2:                   isOPCMv2,
 		},
 	)
 	if err != nil {

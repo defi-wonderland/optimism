@@ -58,7 +58,8 @@ contract DeploySuperchain_Test is Test {
             _superchainProxyAdminOwner,
             _paused,
             _recommendedProtocolVersion,
-            _requiredProtocolVersion
+            _requiredProtocolVersion,
+            false
         );
 
         // Run the deployment script.
@@ -134,7 +135,8 @@ contract DeploySuperchain_Test is Test {
             defaultProxyAdminOwner,
             defaultPaused,
             defaultRecommendedProtocolVersion,
-            defaultRequiredProtocolVersion
+            defaultRequiredProtocolVersion,
+            false
         );
     }
 }
