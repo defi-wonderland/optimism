@@ -308,6 +308,47 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(doo.disputeGameFactoryProxy.initBonds(GameTypes.CANNON), 0, "CANNON init bond");
     }
 
+    /// @notice Tests that faultDisputeGame is set to address(0) and permissionedDisputeGame is set to the correct
+    /// implementation for GameTypes.PERMISSIONED_CANNON.
+    function test_run_faultDisputeGamePermissionedCannon_succeeds() public {
+        skipIfDevFeatureDisabled(DevFeatures.OPCM_V2);
+
+        _assertDisputeGames(GameTypes.PERMISSIONED_CANNON, false);
+    }
+
+    /// @notice Tests that faultDisputeGame is set to GameTypes.CANNON.
+    function test_run_faultDisputeGameCannon_succeeds() public {
+        skipIfDevFeatureDisabled(DevFeatures.OPCM_V2);
+
+        _assertDisputeGames(GameTypes.CANNON, true);
+    }
+
+    /// @notice Tests that faultDisputeGame is set to GameTypes.CANNON_KONA.
+    function test_run_faultDisputeGameCannonKona_succeeds() public {
+        skipIfDevFeatureDisabled(DevFeatures.OPCM_V2);
+
+        _assertDisputeGames(GameTypes.CANNON_KONA, true);
+    }
+
+    /// @notice Helper function that runs DeployOPChain.run and asserts DeployOPChain.Output.faultDisputeGame and
+    /// DeployOPChain.Output.permissionedDisputeGame are set to the correct implementations.
+    function _assertDisputeGames(GameType _gameType, bool _expectFault) internal {
+        deployOPChainInput.disputeGameType = _gameType;
+
+        DeployOPChain.Output memory doo = deployOPChain.run(deployOPChainInput);
+
+        address expectedPermissioned = address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON));
+        assertEq(address(doo.permissionedDisputeGame), expectedPermissioned, "PDG impl");
+
+        if (_expectFault) {
+            address expectedFault = address(doo.disputeGameFactoryProxy.gameImpls(_gameType));
+            assertEq(address(doo.faultDisputeGame), expectedFault, "FDG impl");
+            assertNotEq(address(doo.faultDisputeGame), address(0), "FDG non-zero");
+        } else {
+            assertEq(address(doo.faultDisputeGame), address(0), "FDG zero");
+        }
+    }
+
     /// @notice Checks for additional assertions that are not covered by the basic non-zero and code checks in
     /// `DeployOPChain.checkOutput`.
     /// @param doo The output of the deployment.
