@@ -84,7 +84,8 @@ contract DeployOPChain_TestBase is Test, FeatureFlags {
                 guardian: guardian,
                 paused: paused,
                 requiredProtocolVersion: requiredProtocolVersion,
-                recommendedProtocolVersion: recommendedProtocolVersion
+                recommendedProtocolVersion: recommendedProtocolVersion,
+                isOPCMv2: isDevFeatureEnabled(DevFeatures.OPCM_V2)
             })
         );
 
