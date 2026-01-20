@@ -155,6 +155,11 @@ func (i *InteropMigrationInput) EncodedMigrateInputV1() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode migrate input v1: %w", err)
 	}
+
+	if len(data) < 4 {
+		return nil, fmt.Errorf("failed to encode migrate input v1: data is too short")
+	}
+
 	// Skip the function selector (first 4 bytes)
 	return data[4:], nil
 }
@@ -167,6 +172,11 @@ func (i *InteropMigrationInput) EncodedMigrateInputV2() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode migrate input v2: %w", err)
 	}
+
+	if len(data) < 4 {
+		return nil, fmt.Errorf("failed to encode migrate input v2: data is too short")
+	}
+
 	// Skip the function selector (first 4 bytes)
 	return data[4:], nil
 }
