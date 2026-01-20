@@ -222,7 +222,9 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
 	}
+
 	l1Client := ethclient.NewClient(l1RPC)
+	defer l1Client.Close()
 
 	opcmAddr := common.HexToAddress(cliCtx.String(OPCMImplFlag.Name))
 
@@ -339,7 +341,9 @@ func MigrateCLIV2(cliCtx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
 	}
+
 	l1Client := ethclient.NewClient(l1RPC)
+	defer l1Client.Close()
 
 	opcmAddr := common.HexToAddress(cliCtx.String(OPCMImplFlag.Name))
 
