@@ -420,6 +420,9 @@ func TestEndToEndApply(t *testing.T) {
 		require.Equal(t, common.Address{}, st.ImplementationsDeployment.OpcmDeployerImpl, "OPCM deployer implementation should be zero")
 		require.Equal(t, common.Address{}, st.ImplementationsDeployment.OpcmUpgraderImpl, "OPCM upgrader implementation should be zero")
 		require.Equal(t, common.Address{}, st.ImplementationsDeployment.OpcmInteropMigratorImpl, "OPCM interop migrator implementation should be zero")
+		require.Equal(t, common.Address{}, st.SuperchainDeployment.ProtocolVersionsProxy, "ProtocolVersions proxy should be zero")
+		require.Equal(t, common.Address{}, st.SuperchainDeployment.ProtocolVersionsImpl, "ProtocolVersions implementation should be zero")
+		require.Equal(t, common.Address{}, st.SuperchainRoles.ProtocolVersionsOwner, "ProtocolVersions owner should be zero")
 	})
 }
 
