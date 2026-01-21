@@ -38,29 +38,89 @@ func TestNewDeploySuperchainScript(t *testing.T) {
 		// And do some simple asserts
 		require.NoError(t, err)
 		require.NotNil(t, output)
+		require.NotEqual(t, common.Address{}, output.ProtocolVersionsProxy)
+		require.NotEqual(t, common.Address{}, output.ProtocolVersionsImpl)
+	})
+
+	t.Run("should deploy without ProtocolVersions when IsOPCMv2 is true", func(t *testing.T) {
+		host1 := createTestHost(t)
+
+		deploySuperchain, err := NewDeploySuperchainScript(host1)
+		require.NoError(t, err)
+
+		output, err := deploySuperchain.Run(DeploySuperchainInput{
+			Guardian:                   common.BigToAddress(big.NewInt(1)),
+			ProtocolVersionsOwner:      common.Address{},
+			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
+			Paused:                     true,
+			RecommendedProtocolVersion: params.ProtocolVersion{},
+			RequiredProtocolVersion:    params.ProtocolVersion{},
+			IsOPCMv2:                   true,
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, output)
+		require.Equal(t, common.Address{}, output.ProtocolVersionsProxy)
+		require.Equal(t, common.Address{}, output.ProtocolVersionsImpl)
+		require.NotEqual(t, common.Address{}, output.SuperchainConfigProxy)
+		require.NotEqual(t, common.Address{}, output.SuperchainConfigImpl)
+		require.NotEqual(t, common.Address{}, output.SuperchainProxyAdmin)
 	})
 }
 
 func TestNewDeploySuperchainScriptForge(t *testing.T) {
-	tmpDir := t.TempDir()
+	t.Run("should deploy with ProtocolVersions when IsOPCMv2 is false", func(t *testing.T) {
+		tmpDir := t.TempDir()
 
-	embeddedArtifactsFS, err := artifacts.ExtractEmbedded(tmpDir)
-	require.NoError(t, err)
+		embeddedArtifactsFS, err := artifacts.ExtractEmbedded(tmpDir)
+		require.NoError(t, err)
 
-	forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
-	require.NoError(t, err)
+		forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
+		require.NoError(t, err)
 
-	deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
-	output, _, err := deploySuperchain(context.Background(), DeploySuperchainInput{
-		Guardian:                   common.BigToAddress(big.NewInt(1)),
-		ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
-		SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
-		Paused:                     true,
-		RecommendedProtocolVersion: params.ProtocolVersion{1},
-		RequiredProtocolVersion:    params.ProtocolVersion{2},
-		IsOPCMv2:                   false,
+		deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
+		output, _, err := deploySuperchain(context.Background(), DeploySuperchainInput{
+			Guardian:                   common.BigToAddress(big.NewInt(1)),
+			ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
+			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
+			Paused:                     true,
+			RecommendedProtocolVersion: params.ProtocolVersion{1},
+			RequiredProtocolVersion:    params.ProtocolVersion{2},
+			IsOPCMv2:                   false,
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, output)
+		require.NotEqual(t, common.Address{}, output.ProtocolVersionsProxy)
+		require.NotEqual(t, common.Address{}, output.ProtocolVersionsImpl)
 	})
 
-	require.NoError(t, err)
-	require.NotNil(t, output)
+	t.Run("should deploy without ProtocolVersions when IsOPCMv2 is true", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		embeddedArtifactsFS, err := artifacts.ExtractEmbedded(tmpDir)
+		require.NoError(t, err)
+
+		forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
+		require.NoError(t, err)
+
+		deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
+		output, _, err := deploySuperchain(context.Background(), DeploySuperchainInput{
+			Guardian:                   common.BigToAddress(big.NewInt(1)),
+			ProtocolVersionsOwner:      common.Address{},
+			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
+			Paused:                     true,
+			RecommendedProtocolVersion: params.ProtocolVersion{},
+			RequiredProtocolVersion:    params.ProtocolVersion{},
+			IsOPCMv2:                   true,
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, output)
+		require.Equal(t, common.Address{}, output.ProtocolVersionsProxy)
+		require.Equal(t, common.Address{}, output.ProtocolVersionsImpl)
+		require.NotEqual(t, common.Address{}, output.SuperchainConfigProxy)
+		require.NotEqual(t, common.Address{}, output.SuperchainConfigImpl)
+		require.NotEqual(t, common.Address{}, output.SuperchainProxyAdmin)
+	})
 }
