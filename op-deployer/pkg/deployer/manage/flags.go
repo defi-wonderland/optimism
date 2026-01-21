@@ -213,7 +213,6 @@ var Commands = cli.Commands{
 			// The following flags represent one item in The EncodedChainConfigs array
 			//
 			SystemConfigProxyFlag,
-			OPChainProxyAdminFlag,
 			DisputeAbsolutePrestateCannonFlag,
 			DisputeAbsolutePrestateCannonKonaFlag,
 			// OPCM v2 flags
