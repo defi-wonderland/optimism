@@ -266,6 +266,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
 	}
 	l1Client := ethclient.NewClient(l1RPC)
+	defer l1Client.Close()
 
 	opcmContract := opcm.NewContract(opcmAddr, l1Client)
 
