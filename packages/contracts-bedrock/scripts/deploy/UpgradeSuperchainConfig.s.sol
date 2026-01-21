@@ -25,7 +25,7 @@ contract UpgradeSuperchainConfig is Script {
 
         address opcm = _input.opcm;
 
-        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(opcm).version(), Constants.OPCM_V2_VERSION);
+        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(opcm).version(), Constants.OPCM_V2_MIN_VERSION);
 
         // Etch DummyCaller contract. This contract is used to mimic the contract that is used
         // as the source of the delegatecall to the OPCM. In practice this will be the governance

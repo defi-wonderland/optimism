@@ -892,7 +892,9 @@ contract OPContractsManagerV2_IsPermittedUpgradeSequence_Test is OPContractsMana
 
         // Mock the current OPCM version to be 7.0.0 (below threshold).
         vm.mockCall(
-            address(opcmV2), abi.encodeCall(IOPContractsManagerV2.version, ()), abi.encode(Constants.OPCM_V2_VERSION)
+            address(opcmV2),
+            abi.encodeCall(IOPContractsManagerV2.version, ()),
+            abi.encode(Constants.OPCM_V2_MIN_VERSION)
         );
 
         // Mock lastUsedOPCM to return the old OPCM address.

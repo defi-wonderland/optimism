@@ -35,7 +35,7 @@ contract MockOPCMV2 {
     event UpgradeCalled(IOPContractsManagerV2.SuperchainUpgradeInput indexed superchainUpgradeInput);
 
     function version() public pure returns (string memory) {
-        return Constants.OPCM_V2_VERSION;
+        return Constants.OPCM_V2_MIN_VERSION;
     }
 
     function upgradeSuperchain(IOPContractsManagerV2.SuperchainUpgradeInput memory _superchainUpgradeInput) public {

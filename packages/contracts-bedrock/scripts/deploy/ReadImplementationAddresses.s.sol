@@ -65,7 +65,7 @@ contract ReadImplementationAddresses is Script {
 
         // Check if OPCM v2 is being used
         require(address(_input.opcm).code.length > 0, "ReadImplementationAddresses: OPCM address has no code");
-        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), Constants.OPCM_V2_VERSION);
+        bool isOPCMv2 = SemverComp.gte(IOPContractsManager(_input.opcm).version(), Constants.OPCM_V2_MIN_VERSION);
 
         if (isOPCMv2) {
             // Get implementations from OPCM V2

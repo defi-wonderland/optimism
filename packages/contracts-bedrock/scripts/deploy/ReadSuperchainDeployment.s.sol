@@ -41,7 +41,7 @@ contract ReadSuperchainDeployment is Script {
             isOPCMV2 = true;
         } else {
             require(address(opcm).code.length > 0, "ReadSuperchainDeployment: OPCM address has no code");
-            isOPCMV2 = SemverComp.gte(opcm.version(), Constants.OPCM_V2_VERSION);
+            isOPCMV2 = SemverComp.gte(opcm.version(), Constants.OPCM_V2_MIN_VERSION);
         }
 
         if (isOPCMV2) {

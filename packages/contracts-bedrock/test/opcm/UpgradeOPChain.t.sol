@@ -347,7 +347,7 @@ contract MockOPCMV2 {
     );
 
     function version() public pure returns (string memory) {
-        return Constants.OPCM_V2_VERSION;
+        return Constants.OPCM_V2_MIN_VERSION;
     }
 
     function upgrade(OPContractsManagerV2.UpgradeInput memory _upgradeInput) public {
