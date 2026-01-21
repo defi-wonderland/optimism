@@ -305,6 +305,12 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		}
 		disputeGameType := uint32(disputeGameTypeU64)
 
+		startingRespectedGameTypeU64 := cliCtx.Uint64(MigrateStartingRespectedGameTypeFlag.Name)
+		if startingRespectedGameTypeU64 > 0xFFFFFFFF {
+			return fmt.Errorf("startingRespectedGameType %d exceeds uint32 max value", startingRespectedGameTypeU64)
+		}
+		startingRespectedGameType := uint32(startingRespectedGameTypeU64)
+
 		// V2 Migration Input
 		input.MigrateInputV2 = &MigrateInputV2{
 			ChainSystemConfigs: []common.Address{
@@ -322,7 +328,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 				Root:             common.HexToHash(startingAnchorRootFlag),
 				L2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
 			},
-			StartingRespectedGameType: uint32(cliCtx.Uint64(MigrateStartingRespectedGameTypeFlag.Name)),
+			StartingRespectedGameType: startingRespectedGameType,
 		}
 	} else {
 		// Validate V1-specific required flags
