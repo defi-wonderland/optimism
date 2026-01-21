@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/lmittmann/w3"
 	"github.com/urfave/cli/v2"
@@ -222,12 +223,6 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		return fmt.Errorf("missing required flag: %s", deployer.L1RPCURLFlag.Name)
 	}
 
-	privateKey := cliCtx.String(deployer.PrivateKeyFlag.Name)
-	privateKeyECDSA, err := crypto.HexToECDSA(strings.TrimPrefix(privateKey, "0x"))
-	if err != nil {
-		return fmt.Errorf("failed to parse private key: %w", err)
-	}
-
 	l1RPC, err := rpc.Dial(l1RPCUrl)
 	if err != nil {
 		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
@@ -237,6 +232,35 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	defer l1Client.Close()
 
 	opcmAddr := common.HexToAddress(cliCtx.String(OPCMImplFlag.Name))
+
+	// Create contract wrapper for OPCM
+	opcmContract := opcm.NewContract(opcmAddr, l1Client)
+
+	// Obtain the actual version of the OPCM contract.
+	version, err := opcmContract.GenericStringGetter(ctx, "version")
+	if err != nil {
+		return fmt.Errorf("failed to get OPCM version: %w", err)
+	}
+
+	isOPCMv2, err := deployer.IsVersionAtLeast(version, 7, 0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to check OPCM version: %w", err)
+	}
+
+	if isOPCMv2 {
+		return migrateCLIV2(cliCtx, ctx, l1Client, lgr, l1RPC, opcmAddr)
+	} else {
+		return migrateCLIV1(cliCtx, ctx, l1Client, lgr, l1RPC, opcmAddr)
+	}
+}
+
+// / Migrates the chain to use superproofs (OPCM v1, version < 7.0.0)
+func migrateCLIV1(cliCtx *cli.Context, ctx context.Context, l1Client *ethclient.Client, lgr log.Logger, l1RPC *rpc.Client, opcmAddr common.Address) error {
+	privateKey := cliCtx.String(deployer.PrivateKeyFlag.Name)
+	privateKeyECDSA, err := crypto.HexToECDSA(strings.TrimPrefix(privateKey, "0x"))
+	if err != nil {
+		return fmt.Errorf("failed to parse private key: %w", err)
+	}
 
 	initBondStr := cliCtx.String(InitialBondFlag.Name)
 	initBond, ok := new(big.Int).SetString(initBondStr, 10)
@@ -328,34 +352,13 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	return nil
 }
 
-func MigrateCLIV2(cliCtx *cli.Context) error {
-	logCfg := oplog.ReadCLIConfig(cliCtx)
-	lgr := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
-	oplog.SetGlobalLogHandler(lgr.Handler())
-
-	ctx, cancel := context.WithCancel(cliCtx.Context)
-	defer cancel()
-
-	l1RPCUrl := cliCtx.String(deployer.L1RPCURLFlag.Name)
-	if l1RPCUrl == "" {
-		return fmt.Errorf("missing required flag: %s", deployer.L1RPCURLFlag.Name)
-	}
-
+// Migrates the chain to use superproofs (OPCM v2, version >= 7.0.0)
+func migrateCLIV2(cliCtx *cli.Context, ctx context.Context, l1Client *ethclient.Client, lgr log.Logger, l1RPC *rpc.Client, opcmAddr common.Address) error {
 	privateKey := cliCtx.String(deployer.PrivateKeyFlag.Name)
 	privateKeyECDSA, err := crypto.HexToECDSA(strings.TrimPrefix(privateKey, "0x"))
 	if err != nil {
 		return fmt.Errorf("failed to parse private key: %w", err)
 	}
-
-	l1RPC, err := rpc.Dial(l1RPCUrl)
-	if err != nil {
-		return fmt.Errorf("failed to dial RPC %s: %w", l1RPCUrl, err)
-	}
-
-	l1Client := ethclient.NewClient(l1RPC)
-	defer l1Client.Close()
-
-	opcmAddr := common.HexToAddress(cliCtx.String(OPCMImplFlag.Name))
 
 	initBondStr := cliCtx.String(InitialBondFlag.Name)
 	initBond, ok := new(big.Int).SetString(initBondStr, 10)
