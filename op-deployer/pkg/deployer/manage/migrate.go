@@ -299,6 +299,12 @@ func MigrateCLI(cliCtx *cli.Context) error {
 			return fmt.Errorf("missing required flag for OPCM v2: %s", DisputeAbsolutePrestateFlag.Name)
 		}
 
+		disputeGameTypeU64 := cliCtx.Uint64(DisputeGameTypeFlag.Name)
+		if disputeGameTypeU64 > 0xFFFFFFFF {
+			return fmt.Errorf("disputeGameType %d exceeds uint32 max value", disputeGameTypeU64)
+		}
+		disputeGameType := uint32(disputeGameTypeU64)
+
 		// V2 Migration Input
 		input.MigrateInputV2 = &MigrateInputV2{
 			ChainSystemConfigs: []common.Address{
@@ -308,7 +314,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 				{
 					Enabled:  cliCtx.Bool(MigrateDisputeGameEnabledFlag.Name),
 					InitBond: initBond,
-					GameType: uint32(cliCtx.Uint64(DisputeGameTypeFlag.Name)),
+					GameType: disputeGameType,
 					GameArgs: common.FromHex(disputeAbsolutePrestateFlag),
 				},
 			},
