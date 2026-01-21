@@ -305,7 +305,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 			},
 			DisputeGameConfigs: []DisputeGameConfig{
 				{
-					Enabled:  cliCtx.Bool(DisputeGameEnabledFlag.Name),
+					Enabled:  cliCtx.Bool(MigrateDisputeGameEnabledFlag.Name),
 					InitBond: initBond,
 					GameType: uint32(cliCtx.Uint64(DisputeGameTypeFlag.Name)),
 					GameArgs: common.FromHex(disputeAbsolutePrestateFlag),
@@ -315,7 +315,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 				Root:             common.HexToHash(startingAnchorRootFlag),
 				L2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
 			},
-			StartingRespectedGameType: uint32(cliCtx.Uint64(StartingRespectedGameTypeFlag.Name)),
+			StartingRespectedGameType: uint32(cliCtx.Uint64(MigrateStartingRespectedGameTypeFlag.Name)),
 		}
 	} else {
 		// Validate V1-specific required flags

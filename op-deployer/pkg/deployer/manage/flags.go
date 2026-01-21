@@ -136,13 +136,13 @@ var (
 		EnvVars: deployer.PrefixEnvVar("CHAIN_ID"),
 	}
 	// OPCM v2 flags
-	StartingRespectedGameTypeFlag = &cli.Uint64Flag{
+	MigrateStartingRespectedGameTypeFlag = &cli.Uint64Flag{
 		Name:    "starting-respected-game-type",
 		Usage:   "Starting respected game type for OPCM v2 migration. Defaults to 4 (Super Cannon).",
 		EnvVars: deployer.PrefixEnvVar("STARTING_RESPECTED_GAME_TYPE"),
 		Value:   4,
 	}
-	DisputeGameEnabledFlag = &cli.BoolFlag{
+	MigrateDisputeGameEnabledFlag = &cli.BoolFlag{
 		Name:    "dispute-game-enabled",
 		Usage:   "Whether the dispute game should be enabled. Used for OPCM v2 migration.",
 		EnvVars: deployer.PrefixEnvVar("DISPUTE_GAME_ENABLED"),
@@ -217,8 +217,8 @@ var Commands = cli.Commands{
 			DisputeAbsolutePrestateCannonFlag,
 			DisputeAbsolutePrestateCannonKonaFlag,
 			// OPCM v2 flags
-			StartingRespectedGameTypeFlag,
-			DisputeGameEnabledFlag,
+			MigrateStartingRespectedGameTypeFlag,
+			MigrateDisputeGameEnabledFlag,
 			DisputeGameTypeFlag,
 			DisputeAbsolutePrestateFlag,
 		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
