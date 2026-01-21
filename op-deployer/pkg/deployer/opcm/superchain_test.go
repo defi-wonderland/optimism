@@ -14,26 +14,27 @@ import (
 )
 
 func TestNewDeploySuperchainScript(t *testing.T) {
-	t.Run("should not fail with current version of DeploySuperchain2 contract", func(t *testing.T) {
-		// First we grab a test host
-		host1 := createTestHost(t)
+	// First we grab a test host
+	host1 := createTestHost(t)
 
-		// Then we load the script
-		//
-		// This would raise an error if the Go types didn't match the ABI
-		deploySuperchain, err := NewDeploySuperchainScript(host1)
-		require.NoError(t, err)
+	// Then we load the script
+	//
+	// This would raise an error if the Go types didn't match the ABI
+	deploySuperchain, err := NewDeploySuperchainScript(host1)
+	require.NoError(t, err)
 
+	deployInput := DeploySuperchainInput{
+		Guardian:                   common.BigToAddress(big.NewInt(1)),
+		ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
+		SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
+		Paused:                     true,
+		RecommendedProtocolVersion: params.ProtocolVersion{1},
+		RequiredProtocolVersion:    params.ProtocolVersion{2},
+		IsOPCMv2:                   false,
+	}
+	t.Run("should succeed with OPCM v1 and protocol versions", func(t *testing.T) {
 		// Then we deploy
-		output, err := deploySuperchain.Run(DeploySuperchainInput{
-			Guardian:                   common.BigToAddress(big.NewInt(1)),
-			ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
-			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
-			Paused:                     true,
-			RecommendedProtocolVersion: params.ProtocolVersion{1},
-			RequiredProtocolVersion:    params.ProtocolVersion{2},
-			IsOPCMv2:                   false,
-		})
+		output, err := deploySuperchain.Run(deployInput)
 
 		// And do some simple asserts
 		require.NoError(t, err)
@@ -42,21 +43,14 @@ func TestNewDeploySuperchainScript(t *testing.T) {
 		require.NotEqual(t, common.Address{}, output.ProtocolVersionsImpl)
 	})
 
-	t.Run("should deploy without ProtocolVersions when IsOPCMv2 is true", func(t *testing.T) {
-		host1 := createTestHost(t)
+	t.Run("should succeed with OPCM v2 and protocol versions deprecated", func(t *testing.T) {
+		// Set isOPCMv2 and clear the protocol versions arguments
+		deployInput.ProtocolVersionsOwner = common.Address{}
+		deployInput.RecommendedProtocolVersion = params.ProtocolVersion{}
+		deployInput.RequiredProtocolVersion = params.ProtocolVersion{}
+		deployInput.IsOPCMv2 = true
 
-		deploySuperchain, err := NewDeploySuperchainScript(host1)
-		require.NoError(t, err)
-
-		output, err := deploySuperchain.Run(DeploySuperchainInput{
-			Guardian:                   common.BigToAddress(big.NewInt(1)),
-			ProtocolVersionsOwner:      common.Address{},
-			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
-			Paused:                     true,
-			RecommendedProtocolVersion: params.ProtocolVersion{},
-			RequiredProtocolVersion:    params.ProtocolVersion{},
-			IsOPCMv2:                   true,
-		})
+		output, err := deploySuperchain.Run(deployInput)
 
 		require.NoError(t, err)
 		require.NotNil(t, output)
@@ -69,25 +63,25 @@ func TestNewDeploySuperchainScript(t *testing.T) {
 }
 
 func TestNewDeploySuperchainScriptForge(t *testing.T) {
-	t.Run("should deploy with ProtocolVersions when IsOPCMv2 is false", func(t *testing.T) {
-		tmpDir := t.TempDir()
+	tmpDir := t.TempDir()
 
-		embeddedArtifactsFS, err := artifacts.ExtractEmbedded(tmpDir)
-		require.NoError(t, err)
+	embeddedArtifactsFS, err := artifacts.ExtractEmbedded(tmpDir)
+	require.NoError(t, err)
 
-		forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
-		require.NoError(t, err)
-
-		deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
-		output, _, err := deploySuperchain(context.Background(), DeploySuperchainInput{
-			Guardian:                   common.BigToAddress(big.NewInt(1)),
-			ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
-			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
-			Paused:                     true,
-			RecommendedProtocolVersion: params.ProtocolVersion{1},
-			RequiredProtocolVersion:    params.ProtocolVersion{2},
-			IsOPCMv2:                   false,
-		})
+	forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
+	require.NoError(t, err)
+	deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
+	deployInput := DeploySuperchainInput{
+		Guardian:                   common.BigToAddress(big.NewInt(1)),
+		ProtocolVersionsOwner:      common.BigToAddress(big.NewInt(2)),
+		SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
+		Paused:                     true,
+		RecommendedProtocolVersion: params.ProtocolVersion{1},
+		RequiredProtocolVersion:    params.ProtocolVersion{2},
+		IsOPCMv2:                   false,
+	}
+	t.Run("should succeed with OPCM v1 and protocol versions", func(t *testing.T) {
+		output, _, err := deploySuperchain(context.Background(), deployInput)
 
 		require.NoError(t, err)
 		require.NotNil(t, output)
@@ -95,25 +89,13 @@ func TestNewDeploySuperchainScriptForge(t *testing.T) {
 		require.NotEqual(t, common.Address{}, output.ProtocolVersionsImpl)
 	})
 
-	t.Run("should deploy without ProtocolVersions when IsOPCMv2 is true", func(t *testing.T) {
-		tmpDir := t.TempDir()
+	t.Run("should succeed with OPCM v2 and protocol versions deprecated", func(t *testing.T) {
+		deployInput.IsOPCMv2 = true
+		deployInput.ProtocolVersionsOwner = common.Address{}
+		deployInput.RecommendedProtocolVersion = params.ProtocolVersion{}
+		deployInput.RequiredProtocolVersion = params.ProtocolVersion{}
 
-		embeddedArtifactsFS, err := artifacts.ExtractEmbedded(tmpDir)
-		require.NoError(t, err)
-
-		forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
-		require.NoError(t, err)
-
-		deploySuperchain := NewDeploySuperchainForgeCaller(forgeClient)
-		output, _, err := deploySuperchain(context.Background(), DeploySuperchainInput{
-			Guardian:                   common.BigToAddress(big.NewInt(1)),
-			ProtocolVersionsOwner:      common.Address{},
-			SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
-			Paused:                     true,
-			RecommendedProtocolVersion: params.ProtocolVersion{},
-			RequiredProtocolVersion:    params.ProtocolVersion{},
-			IsOPCMv2:                   true,
-		})
+		output, _, err := deploySuperchain(context.Background(), deployInput)
 
 		require.NoError(t, err)
 		require.NotNil(t, output)
