@@ -230,17 +230,6 @@ contract DeployOPChain is Script {
         address permissionedDgImpl =
             address(_chainContracts.disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON));
 
-        // We first find the respected game type, if it's a fault game we can set the faultDisputeGame to the respected
-        // game implementation, otherwise we set it to address(0).
-        // This is to account for scenarios where both fault games are enabled.
-        GameType respectedGameType = _chainContracts.anchorStateRegistry.respectedGameType();
-        address respectedGameImpl = address(_chainContracts.disputeGameFactory.gameImpls(respectedGameType));
-        bool isFaultGame = (
-            respectedGameType.raw() == GameTypes.CANNON.raw() || respectedGameType.raw() == GameTypes.CANNON_KONA.raw()
-                || respectedGameType.raw() == GameTypes.SUPER_CANNON.raw()
-                || respectedGameType.raw() == GameTypes.SUPER_CANNON_KONA.raw()
-        );
-
         output_ = Output({
             opChainProxyAdmin: _chainContracts.proxyAdmin,
             addressManager: _chainContracts.addressManager,
@@ -253,7 +242,8 @@ contract DeployOPChain is Script {
             ethLockboxProxy: _chainContracts.ethLockbox,
             disputeGameFactoryProxy: _chainContracts.disputeGameFactory,
             anchorStateRegistryProxy: _chainContracts.anchorStateRegistry,
-            faultDisputeGame: isFaultGame ? IFaultDisputeGame(respectedGameImpl) : IFaultDisputeGame(address(0)),
+            // Explicitly set to address(0) maintaining consistency with OPCM v1 behavior.
+            faultDisputeGame: IFaultDisputeGame(address(0)),
             permissionedDisputeGame: IPermissionedDisputeGame(permissionedDgImpl),
             delayedWETHPermissionedGameProxy: _chainContracts.delayedWETH,
             delayedWETHPermissionlessGameProxy: IDelayedWETH(payable(_chainContracts.delayedWETH))
