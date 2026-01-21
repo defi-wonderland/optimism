@@ -391,13 +391,13 @@ func MigrateCLI(cliCtx *cli.Context) error {
 	}
 
 	signer := opcrypto.SignerFnFromBind(opcrypto.PrivateKeySignerFn(privateKeyECDSA, l1ChainID))
-	deployer := crypto.PubkeyToAddress(privateKeyECDSA.PublicKey)
+	deployerAddr := crypto.PubkeyToAddress(privateKeyECDSA.PublicKey)
 	bcaster, err := broadcaster.NewKeyedBroadcaster(broadcaster.KeyedBroadcasterOpts{
 		Logger:  lgr,
 		ChainID: l1ChainID,
 		Client:  l1Client,
 		Signer:  signer,
-		From:    deployer,
+		From:    deployerAddr,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create broadcaster: %w", err)
@@ -407,7 +407,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		ctx,
 		bcaster,
 		lgr,
-		deployer,
+		deployerAddr,
 		artifactsFS,
 		l1RPC,
 	)
