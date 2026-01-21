@@ -30,6 +30,7 @@ func DeploySuperchain(env *Env, intent *state.Intent, st *state.State) error {
 		if isDevFeatureEnabled(devFeatureBitmap, opcmV2Flag) {
 			isOPCMv2 = true
 			intent.SuperchainRoles.ProtocolVersionsOwner = common.Address{}
+			protocolVersionsOwner = common.Address{}
 			requiredProtocolVersion = params.ProtocolVersion{}
 			recommendedProtocolVersion = params.ProtocolVersion{}
 		}
