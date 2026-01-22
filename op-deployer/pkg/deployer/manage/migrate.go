@@ -312,7 +312,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		if migrateStartingRespectedGameTypeU64 > 0xFFFFFFFF {
 			return fmt.Errorf("startingRespectedGameType %d exceeds uint32 max value", migrateStartingRespectedGameTypeU64)
 		}
-		startingRespectedGameType := uint32(migrateStartingRespectedGameTypeU64)
+		migrateStartingRespectedGameType := uint32(migrateStartingRespectedGameTypeU64)
 
 		// ABI-encode the FaultDisputeGameConfig struct
 		// FaultDisputeGameConfig contains a single field: absolutePrestate (bytes32)
@@ -346,7 +346,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 				Root:             common.HexToHash(startingAnchorRootFlag),
 				L2SequenceNumber: new(big.Int).SetUint64(cliCtx.Uint64(StartingAnchorL2SequenceNumberFlag.Name)),
 			},
-			StartingRespectedGameType: startingRespectedGameType,
+			StartingRespectedGameType: migrateStartingRespectedGameType,
 		}
 	} else {
 		// Validate V1-specific required flags
