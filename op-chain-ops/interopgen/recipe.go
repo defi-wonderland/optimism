@@ -76,7 +76,6 @@ func (recipe *InteropDevRecipe) Build(addrs devkeys.Addresses) (*WorldConfig, er
 		ProtocolVersionsOwner: superchainProtocolVersionsOwner,
 		Challenger:            challenger,
 		Deployer:              superchainDeployer,
-		IsOPCMv2:              false,
 		Implementations: OPCMImplementationsConfig{
 			FaultProof: SuperFaultProofConfig{
 				WithdrawalDelaySeconds:          big.NewInt(302400),
