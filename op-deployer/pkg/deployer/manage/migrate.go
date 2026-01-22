@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
 	opcrypto "github.com/ethereum-optimism/optimism/op-service/crypto"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -208,6 +209,8 @@ func Migrate(host *script.Host, input InteropMigrationInput) (InteropMigrationOu
 	return opcm.RunScriptSingle[ScriptInput, InteropMigrationOutput](host, scriptInput, "InteropMigration.s.sol", "InteropMigration")
 }
 
+// MigrateCLI is the main function for the migrate command. It validates required flags and runs the migration,
+// using the OPCM to determine the input version it should use.
 func MigrateCLI(cliCtx *cli.Context) error {
 	logCfg := oplog.ReadCLIConfig(cliCtx)
 	lgr := oplog.NewLogger(oplog.AppOut(cliCtx), logCfg)
@@ -305,11 +308,26 @@ func MigrateCLI(cliCtx *cli.Context) error {
 		}
 		disputeGameType := uint32(disputeGameTypeU64)
 
-		startingRespectedGameTypeU64 := cliCtx.Uint64(MigrateStartingRespectedGameTypeFlag.Name)
-		if startingRespectedGameTypeU64 > 0xFFFFFFFF {
-			return fmt.Errorf("startingRespectedGameType %d exceeds uint32 max value", startingRespectedGameTypeU64)
+		migrateStartingRespectedGameTypeU64 := cliCtx.Uint64(MigrateStartingRespectedGameTypeFlag.Name)
+		if migrateStartingRespectedGameTypeU64 > 0xFFFFFFFF {
+			return fmt.Errorf("startingRespectedGameType %d exceeds uint32 max value", migrateStartingRespectedGameTypeU64)
 		}
-		startingRespectedGameType := uint32(startingRespectedGameTypeU64)
+		startingRespectedGameType := uint32(migrateStartingRespectedGameTypeU64)
+
+		// ABI-encode the FaultDisputeGameConfig struct
+		// FaultDisputeGameConfig contains a single field: absolutePrestate (bytes32)
+		absolutePrestateHex := cliCtx.String(DisputeAbsolutePrestateFlag.Name)
+		absolutePrestate := common.HexToHash(absolutePrestateHex)
+
+		bytes32Type, err := abi.NewType("bytes32", "", nil)
+		if err != nil {
+			return fmt.Errorf("failed to create bytes32 ABI type: %w", err)
+		}
+
+		gameArgs, err := abi.Arguments{{Type: bytes32Type}}.Pack(absolutePrestate)
+		if err != nil {
+			return fmt.Errorf("failed to ABI-encode game args: %w", err)
+		}
 
 		// V2 Migration Input
 		input.MigrateInputV2 = &MigrateInputV2{
@@ -321,7 +339,7 @@ func MigrateCLI(cliCtx *cli.Context) error {
 					Enabled:  cliCtx.Bool(MigrateDisputeGameEnabledFlag.Name),
 					InitBond: initBond,
 					GameType: disputeGameType,
-					GameArgs: common.FromHex(disputeAbsolutePrestateFlag),
+					GameArgs: gameArgs,
 				},
 			},
 			StartingAnchorRoot: Proposal{
