@@ -327,47 +327,6 @@ func TestMigrateCLIV2Flags(t *testing.T) {
 	require.Equal(t, uint32(0), startingRespectedGameType)
 }
 
-func TestMigrateCLIMissingRequiredFlags(t *testing.T) {
-	testCases := []struct {
-		name        string
-		setupFlags  func(*flag.FlagSet)
-		expectedErr string
-	}{
-		{
-			name: "missing opcm impl",
-			setupFlags: func(fs *flag.FlagSet) {
-				fs.String(SystemConfigProxyFlag.Name, "0x034edD2A225f7f429A63E0f1D2084B9E0A93b538", "doc")
-			},
-			expectedErr: OPCMImplFlag.Name,
-		},
-		{
-			name: "missing system config proxy",
-			setupFlags: func(fs *flag.FlagSet) {
-				fs.String(OPCMImplFlag.Name, "0xaf334f4537e87f5155d135392ff6d52f1866465e", "doc")
-			},
-			expectedErr: SystemConfigProxyFlag.Name,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			app := cli.NewApp()
-			flagSet := flag.NewFlagSet(fmt.Sprintf("test-%s", tc.name), flag.ContinueOnError)
-			tc.setupFlags(flagSet)
-
-			ctx := cli.NewContext(app, flagSet, nil)
-
-			// Verify that the expected flag is not set
-			switch tc.expectedErr {
-			case OPCMImplFlag.Name:
-				require.Empty(t, ctx.String(OPCMImplFlag.Name))
-			case SystemConfigProxyFlag.Name:
-				require.Empty(t, ctx.String(SystemConfigProxyFlag.Name))
-			}
-		})
-	}
-}
-
 func TestMigrateCLIV2Uint32Overflow(t *testing.T) {
 	testCases := []struct {
 		name                      string
