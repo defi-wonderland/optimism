@@ -72,8 +72,26 @@ func (c *SuperchainConfig) Check() error {
 		return fmt.Errorf("superchain proxy admin owner must be specified")
 	}
 
-	if c.IsOPCMv2 && c.ProtocolVersionsOwner == (common.Address{}) {
-		return fmt.Errorf("protocol versions owner must be specified")
+	if !c.IsOPCMv2 {
+		if c.ProtocolVersionsOwner == (common.Address{}) {
+			return fmt.Errorf("protocol versions owner must be specified")
+		}
+		if c.RequiredProtocolVersion == (params.ProtocolVersion{}) {
+			return fmt.Errorf("required protocol version must be specified")
+		}
+		if c.RecommendedProtocolVersion == (params.ProtocolVersion{}) {
+			return fmt.Errorf("recommended protocol version must be specified")
+		}
+	} else {
+		if c.ProtocolVersionsOwner != (common.Address{}) {
+			return fmt.Errorf("protocol versions owner must be set to 0 for OPCM v2")
+		}
+		if c.RequiredProtocolVersion != (params.ProtocolVersion{}) {
+			return fmt.Errorf("required protocol version must be set to 0 for OPCM v2")
+		}
+		if c.RecommendedProtocolVersion != (params.ProtocolVersion{}) {
+			return fmt.Errorf("recommended protocol version must be set to 0 for OPCM v2")
+		}
 	}
 
 	if c.Guardian == (common.Address{}) {
