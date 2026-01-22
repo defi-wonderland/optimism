@@ -45,6 +45,8 @@ type SuperchainConfig struct {
 	ProtocolVersionsOwner common.Address
 	Challenger            common.Address
 
+	IsOPCMv2 bool
+
 	Paused bool
 
 	Implementations OPCMImplementationsConfig
