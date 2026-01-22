@@ -90,6 +90,7 @@ func (recipe *InteropDevRecipe) Build(addrs devkeys.Addresses) (*WorldConfig, er
 			RequiredProtocolVersion:    params.OPStackSupport,
 			RecommendedProtocolVersion: params.OPStackSupport,
 			SuperchainConfigGuardian:   superchainConfigGuardian,
+			IsOPCMv2:                   false,
 		},
 	}
 	world := &WorldConfig{
