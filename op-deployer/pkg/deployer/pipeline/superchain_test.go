@@ -103,6 +103,8 @@ func TestDeploySuperchain_Deploys(t *testing.T) {
 			lgr := testlog.Logger(t, log.LevelInfo)
 
 			expectedOutput := opcm.DeploySuperchainOutput{
+				ProtocolVersionsImpl:  common.Address{},
+				ProtocolVersionsProxy: common.Address{},
 				SuperchainConfigImpl:  common.BigToAddress(big.NewInt(12)),
 				SuperchainConfigProxy: common.BigToAddress(big.NewInt(13)),
 				SuperchainProxyAdmin:  common.BigToAddress(big.NewInt(14)),
@@ -458,17 +460,16 @@ func TestDeploySuperchain_WithForge_ManualCall(t *testing.T) {
 
 			// Create input matching what DeploySuperchain would use
 			input := opcm.DeploySuperchainInput{
-				Guardian:                  common.BigToAddress(big.NewInt(1)),
-				SuperchainProxyAdminOwner: common.BigToAddress(big.NewInt(3)),
-				Paused:                    false,
-				IsOPCMv2:                  tc.useOPCMv2,
+				ProtocolVersionsOwner:      common.Address{},
+				RequiredProtocolVersion:    params.ProtocolVersion{},
+				RecommendedProtocolVersion: params.ProtocolVersion{},
+				Guardian:                   common.BigToAddress(big.NewInt(1)),
+				SuperchainProxyAdminOwner:  common.BigToAddress(big.NewInt(3)),
+				Paused:                     false,
+				IsOPCMv2:                   tc.useOPCMv2,
 			}
 
-			if tc.useOPCMv2 {
-				input.ProtocolVersionsOwner = common.Address{}
-				input.RequiredProtocolVersion = params.ProtocolVersion{}
-				input.RecommendedProtocolVersion = params.ProtocolVersion{}
-			} else {
+			if !tc.useOPCMv2 {
 				input.ProtocolVersionsOwner = common.BigToAddress(big.NewInt(2))
 				input.RequiredProtocolVersion = params.ProtocolVersion(rollup.OPStackSupport)
 				input.RecommendedProtocolVersion = params.ProtocolVersion(rollup.OPStackSupport)
