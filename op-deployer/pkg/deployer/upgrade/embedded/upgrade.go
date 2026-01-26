@@ -144,6 +144,13 @@ func (u *UpgradeOPChainInput) EncodedUpgradeInputV2() ([]byte, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to encode fault game config: %w", err)
 				}
+
+				// Edge case check when the encoded game args length is less than 4
+				if len(gameArgs) < 4 {
+					return nil, fmt.Errorf("encoded game args length is less than 4 for game type %d", gameConfig.GameType)
+				}
+
+				// Skip the selector bytes
 				gameArgs = gameArgs[4:]
 			}
 
@@ -155,6 +162,13 @@ func (u *UpgradeOPChainInput) EncodedUpgradeInputV2() ([]byte, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to encode permissioned game config: %w", err)
 				}
+
+				// Edge case check when the encoded game args length is less than 4
+				if len(gameArgs) < 4 {
+					return nil, fmt.Errorf("encoded game args length is less than 4 for game type %d", gameConfig.GameType)
+				}
+
+				// Skip the selector bytes
 				gameArgs = gameArgs[4:]
 			}
 		}
