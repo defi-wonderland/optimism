@@ -12,55 +12,6 @@ import (
 	"github.com/lmittmann/w3"
 )
 
-// ScriptInput represents the input struct that is actually passed to the script.
-// It contains the prank, opcm, and upgrade input.
-type ScriptInput struct {
-	Prank        common.Address `evm:"prank"`
-	Opcm         common.Address `evm:"opcm"`
-	UpgradeInput []byte         `evm:"upgradeInput"`
-}
-
-// UpgradeOPChainInput represents the struct that is read from the config file.
-// It contains both fields for the old and new upgrade input.
-type UpgradeOPChainInput struct {
-	Prank          common.Address  `json:"prank"`
-	Opcm           common.Address  `json:"opcm"`
-	ChainConfigs   []OPChainConfig `json:"chainConfigs,omitempty"`
-	UpgradeInputV2 *UpgradeInputV2 `json:"upgradeInput,omitempty"`
-}
-
-// UpgradeInputV2 represents the new upgrade input in OPCM v2.
-type UpgradeInputV2 struct {
-	SystemConfig       common.Address      `json:"systemConfig"`
-	DisputeGameConfigs []DisputeGameConfig `json:"disputeGameConfigs"`
-	ExtraInstructions  []ExtraInstruction  `json:"extraInstructions"`
-}
-
-// DisputeGameConfig represents the configuration for a dispute game.
-type DisputeGameConfig struct {
-	Enabled                       bool                           `json:"enabled"`
-	InitBond                      *big.Int                       `json:"initBond"`
-	GameType                      GameType                       `json:"gameType"`
-	FaultDisputeGameConfig        *FaultDisputeGameConfig        `json:"faultDisputeGameConfig,omitempty"`
-	PermissionedDisputeGameConfig *PermissionedDisputeGameConfig `json:"permissionedDisputeGameConfig,omitempty"`
-}
-
-type FaultDisputeGameConfig struct {
-	AbsolutePrestate common.Hash `json:"absolutePrestate"`
-}
-
-type PermissionedDisputeGameConfig struct {
-	AbsolutePrestate common.Hash    `json:"absolutePrestate"`
-	Proposer         common.Address `json:"proposer"`
-	Challenger       common.Address `json:"challenger"`
-}
-
-// ExtraInstruction represents an additional upgrade instruction for the upgrade on OPCM v2.
-type ExtraInstruction struct {
-	Key  string `json:"key"`
-	Data []byte `json:"data"`
-}
-
 // GameType represents the type of dispute game.
 type GameType uint32
 
@@ -88,6 +39,23 @@ var (
 	opChainConfigEncoder = w3.MustNewFunc("dummy((address systemConfigProxy,bytes32 cannonPrestate,bytes32 cannonKonaPrestate)[])", "")
 )
 
+// ScriptInput represents the input struct that is actually passed to the script.
+// It contains the prank, opcm, and upgrade input.
+type ScriptInput struct {
+	Prank        common.Address `evm:"prank"`
+	Opcm         common.Address `evm:"opcm"`
+	UpgradeInput []byte         `evm:"upgradeInput"`
+}
+
+// UpgradeOPChainInput represents the struct that is read from the config file.
+// It contains both fields for the old and new upgrade input.
+type UpgradeOPChainInput struct {
+	Prank          common.Address  `json:"prank"`
+	Opcm           common.Address  `json:"opcm"`
+	ChainConfigs   []OPChainConfig `json:"chainConfigs,omitempty"`
+	UpgradeInputV2 *UpgradeInputV2 `json:"upgradeInput,omitempty"`
+}
+
 // OPChainConfig represents the configuration for an OP Chain upgrade on OPCM v1.
 type OPChainConfig struct {
 	SystemConfigProxy  common.Address `json:"systemConfigProxy"`
@@ -95,6 +63,58 @@ type OPChainConfig struct {
 	CannonKonaPrestate common.Hash    `json:"cannonKonaPrestate"`
 }
 
+// UpgradeInputV2 represents the new upgrade input in OPCM v2.
+type UpgradeInputV2 struct {
+	SystemConfig       common.Address      `json:"systemConfig"`
+	DisputeGameConfigs []DisputeGameConfig `json:"disputeGameConfigs"`
+	ExtraInstructions  []ExtraInstruction  `json:"extraInstructions"`
+}
+
+// DisputeGameConfig represents the configuration for a dispute game.
+type DisputeGameConfig struct {
+	Enabled                       bool                           `json:"enabled"`
+	InitBond                      *big.Int                       `json:"initBond"`
+	GameType                      GameType                       `json:"gameType"`
+	FaultDisputeGameConfig        *FaultDisputeGameConfig        `json:"faultDisputeGameConfig,omitempty"`
+	PermissionedDisputeGameConfig *PermissionedDisputeGameConfig `json:"permissionedDisputeGameConfig,omitempty"`
+}
+
+// ExtraInstruction represents an additional upgrade instruction for the upgrade on OPCM v2.
+type ExtraInstruction struct {
+	Key  string `json:"key"`
+	Data []byte `json:"data"`
+}
+
+// FaultDisputeGameConfig represents the configuration for a fault dispute game.
+// It contains the absolute prestate of the fault dispute game.
+type FaultDisputeGameConfig struct {
+	AbsolutePrestate common.Hash `json:"absolutePrestate"`
+}
+
+// PermissionedDisputeGameConfig represents the configuration for a permissioned dispute game.
+// It contains the absolute prestate, proposer, and challenger of the permissioned dispute game.
+type PermissionedDisputeGameConfig struct {
+	AbsolutePrestate common.Hash    `json:"absolutePrestate"`
+	Proposer         common.Address `json:"proposer"`
+	Challenger       common.Address `json:"challenger"`
+}
+
+// EncodableUpgradeInput is an intermediate struct that matches the encoder expectation for the UpgradeInputV2 struct.
+type EncodableUpgradeInput struct {
+	SystemConfig       common.Address
+	DisputeGameConfigs []EncodableDisputeGameConfig
+	ExtraInstructions  []ExtraInstruction
+}
+
+// EncodableDisputeGameConfig is an intermediate struct that matches the encoder expectation.
+type EncodableDisputeGameConfig struct {
+	Enabled  bool
+	InitBond *big.Int
+	GameType uint32
+	GameArgs []byte
+}
+
+// EncodedOpChainConfigs encodes the OP Chain configs for the upgrade input, assumes is not nil
 func (u *UpgradeOPChainInput) EncodedOpChainConfigs() ([]byte, error) {
 	data, err := opChainConfigEncoder.EncodeArgs(u.ChainConfigs)
 	if err != nil {
@@ -103,25 +123,14 @@ func (u *UpgradeOPChainInput) EncodedOpChainConfigs() ([]byte, error) {
 	return data[4:], nil
 }
 
+// EncodedUpgradeInputV2 encodes the upgrade input for the upgrade input, assumes is not nil
 func (u *UpgradeOPChainInput) EncodedUpgradeInputV2() ([]byte, error) {
-
-	// We need to create another intermediate struct to match the encoder expectation
-	type EncodableDisputeGameConfig struct {
-		Enabled  bool
-		InitBond *big.Int
-		GameType uint32
-		GameArgs []byte
-	}
-
-	type EncodableUpgradeInput struct {
-		SystemConfig       common.Address
-		DisputeGameConfigs []EncodableDisputeGameConfig
-		ExtraInstructions  []ExtraInstruction
-	}
 
 	encodableConfigs := make([]EncodableDisputeGameConfig, len(u.UpgradeInputV2.DisputeGameConfigs))
 
-	// Validate and encode each game config
+	// Validate and encode each game config.
+	// We iterate over the game configs in the upgrade input config and encode them into the encodable configs.
+	// We return an error if a game config is not valid.
 	for i, gameConfig := range u.UpgradeInputV2.DisputeGameConfigs {
 		var gameArgs []byte
 		var err error
