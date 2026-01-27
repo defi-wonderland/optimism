@@ -426,11 +426,6 @@ func TestEncodedUpgradeInputV2_DisabledGames(t *testing.T) {
 			data, err := input.EncodedUpgradeInputV2()
 			require.NoError(t, err, tt.description)
 			require.NotEmpty(t, data, "encoded data should not be empty")
-
-			// Verify that disabled games have empty gameArgs
-			// The actual gameArgs bytes should be empty for disabled games
-			// We can't easily decode and verify without more complex ABI parsing,
-			// but we can at least verify encoding succeeds
 		})
 	}
 }
