@@ -249,7 +249,7 @@ func TestDeploySuperchain_WithForge(t *testing.T) {
 			forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
 			require.NoError(t, err)
 
-			// Create a test host for other scripts (even though we won't use it for DeploySuperchain)
+			// Create a test host for other scriptss
 			// We use LocalArtifacts which should have compatible versions
 			_, afacts := testutil.LocalArtifacts(t)
 			lgr := testlog.Logger(t, slog.LevelInfo)
@@ -270,7 +270,7 @@ func TestDeploySuperchain_WithForge(t *testing.T) {
 			)
 			require.NoError(t, err)
 
-			// Load scripts (needed for Env, even though we'll use Forge for DeploySuperchain)
+			// Load scripts
 			opcmScripts, err := opcm.NewScripts(host)
 			require.NoError(t, err)
 
@@ -367,7 +367,7 @@ func TestDeploySuperchain_WithForgeEverywhere(t *testing.T) {
 			forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
 			require.NoError(t, err)
 
-			// Create a test host for other scripts (even though we won't use it for DeploySuperchain)
+			// Create a test host for other scripts
 			_, afacts := testutil.LocalArtifacts(t)
 			lgr := testlog.Logger(t, slog.LevelInfo)
 			anvil, err := devnet.NewAnvil(lgr)
@@ -387,7 +387,7 @@ func TestDeploySuperchain_WithForgeEverywhere(t *testing.T) {
 			)
 			require.NoError(t, err)
 
-			// Load scripts (needed for Env, even though we'll use Forge for DeploySuperchain)
+			// Load scripts
 			opcmScripts, err := opcm.NewScripts(host)
 			require.NoError(t, err)
 
