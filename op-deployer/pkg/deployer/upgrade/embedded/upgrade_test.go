@@ -3,6 +3,7 @@ package embedded
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -228,7 +229,7 @@ func TestEncodedUpgradeInputV2_GameTypeConfigValidation(t *testing.T) {
 				GameType: GameTypeCannon,
 				// Missing FaultDisputeGameConfig
 			},
-			errorContains: "faultDisputeGameConfig is required for game type 0",
+			errorContains: fmt.Sprintf("faultDisputeGameConfig is required for game type %d", GameTypeCannon),
 			shouldPass:    false,
 		},
 		{
@@ -239,7 +240,7 @@ func TestEncodedUpgradeInputV2_GameTypeConfigValidation(t *testing.T) {
 				GameType: GameTypeCannonKona,
 				// Missing FaultDisputeGameConfig
 			},
-			errorContains: "faultDisputeGameConfig is required for game type 8",
+			errorContains: fmt.Sprintf("faultDisputeGameConfig is required for game type %d", GameTypeCannonKona),
 			shouldPass:    false,
 		},
 		{
@@ -250,7 +251,7 @@ func TestEncodedUpgradeInputV2_GameTypeConfigValidation(t *testing.T) {
 				GameType: GameTypePermissionedCannon,
 				// Missing PermissionedDisputeGameConfig
 			},
-			errorContains: "permissionedDisputeGameConfig is required for game type 1",
+			errorContains: fmt.Sprintf("permissionedDisputeGameConfig is required for game type %d", GameTypePermissionedCannon),
 			shouldPass:    false,
 		},
 		{
