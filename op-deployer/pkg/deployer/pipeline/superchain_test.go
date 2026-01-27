@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/env"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum-optimism/optimism/op-service/testutils/devnet"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -252,6 +253,15 @@ func TestDeploySuperchain_WithForge(t *testing.T) {
 			// We use LocalArtifacts which should have compatible versions
 			_, afacts := testutil.LocalArtifacts(t)
 			lgr := testlog.Logger(t, slog.LevelInfo)
+			anvil, err := devnet.NewAnvil(lgr)
+			require.NoError(t, err)
+			require.NoError(t, anvil.Start())
+			t.Cleanup(func() {
+				require.NoError(t, anvil.Stop())
+			})
+
+			l1RPCUrl := anvil.RPCUrl()
+
 			host, err := env.DefaultScriptHost(
 				broadcaster.NoopBroadcaster(),
 				lgr,
@@ -292,6 +302,8 @@ func TestDeploySuperchain_WithForge(t *testing.T) {
 				Context:     ctx,
 				Broadcaster: broadcaster.NoopBroadcaster(),
 				StateWriter: NoopStateWriter(),
+				PrivateKey:  "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+				L1RPCUrl:    l1RPCUrl,
 			}
 
 			// Test DeploySuperchain with Forge
@@ -358,6 +370,15 @@ func TestDeploySuperchain_WithForgeEverywhere(t *testing.T) {
 			// Create a test host for other scripts (even though we won't use it for DeploySuperchain)
 			_, afacts := testutil.LocalArtifacts(t)
 			lgr := testlog.Logger(t, slog.LevelInfo)
+			anvil, err := devnet.NewAnvil(lgr)
+			require.NoError(t, err)
+			require.NoError(t, anvil.Start())
+			t.Cleanup(func() {
+				require.NoError(t, anvil.Stop())
+			})
+
+			l1RPCUrl := anvil.RPCUrl()
+
 			host, err := env.DefaultScriptHost(
 				broadcaster.NoopBroadcaster(),
 				lgr,
@@ -398,6 +419,8 @@ func TestDeploySuperchain_WithForgeEverywhere(t *testing.T) {
 				Context:     ctx,
 				Broadcaster: broadcaster.NoopBroadcaster(),
 				StateWriter: NoopStateWriter(),
+				PrivateKey:  "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+				L1RPCUrl:    l1RPCUrl,
 			}
 
 			// Test DeploySuperchain with Forge
