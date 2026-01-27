@@ -249,7 +249,7 @@ func TestDeploySuperchain_WithForge(t *testing.T) {
 			forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
 			require.NoError(t, err)
 
-			// Create a test host for other scriptss
+			// Create a test host for other scripts
 			// We use LocalArtifacts which should have compatible versions
 			_, afacts := testutil.LocalArtifacts(t)
 			lgr := testlog.Logger(t, slog.LevelInfo)
