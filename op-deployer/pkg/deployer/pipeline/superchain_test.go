@@ -302,7 +302,7 @@ func TestDeploySuperchain_WithForge(t *testing.T) {
 				Context:     ctx,
 				Broadcaster: broadcaster.NoopBroadcaster(),
 				StateWriter: NoopStateWriter(),
-				PrivateKey:  "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+				PrivateKey:  testutil.AnvilDefaultPrivateKey,
 				L1RPCUrl:    l1RPCUrl,
 			}
 
@@ -419,7 +419,7 @@ func TestDeploySuperchain_WithForgeEverywhere(t *testing.T) {
 				Context:     ctx,
 				Broadcaster: broadcaster.NoopBroadcaster(),
 				StateWriter: NoopStateWriter(),
-				PrivateKey:  "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+				PrivateKey:  testutil.AnvilDefaultPrivateKey,
 				L1RPCUrl:    l1RPCUrl,
 			}
 
@@ -478,7 +478,7 @@ func TestDeploySuperchain_WithForge_ManualCall(t *testing.T) {
 			forgeClient, err := forge.NewStandardClient(fmt.Sprintf("%v", embeddedArtifactsFS))
 			require.NoError(t, err)
 
-			// Create Forge caller directly (similar to TestNewDeploySuperchainScriptForge)
+			// Create Forge caller directly
 			deploySuperchain := opcm.NewDeploySuperchainForgeCaller(forgeClient)
 
 			// Create input matching what DeploySuperchain would use
