@@ -367,4 +367,11 @@ contract ReadImplementationAddressesTest is Test {
         assertEq(output.mipsSingleton, TEST_MIPS_SINGLETON, "MIPS singleton should match");
         assertEq(output.preimageOracleSingleton, TEST_PREIMAGE_ORACLE_SINGLETON, "PreimageOracle should match");
     }
+
+    function test_run_opcmCodeLengthZero_reverts() public {
+        input = _setupMockProxies();
+        input.opcm = address(0);
+        vm.expectRevert("ReadImplementationAddresses: OPCM address has no code");
+        script.run(input);
+    }
 }
