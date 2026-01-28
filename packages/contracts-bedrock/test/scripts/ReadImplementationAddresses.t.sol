@@ -8,13 +8,8 @@ import { Test } from "test/setup/Test.sol";
 import { ReadImplementationAddresses } from "scripts/deploy/ReadImplementationAddresses.s.sol";
 
 // Interfaces
-import { IProxy } from "interfaces/universal/IProxy.sol";
-import { IMIPS64 } from "interfaces/cannon/IMIPS64.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
-import { IOPContractsManagerV2 } from "interfaces/L1/opcm/IOPContractsManagerV2.sol";
 import { IOPContractsManagerContainer } from "interfaces/L1/opcm/IOPContractsManagerContainer.sol";
-import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
-import { IStaticL1ChugSplashProxy } from "interfaces/legacy/IL1ChugSplashProxy.sol";
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
 import { MockEIP1967Proxy, MockL1ChugSplashProxy } from "test/mocks/ProxyMocks.sol";
 import { MockAddressManager } from "test/mocks/MockAddressManager.sol";
