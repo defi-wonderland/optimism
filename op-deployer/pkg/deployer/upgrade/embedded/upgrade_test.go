@@ -261,7 +261,7 @@ func TestEncodedUpgradeInputV2_GameTypeConfigValidation(t *testing.T) {
 				InitBond: big.NewInt(1000),
 				GameType: GameType(99), // not a valid game type (0, 1, 8)
 			},
-			errorContains: "invalid game type 99",
+			errorContains: fmt.Sprintf("invalid game type %d for opcm v2", GameType(99)),
 			shouldPass:    false,
 		},
 		{

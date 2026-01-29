@@ -156,7 +156,7 @@ func (u *UpgradeOPChainInput) EncodedUpgradeInputV2() ([]byte, error) {
 					return nil, fmt.Errorf("failed to encode permissioned game config: %w", err)
 				}
 			default:
-				return nil, fmt.Errorf("invalid game type %d", gameConfig.GameType)
+				return nil, fmt.Errorf("invalid game type %d for opcm v2", gameConfig.GameType)
 			}
 
 			// Edge case check when the encoded game args length is less than 4
