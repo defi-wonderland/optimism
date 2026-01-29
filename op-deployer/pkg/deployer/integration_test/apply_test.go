@@ -839,13 +839,18 @@ func runEndToEndBootstrapAndApplyUpgradeTest(t *testing.T, afactsFS foundry.Stat
 		)
 		require.NoError(t, err)
 
+		opcmAddress := impls.Opcm
+		if deployer.IsDevFeatureEnabled(implementationsConfig.DevFeatureBitmap, deployer.OPCMV2DevFlag) {
+			opcmAddress = impls.OpcmV2
+		}
+
 		// Only run the superchain config upgrade if the live superchain config is behind the freshly deployed
 		// implementation. Running the script when versions match will revert and panic the test harness.
 		if shouldUpgradeSuperchainConfig {
 			t.Run("upgrade superchain config", func(t *testing.T) {
 				upgradeConfig := embedded.UpgradeSuperchainConfigInput{
 					Prank:            superchainProxyAdminOwner,
-					Opcm:             impls.Opcm,
+					Opcm:             opcmAddress,
 					SuperchainConfig: implementationsConfig.SuperchainConfigProxy,
 				}
 
