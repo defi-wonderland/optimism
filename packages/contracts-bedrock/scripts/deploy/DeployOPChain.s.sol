@@ -161,6 +161,8 @@ contract DeployOPChain is Script {
         IOPContractsManagerUtils.DisputeGameConfig[] memory disputeGameConfigs =
             new IOPContractsManagerUtils.DisputeGameConfig[](3);
 
+        // Config 0: CANNON
+        // Must be disabled for the initial deployment since no prestate exists for permissionless games.
         disputeGameConfigs[0] = IOPContractsManagerUtils.DisputeGameConfig({
             enabled: false,
             initBond: 0,
@@ -184,6 +186,7 @@ contract DeployOPChain is Script {
         });
 
         // Config 2: CANNON_KONA
+        // Must be disabled for the initial deployment since no prestate exists for permissionless games.
         disputeGameConfigs[2] = IOPContractsManagerUtils.DisputeGameConfig({
             enabled: false,
             initBond: 0,
