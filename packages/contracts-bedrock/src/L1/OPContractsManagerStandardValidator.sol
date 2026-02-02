@@ -883,26 +883,37 @@ contract OPContractsManagerStandardValidator is ISemver {
         _errors = assertValidPermissionedDisputeGame(
             _errors, _input.sysCfg, _input.cannonPrestate, _input.l2ChainID, _proxyAdmin, _input.proposer, _overrides
         );
-        _errors = assertValidPermissionlessDisputeGame(
-            _errors,
-            _input.sysCfg,
-            GameTypes.CANNON,
-            _input.cannonPrestate,
-            _input.l2ChainID,
-            _proxyAdmin,
-            _overrides,
-            "PLDG"
-        );
-        _errors = assertValidPermissionlessDisputeGame(
-            _errors,
-            _input.sysCfg,
-            GameTypes.CANNON_KONA,
-            _input.cannonKonaPrestate,
-            _input.l2ChainID,
-            _proxyAdmin,
-            _overrides,
-            "CKDG"
-        );
+
+        // Detect if this is an initial deployment by checking if permissionless games are not registered.
+        // During initial deployment, only PERMISSIONED_CANNON should be enabled.
+        IDisputeGameFactory _dgf = IDisputeGameFactory(_input.sysCfg.disputeGameFactory());
+        bool isInitialDeployment = address(_dgf.gameImpls(GameTypes.CANNON)) == address(0)
+            && address(_dgf.gameImpls(GameTypes.CANNON_KONA)) == address(0)
+            && address(_dgf.gameImpls(GameTypes.PERMISSIONED_CANNON)) != address(0);
+
+        // Only validate permissionless games if they are registered (not initial deployment).
+        if (!isInitialDeployment) {
+            _errors = assertValidPermissionlessDisputeGame(
+                _errors,
+                _input.sysCfg,
+                GameTypes.CANNON,
+                _input.cannonPrestate,
+                _input.l2ChainID,
+                _proxyAdmin,
+                _overrides,
+                "PLDG"
+            );
+            _errors = assertValidPermissionlessDisputeGame(
+                _errors,
+                _input.sysCfg,
+                GameTypes.CANNON_KONA,
+                _input.cannonKonaPrestate,
+                _input.l2ChainID,
+                _proxyAdmin,
+                _overrides,
+                "CKDG"
+            );
+        }
 
         _errors = assertValidETHLockbox(_errors, _input.sysCfg, _proxyAdmin);
 
