@@ -126,6 +126,7 @@ contract OPContractsManagerStandardValidator is ISemver {
         bytes32 absolutePrestate;
         uint256 l2ChainID;
         address proposer;
+        bool isInitialDeployment;
     }
 
     /// @notice Struct containing the input parameters for the validation process when dev features are enabled.
@@ -135,6 +136,7 @@ contract OPContractsManagerStandardValidator is ISemver {
         bytes32 cannonKonaPrestate;
         uint256 l2ChainID;
         address proposer;
+        bool isInitialDeployment;
     }
 
     /// @notice Struct containing override parameters for the validation process.
@@ -884,15 +886,8 @@ contract OPContractsManagerStandardValidator is ISemver {
             _errors, _input.sysCfg, _input.cannonPrestate, _input.l2ChainID, _proxyAdmin, _input.proposer, _overrides
         );
 
-        // Detect if this is an initial deployment by checking if permissionless games are not registered.
         // During initial deployment, only PERMISSIONED_CANNON should be enabled.
-        IDisputeGameFactory _dgf = IDisputeGameFactory(_input.sysCfg.disputeGameFactory());
-        bool isInitialDeployment = address(_dgf.gameImpls(GameTypes.CANNON)) == address(0)
-            && address(_dgf.gameImpls(GameTypes.CANNON_KONA)) == address(0)
-            && address(_dgf.gameImpls(GameTypes.PERMISSIONED_CANNON)) != address(0);
-
-        // Only validate permissionless games if they are registered (not initial deployment).
-        if (!isInitialDeployment) {
+        if (!_input.isInitialDeployment) {
             _errors = assertValidPermissionlessDisputeGame(
                 _errors,
                 _input.sysCfg,
@@ -946,7 +941,8 @@ contract OPContractsManagerStandardValidator is ISemver {
             cannonPrestate: _input.absolutePrestate,
             cannonKonaPrestate: bytes32(0),
             l2ChainID: _input.l2ChainID,
-            proposer: _input.proposer
+            proposer: _input.proposer,
+            isInitialDeployment: _input.isInitialDeployment
         });
     }
 
