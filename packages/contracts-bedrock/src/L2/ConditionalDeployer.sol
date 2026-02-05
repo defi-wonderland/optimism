@@ -8,10 +8,10 @@ import { Constants } from "src/libraries/Constants.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
 /// @custom:proxied true
+/// @custom:predeploy 0x420000000000000000000000000000000000002C
 /// @title ConditionalDeployer
 /// @notice ConditionalDeployer is used to deploy implementations for predeploys during network upgrades.
 ///         It uses the DeterministicDeploymentProxy (Nick's method) to deploy the implementations.
-
 contract ConditionalDeployer is ISemver {
     /// @notice Address of the DeterministicDeploymentProxy (Nick's method).
     address payable public constant DETERMINISTIC_DEPLOYMENT_PROXY = payable(0x4e59b44847b379578588920cA78FbF26c0B4956C);
