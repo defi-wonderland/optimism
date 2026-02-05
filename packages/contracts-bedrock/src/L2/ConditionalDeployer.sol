@@ -38,7 +38,7 @@ contract ConditionalDeployer is ISemver {
     /// @param salt The salt to use for CREATE2 deployment.
     /// @param code The initialization code for the contract.
     /// @return implementation The address of the deployed or existing implementation.
-    function deploy(uint256 value, bytes32 salt, bytes memory code) external returns (address) {
+    function deploy(uint256 value, bytes32 salt, bytes memory code) external returns (address implementation) {
         // Restrict access to depositor account or address(0).
         if (msg.sender != Constants.DEPOSITOR_ACCOUNT && msg.sender != address(0)) {
             revert ConditionalDeployer_UnauthorizedCaller();
@@ -46,7 +46,7 @@ contract ConditionalDeployer is ISemver {
 
         // Compute the address where the contract will be deployed using CREATE2 formula
         bytes32 codeHash = keccak256(code);
-        address implementation = address(
+        implementation = address(
             uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), DETERMINISTIC_DEPLOYMENT_PROXY, salt, codeHash))))
         );
 
