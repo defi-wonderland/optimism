@@ -1,13 +1,67 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { Types } from "src/libraries/Types.sol";
+
 /// @title IL2ContractsManager
-/// @notice Interface for managing L2 predeploy upgrades.
+/// @notice Interface for managing L2 predeploy upgrades. Each L2ContractsManager instance is
+///         purpose-built for a specific upgrade and is invoked via DELEGATECALL from L2ProxyAdmin.
+///         The contract is stateless - all upgrade logic and addresses are embedded in bytecode.
 interface IL2ContractsManager {
-    /// @notice Full configuration for an L2 predeploy upgrade.
-    ///         Contains all the network configuration stored in the system predeploys.
+    /// @notice Configuration for L2CrossDomainMessenger (0x4200...0007).
+    struct CrossDomainMessengerConfig {
+        address otherMessenger;
+    }
+
+    /// @notice Configuration for L2StandardBridge (0x4200...0010).
+    struct StandardBridgeConfig {
+        address otherBridge;
+    }
+
+    /// @notice Configuration for L2ERC721Bridge (0x4200...0014).
+    struct ERC721BridgeConfig {
+        address otherBridge;
+    }
+
+    /// @notice Configuration for OptimismMintableERC20Factory (0x4200...0012).
+    struct MintableERC20FactoryConfig {
+        address bridge;
+    }
+
+    /// @notice Configuration for a FeeVault contract.
+    struct FeeVaultConfig {
+        address recipient;
+        uint256 minWithdrawalAmount;
+        Types.WithdrawalNetwork withdrawalNetwork;
+    }
+
+    /// @notice Configuration for LiquidityController (0x4200...002A).
+    struct LiquidityControllerConfig {
+        address owner;
+        string gasPayingTokenName;
+        string gasPayingTokenSymbol;
+    }
+
+    /// @notice Configuration for FeeSplitter (0x4200...002B).
+    struct FeeSplitterConfig {
+        address sharesCalculator;
+    }
+
+    // -------- Main Config Struct --------
+
+    /// @notice Full network-specific configuration gathered from existing predeploys.
+    ///         These values are read before upgrade and passed to initializers after.
     struct FullConfig {
-        address a;
+        CrossDomainMessengerConfig crossDomainMessenger;
+        StandardBridgeConfig standardBridge;
+        ERC721BridgeConfig erc721Bridge;
+        MintableERC20FactoryConfig mintableERC20Factory;
+        FeeVaultConfig sequencerFeeVault;
+        FeeVaultConfig baseFeeVault;
+        FeeVaultConfig l1FeeVault;
+        FeeVaultConfig operatorFeeVault;
+        LiquidityControllerConfig liquidityController;
+        FeeSplitterConfig feeSplitter;
     }
 
     /// @notice All the implementations for each of the non-deprecated predeploys in OP Stack Chains.
