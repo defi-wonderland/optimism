@@ -3,7 +3,7 @@ pragma solidity 0.8.15;
 
 import { Test } from "forge-std/Test.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { XForkL2ContractsManager } from "src/L2/L2ContractsManager.sol";
+import { XForkL2ContractsManager } from "src/L2/XForkL2ContractsManager.sol";
 import { XForkL2CMTypes } from "src/libraries/XForkL2CMTypes.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
