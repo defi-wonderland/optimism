@@ -52,7 +52,7 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            bytes1(0xff), conditionalDeployer.DETERMINISTIC_DEPLOYMENT_PROXY(), _salt, codeHash
+                            bytes1(0xff), conditionalDeployer.deterministicDeploymentProxy(), _salt, codeHash
                         )
                     )
                 )
@@ -81,7 +81,7 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            bytes1(0xff), conditionalDeployer.DETERMINISTIC_DEPLOYMENT_PROXY(), _salt, codeHash
+                            bytes1(0xff), conditionalDeployer.deterministicDeploymentProxy(), _salt, codeHash
                         )
                     )
                 )
@@ -113,7 +113,7 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
         bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(0));
 
         vm.mockCallRevert(
-            conditionalDeployer.DETERMINISTIC_DEPLOYMENT_PROXY(), _value, abi.encodePacked(_salt, _initCode), bytes("")
+            conditionalDeployer.deterministicDeploymentProxy(), _value, abi.encodePacked(_salt, _initCode), bytes("")
         );
 
         vm.prank(_caller);
