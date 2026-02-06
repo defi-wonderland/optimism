@@ -3,27 +3,25 @@ pragma solidity ^0.8.0;
 
 import { Types } from "src/libraries/Types.sol";
 
-/// @title IL2ContractsManager
-/// @notice Interface for managing L2 predeploy upgrades. Each L2ContractsManager instance is
-///         purpose-built for a specific upgrade and is invoked via DELEGATECALL from L2ProxyAdmin.
-///         The contract is stateless - all upgrade logic and addresses are embedded in bytecode.
-interface IL2ContractsManager {
-    /// @notice Configuration for L2CrossDomainMessenger (0x4200...0007).
+/// @title XForkL2CMTypes
+/// @notice Type definitions for XForkL2ContractsManager upgrade operations.
+library XForkL2CMTypes {
+    /// @notice Configuration for L2CrossDomainMessenger.
     struct CrossDomainMessengerConfig {
         address otherMessenger;
     }
 
-    /// @notice Configuration for L2StandardBridge (0x4200...0010).
+    /// @notice Configuration for L2StandardBridge.
     struct StandardBridgeConfig {
         address otherBridge;
     }
 
-    /// @notice Configuration for L2ERC721Bridge (0x4200...0014).
+    /// @notice Configuration for L2ERC721Bridge.
     struct ERC721BridgeConfig {
         address otherBridge;
     }
 
-    /// @notice Configuration for OptimismMintableERC20Factory (0x4200...0012).
+    /// @notice Configuration for OptimismMintableERC20Factory.
     struct MintableERC20FactoryConfig {
         address bridge;
     }
@@ -35,19 +33,17 @@ interface IL2ContractsManager {
         Types.WithdrawalNetwork withdrawalNetwork;
     }
 
-    /// @notice Configuration for LiquidityController (0x4200...002A).
+    /// @notice Configuration for LiquidityController.
     struct LiquidityControllerConfig {
         address owner;
         string gasPayingTokenName;
         string gasPayingTokenSymbol;
     }
 
-    /// @notice Configuration for FeeSplitter (0x4200...002B).
+    /// @notice Configuration for FeeSplitter.
     struct FeeSplitterConfig {
         address sharesCalculator;
     }
-
-    // -------- Main Config Struct --------
 
     /// @notice Full network-specific configuration gathered from existing predeploys.
     ///         These values are read before upgrade and passed to initializers after.
@@ -64,8 +60,8 @@ interface IL2ContractsManager {
         FeeSplitterConfig feeSplitter;
     }
 
-    /// @notice All the implementations for each of the non-deprecated predeploys in OP Stack Chains.
-    struct UpgradeImplementations {
+    /// @notice The implementation addresses to manage the XFork upgrade.
+    struct Implementations {
         address storageSetterImpl;
         address wethImpl;
         address l2CrossDomainMessengerImpl;
@@ -95,21 +91,4 @@ interface IL2ContractsManager {
         address liquidityControllerImpl;
         address feeSplitterImpl;
     }
-
-    /// @notice Thrown when the upgrade is not called via DELEGATECALL from L2ProxyAdmin.
-    error OnlyDelegatecall();
-
-    /// @notice Thrown when an upgrade operation fails.
-    error UpgradeFailed();
-
-    /// @notice Returns the semantic version of this contract.
-    function version() external pure returns (string memory);
-
-    /// @notice Executes the upgrade for all predeploys managed by this L2ContractsManager.
-    ///         MUST be called via DELEGATECALL from L2ProxyAdmin.
-    ///         Gathers configuration from existing predeploys, then for each predeploy:
-    ///         1. Upgrades to StorageSetter and resets initialized state
-    ///         2. Upgrades to new implementation via upgradeToAndCall with preserved config
-    /// @dev All upgrades succeed or fail atomically per iL2CM-003.
-    function upgrade() external;
 }

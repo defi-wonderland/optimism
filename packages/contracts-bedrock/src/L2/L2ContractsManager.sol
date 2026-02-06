@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-// Contracts
+// Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
-import { IL2ContractsManager } from "interfaces/L2/IL2ContractsManager.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IStorageSetter } from "interfaces/universal/IStorageSetter.sol";
-
-// Interfaces for reading config
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
@@ -16,8 +13,6 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
-
-// Interfaces for initialization
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
 import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
@@ -25,6 +20,7 @@ import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
+import { XForkL2CMTypes } from "src/libraries/XForkL2CMTypes.sol";
 
 /// @title XForkL2ContractsManager
 /// @notice Manages the upgrade of the L2 predeploys for the XFork upgrade.
@@ -101,65 +97,65 @@ contract XForkL2ContractsManager is ISemver {
     /// @notice FeeSplitter implementation.
     address internal immutable FEE_SPLITTER_IMPL;
 
-    constructor(IL2ContractsManager.UpgradeImplementations memory _upgradeImplementations) {
+    constructor(XForkL2CMTypes.Implementations memory _implementations) {
         // Utility address for upgrading initializable contracts.
-        STORAGE_SETTER_IMPL = _upgradeImplementations.storageSetterImpl;
+        STORAGE_SETTER_IMPL = _implementations.storageSetterImpl;
         // Predeploy implementations.
-        WETH_IMPL = _upgradeImplementations.wethImpl;
-        L2_CROSS_DOMAIN_MESSENGER_IMPL = _upgradeImplementations.l2CrossDomainMessengerImpl;
-        GAS_PRICE_ORACLE_IMPL = _upgradeImplementations.gasPriceOracleImpl;
-        L2_STANDARD_BRIDGE_IMPL = _upgradeImplementations.l2StandardBridgeImpl;
-        SEQUENCER_FEE_WALLET_IMPL = _upgradeImplementations.sequencerFeeWalletImpl;
-        OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL = _upgradeImplementations.optimismMintableERC20FactoryImpl;
-        L2_ERC721_BRIDGE_IMPL = _upgradeImplementations.l2ERC721BridgeImpl;
-        L1_BLOCK_ATTRIBUTES_IMPL = _upgradeImplementations.l1BlockAttributesImpl;
-        L2_TO_L1_MESSAGE_PASSER_IMPL = _upgradeImplementations.l2ToL1MessagePasserImpl;
-        OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL = _upgradeImplementations.optimismMintableERC721FactoryImpl;
-        PROXY_ADMIN_IMPL = _upgradeImplementations.proxyAdminImpl;
-        BASE_FEE_VAULT_IMPL = _upgradeImplementations.baseFeeVaultImpl;
-        L1_FEE_VAULT_IMPL = _upgradeImplementations.l1FeeVaultImpl;
-        OPERATOR_FEE_VAULT_IMPL = _upgradeImplementations.operatorFeeVaultImpl;
-        SCHEMA_REGISTRY_IMPL = _upgradeImplementations.schemaRegistryImpl;
-        EAS_IMPL = _upgradeImplementations.easImpl;
-        GOVERNANCE_TOKEN_IMPL = _upgradeImplementations.governanceTokenImpl;
-        CROSS_L2_INBOX_IMPL = _upgradeImplementations.crossL2InboxImpl;
-        L2_TO_L2_CROSS_DOMAIN_MESSENGER_IMPL = _upgradeImplementations.l2ToL2CrossDomainMessengerImpl;
-        SUPERCHAIN_ETH_BRIDGE_IMPL = _upgradeImplementations.superchainETHBridgeImpl;
-        ETH_LIQUIDITY_IMPL = _upgradeImplementations.ethLiquidityImpl;
-        OPTIMISM_SUPERCHAIN_ERC20_FACTORY_IMPL = _upgradeImplementations.optimismSuperchainERC20FactoryImpl;
-        OPTIMISM_SUPERCHAIN_ERC20_BEACON_IMPL = _upgradeImplementations.optimismSuperchainERC20BeaconImpl;
-        SUPERCHAIN_TOKEN_BRIDGE_IMPL = _upgradeImplementations.superchainTokenBridgeImpl;
-        NATIVE_ASSET_LIQUIDITY_IMPL = _upgradeImplementations.nativeAssetLiquidityImpl;
-        LIQUIDITY_CONTROLLER_IMPL = _upgradeImplementations.liquidityControllerImpl;
-        FEE_SPLITTER_IMPL = _upgradeImplementations.feeSplitterImpl;
+        WETH_IMPL = _implementations.wethImpl;
+        L2_CROSS_DOMAIN_MESSENGER_IMPL = _implementations.l2CrossDomainMessengerImpl;
+        GAS_PRICE_ORACLE_IMPL = _implementations.gasPriceOracleImpl;
+        L2_STANDARD_BRIDGE_IMPL = _implementations.l2StandardBridgeImpl;
+        SEQUENCER_FEE_WALLET_IMPL = _implementations.sequencerFeeWalletImpl;
+        OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL = _implementations.optimismMintableERC20FactoryImpl;
+        L2_ERC721_BRIDGE_IMPL = _implementations.l2ERC721BridgeImpl;
+        L1_BLOCK_ATTRIBUTES_IMPL = _implementations.l1BlockAttributesImpl;
+        L2_TO_L1_MESSAGE_PASSER_IMPL = _implementations.l2ToL1MessagePasserImpl;
+        OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL = _implementations.optimismMintableERC721FactoryImpl;
+        PROXY_ADMIN_IMPL = _implementations.proxyAdminImpl;
+        BASE_FEE_VAULT_IMPL = _implementations.baseFeeVaultImpl;
+        L1_FEE_VAULT_IMPL = _implementations.l1FeeVaultImpl;
+        OPERATOR_FEE_VAULT_IMPL = _implementations.operatorFeeVaultImpl;
+        SCHEMA_REGISTRY_IMPL = _implementations.schemaRegistryImpl;
+        EAS_IMPL = _implementations.easImpl;
+        GOVERNANCE_TOKEN_IMPL = _implementations.governanceTokenImpl;
+        CROSS_L2_INBOX_IMPL = _implementations.crossL2InboxImpl;
+        L2_TO_L2_CROSS_DOMAIN_MESSENGER_IMPL = _implementations.l2ToL2CrossDomainMessengerImpl;
+        SUPERCHAIN_ETH_BRIDGE_IMPL = _implementations.superchainETHBridgeImpl;
+        ETH_LIQUIDITY_IMPL = _implementations.ethLiquidityImpl;
+        OPTIMISM_SUPERCHAIN_ERC20_FACTORY_IMPL = _implementations.optimismSuperchainERC20FactoryImpl;
+        OPTIMISM_SUPERCHAIN_ERC20_BEACON_IMPL = _implementations.optimismSuperchainERC20BeaconImpl;
+        SUPERCHAIN_TOKEN_BRIDGE_IMPL = _implementations.superchainTokenBridgeImpl;
+        NATIVE_ASSET_LIQUIDITY_IMPL = _implementations.nativeAssetLiquidityImpl;
+        LIQUIDITY_CONTROLLER_IMPL = _implementations.liquidityControllerImpl;
+        FEE_SPLITTER_IMPL = _implementations.feeSplitterImpl;
     }
 
     /// @notice Executes the upgrade for all predeploys.
     function upgrade() external {
-        IL2ContractsManager.FullConfig memory fullConfig = _fullConfig();
+        XForkL2CMTypes.FullConfig memory fullConfig = _fullConfig();
         _apply(fullConfig);
     }
 
     /// @notice Loads the full configuration for the L2 Predeploys.
     /// @return fullConfig_ The full configuration.
-    function _fullConfig() internal view returns (IL2ContractsManager.FullConfig memory fullConfig_) {
+    function _fullConfig() internal view returns (XForkL2CMTypes.FullConfig memory fullConfig_) {
         // L2CrossDomainMessenger
-        fullConfig_.crossDomainMessenger = IL2ContractsManager.CrossDomainMessengerConfig({
+        fullConfig_.crossDomainMessenger = XForkL2CMTypes.CrossDomainMessengerConfig({
             otherMessenger: address(ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).otherMessenger())
         });
 
         // L2StandardBridge
-        fullConfig_.standardBridge = IL2ContractsManager.StandardBridgeConfig({
+        fullConfig_.standardBridge = XForkL2CMTypes.StandardBridgeConfig({
             otherBridge: address(IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).otherBridge())
         });
 
         // L2ERC721Bridge
-        fullConfig_.erc721Bridge = IL2ContractsManager.ERC721BridgeConfig({
+        fullConfig_.erc721Bridge = XForkL2CMTypes.ERC721BridgeConfig({
             otherBridge: address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).otherBridge())
         });
 
         // OptimismMintableERC20Factory
-        fullConfig_.mintableERC20Factory = IL2ContractsManager.MintableERC20FactoryConfig({
+        fullConfig_.mintableERC20Factory = XForkL2CMTypes.MintableERC20FactoryConfig({
             bridge: IOptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY).bridge()
         });
 
@@ -177,14 +173,14 @@ contract XForkL2ContractsManager is ISemver {
 
         // LiquidityController
         ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
-        fullConfig_.liquidityController = IL2ContractsManager.LiquidityControllerConfig({
+        fullConfig_.liquidityController = XForkL2CMTypes.LiquidityControllerConfig({
             owner: liquidityController.owner(),
             gasPayingTokenName: liquidityController.gasPayingTokenName(),
             gasPayingTokenSymbol: liquidityController.gasPayingTokenSymbol()
         });
 
         // FeeSplitter
-        fullConfig_.feeSplitter = IL2ContractsManager.FeeSplitterConfig({
+        fullConfig_.feeSplitter = XForkL2CMTypes.FeeSplitterConfig({
             sharesCalculator: address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator())
         });
     }
@@ -195,10 +191,10 @@ contract XForkL2ContractsManager is ISemver {
     function _readFeeVaultConfig(address _feeVault)
         internal
         view
-        returns (IL2ContractsManager.FeeVaultConfig memory config_)
+        returns (XForkL2CMTypes.FeeVaultConfig memory config_)
     {
         IFeeVault feeVault = IFeeVault(payable(_feeVault));
-        config_ = IL2ContractsManager.FeeVaultConfig({
+        config_ = XForkL2CMTypes.FeeVaultConfig({
             recipient: feeVault.recipient(),
             minWithdrawalAmount: feeVault.minWithdrawalAmount(),
             withdrawalNetwork: feeVault.withdrawalNetwork()
@@ -208,7 +204,7 @@ contract XForkL2ContractsManager is ISemver {
     /// @notice Upgrades each of the predeploys to its corresponding new implementation. Applies the appropriate
     ///         configuration to each predeploy.
     /// @param _config The full configuration for the L2 Predeploys.
-    function _apply(IL2ContractsManager.FullConfig memory _config) internal {
+    function _apply(XForkL2CMTypes.FullConfig memory _config) internal {
         // Initializable predeploys.
 
         // L2CrossDomainMessenger
