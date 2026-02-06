@@ -28,9 +28,6 @@ contract ConditionalDeployer_TestInit is Test {
     bytes public simpleContractCreationCode;
 
     function setUp() public {
-        // Create fork
-        vm.createSelectFork(Config.forkRpcUrl());
-
         // Deploy contracts
         conditionalDeployer = new ConditionalDeployer();
         simpleContractCreationCode = type(ConditionalDeployer_Harness).creationCode;
