@@ -340,6 +340,7 @@ contract XForkL2ContractsManager is ISemver {
         _upgradeTo(Predeploys.L1_BLOCK_ATTRIBUTES, L1_BLOCK_ATTRIBUTES_IMPL);
         _upgradeTo(Predeploys.L2_TO_L1_MESSAGE_PASSER, L2_TO_L1_MESSAGE_PASSER_IMPL);
         _upgradeTo(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL);
+        _upgradeTo(Predeploys.PROXY_ADMIN, PROXY_ADMIN_IMPL);
         _upgradeTo(Predeploys.CROSS_L2_INBOX, CROSS_L2_INBOX_IMPL);
         _upgradeTo(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, L2_TO_L2_CROSS_DOMAIN_MESSENGER_IMPL);
         _upgradeTo(Predeploys.SUPERCHAIN_ETH_BRIDGE, SUPERCHAIN_ETH_BRIDGE_IMPL);
