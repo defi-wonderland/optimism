@@ -7,6 +7,19 @@ import { IL2ContractsManager } from "interfaces/L2/IL2ContractsManager.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IStorageSetter } from "interfaces/universal/IStorageSetter.sol";
 
+// Interfaces for reading config
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
+import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
+import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+
+// Libraries
+import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Types } from "src/libraries/Types.sol";
+
 contract XForkL2ContractsManager is ISemver {
     /// @notice The semantic version of the L2ContractsManager contract.
     /// @custom:semver 1.0.0
@@ -106,9 +119,68 @@ contract XForkL2ContractsManager is ISemver {
     }
 
     /// @notice Loads the full configuration for the L2 Predeploys.
-    /// @return The full configuration.
-    function _fullConfig() internal view returns (IL2ContractsManager.FullConfig memory) {
-        return IL2ContractsManager.FullConfig({ a: address(0) });
+    /// @return fullConfig_ The full configuration.
+    function _fullConfig() internal view returns (IL2ContractsManager.FullConfig memory fullConfig_) {
+        // L2CrossDomainMessenger
+        fullConfig_.crossDomainMessenger = IL2ContractsManager.CrossDomainMessengerConfig({
+            otherMessenger: address(ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).otherMessenger())
+        });
+
+        // L2StandardBridge
+        fullConfig_.standardBridge = IL2ContractsManager.StandardBridgeConfig({
+            otherBridge: address(IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).otherBridge())
+        });
+
+        // L2ERC721Bridge
+        fullConfig_.erc721Bridge = IL2ContractsManager.ERC721BridgeConfig({
+            otherBridge: address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).otherBridge())
+        });
+
+        // OptimismMintableERC20Factory
+        fullConfig_.mintableERC20Factory = IL2ContractsManager.MintableERC20FactoryConfig({
+            bridge: IOptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY).bridge()
+        });
+
+        // SequencerFeeVault
+        fullConfig_.sequencerFeeVault = _readFeeVaultConfig(Predeploys.SEQUENCER_FEE_WALLET);
+
+        // BaseFeeVault
+        fullConfig_.baseFeeVault = _readFeeVaultConfig(Predeploys.BASE_FEE_VAULT);
+
+        // L1FeeVault
+        fullConfig_.l1FeeVault = _readFeeVaultConfig(Predeploys.L1_FEE_VAULT);
+
+        // OperatorFeeVault
+        fullConfig_.operatorFeeVault = _readFeeVaultConfig(Predeploys.OPERATOR_FEE_VAULT);
+
+        // LiquidityController
+        ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
+        fullConfig_.liquidityController = IL2ContractsManager.LiquidityControllerConfig({
+            owner: liquidityController.owner(),
+            gasPayingTokenName: liquidityController.gasPayingTokenName(),
+            gasPayingTokenSymbol: liquidityController.gasPayingTokenSymbol()
+        });
+
+        // FeeSplitter
+        fullConfig_.feeSplitter = IL2ContractsManager.FeeSplitterConfig({
+            sharesCalculator: address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator())
+        });
+    }
+
+    /// @notice Reads the configuration from a FeeVault predeploy.
+    /// @param _feeVault The address of the FeeVault predeploy.
+    /// @return config_ The FeeVault configuration.
+    function _readFeeVaultConfig(address _feeVault)
+        internal
+        view
+        returns (IL2ContractsManager.FeeVaultConfig memory config_)
+    {
+        IFeeVault feeVault = IFeeVault(payable(_feeVault));
+        config_ = IL2ContractsManager.FeeVaultConfig({
+            recipient: feeVault.recipient(),
+            minWithdrawalAmount: feeVault.minWithdrawalAmount(),
+            withdrawalNetwork: feeVault.withdrawalNetwork()
+        });
     }
 
     /// @notice Upgrades each of the predeploys to its corresponding new implementation. Applies the appropriate
