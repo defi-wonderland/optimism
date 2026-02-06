@@ -15,15 +15,32 @@ import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMin
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
+
+// Interfaces for initialization
+import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
+import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
+import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
 
+/// @title XForkL2ContractsManager
+/// @notice Manages the upgrade of the L2 predeploys for the XFork upgrade.
 contract XForkL2ContractsManager is ISemver {
     /// @notice The semantic version of the L2ContractsManager contract.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
+
+    /// @notice Storage slot for OpenZeppelin v4 Initializable contracts.
+    bytes32 internal constant INITIALIZABLE_SLOT_OZ_V4 = bytes32(0);
+
+    /// @notice Storage slot for OpenZeppelin v5 Initializable contracts.
+    /// @dev keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Initializable")) - 1)) &
+    /// ~bytes32(uint256(0xff))
+    bytes32 internal constant INITIALIZABLE_SLOT_OZ_V5 =
+        0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
 
     /// @notice The implementation address of the StorageSetter contract.
     address internal immutable STORAGE_SETTER_IMPL;
@@ -31,6 +48,8 @@ contract XForkL2ContractsManager is ISemver {
     /// @notice Each of the implementation addresses for each predeploy that exists in this upgrade.
     /// @notice WETH implementation.
     address internal immutable WETH_IMPL;
+    /// @notice GasPriceOracle implementation.
+    address internal immutable GAS_PRICE_ORACLE_IMPL;
     /// @notice L2CrossDomainMessenger implementation.
     address internal immutable L2_CROSS_DOMAIN_MESSENGER_IMPL;
     /// @notice L2StandardBridge implementation.
@@ -83,9 +102,12 @@ contract XForkL2ContractsManager is ISemver {
     address internal immutable FEE_SPLITTER_IMPL;
 
     constructor(IL2ContractsManager.UpgradeImplementations memory _upgradeImplementations) {
+        // Utility address for upgrading initializable contracts.
         STORAGE_SETTER_IMPL = _upgradeImplementations.storageSetterImpl;
+        // Predeploy implementations.
         WETH_IMPL = _upgradeImplementations.wethImpl;
         L2_CROSS_DOMAIN_MESSENGER_IMPL = _upgradeImplementations.l2CrossDomainMessengerImpl;
+        GAS_PRICE_ORACLE_IMPL = _upgradeImplementations.gasPriceOracleImpl;
         L2_STANDARD_BRIDGE_IMPL = _upgradeImplementations.l2StandardBridgeImpl;
         SEQUENCER_FEE_WALLET_IMPL = _upgradeImplementations.sequencerFeeWalletImpl;
         OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL = _upgradeImplementations.optimismMintableERC20FactoryImpl;
