@@ -71,7 +71,9 @@ library XForkL2CMTypes {
         address optimismMintableERC20FactoryImpl;
         address l2ERC721BridgeImpl;
         address l1BlockAttributesImpl;
+        address l1BlockAttributesCGTImpl;
         address l2ToL1MessagePasserImpl;
+        address l2ToL1MessagePasserCGTImpl;
         address optimismMintableERC721FactoryImpl;
         address proxyAdminImpl;
         address baseFeeVaultImpl;

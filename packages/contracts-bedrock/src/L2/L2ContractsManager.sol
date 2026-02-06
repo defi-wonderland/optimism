@@ -16,6 +16,7 @@ import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IL2StandardBridge } from "interfaces/L2/IL2StandardBridge.sol";
 import { IL2ERC721Bridge } from "interfaces/L2/IL2ERC721Bridge.sol";
+import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -65,8 +66,12 @@ contract XForkL2ContractsManager is ISemver {
     address internal immutable L2_ERC721_BRIDGE_IMPL;
     /// @notice L1BlockAttributes implementation.
     address internal immutable L1_BLOCK_ATTRIBUTES_IMPL;
+    /// @notice L1BlockAttributes implementation for custom gas token networks.
+    address internal immutable L1_BLOCK_ATTRIBUTES_CGT_IMPL;
     /// @notice L2ToL1MessagePasser implementation.
     address internal immutable L2_TO_L1_MESSAGE_PASSER_IMPL;
+    /// @notice L2ToL1MessagePasser implementation for custom gas token networks.
+    address internal immutable L2_TO_L1_MESSAGE_PASSER_CGT_IMPL;
     /// @notice OptimismMintableERC721Factory implementation.
     address internal immutable OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL;
     /// @notice ProxyAdmin implementation.
@@ -119,7 +124,9 @@ contract XForkL2ContractsManager is ISemver {
         OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL = _implementations.optimismMintableERC20FactoryImpl;
         L2_ERC721_BRIDGE_IMPL = _implementations.l2ERC721BridgeImpl;
         L1_BLOCK_ATTRIBUTES_IMPL = _implementations.l1BlockAttributesImpl;
+        L1_BLOCK_ATTRIBUTES_CGT_IMPL = _implementations.l1BlockAttributesCGTImpl;
         L2_TO_L1_MESSAGE_PASSER_IMPL = _implementations.l2ToL1MessagePasserImpl;
+        L2_TO_L1_MESSAGE_PASSER_CGT_IMPL = _implementations.l2ToL1MessagePasserCGTImpl;
         OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL = _implementations.optimismMintableERC721FactoryImpl;
         PROXY_ADMIN_IMPL = _implementations.proxyAdminImpl;
         BASE_FEE_VAULT_IMPL = _implementations.baseFeeVaultImpl;
@@ -152,6 +159,8 @@ contract XForkL2ContractsManager is ISemver {
     /// @notice Loads the full configuration for the L2 Predeploys.
     /// @return fullConfig_ The full configuration.
     function _fullConfig() internal view returns (XForkL2CMTypes.FullConfig memory fullConfig_) {
+        bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
+
         // L2CrossDomainMessenger
         fullConfig_.crossDomainMessenger = XForkL2CMTypes.CrossDomainMessengerConfig({
             otherMessenger: address(ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).otherMessenger())
@@ -185,12 +194,14 @@ contract XForkL2ContractsManager is ISemver {
         fullConfig_.operatorFeeVault = _readFeeVaultConfig(Predeploys.OPERATOR_FEE_VAULT);
 
         // LiquidityController
-        ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
-        fullConfig_.liquidityController = XForkL2CMTypes.LiquidityControllerConfig({
-            owner: liquidityController.owner(),
-            gasPayingTokenName: liquidityController.gasPayingTokenName(),
-            gasPayingTokenSymbol: liquidityController.gasPayingTokenSymbol()
-        });
+        if (isCustomGasToken) {
+            ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
+            fullConfig_.liquidityController = XForkL2CMTypes.LiquidityControllerConfig({
+                owner: liquidityController.owner(),
+                gasPayingTokenName: liquidityController.gasPayingTokenName(),
+                gasPayingTokenSymbol: liquidityController.gasPayingTokenSymbol()
+            });
+        }
 
         // FeeSplitter
         fullConfig_.feeSplitter = XForkL2CMTypes.FeeSplitterConfig({
@@ -218,6 +229,8 @@ contract XForkL2ContractsManager is ISemver {
     ///         configuration to each predeploy.
     /// @param _config The full configuration for the L2 Predeploys.
     function _apply(XForkL2CMTypes.FullConfig memory _config) internal {
+        bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
+
         // Initializable predeploys.
 
         // L2CrossDomainMessenger
@@ -258,21 +271,23 @@ contract XForkL2ContractsManager is ISemver {
             0
         );
 
-        // LiquidityController
-        _upgradeToAndCall(
-            Predeploys.LIQUIDITY_CONTROLLER,
-            LIQUIDITY_CONTROLLER_IMPL,
-            abi.encodeCall(
-                ILiquidityController.initialize,
-                (
-                    _config.liquidityController.owner,
-                    _config.liquidityController.gasPayingTokenName,
-                    _config.liquidityController.gasPayingTokenSymbol
-                )
-            ),
-            INITIALIZABLE_SLOT_OZ_V4,
-            0
-        );
+        // LiquidityController (only on custom gas token networks)
+        if (isCustomGasToken) {
+            _upgradeToAndCall(
+                Predeploys.LIQUIDITY_CONTROLLER,
+                LIQUIDITY_CONTROLLER_IMPL,
+                abi.encodeCall(
+                    ILiquidityController.initialize,
+                    (
+                        _config.liquidityController.owner,
+                        _config.liquidityController.gasPayingTokenName,
+                        _config.liquidityController.gasPayingTokenSymbol
+                    )
+                ),
+                INITIALIZABLE_SLOT_OZ_V4,
+                0
+            );
+        }
 
         // FeeSplitter
         _upgradeToAndCall(
@@ -350,8 +365,14 @@ contract XForkL2ContractsManager is ISemver {
         // Non-initializable predeploys.
         _upgradeTo(Predeploys.WETH, WETH_IMPL);
         _upgradeTo(Predeploys.GAS_PRICE_ORACLE, GAS_PRICE_ORACLE_IMPL);
-        _upgradeTo(Predeploys.L1_BLOCK_ATTRIBUTES, L1_BLOCK_ATTRIBUTES_IMPL);
-        _upgradeTo(Predeploys.L2_TO_L1_MESSAGE_PASSER, L2_TO_L1_MESSAGE_PASSER_IMPL);
+        // L1BlockAttributes and L2ToL1MessagePasser have different implementations for custom gas token networks.
+        _upgradeTo(
+            Predeploys.L1_BLOCK_ATTRIBUTES, isCustomGasToken ? L1_BLOCK_ATTRIBUTES_CGT_IMPL : L1_BLOCK_ATTRIBUTES_IMPL
+        );
+        _upgradeTo(
+            Predeploys.L2_TO_L1_MESSAGE_PASSER,
+            isCustomGasToken ? L2_TO_L1_MESSAGE_PASSER_CGT_IMPL : L2_TO_L1_MESSAGE_PASSER_IMPL
+        );
         _upgradeTo(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL);
         _upgradeTo(Predeploys.PROXY_ADMIN, PROXY_ADMIN_IMPL);
         _upgradeTo(Predeploys.CROSS_L2_INBOX, CROSS_L2_INBOX_IMPL);
@@ -361,7 +382,10 @@ contract XForkL2ContractsManager is ISemver {
         _upgradeTo(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, OPTIMISM_SUPERCHAIN_ERC20_FACTORY_IMPL);
         _upgradeTo(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, OPTIMISM_SUPERCHAIN_ERC20_BEACON_IMPL);
         _upgradeTo(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, SUPERCHAIN_TOKEN_BRIDGE_IMPL);
-        _upgradeTo(Predeploys.NATIVE_ASSET_LIQUIDITY, NATIVE_ASSET_LIQUIDITY_IMPL);
+        // NativeAssetLiquidity
+        if (isCustomGasToken) {
+            _upgradeTo(Predeploys.NATIVE_ASSET_LIQUIDITY, NATIVE_ASSET_LIQUIDITY_IMPL);
+        }
         _upgradeTo(Predeploys.SCHEMA_REGISTRY, SCHEMA_REGISTRY_IMPL);
         _upgradeTo(Predeploys.EAS, EAS_IMPL);
         _upgradeTo(Predeploys.GOVERNANCE_TOKEN, GOVERNANCE_TOKEN_IMPL);
