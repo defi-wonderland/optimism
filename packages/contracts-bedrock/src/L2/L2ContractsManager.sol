@@ -25,9 +25,16 @@ import { XForkL2CMTypes } from "src/libraries/XForkL2CMTypes.sol";
 /// @title XForkL2ContractsManager
 /// @notice Manages the upgrade of the L2 predeploys for the XFork upgrade.
 contract XForkL2ContractsManager is ISemver {
+    /// @notice Thrown when the upgrade function is called outside of a DELEGATECALL context.
+    error XForkL2ContractsManager_OnlyDelegatecall();
+
     /// @notice The semantic version of the L2ContractsManager contract.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
+
+    /// @notice The address of this contract. Used to enforce that the upgrade function is only
+    ///         called via DELEGATECALL.
+    address internal immutable THIS_L2CM;
 
     /// @notice Storage slot for OpenZeppelin v4 Initializable contracts.
     bytes32 internal constant INITIALIZABLE_SLOT_OZ_V4 = bytes32(0);
@@ -98,6 +105,9 @@ contract XForkL2ContractsManager is ISemver {
     address internal immutable FEE_SPLITTER_IMPL;
 
     constructor(XForkL2CMTypes.Implementations memory _implementations) {
+        // Store the address of this contract for DELEGATECALL enforcement.
+        THIS_L2CM = address(this);
+
         // Utility address for upgrading initializable contracts.
         STORAGE_SETTER_IMPL = _implementations.storageSetterImpl;
         // Predeploy implementations.
@@ -131,7 +141,10 @@ contract XForkL2ContractsManager is ISemver {
     }
 
     /// @notice Executes the upgrade for all predeploys.
+    /// @dev This function MUST be called via DELEGATECALL from the L2ProxyAdmin.
     function upgrade() external {
+        if (address(this) == THIS_L2CM) revert XForkL2ContractsManager_OnlyDelegatecall();
+
         XForkL2CMTypes.FullConfig memory fullConfig = _fullConfig();
         _apply(fullConfig);
     }
