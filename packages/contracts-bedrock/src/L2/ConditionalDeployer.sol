@@ -22,6 +22,9 @@ contract ConditionalDeployer is ISemver {
     /// @param implementation The address of the existing implementation.
     event ImplementationExists(address indexed implementation);
 
+    /// @notice Error thrown when deployment fails.
+    error ConditionalDeployer_DeploymentFailed(bytes data);
+
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
@@ -46,8 +49,11 @@ contract ConditionalDeployer is ISemver {
 
         // Deploy using DeterministicDeploymentProxy (Nick's method)
         // Calldata format: salt + initcode
-        (bool success,) = DETERMINISTIC_DEPLOYMENT_PROXY.call{ value: _value }(abi.encodePacked(_salt, _code));
-        require(success, "ConditionalDeployer: deployment failed");
+        (bool success, bytes memory data) =
+            DETERMINISTIC_DEPLOYMENT_PROXY.call{ value: _value }(abi.encodePacked(_salt, _code));
+        if (!success) {
+            revert ConditionalDeployer_DeploymentFailed(data);
+        }
 
         emit ImplementationDeployed(implementation_, _salt);
         return implementation_;

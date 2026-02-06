@@ -85,5 +85,16 @@
     ],
     "name": "ImplementationExists",
     "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "ConditionalDeployer_DeploymentFailed",
+    "type": "error"
   }
 ]

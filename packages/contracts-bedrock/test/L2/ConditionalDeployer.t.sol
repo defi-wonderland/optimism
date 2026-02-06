@@ -109,4 +109,20 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
 
         assertEq(implementation1, implementation2);
     }
+
+    /// @notice Tests that `deploy` reverts when the deployment call to the DeterministicDeploymentProxy fails.
+    /// @dev The deployment call to the DeterministicDeploymentProxy is mocked to revert.
+    function testFuzz_deploy_deploymentFailed_reverts(address _caller, bytes32 _salt, uint256 _value) public {
+        bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(0));
+
+        vm.mockCallRevert(
+            conditionalDeployer.DETERMINISTIC_DEPLOYMENT_PROXY(), _value, abi.encodePacked(_salt, _initCode), bytes("")
+        );
+
+        vm.prank(_caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(ConditionalDeployer.ConditionalDeployer_DeploymentFailed.selector, bytes(""))
+        );
+        conditionalDeployer.deploy(_value, _salt, _initCode);
+    }
 }

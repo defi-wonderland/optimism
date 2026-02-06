@@ -15,6 +15,9 @@ interface IConditionalDeployer is ISemver {
     /// @param implementation The address of the existing implementation.
     event ImplementationExists(address indexed implementation);
 
+    /// @notice Error thrown when deployment fails.
+    error ConditionalDeployer_DeploymentFailed(bytes data);
+
     /// @notice Address of the DeterministicDeploymentProxy (Nick's method).
     function DETERMINISTIC_DEPLOYMENT_PROXY() external view returns (address payable);
 
