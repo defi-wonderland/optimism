@@ -41,7 +41,7 @@ contract XForkL2ContractsManager is ISemver {
     bytes32 internal constant INITIALIZABLE_SLOT_OZ_V4 = bytes32(0);
 
     /// @notice Storage slot for OpenZeppelin v5 Initializable contracts.
-    /// @dev keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Initializable")) - 1)) &
+    /// @dev Equal to keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Initializable")) - 1)) &
     /// ~bytes32(uint256(0xff))
     bytes32 internal constant INITIALIZABLE_SLOT_OZ_V5 =
         0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
@@ -50,8 +50,6 @@ contract XForkL2ContractsManager is ISemver {
     address internal immutable STORAGE_SETTER_IMPL;
 
     /// @notice Each of the implementation addresses for each predeploy that exists in this upgrade.
-    /// @notice WETH implementation.
-    address internal immutable WETH_IMPL;
     /// @notice GasPriceOracle implementation.
     address internal immutable GAS_PRICE_ORACLE_IMPL;
     /// @notice L2CrossDomainMessenger implementation.
@@ -86,8 +84,6 @@ contract XForkL2ContractsManager is ISemver {
     address internal immutable SCHEMA_REGISTRY_IMPL;
     /// @notice EAS implementation.
     address internal immutable EAS_IMPL;
-    /// @notice GovernanceToken implementation.
-    address internal immutable GOVERNANCE_TOKEN_IMPL;
     /// @notice CrossL2Inbox implementation.
     address internal immutable CROSS_L2_INBOX_IMPL;
     /// @notice L2ToL2CrossDomainMessenger implementation.
@@ -116,7 +112,6 @@ contract XForkL2ContractsManager is ISemver {
         // Utility address for upgrading initializable contracts.
         STORAGE_SETTER_IMPL = _implementations.storageSetterImpl;
         // Predeploy implementations.
-        WETH_IMPL = _implementations.wethImpl;
         L2_CROSS_DOMAIN_MESSENGER_IMPL = _implementations.l2CrossDomainMessengerImpl;
         GAS_PRICE_ORACLE_IMPL = _implementations.gasPriceOracleImpl;
         L2_STANDARD_BRIDGE_IMPL = _implementations.l2StandardBridgeImpl;
@@ -134,7 +129,6 @@ contract XForkL2ContractsManager is ISemver {
         OPERATOR_FEE_VAULT_IMPL = _implementations.operatorFeeVaultImpl;
         SCHEMA_REGISTRY_IMPL = _implementations.schemaRegistryImpl;
         EAS_IMPL = _implementations.easImpl;
-        GOVERNANCE_TOKEN_IMPL = _implementations.governanceTokenImpl;
         CROSS_L2_INBOX_IMPL = _implementations.crossL2InboxImpl;
         L2_TO_L2_CROSS_DOMAIN_MESSENGER_IMPL = _implementations.l2ToL2CrossDomainMessengerImpl;
         SUPERCHAIN_ETH_BRIDGE_IMPL = _implementations.superchainETHBridgeImpl;
@@ -363,7 +357,6 @@ contract XForkL2ContractsManager is ISemver {
         );
 
         // Non-initializable predeploys.
-        _upgradeTo(Predeploys.WETH, WETH_IMPL);
         _upgradeTo(Predeploys.GAS_PRICE_ORACLE, GAS_PRICE_ORACLE_IMPL);
         // L1BlockAttributes and L2ToL1MessagePasser have different implementations for custom gas token networks.
         _upgradeTo(
@@ -388,7 +381,6 @@ contract XForkL2ContractsManager is ISemver {
         }
         _upgradeTo(Predeploys.SCHEMA_REGISTRY, SCHEMA_REGISTRY_IMPL);
         _upgradeTo(Predeploys.EAS, EAS_IMPL);
-        _upgradeTo(Predeploys.GOVERNANCE_TOKEN, GOVERNANCE_TOKEN_IMPL);
     }
 
     /// @notice Upgrades a predeploy to a new implementation without calling an initializer.

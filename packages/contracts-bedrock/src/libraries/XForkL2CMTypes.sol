@@ -63,7 +63,6 @@ library XForkL2CMTypes {
     /// @notice The implementation addresses to manage the XFork upgrade.
     struct Implementations {
         address storageSetterImpl;
-        address wethImpl;
         address l2CrossDomainMessengerImpl;
         address gasPriceOracleImpl;
         address l2StandardBridgeImpl;
@@ -81,7 +80,6 @@ library XForkL2CMTypes {
         address operatorFeeVaultImpl;
         address schemaRegistryImpl;
         address easImpl;
-        address governanceTokenImpl;
         address crossL2InboxImpl;
         address l2ToL2CrossDomainMessengerImpl;
         address superchainETHBridgeImpl;
