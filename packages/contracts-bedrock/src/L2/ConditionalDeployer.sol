@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-// Libraries
-import { Constants } from "src/libraries/Constants.sol";
-
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 
@@ -25,43 +22,34 @@ contract ConditionalDeployer is ISemver {
     /// @param implementation The address of the existing implementation.
     event ImplementationExists(address indexed implementation);
 
-    /// @notice Error thrown when caller is not authorized.
-    error ConditionalDeployer_UnauthorizedCaller();
-
     /// @notice Semantic version.
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
     /// @notice Deploys an implementation using CREATE2 if it doesn't already exist.
-    /// @dev Only the depositor account or address(0) can call this method.
-    /// @param value The amount of ETH to send with the deployment.
-    /// @param salt The salt to use for CREATE2 deployment.
-    /// @param code The initialization code for the contract.
-    /// @return implementation The address of the deployed or existing implementation.
-    function deploy(uint256 value, bytes32 salt, bytes memory code) external returns (address implementation) {
-        // Restrict access to depositor account or address(0).
-        if (msg.sender != Constants.DEPOSITOR_ACCOUNT && msg.sender != address(0)) {
-            revert ConditionalDeployer_UnauthorizedCaller();
-        }
-
+    /// @param _value The amount of ETH to send with the deployment.
+    /// @param _salt The salt to use for CREATE2 deployment.
+    /// @param _code The initialization code for the contract.
+    /// @return implementation_ The address of the deployed or existing implementation.
+    function deploy(uint256 _value, bytes32 _salt, bytes memory _code) external returns (address implementation_) {
         // Compute the address where the contract will be deployed using CREATE2 formula
-        bytes32 codeHash = keccak256(code);
-        implementation = address(
-            uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), DETERMINISTIC_DEPLOYMENT_PROXY, salt, codeHash))))
+        bytes32 codeHash = keccak256(_code);
+        implementation_ = address(
+            uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), DETERMINISTIC_DEPLOYMENT_PROXY, _salt, codeHash))))
         );
 
         // Check if implementation already exists
-        if (implementation.code.length != 0) {
-            emit ImplementationExists(implementation);
-            return implementation;
+        if (implementation_.code.length != 0) {
+            emit ImplementationExists(implementation_);
+            return implementation_;
         }
 
         // Deploy using DeterministicDeploymentProxy (Nick's method)
         // Calldata format: salt + initcode
-        (bool success,) = DETERMINISTIC_DEPLOYMENT_PROXY.call{ value: value }(abi.encodePacked(salt, code));
+        (bool success,) = DETERMINISTIC_DEPLOYMENT_PROXY.call{ value: _value }(abi.encodePacked(_salt, _code));
         require(success, "ConditionalDeployer: deployment failed");
 
-        emit ImplementationDeployed(implementation, salt);
-        return implementation;
+        emit ImplementationDeployed(implementation_, _salt);
+        return implementation_;
     }
 }

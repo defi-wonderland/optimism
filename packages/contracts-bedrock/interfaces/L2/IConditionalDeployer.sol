@@ -15,17 +15,13 @@ interface IConditionalDeployer is ISemver {
     /// @param implementation The address of the existing implementation.
     event ImplementationExists(address indexed implementation);
 
-    /// @notice Error thrown when caller is not authorized.
-    error ConditionalDeployer_UnauthorizedCaller();
-
     /// @notice Address of the DeterministicDeploymentProxy (Nick's method).
     function DETERMINISTIC_DEPLOYMENT_PROXY() external view returns (address payable);
 
     /// @notice Deploys an implementation using CREATE2 if it doesn't already exist.
-    /// @dev Only the depositor account or address(0) can call this method.
-    /// @param value The amount of ETH to send with the deployment.
-    /// @param salt The salt to use for CREATE2 deployment.
-    /// @param code The initialization code for the contract.
-    /// @return implementation The address of the deployed or existing implementation.
-    function deploy(uint256 value, bytes32 salt, bytes memory code) external returns (address implementation);
+    /// @param _value The amount of ETH to send with the deployment.
+    /// @param _salt The salt to use for CREATE2 deployment.
+    /// @param _code The initialization code for the contract.
+    /// @return implementation_ The address of the deployed or existing implementation.
+    function deploy(uint256 _value, bytes32 _salt, bytes memory _code) external returns (address implementation_);
 }

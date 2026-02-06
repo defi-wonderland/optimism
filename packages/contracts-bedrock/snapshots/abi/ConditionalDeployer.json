@@ -16,17 +16,17 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "value",
+        "name": "_value",
         "type": "uint256"
       },
       {
         "internalType": "bytes32",
-        "name": "salt",
+        "name": "_salt",
         "type": "bytes32"
       },
       {
         "internalType": "bytes",
-        "name": "code",
+        "name": "_code",
         "type": "bytes"
       }
     ],
@@ -34,7 +34,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "implementation",
+        "name": "implementation_",
         "type": "address"
       }
     ],
@@ -85,10 +85,5 @@
     ],
     "name": "ImplementationExists",
     "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "ConditionalDeployer_UnauthorizedCaller",
-    "type": "error"
   }
 ]

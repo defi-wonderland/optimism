@@ -60,8 +60,8 @@
     "sourceCodeHash": "0xcb329746df0baddd3dc03c6c88da5d6bdc0f0a96d30e6dc78d0891bb1e935032"
   },
   "src/L2/ConditionalDeployer.sol:ConditionalDeployer": {
-    "initCodeHash": "0xa85c2b19049054ac19cbb2386365f60af475c5be93e383f52eeebce73f9357f8",
-    "sourceCodeHash": "0x66de633618912d842aa7c6fc8dace8d27bbcfb1170efcd38c26f8c36b7489247"
+    "initCodeHash": "0x705964e57f0ec30e99f0cf0175e37a41b24989ab97983f55a07095bd0df717b8",
+    "sourceCodeHash": "0xff4c94b6abcd73060f3d81cdb2a5fe23592c4eb72ef6c85d849775a69ff47d2b"
   },
   "src/L2/CrossL2Inbox.sol:CrossL2Inbox": {
     "initCodeHash": "0x56f868e561c4abe539043f98b16aad9305479e68fd03ece2233249b0c73a24ea",

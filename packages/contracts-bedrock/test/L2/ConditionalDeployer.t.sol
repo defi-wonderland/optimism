@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Testing
 import { Test } from "forge-std/Test.sol";
-import { ConditionalDeployer } from "src/L2/ConditionalDeployer.sol";
+
+// Libraries
 import { Config } from "scripts/libraries/Config.sol";
-import { Constants } from "src/libraries/Constants.sol";
+
+// Contracts
+import { ConditionalDeployer } from "src/L2/ConditionalDeployer.sol";
 
 /// @title ConditionalDeployer_Harness
 /// @notice A simple contract harness used for deployment testing of the ConditionalDeployer.
@@ -43,7 +47,7 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
     event ImplementationExists(address indexed implementation);
 
     /// @notice Tests that `deploy` succeeds and emits the correct event.
-    function testFuzz_deploy_succeeds(bytes32 _salt, uint256 _value) public {
+    function testFuzz_deploy_succeeds(address _caller, bytes32 _salt, uint256 _value) public {
         bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(_value));
         bytes32 codeHash = keccak256(_initCode);
         address expectedImplementation = address(
@@ -61,7 +65,7 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
         vm.expectEmit(address(conditionalDeployer));
         emit ImplementationDeployed(expectedImplementation, _salt);
 
-        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        vm.prank(_caller);
         address implementation = conditionalDeployer.deploy(0, _salt, _initCode);
 
         assertEq(implementation, expectedImplementation);
@@ -69,45 +73,40 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
         assert(implementation.code.length != 0);
     }
 
-    /// @notice Tests that `deploy` succeeds when called by `address(0)`.
-    function testFuzz_deploy_fromAddressZero_succeeds(bytes32 _salt, uint256 _value) public {
-        bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(_value));
-
-        vm.prank(address(0));
-        address implementation = conditionalDeployer.deploy(0, _salt, _initCode);
-
-        assertEq(ConditionalDeployer_Harness(implementation).value(), _value);
-        assert(implementation.code.length != 0);
-    }
-
     /// @notice Tests that `deploy` is idempotent and produces the same address when called multiple times.
-    function testFuzz_deploy_idempotent_succeeds(bytes32 _salt, uint256 _value) public {
+    function testFuzz_deploy_idempotent_succeeds(address _caller, bytes32 _salt, uint256 _value) public {
         bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(_value));
 
-        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        // First Deployment
+        bytes32 codeHash = keccak256(_initCode);
+        address expectedImplementation = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff), conditionalDeployer.DETERMINISTIC_DEPLOYMENT_PROXY(), _salt, codeHash
+                        )
+                    )
+                )
+            )
+        );
+
+        vm.expectEmit(address(conditionalDeployer));
+        emit ImplementationDeployed(expectedImplementation, _salt);
+
+        vm.prank(_caller);
         address implementation1 = conditionalDeployer.deploy(0, _salt, _initCode);
 
         // Assert that the implementation was deployed
         assert(implementation1.code.length != 0);
 
-        // Attempt to deploy the same implementation again
+        // Second Deployment
         vm.expectEmit(address(conditionalDeployer));
         emit ImplementationExists(implementation1);
 
-        vm.prank(Constants.DEPOSITOR_ACCOUNT);
+        vm.prank(_caller);
         address implementation2 = conditionalDeployer.deploy(0, _salt, _initCode);
 
         assertEq(implementation1, implementation2);
-    }
-
-    /// @notice Tests that `deploy` reverts when called by an unauthorized address.
-    function testFuzz_deploy_unauthorizedCaller_reverts(address _sender) public {
-        vm.assume(_sender != Constants.DEPOSITOR_ACCOUNT && _sender != address(0));
-
-        bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(0));
-
-        vm.prank(_sender);
-        vm.expectRevert(ConditionalDeployer.ConditionalDeployer_UnauthorizedCaller.selector);
-        conditionalDeployer.deploy(0, bytes32(0), _initCode);
     }
 }
