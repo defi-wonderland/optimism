@@ -185,9 +185,161 @@ contract XForkL2ContractsManager is ISemver {
 
     /// @notice Upgrades each of the predeploys to its corresponding new implementation. Applies the appropriate
     ///         configuration to each predeploy.
-    /// @param _fullConfig The full configuration for the L2 Predeploys.
-    function _apply(IL2ContractsManager.FullConfig memory _fullConfig) internal {
-        // TODO: Implement the apply logic.
+    /// @param _config The full configuration for the L2 Predeploys.
+    function _apply(IL2ContractsManager.FullConfig memory _config) internal {
+        // Initializable predeploys.
+
+        // L2CrossDomainMessenger
+        _upgradeToAndCall(
+            Predeploys.L2_CROSS_DOMAIN_MESSENGER,
+            L2_CROSS_DOMAIN_MESSENGER_IMPL,
+            abi.encodeCall(
+                IL2CrossDomainMessenger.initialize, (ICrossDomainMessenger(_config.crossDomainMessenger.otherMessenger))
+            ),
+            INITIALIZABLE_SLOT_OZ_V4,
+            20 // Account for CrossDomainMessengerLegacySpacer0
+        );
+
+        // L2StandardBridge
+        _upgradeToAndCall(
+            Predeploys.L2_STANDARD_BRIDGE,
+            L2_STANDARD_BRIDGE_IMPL,
+            abi.encodeCall(IL2StandardBridge.initialize, (IStandardBridge(payable(_config.standardBridge.otherBridge)))),
+            INITIALIZABLE_SLOT_OZ_V4,
+            0
+        );
+
+        // L2ERC721Bridge
+        _upgradeToAndCall(
+            Predeploys.L2_ERC721_BRIDGE,
+            L2_ERC721_BRIDGE_IMPL,
+            abi.encodeCall(IL2ERC721Bridge.initialize, (payable(_config.erc721Bridge.otherBridge))),
+            INITIALIZABLE_SLOT_OZ_V4,
+            0
+        );
+
+        // OptimismMintableERC20Factory
+        _upgradeToAndCall(
+            Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY,
+            OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL,
+            abi.encodeCall(IOptimismMintableERC20Factory.initialize, (_config.mintableERC20Factory.bridge)),
+            INITIALIZABLE_SLOT_OZ_V4,
+            0
+        );
+
+        // LiquidityController
+        _upgradeToAndCall(
+            Predeploys.LIQUIDITY_CONTROLLER,
+            LIQUIDITY_CONTROLLER_IMPL,
+            abi.encodeCall(
+                ILiquidityController.initialize,
+                (
+                    _config.liquidityController.owner,
+                    _config.liquidityController.gasPayingTokenName,
+                    _config.liquidityController.gasPayingTokenSymbol
+                )
+            ),
+            INITIALIZABLE_SLOT_OZ_V4,
+            0
+        );
+
+        // FeeSplitter
+        _upgradeToAndCall(
+            Predeploys.FEE_SPLITTER,
+            FEE_SPLITTER_IMPL,
+            abi.encodeCall(IFeeSplitter.initialize, (ISharesCalculator(_config.feeSplitter.sharesCalculator))),
+            INITIALIZABLE_SLOT_OZ_V4,
+            0
+        );
+
+        // SequencerFeeVault
+        _upgradeToAndCall(
+            Predeploys.SEQUENCER_FEE_WALLET,
+            SEQUENCER_FEE_WALLET_IMPL,
+            abi.encodeCall(
+                IFeeVault.initialize,
+                (
+                    _config.sequencerFeeVault.recipient,
+                    _config.sequencerFeeVault.minWithdrawalAmount,
+                    _config.sequencerFeeVault.withdrawalNetwork
+                )
+            ),
+            INITIALIZABLE_SLOT_OZ_V5,
+            0
+        );
+
+        // BaseFeeVault
+        _upgradeToAndCall(
+            Predeploys.BASE_FEE_VAULT,
+            BASE_FEE_VAULT_IMPL,
+            abi.encodeCall(
+                IFeeVault.initialize,
+                (
+                    _config.baseFeeVault.recipient,
+                    _config.baseFeeVault.minWithdrawalAmount,
+                    _config.baseFeeVault.withdrawalNetwork
+                )
+            ),
+            INITIALIZABLE_SLOT_OZ_V5,
+            0
+        );
+
+        // L1FeeVault
+        _upgradeToAndCall(
+            Predeploys.L1_FEE_VAULT,
+            L1_FEE_VAULT_IMPL,
+            abi.encodeCall(
+                IFeeVault.initialize,
+                (
+                    _config.l1FeeVault.recipient,
+                    _config.l1FeeVault.minWithdrawalAmount,
+                    _config.l1FeeVault.withdrawalNetwork
+                )
+            ),
+            INITIALIZABLE_SLOT_OZ_V5,
+            0
+        );
+
+        // OperatorFeeVault
+        _upgradeToAndCall(
+            Predeploys.OPERATOR_FEE_VAULT,
+            OPERATOR_FEE_VAULT_IMPL,
+            abi.encodeCall(
+                IFeeVault.initialize,
+                (
+                    _config.operatorFeeVault.recipient,
+                    _config.operatorFeeVault.minWithdrawalAmount,
+                    _config.operatorFeeVault.withdrawalNetwork
+                )
+            ),
+            INITIALIZABLE_SLOT_OZ_V5,
+            0
+        );
+
+        // Non-initializable predeploys.
+        _upgradeTo(Predeploys.WETH, WETH_IMPL);
+        _upgradeTo(Predeploys.GAS_PRICE_ORACLE, GAS_PRICE_ORACLE_IMPL);
+        _upgradeTo(Predeploys.L1_BLOCK_ATTRIBUTES, L1_BLOCK_ATTRIBUTES_IMPL);
+        _upgradeTo(Predeploys.L2_TO_L1_MESSAGE_PASSER, L2_TO_L1_MESSAGE_PASSER_IMPL);
+        _upgradeTo(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL);
+        _upgradeTo(Predeploys.CROSS_L2_INBOX, CROSS_L2_INBOX_IMPL);
+        _upgradeTo(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER, L2_TO_L2_CROSS_DOMAIN_MESSENGER_IMPL);
+        _upgradeTo(Predeploys.SUPERCHAIN_ETH_BRIDGE, SUPERCHAIN_ETH_BRIDGE_IMPL);
+        _upgradeTo(Predeploys.ETH_LIQUIDITY, ETH_LIQUIDITY_IMPL);
+        _upgradeTo(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY, OPTIMISM_SUPERCHAIN_ERC20_FACTORY_IMPL);
+        _upgradeTo(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON, OPTIMISM_SUPERCHAIN_ERC20_BEACON_IMPL);
+        _upgradeTo(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, SUPERCHAIN_TOKEN_BRIDGE_IMPL);
+        _upgradeTo(Predeploys.NATIVE_ASSET_LIQUIDITY, NATIVE_ASSET_LIQUIDITY_IMPL);
+        _upgradeTo(Predeploys.SCHEMA_REGISTRY, SCHEMA_REGISTRY_IMPL);
+        _upgradeTo(Predeploys.EAS, EAS_IMPL);
+        _upgradeTo(Predeploys.GOVERNANCE_TOKEN, GOVERNANCE_TOKEN_IMPL);
+    }
+
+    /// @notice Upgrades a predeploy to a new implementation without calling an initializer.
+    /// @param _proxy The proxy address of the predeploy.
+    /// @param _implementation The new implementation address.
+    function _upgradeTo(address _proxy, address _implementation) internal {
+        IProxy(payable(_proxy)).upgradeTo(_implementation);
     }
 
     /// @notice Upgrades an initializable Predeploy's implementation to _implementation by resetting the initialized
