@@ -37,8 +37,8 @@ contract XForkL2ContractsManager_Harness is XForkL2ContractsManager {
     constructor(XForkL2CMTypes.Implementations memory _implementations) XForkL2ContractsManager(_implementations) { }
 
     /// @notice Returns the full configuration for the L2 predeploys.
-    function fullConfig() external view returns (XForkL2CMTypes.FullConfig memory) {
-        return _fullConfig();
+    function loadFullConfig() external view returns (XForkL2CMTypes.FullConfig memory) {
+        return _loadFullConfig();
     }
 
     /// @notice Returns the target implementations for the L2 predeploys.
@@ -216,7 +216,7 @@ contract XForkL2ContractsManager_Test is CommonTest {
         state_.feeSplitterImpl = EIP1967Helper.getImplementation(Predeploys.FEE_SPLITTER);
 
         // Capture config values using the harness
-        state_.config = l2cm.fullConfig();
+        state_.config = l2cm.loadFullConfig();
     }
 
     /// @notice Asserts that two post-upgrade states are identical.

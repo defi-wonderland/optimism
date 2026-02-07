@@ -146,13 +146,13 @@ contract XForkL2ContractsManager is ISemver {
     function upgrade() external {
         if (address(this) == THIS_L2CM) revert XForkL2ContractsManager_OnlyDelegatecall();
 
-        XForkL2CMTypes.FullConfig memory fullConfig = _fullConfig();
+        XForkL2CMTypes.FullConfig memory fullConfig = _loadFullConfig();
         _apply(fullConfig);
     }
 
     /// @notice Loads the full configuration for the L2 Predeploys.
     /// @return fullConfig_ The full configuration.
-    function _fullConfig() internal view returns (XForkL2CMTypes.FullConfig memory fullConfig_) {
+    function _loadFullConfig() internal view returns (XForkL2CMTypes.FullConfig memory fullConfig_) {
         bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
 
         // L2CrossDomainMessenger
