@@ -11,6 +11,12 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
+import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
+import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
+import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
+import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { WETH } from "src/L2/WETH.sol";
@@ -350,5 +356,117 @@ contract XForkL2ContractsManager_Test is CommonTest {
 
         // Assert both states are identical
         _assertStatesEqual(stateAfterFirstUpgrade, stateAfterSecondUpgrade);
+    }
+
+    /// @notice Tests that all network-specific configuration is preserved after upgrade.
+    function test_upgrade_preservesAllConfiguration() public {
+        // Capture pre-upgrade configuration directly from the contracts
+        XForkL2CMTypes.FullConfig memory preUpgradeConfig = l2cm.loadFullConfig();
+
+        // Execute the upgrade
+        _executeUpgrade();
+
+        // L2CrossDomainMessenger
+        assertEq(
+            address(ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).otherMessenger()),
+            preUpgradeConfig.crossDomainMessenger.otherMessenger,
+            "L2CrossDomainMessenger.otherMessenger not preserved"
+        );
+
+        // L2StandardBridge
+        assertEq(
+            address(IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).otherBridge()),
+            preUpgradeConfig.standardBridge.otherBridge,
+            "L2StandardBridge.otherBridge not preserved"
+        );
+
+        // L2ERC721Bridge
+        assertEq(
+            address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).otherBridge()),
+            preUpgradeConfig.erc721Bridge.otherBridge,
+            "L2ERC721Bridge.otherBridge not preserved"
+        );
+
+        // OptimismMintableERC20Factory
+        assertEq(
+            address(IOptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY).bridge()),
+            preUpgradeConfig.mintableERC20Factory.bridge,
+            "OptimismMintableERC20Factory.bridge not preserved"
+        );
+
+        // SequencerFeeVault
+        assertEq(
+            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).recipient(),
+            preUpgradeConfig.sequencerFeeVault.recipient,
+            "SequencerFeeVault.recipient not preserved"
+        );
+        assertEq(
+            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).minWithdrawalAmount(),
+            preUpgradeConfig.sequencerFeeVault.minWithdrawalAmount,
+            "SequencerFeeVault.minWithdrawalAmount not preserved"
+        );
+        assertTrue(
+            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).withdrawalNetwork()
+                == preUpgradeConfig.sequencerFeeVault.withdrawalNetwork,
+            "SequencerFeeVault.withdrawalNetwork not preserved"
+        );
+
+        // BaseFeeVault
+        assertEq(
+            IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).recipient(),
+            preUpgradeConfig.baseFeeVault.recipient,
+            "BaseFeeVault.recipient not preserved"
+        );
+        assertEq(
+            IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).minWithdrawalAmount(),
+            preUpgradeConfig.baseFeeVault.minWithdrawalAmount,
+            "BaseFeeVault.minWithdrawalAmount not preserved"
+        );
+        assertTrue(
+            IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).withdrawalNetwork()
+                == preUpgradeConfig.baseFeeVault.withdrawalNetwork,
+            "BaseFeeVault.withdrawalNetwork not preserved"
+        );
+
+        // L1FeeVault
+        assertEq(
+            IFeeVault(payable(Predeploys.L1_FEE_VAULT)).recipient(),
+            preUpgradeConfig.l1FeeVault.recipient,
+            "L1FeeVault.recipient not preserved"
+        );
+        assertEq(
+            IFeeVault(payable(Predeploys.L1_FEE_VAULT)).minWithdrawalAmount(),
+            preUpgradeConfig.l1FeeVault.minWithdrawalAmount,
+            "L1FeeVault.minWithdrawalAmount not preserved"
+        );
+        assertTrue(
+            IFeeVault(payable(Predeploys.L1_FEE_VAULT)).withdrawalNetwork()
+                == preUpgradeConfig.l1FeeVault.withdrawalNetwork,
+            "L1FeeVault.withdrawalNetwork not preserved"
+        );
+
+        // OperatorFeeVault
+        assertEq(
+            IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).recipient(),
+            preUpgradeConfig.operatorFeeVault.recipient,
+            "OperatorFeeVault.recipient not preserved"
+        );
+        assertEq(
+            IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).minWithdrawalAmount(),
+            preUpgradeConfig.operatorFeeVault.minWithdrawalAmount,
+            "OperatorFeeVault.minWithdrawalAmount not preserved"
+        );
+        assertTrue(
+            IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).withdrawalNetwork()
+                == preUpgradeConfig.operatorFeeVault.withdrawalNetwork,
+            "OperatorFeeVault.withdrawalNetwork not preserved"
+        );
+
+        // FeeSplitter
+        assertEq(
+            address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator()),
+            preUpgradeConfig.feeSplitter.sharesCalculator,
+            "FeeSplitter.sharesCalculator not preserved"
+        );
     }
 }
