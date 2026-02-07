@@ -17,6 +17,8 @@ import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
 import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMintableERC20Factory.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { WETH } from "src/L2/WETH.sol";
@@ -36,6 +38,8 @@ import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
 import { OptimismSuperchainERC20Beacon } from "src/L2/OptimismSuperchainERC20Beacon.sol";
 import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
 import { LiquidityController } from "src/L2/LiquidityController.sol";
+
+import { Features } from "src/libraries/Features.sol";
 
 /// @title XForkL2ContractsManager_Harness
 /// @notice Harness contract that exposes internal functions for testing.
@@ -360,11 +364,13 @@ contract XForkL2ContractsManager_Test is CommonTest {
 
     /// @notice Tests that all network-specific configuration is preserved after upgrade.
     function test_upgrade_preservesAllConfiguration() public {
-        // Capture pre-upgrade configuration directly from the contracts
+        // Get the pre-upgrade configuration
         XForkL2CMTypes.FullConfig memory preUpgradeConfig = l2cm.loadFullConfig();
 
         // Execute the upgrade
         _executeUpgrade();
+
+        // Get the post-upgrade configuration from each of the predeploys
 
         // L2CrossDomainMessenger
         assertEq(
@@ -467,6 +473,93 @@ contract XForkL2ContractsManager_Test is CommonTest {
             address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator()),
             preUpgradeConfig.feeSplitter.sharesCalculator,
             "FeeSplitter.sharesCalculator not preserved"
+        );
+    }
+}
+
+/// @title XForkL2ContractsManager_CGT_Test
+/// @notice Test contract for the XForkL2ContractsManager on Custom Gas Token networks.
+contract XForkL2ContractsManager_CGT_Test is XForkL2ContractsManager_Test {
+    /// @notice Tests that CGT-specific contracts are upgraded when CGT is enabled.
+    function test_upgrade_upgradesCGTContracts_whenCGTEnabled() public {
+        skipIfSysFeatureDisabled(Features.CUSTOM_GAS_TOKEN);
+
+        // Capture pre-upgrade implementations for CGT-specific contracts
+        address preUpgradeLiquidityControllerImpl = EIP1967Helper.getImplementation(Predeploys.LIQUIDITY_CONTROLLER);
+        address preUpgradeNativeAssetLiquidityImpl = EIP1967Helper.getImplementation(Predeploys.NATIVE_ASSET_LIQUIDITY);
+
+        // Execute the upgrade
+        _executeUpgrade();
+
+        // Verify LiquidityController was upgraded
+        address postUpgradeLiquidityControllerImpl = EIP1967Helper.getImplementation(Predeploys.LIQUIDITY_CONTROLLER);
+        assertEq(
+            postUpgradeLiquidityControllerImpl,
+            implementations.liquidityControllerImpl,
+            "LiquidityController should be upgraded to new implementation"
+        );
+        assertTrue(
+            postUpgradeLiquidityControllerImpl != preUpgradeLiquidityControllerImpl
+                || preUpgradeLiquidityControllerImpl == implementations.liquidityControllerImpl,
+            "LiquidityController implementation should change or already be target"
+        );
+
+        // Verify NativeAssetLiquidity was upgraded
+        address postUpgradeNativeAssetLiquidityImpl = EIP1967Helper.getImplementation(Predeploys.NATIVE_ASSET_LIQUIDITY);
+        assertEq(
+            postUpgradeNativeAssetLiquidityImpl,
+            implementations.nativeAssetLiquidityImpl,
+            "NativeAssetLiquidity should be upgraded to new implementation"
+        );
+        assertTrue(
+            postUpgradeNativeAssetLiquidityImpl != preUpgradeNativeAssetLiquidityImpl
+                || preUpgradeNativeAssetLiquidityImpl == implementations.nativeAssetLiquidityImpl,
+            "NativeAssetLiquidity implementation should change or already be target"
+        );
+
+        // Verify L1Block uses CGT implementation
+        address postUpgradeL1BlockImpl = EIP1967Helper.getImplementation(Predeploys.L1_BLOCK_ATTRIBUTES);
+        assertEq(
+            postUpgradeL1BlockImpl,
+            implementations.l1BlockAttributesCGTImpl,
+            "L1Block should use CGT implementation on CGT networks"
+        );
+
+        // Verify L2ToL1MessagePasser uses CGT implementation
+        address postUpgradeL2ToL1MessagePasserImpl = EIP1967Helper.getImplementation(Predeploys.L2_TO_L1_MESSAGE_PASSER);
+        assertEq(
+            postUpgradeL2ToL1MessagePasserImpl,
+            implementations.l2ToL1MessagePasserCGTImpl,
+            "L2ToL1MessagePasser should use CGT implementation on CGT networks"
+        );
+    }
+
+    /// @notice Tests that LiquidityController config is preserved after upgrade on CGT networks.
+    function test_upgrade_preservesLiquidityControllerConfig_onCGTNetwork() public {
+        skipIfSysFeatureDisabled(Features.CUSTOM_GAS_TOKEN);
+
+        // Capture pre-upgrade config
+        XForkL2CMTypes.FullConfig memory preUpgradeConfig = l2cm.loadFullConfig();
+
+        // Execute the upgrade
+        _executeUpgrade();
+
+        // Verify LiquidityController config is preserved
+        ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
+        assertEq(
+            liquidityController.owner(),
+            preUpgradeConfig.liquidityController.owner,
+            "LiquidityController.owner not preserved"
+        );
+        assertEq(
+            liquidityController.gasPayingTokenName(),
+            preUpgradeConfig.liquidityController.gasPayingTokenName,
+            "LiquidityController.gasPayingTokenName not preserved"
+        );
+        assertEq(
+            liquidityController.gasPayingTokenSymbol(),
+            preUpgradeConfig.liquidityController.gasPayingTokenSymbol,
+            "LiquidityController.gasPayingTokenSymbol not preserved"
         );
     }
 }
