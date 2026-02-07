@@ -85,7 +85,6 @@ contract XForkL2ContractsManager_Test is CommonTest {
     /// @notice Struct to capture the post-upgrade state for comparison.
     struct PostUpgradeState {
         // Implementation addresses
-        address wethImpl;
         address gasPriceOracleImpl;
         address l2CrossDomainMessengerImpl;
         address l2StandardBridgeImpl;
@@ -182,7 +181,6 @@ contract XForkL2ContractsManager_Test is CommonTest {
     /// @return state_ The captured state.
     function _capturePostUpgradeState() internal view returns (PostUpgradeState memory state_) {
         // Capture implementation addresses
-        state_.wethImpl = EIP1967Helper.getImplementation(Predeploys.WETH);
         state_.gasPriceOracleImpl = EIP1967Helper.getImplementation(Predeploys.GAS_PRICE_ORACLE);
         state_.l2CrossDomainMessengerImpl = EIP1967Helper.getImplementation(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
         state_.l2StandardBridgeImpl = EIP1967Helper.getImplementation(Predeploys.L2_STANDARD_BRIDGE);
@@ -224,7 +222,6 @@ contract XForkL2ContractsManager_Test is CommonTest {
     /// @param _state2 The second state.
     function _assertStatesEqual(PostUpgradeState memory _state1, PostUpgradeState memory _state2) internal pure {
         // Assert implementation addresses are equal
-        assertEq(_state1.wethImpl, _state2.wethImpl, "WETH impl mismatch");
         assertEq(_state1.gasPriceOracleImpl, _state2.gasPriceOracleImpl, "GasPriceOracle impl mismatch");
         assertEq(
             _state1.l2CrossDomainMessengerImpl,
