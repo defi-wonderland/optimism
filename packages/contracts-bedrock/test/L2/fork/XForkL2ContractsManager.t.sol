@@ -289,18 +289,18 @@ contract XForkL2ContractsManager_Test is CommonTest {
 
         // Assert config values are equal
         assertEq(
-            _state1.config.crossDomainMessenger.otherMessenger,
-            _state2.config.crossDomainMessenger.otherMessenger,
+            address(_state1.config.crossDomainMessenger.otherMessenger),
+            address(_state2.config.crossDomainMessenger.otherMessenger),
             "CrossDomainMessenger config mismatch"
         );
         assertEq(
-            _state1.config.standardBridge.otherBridge,
-            _state2.config.standardBridge.otherBridge,
+            address(_state1.config.standardBridge.otherBridge),
+            address(_state2.config.standardBridge.otherBridge),
             "StandardBridge config mismatch"
         );
         assertEq(
-            _state1.config.erc721Bridge.otherBridge,
-            _state2.config.erc721Bridge.otherBridge,
+            address(_state1.config.erc721Bridge.otherBridge),
+            address(_state2.config.erc721Bridge.otherBridge),
             "ERC721Bridge config mismatch"
         );
         assertEq(
@@ -332,8 +332,8 @@ contract XForkL2ContractsManager_Test is CommonTest {
             "LiquidityController owner mismatch"
         );
         assertEq(
-            _state1.config.feeSplitter.sharesCalculator,
-            _state2.config.feeSplitter.sharesCalculator,
+            address(_state1.config.feeSplitter.sharesCalculator),
+            address(_state2.config.feeSplitter.sharesCalculator),
             "FeeSplitter sharesCalculator mismatch"
         );
     }
@@ -375,35 +375,35 @@ contract XForkL2ContractsManager_Test is CommonTest {
         // L2CrossDomainMessenger
         assertEq(
             address(ICrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER).otherMessenger()),
-            preUpgradeConfig.crossDomainMessenger.otherMessenger,
+            address(preUpgradeConfig.crossDomainMessenger.otherMessenger),
             "L2CrossDomainMessenger.otherMessenger not preserved"
         );
 
         // L2StandardBridge
         assertEq(
             address(IStandardBridge(payable(Predeploys.L2_STANDARD_BRIDGE)).otherBridge()),
-            preUpgradeConfig.standardBridge.otherBridge,
+            address(preUpgradeConfig.standardBridge.otherBridge),
             "L2StandardBridge.otherBridge not preserved"
         );
 
         // L2ERC721Bridge
         assertEq(
             address(IERC721Bridge(Predeploys.L2_ERC721_BRIDGE).otherBridge()),
-            preUpgradeConfig.erc721Bridge.otherBridge,
+            address(preUpgradeConfig.erc721Bridge.otherBridge),
             "L2ERC721Bridge.otherBridge not preserved"
         );
 
         // OptimismMintableERC20Factory
         assertEq(
             address(IOptimismMintableERC20Factory(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY).bridge()),
-            preUpgradeConfig.mintableERC20Factory.bridge,
+            address(preUpgradeConfig.mintableERC20Factory.bridge),
             "OptimismMintableERC20Factory.bridge not preserved"
         );
 
         // SequencerFeeVault
         assertEq(
             IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).recipient(),
-            preUpgradeConfig.sequencerFeeVault.recipient,
+            address(preUpgradeConfig.sequencerFeeVault.recipient),
             "SequencerFeeVault.recipient not preserved"
         );
         assertEq(
@@ -471,7 +471,7 @@ contract XForkL2ContractsManager_Test is CommonTest {
         // FeeSplitter
         assertEq(
             address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator()),
-            preUpgradeConfig.feeSplitter.sharesCalculator,
+            address(preUpgradeConfig.feeSplitter.sharesCalculator),
             "FeeSplitter.sharesCalculator not preserved"
         );
     }
