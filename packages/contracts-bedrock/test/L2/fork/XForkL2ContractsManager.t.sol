@@ -38,7 +38,7 @@ import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
 import { OptimismSuperchainERC20Beacon } from "src/L2/OptimismSuperchainERC20Beacon.sol";
 import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
 import { LiquidityController } from "src/L2/LiquidityController.sol";
-
+import { Types } from "src/libraries/Types.sol";
 import { Features } from "src/libraries/Features.sol";
 
 /// @title XForkL2ContractsManager_Harness
@@ -473,6 +473,101 @@ contract XForkL2ContractsManager_Test is CommonTest {
             address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator()),
             address(preUpgradeConfig.feeSplitter.sharesCalculator),
             "FeeSplitter.sharesCalculator not preserved"
+        );
+    }
+
+    /// @notice Tests that calling upgrade() directly (not via DELEGATECALL) reverts.
+    function test_upgrade_reverts_whenCalledDirectly() public {
+        // Calling upgrade() directly should revert with OnlyDelegatecall error
+        vm.expectRevert(XForkL2ContractsManager.XForkL2ContractsManager_OnlyDelegatecall.selector);
+        l2cm.upgrade();
+    }
+
+    /// @notice Tests that fee vault configurations with non-default values are preserved after upgrade.
+    function test_upgrade_preservesFeeVaultConfig_withNonDefaultValues() public {
+        // Define non-default test values
+        address customRecipient = makeAddr("customRecipient");
+        uint256 customMinWithdrawal = 50 ether;
+
+        // Get the ProxyAdmin owner
+        address proxyAdminOwner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+
+        // Set non-default values on all fee vaults before upgrade
+        vm.startPrank(proxyAdminOwner);
+
+        // SequencerFeeVault
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setRecipient(customRecipient);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setMinWithdrawalAmount(customMinWithdrawal);
+        IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
+
+        // BaseFeeVault
+        IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).setRecipient(customRecipient);
+        IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).setMinWithdrawalAmount(customMinWithdrawal);
+        IFeeVault(payable(Predeploys.BASE_FEE_VAULT)).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
+
+        // L1FeeVault
+        IFeeVault(payable(Predeploys.L1_FEE_VAULT)).setRecipient(customRecipient);
+        IFeeVault(payable(Predeploys.L1_FEE_VAULT)).setMinWithdrawalAmount(customMinWithdrawal);
+        IFeeVault(payable(Predeploys.L1_FEE_VAULT)).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
+
+        // OperatorFeeVault
+        IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).setRecipient(customRecipient);
+        IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).setMinWithdrawalAmount(customMinWithdrawal);
+        IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)).setWithdrawalNetwork(Types.WithdrawalNetwork.L2);
+
+        vm.stopPrank();
+
+        // Execute the upgrade
+        _executeUpgrade();
+
+        // Verify non-default values are preserved on all fee vaults
+
+        // SequencerFeeVault
+        _assertFeeVaultConfig(
+            IFeeVault(payable(Predeploys.SEQUENCER_FEE_WALLET)),
+            customRecipient,
+            customMinWithdrawal,
+            Types.WithdrawalNetwork.L2
+        );
+
+        // BaseFeeVault
+        _assertFeeVaultConfig(
+            IFeeVault(payable(Predeploys.BASE_FEE_VAULT)),
+            customRecipient,
+            customMinWithdrawal,
+            Types.WithdrawalNetwork.L2
+        );
+        // L1FeeVault
+        _assertFeeVaultConfig(
+            IFeeVault(payable(Predeploys.L1_FEE_VAULT)),
+            customRecipient,
+            customMinWithdrawal,
+            Types.WithdrawalNetwork.L2
+        );
+        // OperatorFeeVault
+        _assertFeeVaultConfig(
+            IFeeVault(payable(Predeploys.OPERATOR_FEE_VAULT)),
+            customRecipient,
+            customMinWithdrawal,
+            Types.WithdrawalNetwork.L2
+        );
+    }
+
+    function _assertFeeVaultConfig(
+        IFeeVault _feeVault,
+        address _expectedRecipient,
+        uint256 _expectedMinWithdrawalAmount,
+        Types.WithdrawalNetwork _expectedWithdrawalNetwork
+    )
+        internal
+        view
+    {
+        assertEq(_feeVault.recipient(), _expectedRecipient, "FeeVault.recipient not preserved");
+        assertEq(
+            _feeVault.minWithdrawalAmount(), _expectedMinWithdrawalAmount, "FeeVault.minWithdrawalAmount not preserved"
+        );
+        assertTrue(
+            _feeVault.withdrawalNetwork() == _expectedWithdrawalNetwork, "FeeVault.withdrawalNetwork not preserved"
         );
     }
 }
