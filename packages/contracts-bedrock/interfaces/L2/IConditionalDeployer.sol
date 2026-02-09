@@ -24,6 +24,6 @@ interface IConditionalDeployer is ISemver {
     /// @return implementation_ The address of the deployed or existing implementation.
     function deploy(bytes32 _salt, bytes memory _code) external payable returns (address implementation_);
 
-    /// @notice Address of the DeterministicDeploymentProxy (Nick's method).
+    /// @notice Address of the Arachnid's DeterministicDeploymentProxy.
     function deterministicDeploymentProxy() external pure returns (address payable deterministicDeploymentProxy_);
 }
