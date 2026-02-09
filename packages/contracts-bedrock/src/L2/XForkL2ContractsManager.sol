@@ -230,9 +230,7 @@ contract XForkL2ContractsManager is ISemver {
         _upgradeToAndCall(
             Predeploys.L2_CROSS_DOMAIN_MESSENGER,
             L2_CROSS_DOMAIN_MESSENGER_IMPL,
-            abi.encodeCall(
-                IL2CrossDomainMessenger.initialize, (ICrossDomainMessenger(_config.crossDomainMessenger.otherMessenger))
-            ),
+            abi.encodeCall(IL2CrossDomainMessenger.initialize, (_config.crossDomainMessenger.otherMessenger)),
             INITIALIZABLE_SLOT_OZ_V4,
             20 // Account for CrossDomainMessengerLegacySpacer0
         );
@@ -241,7 +239,7 @@ contract XForkL2ContractsManager is ISemver {
         _upgradeToAndCall(
             Predeploys.L2_STANDARD_BRIDGE,
             L2_STANDARD_BRIDGE_IMPL,
-            abi.encodeCall(IL2StandardBridge.initialize, (IStandardBridge(payable(_config.standardBridge.otherBridge)))),
+            abi.encodeCall(IL2StandardBridge.initialize, (_config.standardBridge.otherBridge)),
             INITIALIZABLE_SLOT_OZ_V4,
             0
         );
