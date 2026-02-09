@@ -20,7 +20,6 @@ import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Types } from "src/libraries/Types.sol";
 import { XForkL2CMTypes } from "src/libraries/XForkL2CMTypes.sol";
 
 /// @title XForkL2ContractsManager
@@ -105,6 +104,9 @@ contract XForkL2ContractsManager is ISemver {
     /// @notice FeeSplitter implementation.
     address internal immutable FEE_SPLITTER_IMPL;
 
+    /// @notice Constructor for the XForkL2ContractsManager contract.
+    /// @param _implementations The implementation struct containing the new implementation addresses for the L2
+    /// predeploys.
     constructor(XForkL2CMTypes.Implementations memory _implementations) {
         // Store the address of this contract for DELEGATECALL enforcement.
         THIS_L2CM = address(this);
