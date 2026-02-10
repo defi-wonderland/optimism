@@ -7,9 +7,6 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 // Libraries
 import { Constants } from "src/libraries/Constants.sol";
 
-// Interfaces
-import { IL2ProxyAdmin } from "interfaces/L2/IL2ProxyAdmin.sol";
-
 // Contracts
 import { L2ProxyAdmin } from "src/L2/L2ProxyAdmin.sol";
 import { IXForkL2ContractsManager } from "interfaces/L2/IXForkL2ContractsManager.sol";
