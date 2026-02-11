@@ -45,11 +45,14 @@ library L2ContractsManagerUtils {
         view
         returns (XForkL2CMTypes.FeeVaultConfig memory config_)
     {
+        // Note: We are intentionally using legacy deprecated getters for this 1.0.0 version of the L2ContractsManager.
+        // Subsequent versions should use the new getters as L2ContractsManager should ensure that the new current
+        // version of the FeeVault is used.
         IFeeVault feeVault = IFeeVault(payable(_feeVault));
         config_ = XForkL2CMTypes.FeeVaultConfig({
-            recipient: feeVault.recipient(),
-            minWithdrawalAmount: feeVault.minWithdrawalAmount(),
-            withdrawalNetwork: feeVault.withdrawalNetwork()
+            recipient: feeVault.RECIPIENT(),
+            minWithdrawalAmount: feeVault.MIN_WITHDRAWAL_AMOUNT(),
+            withdrawalNetwork: feeVault.WITHDRAWAL_NETWORK()
         });
     }
 
