@@ -154,6 +154,10 @@ contract XForkL2ContractsManager is ISemver {
     /// @notice Loads the full configuration for the L2 Predeploys.
     /// @return fullConfig_ The full configuration.
     function _loadFullConfig() internal view returns (XForkL2CMTypes.FullConfig memory fullConfig_) {
+        // Note: Currently, this is the only way to determine if the network is a custom gas token network.
+        // We need our upgrades be able to determine if the network is a custom gas token network so that we can
+        // apply the appropriate configuration to the LiquidityController predeploy. In networks without custom gas
+        // tokens, the LiquidityController predeploy is not used and points to address(0).
         bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
 
         // L2CrossDomainMessenger
@@ -207,6 +211,7 @@ contract XForkL2ContractsManager is ISemver {
     ///         configuration to each predeploy.
     /// @param _config The full configuration for the L2 Predeploys.
     function _apply(XForkL2CMTypes.FullConfig memory _config) internal {
+        // See comment in `_loadFullConfig()` for why we need to check for custom gas token networks.
         bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
 
         // Initializable predeploys.
