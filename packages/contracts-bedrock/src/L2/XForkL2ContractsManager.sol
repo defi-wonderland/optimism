@@ -205,15 +205,14 @@ contract XForkL2ContractsManager is ISemver {
         fullConfig_.feeSplitter = XForkL2CMTypes.FeeSplitterConfig({
             sharesCalculator: IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator()
         });
+
+        fullConfig_.isCustomGasToken = isCustomGasToken;
     }
 
     /// @notice Upgrades each of the predeploys to its corresponding new implementation. Applies the appropriate
     ///         configuration to each predeploy.
     /// @param _config The full configuration for the L2 Predeploys.
     function _apply(XForkL2CMTypes.FullConfig memory _config) internal {
-        // See comment in `_loadFullConfig()` for why we need to check for custom gas token networks.
-        bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
-
         // Initializable predeploys.
 
         // L2CrossDomainMessenger
@@ -257,7 +256,7 @@ contract XForkL2ContractsManager is ISemver {
         );
 
         // LiquidityController (only on custom gas token networks)
-        if (isCustomGasToken) {
+        if (_config.isCustomGasToken) {
             L2ContractsManagerUtils.upgradeToAndCall(
                 Predeploys.LIQUIDITY_CONTROLLER,
                 LIQUIDITY_CONTROLLER_IMPL,
@@ -360,11 +359,12 @@ contract XForkL2ContractsManager is ISemver {
         L2ContractsManagerUtils.upgradeTo(Predeploys.GAS_PRICE_ORACLE, GAS_PRICE_ORACLE_IMPL);
         // L1BlockAttributes and L2ToL1MessagePasser have different implementations for custom gas token networks.
         L2ContractsManagerUtils.upgradeTo(
-            Predeploys.L1_BLOCK_ATTRIBUTES, isCustomGasToken ? L1_BLOCK_ATTRIBUTES_CGT_IMPL : L1_BLOCK_ATTRIBUTES_IMPL
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            _config.isCustomGasToken ? L1_BLOCK_ATTRIBUTES_CGT_IMPL : L1_BLOCK_ATTRIBUTES_IMPL
         );
         L2ContractsManagerUtils.upgradeTo(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
-            isCustomGasToken ? L2_TO_L1_MESSAGE_PASSER_CGT_IMPL : L2_TO_L1_MESSAGE_PASSER_IMPL
+            _config.isCustomGasToken ? L2_TO_L1_MESSAGE_PASSER_CGT_IMPL : L2_TO_L1_MESSAGE_PASSER_IMPL
         );
         L2ContractsManagerUtils.upgradeTo(
             Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY, OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL

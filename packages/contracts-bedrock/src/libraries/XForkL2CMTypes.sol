@@ -62,6 +62,7 @@ library XForkL2CMTypes {
         FeeVaultConfig operatorFeeVault;
         LiquidityControllerConfig liquidityController;
         FeeSplitterConfig feeSplitter;
+        bool isCustomGasToken;
     }
 
     /// @notice The implementation addresses to manage the XFork upgrade.
