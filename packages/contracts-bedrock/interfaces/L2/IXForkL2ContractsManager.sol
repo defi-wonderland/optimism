@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// Interfaces
+import { ISemver } from "interfaces/universal/ISemver.sol";
+
+// Libraries
 import { XForkL2CMTypes } from "src/libraries/XForkL2CMTypes.sol";
 
 /// @title IXForkL2ContractsManager
