@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 // Libraries
-import { XForkL2CMTypes } from "src/libraries/XForkL2CMTypes.sol";
+import { L2ContractsManagerTypes } from "src/libraries/L2ContractsManagerTypes.sol";
 import { SemverComp } from "src/libraries/SemverComp.sol";
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
@@ -43,13 +43,13 @@ library L2ContractsManagerUtils {
     function readFeeVaultConfig(address _feeVault)
         internal
         view
-        returns (XForkL2CMTypes.FeeVaultConfig memory config_)
+        returns (L2ContractsManagerTypes.FeeVaultConfig memory config_)
     {
         // Note: We are intentionally using legacy deprecated getters for this 1.0.0 version of the L2ContractsManager.
         // Subsequent versions should use the new getters as L2ContractsManager should ensure that the new current
         // version of the FeeVault is used.
         IFeeVault feeVault = IFeeVault(payable(_feeVault));
-        config_ = XForkL2CMTypes.FeeVaultConfig({
+        config_ = L2ContractsManagerTypes.FeeVaultConfig({
             recipient: feeVault.RECIPIENT(),
             minWithdrawalAmount: feeVault.MIN_WITHDRAWAL_AMOUNT(),
             withdrawalNetwork: feeVault.WITHDRAWAL_NETWORK()
