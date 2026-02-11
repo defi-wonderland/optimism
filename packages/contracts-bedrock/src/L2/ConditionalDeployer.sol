@@ -20,6 +20,7 @@ contract ConditionalDeployer is ISemver {
     event ImplementationExists(address indexed implementation);
 
     /// @notice Error thrown when deployment fails.
+    /// @param data The data returned from the deployment call.
     error ConditionalDeployer_DeploymentFailed(bytes data);
 
     /// @notice Address of the Arachnid DeterministicDeploymentProxy.

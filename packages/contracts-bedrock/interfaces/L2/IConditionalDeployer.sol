@@ -16,6 +16,7 @@ interface IConditionalDeployer is ISemver {
     event ImplementationExists(address indexed implementation);
 
     /// @notice Error thrown when deployment fails.
+    /// @param data The data returned from the deployment call.
     error ConditionalDeployer_DeploymentFailed(bytes data);
 
     /// @notice Deploys an implementation using CREATE2 if it doesn't already exist.
@@ -25,5 +26,6 @@ interface IConditionalDeployer is ISemver {
     function deploy(bytes32 _salt, bytes memory _code) external returns (address implementation_);
 
     /// @notice Address of the Arachnid's DeterministicDeploymentProxy.
+    /// @return deterministicDeploymentProxy_ The address of the Arachnid's DeterministicDeploymentProxy.
     function deterministicDeploymentProxy() external pure returns (address payable deterministicDeploymentProxy_);
 }
