@@ -6,6 +6,7 @@ import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Libraries
 import { DevFeatures } from "src/libraries/DevFeatures.sol";
+import { Preinstalls } from "src/libraries/Preinstalls.sol";
 
 // Contracts
 import { ConditionalDeployer } from "src/L2/ConditionalDeployer.sol";
@@ -31,6 +32,24 @@ contract ConditionalDeployer_TestInit is CommonTest {
         skipIfDevFeatureDisabled(DevFeatures.L2CM);
         // Deploy contracts
         simpleContractCreationCode = type(ConditionalDeployer_Harness).creationCode;
+    }
+}
+
+/// @title ConditionalDeployer_Getters_Test
+/// @notice Tests the getter functions of the `ConditionalDeployer` contract.
+contract ConditionalDeployer_Version_Test is ConditionalDeployer_TestInit {
+    /// @notice Tests that the version function returns a valid string.
+    function test_version_succeeds() external view {
+        assert(bytes(conditionalDeployer.version()).length > 0);
+    }
+}
+
+/// @title ConditionalDeployer_DeterministicDeploymentProxy_Test
+/// @notice Tests the deterministicDeploymentProxy function of the `ConditionalDeployer` contract.
+contract ConditionalDeployer_DeterministicDeploymentProxy_Test is ConditionalDeployer_TestInit {
+    /// @notice Tests that the deterministicDeploymentProxy function returns the correct address.
+    function test_deterministicDeploymentProxy_succeeds() external view {
+        assertEq(conditionalDeployer.deterministicDeploymentProxy(), payable(Preinstalls.DeterministicDeploymentProxy));
     }
 }
 
