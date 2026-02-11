@@ -62,10 +62,8 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
         vm.expectEmit(address(conditionalDeployer));
         emit ImplementationDeployed(expectedImplementation, _salt);
 
-        // Deal ETH to the caller and call `deploy`
-        vm.deal(_caller, _value);
         vm.prank(_caller);
-        address implementation = conditionalDeployer.deploy{ value: _value }(_salt, _initCode);
+        address implementation = conditionalDeployer.deploy(_salt, _initCode);
 
         assertEq(implementation, expectedImplementation);
         assertEq(ConditionalDeployer_Harness(implementation).value(), _value);
@@ -93,10 +91,8 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
         vm.expectEmit(address(conditionalDeployer));
         emit ImplementationDeployed(expectedImplementation, _salt);
 
-        // Deal ETH to the caller and call `deploy`
-        vm.deal(_caller, _value);
         vm.prank(_caller);
-        address implementation1 = conditionalDeployer.deploy{ value: _value }(_salt, _initCode);
+        address implementation1 = conditionalDeployer.deploy(_salt, _initCode);
 
         // Assert that the implementation was deployed
         assert(implementation1.code.length != 0);
@@ -105,54 +101,48 @@ contract ConditionalDeployer_Deploy_Test is ConditionalDeployer_TestInit {
         vm.expectEmit(address(conditionalDeployer));
         emit ImplementationExists(implementation1);
 
-        // Deal ETH to the caller and call `deploy`
-        vm.deal(_caller, _value);
         vm.prank(_caller);
-        address implementation2 = conditionalDeployer.deploy{ value: _value }(_salt, _initCode);
+        address implementation2 = conditionalDeployer.deploy(_salt, _initCode);
 
         assertEq(implementation1, implementation2);
     }
 
     /// @notice Tests that `deploy` reverts when the deployment call to the DeterministicDeploymentProxy fails.
     /// @dev The deployment call to the DeterministicDeploymentProxy is mocked to revert.
-    function testFuzz_deploy_deploymentFailed_reverts(address _caller, bytes32 _salt, uint256 _value) public {
+    function testFuzz_deploy_deploymentFailed_reverts(address _caller, bytes32 _salt) public {
         bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(0));
 
         // Mock the deployment call to the DeterministicDeploymentProxy to revert
         vm.mockCallRevert(
             conditionalDeployer.deterministicDeploymentProxy(),
-            _value,
+            0,
             abi.encodePacked(_salt, _initCode),
             bytes("deployment failed")
         );
 
-        // Deal ETH to the caller and call `deploy`
-        vm.deal(_caller, _value);
         vm.prank(_caller);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ConditionalDeployer.ConditionalDeployer_DeploymentFailed.selector, bytes("deployment failed")
             )
         );
-        conditionalDeployer.deploy{ value: _value }(_salt, _initCode);
+        conditionalDeployer.deploy(_salt, _initCode);
     }
 
     /// @notice Tests that `deploy` reverts when the deployment call succeeds but no code is deployed.
     /// @dev The deployment call to the DeterministicDeploymentProxy is mocked to succeed with no code deployed.
-    function testFuzz_deploy_deploymenCodeLengthZero_reverts(address _caller, bytes32 _salt, uint256 _value) public {
+    function testFuzz_deploy_deploymentCodeLengthZero_reverts(address _caller, bytes32 _salt) public {
         bytes memory _initCode = abi.encodePacked(simpleContractCreationCode, abi.encode(0));
 
         // Mock the deployment call to the DeterministicDeploymentProxy to succeed but deploy no code
         vm.mockCall(
-            conditionalDeployer.deterministicDeploymentProxy(), _value, abi.encodePacked(_salt, _initCode), bytes("")
+            conditionalDeployer.deterministicDeploymentProxy(), 0, abi.encodePacked(_salt, _initCode), bytes("")
         );
 
-        // Deal ETH to the caller and call `deploy`
-        vm.deal(_caller, _value);
         vm.prank(_caller);
         vm.expectRevert(
             abi.encodeWithSelector(ConditionalDeployer.ConditionalDeployer_DeploymentFailed.selector, bytes(""))
         );
-        conditionalDeployer.deploy{ value: _value }(_salt, _initCode);
+        conditionalDeployer.deploy(_salt, _initCode);
     }
 }
