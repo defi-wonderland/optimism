@@ -11,6 +11,7 @@ import { Constants } from "src/libraries/Constants.sol";
 // Contracts
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
+/// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000018
 /// @title L2ProxyAdmin
 /// @notice The L2ProxyAdmin is the administrative contract responsible for managing proxy upgrades
