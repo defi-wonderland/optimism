@@ -11,7 +11,6 @@ import { Constants } from "src/libraries/Constants.sol";
 // Contracts
 import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 
-/// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000018
 /// @title L2ProxyAdmin
 /// @notice The L2ProxyAdmin is the administrative contract responsible for managing proxy upgrades
@@ -33,6 +32,7 @@ contract L2ProxyAdmin is ProxyAdmin, ISemver {
     /// @custom:semver 1.0.0
     string public constant version = "1.0.0";
 
+    /// @notice The constructor for the L2ProxyAdmin contract.
     /// @param _owner Address of the initial owner of this contract.
     constructor(address _owner) ProxyAdmin(_owner) { }
 
