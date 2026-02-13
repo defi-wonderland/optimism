@@ -163,11 +163,11 @@ contract PolicyEngineStaking {
             emit Linked(msg.sender, _beneficiary);
         } else if (currentLink != _beneficiary) {
             // Re-linking: move existing stake from old beneficiary to new
-            _decreasePeData(currentLink, data.stakedAmount);
+            _decreasePeData(currentLink, uint128(data.stakedAmount));
             emit Unlinked(msg.sender, currentLink);
 
             _link(msg.sender, _beneficiary, data);
-            _increasePeData(_beneficiary, data.stakedAmount);
+            _increasePeData(_beneficiary, uint128(data.stakedAmount));
             emit Linked(msg.sender, _beneficiary);
         } else {
             // Same beneficiary: re-check allowlist (skip for self-link)
@@ -177,7 +177,7 @@ contract PolicyEngineStaking {
         }
 
         data.stakedAmount += _amount;
-        _increasePeData(_beneficiary, _amount);
+        _increasePeData(_beneficiary, uint128(_amount));
 
         IERC20(Predeploys.GOVERNANCE_TOKEN).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -197,11 +197,11 @@ contract PolicyEngineStaking {
         if (currentLink == _beneficiary) return;
 
         // Move existing stake from old beneficiary to new
-        _decreasePeData(currentLink, data.stakedAmount);
+        _decreasePeData(currentLink, uint128(data.stakedAmount));
         emit Unlinked(msg.sender, currentLink);
 
         _link(msg.sender, _beneficiary, data);
-        _increasePeData(_beneficiary, data.stakedAmount);
+        _increasePeData(_beneficiary, uint128(data.stakedAmount));
 
         emit Linked(msg.sender, _beneficiary);
     }
@@ -216,7 +216,7 @@ contract PolicyEngineStaking {
         if (data.stakedAmount < _amount) revert PolicyEngineStaking_InsufficientStake();
 
         address linkedTo = data.linkedTo;
-        _decreasePeData(linkedTo, _amount);
+        _decreasePeData(linkedTo, uint128(_amount));
         data.stakedAmount -= _amount;
 
         // Auto-unlink on full unstake
@@ -266,22 +266,20 @@ contract PolicyEngineStaking {
     /// @notice Increases effective stake for an account and updates timestamp.
     /// @param _account The account address.
     /// @param _amount  The amount to add.
-    function _increasePeData(address _account, uint256 _amount) internal {
+    function _increasePeData(address _account, uint128 _amount) internal {
         PEData storage pe = peData[_account];
-        uint256 newEffective = uint256(pe.effectiveStake) + _amount;
-        pe.effectiveStake = uint128(newEffective);
+        pe.effectiveStake += _amount;
         pe.lastUpdate = uint128(block.timestamp);
-        emit EffectiveStakeChanged(_account, newEffective);
+        emit EffectiveStakeChanged(_account, pe.effectiveStake);
     }
 
     /// @notice Decreases effective stake for an account and updates timestamp.
     /// @param _account The account address.
     /// @param _amount  The amount to subtract.
-    function _decreasePeData(address _account, uint256 _amount) internal {
+    function _decreasePeData(address _account, uint128 _amount) internal {
         PEData storage pe = peData[_account];
-        uint256 newEffective = uint256(pe.effectiveStake) - _amount;
-        pe.effectiveStake = uint128(newEffective);
+        pe.effectiveStake -= _amount;
         pe.lastUpdate = uint128(block.timestamp);
-        emit EffectiveStakeChanged(_account, newEffective);
+        emit EffectiveStakeChanged(_account, pe.effectiveStake);
     }
 }
