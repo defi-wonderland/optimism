@@ -106,9 +106,6 @@ contract PolicyEngineStaking {
     /// @notice Thrown when trying to operate with no stake.
     error PolicyEngineStaking_NoStake();
 
-    /// @notice Thrown when trying to stake without an existing link.
-    error PolicyEngineStaking_NotLinked();
-
     /// @notice Thrown when trying to unstake more than the staked amount.
     error PolicyEngineStaking_InsufficientStake();
 
@@ -147,29 +144,8 @@ contract PolicyEngineStaking {
         emit Unpaused();
     }
 
-    /// @notice Stakes additional OP tokens to an existing link.
-    ///         Caller must already have a linked beneficiary from a prior stakeAndLink call.
-    /// @param _amount The amount of OP tokens to stake.
-    function stake(uint256 _amount) external whenNotPaused {
-        if (_amount == 0) revert PolicyEngineStaking_ZeroAmount();
-
-        StakedData storage data = stakingData[msg.sender];
-        address linkedTo = data.linkedTo;
-        if (linkedTo == address(0)) revert PolicyEngineStaking_NotLinked();
-        if (linkedTo != msg.sender) {
-            if (!allowlist[linkedTo][msg.sender]) revert PolicyEngineStaking_NotAllowedToLink();
-        }
-
-        data.stakedAmount += _amount;
-        _increasePeData(linkedTo, _amount);
-
-        IERC20(Predeploys.GOVERNANCE_TOKEN).safeTransferFrom(msg.sender, address(this), _amount);
-
-        emit Staked(msg.sender, _amount);
-    }
-
     /// @notice Stakes OP tokens and links to a beneficiary atomically.
-    ///         This is the primary entry point for staking. Handles first-time staking,
+    ///         This is the entry point for staking. Handles first-time staking,
     ///         adding to same beneficiary, and re-linking to a new beneficiary.
     /// @param _amount      The amount of OP tokens to stake.
     /// @param _beneficiary Address that receives ordering power from this stake.
@@ -193,8 +169,12 @@ contract PolicyEngineStaking {
             _link(msg.sender, _beneficiary, data);
             _increasePeData(_beneficiary, data.stakedAmount);
             emit Linked(msg.sender, _beneficiary);
+        } else {
+            // Same beneficiary: re-check allowlist (skip for self-link)
+            if (_beneficiary != msg.sender) {
+                if (!allowlist[_beneficiary][msg.sender]) revert PolicyEngineStaking_NotAllowedToLink();
+            }
         }
-        // If currentLink == _beneficiary, no link change needed
 
         data.stakedAmount += _amount;
         _increasePeData(_beneficiary, _amount);

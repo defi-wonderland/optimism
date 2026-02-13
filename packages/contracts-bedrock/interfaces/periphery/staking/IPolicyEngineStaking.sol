@@ -46,9 +46,6 @@ interface IPolicyEngineStaking {
     /// @notice Thrown when trying to operate with no stake.
     error PolicyEngineStaking_NoStake();
 
-    /// @notice Thrown when trying to stake without an existing link.
-    error PolicyEngineStaking_NotLinked();
-
     /// @notice Thrown when trying to unstake more than the staked amount.
     error PolicyEngineStaking_InsufficientStake();
 
@@ -76,10 +73,6 @@ interface IPolicyEngineStaking {
 
     /// @notice Unpauses the contract. Only callable by owner.
     function unpause() external;
-
-    /// @notice Stakes additional OP tokens to an existing link.
-    /// @param _amount The amount of OP tokens to stake.
-    function stake(uint256 _amount) external;
 
     /// @notice Stakes OP tokens and links to a beneficiary atomically.
     /// @param _amount      The amount of OP tokens to stake.
