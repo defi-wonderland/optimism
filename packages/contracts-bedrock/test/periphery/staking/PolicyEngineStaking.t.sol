@@ -111,8 +111,8 @@ contract PolicyEngineStaking_Pause_Test is PolicyEngineStaking_TestInit {
         staking.stakeAndLink(100 ether, alice);
     }
 
-    /// @notice Tests that link reverts when paused.
-    function test_link_whenPaused_reverts() external {
+    /// @notice Tests that link works when paused.
+    function test_link_whenPaused_succeeds() external {
         vm.prank(alice);
         staking.stakeAndLink(100 ether, alice);
         vm.prank(bob);
@@ -121,9 +121,11 @@ contract PolicyEngineStaking_Pause_Test is PolicyEngineStaking_TestInit {
         vm.prank(owner);
         staking.pause();
 
-        vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_Paused.selector);
         vm.prank(alice);
         staking.link(bob);
+
+        (, address linkedTo) = staking.stakingData(alice);
+        assertEq(linkedTo, bob);
     }
 
     /// @notice Tests that unstake works when paused.
