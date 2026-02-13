@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /// @title IPolicyEngineStaking
 /// @notice Interface for the PolicyEngineStaking contract.
 interface IPolicyEngineStaking {
@@ -68,20 +70,23 @@ interface IPolicyEngineStaking {
     /// @notice Returns staking data for an account.
     function stakingData(address _account) external view returns (uint256 stakedAmount_, address linkedTo_);
 
+    /// @notice Returns the ERC20 token used for staking.
+    function STAKING_TOKEN() external view returns (IERC20);
+
     /// @notice Pauses the contract. Only callable by owner.
     function pause() external;
 
     /// @notice Unpauses the contract. Only callable by owner.
     function unpause() external;
 
-    /// @notice Stakes OP tokens and links to a beneficiary atomically.
-    /// @param _amount      The amount of OP tokens to stake.
+    /// @notice Stakes tokens and links to a beneficiary atomically.
+    /// @param _amount      The amount of tokens to stake.
     /// @param _beneficiary Address that receives ordering power. Use msg.sender for self-attribution.
-    function stakeAndLink(uint256 _amount, address _beneficiary) external;
+    function stake(uint256 _amount, address _beneficiary) external;
 
     /// @notice Re-links existing stake to a new beneficiary.
     /// @param _beneficiary New beneficiary address.
-    function link(address _beneficiary) external;
+    function changeBeneficiary(address _beneficiary) external;
 
     /// @notice Unstakes OP tokens. Supports partial and full unstake.
     /// @param _amount The amount of OP tokens to unstake.

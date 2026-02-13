@@ -6,7 +6,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
 
 /// @title PolicyEngineStaking
 /// @notice A simplified stake-based transaction ordering contract for op-rbuilder.
@@ -38,6 +37,9 @@ contract PolicyEngineStaking {
 
     /// @notice The immutable owner of the contract. Can pause and unpause staking.
     address internal immutable OWNER_ADDRESS;
+
+    /// @notice The ERC20 token used for staking.
+    IERC20 public immutable STAKING_TOKEN;
 
     /// @notice Slot 0: PE data mapping.
     mapping(address => PEData) public peData;
@@ -111,8 +113,10 @@ contract PolicyEngineStaking {
 
     /// @notice Constructs the PolicyEngineStaking contract.
     /// @param _owner The address that can pause and unpause staking.
-    constructor(address _owner) {
+    /// @param _token The ERC20 token used for staking.
+    constructor(address _owner, address _token) {
         OWNER_ADDRESS = _owner;
+        STAKING_TOKEN = IERC20(_token);
     }
 
     /// @notice Modifier that reverts when the staking is paused.
@@ -132,7 +136,7 @@ contract PolicyEngineStaking {
         return OWNER_ADDRESS;
     }
 
-    /// @notice Pauses the contract. Stake, stakeAndLink, and link are disabled while paused.
+    /// @notice Pauses the contract. Stake and changeBeneficiary are disabled while paused.
     function pause() external onlyOwner {
         paused = true;
         emit Paused();
@@ -144,13 +148,13 @@ contract PolicyEngineStaking {
         emit Unpaused();
     }
 
-    /// @notice Stakes OP tokens and links to a beneficiary atomically.
+    /// @notice Stakes tokens and links to a beneficiary atomically.
     ///         This is the entry point for staking. Handles first-time staking,
     ///         adding to same beneficiary, and re-linking to a new beneficiary.
-    /// @param _amount      The amount of OP tokens to stake.
+    /// @param _amount      The amount of tokens to stake.
     /// @param _beneficiary Address that receives ordering power from this stake.
     ///                     Use msg.sender for self-attribution.
-    function stakeAndLink(uint256 _amount, address _beneficiary) external whenNotPaused {
+    function stake(uint256 _amount, address _beneficiary) external whenNotPaused {
         if (_amount == 0) revert PolicyEngineStaking_ZeroAmount();
         if (_beneficiary == address(0)) revert PolicyEngineStaking_ZeroBeneficiary();
 
@@ -179,7 +183,7 @@ contract PolicyEngineStaking {
         data.stakedAmount += _amount;
         _increasePeData(_beneficiary, uint128(_amount));
 
-        IERC20(Predeploys.GOVERNANCE_TOKEN).safeTransferFrom(msg.sender, address(this), _amount);
+        STAKING_TOKEN.safeTransferFrom(msg.sender, address(this), _amount);
 
         emit Staked(msg.sender, _amount);
     }
@@ -187,7 +191,7 @@ contract PolicyEngineStaking {
     /// @notice Re-links existing stake to a new beneficiary. No-op if already linked
     ///         to the same beneficiary.
     /// @param _beneficiary New beneficiary address.
-    function link(address _beneficiary) external {
+    function changeBeneficiary(address _beneficiary) external {
         if (_beneficiary == address(0)) revert PolicyEngineStaking_ZeroBeneficiary();
 
         StakedData storage data = stakingData[msg.sender];
@@ -225,7 +229,7 @@ contract PolicyEngineStaking {
             emit Unlinked(msg.sender, linkedTo);
         }
 
-        IERC20(Predeploys.GOVERNANCE_TOKEN).safeTransfer(msg.sender, _amount);
+        STAKING_TOKEN.safeTransfer(msg.sender, _amount);
 
         emit Unstaked(msg.sender, _amount);
     }
