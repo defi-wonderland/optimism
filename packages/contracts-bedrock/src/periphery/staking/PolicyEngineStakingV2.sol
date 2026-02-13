@@ -154,10 +154,14 @@ contract PolicyEngineStakingV2 {
         if (_amount == 0) revert PolicyEngineStakingV2_ZeroAmount();
 
         StakedData storage data = stakingData[msg.sender];
-        if (data.linkedTo == address(0)) revert PolicyEngineStakingV2_NotLinked();
+        address linkedTo = data.linkedTo;
+        if (linkedTo == address(0)) revert PolicyEngineStakingV2_NotLinked();
+        if (linkedTo != msg.sender) {
+            if (!allowlist[linkedTo][msg.sender]) revert PolicyEngineStakingV2_NotAllowedToLink();
+        }
 
         data.stakedAmount += _amount;
-        _increasePeData(data.linkedTo, _amount);
+        _increasePeData(linkedTo, _amount);
 
         IERC20(Predeploys.GOVERNANCE_TOKEN).safeTransferFrom(msg.sender, address(this), _amount);
 
