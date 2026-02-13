@@ -59,7 +59,6 @@ abstract contract PolicyEngineStaking_TestInit is CommonTest {
         vm.prank(_account);
         staking.stakeAndLink(_amount, _beneficiary);
     }
-
 }
 
 /// @title PolicyEngineStaking_Pause_Test
@@ -85,19 +84,21 @@ contract PolicyEngineStaking_Pause_Test is PolicyEngineStaking_TestInit {
     }
 
     /// @notice Tests that non-owner cannot pause.
-    function test_pause_notOwner_reverts() external {
+    function testFuzz_pause_notOwner_reverts(address _caller) external {
+        vm.assume(_caller != owner && _caller != address(0));
         vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_OnlyOwner.selector);
-        vm.prank(alice);
+        vm.prank(_caller);
         staking.pause();
     }
 
     /// @notice Tests that non-owner cannot unpause.
-    function test_unpause_notOwner_reverts() external {
+    function testFuzz_unpause_notOwner_reverts(address _caller) external {
         vm.prank(owner);
         staking.pause();
 
+        vm.assume(_caller != owner && _caller != address(0));
         vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_OnlyOwner.selector);
-        vm.prank(alice);
+        vm.prank(_caller);
         staking.unpause();
     }
 
