@@ -257,6 +257,7 @@ contract PolicyEngineStaking {
     /// @param _beneficiary The beneficiary address.
     /// @param _data        The staker's storage data reference.
     function _link(address _staker, address _beneficiary, StakedData storage _data) internal {
+        // Skip if Self-Attributing
         if (_beneficiary != _staker) {
             if (!allowlist[_beneficiary][_staker]) revert PolicyEngineStaking_NotAllowedToLink();
         }
