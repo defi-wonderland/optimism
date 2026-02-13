@@ -50,12 +50,17 @@ abstract contract PolicyEngineStaking_TestInit is CommonTest {
         TestERC20(Predeploys.GOVERNANCE_TOKEN).mint(alice, 1_000 ether);
         TestERC20(Predeploys.GOVERNANCE_TOKEN).mint(bob, 1_000 ether);
         TestERC20(Predeploys.GOVERNANCE_TOKEN).mint(carol, 1_000 ether);
+
+        vm.prank(alice);
+        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), type(uint256).max);
+        vm.prank(bob);
+        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), type(uint256).max);
+        vm.prank(carol);
+        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), type(uint256).max);
     }
 
-    /// @notice Approves the staking contract and stakes tokens via stakeAndLink.
+    /// @notice Stakes tokens via stakeAndLink.
     function _stakeAndLink(address _account, uint256 _amount, address _beneficiary) internal {
-        vm.prank(_account);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), _amount);
         vm.prank(_account);
         staking.stakeAndLink(_amount, _beneficiary);
     }
@@ -107,9 +112,6 @@ contract PolicyEngineStaking_Pause_Test is PolicyEngineStaking_TestInit {
         vm.prank(owner);
         staking.pause();
 
-        vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 100 ether);
-
         vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_Paused.selector);
         vm.prank(alice);
         staking.stakeAndLink(100 ether, alice);
@@ -149,9 +151,6 @@ contract PolicyEngineStaking_StakeAndLink_Test is PolicyEngineStaking_TestInit {
     function testFuzz_stakeAndLink_selfAttribution_succeeds(uint256 _amount) external {
         _amount = bound(_amount, 1, 1_000 ether);
 
-        vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), _amount);
-
         vm.expectEmit(address(staking));
         emit Linked(alice, alice);
         vm.expectEmit(address(staking));
@@ -190,9 +189,6 @@ contract PolicyEngineStaking_StakeAndLink_Test is PolicyEngineStaking_TestInit {
         vm.prank(bob);
         staking.setAllowedStaker(alice, true);
 
-        vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 100 ether);
-
         vm.expectEmit(address(staking));
         emit Linked(alice, bob);
         vm.expectEmit(address(staking));
@@ -222,8 +218,6 @@ contract PolicyEngineStaking_StakeAndLink_Test is PolicyEngineStaking_TestInit {
         _stakeAndLink(alice, 100 ether, bob);
 
         vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 50 ether);
-        vm.prank(alice);
         staking.stakeAndLink(50 ether, bob);
 
         (uint256 staked,) = staking.stakingData(alice);
@@ -245,9 +239,6 @@ contract PolicyEngineStaking_StakeAndLink_Test is PolicyEngineStaking_TestInit {
         staking.setAllowedStaker(alice, true);
 
         // Alice re-links to bob with additional stake
-        vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 50 ether);
-
         vm.expectEmit(address(staking));
         emit EffectiveStakeChanged(alice, 0); // decrease alice's PE
         vm.expectEmit(address(staking));
@@ -283,18 +274,12 @@ contract PolicyEngineStaking_StakeAndLink_Test is PolicyEngineStaking_TestInit {
     /// @notice Tests that stakeAndLink with zero beneficiary reverts.
     function test_stakeAndLink_zeroBeneficiary_reverts() external {
         vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 100 ether);
-
-        vm.prank(alice);
         vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_ZeroBeneficiary.selector);
         staking.stakeAndLink(100 ether, address(0));
     }
 
     /// @notice Tests that stakeAndLink to beneficiary without allowlist reverts.
     function test_stakeAndLink_toBeneficiaryWithoutAllowlist_reverts() external {
-        vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 100 ether);
-
         vm.prank(alice);
         vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_NotAllowedToLink.selector);
         staking.stakeAndLink(100 ether, bob);
@@ -303,9 +288,6 @@ contract PolicyEngineStaking_StakeAndLink_Test is PolicyEngineStaking_TestInit {
     /// @notice Tests re-link from beneficiary to self reverts without allowlist removal.
     function test_stakeAndLink_relinkToBeneficiaryWithoutAllowlist_reverts() external {
         _stakeAndLink(alice, 100 ether, alice);
-
-        vm.prank(alice);
-        IERC20(Predeploys.GOVERNANCE_TOKEN).approve(address(staking), 50 ether);
 
         vm.prank(alice);
         vm.expectRevert(PolicyEngineStaking.PolicyEngineStaking_NotAllowedToLink.selector);
