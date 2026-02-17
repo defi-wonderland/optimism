@@ -17,7 +17,6 @@ import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
 
-import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { GasPriceOracle } from "src/L2/GasPriceOracle.sol";
 import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
@@ -37,7 +36,7 @@ import { Types } from "src/libraries/Types.sol";
 import { Features } from "src/libraries/Features.sol";
 import { IProxy } from "interfaces/universal/IProxy.sol";
 
-/// @title L2ContractsManager_Harness
+/// @title L2ContractsManager_FullConfigExposer_Harness
 /// @notice Harness contract that exposes internal functions for testing.
 contract L2ContractsManager_FullConfigExposer_Harness is L2ContractsManager {
     constructor(L2ContractsManagerTypes.Implementations memory _implementations) L2ContractsManager(_implementations) { }
@@ -82,7 +81,7 @@ contract L2ContractsManager_FullConfigExposer_Harness is L2ContractsManager {
     }
 }
 
-/// @title L2ContractsManager_Test
+/// @title L2ContractsManager_Upgrade_Test
 /// @notice Test contract for the L2ContractsManager contract, testing the upgrade path.
 contract L2ContractsManager_Upgrade_Test is CommonTest {
     L2ContractsManager_FullConfigExposer_Harness internal l2cm;
@@ -655,12 +654,12 @@ contract L2ContractsManager_Upgrade_CGT_Test is L2ContractsManager_Upgrade_Test 
     }
 }
 
-/// @title L2ContractsManager_UpgradeCoverage_Test
+/// @title L2ContractsManager_Upgrade_Coverage_Test
 /// @notice Test that verifies all predeploys receive upgrade calls during L2CM upgrade.
 ///         Uses Predeploys.sol as the source of truth for which predeploys should be upgraded.
 contract L2ContractsManager_Upgrade_Coverage_Test is L2ContractsManager_Upgrade_Test {
     /// @notice Returns all predeploys from Predeploys.sol that should be upgraded by L2CM.
-    /// @dev IMPORTANT:This is the SOURCE OF TRUTH for upgrade coverage. All proxied predeploys from
+    /// @dev IMPORTANT: This is the SOURCE OF TRUTH for upgrade coverage. All proxied predeploys from
     ///      Predeploys.sol should be listed here. If a new predeploy is added to Predeploys.sol,
     ///      it must be added here.
     ///      Excludes: WETH, GOVERNANCE_TOKEN (not proxied), legacy predeploys (not upgraded).
