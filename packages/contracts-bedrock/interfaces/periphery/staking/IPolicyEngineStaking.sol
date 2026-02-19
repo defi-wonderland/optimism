@@ -61,6 +61,9 @@ interface IPolicyEngineStaking is ISemver {
     /// @notice Thrown when trying to change beneficiary to the current beneficiary.
     error PolicyEngineStaking_SameBeneficiary();
 
+    /// @notice Thrown when trying to allowlist/disallow yourself.
+    error PolicyEngineStaking_SelfAllowlist();
+
     /// @notice Returns the contract owner.
     function owner() external view returns (address);
 
