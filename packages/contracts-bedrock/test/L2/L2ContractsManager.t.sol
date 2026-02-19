@@ -658,42 +658,6 @@ contract L2ContractsManager_Upgrade_CGT_Test is L2ContractsManager_Upgrade_Test 
 /// @notice Test that verifies all predeploys receive upgrade calls during L2CM upgrade.
 ///         Uses Predeploys.sol as the source of truth for which predeploys should be upgraded.
 contract L2ContractsManager_Upgrade_Coverage_Test is L2ContractsManager_Upgrade_Test {
-    /// @notice Returns all predeploys from Predeploys.sol that should be upgraded by L2CM.
-    /// @dev IMPORTANT: This is the SOURCE OF TRUTH for upgrade coverage. All proxied predeploys from
-    ///      Predeploys.sol should be listed here. If a new predeploy is added to Predeploys.sol,
-    ///      it must be added here.
-    ///      Excludes: WETH, GOVERNANCE_TOKEN (not proxied), legacy predeploys (not upgraded).
-    function _getAllUpgradeablePredeploys() internal pure returns (address[] memory predeploys_) {
-        predeploys_ = new address[](24);
-        // Core predeploys
-        predeploys_[0] = Predeploys.L2_CROSS_DOMAIN_MESSENGER;
-        predeploys_[1] = Predeploys.GAS_PRICE_ORACLE;
-        predeploys_[2] = Predeploys.L2_STANDARD_BRIDGE;
-        predeploys_[3] = Predeploys.SEQUENCER_FEE_WALLET;
-        predeploys_[4] = Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY;
-        predeploys_[5] = Predeploys.L2_ERC721_BRIDGE;
-        predeploys_[6] = Predeploys.L1_BLOCK_ATTRIBUTES;
-        predeploys_[7] = Predeploys.L2_TO_L1_MESSAGE_PASSER;
-        predeploys_[8] = Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY;
-        predeploys_[9] = Predeploys.PROXY_ADMIN;
-        predeploys_[10] = Predeploys.BASE_FEE_VAULT;
-        predeploys_[11] = Predeploys.L1_FEE_VAULT;
-        predeploys_[12] = Predeploys.OPERATOR_FEE_VAULT;
-        predeploys_[13] = Predeploys.SCHEMA_REGISTRY;
-        predeploys_[14] = Predeploys.EAS;
-        predeploys_[15] = Predeploys.FEE_SPLITTER;
-        // Interop predeploys
-        predeploys_[16] = Predeploys.CROSS_L2_INBOX;
-        predeploys_[17] = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-        predeploys_[18] = Predeploys.SUPERCHAIN_ETH_BRIDGE;
-        predeploys_[19] = Predeploys.ETH_LIQUIDITY;
-        predeploys_[20] = Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY;
-        predeploys_[21] = Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON;
-        predeploys_[22] = Predeploys.SUPERCHAIN_TOKEN_BRIDGE;
-        // CGT predeploys (conditionally deployed, but still must be included in the list)
-        predeploys_[23] = Predeploys.NATIVE_ASSET_LIQUIDITY;
-    }
-
     /// @notice Returns CGT-only predeploys that require initialization.
     /// @dev These are separate because they're only deployed on CGT networks.
     function _getCGTInitializablePredeploys() internal pure returns (address[] memory predeploys_) {
@@ -724,7 +688,7 @@ contract L2ContractsManager_Upgrade_Coverage_Test is L2ContractsManager_Upgrade_
     ///         Uses vm.expectCall() to verify that upgradeTo or upgradeToAndCall is called.
     /// @dev If L2CM misses a predeploy that exists in Predeploys.sol, this test will fail.
     function test_allPredeploysReceiveUpgradeCall_succeeds() public {
-        address[] memory allPredeploys = _getAllUpgradeablePredeploys();
+        address[] memory allPredeploys = Predeploys.getUpgradeablePredeploys();
 
         for (uint256 i = 0; i < allPredeploys.length; i++) {
             address predeploy = allPredeploys[i];
