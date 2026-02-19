@@ -61,8 +61,8 @@ contract L2ContractsManager_FullConfigExposer_Harness is L2ContractsManager {
             sequencerFeeWalletImpl: SEQUENCER_FEE_WALLET_IMPL,
             optimismMintableERC20FactoryImpl: OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL,
             l2ERC721BridgeImpl: L2_ERC721_BRIDGE_IMPL,
-            l1BlockAttributesImpl: L1_BLOCK_ATTRIBUTES_IMPL,
-            l1BlockAttributesCGTImpl: L1_BLOCK_ATTRIBUTES_CGT_IMPL,
+            l1BlockImpl: L1_BLOCK_IMPL,
+            l1BlockCGTImpl: L1_BLOCK_CGT_IMPL,
             l2ToL1MessagePasserImpl: L2_TO_L1_MESSAGE_PASSER_IMPL,
             l2ToL1MessagePasserCGTImpl: L2_TO_L1_MESSAGE_PASSER_CGT_IMPL,
             optimismMintableERC721FactoryImpl: OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL,
@@ -102,7 +102,8 @@ contract L2ContractsManager_Upgrade_Test is CommonTest {
         address sequencerFeeWalletImpl;
         address optimismMintableERC20FactoryImpl;
         address l2ERC721BridgeImpl;
-        address l1BlockAttributesImpl;
+        address l1BlockImpl;
+        address l1BlockCGTImpl;
         address l2ToL1MessagePasserImpl;
         address optimismMintableERC721FactoryImpl;
         address proxyAdminImpl;
@@ -144,8 +145,8 @@ contract L2ContractsManager_Upgrade_Test is CommonTest {
         implementations.l2StandardBridgeImpl = address(new L2StandardBridge());
         implementations.optimismMintableERC20FactoryImpl = address(new OptimismMintableERC20Factory());
         implementations.l2ERC721BridgeImpl = address(new L2ERC721Bridge());
-        implementations.l1BlockAttributesImpl = address(new L1Block());
-        implementations.l1BlockAttributesCGTImpl = address(new L1BlockCGT());
+        implementations.l1BlockImpl = address(new L1Block());
+        implementations.l1BlockCGTImpl = address(new L1BlockCGT());
         implementations.l2ToL1MessagePasserImpl = address(new L2ToL1MessagePasser());
         implementations.l2ToL1MessagePasserCGTImpl = address(new L2ToL1MessagePasserCGT());
         implementations.optimismMintableERC721FactoryImpl = address(new OptimismMintableERC721Factory(address(0), 0));
@@ -202,7 +203,8 @@ contract L2ContractsManager_Upgrade_Test is CommonTest {
         state_.optimismMintableERC20FactoryImpl =
             EIP1967Helper.getImplementation(Predeploys.OPTIMISM_MINTABLE_ERC20_FACTORY);
         state_.l2ERC721BridgeImpl = EIP1967Helper.getImplementation(Predeploys.L2_ERC721_BRIDGE);
-        state_.l1BlockAttributesImpl = EIP1967Helper.getImplementation(Predeploys.L1_BLOCK_ATTRIBUTES);
+        state_.l1BlockImpl = EIP1967Helper.getImplementation(Predeploys.L1_BLOCK_ATTRIBUTES);
+        state_.l1BlockCGTImpl = EIP1967Helper.getImplementation(Predeploys.L1_BLOCK_ATTRIBUTES);
         state_.l2ToL1MessagePasserImpl = EIP1967Helper.getImplementation(Predeploys.L2_TO_L1_MESSAGE_PASSER);
         state_.optimismMintableERC721FactoryImpl =
             EIP1967Helper.getImplementation(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
@@ -250,7 +252,8 @@ contract L2ContractsManager_Upgrade_Test is CommonTest {
             "OptimismMintableERC20Factory impl mismatch"
         );
         assertEq(_state1.l2ERC721BridgeImpl, _state2.l2ERC721BridgeImpl, "L2ERC721Bridge impl mismatch");
-        assertEq(_state1.l1BlockAttributesImpl, _state2.l1BlockAttributesImpl, "L1BlockAttributes impl mismatch");
+        assertEq(_state1.l1BlockImpl, _state2.l1BlockImpl, "L1Block impl mismatch");
+        assertEq(_state1.l1BlockCGTImpl, _state2.l1BlockCGTImpl, "L1BlockCGT impl mismatch");
         assertEq(_state1.l2ToL1MessagePasserImpl, _state2.l2ToL1MessagePasserImpl, "L2ToL1MessagePasser impl mismatch");
         assertEq(
             _state1.optimismMintableERC721FactoryImpl,
@@ -620,7 +623,7 @@ contract L2ContractsManager_Upgrade_CGT_Test is L2ContractsManager_Upgrade_Test 
         address postUpgradeL1BlockImpl = EIP1967Helper.getImplementation(Predeploys.L1_BLOCK_ATTRIBUTES);
         assertEq(
             postUpgradeL1BlockImpl,
-            implementations.l1BlockAttributesCGTImpl,
+            implementations.l1BlockCGTImpl,
             "L1Block should use CGT implementation on CGT networks"
         );
 

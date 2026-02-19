@@ -60,10 +60,10 @@ contract L2ContractsManager is ISemver {
     address internal immutable OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL;
     /// @notice L2ERC721Bridge implementation.
     address internal immutable L2_ERC721_BRIDGE_IMPL;
-    /// @notice L1BlockAttributes implementation.
-    address internal immutable L1_BLOCK_ATTRIBUTES_IMPL;
-    /// @notice L1BlockAttributes implementation for custom gas token networks.
-    address internal immutable L1_BLOCK_ATTRIBUTES_CGT_IMPL;
+    /// @notice L1Block implementation.
+    address internal immutable L1_BLOCK_IMPL;
+    /// @notice L1Block implementation for custom gas token networks.
+    address internal immutable L1_BLOCK_CGT_IMPL;
     /// @notice L2ToL1MessagePasser implementation.
     address internal immutable L2_TO_L1_MESSAGE_PASSER_IMPL;
     /// @notice L2ToL1MessagePasser implementation for custom gas token networks.
@@ -121,8 +121,8 @@ contract L2ContractsManager is ISemver {
         SEQUENCER_FEE_WALLET_IMPL = _implementations.sequencerFeeWalletImpl;
         OPTIMISM_MINTABLE_ERC20_FACTORY_IMPL = _implementations.optimismMintableERC20FactoryImpl;
         L2_ERC721_BRIDGE_IMPL = _implementations.l2ERC721BridgeImpl;
-        L1_BLOCK_ATTRIBUTES_IMPL = _implementations.l1BlockAttributesImpl;
-        L1_BLOCK_ATTRIBUTES_CGT_IMPL = _implementations.l1BlockAttributesCGTImpl;
+        L1_BLOCK_IMPL = _implementations.l1BlockImpl;
+        L1_BLOCK_CGT_IMPL = _implementations.l1BlockCGTImpl;
         L2_TO_L1_MESSAGE_PASSER_IMPL = _implementations.l2ToL1MessagePasserImpl;
         L2_TO_L1_MESSAGE_PASSER_CGT_IMPL = _implementations.l2ToL1MessagePasserCGTImpl;
         OPTIMISM_MINTABLE_ERC721_FACTORY_IMPL = _implementations.optimismMintableERC721FactoryImpl;
@@ -365,8 +365,7 @@ contract L2ContractsManager is ISemver {
         L2ContractsManagerUtils.upgradeTo(Predeploys.GAS_PRICE_ORACLE, GAS_PRICE_ORACLE_IMPL);
         // L1BlockAttributes and L2ToL1MessagePasser have different implementations for custom gas token networks.
         L2ContractsManagerUtils.upgradeTo(
-            Predeploys.L1_BLOCK_ATTRIBUTES,
-            _config.isCustomGasToken ? L1_BLOCK_ATTRIBUTES_CGT_IMPL : L1_BLOCK_ATTRIBUTES_IMPL
+            Predeploys.L1_BLOCK_ATTRIBUTES, _config.isCustomGasToken ? L1_BLOCK_CGT_IMPL : L1_BLOCK_IMPL
         );
         L2ContractsManagerUtils.upgradeTo(
             Predeploys.L2_TO_L1_MESSAGE_PASSER,
