@@ -102,6 +102,8 @@ contract L2ContractsManager is ISemver {
     address internal immutable LIQUIDITY_CONTROLLER_IMPL;
     /// @notice FeeSplitter implementation.
     address internal immutable FEE_SPLITTER_IMPL;
+    /// @notice CONDITIONAL_DEPLOYER implementation.
+    address internal immutable CONDITIONAL_DEPLOYER_IMPL;
 
     /// @notice Constructor for the L2ContractsManager contract.
     /// @param _implementations The implementation struct containing the new implementation addresses for the L2
@@ -142,6 +144,7 @@ contract L2ContractsManager is ISemver {
         NATIVE_ASSET_LIQUIDITY_IMPL = _implementations.nativeAssetLiquidityImpl;
         LIQUIDITY_CONTROLLER_IMPL = _implementations.liquidityControllerImpl;
         FEE_SPLITTER_IMPL = _implementations.feeSplitterImpl;
+        CONDITIONAL_DEPLOYER_IMPL = _implementations.conditionalDeployerImpl;
     }
 
     /// @notice Executes the upgrade for all predeploys.
@@ -390,5 +393,6 @@ contract L2ContractsManager is ISemver {
         L2ContractsManagerUtils.upgradeTo(Predeploys.SUPERCHAIN_TOKEN_BRIDGE, SUPERCHAIN_TOKEN_BRIDGE_IMPL);
         L2ContractsManagerUtils.upgradeTo(Predeploys.SCHEMA_REGISTRY, SCHEMA_REGISTRY_IMPL);
         L2ContractsManagerUtils.upgradeTo(Predeploys.EAS, EAS_IMPL);
+        L2ContractsManagerUtils.upgradeTo(Predeploys.CONDITIONAL_DEPLOYER, CONDITIONAL_DEPLOYER_IMPL);
     }
 }

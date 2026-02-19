@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+// Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
 import { L2ContractsManager } from "src/L2/L2ContractsManager.sol";
 import { L2ContractsManagerTypes } from "src/libraries/L2ContractsManagerTypes.sol";
 import { CommonTest } from "test/setup/CommonTest.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { StorageSetter } from "src/universal/StorageSetter.sol";
 import { L2CrossDomainMessenger } from "src/L2/L2CrossDomainMessenger.sol";
+import { Types } from "src/libraries/Types.sol";
+import { Features } from "src/libraries/Features.sol";
+
+// Interfaces
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IERC721Bridge } from "interfaces/universal/IERC721Bridge.sol";
@@ -16,7 +22,9 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { IProxy } from "interfaces/universal/IProxy.sol";
 
+// Contracts
 import { GasPriceOracle } from "src/L2/GasPriceOracle.sol";
 import { L2StandardBridge } from "src/L2/L2StandardBridge.sol";
 import { OptimismMintableERC20Factory } from "src/universal/OptimismMintableERC20Factory.sol";
@@ -32,9 +40,6 @@ import { ETHLiquidity } from "src/L2/ETHLiquidity.sol";
 import { OptimismSuperchainERC20Beacon } from "src/L2/OptimismSuperchainERC20Beacon.sol";
 import { NativeAssetLiquidity } from "src/L2/NativeAssetLiquidity.sol";
 import { LiquidityController } from "src/L2/LiquidityController.sol";
-import { Types } from "src/libraries/Types.sol";
-import { Features } from "src/libraries/Features.sol";
-import { IProxy } from "interfaces/universal/IProxy.sol";
 
 /// @title L2ContractsManager_FullConfigExposer_Harness
 /// @notice Harness contract that exposes internal functions for testing.
@@ -76,7 +81,8 @@ contract L2ContractsManager_FullConfigExposer_Harness is L2ContractsManager {
             superchainTokenBridgeImpl: SUPERCHAIN_TOKEN_BRIDGE_IMPL,
             nativeAssetLiquidityImpl: NATIVE_ASSET_LIQUIDITY_IMPL,
             liquidityControllerImpl: LIQUIDITY_CONTROLLER_IMPL,
-            feeSplitterImpl: FEE_SPLITTER_IMPL
+            feeSplitterImpl: FEE_SPLITTER_IMPL,
+            conditionalDeployerImpl: CONDITIONAL_DEPLOYER_IMPL
         });
     }
 }
@@ -124,6 +130,8 @@ contract L2ContractsManager_Upgrade_Test is CommonTest {
         super.setUp();
         _loadImplementations();
         _deployL2CM();
+
+        skipIfDevFeatureDisabled(DevFeatures.L2CM);
     }
 
     /// @notice Deploys the target implementations for the predeploys.
@@ -164,6 +172,7 @@ contract L2ContractsManager_Upgrade_Test is CommonTest {
             deployCode("src/L2/OptimismSuperchainERC20Factory.sol:OptimismSuperchainERC20Factory");
         implementations.superchainTokenBridgeImpl = deployCode("src/L2/SuperchainTokenBridge.sol:SuperchainTokenBridge");
         implementations.feeSplitterImpl = deployCode("src/L2/FeeSplitter.sol:FeeSplitter");
+        implementations.conditionalDeployerImpl = deployCode("src/L2/ConditionalDeployer.sol:ConditionalDeployer");
     }
 
     /// @notice Deploys the L2ContractsManager with the loaded implementations.

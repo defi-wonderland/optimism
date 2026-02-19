@@ -95,5 +95,6 @@ library L2ContractsManagerTypes {
         address nativeAssetLiquidityImpl;
         address liquidityControllerImpl;
         address feeSplitterImpl;
+        address conditionalDeployerImpl;
     }
 }
