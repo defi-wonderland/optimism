@@ -4,9 +4,6 @@ pragma solidity ^0.8.0;
 // Libraries
 import { Fork } from "scripts/libraries/Config.sol";
 
-// Interfaces
-import { IStaticERC1967Proxy } from "interfaces/universal/IStaticERC1967Proxy.sol";
-
 /// @title Predeploys
 /// @notice Contains constant addresses for protocol contracts that are pre-deployed to the L2 system.
 //          This excludes the preinstalls (non-protocol contracts).
