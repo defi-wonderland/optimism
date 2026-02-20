@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 // Libraries
 import { L2ContractsManagerTypes } from "src/libraries/L2ContractsManagerTypes.sol";
 import { SemverComp } from "src/libraries/SemverComp.sol";
-import { ProxyAdmin } from "src/universal/ProxyAdmin.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 
 // Contracts
@@ -42,7 +41,6 @@ library L2ContractsManagerUtils {
         if (
             // TODO(#19195): Remove this code skipping the ProxyAdmin once version is implemented.
             _proxy != Predeploys.PROXY_ADMIN && implementation.code.length != 0
-                && ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(_proxy) != address(0)
                 && SemverComp.gt(ISemver(_proxy).version(), ISemver(_implementation).version())
         ) {
             revert L2ContractsManager_DowngradeNotAllowed(address(_proxy));
@@ -101,7 +99,6 @@ library L2ContractsManagerUtils {
             // TODO(#19195): Remove this code skipping the ProxyAdmin once version is implemented.
             // This should never be the case, if you're trying to initialize the ProxyAdmin, it's probably a mistake.
             _proxy != Predeploys.PROXY_ADMIN && implementation.code.length != 0
-                && ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(_proxy) != address(0)
                 && SemverComp.gt(ISemver(_proxy).version(), ISemver(_implementation).version())
         ) {
             revert L2ContractsManager_DowngradeNotAllowed(address(_proxy));
