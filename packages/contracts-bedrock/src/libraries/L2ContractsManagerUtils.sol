@@ -34,15 +34,14 @@ library L2ContractsManagerUtils {
         // Skip if the predeploy is not upgradeable (e.g., not deployed on this chain).
         if (!Predeploys.isUpgradeable(_proxy)) return;
 
-        // We skip checking the version for those predeploys that have no implementation. This would be the case for
-        // newly added predeploys that are being introduced on this particular upgrade.
+        // We skip checking the version for those predeploys that have no code. This would be the case for newly added
         // predeploys that are being introduced on this particular upgrade.
         address implementation = L2ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(_proxy);
 
         // We avoid downgrading Predeploys
         if (
             // TODO(#19195): Remove this code skipping the ProxyAdmin once version is implemented.
-            _proxy != Predeploys.PROXY_ADMIN && implementation != address(0)
+            _proxy != Predeploys.PROXY_ADMIN && implementation.code.length != 0
                 && ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(_proxy) != address(0)
                 && SemverComp.gt(ISemver(_proxy).version(), ISemver(_implementation).version())
         ) {
@@ -94,14 +93,14 @@ library L2ContractsManagerUtils {
         // Skip if the predeploy is not upgradeable (e.g., not deployed on this chain).
         if (!Predeploys.isUpgradeable(_proxy)) return;
 
-        // We skip checking the version for those predeploys that have no implementation. This would be the case for
-        // newly added predeploys that are being introduced on this particular upgrade.
+        // We skip checking the version for those predeploys that have no code. This would be the case for newly added
+        // predeploys that are being introduced on this particular upgrade.
         address implementation = L2ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(_proxy);
 
         if (
             // TODO(#19195): Remove this code skipping the ProxyAdmin once version is implemented.
             // This should never be the case, if you're trying to initialize the ProxyAdmin, it's probably a mistake.
-            _proxy != Predeploys.PROXY_ADMIN && implementation != address(0)
+            _proxy != Predeploys.PROXY_ADMIN && implementation.code.length != 0
                 && ProxyAdmin(Predeploys.PROXY_ADMIN).getProxyImplementation(_proxy) != address(0)
                 && SemverComp.gt(ISemver(_proxy).version(), ISemver(_implementation).version())
         ) {
