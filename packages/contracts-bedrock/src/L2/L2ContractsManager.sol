@@ -163,7 +163,7 @@ contract L2ContractsManager is ISemver {
         // We need our upgrades be able to determine if the network is a custom gas token network so that we can
         // apply the appropriate configuration to the LiquidityController predeploy. In networks without custom gas
         // tokens, the LiquidityController predeploy is not used and points to address(0).
-        bool isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
+        fullConfig_.isCustomGasToken = IL1Block(Predeploys.L1_BLOCK_ATTRIBUTES).isCustomGasToken();
 
         // L2CrossDomainMessenger
         fullConfig_.crossDomainMessenger = L2ContractsManagerTypes.CrossDomainMessengerConfig({
@@ -198,7 +198,7 @@ contract L2ContractsManager is ISemver {
         fullConfig_.operatorFeeVault = L2ContractsManagerUtils.readFeeVaultConfig(Predeploys.OPERATOR_FEE_VAULT);
 
         // LiquidityController
-        if (isCustomGasToken) {
+        if (fullConfig_.isCustomGasToken) {
             ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
             fullConfig_.liquidityController = L2ContractsManagerTypes.LiquidityControllerConfig({
                 owner: liquidityController.owner(),
@@ -211,8 +211,6 @@ contract L2ContractsManager is ISemver {
         fullConfig_.feeSplitter = L2ContractsManagerTypes.FeeSplitterConfig({
             sharesCalculator: IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator()
         });
-
-        fullConfig_.isCustomGasToken = isCustomGasToken;
     }
 
     /// @notice Upgrades each of the predeploys to its corresponding new implementation. Applies the appropriate
