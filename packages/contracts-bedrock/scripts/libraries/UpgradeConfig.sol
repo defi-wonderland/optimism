@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Libraries
-import { Fork } from "scripts/libraries/Config.sol";
-
 /// @title UpgradeConfig
 /// @notice Configuration library for L2 hardfork upgrade transaction generation.
 /// @dev Provides gas limits and transaction counts for upgrade bundle generation.
 library UpgradeConfig {
-    /// @notice The number of predeploy implementations always deployed in every upgrade.
-    ///         This is the base count that applies to all forks and configurations.
-    ///         21 predeploys + 1 StorageSetter (deployed separately) = 22 total base implementations.
-    ///         Additional implementations may be deployed conditionally based on:
-    ///         - Fork version (e.g., INTEROP adds CrossL2Inbox, L2ToL2CrossDomainMessenger)
-    ///         - Custom gas token flag (adds NativeAssetLiquidity, LiquidityController)
-    uint256 internal constant IMPLEMENTATION_COUNT = 22;
+    /// @notice The number of implementations always deployed in every upgrade.
+    ///         Includes:
+    ///         - 21 base predeploys
+    ///         - 1 StorageSetter (deployed separately)
+    ///         - 2 INTEROP predeploys (CrossL2Inbox, L2ToL2CrossDomainMessenger)
+    ///         - 2 CGT predeploys (NativeAssetLiquidity, LiquidityController)
+    ///         Total: 26 implementations
+    uint256 internal constant IMPLEMENTATION_COUNT = 26;
 
     /// @notice Gas limits for different types of upgrade transactions.
     /// @param conditionalDeployerDeployment Gas for deploying ConditionalDeployer
@@ -33,19 +31,16 @@ library UpgradeConfig {
         uint64 proxyAdminUpgrade;
     }
 
-    /// @notice Calculates the total number of transactions for a given fork.
-    function calculateTransactionCount(Fork _fork, bool _useCustomGasToken) internal pure returns (uint256 txnCount_) {
-        txnCount_ = IMPLEMENTATION_COUNT + 2; // Implementations + L2CM deployment + Upgrade Predeploys call
-
-        if (_fork == Fork.JOVIAN) {
-            txnCount_ += 3; // ConditionalDeployer (deployment + upgrade) + ProxyAdmin upgrade
-        }
-        if (_useCustomGasToken) {
-            txnCount_ += 2; // NativeAssetLiquidity & LiquidityController deployment
-        }
-        if (_fork >= Fork.INTEROP) {
-            txnCount_ += 2; // CrossL2Inbox & L2ToL2CrossDomainMessenger deployment
-        }
+    /// @notice Calculates the total number of transactions.
+    /// @dev Total count:
+    ///      - 26 implementation deployments
+    ///      - 2 ConditionalDeployer (deployment + upgrade)
+    ///      - 1 ProxyAdmin upgrade
+    ///      - 1 L2CM deployment
+    ///      - 1 Upgrade Predeploys call
+    ///      Total: 31 transactions
+    function calculateTransactionCount() internal pure returns (uint256 txnCount_) {
+        txnCount_ = IMPLEMENTATION_COUNT + 5; // Implementations + CD deployment/upgrade + PA upgrade + L2CM deployment + Upgrade call
     }
 
     /// @notice Returns the gas limits for all upgrade transaction types.

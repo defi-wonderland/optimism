@@ -23,24 +23,13 @@ contract GenerateNUTBundleUtils {
     /// @notice Array of predeploy addresses to upgrade.
     address[] public predeploys;
 
-    /// @notice Fork to use for the upgrade.
-    Fork public fork;
-
-    /// @notice Flag to use custom gas token for the upgrade.
-    bool public useCustomGasToken;
-
-    constructor(Fork _fork, bool _useCustomGasToken) {
-        fork = _fork;
-        useCustomGasToken = _useCustomGasToken;
-    }
-
-    /// @notice Returns the array of predeploy addresses to upgrade based on fork and configuration.
+    /// @notice Returns the array of predeploy addresses to upgrade.
     /// @return predeploys_ Array of predeploy addresses to upgrade.
     function getPredeploysToUpgrade() public returns (address[] memory predeploys_) {
         // Clear previous state to avoid duplicates on reuse
         delete predeploys;
 
-        // Always deployed predeploys (21) - StorageSetter excluded (not a predeploy)
+        // Base predeploys (21) - StorageSetter excluded (not a predeploy)
         predeploys.push(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
         predeploys.push(Predeploys.GAS_PRICE_ORACLE);
         predeploys.push(Predeploys.L2_STANDARD_BRIDGE);
@@ -63,17 +52,13 @@ contract GenerateNUTBundleUtils {
         predeploys.push(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
         predeploys.push(Predeploys.FEE_SPLITTER);
 
-        // Conditional predeploys
-        if (fork >= Fork.INTEROP) {
-            predeploys.push(Predeploys.CROSS_L2_INBOX);
-            predeploys.push(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-        }
+        // INTEROP predeploys (2)
+        predeploys.push(Predeploys.CROSS_L2_INBOX);
+        predeploys.push(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-        // TODO: review if we need to include these predeploys always
-        if (useCustomGasToken) {
-            predeploys.push(Predeploys.NATIVE_ASSET_LIQUIDITY);
-            predeploys.push(Predeploys.LIQUIDITY_CONTROLLER);
-        }
+        // CGT predeploys (2)
+        predeploys.push(Predeploys.NATIVE_ASSET_LIQUIDITY);
+        predeploys.push(Predeploys.LIQUIDITY_CONTROLLER);
 
         predeploys_ = new address[](predeploys.length);
         for (uint256 i = 0; i < predeploys.length; i++) {
