@@ -35,7 +35,17 @@ contract GenerateNUTBundleTest is Test {
     function test_run_succeeds() public {
         GenerateNUTBundle.Output memory output = script.run(input);
 
-        NetworkUpgradeTxns.writeArtifact(output.txns, "deployments/nut-upgrade-test.json");
+        // Verify artifact written correctly
+        NetworkUpgradeTxns.NetworkUpgradeTxn[] memory readTxns =
+            NetworkUpgradeTxns.readArtifact(script.UPGRADE_ARTIFACT_PATH());
+        assertEq(readTxns.length, output.txns.length, "Transaction count mismatch");
+        for (uint256 i = 0; i < readTxns.length; i++) {
+            assertEq(readTxns[i].intent, output.txns[i].intent, "Intent mismatch");
+            assertEq(readTxns[i].from, output.txns[i].from, "From mismatch");
+            assertEq(readTxns[i].to, output.txns[i].to, "To mismatch");
+            assertEq(readTxns[i].gasLimit, uint256(output.txns[i].gasLimit), "Gas limit mismatch");
+            assertEq(keccak256(readTxns[i].data), keccak256(output.txns[i].data), "Data mismatch");
+        }
     }
 
     /// @notice Tests that run reverts with zero l1ChainID.
