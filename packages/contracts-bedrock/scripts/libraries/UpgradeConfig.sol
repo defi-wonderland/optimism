@@ -31,7 +31,7 @@ library UpgradeConfig {
         uint64 proxyAdminUpgrade;
     }
 
-    /// @notice Calculates the total number of transactions.
+    /// @notice Returns the total number of transactions.
     /// @dev Total count:
     ///      - 26 implementation deployments
     ///      - 2 ConditionalDeployer (deployment + upgrade)
@@ -39,15 +39,15 @@ library UpgradeConfig {
     ///      - 1 L2CM deployment
     ///      - 1 Upgrade Predeploys call
     ///      Total: 31 transactions
-    function calculateTransactionCount() internal pure returns (uint256 txnCount_) {
-        txnCount_ = IMPLEMENTATION_COUNT + 5; // Implementations + CD deployment/upgrade + PA upgrade + L2CM deployment + Upgrade call
+    function getTransactionCount() internal pure returns (uint256 txnCount_) {
+        txnCount_ = IMPLEMENTATION_COUNT + 5;
     }
 
     /// @notice Returns the gas limits for all upgrade transaction types.
     /// @dev Gas limits are chosen to provide sufficient headroom while being
     ///      conservative enough to fit within the upgrade block gas allocation.
     ///      Rationale for each limit:
-    ///      - [complete rationale here]
+    ///      - TODO: Add rationale here
     /// @return Gas limits struct.
     function gasLimits() internal pure returns (GasLimits memory) {
         return GasLimits({

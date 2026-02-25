@@ -17,6 +17,10 @@ import { IProxy } from "interfaces/universal/IProxy.sol";
 // Contracts
 import { ConditionalDeployer } from "src/L2/ConditionalDeployer.sol";
 
+/// @title GenerateNUTBundleUtils
+/// @notice Utility library for generating Network Upgrade Transaction (NUT) bundles.
+/// @dev Provides functions for computing CREATE2 addresses, creating deployment transactions,
+///      and creating upgrade transactions.
 contract GenerateNUTBundleUtils {
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 

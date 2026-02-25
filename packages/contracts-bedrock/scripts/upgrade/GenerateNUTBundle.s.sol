@@ -24,9 +24,12 @@ import { GenerateNUTBundleUtils } from "scripts/upgrade/GenerateNUTBundleUtils.s
 /// @dev This script creates deterministic upgrade transaction bundles for L2 hardfork upgrades
 ///      using the L2ContractsManager (L2CM) system.
 contract GenerateNUTBundle is Script {
-    /// @notice Hardcoded CREATE2 salt for deterministic address computation.
-    /// TODO: Define salt for the upgrade.
+    /// @notice CREATE2 salt for deterministic deployments.
+    /// TODO: Define standard format for salts.
     bytes32 internal constant SALT = bytes32(uint256(keccak256("optimism.network-upgrade.jovian.v1")));
+
+    /// @notice Name of the upgrade.
+    string internal constant UPGRADE_NAME = "jovian";
 
     /// @notice Input parameters for bundle generation.
     /// @param l1ChainID The L1 chain ID.
@@ -60,9 +63,6 @@ contract GenerateNUTBundle is Script {
     /// @notice Gas limits for the upgrade.
     UpgradeConfig.GasLimits internal gasLimits;
 
-    /// @notice Name of the upgrade.
-    string internal upgradeName;
-
     /// @notice Expected implementations for the upgrade.
     L2ContractsManagerTypes.Implementations internal implementations;
 
@@ -76,7 +76,9 @@ contract GenerateNUTBundle is Script {
     GenerateNUTBundleUtils internal bundleUtils;
 
     function setUp() public {
+        _resetScript();
         gasLimits = UpgradeConfig.gasLimits();
+        bundleUtils = new GenerateNUTBundleUtils();
     }
 
     /// @notice Generates the complete upgrade transaction bundle.
@@ -93,18 +95,14 @@ contract GenerateNUTBundle is Script {
         setUp();
         _assertValidInput(_input);
 
-        // Reset script state
-        _resetScript();
-
         // Set input parameters
         input = _input;
-        upgradeName = "jovian";
 
-        bundleUtils = new GenerateNUTBundleUtils();
+        // Build predeploy configurations
         _buildPredeployConfigs();
 
         // Phase 1: Pre-implementation deployments
-        // Add fork-specific deployment or upgrade logic that must occur prior to the standard implementation deployment
+        // Add fork-specific deployment or upgrade txns that must occur prior to the implementation deployments
         // phase.
         _preImplementationDeployments();
 
@@ -134,7 +132,6 @@ contract GenerateNUTBundle is Script {
         }
 
         _assertValidOutput(output_);
-        return output_;
     }
 
     /// @notice Asserts the input is valid.
@@ -146,8 +143,8 @@ contract GenerateNUTBundle is Script {
     /// @notice Asserts the output is valid.
     /// @param _output The output to assert.
     function _assertValidOutput(Output memory _output) internal pure {
-        uint256 transactionCount = UpgradeConfig.calculateTransactionCount();
-        // TODO: Remove -2 once L2CM deployment and upgrade execution phases are uncommented
+        uint256 transactionCount = UpgradeConfig.getTransactionCount();
+        // TODO: Remove -2 once L2CM deployment and upgrade execution phases are added
         require(_output.txns.length == transactionCount - 2, "GenerateNUTBundle: invalid transaction count");
 
         for (uint256 i = 0; i < _output.txns.length; i++) {
@@ -207,7 +204,7 @@ contract GenerateNUTBundle is Script {
 
         txns.push(
             NetworkUpgradeTxns.NetworkUpgradeTxn({
-                intent: string.concat(upgradeName, ": ConditionalDeployer Deployment"),
+                intent: string.concat(UPGRADE_NAME, ": ConditionalDeployer Deployment"),
                 from: Constants.DEPOSITOR_ACCOUNT,
                 to: Preinstalls.DeterministicDeploymentProxy,
                 gasLimit: gasLimits.conditionalDeployerDeployment,
@@ -219,7 +216,7 @@ contract GenerateNUTBundle is Script {
         address newConditionalDeployerImpl = bundleUtils.computeCreate2Address(conditionalDeployerCode, SALT);
         txns.push(
             bundleUtils.createUpgradeTxn(
-                upgradeName,
+                UPGRADE_NAME,
                 "ConditionalDeployer",
                 Predeploys.CONDITIONAL_DEPLOYER,
                 newConditionalDeployerImpl,
@@ -234,7 +231,7 @@ contract GenerateNUTBundle is Script {
     function _generateProxyAdminUpgrade(address _proxyAdminImpl) internal {
         txns.push(
             bundleUtils.createUpgradeTxn(
-                upgradeName, "ProxyAdmin", Predeploys.PROXY_ADMIN, _proxyAdminImpl, gasLimits.proxyAdminUpgrade
+                UPGRADE_NAME, "ProxyAdmin", Predeploys.PROXY_ADMIN, _proxyAdminImpl, gasLimits.proxyAdminUpgrade
             )
         );
     }
@@ -251,7 +248,11 @@ contract GenerateNUTBundle is Script {
         // Deploy StorageSetter first (not a predeploy, but needed for L2CM)
         txns.push(
             bundleUtils.createDeploymentTxn(
-                upgradeName, "StorageSetter", "StorageSetter.sol:StorageSetter", SALT, gasLimits.storageSetterDeployment
+                UPGRADE_NAME,
+                "StorageSetter",
+                "StorageSetter.sol:StorageSetter",
+                SALT,
+                gasLimits.storageSetterDeployment
             )
         );
 
@@ -266,13 +267,13 @@ contract GenerateNUTBundle is Script {
                 // Deploy predeploy with constructor arguments
                 txns.push(
                     bundleUtils.createDeploymentTxnWithArgs(
-                        upgradeName, config.name, config.artifactPath, config.args, SALT, config.deploymentGasLimit
+                        UPGRADE_NAME, config.name, config.artifactPath, config.args, SALT, config.deploymentGasLimit
                     )
                 );
             } else {
                 txns.push(
                     bundleUtils.createDeploymentTxn(
-                        upgradeName, config.name, config.artifactPath, SALT, config.deploymentGasLimit
+                        UPGRADE_NAME, config.name, config.artifactPath, SALT, config.deploymentGasLimit
                     )
                 );
             }
@@ -289,7 +290,7 @@ contract GenerateNUTBundle is Script {
         // Deploy L2ContractsManager with encoded implementation addresses
         txns.push(
             bundleUtils.createDeploymentTxnWithArgs(
-                upgradeName,
+                UPGRADE_NAME,
                 "L2ContractsManager",
                 "L2ContractsManager.sol:L2ContractsManager",
                 l2cmArgs,
@@ -315,7 +316,7 @@ contract GenerateNUTBundle is Script {
         // Create upgrade execution transaction
         txns.push(
             NetworkUpgradeTxns.NetworkUpgradeTxn({
-                intent: string.concat(upgradeName, ": L2ProxyAdmin Upgrade Predeploys"),
+                intent: string.concat(UPGRADE_NAME, ": L2ProxyAdmin Upgrade Predeploys"),
                 from: Constants.DEPOSITOR_ACCOUNT,
                 to: Predeploys.PROXY_ADMIN,
                 gasLimit: gasLimits.upgradeExecution,
