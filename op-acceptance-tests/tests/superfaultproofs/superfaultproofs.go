@@ -1,11 +1,14 @@
 package superfaultproofs
 
 import (
+	"context"
 	"math/big"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/super"
@@ -19,6 +22,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	interopTypes "github.com/ethereum-optimism/optimism/op-program/client/interop/types"
 	"github.com/ethereum-optimism/optimism/op-service/apis"
+	"github.com/ethereum-optimism/optimism/op-service/bigs"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -35,6 +39,7 @@ type chain struct {
 	Cfg     *rollup.Config
 	Rollup  apis.RollupClient
 	EL      *dsl.L2ELNode
+	CLNode  *dsl.L2CLNode
 	Batcher *dsl.L2Batcher
 }
 
@@ -52,8 +57,8 @@ type transitionTest struct {
 // orderedChains returns the two interop chains sorted by chain ID.
 func orderedChains(sys *presets.SimpleInterop) []*chain {
 	chains := []*chain{
-		{ID: sys.L2ChainA.ChainID(), Cfg: sys.L2ChainA.Escape().RollupConfig(), Rollup: sys.L2CLA.Escape().RollupAPI(), EL: sys.L2ELA, Batcher: sys.L2BatcherA},
-		{ID: sys.L2ChainB.ChainID(), Cfg: sys.L2ChainB.Escape().RollupConfig(), Rollup: sys.L2CLB.Escape().RollupAPI(), EL: sys.L2ELB, Batcher: sys.L2BatcherB},
+		{ID: sys.L2ChainA.ChainID(), Cfg: sys.L2ChainA.Escape().RollupConfig(), Rollup: sys.L2CLA.Escape().RollupAPI(), EL: sys.L2ELA, CLNode: sys.L2CLA, Batcher: sys.L2BatcherA},
+		{ID: sys.L2ChainB.ChainID(), Cfg: sys.L2ChainB.Escape().RollupConfig(), Rollup: sys.L2CLB.Escape().RollupAPI(), EL: sys.L2ELB, CLNode: sys.L2CLB, Batcher: sys.L2BatcherB},
 	}
 	slices.SortFunc(chains, func(a, b *chain) int { return a.ID.Cmp(b.ID) })
 	return chains
@@ -175,7 +180,10 @@ func runKonaInteropProgram(t devtest.T, cfg vm.Config, l1Head common.Hash, agree
 
 	exePath, err := filepath.Abs(argv[0])
 	t.Require().NoError(err)
-	cmd := exec.Command(exePath, argv[1:]...)
+	t.Logf("Executing kona interop program: %s", strings.Join(argv, " "))
+	ctx, cancel := context.WithTimeout(t.Ctx(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, exePath, argv[1:]...)
 	cmd.Dir = tmpDir
 	cmd.Env = append(append(cmd.Env, os.Environ()...), "NO_COLOR=1")
 
@@ -358,6 +366,199 @@ func buildTransitionTests(
 			ClaimTimestamp:     endTimestamp,
 			ExpectValid:        true,
 		},
+		{
+			Name:               "ConsolidateStep",
+			AgreedClaim:        padding(consolidateStep),
+			DisputedClaim:      end.Marshal(),
+			DisputedTraceIndex: consolidateStep,
+			L1Head:             l1HeadCurrent,
+			ClaimTimestamp:     endTimestamp,
+			ExpectValid:        true,
+		},
+		{
+			Name:               "ConsolidateStep-InvalidNoChange",
+			AgreedClaim:        padding(consolidateStep),
+			DisputedClaim:      padding(consolidateStep),
+			DisputedTraceIndex: consolidateStep,
+			L1Head:             l1HeadCurrent,
+			ClaimTimestamp:     endTimestamp,
+			ExpectValid:        false,
+		},
+	}
+}
+
+// RunTraceExtensionActivationTest verifies that trace extension correctly
+// activates (or not) based on whether the claim timestamp has been reached.
+func RunTraceExtensionActivationTest(t devtest.T, sys *presets.SimpleInterop) {
+	t.Require().NotNil(sys.SuperRoots, "supernode is required for this test")
+
+	chains := orderedChains(sys)
+	t.Require().Len(chains, 2, "expected exactly 2 interop chains")
+
+	endTimestamp := uint64(time.Now().Unix())
+	sys.SuperRoots.AwaitValidatedTimestamp(endTimestamp)
+	l1Head := latestRequiredL1(sys.SuperRoots.SuperRootAtTimestamp(endTimestamp + 1))
+
+	startTimestamp := endTimestamp - 1
+	agreedSuperRoot := superRootAtTimestamp(t, chains, endTimestamp)
+	agreedClaim := agreedSuperRoot.Marshal()
+
+	// The disputed claim transitions to the next timestamp by including the
+	// first chain's optimistic block at endTimestamp+1.
+	firstOptimistic := optimisticBlockAtTimestamp(t, chains[0], endTimestamp+1)
+	disputedClaim := marshalTransition(agreedSuperRoot, 1, firstOptimistic)
+	disputedTraceIndex := int64(stepsPerTimestamp)
+
+	tests := []*transitionTest{
+		{
+			Name:               "CorrectlyDidNotActivate",
+			AgreedClaim:        agreedClaim,
+			DisputedClaim:      disputedClaim,
+			DisputedTraceIndex: disputedTraceIndex,
+			L1Head:             l1Head,
+			// Trace extension does not activate because we have not reached the proposal timestamp yet.
+			ClaimTimestamp: endTimestamp + 1,
+			ExpectValid:    true,
+		},
+		{
+			Name:               "IncorrectlyDidNotActivate",
+			AgreedClaim:        agreedClaim,
+			DisputedClaim:      disputedClaim,
+			DisputedTraceIndex: disputedTraceIndex,
+			L1Head:             l1Head,
+			// Trace extension should have activated because we have reached the proposal timestamp.
+			ClaimTimestamp: endTimestamp,
+			ExpectValid:    false,
+		},
+		{
+			Name:               "CorrectlyActivated",
+			AgreedClaim:        agreedClaim,
+			DisputedClaim:      agreedClaim,
+			DisputedTraceIndex: disputedTraceIndex,
+			L1Head:             l1Head,
+			// Trace extension activated at the proposal timestamp, claim stays the same.
+			ClaimTimestamp: endTimestamp,
+			ExpectValid:    true,
+		},
+		{
+			Name:               "IncorrectlyActivated",
+			AgreedClaim:        agreedClaim,
+			DisputedClaim:      agreedClaim,
+			DisputedTraceIndex: disputedTraceIndex,
+			L1Head:             l1Head,
+			// Trace extension should not have activated because we haven't reached the proposal timestamp.
+			ClaimTimestamp: endTimestamp + 1,
+			ExpectValid:    false,
+		},
+	}
+
+	challengerCfg := sys.L2ChainA.Escape().L2Challengers()[0].Config()
+	gameDepth := sys.DisputeGameFactory().GameImpl(gameTypes.SuperCannonKonaGameType).SplitDepth()
+
+	for _, test := range tests {
+		t.Run(test.Name+"-fpp", func(t devtest.T) {
+			runKonaInteropProgram(t, challengerCfg.CannonKona, test.L1Head.Hash,
+				test.AgreedClaim, crypto.Keccak256Hash(test.DisputedClaim),
+				test.ClaimTimestamp, test.ExpectValid)
+		})
+		t.Run(test.Name+"-challenger", func(t devtest.T) {
+			runChallengerProviderTest(t, sys.SuperRoots.QueryAPI(), gameDepth, startTimestamp, test.ClaimTimestamp, test)
+		})
+	}
+}
+
+// RunUnsafeProposalTest verifies that proposing an unsafe block (one without
+// batch data on L1) is correctly identified as invalid.
+func RunUnsafeProposalTest(t devtest.T, sys *presets.SimpleInterop) {
+	t.Require().NotNil(sys.SuperRoots, "supernode is required for this test")
+
+	chains := orderedChains(sys)
+	t.Require().Len(chains, 2, "expected exactly 2 interop chains")
+
+	// Stop chains[0]'s batcher first so its safe head stalls while chains[1]'s
+	// batcher continues to advance. This deterministically guarantees chains[0]
+	// has the lowest safe head — which is required because:
+	//  1. Step 0 in the super root trace transitions chains[0]. We need step 0
+	//     to produce InvalidTransition (no batch data for chains[0]'s block).
+	//  2. The agreed prestate at (endTimestamp - 1) must be verified for ALL
+	//     chains. Using chains[0]'s stalled safe head as the anchor ensures
+	//     that timestamp maps to a block at or below every chain's safe head.
+	chains[0].Batcher.Stop()
+	defer chains[0].Batcher.Start()
+	awaitSafeHeadsStalled(t, chains[0].CLNode)
+
+	stalledStatus, err := chains[0].Rollup.SyncStatus(t.Ctx())
+	t.Require().NoError(err)
+	stalledSafeHead := stalledStatus.SafeL2.Number
+
+	// Wait for chains[1]'s safe head to surpass chains[0]'s stalled safe head.
+	// chains[1]'s batcher is still running, so this is guaranteed to happen.
+	// We need strictly greater so that chains[1]'s block at endTimestamp
+	// (= TimestampForBlock(stalledSafeHead + 1)) is safe.
+	t.Require().Eventually(func() bool {
+		status1, err := chains[1].Rollup.SyncStatus(t.Ctx())
+		return err == nil && status1.SafeL2.Number > stalledSafeHead
+	}, 2*time.Minute, 2*time.Second, "chains[1] safe head should advance past chains[0]'s stalled safe head")
+
+	chains[1].Batcher.Stop()
+	defer chains[1].Batcher.Start()
+	awaitSafeHeadsStalled(t, chains[1].CLNode)
+
+	endTimestamp := chains[0].Cfg.TimestampForBlock(stalledSafeHead + 1)
+	agreedTimestamp := endTimestamp - 1
+
+	// Ensure chains[0] has produced the target block as unsafe.
+	target, err := chains[0].Cfg.TargetBlockNumber(endTimestamp)
+	t.Require().NoError(err)
+	chains[0].EL.Reached(eth.Unsafe, target, 60)
+
+	sys.SuperRoots.AwaitValidatedTimestamp(agreedTimestamp)
+	resp := sys.SuperRoots.SuperRootAtTimestamp(agreedTimestamp)
+	l1Head := resp.CurrentL1
+
+	startTimestamp := agreedTimestamp
+	agreedSuperRoot := superRootAtTimestamp(t, chains, agreedTimestamp)
+	agreedClaim := agreedSuperRoot.Marshal()
+
+	// Disputed claim: transition state with step 1 but no optimistic blocks.
+	// This claims a transition happened, but since chains[0]'s block at
+	// endTimestamp is only unsafe (no batch data on L1), the correct answer
+	// is InvalidTransition.
+	disputedClaim := marshalTransition(agreedSuperRoot, 1)
+
+	tests := []*transitionTest{
+		{
+			Name:               "ProposedUnsafeBlock-NotValid",
+			AgreedClaim:        agreedClaim,
+			DisputedClaim:      disputedClaim,
+			DisputedTraceIndex: 0,
+			L1Head:             l1Head,
+			ClaimTimestamp:     endTimestamp,
+			ExpectValid:        false,
+		},
+		{
+			Name:               "ProposedUnsafeBlock-ShouldBeInvalid",
+			AgreedClaim:        agreedClaim,
+			DisputedClaim:      super.InvalidTransition,
+			DisputedTraceIndex: 0,
+			L1Head:             l1Head,
+			ClaimTimestamp:     endTimestamp,
+			ExpectValid:        true,
+		},
+	}
+
+	challengerCfg := sys.L2ChainA.Escape().L2Challengers()[0].Config()
+	gameDepth := sys.DisputeGameFactory().GameImpl(gameTypes.SuperCannonKonaGameType).SplitDepth()
+
+	for _, test := range tests {
+		t.Run(test.Name+"-fpp", func(t devtest.T) {
+			runKonaInteropProgram(t, challengerCfg.CannonKona, test.L1Head.Hash,
+				test.AgreedClaim, crypto.Keccak256Hash(test.DisputedClaim),
+				test.ClaimTimestamp, test.ExpectValid)
+		})
+		t.Run(test.Name+"-challenger", func(t devtest.T) {
+			runChallengerProviderTest(t, sys.SuperRoots.QueryAPI(), gameDepth, startTimestamp, test.ClaimTimestamp, test)
+		})
 	}
 }
 
@@ -433,6 +634,72 @@ func RunSuperFaultProofTest(t devtest.T, sys *presets.SimpleInterop) {
 				test.AgreedClaim, crypto.Keccak256Hash(test.DisputedClaim),
 				test.ClaimTimestamp, test.ExpectValid)
 		})
+		t.Run(test.Name+"-challenger", func(t devtest.T) {
+			runChallengerProviderTest(t, sys.SuperRoots.QueryAPI(), gameDepth, startTimestamp, test.ClaimTimestamp, test)
+		})
+	}
+}
+
+func RunConsolidateValidCrossChainMessageTest(t devtest.T, sys *presets.SimpleInterop) {
+	t.Require().NotNil(sys.SuperRoots, "supernode is required for this test")
+	rng := rand.New(rand.NewSource(1234))
+
+	chains := orderedChains(sys)
+	t.Require().Len(chains, 2, "expected exactly 2 interop chains")
+
+	aliceA := sys.FunderA.NewFundedEOA(eth.OneEther)
+	aliceB := aliceA.AsEL(sys.L2ELB)
+	sys.FunderB.Fund(aliceB, eth.OneEther)
+
+	eventLogger := aliceA.DeployEventLogger()
+	initMsg := aliceA.SendRandomInitMessage(rng, eventLogger, 2, 10)
+	execMsg := aliceB.SendExecMessage(initMsg)
+
+	endTimestamp := sys.L2ChainB.TimestampForBlockNum(bigs.Uint64Strict(execMsg.BlockNumber()))
+	startTimestamp := endTimestamp - 1
+
+	sys.SuperRoots.AwaitValidatedTimestamp(endTimestamp)
+	l1HeadCurrent := latestRequiredL1(sys.SuperRoots.SuperRootAtTimestamp(endTimestamp))
+
+	start := superRootAtTimestamp(t, chains, startTimestamp)
+	end := superRootAtTimestamp(t, chains, endTimestamp)
+
+	firstOptimistic := optimisticBlockAtTimestamp(t, chains[0], endTimestamp)
+	secondOptimistic := optimisticBlockAtTimestamp(t, chains[1], endTimestamp)
+	paddingStep := func(step uint64) []byte {
+		return marshalTransition(start, step, firstOptimistic, secondOptimistic)
+	}
+
+	tests := []*transitionTest{
+		{
+			Name:               "Consolidate-AllValid",
+			AgreedClaim:        paddingStep(consolidateStep),
+			DisputedClaim:      end.Marshal(),
+			DisputedTraceIndex: consolidateStep,
+			ExpectValid:        true,
+			L1Head:             l1HeadCurrent,
+			ClaimTimestamp:     endTimestamp,
+		},
+		{
+			Name:               "Consolidate-AllValid-InvalidNoChange",
+			AgreedClaim:        paddingStep(consolidateStep),
+			DisputedClaim:      paddingStep(consolidateStep),
+			DisputedTraceIndex: consolidateStep,
+			ExpectValid:        false,
+			L1Head:             l1HeadCurrent,
+			ClaimTimestamp:     endTimestamp,
+		},
+	}
+
+	challengerCfg := sys.L2ChainA.Escape().L2Challengers()[0].Config()
+	gameDepth := sys.DisputeGameFactory().GameImpl(gameTypes.SuperCannonKonaGameType).SplitDepth()
+	for _, test := range tests {
+		t.Run(test.Name+"-fpp", func(t devtest.T) {
+			runKonaInteropProgram(t, challengerCfg.CannonKona, test.L1Head.Hash,
+				test.AgreedClaim, crypto.Keccak256Hash(test.DisputedClaim),
+				test.ClaimTimestamp, test.ExpectValid)
+		})
+
 		t.Run(test.Name+"-challenger", func(t devtest.T) {
 			runChallengerProviderTest(t, sys.SuperRoots.QueryAPI(), gameDepth, startTimestamp, test.ClaimTimestamp, test)
 		})
