@@ -8,7 +8,6 @@ import { Test } from "test/setup/Test.sol";
 import { GenerateNUTBundle } from "scripts/upgrade/GenerateNUTBundle.s.sol";
 
 // Libraries
-import { Fork } from "scripts/libraries/Config.sol";
 import { NetworkUpgradeTxns } from "src/libraries/NetworkUpgradeTxns.sol";
 
 /// @title GenerateNUTBundleTest
