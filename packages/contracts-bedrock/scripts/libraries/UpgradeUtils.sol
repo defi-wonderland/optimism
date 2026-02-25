@@ -58,7 +58,6 @@ library UpgradeUtils {
     ///      - [JOVIAN] 1 ProxyAdmin upgrade
     ///      - 1 L2CM deployment
     ///      - 1 Upgrade Predeploys call
-    ///      Total: 31 transactions
     function getTransactionCount() internal pure returns (uint256 txnCount_) {
         txnCount_ = IMPLEMENTATION_COUNT + 5;
     }

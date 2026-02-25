@@ -482,7 +482,7 @@ contract GenerateNUTBundle is Script {
             artifactPath: "L2ProxyAdmin.sol:L2ProxyAdmin",
             args: bytes(""),
             deploymentGasLimit: UpgradeUtils.DEFAULT_DEPLOYMENT_GAS,
-            implementation: UpgradeUtils.computeCreate2Address(vm.getCode("ProxyAdmin.sol:ProxyAdmin"), SALT)
+            implementation: UpgradeUtils.computeCreate2Address(vm.getCode("L2ProxyAdmin.sol:L2ProxyAdmin"), SALT)
         });
         implementationConfigs["BaseFeeVault"] = ImplementationConfig({
             name: "BaseFeeVault",
