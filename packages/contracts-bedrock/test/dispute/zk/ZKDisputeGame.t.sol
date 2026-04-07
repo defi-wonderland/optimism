@@ -661,6 +661,27 @@ contract ZKDisputeGame_Prove_Test is ZKDisputeGame_TestInit {
         childGame.prove(bytes(""));
     }
 
+    function test_prove_publicValuesEncoding_succeeds() public {
+        // Build the expected public values that prove() should pass to the verifier.
+        bytes memory expectedPublicValues = abi.encode(
+            game.l1Head(),
+            game.startingRootHash(),
+            game.rootClaim(),
+            game.l2SequenceNumber(),
+            game.l2ChainId(),
+            prover // msg.sender inside prove()
+        );
+
+        // Expect the verifier to be called with exactly these arguments.
+        vm.expectCall(
+            address(game.verifier()),
+            abi.encodeCall(IZKVerifier.verify, (game.absolutePrestate(), expectedPublicValues, bytes("")))
+        );
+
+        vm.prank(prover);
+        game.prove(bytes(""));
+    }
+
     function test_prove_emitsProvedEvent_succeeds() public {
         vm.expectEmit(true, false, false, false, address(game));
         emit Proved(prover);
