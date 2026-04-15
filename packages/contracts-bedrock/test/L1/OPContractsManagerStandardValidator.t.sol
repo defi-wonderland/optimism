@@ -145,10 +145,21 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest {
     IOPContractsManagerStandardValidator standardValidator;
 
     /// @notice Sets up the test suite.
+    /// @notice Returns true if setUp should skip when DEV_FEATURE__ZK_DISPUTE_GAME is enabled.
+    ///         Standard tests skip because enabling ZK validation causes ZK-related errors to
+    ///         appear in tests that only intend to exercise non-ZK error paths. Override to
+    ///         false in subclasses that specifically test ZK validation.
+    function _skipIfZKEnabled() internal virtual returns (bool) {
+        return true;
+    }
+
     function setUp() public virtual override {
         // Standard validator tests use standard game configs incompatible with migration mode.
         if (Config.devFeatureSuperRootGamesMigration()) {
             vm.skip(true, "Skipping: standard configs incompatible with SUPER_ROOT_GAMES_MIGRATION");
+        }
+        if (Config.devFeatureZkDisputeGame() && _skipIfZKEnabled()) {
+            vm.skip(true, "Skipping: standard configs incompatible with ZK_DISPUTE_GAME");
         }
         super.setUp();
 
@@ -211,38 +222,6 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest {
                 bytes32(uint256(uint160(standardValidator.l1PAOMultisig())))
             );
 
-            // When the ZK feature is enabled, mock the ZK game using the same ASR and WETH
-            // as CANNON so that ZK validation passes for tests that don't target ZK errors.
-            if (Config.devFeatureZkDisputeGame()) {
-                LibGameArgs.GameArgs memory cannonArgs = LibGameArgs.decode(dgf.gameArgs(GameTypes.CANNON));
-                cannonPrestate = Claim.wrap(cannonArgs.absolutePrestate);
-                l2ChainId = cannonArgs.l2ChainId;
-                LibGameArgs.GameArgs memory pddgArgs = LibGameArgs.decode(dgf.gameArgs(GameTypes.PERMISSIONED_CANNON));
-                proposer = pddgArgs.proposer;
-                challenger = pddgArgs.challenger;
-                cannonKonaPrestate =
-                    Claim.wrap(LibGameArgs.decode(dgf.gameArgs(GameTypes.CANNON_KONA)).absolutePrestate);
-                bytes memory zkArgs = abi.encodePacked(
-                    bytes32(keccak256("zkPrestate")),
-                    address(0xBEEF),
-                    uint64(7 days),
-                    uint64(3 days),
-                    uint256(0.08 ether),
-                    cannonArgs.anchorStateRegistry,
-                    cannonArgs.weth,
-                    cannonArgs.l2ChainId
-                );
-                vm.mockCall(
-                    address(dgf),
-                    abi.encodeCall(IDisputeGameFactory.gameImpls, (GameTypes.ZK_DISPUTE_GAME)),
-                    abi.encode(standardValidator.zkDisputeGameImpl())
-                );
-                vm.mockCall(
-                    address(dgf),
-                    abi.encodeCall(IDisputeGameFactory.gameArgs, (GameTypes.ZK_DISPUTE_GAME)),
-                    abi.encode(zkArgs)
-                );
-            }
         } else {
             l2ChainId = deploy.cfg().l2ChainID();
             cannonPrestate = Claim.wrap(bytes32(deploy.cfg().faultGameAbsolutePrestate()));
@@ -333,31 +312,13 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest {
     }
 
     /// @notice Returns the DisputeGameConfig for the ZK dispute game slot (index 6).
-    ///         Override in subclasses to enable and configure the ZK game. The default
-    ///         enables the ZK game when the ZK dev feature is on (so that standard tests
-    ///         pass validation without needing a separate harness), and disables it otherwise.
+    ///         Override in subclasses to enable and configure the ZK game.
     function _zkDisputeGameConfig() internal virtual returns (IOPContractsManagerUtils.DisputeGameConfig memory) {
-        if (!Config.devFeatureZkDisputeGame()) {
-            return IOPContractsManagerUtils.DisputeGameConfig({
-                enabled: false,
-                initBond: 0,
-                gameType: GameTypes.ZK_DISPUTE_GAME,
-                gameArgs: hex""
-            });
-        }
         return IOPContractsManagerUtils.DisputeGameConfig({
-            enabled: true,
-            initBond: 0.08 ether,
+            enabled: false,
+            initBond: 0,
             gameType: GameTypes.ZK_DISPUTE_GAME,
-            gameArgs: abi.encode(
-                IOPContractsManagerUtils.ZKDisputeGameConfig({
-                    absolutePrestate: Claim.wrap(bytes32(keccak256("zkPrestate"))),
-                    verifier: IZKVerifier(address(0xBEEF)),
-                    maxChallengeDuration: Duration.wrap(uint64(7 days)),
-                    maxProveDuration: Duration.wrap(uint64(3 days)),
-                    challengerBond: 0.08 ether
-                })
-            )
+            gameArgs: hex""
         });
     }
 
@@ -2123,6 +2084,27 @@ contract OPContractsManagerStandardValidator_ZKDisputeGame_Test is OPContractsMa
 /// @notice Tests for the ZK dispute game validation path in the standard validator.
 ///         Only runs when DEV_FEATURE__ZK_DISPUTE_GAME is enabled.
 contract OPContractsManagerStandardValidator_ZKValidation_Test is OPContractsManagerStandardValidator_TestInit {
+    function _skipIfZKEnabled() internal pure override returns (bool) {
+        return false;
+    }
+
+    function _zkDisputeGameConfig() internal override returns (IOPContractsManagerUtils.DisputeGameConfig memory) {
+        return IOPContractsManagerUtils.DisputeGameConfig({
+            enabled: true,
+            initBond: 0.08 ether,
+            gameType: GameTypes.ZK_DISPUTE_GAME,
+            gameArgs: abi.encode(
+                IOPContractsManagerUtils.ZKDisputeGameConfig({
+                    absolutePrestate: Claim.wrap(bytes32(keccak256("zkPrestate"))),
+                    verifier: IZKVerifier(address(0xBEEF)),
+                    maxChallengeDuration: Duration.wrap(uint64(7 days)),
+                    maxProveDuration: Duration.wrap(uint64(3 days)),
+                    challengerBond: 0.08 ether
+                })
+            )
+        });
+    }
+
     function setUp() public virtual override {
         if (!Config.devFeatureZkDisputeGame()) {
             vm.skip(true, "Skipping: DEV_FEATURE__ZK_DISPUTE_GAME is not enabled");
