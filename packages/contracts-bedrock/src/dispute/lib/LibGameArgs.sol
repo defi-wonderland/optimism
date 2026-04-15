@@ -8,6 +8,7 @@ import { InvalidGameArgsLength } from "src/dispute/lib/Errors.sol";
 library LibGameArgs {
     uint256 public constant PERMISSIONLESS_ARGS_LENGTH = 124;
     uint256 public constant PERMISSIONED_ARGS_LENGTH = 164;
+    uint256 public constant ZK_ARGS_LENGTH = 172;
 
     /// @notice Struct representing the game arguments.
     struct GameArgs {
@@ -92,5 +93,48 @@ library LibGameArgs {
     /// @notice Checks if the provided game arguments are valid for a permissioned game.
     function isValidPermissionedArgs(bytes memory _args) internal pure returns (bool) {
         return _args.length == PERMISSIONED_ARGS_LENGTH;
+    }
+
+    /// @notice Checks if the provided game arguments are valid for a ZK dispute game.
+    function isValidZKArgs(bytes memory _args) internal pure returns (bool) {
+        return _args.length == ZK_ARGS_LENGTH;
+    }
+
+    /// @notice Struct representing the ZK dispute game arguments.
+    ///         Layout (abi.encodePacked, ZK_ARGS_LENGTH bytes):
+    ///           [0-31]    absolutePrestate (bytes32)
+    ///           [32-51]   verifier (address)
+    ///           [52-59]   maxChallengeDuration (uint64)
+    ///           [60-67]   maxProveDuration (uint64)
+    ///           [68-99]   challengerBond (uint256)
+    ///           [100-119] anchorStateRegistry (address)
+    ///           [120-139] weth (address)
+    ///           [140-171] l2ChainId (uint256)
+    struct ZKGameArgs {
+        bytes32 absolutePrestate;
+        address verifier;
+        uint64 maxChallengeDuration;
+        uint64 maxProveDuration;
+        uint256 challengerBond;
+        address anchorStateRegistry;
+        address weth;
+        uint256 l2ChainId;
+    }
+
+    /// @notice Decodes the ZK dispute game arguments from a packed bytes array.
+    /// @param _args The packed bytes array of length ZK_ARGS_LENGTH.
+    function decodeZK(bytes memory _args) internal pure returns (ZKGameArgs memory decoded_) {
+        if (_args.length != ZK_ARGS_LENGTH) revert InvalidGameArgsLength();
+        assembly {
+            let base := add(_args, 0x20)
+            mstore(decoded_, mload(base)) // absolutePrestate
+            mstore(add(decoded_, 0x20), shr(96, mload(add(base, 32)))) // verifier
+            mstore(add(decoded_, 0x40), shr(192, mload(add(base, 52)))) // maxChallengeDuration
+            mstore(add(decoded_, 0x60), shr(192, mload(add(base, 60)))) // maxProveDuration
+            mstore(add(decoded_, 0x80), mload(add(base, 68))) // challengerBond
+            mstore(add(decoded_, 0xa0), shr(96, mload(add(base, 100)))) // anchorStateRegistry
+            mstore(add(decoded_, 0xc0), shr(96, mload(add(base, 120)))) // weth
+            mstore(add(decoded_, 0xe0), mload(add(base, 140))) // l2ChainId
+        }
     }
 }
