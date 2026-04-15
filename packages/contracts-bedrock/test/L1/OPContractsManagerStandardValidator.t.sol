@@ -42,7 +42,6 @@ import { IStaticERC1967Proxy } from "interfaces/universal/IStaticERC1967Proxy.so
 import { IOPContractsManagerV2 } from "interfaces/L1/opcm/IOPContractsManagerV2.sol";
 import { IOPContractsManagerUtils } from "interfaces/L1/opcm/IOPContractsManagerUtils.sol";
 import { IZKVerifier } from "interfaces/dispute/zk/IZKVerifier.sol";
-import { LibGameArgs } from "src/dispute/lib/LibGameArgs.sol";
 
 /// @title BadDisputeGameFactoryReturner
 /// @notice Used to return a bad DisputeGameFactory address to the OPContractsManagerStandardValidator. Far easier
@@ -146,11 +145,11 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest {
 
     /// @notice Sets up the test suite.
     /// @notice Returns true if setUp should skip when DEV_FEATURE__ZK_DISPUTE_GAME is enabled.
-    ///         Standard tests skip because enabling ZK validation causes ZK-related errors to
-    ///         appear in tests that only intend to exercise non-ZK error paths. Override to
-    ///         false in subclasses that specifically test ZK validation.
-    function _skipIfZKEnabled() internal virtual returns (bool) {
-        return true;
+    ///         Standard tests skip when ZK is enabled because ZK validation causes ZK-related
+    ///         errors to appear in tests that only intend to exercise non-ZK error paths.
+    ///         Override to true in subclasses that specifically test ZK validation.
+    function _isZKTest() internal virtual returns (bool) {
+        return false;
     }
 
     function setUp() public virtual override {
@@ -158,7 +157,7 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest {
         if (Config.devFeatureSuperRootGamesMigration()) {
             vm.skip(true, "Skipping: standard configs incompatible with SUPER_ROOT_GAMES_MIGRATION");
         }
-        if (Config.devFeatureZkDisputeGame() && _skipIfZKEnabled()) {
+        if (Config.devFeatureZkDisputeGame() && !_isZKTest()) {
             vm.skip(true, "Skipping: standard configs incompatible with ZK_DISPUTE_GAME");
         }
         super.setUp();
@@ -221,7 +220,6 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest {
                 bytes32(ForgeArtifacts.getSlot("DisputeGameFactory", "_owner").slot),
                 bytes32(uint256(uint160(standardValidator.l1PAOMultisig())))
             );
-
         } else {
             l2ChainId = deploy.cfg().l2ChainID();
             cannonPrestate = Claim.wrap(bytes32(deploy.cfg().faultGameAbsolutePrestate()));
@@ -2084,8 +2082,8 @@ contract OPContractsManagerStandardValidator_ZKDisputeGame_Test is OPContractsMa
 /// @notice Tests for the ZK dispute game validation path in the standard validator.
 ///         Only runs when DEV_FEATURE__ZK_DISPUTE_GAME is enabled.
 contract OPContractsManagerStandardValidator_ZKValidation_Test is OPContractsManagerStandardValidator_TestInit {
-    function _skipIfZKEnabled() internal pure override returns (bool) {
-        return false;
+    function _isZKTest() internal pure override returns (bool) {
+        return true;
     }
 
     function _zkDisputeGameConfig() internal override returns (IOPContractsManagerUtils.DisputeGameConfig memory) {
@@ -2132,8 +2130,11 @@ contract OPContractsManagerStandardValidator_ZKValidation_Test is OPContractsMan
     function test_validate_zkDisputeGameInvalidVersion_succeeds() public {
         address zkImpl = address(disputeGameFactory.gameImpls(GameTypes.ZK_DISPUTE_GAME));
         BadVersionReturner bad = new BadVersionReturner(standardValidator, ISemver(zkImpl), "0.0.0");
-        bytes32 slot = bytes32(ForgeArtifacts.getSlot("OPContractsManagerStandardValidator", "zkDisputeGameImpl").slot);
-        vm.store(address(standardValidator), slot, bytes32(uint256(uint160(address(bad)))));
+        vm.mockCall(
+            address(disputeGameFactory),
+            abi.encodeCall(IDisputeGameFactory.gameImpls, (GameTypes.ZK_DISPUTE_GAME)),
+            abi.encode(address(bad))
+        );
         assertEq("ZKDG-20", _validate(true));
     }
 
