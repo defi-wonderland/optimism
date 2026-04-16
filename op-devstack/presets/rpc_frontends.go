@@ -55,11 +55,12 @@ type rpcELNode struct {
 	ethClient *sources.EthClient
 	chainID   eth.ChainID
 	txTimeout time.Duration
+	userRPC   string
 }
 
 var _ stack.ELNode = (*rpcELNode)(nil)
 
-func newRPCELNode(t devtest.T, name string, chainID eth.ChainID, rpcCl opclient.RPC, timeout time.Duration) rpcELNode {
+func newRPCELNode(t devtest.T, name string, chainID eth.ChainID, userRPC string, rpcCl opclient.RPC, timeout time.Duration) rpcELNode {
 	t = t.WithCtx(stack.ContextWithChainID(t.Ctx(), chainID))
 	ethCl, err := sources.NewEthClient(rpcCl, t.Logger(), nil, sources.DefaultEthClientConfig(10))
 	t.Require().NoError(err)
@@ -72,6 +73,7 @@ func newRPCELNode(t devtest.T, name string, chainID eth.ChainID, rpcCl opclient.
 		ethClient:    ethCl,
 		chainID:      chainID,
 		txTimeout:    timeout,
+		userRPC:      userRPC,
 	}
 }
 
@@ -87,15 +89,19 @@ func (r *rpcELNode) TransactionTimeout() time.Duration {
 	return r.txTimeout
 }
 
+func (r *rpcELNode) UserRPC() string {
+	return r.userRPC
+}
+
 type l1ELFrontend struct {
 	rpcELNode
 }
 
 var _ stack.L1ELNode = (*l1ELFrontend)(nil)
 
-func newPresetL1ELNode(t devtest.T, name string, chainID eth.ChainID, rpcCl opclient.RPC) *l1ELFrontend {
+func newPresetL1ELNode(t devtest.T, name string, chainID eth.ChainID, userRPC string, rpcCl opclient.RPC) *l1ELFrontend {
 	return &l1ELFrontend{
-		rpcELNode: newRPCELNode(t, name, chainID, rpcCl, 0),
+		rpcELNode: newRPCELNode(t, name, chainID, userRPC, rpcCl, 0),
 	}
 }
 
@@ -144,7 +150,7 @@ type l2ELFrontend struct {
 
 var _ stack.L2ELNode = (*l2ELFrontend)(nil)
 
-func newPresetL2ELNode(t devtest.T, name string, chainID eth.ChainID, userRPCCl opclient.RPC, engineRPCCl opclient.RPC, rollupCfg *rollup.Config) *l2ELFrontend {
+func newPresetL2ELNode(t devtest.T, name string, chainID eth.ChainID, userRPC string, userRPCCl opclient.RPC, engineRPCCl opclient.RPC, rollupCfg *rollup.Config) *l2ELFrontend {
 	t.Require().NotNil(rollupCfg, "rollup config must be configured")
 	l2Client, err := sources.NewL2Client(userRPCCl, t.Logger(), nil, sources.L2ClientSimpleConfig(rollupCfg, false, 10, 10))
 	t.Require().NoError(err)
@@ -154,7 +160,7 @@ func newPresetL2ELNode(t devtest.T, name string, chainID eth.ChainID, userRPCCl 
 	engineClient, err := sources.NewEngineClient(engineRPCCl, t.Logger(), nil, engineClientCfg)
 	t.Require().NoError(err)
 	return &l2ELFrontend{
-		rpcELNode:      newRPCELNode(t, name, chainID, userRPCCl, 0),
+		rpcELNode:      newRPCELNode(t, name, chainID, userRPC, userRPCCl, 0),
 		l2Client:       l2Client,
 		l2EngineClient: engineClient,
 	}
@@ -355,7 +361,7 @@ func newPresetOPRBuilderNode(t devtest.T, name string, chainID eth.ChainID, rpcC
 	engineClient, err := sources.NewEngineClient(rpcCl, t.Logger(), nil, sources.EngineClientDefaultConfig(rollupCfg))
 	t.Require().NoError(err)
 	return &oprBuilderFrontend{
-		rpcELNode:         newRPCELNode(t, name, chainID, rpcCl, 0),
+		rpcELNode:         newRPCELNode(t, name, chainID, "", rpcCl, 0),
 		engineClient:      engineClient,
 		flashblocksClient: flashblocksCl,
 		updateRuleSet:     updateRuleSet,
@@ -401,7 +407,7 @@ func newPresetRollupBoostNode(t devtest.T, name string, chainID eth.ChainID, rpc
 	engineClient, err := sources.NewEngineClient(rpcCl, t.Logger(), nil, sources.EngineClientDefaultConfig(rollupCfg))
 	t.Require().NoError(err)
 	return &rollupBoostFrontend{
-		rpcELNode:         newRPCELNode(t, name, chainID, rpcCl, 0),
+		rpcELNode:         newRPCELNode(t, name, chainID, "", rpcCl, 0),
 		engineClient:      engineClient,
 		flashblocksClient: flashblocksCl,
 	}
@@ -464,20 +470,26 @@ func (r *supervisorFrontend) Stop() {
 
 type supernodeFrontend struct {
 	presetCommon
-	api apis.SupernodeQueryAPI
+	api     apis.SupernodeQueryAPI
+	userRPC string
 }
 
 var _ stack.Supernode = (*supernodeFrontend)(nil)
 
-func newPresetSupernode(t devtest.T, name string, rpcCl opclient.RPC) *supernodeFrontend {
+func newPresetSupernode(t devtest.T, name string, userRPC string, rpcCl opclient.RPC) *supernodeFrontend {
 	return &supernodeFrontend{
 		presetCommon: newPresetCommon(t, name),
 		api:          sources.NewSuperNodeClient(rpcCl),
+		userRPC:      userRPC,
 	}
 }
 
 func (r *supernodeFrontend) QueryAPI() apis.SupernodeQueryAPI {
 	return r.api
+}
+
+func (r *supernodeFrontend) UserRPC() string {
+	return r.userRPC
 }
 
 type conductorFrontend struct {

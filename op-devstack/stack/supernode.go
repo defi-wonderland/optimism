@@ -5,6 +5,8 @@ import "github.com/ethereum-optimism/optimism/op-service/apis"
 type Supernode interface {
 	Common
 	QueryAPI() apis.SupernodeQueryAPI
+	// UserRPC returns the supernode's user-facing QueryAPI endpoint URL.
+	UserRPC() string
 }
 
 // InteropTestControl provides integration test control methods for the interop activity.

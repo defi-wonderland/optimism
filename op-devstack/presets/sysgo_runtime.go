@@ -20,7 +20,7 @@ func newL1ELFrontend(t devtest.T, name string, chainID eth.ChainID, userRPC stri
 	rpcCl, err := client.NewRPC(t.Ctx(), t.Logger(), userRPC, client.WithLazyDial())
 	t.Require().NoError(err)
 	t.Cleanup(rpcCl.Close)
-	return newPresetL1ELNode(t, name, chainID, rpcCl)
+	return newPresetL1ELNode(t, name, chainID, userRPC, rpcCl)
 }
 
 func newL1CLFrontend(t devtest.T, name string, chainID eth.ChainID, beaconHTTPAddr string, lifecycle ...stack.Lifecycle) *l1CLFrontend {
@@ -46,7 +46,7 @@ func newL2ELFrontend(t devtest.T, name string, chainID eth.ChainID, userRPC stri
 	)
 	t.Require().NoError(err)
 	t.Cleanup(engineRPCCl.Close)
-	l2EL := newPresetL2ELNode(t, name, chainID, userRPCCl, engineRPCCl, rollupCfg)
+	l2EL := newPresetL2ELNode(t, name, chainID, userRPC, userRPCCl, engineRPCCl, rollupCfg)
 	if len(lifecycle) > 0 {
 		l2EL.lifecycle = lifecycle[0]
 	}
@@ -137,7 +137,7 @@ func newSupernodeFrontend(t devtest.T, name string, userRPC string) *supernodeFr
 	rpcCl, err := client.NewRPC(t.Ctx(), t.Logger(), userRPC, client.WithLazyDial())
 	t.Require().NoError(err)
 	t.Cleanup(rpcCl.Close)
-	return newPresetSupernode(t, name, rpcCl)
+	return newPresetSupernode(t, name, userRPC, rpcCl)
 }
 
 func newConductorFrontend(t devtest.T, name string, chainID eth.ChainID, rpcEndpoint string) *conductorFrontend {
