@@ -1,0 +1,17 @@
+{
+  "title": "Dump the L1 dispute system state",
+  "summary": "Cast-driven read-only probe of the DisputeGameFactory + AnchorStateRegistry: every registered impl, init bond, and the last 5 games.",
+  "family": "diagnostics",
+  "audience": "Anyone debugging why a game isn't being created, or verifying the upgrade scripts actually changed state.",
+  "description": "Pure reads — no transactions. Useful as a sanity check before and after running an upgrade tool.\n\nThe Consensus panel renders the same data continuously; this script prints it as a single ASCII dump for copy-paste.",
+  "prerequisites": [
+    {"title": "Cast on PATH"},
+    {"title": "Playground running", "detail": "Needs OP_PG_DGF and OP_PG_PORTAL exposed — set automatically when launched via the playground binary."}
+  ],
+  "calls": [
+    {"actor": "anyone", "target": "OptimismPortal", "method": "respectedGameType(), anchorStateRegistry(), version()"},
+    {"actor": "anyone", "target": "DisputeGameFactory", "method": "owner(), gameCount(), version()"},
+    {"actor": "anyone", "target": "DisputeGameFactory", "method": "gameImpls(t), initBonds(t) for t in 0..10"},
+    {"actor": "anyone", "target": "DisputeGameFactory", "method": "gameAtIndex(i) for the last 5 games"}
+  ]
+}

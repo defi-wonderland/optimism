@@ -34,11 +34,12 @@ type Server struct {
 	sys     system.System
 	agg     *state.Aggregator
 	bus     *state.Bus
+	acct    state.FundedAccount
 	servers []*http.Server
 }
 
-func New(cfg Config, sys system.System, agg *state.Aggregator, bus *state.Bus) *Server {
-	return &Server{cfg: cfg, sys: sys, agg: agg, bus: bus}
+func New(cfg Config, sys system.System, agg *state.Aggregator, bus *state.Bus, acct state.FundedAccount) *Server {
+	return &Server{cfg: cfg, sys: sys, agg: agg, bus: bus, acct: acct}
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -58,6 +59,17 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 	mux.HandleFunc("GET /api/chains", chainsHandler(chains))
 
+	mux.HandleFunc("GET /api/dispute/{chain}", disputeHandler(s.sys))
+	mux.HandleFunc("POST /api/dispute/{chain}/games/{addr}/resolve", resolveGameHandler(s.sys, s.acct))
+
+	exp := newExplorerHandler(s.sys)
+	mux.HandleFunc("GET /api/explorer/chains", exp.chains)
+	mux.HandleFunc("GET /api/explorer/{chain}/blocks", exp.blocks)
+	mux.HandleFunc("GET /api/explorer/{chain}/block/{ref}", exp.block)
+	mux.HandleFunc("GET /api/explorer/{chain}/tx/{hash}", exp.tx)
+	mux.HandleFunc("GET /api/explorer/{chain}/tx/{hash}/trace", exp.trace)
+	mux.HandleFunc("GET /api/explorer/{chain}/address/{addr}", exp.address)
+
 	ctrl := &controlHandler{sys: s.sys, agg: s.agg, bus: s.bus}
 	mux.HandleFunc("POST /api/control/sequencer/{chain}/start", ctrl.sequencerStart)
 	mux.HandleFunc("POST /api/control/sequencer/{chain}/stop", ctrl.sequencerStop)
@@ -73,6 +85,7 @@ func (s *Server) Run(ctx context.Context) error {
 	if s.cfg.ScriptsDir != "" {
 		sr := newScriptRunner(ctx, s.bus, s.cfg.ScriptsDir, s.cfg.EnvVars)
 		mux.HandleFunc("GET /api/scripts", sr.listScripts)
+		mux.HandleFunc("GET /api/scripts/{name}", sr.getScript)
 		mux.HandleFunc("POST /api/scripts/{name}/run", sr.runScript)
 		mux.HandleFunc("GET /api/scripts/runs/{id}/stream", sr.streamRun)
 	}

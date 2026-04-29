@@ -3,62 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OP Playground</title>
+  <title>op-playground</title>
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <header>
-    <h1>OP Playground</h1>
-    <div id="meta">
-      <span id="mode"></span>
-      <span id="uptime"></span>
-    </div>
-  </header>
+  <div id="app">
+    <aside id="nav">
+      <div id="nav-brand">op-playground</div>
+      <nav id="nav-links">
+        <a href="#/" data-route="/" class="nav-link"><span class="nav-icon">⌂</span><span>Home</span></a>
+        <a href="#/explorer" data-route="/explorer" class="nav-link"><span class="nav-icon">🔍</span><span>Explorer</span></a>
+        <a href="#/tools" data-route="/tools" class="nav-link"><span class="nav-icon">⚙</span><span>Tools</span></a>
+        <a href="#/consensus" data-route="/consensus" class="nav-link"><span class="nav-icon">⚖</span><span>Consensus</span></a>
+        <a href="#/activity" data-route="/activity" class="nav-link"><span class="nav-icon">📋</span><span>Activity</span></a>
+        <a href="#/network" data-route="/network" class="nav-link"><span class="nav-icon">ℹ</span><span>Network</span></a>
+      </nav>
+      <div id="nav-footer">
+        <span id="nav-mode" class="muted">—</span>
+        <span id="nav-uptime" class="muted">—</span>
+      </div>
+    </aside>
 
-  <div id="account-bar">
-    <span class="label">Test Account:</span>
-    <code id="acct-addr"></code>
-    <code id="acct-key" class="muted"></code>
+    <header id="topbar">
+      <div id="topbar-title"></div>
+      <div id="topbar-actions">
+        <span id="topbar-drift" title="L2 unsafe head minus last L1 origin"></span>
+        <span class="muted">Advance time</span>
+        <button data-advance="60">+1m</button>
+        <button data-advance="600">+10m</button>
+        <button data-advance="1800">+30m</button>
+        <button data-advance="3600">+1h</button>
+      </div>
+    </header>
+
+    <main id="view"></main>
   </div>
-
-  <div id="time-controls">
-    <span class="label">Advance time:</span>
-    <button onclick="advanceTime(60)">+1 min</button>
-    <button onclick="advanceTime(600)">+10 min</button>
-    <button onclick="advanceTime(1800)">+30 min</button>
-    <button onclick="advanceTime(3600)">+1 hour</button>
-    <span class="muted">(needed to finalize L1/L2 blocks — FakePoS finalizes 64 blocks behind head)</span>
-  </div>
-
-  <div id="grid">
-    <section class="chain-card" id="l1-card">
-      <h2>L1</h2>
-      <table>
-        <tr><td>Head</td><td id="l1-head">-</td></tr>
-        <tr><td>Finalized</td><td id="l1-finalized">-</td></tr>
-      </table>
-    </section>
-  </div>
-
-  <div id="supernode-panel" style="display:none">
-    <h2>Supernode</h2>
-    <table>
-      <tr><td>Cross-safe timestamp</td><td id="sup-safe-ts">-</td></tr>
-      <tr><td>Local-safe timestamp</td><td id="sup-local-safe-ts">-</td></tr>
-    </table>
-    <div id="sup-chains"></div>
-  </div>
-
-  <section id="scripts-panel">
-    <h2>Scripts</h2>
-    <div id="script-buttons"></div>
-    <pre id="script-output"></pre>
-  </section>
-
-  <section id="events">
-    <h2>Events</h2>
-    <div id="event-log"></div>
-  </section>
 
   <script src="app.js"></script>
 </body>

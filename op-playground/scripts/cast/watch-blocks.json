@@ -1,0 +1,15 @@
+{
+  "title": "Tail L1 + L2 block heads",
+  "summary": "Long-running cast subscription that prints every new block on both chains.",
+  "family": "diagnostics",
+  "audience": "Anyone debugging block production timing or sequencer pacing.",
+  "description": "Subscribes via WebSocket to `eth_subscribe('newHeads')` on both the L1 and L2 RPC proxies. Prints a one-liner per block with number + hash + timestamp delta.\n\nThis runs **until you stop the playground** — there's no built-in stop button yet.",
+  "prerequisites": [
+    {"title": "Cast on PATH"},
+    {"title": "Both chains running", "detail": "Stops streaming if either RPC drops."}
+  ],
+  "calls": [
+    {"actor": "anyone", "target": "L1 RPC", "method": "eth_subscribe(newHeads) — read-only"},
+    {"actor": "anyone", "target": "L2 RPC", "method": "eth_subscribe(newHeads) — read-only"}
+  ]
+}

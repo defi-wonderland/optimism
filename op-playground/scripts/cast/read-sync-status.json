@@ -1,0 +1,13 @@
+{
+  "title": "Print L2 sync status",
+  "summary": "One-shot read of the rollup node's `optimism_syncStatus` — unsafe / safe / finalized heads, current L1 origin, and sequencer state.",
+  "family": "diagnostics",
+  "audience": "Anyone trying to figure out why the L2 head isn't where they expect it.",
+  "description": "The Home page already shows these numbers, but this dump is handy for grepping or pasting into a bug report. Hits the L2 CL node, not the EL.\n\nA common cause of 'safe is stuck' is the sequencer being stopped — check the Home page's Sequencer indicator.",
+  "prerequisites": [
+    {"title": "Cast on PATH"}
+  ],
+  "calls": [
+    {"actor": "anyone", "target": "L2 rollup node", "method": "optimism_syncStatus — read-only"}
+  ]
+}

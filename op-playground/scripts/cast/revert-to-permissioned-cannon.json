@@ -1,0 +1,18 @@
+{
+  "title": "Revert L2 finality to PERMISSIONED_CANNON",
+  "summary": "Flip the AnchorStateRegistry's respected game type back to 1 (the playground default).",
+  "family": "consensus-upgrade",
+  "audience": "Anyone who flipped to ZK and wants the original consensus method back.",
+  "description": "Mirror of `switch-to-zk-consensus` — calls `AnchorStateRegistry.setRespectedGameType(GameType.wrap(1))` from the guardian. Useful as a one-click rollback during demos.\n\n## When to run\n\nAny time you want to test or A/B compare finality paths. The PERMISSIONED_CANNON impl is unchanged across these flips — only the registry state changes.",
+  "prerequisites": [
+    {"title": "Guardian key", "detail": "Same OP_PG_GUARDIAN_PRIVKEY as the forward switch."}
+  ],
+  "calls": [
+    {"actor": "guardian", "target": "AnchorStateRegistry", "method": "setRespectedGameType(GameType.wrap(1))"}
+  ],
+  "produces": [
+    {"title": "One L1 transaction"},
+    {"title": "Consensus panel reverts", "detail": "ACTIVE flips back to PERMISSIONED_CANNON within 10s"}
+  ],
+  "snapshots": ["dispute"]
+}

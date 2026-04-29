@@ -1,0 +1,19 @@
+{
+  "title": "Switch L2 finality to ZK_DISPUTE_GAME",
+  "summary": "Flip the AnchorStateRegistry's respected game type to 10. After this, only ZK games can produce finality.",
+  "family": "consensus-upgrade",
+  "audience": "OP Stack contributors who already ran upgrade-to-zk and want to see the consensus method actually change.",
+  "description": "## What it does\n\nCalls `AnchorStateRegistry.setRespectedGameType(GameType.wrap(10))` from the SuperchainConfig **guardian** key. The respected game type is what determines which dispute games count for L2 finality. Until this flips, registering a new impl is just decoration.\n\n## What it does NOT do\n\n- Does **not** seed an anchor for type 10. The current AnchorStateRegistry returns a single global anchor regardless of game type, so existing PERMISSIONED_CANNON resolutions still serve as the start state.\n- Does **not** restart the proposer / challenger automation. Whether new ZK games get created on top is a separate concern.\n\n## Reverting\n\nUse `revert-to-permissioned-cannon` to flip back without restarting the playground.",
+  "prerequisites": [
+    {"title": "ZK impl registered", "detail": "Refuses to run if DGF.gameImpls(10) is the zero address — run upgrade-to-zk first."},
+    {"title": "Guardian key", "detail": "Exposed as OP_PG_GUARDIAN_PRIVKEY — derived from SuperchainConfigGuardian on L1 chain 900. The script asserts the key matches systemConfig.guardian() before broadcasting."}
+  ],
+  "calls": [
+    {"actor": "guardian", "target": "AnchorStateRegistry", "method": "setRespectedGameType(GameType.wrap(10))"}
+  ],
+  "produces": [
+    {"title": "One L1 transaction", "detail": "setRespectedGameType from the guardian"},
+    {"title": "Updated Consensus panel", "detail": "Within 10 seconds the panel will show ACTIVE = ZK_DISPUTE_GAME"}
+  ],
+  "snapshots": ["dispute"]
+}

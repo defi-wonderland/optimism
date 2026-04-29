@@ -1,0 +1,22 @@
+{
+  "title": "Deposit ETH from L1 to L2",
+  "summary": "Trigger an L1→L2 deposit via OptimismPortal.depositTransaction. The L2 derivation pipeline picks it up after the next sequencer batch.",
+  "family": "bridging",
+  "audience": "Anyone exercising the canonical bridge or testing deposit-driven L2 flows.",
+  "description": "Pushes a `depositTransaction` directly to the OptimismPortal on L1 from the test account. The deposit appears on L2 once the sequencer derives it from L1 (give it a few blocks, or step the sequencer manually from the Home page).\n\nUseful for confirming the rollup is actually deriving from L1 and not just sequencing locally.",
+  "prerequisites": [
+    {"title": "Cast on PATH"},
+    {"title": "Sequencer running", "detail": "Otherwise the deposit sits in L1 forever."}
+  ],
+  "inputs": [
+    {"title": "amount_eth", "detail": "Amount in ETH (e.g. 0.1)."}
+  ],
+  "usage_example": "deposit-l1-to-l2.sh 0.1",
+  "calls": [
+    {"actor": "test account", "target": "OptimismPortal", "method": "depositTransaction(to, value, gasLimit, isCreation, data)", "note": "value = msg.value, to = sender, isCreation = false, data = empty"}
+  ],
+  "produces": [
+    {"title": "One L1 transaction (the deposit)"},
+    {"title": "One L2 deposit-tx (after derivation)"}
+  ]
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -60,6 +61,18 @@ var (
 		EnvVars: opservice.PrefixEnvVar(envPrefix, "UI_PORT"),
 		Value:   7777,
 	}
+	l1PortFlag = &cli.IntFlag{
+		Name:    "l1-port",
+		Usage:   "port for the L1 RPC proxy",
+		EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_PORT"),
+		Value:   8547,
+	}
+	l2PortBaseFlag = &cli.IntFlag{
+		Name:    "l2-port-base",
+		Usage:   "starting port for L2 RPC proxies (each chain gets base+i)",
+		EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_PORT_BASE"),
+		Value:   8545,
+	}
 )
 
 func main() {
@@ -78,7 +91,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	app.Version = opservice.FormatVersion(Version, GitCommit, GitDate, VersionMeta)
 	app.Name = "op-playground"
 	app.Usage = "interactive OP Stack dev environment with web UI and breakpoints"
-	app.Flags = cliapp.ProtectFlags([]cli.Flag{dirFlag, interopFlag, uiPortFlag})
+	app.Flags = cliapp.ProtectFlags([]cli.Flag{dirFlag, interopFlag, uiPortFlag, l1PortFlag, l2PortBaseFlag})
 	app.OnUsageError = func(cliCtx *cli.Context, err error, isSubcommand bool) error {
 		if !cliCtx.App.HideHelp {
 			_ = cli.ShowAppHelp(cliCtx)
@@ -90,12 +103,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 			cliCtx.String(dirFlag.Name),
 			cliCtx.Bool(interopFlag.Name),
 			cliCtx.Int(uiPortFlag.Name),
+			cliCtx.Int(l1PortFlag.Name),
+			cliCtx.Int(l2PortBaseFlag.Name),
 		)
 	}
 	return app.RunContext(ctx, args)
 }
 
-func runPlayground(ctx context.Context, stderr io.Writer, dataDir string, interop bool, uiPort int) error {
+func runPlayground(ctx context.Context, stderr io.Writer, dataDir string, interop bool, uiPort, l1Port, l2PortBase int) error {
 	fmt.Fprintf(stderr, "%s\n\n", asciiArt)
 
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
@@ -136,14 +151,14 @@ func runPlayground(ctx context.Context, stderr io.Writer, dataDir string, intero
 	agg := state.NewAggregator(sys, bus, acct)
 	go agg.Run(ctx)
 
-	cfg := buildServerConfig(sys, uiPort, acct)
+	cfg := buildServerConfig(sys, uiPort, l1Port, l2PortBase, acct)
 	printEndpoints(stderr, cfg)
 
-	srv := server.New(cfg, sys, agg, bus)
+	srv := server.New(cfg, sys, agg, bus, acct)
 	return srv.Run(ctx)
 }
 
-func buildServerConfig(sys system.System, uiPort int, acct state.FundedAccount) server.Config {
+func buildServerConfig(sys system.System, uiPort, l1Port, l2PortBase int, acct state.FundedAccount) server.Config {
 	cfg := server.Config{
 		UIAddr: fmt.Sprintf("localhost:%d", uiPort),
 	}
@@ -153,14 +168,14 @@ func buildServerConfig(sys system.System, uiPort int, acct state.FundedAccount) 
 	// L1 proxy
 	l1RPC := sys.L1EL().Escape().UserRPC()
 	cfg.Proxies = append(cfg.Proxies, server.ProxyConfig{
-		ListenAddr: "localhost:8547",
+		ListenAddr: fmt.Sprintf("localhost:%d", l1Port),
 		TargetURL:  l1RPC,
 		Name:       "L1",
 	})
 
 	// L2 proxies
 	for i, chain := range chains {
-		port := 8545 + i
+		port := l2PortBase + i
 		cfg.Proxies = append(cfg.Proxies, server.ProxyConfig{
 			ListenAddr: fmt.Sprintf("localhost:%d", port),
 			TargetURL:  chain.EL.Escape().UserRPC(),
@@ -177,17 +192,61 @@ func buildServerConfig(sys system.System, uiPort int, acct state.FundedAccount) 
 	cfg.ScriptsDir = scriptsDir
 
 	envVars := []string{
-		"OP_PG_L1_RPC=http://localhost:8547",
+		fmt.Sprintf("OP_PG_L1_RPC=http://localhost:%d", l1Port),
 		"OP_PG_DEV_PRIVKEY=" + acct.PrivateKey,
 		"OP_PG_DEV_ADDR=" + acct.Address,
 	}
+	if owner, ok := dgfOwnerKey(); ok {
+		envVars = append(envVars,
+			"OP_PG_OWNER_PRIVKEY="+owner.PrivateKey,
+			"OP_PG_OWNER_ADDR="+owner.Address,
+		)
+	}
+	if g, ok := guardianKey(); ok {
+		envVars = append(envVars,
+			"OP_PG_GUARDIAN_PRIVKEY="+g.PrivateKey,
+			"OP_PG_GUARDIAN_ADDR="+g.Address,
+		)
+	}
 	if len(chains) == 1 {
-		envVars = append(envVars, "OP_PG_L2_RPC=http://localhost:8545")
+		envVars = append(envVars, fmt.Sprintf("OP_PG_L2_RPC=http://localhost:%d", l2PortBase))
 	} else {
 		for i, chain := range chains {
-			envVars = append(envVars, fmt.Sprintf("OP_PG_%s_RPC=http://localhost:%d", chain.Name, 8545+i))
+			envVars = append(envVars, fmt.Sprintf("OP_PG_%s_RPC=http://localhost:%d", chain.Name, l2PortBase+i))
 		}
-		envVars = append(envVars, "OP_PG_L2_RPC=http://localhost:8545")
+		envVars = append(envVars, fmt.Sprintf("OP_PG_L2_RPC=http://localhost:%d", l2PortBase))
+	}
+	// Path to packages/contracts-bedrock so forge-script wrappers can find it
+	// regardless of where the binary was launched from.
+	if cwd, err := os.Getwd(); err == nil {
+		// Walk up until we find a sibling "packages/contracts-bedrock".
+		dir := cwd
+		for i := 0; i < 6; i++ {
+			candidate := filepath.Join(dir, "packages", "contracts-bedrock")
+			if _, err := os.Stat(candidate); err == nil {
+				envVars = append(envVars, "OP_PG_CONTRACTS_DIR="+candidate)
+				break
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	// L1 contract addresses — useful for cast scripts that touch the dispute system.
+	for _, chain := range chains {
+		c := chain.L1Contracts
+		prefix := "OP_PG"
+		if len(chains) > 1 {
+			prefix = "OP_PG_" + chain.Name
+		}
+		envVars = append(envVars,
+			fmt.Sprintf("%s_SYSTEM_CONFIG=%s", prefix, c.SystemConfig.Hex()),
+			fmt.Sprintf("%s_DGF=%s", prefix, c.DisputeGameFactory.Hex()),
+			fmt.Sprintf("%s_PORTAL=%s", prefix, c.OptimismPortal.Hex()),
+			fmt.Sprintf("%s_L1_BRIDGE=%s", prefix, c.L1StandardBridge.Hex()),
+		)
 	}
 	cfg.EnvVars = envVars
 
@@ -201,6 +260,53 @@ func printEndpoints(w io.Writer, cfg server.Config) {
 		fmt.Fprintf(w, "%-10s  http://%s  (ws://%s)\n", p.Name+":", p.ListenAddr, p.ListenAddr)
 	}
 	fmt.Fprintf(w, "-----------------\n\n")
+}
+
+// dgfOwnerKey derives the L1ProxyAdminOwner devkey for L1 chain 900 — the
+// account that owns DisputeGameFactory in the Minimal preset. Returns ok=false
+// if derivation fails.
+func dgfOwnerKey() (state.FundedAccount, bool) {
+	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
+	if err != nil {
+		return state.FundedAccount{}, false
+	}
+	const l1ChainID = 900
+	key := devkeys.L1ProxyAdminOwnerRole.Key(big.NewInt(l1ChainID))
+	addr, err := hd.Address(key)
+	if err != nil {
+		return state.FundedAccount{}, false
+	}
+	priv, err := hd.Secret(key)
+	if err != nil {
+		return state.FundedAccount{}, false
+	}
+	return state.FundedAccount{
+		Address:    addr.Hex(),
+		PrivateKey: "0x" + common.Bytes2Hex(crypto.FromECDSA(priv)),
+	}, true
+}
+
+// guardianKey derives the SuperchainConfigGuardian devkey for L1 chain 900 —
+// the account that can flip the AnchorStateRegistry's respected game type.
+func guardianKey() (state.FundedAccount, bool) {
+	hd, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
+	if err != nil {
+		return state.FundedAccount{}, false
+	}
+	const l1ChainID = 900
+	key := devkeys.SuperchainConfigGuardianKey.Key(big.NewInt(l1ChainID))
+	addr, err := hd.Address(key)
+	if err != nil {
+		return state.FundedAccount{}, false
+	}
+	priv, err := hd.Secret(key)
+	if err != nil {
+		return state.FundedAccount{}, false
+	}
+	return state.FundedAccount{
+		Address:    addr.Hex(),
+		PrivateKey: "0x" + common.Bytes2Hex(crypto.FromECDSA(priv)),
+	}, true
 }
 
 func fundedAccount() (state.FundedAccount, error) {

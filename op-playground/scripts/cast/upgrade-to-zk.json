@@ -1,0 +1,24 @@
+{
+  "title": "Register ZKDisputeGame at gameType=10",
+  "summary": "Deploy a ZK dispute game implementation (with a mock verifier) and register it on the L1 DisputeGameFactory, signed by the factory owner.",
+  "family": "consensus-upgrade",
+  "audience": "OP Stack contributors prototyping the ZK dispute game migration on a local L1.",
+  "description": "## Why this exists\n\nThe canonical FDG → ZK upgrade goes through OPCM: governance multisigs delegatecall into `OPContractsManagerV2.upgrade()`, which bundles dispute factory registration with portal/system-config upgrades.\n\n**OPCM is not deployed by the Minimal preset.** This script bypasses OPCM and calls the factory directly — the same end state, but skipping the governance plumbing.\n\n## What ships\n\n- A fresh `ZKMockVerifier` (always-passes, from `test/dispute/zk/`)\n- A fresh `ZKDisputeGame` impl (real source from `src/dispute/zk/`)\n- The 172-byte CWIA gameArgs encoding the verifier, durations, bond, anchor registry, delayed WETH, and L2 chain id.\n\n## What it does NOT do\n\nRegistration alone does not flip consensus — the AnchorStateRegistry's *respected* game type still points at PERMISSIONED_CANNON. Run `switch-to-zk-consensus` next to actually finalize via ZK.",
+  "prerequisites": [
+    {"title": "Factory owner key", "detail": "Exposed as OP_PG_OWNER_PRIVKEY — derived from L1ProxyAdminOwner on L1 chain 900."},
+    {"title": "Existing PERMISSIONED_CANNON impl", "detail": "Used as a source of the DelayedWETH address and l2ChainId — survives playground restarts."},
+    {"title": "Forge available on PATH", "detail": "Script invokes `forge script` against the contracts-bedrock package."}
+  ],
+  "calls": [
+    {"actor": "deployer", "target": "<new>", "method": "deploy ZKMockVerifier"},
+    {"actor": "deployer", "target": "<new>", "method": "deploy ZKDisputeGame"},
+    {"actor": "factory owner", "target": "DisputeGameFactory", "method": "setImplementation(GameType.wrap(10), zkImpl, gameArgs)", "note": "gameArgs is abi.encodePacked(prestate, verifier, durations, bond, asr, weth, chainId) = 172 bytes"},
+    {"actor": "factory owner", "target": "DisputeGameFactory", "method": "setInitBond(GameType.wrap(10), 0)"}
+  ],
+  "produces": [
+    {"title": "ZKMockVerifier address", "detail": "Logged by forge as 'Deployed ZKMockVerifier'"},
+    {"title": "ZKDisputeGame impl address", "detail": "Logged by forge as 'Deployed ZKDisputeGame impl'"},
+    {"title": "Two L1 transactions", "detail": "setImplementation + setInitBond from the factory owner"}
+  ],
+  "snapshots": ["dispute"]
+}

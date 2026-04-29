@@ -1,0 +1,22 @@
+{
+  "title": "Send ETH on L2",
+  "summary": "Transfer ETH from the playground test account to any address on the L2.",
+  "family": "bridging",
+  "audience": "Anyone testing flows that need a funded L2 EOA.",
+  "description": "Single `cast send` from the prefunded playground key. The test account is loaded with a generous balance at L2 genesis, so this is a fast way to move funds around for downstream testing.",
+  "prerequisites": [
+    {"title": "Cast on PATH"},
+    {"title": "Test account funded on L2", "detail": "Default — the Minimal preset prefunds it at genesis."}
+  ],
+  "inputs": [
+    {"title": "to_address", "detail": "Recipient — any 20-byte address."},
+    {"title": "amount_eth", "detail": "Amount in ETH (e.g. 0.5)."}
+  ],
+  "usage_example": "transfer-l2.sh 0xCafe… 0.5",
+  "calls": [
+    {"actor": "test account", "target": "<recipient>", "method": "value transfer (no calldata)"}
+  ],
+  "produces": [
+    {"title": "One L2 transaction"}
+  ]
+}

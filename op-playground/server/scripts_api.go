@@ -17,10 +17,56 @@ import (
 	"github.com/ethereum-optimism/optimism/op-playground/state"
 )
 
+// scriptInfo is the listing-row representation. Description is the human
+// summary either pulled from the sidecar JSON or, failing that, the second
+// comment line of the script.
 type scriptInfo struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-	Desc string `json:"description"`
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	Title       string `json:"title,omitempty"`
+	Desc        string `json:"description"`
+	Family      string `json:"family,omitempty"`
+}
+
+// toolMeta is the optional sidecar (`<name>.json`) sitting next to a script.
+// All fields are optional — anything missing is just elided in the UI.
+type toolMeta struct {
+	Title         string         `json:"title,omitempty"`
+	Summary       string         `json:"summary,omitempty"`
+	Family        string         `json:"family,omitempty"`
+	Audience      string         `json:"audience,omitempty"`
+	Description   string         `json:"description,omitempty"` // markdown-flavoured
+	Prerequisites []toolMetaItem `json:"prerequisites,omitempty"`
+	Calls         []toolMetaCall `json:"calls,omitempty"`
+	Produces      []toolMetaItem `json:"produces,omitempty"`
+	Inputs        []toolMetaItem `json:"inputs,omitempty"`
+	UsageExample  string         `json:"usage_example,omitempty"`
+	// Snapshots identifies state to capture before/after the tool runs so the
+	// UI can render a diff. Currently supported: "dispute" — captures the
+	// dispute system snapshot (gameImpls, initBonds, respectedGameType, …)
+	// for the L2 chain.
+	Snapshots []string `json:"snapshots,omitempty"`
+}
+
+type toolMetaItem struct {
+	Title  string `json:"title,omitempty"`
+	Detail string `json:"detail,omitempty"`
+}
+
+type toolMetaCall struct {
+	Actor  string `json:"actor,omitempty"`
+	Target string `json:"target,omitempty"`
+	Method string `json:"method,omitempty"`
+	Note   string `json:"note,omitempty"`
+}
+
+type scriptDetail struct {
+	Name        string    `json:"name"`
+	Title       string    `json:"title,omitempty"`
+	Description string    `json:"description"`
+	Family      string    `json:"family,omitempty"`
+	Source      string    `json:"source"`
+	Meta        *toolMeta `json:"meta,omitempty"`
 }
 
 type scriptRunner struct {
@@ -66,10 +112,30 @@ func (sr *scriptRunner) discover() {
 			continue
 		}
 		path := filepath.Join(castDir, e.Name())
-		desc := readScriptDesc(path)
 		name := strings.TrimSuffix(e.Name(), ".sh")
-		sr.scripts = append(sr.scripts, scriptInfo{Name: name, Path: path, Desc: desc})
+		info := scriptInfo{Name: name, Path: path, Desc: readScriptDesc(path)}
+		// Merge optional sidecar metadata (<name>.json next to <name>.sh).
+		if meta := readToolMeta(filepath.Join(castDir, name+".json")); meta != nil {
+			info.Title = meta.Title
+			if meta.Summary != "" {
+				info.Desc = meta.Summary
+			}
+			info.Family = meta.Family
+		}
+		sr.scripts = append(sr.scripts, info)
 	}
+}
+
+func readToolMeta(path string) *toolMeta {
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var m toolMeta
+	if err := json.Unmarshal(body, &m); err != nil {
+		return nil
+	}
+	return &m
 }
 
 func readScriptDesc(path string) string {
@@ -91,6 +157,34 @@ func readScriptDesc(path string) string {
 func (sr *scriptRunner) listScripts(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(sr.scripts)
+}
+
+func (sr *scriptRunner) getScript(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	for _, s := range sr.scripts {
+		if s.Name != name {
+			continue
+		}
+		body, err := os.ReadFile(s.Path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		dir := filepath.Dir(s.Path)
+		meta := readToolMeta(filepath.Join(dir, s.Name+".json"))
+		detail := scriptDetail{
+			Name:        s.Name,
+			Title:       s.Title,
+			Description: s.Desc,
+			Family:      s.Family,
+			Source:      string(body),
+			Meta:        meta,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(detail)
+		return
+	}
+	http.NotFound(w, r)
 }
 
 func (sr *scriptRunner) runScript(w http.ResponseWriter, r *http.Request) {
