@@ -170,6 +170,27 @@ var Commands = cli.Commands{
 		Action: MigrateCLI,
 	},
 	&cli.Command{
+		Name:  "migrate-to-zk-single",
+		Usage: "migrates an isolated chain from its super game (SFDG/SPDG) to the ZK dispute game via OPCMv2.upgrade().",
+		Flags: append([]cli.Flag{
+			deployer.CacheDirFlag,
+			deployer.L1RPCURLFlag,
+			deployer.PrivateKeyFlag,
+			deployer.ArtifactsLocatorFlag,
+			L1ProxyAdminOwnerFlag,
+			OPCMImplFlag,
+			SystemConfigProxyFlag,
+			StartingAnchorRootFlag,
+			StartingAnchorL2SequenceNumberFlag,
+			InitialBondFlag,
+			DisputeAbsolutePrestateFlag,
+			ZKVerifierFlag,
+			ZKMaxChallengeDurationFlag,
+			ZKMaxProveDurationFlag,
+		}, oplog.CLIFlags(deployer.EnvVarPrefix)...),
+		Action: MigrateToZKSingleCLI,
+	},
+	&cli.Command{
 		Name:  "set-interop-dispute-games",
 		Usage: "swaps the shared dispute games of an already-interop set to the ZK dispute game.",
 		Flags: append([]cli.Flag{
