@@ -2,6 +2,7 @@
 title: OP-Challenger explainer
 description: Learn about OP-Challenger and how it operates within the OP Stack's Fault
   Proof System.
+diataxis: explanation
 ---
 The `op-challenger` operates as the *honest actor* in the fault dispute system and defends the chain by securing the `OptimismPortal` and ensuring the game always resolves to the correct state of the chain. For verifying the legitimacy of claims, `op-challenger` relies on a synced, trusted rollup node as well as a trace provider (e.g., [Cannon](/op-stack/fault-proofs/cannon)).
 
@@ -29,7 +30,7 @@ graph TD;
 ```
 
 <Info>
-  The `cannon`, `op-program host`, and `kona-host` executables are run in the `op-challenger` docker container as sub-processes when required to generate game trace data.
+  The `op-challenger` docker container runs the `cannon` VM with a fault-proof program as a sub-process to generate game trace data. The respected game type going forward is `cannon-kona`, which uses `kona-host`. The legacy `cannon` game type uses `op-program host` and reaches end-of-support at the Karst upgrade.
 </Info>
 
 ## Fault detection responses

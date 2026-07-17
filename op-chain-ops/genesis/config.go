@@ -19,6 +19,7 @@ import (
 	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum-optimism/optimism/op-core/forks"
+	opcoreparams "github.com/ethereum-optimism/optimism/op-core/params"
 	opparams "github.com/ethereum-optimism/optimism/op-node/params"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -397,6 +398,11 @@ type UpgradeScheduleDeployConfig struct {
 	// L2GenesisLagoonTimeOffset is the number of seconds after genesis block that the Lagoon hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable Lagoon.
 	L2GenesisLagoonTimeOffset *hexutil.Uint64 `json:"l2GenesisLagoonTimeOffset,omitempty"`
+
+	// KeepKarstUpgradeGas opts the chain out of reverting the Karst activation block's one-time
+	// upgrade gas at the following block, keeping the inflated gas limit on every post-activation
+	// block. It exists for chains that activated Karst with that leak baked into their history.
+	KeepKarstUpgradeGas bool `json:"keepKarstUpgradeGas,omitempty"`
 
 	// Optional Forks
 
@@ -1093,7 +1099,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		return nil, errors.New("SystemConfigProxy cannot be address(0)")
 	}
 
-	chainOpConfig := &params.OptimismConfig{
+	chainOpConfig := &opcoreparams.OptimismConfig{
 		EIP1559Elasticity:        d.EIP1559Elasticity,
 		EIP1559Denominator:       d.EIP1559Denominator,
 		EIP1559DenominatorCanyon: &d.EIP1559DenominatorCanyon,
@@ -1145,6 +1151,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		JovianTime:             d.JovianTime(l1StartTime),
 		KarstTime:              d.KarstTime(l1StartTime),
 		LagoonTime:             d.LagoonTime(l1StartTime),
+		KeepKarstUpgradeGas:    d.KeepKarstUpgradeGas,
 		AltDAConfig:            altDA,
 		ChainOpConfig:          chainOpConfig,
 	}, nil

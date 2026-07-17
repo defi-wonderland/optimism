@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/pkg/sdm"
 	"github.com/ethereum-optimism/optimism/op-devstack/devtest"
@@ -44,13 +43,6 @@ func TestFlashblocksSDMMaterializesPostExecBlock(gt *testing.T) {
 	sysgo.SkipOnKonaNode(t, "flashblocks acceptance preset requires user RPC")
 	sysgo.SkipOnOpGeth(t, "SDM flashblocks require op-reth post-exec support")
 
-	// op-rbuilder mishandles Osaka SDM post-exec accumulation: with Osaka active it includes
-	// more txs' gas refunds in the post-exec payload than op-node derives, so the builder and
-	// derivation payloads diverge. Skipped while #21337 activates Osaka at Karst; SDM rides
-	// Interop (Lagoon), which isn't activated yet, so this is not user-facing. Re-enable once
-	// op-rbuilder is fixed: ethereum-optimism/optimism#21354.
-	t.Skip("op-rbuilder Osaka SDM post-exec divergence — re-enable after ethereum-optimism/optimism#21354")
-
 	// SDM rides Interop: activating Interop at genesis turns SDM on for op-reth execution
 	// and the op-rbuilder payload builder consistently with op-node derivation. The preset
 	// also provisions the DependencySet required by op-node whenever Interop is scheduled.
@@ -58,19 +50,18 @@ func TestFlashblocksSDMMaterializesPostExecBlock(gt *testing.T) {
 
 	driveViaTestSequencer(t, sys, 2)
 
-	// SDM PostExec production is gated by an in-memory operator flag that starts
-	// disabled on every process boot — protocol activation alone is not enough.
-	// Opt in on both the sequencer EL (op-reth fallback) and op-rbuilder (the
-	// flashblocks producer), since rollup-boost may route to either.
+	// SDM PostExec production is gated by an operator opt-in that starts disabled
+	// on every process boot — protocol activation alone is not enough. Opt in on
+	// both the sequencer EL (op-reth fallback) and op-rbuilder (the flashblocks
+	// producer), since rollup-boost may route to either.
 	//
-	// Unlike op-node (which persists the opt-in in its config file — see
-	// op-node/config/config_persistence.go), op-reth and op-rbuilder hold the
-	// flag in a process-local Arc<AtomicBool> with no disk backing (see the
-	// "persistence is deliberately out of scope" notes in
+	// op-reth and op-rbuilder hold the flag in a process-local Arc<AtomicBool> with
+	// no disk backing (see the "persistence is deliberately out of scope" notes in
 	// rust/op-reth/crates/rpc/src/sdm_admin.rs and
-	// rust/op-rbuilder/crates/op-rbuilder/src/sdm_admin.rs). Any restart of
-	// either Rust process drops the opt-in, so callers — tests here, operators
-	// in prod — must re-issue admin_setSdmPostExecOptIn after every boot.
+	// rust/op-rbuilder/crates/op-rbuilder/src/sdm_admin.rs). A runtime opt-in set
+	// over RPC is dropped on restart, so callers — tests here, operators in prod —
+	// must re-issue admin_setOperatorSdmOptIn after every boot (op-reth can instead
+	// seed it at boot via --rollup.operator-sdm-opt-in).
 	setFlashblocksSDMEnabled(t, sys.L2EL.Escape().L2EthClient().RPC(), true)
 	setFlashblocksSDMEnabled(t, sys.L2OPRBuilder.Escape().L2EthClient().RPC(), true)
 
@@ -120,66 +111,58 @@ func TestFlashblocksSDMMaterializesPostExecBlock(gt *testing.T) {
 		}
 	}()
 
-	observedByBlock := make(map[uint64]observedSdmFlashblock)
+	// observedByHash records every streamed SDM post_exec flashblock, keyed by the materialized
+	// view hash op-rbuilder reports in diff.block_hash. Flashblocks carry no is_final flag, so
+	// rather than guess which is final we match the sealed canonical block by hash — an identity
+	// match, immune to stream timing.
+	observedByHash := make(map[common.Hash]observedSdmFlashblock)
+	// observedBlocks records which block numbers produced at least one post_exec flashblock.
+	observedBlocks := make(map[uint64]bool)
 	includedByBlock := make(map[uint64][]flashblocksIncludedTx)
-	var targetBlockNum uint64
-	// candidate is a block that satisfies the "2+ workload receipts AND an observed
-	// post_exec_tx flashblock" criteria. We don't commit it as targetBlockNum until we
-	// see a flashblock for a later block, which is op-rbuilder's de-facto seal signal —
-	// flashblock payloads carry no explicit "is_final" flag, and post_exec_tx accumulates
-	// entries with every new flashblock for the same block. Committing the candidate
-	// earlier risks comparing the final materialized block against an in-progress
-	// flashblock snapshot.
-	var candidate uint64
-	var postReceiptTimer *time.Timer
-	var postReceiptDeadline <-chan time.Time
-	defer func() {
-		if postReceiptTimer != nil {
-			postReceiptTimer.Stop()
-		}
-	}()
 
-	tryMarkCandidate := func(blockNum uint64) {
-		if candidate != 0 {
+	recordFlashblock := func(fb *sources.Flashblock) {
+		if fb.Diff.PostExecTx == nil {
 			return
 		}
-		if len(includedByBlock[blockNum]) < 2 {
-			return
+		t.Require().False(flashblockTransactionsContainPostExec(fb),
+			"SDM post-exec tx must be carried in diff.post_exec_tx, not diff.transactions")
+		payload, raw := decodeFlashblockPostExecTx(t, fb)
+		hash := common.HexToHash(fb.Diff.BlockHash)
+		observedByHash[hash] = observedSdmFlashblock{
+			index:      uint64(fb.Index),
+			postExecTx: raw,
+			payload:    payload,
+			blockHash:  hash,
 		}
-		if _, ok := observedByBlock[blockNum]; !ok {
-			return
-		}
-		candidate = blockNum
+		observedBlocks[uint64(fb.Metadata.BlockNumber)] = true
 	}
 
+	// pickTarget returns the lowest block number that carries 2+ workload receipts and at
+	// least one observed SDM post_exec flashblock, or 0 if none qualifies yet.
+	pickTarget := func() uint64 {
+		var best uint64
+		for blockNum, txs := range includedByBlock {
+			if len(txs) < 2 || !observedBlocks[blockNum] {
+				continue
+			}
+			if best == 0 || blockNum < best {
+				best = blockNum
+			}
+		}
+		return best
+	}
+
+	// Phase 1: discover a target block — one with enough workload txs and an SDM post_exec.
+	var targetBlockNum uint64
 	for targetBlockNum == 0 {
 		select {
 		case fb, ok := <-fbClient.Next():
 			t.Require().True(ok, "flashblock client closed before observing SDM post_exec_tx")
 			t.Require().NotNil(fb)
-			blockNum := uint64(fb.Metadata.BlockNumber)
-			if candidate != 0 && blockNum > candidate {
-				targetBlockNum = candidate
-				continue
-			}
-			if fb.Diff.PostExecTx == nil {
-				continue
-			}
-			t.Require().False(flashblockTransactionsContainPostExec(fb),
-				"SDM post-exec tx must be carried in diff.post_exec_tx, not diff.transactions")
-			payload, raw := decodeFlashblockPostExecTx(t, fb)
-			observedByBlock[blockNum] = observedSdmFlashblock{
-				index:      uint64(fb.Index),
-				postExecTx: raw,
-				payload:    payload,
-				blockHash:  common.HexToHash(fb.Diff.BlockHash),
-			}
-			tryMarkCandidate(blockNum)
+			recordFlashblock(fb)
 		case result, ok := <-receiptCh:
 			if !ok {
 				receiptCh = nil
-				postReceiptTimer = time.NewTimer(15 * time.Second)
-				postReceiptDeadline = postReceiptTimer.C
 				continue
 			}
 			t.Require().NoError(result.err, "workload tx %d failed before inclusion", result.idx)
@@ -190,30 +173,54 @@ func TestFlashblocksSDMMaterializesPostExecBlock(gt *testing.T) {
 				receipt:  result.receipt,
 				blockNum: blockNum,
 			})
-			tryMarkCandidate(blockNum)
-		case <-postReceiptDeadline:
-			if candidate != 0 {
-				targetBlockNum = candidate
-				continue
-			}
-			t.Require().Fail("post-receipt wait expired", "all workload receipts arrived but no matching SDM flashblock post_exec_tx was observed")
 		case <-t.Ctx().Done():
 			t.Require().NoError(t.Ctx().Err(), "never found a multi-tx workload block with SDM flashblock post_exec_tx")
 		}
+		targetBlockNum = pickTarget()
 	}
 
-	observed := observedByBlock[targetBlockNum]
 	t.Require().NotEmpty(includedByBlock[targetBlockNum], "target block must include workload txs")
 
+	// The target block already carries workload receipts, so it is sealed: read its canonical form.
 	block := getFlashblocksBlockWithTxs(t, sys.L2EL, targetBlockNum)
 	t.Require().NotEmpty(block.Transactions, "final materialized block must have transactions")
 
-	// Pin the canonical block to the rollup-boost materialization path: its hash must equal the
-	// builder's diff.block_hash. A plain "block has a trailing PostExec tx" check would also pass
-	// under the EL fallback (the sequencer EL runs SDM too), so it cannot distinguish a dropped
-	// post_exec_tx during materialization from the real builder payload.
-	t.Require().Equal(observed.blockHash, block.Hash,
-		"canonical block must be the rollup-boost-materialized flashblock view (diff.block_hash), not an EL fallback block")
+	// Phase 2: identity match. Find the streamed flashblock whose materialized view hash
+	// (diff.block_hash) equals the sealed canonical block hash and compare that snapshot — no
+	// guessing which flashblock was final. A matching hash also pins the block to the rollup-boost
+	// materialization path: a plain "has a trailing PostExec tx" check would also pass under the EL
+	// fallback (the sequencer EL runs SDM), so it can't tell a dropped post_exec_tx from the real
+	// builder payload.
+	//
+	// Keep draining until the match arrives. Once op-rbuilder advances past the target block,
+	// in-order delivery guarantees all its flashblocks were already delivered, so a continued miss
+	// is a genuine divergence (EL fallback, or builder stream != seal), not a capture race.
+	var observed observedSdmFlashblock
+	for {
+		if snap, ok := observedByHash[block.Hash]; ok {
+			observed = snap
+			break
+		}
+		select {
+		case fb, ok := <-fbClient.Next():
+			t.Require().True(ok,
+				"flashblock stream closed before the flashblock matching canonical block %d (hash %s) arrived",
+				targetBlockNum, block.Hash)
+			t.Require().NotNil(fb)
+			advanced := uint64(fb.Metadata.BlockNumber) > targetBlockNum
+			recordFlashblock(fb)
+			if _, ok := observedByHash[block.Hash]; !ok {
+				t.Require().False(advanced,
+					"canonical block %d (hash %s) matched no streamed op-rbuilder flashblock — "+
+						"served from EL fallback or builder stream diverged from seal",
+					targetBlockNum, block.Hash)
+			}
+		case <-t.Ctx().Done():
+			t.Require().NoError(t.Ctx().Err(),
+				"timed out waiting for op-rbuilder flashblock matching canonical block %d (hash %s)",
+				targetBlockNum, block.Hash)
+		}
+	}
 
 	postExecTx, postExecPos := sdm.FindPostExecTransaction(block)
 	t.Require().NotNil(postExecTx, "final materialized block must contain one PostExec tx")
@@ -227,7 +234,7 @@ func TestFlashblocksSDMMaterializesPostExecBlock(gt *testing.T) {
 	t.Require().NotEmpty(payload.GasRefundEntries, "final payload must contain SDM refund entries")
 	t.Require().Equal(observed.payload, payload, "observed flashblock payload must match final payload")
 	t.Require().Equal(observed.postExecTx[1:], []byte(postExecTx.Input),
-		"final PostExec tx input must match latest observed flashblock post_exec_tx")
+		"final PostExec tx input must match the hash-matched flashblock post_exec_tx")
 
 	validation, err := sdm.ValidatePostExecBlock(
 		t.Ctx(),
@@ -314,6 +321,6 @@ func flashblocksDeployContract(t devtest.T, eoa *dsl.EOA, hexBytecode string) co
 
 func setFlashblocksSDMEnabled(t devtest.T, rpcClient client.RPC, enabled bool) {
 	t.Helper()
-	err := rpcClient.CallContext(t.Ctx(), nil, "admin_setSdmPostExecOptIn", enabled)
-	t.Require().NoError(err, "admin_setSdmPostExecOptIn(%v) RPC failed", enabled)
+	err := rpcClient.CallContext(t.Ctx(), nil, "admin_setOperatorSdmOptIn", enabled)
+	t.Require().NoError(err, "admin_setOperatorSdmOptIn(%v) RPC failed", enabled)
 }
