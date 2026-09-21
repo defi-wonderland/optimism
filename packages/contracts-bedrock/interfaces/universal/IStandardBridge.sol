@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
+import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
+import { Item } from "src/libraries/BridgeHookItem.sol";
 
 interface IStandardBridge {
     event ERC20BridgeFinalized(
@@ -48,6 +50,14 @@ interface IStandardBridge {
     function bridgeETH(uint32 _minGasLimit, bytes memory _extraData) external payable;
     function bridgeETHTo(address _to, uint32 _minGasLimit, bytes memory _extraData) external payable;
     function deposits(address, address) external view returns (uint256);
+    function bridgeHook() external view returns (IBridgeHook);
+    function erc20ItemNonce() external view returns (uint64);
+    function pendingERC20Deposits(bytes32) external view returns (bool);
+    function heldERC20Withdrawals(bytes32) external view returns (bool);
+
+    function outstandingBridgeHookItems() external view returns (uint64);
+    function completeERC20Deposit(Item memory _item) external;
+    function completeERC20Withdrawal(Item memory _item) external;
     function finalizeBridgeERC20(
         address _localToken,
         address _remoteToken,

@@ -39,4 +39,12 @@ library Features {
 
     /// @notice The INTEROP feature determines if the system is configured to use interop.
     bytes32 internal constant INTEROP = "INTEROP";
+
+    /// @notice The BRIDGE_HOOK feature determines if the system defers to an external contract on
+    ///         value crossing the canonical bridge. When the BRIDGE_HOOK feature is active and a
+    ///         hook address has been configured, the OptimismPortal and the L1StandardBridge call
+    ///         the hook before they commit anything, and the hook may take custody of an item
+    ///         until it is cleared to move. When either is unset, both contracts behave exactly as
+    ///         they do without the feature.
+    bytes32 internal constant BRIDGE_HOOK = "BRIDGE_HOOK";
 }

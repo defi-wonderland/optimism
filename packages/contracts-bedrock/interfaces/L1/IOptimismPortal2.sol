@@ -10,6 +10,8 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IProxyAdminOwnedBase } from "interfaces/universal/IProxyAdminOwnedBase.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
+import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
+import { Item } from "src/libraries/BridgeHookItem.sol";
 
 interface IOptimismPortal2 is IProxyAdminOwnedBase {
     error ContentLengthMismatch();
@@ -63,6 +65,16 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
 
     function anchorStateRegistry() external view returns (IAnchorStateRegistry);
     function ethLockbox() external view returns (IETHLockbox);
+    function bridgeHook() external view returns (IBridgeHook);
+    function setBridgeHook(IBridgeHook _bridgeHook) external;
+    function depositNonce() external view returns (uint64);
+    function currentWithdrawalHash() external view returns (bytes32);
+    function pendingDeposits(bytes32) external view returns (bool);
+    function heldWithdrawals(bytes32) external view returns (bool);
+
+    function outstandingBridgeHookItems() external view returns (uint64);
+    function completeDepositTransaction(Item memory _item) external payable;
+    function completeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external payable;
     function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) external view;
     function deleteProvenWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) external;
     function depositTransaction(
