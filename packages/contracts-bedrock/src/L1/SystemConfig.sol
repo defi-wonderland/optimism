@@ -14,6 +14,7 @@ import { Features } from "src/libraries/Features.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 /// @custom:proxied true
@@ -550,6 +551,27 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
             // ETHLockbox identifier. Refuse while the OptimismPortal identifier is paused so the
             // chain cannot become unpaused unexpectedly.
             if (superchainConfig.paused(optimismPortal())) {
+                revert SystemConfig_InvalidFeatureState();
+            }
+        } else if (_feature == Features.BRIDGE_HOOK) {
+            // Same shape as ETH_LOCKBOX. The hook shouldn't be unset while a hook address is
+            // still configured on either call site, because that would leave items held in a
+            // contract the protocol no longer defers to and sever the paths that release them.
+            // As with the lockbox, the call sites check that the feature is set before allowing
+            // you to set the hook, so these checks are good enough.
+            if (
+                isFeatureEnabled[_feature] && !_enabled
+                    && (
+                        address(IOptimismPortal2(payable(optimismPortal())).bridgeHook()) != address(0)
+                            || address(IL1StandardBridge(payable(l1StandardBridge())).bridgeHook()) != address(0)
+                    )
+            ) {
+                revert SystemConfig_InvalidFeatureState();
+            }
+
+            // The hook can't be toggled while the system is paused. Held value is released
+            // through the module, and toggling underneath a pause changes which paths are live.
+            if (paused()) {
                 revert SystemConfig_InvalidFeatureState();
             }
         }
