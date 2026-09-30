@@ -8,12 +8,16 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Direction } from "src/libraries/BridgeHookItem.sol";
 
 // Interfaces
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @custom:proxied true
 /// @title L1StandardBridge
@@ -26,6 +30,8 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
 contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
+    using SafeERC20 for IERC20;
+
     /// @custom:legacy
     /// @notice Emitted whenever a deposit of ETH from L1 into L2 is initiated.
     /// @param from      Address of the depositor.
@@ -253,6 +259,30 @@ contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, Reinitializabl
         return address(otherBridge);
     }
 
+    /// @notice Moves the escrow of a token transfer held by the OptimismPortal to its bridge hook.
+    ///         For a token native to L2 nothing moves, since only its message is held.
+    /// @param _direction Whether the held item is a deposit or a withdrawal.
+    /// @param _message   The held finalizeBridgeERC20 message.
+    function holdERC20(Direction _direction, bytes calldata _message) external {
+        (address hook, address localToken, address remoteToken, uint256 amount) = _heldTransfer(_direction, _message);
+        if (_isOptimismMintableERC20(localToken)) return;
+
+        deposits[localToken][remoteToken] = deposits[localToken][remoteToken] - amount;
+        IERC20(localToken).safeTransfer(hook, amount);
+    }
+
+    /// @notice Takes back the escrow of a held token transfer from the bridge hook when it
+    ///         completes. The hook approves the amount first.
+    /// @param _direction Whether the held item is a deposit or a withdrawal.
+    /// @param _message   The held finalizeBridgeERC20 message.
+    function restoreERC20(Direction _direction, bytes calldata _message) external {
+        (address hook, address localToken, address remoteToken, uint256 amount) = _heldTransfer(_direction, _message);
+        if (_isOptimismMintableERC20(localToken)) return;
+
+        IERC20(localToken).safeTransferFrom(hook, address(this), amount);
+        deposits[localToken][remoteToken] = deposits[localToken][remoteToken] + amount;
+    }
+
     /// @notice Internal function for initiating an ETH deposit.
     /// @param _from        Address of the sender on L1.
     /// @param _to          Address of the recipient on L2.
@@ -282,6 +312,40 @@ contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, Reinitializabl
         internal
     {
         _initiateBridgeERC20(_l1Token, _l2Token, _from, _to, _amount, _minGasLimit, _extraData);
+    }
+
+    /// @notice Checks that the caller is the OptimismPortal and that it has a bridge hook, and reads
+    ///         a held finalizeBridgeERC20 message.
+    /// @param _direction Whether the held item is a deposit or a withdrawal.
+    /// @param _message   The held finalizeBridgeERC20 message.
+    /// @return hook_        The OptimismPortal's bridge hook.
+    /// @return localToken_  Token on L1.
+    /// @return remoteToken_ Token on L2.
+    /// @return amount_      Amount of the transfer.
+    function _heldTransfer(
+        Direction _direction,
+        bytes calldata _message
+    )
+        internal
+        view
+        returns (address hook_, address localToken_, address remoteToken_, uint256 amount_)
+    {
+        IOptimismPortal2 portal = IOptimismPortal2(payable(systemConfig.optimismPortal()));
+        require(msg.sender == address(portal), "L1StandardBridge: function can only be called by the OptimismPortal");
+
+        // Without a hook, the Portal does not treat this bridge as an unsafe target, so a withdrawal
+        // could call these functions.
+        hook_ = address(portal.bridgeHook());
+        require(hook_ != address(0), "L1StandardBridge: no bridge hook");
+        require(bytes4(_message[:4]) == this.finalizeBridgeERC20.selector, "L1StandardBridge: not a token transfer");
+
+        (address token0, address token1,,, uint256 amount,) =
+            abi.decode(_message[4:], (address, address, address, address, uint256, bytes));
+
+        // A deposit is the message this bridge sent, which names the L2 token first. A withdrawal
+        // is the message it receives, which names the L1 token first.
+        (localToken_, remoteToken_) = _direction == Direction.Deposit ? (token1, token0) : (token0, token1);
+        amount_ = amount;
     }
 
     /// @inheritdoc StandardBridge

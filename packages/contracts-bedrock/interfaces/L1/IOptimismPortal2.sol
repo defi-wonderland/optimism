@@ -2,7 +2,9 @@
 pragma solidity ^0.8.0;
 
 import { Types } from "src/libraries/Types.sol";
+import { Item } from "src/libraries/BridgeHookItem.sol";
 import { GameType } from "src/dispute/lib/LibUDT.sol";
+import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
@@ -41,6 +43,12 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     error OptimismPortal_ZeroAddress();
     error OptimismPortal_LockboxNotAuthorizedForPortal();
     error OptimismPortal_DisputeGameNotInvalidated();
+    error OptimismPortal_NotBridgeHook();
+    error OptimismPortal_InvalidBridgeHookState();
+    error OptimismPortal_BridgeHookItemsOutstanding();
+    error OptimismPortal_NotHeld();
+    error OptimismPortal_ValueMismatch();
+    error OptimismPortal_RelayFailed();
     error OutOfGas();
     error UnexpectedList();
     error UnexpectedString();
@@ -58,10 +66,21 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     event WithdrawalProofDeleted(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
+    event BridgeHookSet(address indexed bridgeHook);
+    event DepositHeld(bytes32 indexed id);
+    event WithdrawalHeld(bytes32 indexed withdrawalHash);
 
     receive() external payable;
 
     function anchorStateRegistry() external view returns (IAnchorStateRegistry);
+    function bridgeHook() external view returns (IBridgeHook);
+    function completeDepositTransaction(Item memory _item) external payable;
+    function completeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external payable;
+    function depositNonce() external view returns (uint64);
+    function heldDeposits(bytes32) external view returns (bool);
+    function heldWithdrawals(bytes32) external view returns (bool);
+    function outstandingBridgeHookItems() external view returns (uint64);
+    function setBridgeHook(IBridgeHook _bridgeHook) external;
     function ethLockbox() external view returns (IETHLockbox);
     function checkWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) external view;
     function deleteProvenWithdrawal(bytes32 _withdrawalHash, address _proofSubmitter) external;

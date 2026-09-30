@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { Direction } from "src/libraries/BridgeHookItem.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
@@ -66,8 +67,10 @@ interface IL1StandardBridge is IStandardBridge, IProxyAdminOwnedBase {
     )
         external
         payable;
+    function holdERC20(Direction _direction, bytes memory _message) external;
     function initialize(ICrossDomainMessenger _messenger, ISystemConfig _systemConfig) external;
     function l2TokenBridge() external view returns (address);
+    function restoreERC20(Direction _direction, bytes memory _message) external;
     function systemConfig() external view returns (ISystemConfig);
     function version() external view returns (string memory);
     function superchainConfig() external view returns (ISuperchainConfig);
