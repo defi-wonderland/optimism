@@ -81,6 +81,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
 
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
+        // ETH sent through here is screened at the OptimismPortal, which is where it lands. The
+        // hook unwraps this contract's own envelope, so the screen names the caller and the L2
+        // target rather than the two messengers.
         portal.depositTransaction{ value: _value }({
             _to: _to,
             _value: _value,

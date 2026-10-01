@@ -8,12 +8,14 @@ import { StandardBridge } from "src/universal/StandardBridge.sol";
 
 // Libraries
 import { Predeploys } from "src/libraries/Predeploys.sol";
+import { Features } from "src/libraries/Features.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
 
 /// @custom:proxied true
 /// @title L1StandardBridge
@@ -76,6 +78,16 @@ contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, Reinitializabl
         bytes extraData
     );
 
+    /// @notice Emitted when the bridge hook address is set.
+    /// @param bridgeHook Address of the bridge hook.
+    event BridgeHookSet(address indexed bridgeHook);
+
+    /// @notice Thrown when the bridge hook is set or unset while the feature is not enabled.
+    error L1StandardBridge_InvalidBridgeHookState();
+
+    /// @notice Thrown when the bridge hook would be repointed while items are still deferred to it.
+    error L1StandardBridge_BridgeHookItemsOutstanding();
+
     /// @notice Semantic version.
     /// @custom:semver 2.8.2
     string public constant version = "2.8.2";
@@ -122,6 +134,43 @@ contract L1StandardBridge is StandardBridge, ProxyAdminOwnedBase, Reinitializabl
     /// @inheritdoc StandardBridge
     function paused() public view override returns (bool) {
         return systemConfig.paused();
+    }
+
+    /// @inheritdoc StandardBridge
+    /// @dev The local address is read first on purpose. A chain with no hook then pays one SLOAD
+    ///      and never makes the external call to SystemConfig.
+    function _isUsingBridgeHook() internal view override returns (bool) {
+        return address(bridgeHook) != address(0) && systemConfig.isFeatureEnabled(Features.BRIDGE_HOOK);
+    }
+
+    /// @inheritdoc StandardBridge
+    function _optimismPortal() internal view override returns (address) {
+        return systemConfig.optimismPortal();
+    }
+
+    /// @notice Sets the bridge hook. Can only be called by the ProxyAdmin or its owner, which is
+    ///         the same authority that sets the feature flag: together they enable the feature.
+    /// @dev Never repoint the hook while items are held. The terms survive, because they live
+    ///      here, but the verdicts and the custody live in the hook.
+    /// @param _bridgeHook Address of the bridge hook, or zero to unset it.
+    function setBridgeHook(IBridgeHook _bridgeHook) external {
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+
+        // Mirrors the lockbox arrangement: this contract checks the feature before allowing the
+        // address to be set, and SystemConfig checks the address before allowing the feature to
+        // be unset.
+        if (!systemConfig.isFeatureEnabled(Features.BRIDGE_HOOK)) {
+            revert L1StandardBridge_InvalidBridgeHookState();
+        }
+
+        // Refuse to move the pointer while anything is still deferred. Both completion paths gate
+        // on the live address, so repointing here would strand the tokens held against it.
+        if (_bridgeHook != bridgeHook && outstandingBridgeHookItems != 0) {
+            revert L1StandardBridge_BridgeHookItemsOutstanding();
+        }
+
+        bridgeHook = _bridgeHook;
+        emit BridgeHookSet(address(_bridgeHook));
     }
 
     /// @notice Returns the SuperchainConfig contract.
