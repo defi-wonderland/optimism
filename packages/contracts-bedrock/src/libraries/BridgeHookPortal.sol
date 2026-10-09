@@ -117,7 +117,7 @@ library BridgeHookPortal {
     {
         if (self.inHook) revert OptimismPortal_NoReentrancy();
 
-        Item memory item = BridgeHookItem.fromWithdrawalTransaction(_tx, _withdrawalHash);
+        Item memory item = BridgeHookItem.fromWithdrawalTransaction(_tx);
         bytes memory message = recognizeTokenTransfer(item, _systemConfig);
 
         self.inHook = true;
@@ -146,7 +146,7 @@ library BridgeHookPortal {
 
         bytes32 id = BridgeHookItem.hash(_item);
         if (!self.heldDeposits[id]) revert OptimismPortal_NotHeld();
-        if (msg.value != (_item.asset == Asset.ETH ? _item.amount : 0)) revert OptimismPortal_ValueMismatch();
+        if (msg.value != _item.ethAmount) revert OptimismPortal_ValueMismatch();
 
         delete self.heldDeposits[id];
         self.outstandingItems--;
@@ -183,8 +183,8 @@ library BridgeHookPortal {
         if (_item.asset == Asset.ERC20) _restoreERC20(self, _systemConfig, Direction.Withdrawal, _item.data);
     }
 
-    /// @notice Marks an item as a token transfer if it is a message between the standard bridges,
-    ///         and fills its token fields.
+    /// @notice Marks an item as a token transfer if it is a message between the standard bridges.
+    ///         Its tokens and amount stay in its data.
     /// @param _item         The item, built as an ETH item.
     /// @param _systemConfig The SystemConfig, for the bridge and messenger addresses.
     /// @return message_ The bridge's finalizeBridgeERC20 message, or empty if it is not one.
@@ -197,7 +197,7 @@ library BridgeHookPortal {
         returns (bytes memory message_)
     {
         // Token transfers carry no ETH.
-        if (_item.amount != 0) return message_;
+        if (_item.ethAmount != 0) return message_;
 
         bool isDeposit = _item.direction == Direction.Deposit;
         {
@@ -223,15 +223,10 @@ library BridgeHookPortal {
             message = inner;
         }
 
-        (bool isTransfer, address token0, address token1, uint256 amount) =
-            BridgeHookItem.decodeFinalizeBridgeERC20(message);
+        (bool isTransfer,,,) = BridgeHookItem.decodeFinalizeBridgeERC20(message);
         if (!isTransfer) return message_;
 
-        // A deposit is the message sent to L2, which names the L2 token first. A withdrawal is the
-        // message received from L2, which names the L1 token first.
         _item.asset = Asset.ERC20;
-        (_item.localToken, _item.remoteToken) = isDeposit ? (token1, token0) : (token0, token1);
-        _item.amount = amount;
         message_ = message;
     }
 
@@ -273,12 +268,12 @@ library BridgeHookPortal {
         item_.from = _from;
         item_.aliased = _from != msg.sender;
         item_.to = _to;
-        item_.amount = msg.value;
-        item_.value = _value;
+        item_.ethAmount = msg.value;
+        item_.l2Value = _value;
         item_.gasLimit = _gasLimit;
         item_.isCreation = _isCreation;
         item_.data = _data;
-        item_.uid = bytes32(uint256(self.depositNonce++));
+        item_.nonce = self.depositNonce++;
     }
 
     /// @notice Has the L1StandardBridge take back the escrow of a held token transfer.

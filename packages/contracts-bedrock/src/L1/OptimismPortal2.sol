@@ -936,7 +936,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
             _item.from,
             _item.to,
             DEPOSIT_VERSION,
-            abi.encodePacked(msg.value, _item.value, uint64(_item.gasLimit), _item.isCreation, _item.data)
+            abi.encodePacked(msg.value, _item.l2Value, uint64(_item.gasLimit), _item.isCreation, _item.data)
         );
     }
 
@@ -957,8 +957,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // Held value must not fall back into protocol contracts, so a failed call reverts.
         if (!success || BridgeHookPortal.isFailedRelay(wtx, systemConfig)) revert OptimismPortal_RelayFailed();
 
-        // The item's unique field is the withdrawal hash.
-        emit WithdrawalFinalized(_item.uid, true);
+        emit WithdrawalFinalized(Hashing.hashWithdrawal(wtx), true);
     }
 
     /// @notice Address of the bridge hook.

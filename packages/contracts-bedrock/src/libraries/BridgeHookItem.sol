@@ -23,35 +23,30 @@ enum Asset {
 
 /// @notice One deposit or one withdrawal, as the OptimismPortal sees it. Its hash is the item's
 ///         identifier. It is emitted when the item is held and supplied again when it completes.
-/// @custom:field direction   Whether the item is a deposit or a withdrawal.
-/// @custom:field asset       Asset the item moves.
-/// @custom:field from        Deposit sender, aliased if it is a contract, or withdrawal sender.
-/// @custom:field aliased     Whether `from` is aliased.
-/// @custom:field to          Deposit or withdrawal target.
-/// @custom:field localToken  L1 token of a token transfer.
-/// @custom:field remoteToken L2 token of a token transfer.
-/// @custom:field amount      ETH of an ETH item, token amount of an ERC20 item.
-/// @custom:field value       ETH value of the L2 call. Deposits only.
-/// @custom:field gasLimit    Deposit or withdrawal gas limit.
-/// @custom:field isCreation  Whether the deposit creates a contract.
-/// @custom:field data        Deposit or withdrawal calldata.
-/// @custom:field nonce       Withdrawal nonce.
-/// @custom:field uid         Deposit counter or withdrawal hash.
+/// @custom:field direction  Whether the item is a deposit or a withdrawal.
+/// @custom:field asset      ERC20 when the Portal recognizes a transfer between the standard bridges.
+/// @custom:field from       Deposit sender, aliased if it is a contract, or withdrawal sender.
+/// @custom:field aliased    Whether `from` is aliased.
+/// @custom:field to         Deposit or withdrawal target.
+/// @custom:field ethAmount  A deposit's msg.value or a withdrawal's value. Zero for a token transfer.
+/// @custom:field l2Value    ETH value of the L2 call. Deposits only.
+/// @custom:field gasLimit   Deposit or withdrawal gas limit.
+/// @custom:field isCreation Whether the deposit creates a contract.
+/// @custom:field data       Deposit or withdrawal calldata. A token transfer carries its tokens and
+///                          amount here.
+/// @custom:field nonce      Deposit counter or withdrawal nonce.
 struct Item {
     Direction direction;
     Asset asset;
     address from;
     bool aliased;
     address to;
-    address localToken;
-    address remoteToken;
-    uint256 amount;
-    uint256 value;
+    uint256 ethAmount;
+    uint256 l2Value;
     uint256 gasLimit;
     bool isCreation;
     bytes data;
     uint256 nonce;
-    bytes32 uid;
 }
 
 /// @title BridgeHookItem
@@ -65,32 +60,21 @@ library BridgeHookItem {
     }
 
     /// @notice Builds the ETH item of a withdrawal transaction.
-    /// @param _tx             Withdrawal transaction.
-    /// @param _withdrawalHash Hash of the withdrawal transaction.
+    /// @param _tx Withdrawal transaction.
     /// @return The item.
-    function fromWithdrawalTransaction(
-        Types.WithdrawalTransaction memory _tx,
-        bytes32 _withdrawalHash
-    )
-        internal
-        pure
-        returns (Item memory)
-    {
+    function fromWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) internal pure returns (Item memory) {
         return Item({
             direction: Direction.Withdrawal,
             asset: Asset.ETH,
             from: _tx.sender,
             aliased: false,
             to: _tx.target,
-            localToken: address(0),
-            remoteToken: address(0),
-            amount: _tx.value,
-            value: 0,
+            ethAmount: _tx.value,
+            l2Value: 0,
             gasLimit: _tx.gasLimit,
             isCreation: false,
             data: _tx.data,
-            nonce: _tx.nonce,
-            uid: _withdrawalHash
+            nonce: _tx.nonce
         });
     }
 
@@ -102,10 +86,37 @@ library BridgeHookItem {
             nonce: _item.nonce,
             sender: _item.from,
             target: _item.to,
-            value: _item.asset == Asset.ETH ? _item.amount : 0,
+            value: _item.ethAmount,
             gasLimit: _item.gasLimit,
             data: _item.data
         });
+    }
+
+    /// @notice Reads the tokens and the amount of a token transfer item from its data.
+    /// @param _item An item.
+    /// @return ok_          Whether the item is a token transfer.
+    /// @return localToken_  L1 token.
+    /// @return remoteToken_ L2 token.
+    /// @return amount_      Amount transferred.
+    function decodeTokenTransfer(Item memory _item)
+        internal
+        pure
+        returns (bool ok_, address localToken_, address remoteToken_, uint256 amount_)
+    {
+        // Only the Portal's recognition checks that the bridges sent the message, so an ETH item's
+        // data is not read as a transfer.
+        if (_item.asset != Asset.ERC20) return (false, address(0), address(0), 0);
+
+        (bool isEnvelope,,, bytes memory message) = decodeRelayMessage(_item.data);
+        if (!isEnvelope) return (false, address(0), address(0), 0);
+
+        address token0;
+        address token1;
+        (ok_, token0, token1, amount_) = decodeFinalizeBridgeERC20(message);
+
+        // A deposit is the message sent to L2, which names the L2 token first. A withdrawal is the
+        // message received from L2, which names the L1 token first.
+        (localToken_, remoteToken_) = _item.direction == Direction.Deposit ? (token1, token0) : (token0, token1);
     }
 
     /// @notice Reads the inner sender, target and message of a relayMessage envelope.

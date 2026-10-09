@@ -111,6 +111,9 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
     /// @notice Thrown when the module's balance of a token does not cover what it holds.
     error ComplianceModule_Undelivered();
 
+    /// @notice Thrown when a token item's data is not a token transfer.
+    error ComplianceModule_NotTokenTransfer();
+
     /// @notice Semantic version.
     /// @custom:semver 0.1.0
     function version() public pure virtual returns (string memory) {
@@ -208,9 +211,9 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
         bytes32 id = _consume(_item);
         emit Completed(id);
 
-        bool approved = _releaseTokens(_item);
-        portal.completeDepositTransaction{ value: _item.asset == Asset.ETH ? _item.amount : 0 }(_item);
-        if (approved) _approveBridge(_item.localToken, 0);
+        address approved = _releaseTokens(_item);
+        portal.completeDepositTransaction{ value: _item.ethAmount }(_item);
+        if (approved != address(0)) _approveBridge(approved, 0);
     }
 
     /// @notice Completes a held withdrawal once it is cleared. Anyone can call it, and the terms
@@ -220,9 +223,9 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
         bytes32 id = _consume(_item);
         emit Completed(id);
 
-        bool approved = _releaseTokens(_item);
-        portal.completeWithdrawalTransaction{ value: _item.asset == Asset.ETH ? _item.amount : 0 }(_item);
-        if (approved) _approveBridge(_item.localToken, 0);
+        address approved = _releaseTokens(_item);
+        portal.completeWithdrawalTransaction{ value: _item.ethAmount }(_item);
+        if (approved != address(0)) _approveBridge(approved, 0);
     }
 
     /// @notice Resolves the parties the policy screens: the item's sender and target, or the ones
@@ -261,13 +264,16 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
     ///         balance covers the tokens it now holds.
     /// @param _item The held item.
     function _hold(Item calldata _item) internal {
-        if (msg.value != (_item.asset == Asset.ETH ? _item.amount : 0)) revert ComplianceModule_ValueMismatch();
+        if (msg.value != _item.ethAmount) revert ComplianceModule_ValueMismatch();
 
         // The bridge sent the tokens just before this call.
-        if (_item.asset == Asset.ERC20 && _isEscrowed(_item.localToken)) {
-            heldTokens[_item.localToken][_item.remoteToken] += _item.amount;
-            uint256 total = heldTokenTotal[_item.localToken] += _item.amount;
-            if (IERC20(_item.localToken).balanceOf(address(this)) < total) revert ComplianceModule_Undelivered();
+        if (_item.asset == Asset.ERC20) {
+            (address localToken, address remoteToken, uint256 amount) = _tokenTransfer(_item);
+            if (_isEscrowed(localToken)) {
+                heldTokens[localToken][remoteToken] += amount;
+                uint256 total = heldTokenTotal[localToken] += amount;
+                if (IERC20(localToken).balanceOf(address(this)) < total) revert ComplianceModule_Undelivered();
+            }
         }
 
         bytes32 id = BridgeHookItem.hash(_item);
@@ -295,14 +301,34 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
     /// @notice Drops a held token item from the token totals and approves the bridge to pull its
     ///         tokens back.
     /// @param _item The held item.
-    /// @return approved_ Whether the bridge was approved, false for ETH and tokens native to L2.
-    function _releaseTokens(Item calldata _item) internal returns (bool approved_) {
-        if (_item.asset != Asset.ERC20 || !_isEscrowed(_item.localToken)) return false;
+    /// @return approved_ The token approved, or zero for ETH and tokens native to L2.
+    function _releaseTokens(Item calldata _item) internal returns (address approved_) {
+        if (_item.asset != Asset.ERC20) return address(0);
 
-        heldTokens[_item.localToken][_item.remoteToken] -= _item.amount;
-        heldTokenTotal[_item.localToken] -= _item.amount;
-        _approveBridge(_item.localToken, _item.amount);
-        approved_ = true;
+        (address localToken, address remoteToken, uint256 amount) = _tokenTransfer(_item);
+        if (!_isEscrowed(localToken)) return address(0);
+
+        heldTokens[localToken][remoteToken] -= amount;
+        heldTokenTotal[localToken] -= amount;
+        _approveBridge(localToken, amount);
+        approved_ = localToken;
+    }
+
+    /// @notice Reads the tokens and the amount of a token item from its data.
+    /// @param _item A token item.
+    /// @return localToken_  L1 token.
+    /// @return remoteToken_ L2 token.
+    /// @return amount_      Amount transferred.
+    function _tokenTransfer(Item calldata _item)
+        internal
+        pure
+        returns (address localToken_, address remoteToken_, uint256 amount_)
+    {
+        bool ok;
+        (ok, localToken_, remoteToken_, amount_) = BridgeHookItem.decodeTokenTransfer(_item);
+
+        // The Portal only marks an item as a token transfer after decoding the same message.
+        if (!ok) revert ComplianceModule_NotTokenTransfer();
     }
 
     /// @notice Whether the L1StandardBridge escrows a token, by the same check it makes. A token

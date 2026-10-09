@@ -26,6 +26,7 @@ interface IComplianceModule is IBridgeHook, IProxyAdminOwnedBase {
     error ComplianceModule_ValueMismatch();
     error ComplianceModule_ZeroAddress();
     error ComplianceModule_Undelivered();
+    error ComplianceModule_NotTokenTransfer();
 
     function version() external pure returns (string memory);
     function initialize(address _policy) external;
