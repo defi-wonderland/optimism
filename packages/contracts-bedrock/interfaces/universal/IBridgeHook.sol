@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import { Item } from "src/libraries/BridgeHookItem.sol";
 
 /// @title IBridgeHook
-/// @notice Contract the OptimismPortal asks about every deposit and withdrawal when the
-///         BRIDGE_HOOK feature is enabled.
+/// @notice Contract the OptimismPortal asks about every deposit and withdrawal when it is set as
+///         the Portal's bridge hook.
 interface IBridgeHook {
     /// @notice Screens a deposit. A revert rejects it.
     /// @param _item The deposit.

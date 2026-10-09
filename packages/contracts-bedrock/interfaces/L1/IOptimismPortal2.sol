@@ -44,7 +44,6 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     error OptimismPortal_LockboxNotAuthorizedForPortal();
     error OptimismPortal_DisputeGameNotInvalidated();
     error OptimismPortal_NotBridgeHook();
-    error OptimismPortal_InvalidBridgeHookState();
     error OptimismPortal_BridgeHookItemsOutstanding();
     error OptimismPortal_NotHeld();
     error OptimismPortal_ValueMismatch();
@@ -68,14 +67,14 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
     event BridgeHookSet(address indexed bridgeHook);
     event DepositHeld(bytes32 indexed id);
-    event WithdrawalHeld(bytes32 indexed withdrawalHash);
+    event WithdrawalHeld(bytes32 indexed id, bytes32 indexed withdrawalHash);
 
     receive() external payable;
 
     function anchorStateRegistry() external view returns (IAnchorStateRegistry);
     function bridgeHook() external view returns (IBridgeHook);
     function completeDepositTransaction(Item memory _item) external payable;
-    function completeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external payable;
+    function completeWithdrawalTransaction(Item memory _item) external payable;
     function depositNonce() external view returns (uint64);
     function heldDeposits(bytes32) external view returns (bool);
     function heldWithdrawals(bytes32) external view returns (bool);

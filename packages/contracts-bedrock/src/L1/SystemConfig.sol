@@ -552,11 +552,6 @@ contract SystemConfig is ProxyAdminOwnedBase, OwnableUpgradeable, Reinitializabl
             if (superchainConfig.paused(optimismPortal())) {
                 revert SystemConfig_InvalidFeatureState();
             }
-        } else if (_feature == Features.BRIDGE_HOOK) {
-            // Held items complete through the Portal's hook address, so it has to be unset first.
-            if (!_enabled && address(IOptimismPortal2(payable(optimismPortal())).bridgeHook()) != address(0)) {
-                revert SystemConfig_InvalidFeatureState();
-            }
         }
 
         // Set the feature.

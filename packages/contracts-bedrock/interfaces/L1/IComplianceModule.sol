@@ -25,6 +25,7 @@ interface IComplianceModule is IBridgeHook, IProxyAdminOwnedBase {
     error ComplianceModule_Declined();
     error ComplianceModule_ValueMismatch();
     error ComplianceModule_ZeroAddress();
+    error ComplianceModule_Undelivered();
 
     function version() external pure returns (string memory);
     function initialize(address _policy) external;
@@ -34,6 +35,8 @@ interface IComplianceModule is IBridgeHook, IProxyAdminOwnedBase {
     function policy() external view returns (address);
     function disabled() external view returns (bool);
     function items(bytes32) external view returns (uint64 heldAt, uint64 clearedAt);
+    function heldTokens(address, address) external view returns (uint256);
+    function heldTokenTotal(address) external view returns (uint256);
     function setPolicy(address _policy) external;
     function setDisabled(bool _disabled) external;
     function recordVerdict(bytes32 _id) external;

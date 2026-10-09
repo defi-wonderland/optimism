@@ -39,8 +39,4 @@ library Features {
 
     /// @notice The INTEROP feature determines if the system is configured to use interop.
     bytes32 internal constant INTEROP = "INTEROP";
-
-    /// @notice The BRIDGE_HOOK feature determines if the OptimismPortal asks a bridge hook about
-    ///         every deposit and withdrawal, and lets it hold them.
-    bytes32 internal constant BRIDGE_HOOK = "BRIDGE_HOOK";
 }

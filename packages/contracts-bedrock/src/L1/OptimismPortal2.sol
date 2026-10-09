@@ -17,8 +17,8 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Claim, GameStatus, GameType, GameTypes } from "src/dispute/lib/Types.sol";
 import { Features } from "src/libraries/Features.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
-import { Asset, BridgeHookItem, Direction, Item } from "src/libraries/BridgeHookItem.sol";
+import { Item } from "src/libraries/BridgeHookItem.sol";
+import { BridgeHookPortal } from "src/libraries/BridgeHookPortal.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -31,8 +31,6 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
-import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenger.sol";
-import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortal2
@@ -136,24 +134,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @custom:spacer superRootsActive
     bool private spacer_63_20_1;
 
-    /// @notice Address of the bridge hook.
+    /// @notice The bridge hook and the items it holds.
     /// @custom:network-specific
-    IBridgeHook public bridgeHook;
-
-    /// @notice Whether the bridge hook or an escrow move is being called.
-    bool internal _inBridgeHook;
-
-    /// @notice Counter that makes each deposit the bridge hook screens unique.
-    uint64 public depositNonce;
-
-    /// @notice Number of items held by the bridge hook.
-    uint64 public outstandingBridgeHookItems;
-
-    /// @notice Deposits held by the bridge hook, keyed by item identifier.
-    mapping(bytes32 => bool) public heldDeposits;
-
-    /// @notice Withdrawals held by the bridge hook, keyed by withdrawal hash.
-    mapping(bytes32 => bool) public heldWithdrawals;
+    BridgeHookPortal.State internal _bridgeHookState;
 
     /// @notice Emitted when the Portal is migrated.
     /// @param oldLockbox The lockbox before the migration
@@ -210,8 +193,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     event DepositHeld(bytes32 indexed id);
 
     /// @notice Emitted when the bridge hook holds a withdrawal.
+    /// @param id             Identifier of the held withdrawal.
     /// @param withdrawalHash Hash of the withdrawal transaction.
-    event WithdrawalHeld(bytes32 indexed withdrawalHash);
+    event WithdrawalHeld(bytes32 indexed id, bytes32 indexed withdrawalHash);
 
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();
@@ -289,9 +273,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Thrown when the caller is not the bridge hook.
     error OptimismPortal_NotBridgeHook();
-
-    /// @notice Thrown when a bridge hook is set without the BRIDGE_HOOK feature.
-    error OptimismPortal_InvalidBridgeHookState();
 
     /// @notice Thrown when the bridge hook is changed while it holds items.
     error OptimismPortal_BridgeHookItemsOutstanding();
@@ -666,7 +647,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // A withdrawal the bridge hook holds is not executed, and its value goes to the hook.
         if (_isUsingBridgeHook()) {
-            if (!_screenWithdrawal(_tx, withdrawalHash, _proofSubmitter)) return;
+            if (
+                !BridgeHookPortal.screenWithdrawal(
+                    _bridgeHookState, systemConfig, _tx, withdrawalHash, _finalizableAt(withdrawalHash, _proofSubmitter)
+                )
+            ) return;
         }
 
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
@@ -686,7 +671,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // With a bridge hook, a relay the messenger did not record as successful reverts, so it is
         // retried through a finalization, screened again, instead of replayed on the messenger.
-        if (_isUsingBridgeHook() && _isFailedRelay(_tx)) revert OptimismPortal_RelayFailed();
+        if (_isUsingBridgeHook() && BridgeHookPortal.isFailedRelay(_tx, systemConfig)) {
+            revert OptimismPortal_RelayFailed();
+        }
 
         // All withdrawals are immediately finalized. Replayability can
         // be achieved through contracts built on top of this contract
@@ -825,7 +812,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // A deposit the bridge hook holds is not emitted, and its ETH goes to the hook instead of
         // the ETHLockbox.
         if (_isUsingBridgeHook()) {
-            if (!_screenDeposit(from, _to, _value, _gasLimit, _isCreation, _data)) return;
+            if (
+                !BridgeHookPortal.screenDeposit(
+                    _bridgeHookState, systemConfig, from, _to, _value, _gasLimit, _isCreation, _data
+                )
+            ) return;
         }
 
         // If using ETHLockbox, lock the ETH in the ETHLockbox.
@@ -898,8 +889,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // moves.
         return _target == address(this) || _target == address(ethLockbox)
             || (
-                address(bridgeHook) != address(0)
-                    && (_target == address(bridgeHook) || _target == systemConfig.l1StandardBridge())
+                _isUsingBridgeHook()
+                    && (_target == address(_bridgeHookState.hook) || _target == systemConfig.l1StandardBridge())
             );
     }
 
@@ -914,8 +905,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Bridge hook. The code below is likely to move to a separate contract, since this contract is
-    // close to the contract size limit.
+    // Bridge hook. Its logic is in BridgeHookPortal.
     // ---------------------------------------------------------------------------------------------
 
     /// @notice Sets the bridge hook. Only callable by the ProxyAdmin owner, and only while the hook
@@ -923,13 +913,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param _bridgeHook Address of the bridge hook, or zero to unset it.
     function setBridgeHook(IBridgeHook _bridgeHook) external {
         _assertOnlyProxyAdminOwner();
+        if (_bridgeHookState.outstandingItems != 0) revert OptimismPortal_BridgeHookItemsOutstanding();
 
-        if (address(_bridgeHook) != address(0) && !systemConfig.isFeatureEnabled(Features.BRIDGE_HOOK)) {
-            revert OptimismPortal_InvalidBridgeHookState();
-        }
-        if (outstandingBridgeHookItems != 0) revert OptimismPortal_BridgeHookItemsOutstanding();
-
-        bridgeHook = _bridgeHook;
+        _bridgeHookState.hook = _bridgeHook;
         emit BridgeHookSet(address(_bridgeHook));
     }
 
@@ -937,22 +923,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     ///         hook, which sends the deposit's ETH with the call.
     /// @param _item The held deposit.
     function completeDepositTransaction(Item memory _item) external payable {
-        if (msg.sender != address(bridgeHook)) revert OptimismPortal_NotBridgeHook();
-        if (_inBridgeHook) revert OptimismPortal_NoReentrancy();
-
-        bytes32 id = BridgeHookItem.hash(_item);
-        if (!heldDeposits[id]) revert OptimismPortal_NotHeld();
-        if (msg.value != (_item.asset == Asset.ETH ? _item.amount : 0)) revert OptimismPortal_ValueMismatch();
-
-        delete heldDeposits[id];
-        outstandingBridgeHookItems--;
-
-        if (_item.asset == Asset.ERC20) {
-            (,,, bytes memory message) = BridgeHookItem.decodeRelayMessage(_item.data);
-            _inBridgeHook = true;
-            _l1StandardBridge().restoreERC20(Direction.Deposit, message);
-            _inBridgeHook = false;
-        }
+        BridgeHookPortal.completeDeposit(_bridgeHookState, systemConfig, _item);
 
         // Paid for at submission. Counted against this block, since this is where it reaches L2.
         _allocateResource(uint64(_item.gasLimit));
@@ -971,167 +942,50 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Completes a held withdrawal on the terms it was held with. Only callable by the
     ///         bridge hook, which sends the withdrawal's ETH with the call.
-    /// @param _tx The held withdrawal.
-    function completeWithdrawalTransaction(Types.WithdrawalTransaction memory _tx) external payable {
-        if (msg.sender != address(bridgeHook)) revert OptimismPortal_NotBridgeHook();
+    /// @param _item The held withdrawal.
+    function completeWithdrawalTransaction(Item memory _item) external payable {
         _assertNotPaused();
-        if (l2Sender != Constants.DEFAULT_L2_SENDER || _inBridgeHook) revert OptimismPortal_NoReentrancy();
+        if (l2Sender != Constants.DEFAULT_L2_SENDER) revert OptimismPortal_NoReentrancy();
 
-        bytes32 withdrawalHash = Hashing.hashWithdrawal(_tx);
-        if (!heldWithdrawals[withdrawalHash]) revert OptimismPortal_NotHeld();
-        if (msg.value != _tx.value) revert OptimismPortal_ValueMismatch();
+        Types.WithdrawalTransaction memory wtx =
+            BridgeHookPortal.completeWithdrawal(_bridgeHookState, systemConfig, _item);
 
-        delete heldWithdrawals[withdrawalHash];
-        outstandingBridgeHookItems--;
-
-        Item memory item = BridgeHookItem.fromWithdrawalTransaction(_tx, withdrawalHash);
-        bytes memory message = _recognizeTokenTransfer(item);
-        if (item.asset == Asset.ERC20) {
-            _inBridgeHook = true;
-            _l1StandardBridge().restoreERC20(Direction.Withdrawal, message);
-            _inBridgeHook = false;
-        }
-
-        l2Sender = _tx.sender;
-        bool success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
+        l2Sender = wtx.sender;
+        bool success = SafeCall.callWithMinGas(wtx.target, wtx.gasLimit, wtx.value, wtx.data);
         l2Sender = Constants.DEFAULT_L2_SENDER;
 
         // Held value must not fall back into protocol contracts, so a failed call reverts.
-        if (!success || _isFailedRelay(_tx)) revert OptimismPortal_RelayFailed();
+        if (!success || BridgeHookPortal.isFailedRelay(wtx, systemConfig)) revert OptimismPortal_RelayFailed();
 
-        emit WithdrawalFinalized(withdrawalHash, true);
+        // The item's unique field is the withdrawal hash.
+        emit WithdrawalFinalized(_item.uid, true);
     }
 
-    /// @notice Asks the bridge hook about a deposit. On a hold, commits to the deposit's terms and
-    ///         hands its value to the hook.
-    /// @param _from       Sender of the deposit, aliased if it is a contract.
-    /// @param _to         Target address on L2.
-    /// @param _value      ETH value to send to the recipient.
-    /// @param _gasLimit   Amount of L2 gas purchased.
-    /// @param _isCreation Whether or not the transaction is a contract creation.
-    /// @param _data       Data to trigger the recipient with.
-    /// @return pass_ True if the deposit proceeds.
-    function _screenDeposit(
-        address _from,
-        address _to,
-        uint256 _value,
-        uint64 _gasLimit,
-        bool _isCreation,
-        bytes memory _data
-    )
-        internal
-        returns (bool pass_)
-    {
-        if (_inBridgeHook) revert OptimismPortal_NoReentrancy();
-
-        Item memory item = Item({
-            direction: Direction.Deposit,
-            asset: Asset.ETH,
-            from: _from,
-            aliased: _from != msg.sender,
-            to: _to,
-            localToken: address(0),
-            remoteToken: address(0),
-            amount: msg.value,
-            value: _value,
-            gasLimit: _gasLimit,
-            isCreation: _isCreation,
-            data: _data,
-            nonce: 0,
-            uid: bytes32(uint256(depositNonce++))
-        });
-        bytes memory message = _recognizeTokenTransfer(item);
-
-        _inBridgeHook = true;
-        pass_ = bridgeHook.screenDeposit(item);
-        if (!pass_) {
-            bytes32 id = BridgeHookItem.hash(item);
-            heldDeposits[id] = true;
-            outstandingBridgeHookItems++;
-            emit DepositHeld(id);
-
-            if (item.asset == Asset.ERC20) _l1StandardBridge().holdERC20(Direction.Deposit, message);
-            bridgeHook.holdDeposit{ value: msg.value }(item);
-        }
-        _inBridgeHook = false;
+    /// @notice Address of the bridge hook.
+    function bridgeHook() external view returns (IBridgeHook) {
+        return _bridgeHookState.hook;
     }
 
-    /// @notice Asks the bridge hook about a withdrawal being finalized, telling it when the
-    ///         withdrawal became finalizable. On a hold, commits to the withdrawal and hands its
-    ///         value to the hook.
-    /// @param _tx             Withdrawal transaction.
-    /// @param _withdrawalHash Hash of the withdrawal transaction.
-    /// @param _proofSubmitter Address of the proof submitter.
-    /// @return pass_ True if the withdrawal is paid.
-    function _screenWithdrawal(
-        Types.WithdrawalTransaction memory _tx,
-        bytes32 _withdrawalHash,
-        address _proofSubmitter
-    )
-        internal
-        returns (bool pass_)
-    {
-        if (_inBridgeHook) revert OptimismPortal_NoReentrancy();
-
-        Item memory item = BridgeHookItem.fromWithdrawalTransaction(_tx, _withdrawalHash);
-        bytes memory message = _recognizeTokenTransfer(item);
-        uint256 finalizableAt = _finalizableAt(_withdrawalHash, _proofSubmitter);
-
-        _inBridgeHook = true;
-        pass_ = bridgeHook.screenWithdrawal(item, finalizableAt);
-        if (!pass_) {
-            heldWithdrawals[_withdrawalHash] = true;
-            outstandingBridgeHookItems++;
-            emit WithdrawalHeld(_withdrawalHash);
-
-            if (item.asset == Asset.ERC20) _l1StandardBridge().holdERC20(Direction.Withdrawal, message);
-            bridgeHook.holdWithdrawal{ value: _tx.value }(item);
-        }
-        _inBridgeHook = false;
+    /// @notice Counter that makes each deposit the bridge hook screens unique.
+    function depositNonce() external view returns (uint64) {
+        return _bridgeHookState.depositNonce;
     }
 
-    /// @notice Marks an item as a token transfer if it is a message between the standard bridges,
-    ///         and fills its token fields.
-    /// @param _item The item, built as an ETH item.
-    /// @return message_ The bridge's finalizeBridgeERC20 message, or empty if it is not one.
-    function _recognizeTokenTransfer(Item memory _item) internal view returns (bytes memory message_) {
-        // Token transfers carry no ETH.
-        if (_item.amount != 0) return message_;
+    /// @notice Number of items held by the bridge hook.
+    function outstandingBridgeHookItems() external view returns (uint64) {
+        return _bridgeHookState.outstandingItems;
+    }
 
-        bool isDeposit = _item.direction == Direction.Deposit;
-        {
-            address messenger = systemConfig.l1CrossDomainMessenger();
-            bool fromMessenger = isDeposit
-                ? _item.aliased && _item.from == AddressAliasHelper.applyL1ToL2Alias(messenger)
-                    && _item.to == Predeploys.L2_CROSS_DOMAIN_MESSENGER
-                : _item.from == Predeploys.L2_CROSS_DOMAIN_MESSENGER && _item.to == messenger;
-            if (!fromMessenger) return message_;
-        }
+    /// @notice Whether a deposit is held by the bridge hook.
+    /// @param _id Identifier of the deposit item.
+    function heldDeposits(bytes32 _id) external view returns (bool) {
+        return _bridgeHookState.heldDeposits[_id];
+    }
 
-        bytes memory message;
-        {
-            (bool ok, address sender, address target, bytes memory inner) =
-                BridgeHookItem.decodeRelayMessage(_item.data);
-            address bridge = systemConfig.l1StandardBridge();
-
-            // The messenger stamps the inner sender, so only the bridges can produce a match.
-            bool betweenBridges = isDeposit
-                ? sender == bridge && target == Predeploys.L2_STANDARD_BRIDGE
-                : sender == Predeploys.L2_STANDARD_BRIDGE && target == bridge;
-            if (!ok || !betweenBridges) return message_;
-            message = inner;
-        }
-
-        (bool isTransfer, address token0, address token1, uint256 amount) =
-            BridgeHookItem.decodeFinalizeBridgeERC20(message);
-        if (!isTransfer) return message_;
-
-        // A deposit is the message sent to L2, which names the L2 token first. A withdrawal is the
-        // message received from L2, which names the L1 token first.
-        _item.asset = Asset.ERC20;
-        (_item.localToken, _item.remoteToken) = isDeposit ? (token1, token0) : (token0, token1);
-        _item.amount = amount;
-        message_ = message;
+    /// @notice Whether a withdrawal is held by the bridge hook.
+    /// @param _id Identifier of the withdrawal item.
+    function heldWithdrawals(bytes32 _id) external view returns (bool) {
+        return _bridgeHookState.heldWithdrawals[_id];
     }
 
     /// @notice Returns when a withdrawal became finalizable with the given proof: once the proof
@@ -1147,27 +1001,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         return maturedAt > finalAt ? maturedAt : finalAt;
     }
 
-    /// @notice Checks if a withdrawal is a relay through the L1CrossDomainMessenger that the
-    ///         messenger did not record as successful.
-    /// @param _tx Withdrawal transaction.
-    /// @return True if the relay failed.
-    function _isFailedRelay(Types.WithdrawalTransaction memory _tx) internal view returns (bool) {
-        address messenger = systemConfig.l1CrossDomainMessenger();
-        if (_tx.sender != Predeploys.L2_CROSS_DOMAIN_MESSENGER || _tx.target != messenger) return false;
-
-        (bool ok, bytes32 messageHash) = BridgeHookItem.relayMessageHash(_tx.data);
-        return !ok || !ICrossDomainMessenger(messenger).successfulMessages(messageHash);
-    }
-
-    /// @notice Returns the L1StandardBridge.
-    /// @return The L1StandardBridge.
-    function _l1StandardBridge() internal view returns (IL1StandardBridge) {
-        return IL1StandardBridge(payable(systemConfig.l1StandardBridge()));
-    }
-
-    /// @notice Checks if a bridge hook is set and the BRIDGE_HOOK feature is enabled.
+    /// @notice Checks if a bridge hook is set.
     /// @return bool True if the bridge hook is in use.
     function _isUsingBridgeHook() internal view returns (bool) {
-        return address(bridgeHook) != address(0) && systemConfig.isFeatureEnabled(Features.BRIDGE_HOOK);
+        return address(_bridgeHookState.hook) != address(0);
     }
 }

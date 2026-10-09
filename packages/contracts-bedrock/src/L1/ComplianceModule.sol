@@ -7,6 +7,7 @@ import { ProxyAdminOwnedBase } from "src/universal/ProxyAdminOwnedBase.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Asset, BridgeHookItem, Direction, Item } from "src/libraries/BridgeHookItem.sol";
@@ -17,6 +18,8 @@ import { ISemver } from "interfaces/universal/ISemver.sol";
 import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
 import { IPolicy } from "interfaces/L1/IPolicy.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
+import { IOptimismMintableERC20 } from "interfaces/universal/IOptimismMintableERC20.sol";
+import { ILegacyMintableERC20 } from "interfaces/legacy/ILegacyMintableERC20.sol";
 
 /// @custom:proxied true
 /// @title ComplianceModule
@@ -50,6 +53,12 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
 
     /// @notice Verdict registry, keyed by item identifier.
     mapping(bytes32 => Record) public items;
+
+    /// @notice Tokens held per L1 token and L2 token, like the L1StandardBridge's deposits.
+    mapping(address => mapping(address => uint256)) public heldTokens;
+
+    /// @notice Tokens held per L1 token, across its L2 tokens.
+    mapping(address => uint256) public heldTokenTotal;
 
     /// @notice Emitted when an item is held.
     /// @param id   Identifier of the item.
@@ -98,6 +107,9 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
 
     /// @notice Thrown when the policy is set to the zero address.
     error ComplianceModule_ZeroAddress();
+
+    /// @notice Thrown when the module's balance of a token does not cover what it holds.
+    error ComplianceModule_Undelivered();
 
     /// @notice Semantic version.
     /// @custom:semver 0.1.0
@@ -196,13 +208,9 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
         bytes32 id = _consume(_item);
         emit Completed(id);
 
-        if (_item.asset == Asset.ETH) {
-            portal.completeDepositTransaction{ value: _item.amount }(_item);
-        } else {
-            _approveBridge(_item.localToken, _item.amount);
-            portal.completeDepositTransaction(_item);
-            _approveBridge(_item.localToken, 0);
-        }
+        bool approved = _releaseTokens(_item);
+        portal.completeDepositTransaction{ value: _item.asset == Asset.ETH ? _item.amount : 0 }(_item);
+        if (approved) _approveBridge(_item.localToken, 0);
     }
 
     /// @notice Completes a held withdrawal once it is cleared. Anyone can call it, and the terms
@@ -212,22 +220,19 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
         bytes32 id = _consume(_item);
         emit Completed(id);
 
-        if (_item.asset == Asset.ETH) {
-            portal.completeWithdrawalTransaction{ value: _item.amount }(BridgeHookItem.toWithdrawalTransaction(_item));
-        } else {
-            _approveBridge(_item.localToken, _item.amount);
-            portal.completeWithdrawalTransaction(BridgeHookItem.toWithdrawalTransaction(_item));
-            _approveBridge(_item.localToken, 0);
-        }
+        bool approved = _releaseTokens(_item);
+        portal.completeWithdrawalTransaction{ value: _item.asset == Asset.ETH ? _item.amount : 0 }(_item);
+        if (approved) _approveBridge(_item.localToken, 0);
     }
 
     /// @notice Resolves the parties the policy screens: the item's sender and target, or the ones
     ///         inside it when it is a messenger envelope, down to the user for a standard bridge
-    ///         transfer. Anything that does not decode keeps the outer parties.
+    ///         transfer. Anything that does not decode keeps the outer parties. An aliased sender
+    ///         is passed unaliased, so the policy's lists hold L1 addresses.
     /// @param _item The item.
     /// @return parties_ The initiator and the recipient.
     function effectiveParties(Item memory _item) public view returns (address[] memory parties_) {
-        address from = _item.from;
+        address from = _item.aliased ? AddressAliasHelper.undoL1ToL2Alias(_item.from) : _item.from;
         address to = _item.to;
 
         if (_isFromMessenger(_item)) {
@@ -252,10 +257,18 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
         parties_[1] = to;
     }
 
-    /// @notice Records a hold. Checks that the item's ETH came with the call.
+    /// @notice Records a hold. Checks that the item's ETH came with the call, and that the module's
+    ///         balance covers the tokens it now holds.
     /// @param _item The held item.
     function _hold(Item calldata _item) internal {
         if (msg.value != (_item.asset == Asset.ETH ? _item.amount : 0)) revert ComplianceModule_ValueMismatch();
+
+        // The bridge sent the tokens just before this call.
+        if (_item.asset == Asset.ERC20 && _isEscrowed(_item.localToken)) {
+            heldTokens[_item.localToken][_item.remoteToken] += _item.amount;
+            uint256 total = heldTokenTotal[_item.localToken] += _item.amount;
+            if (IERC20(_item.localToken).balanceOf(address(this)) < total) revert ComplianceModule_Undelivered();
+        }
 
         bytes32 id = BridgeHookItem.hash(_item);
         items[id].heldAt = uint64(block.timestamp);
@@ -277,6 +290,28 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
         if (!IPolicy(policy).screenRelease(_item, effectiveParties(_item), record.clearedAt, 0)) {
             revert ComplianceModule_Declined();
         }
+    }
+
+    /// @notice Drops a held token item from the token totals and approves the bridge to pull its
+    ///         tokens back.
+    /// @param _item The held item.
+    /// @return approved_ Whether the bridge was approved, false for ETH and tokens native to L2.
+    function _releaseTokens(Item calldata _item) internal returns (bool approved_) {
+        if (_item.asset != Asset.ERC20 || !_isEscrowed(_item.localToken)) return false;
+
+        heldTokens[_item.localToken][_item.remoteToken] -= _item.amount;
+        heldTokenTotal[_item.localToken] -= _item.amount;
+        _approveBridge(_item.localToken, _item.amount);
+        approved_ = true;
+    }
+
+    /// @notice Whether the L1StandardBridge escrows a token, by the same check it makes. A token
+    ///         native to L2 is burned and minted instead, so its hold moves nothing.
+    /// @param _token The L1 token.
+    /// @return True if the bridge escrows the token.
+    function _isEscrowed(address _token) internal view returns (bool) {
+        return !ERC165Checker.supportsInterface(_token, type(ILegacyMintableERC20).interfaceId)
+            && !ERC165Checker.supportsInterface(_token, type(IOptimismMintableERC20).interfaceId);
     }
 
     /// @notice Sets the bridge's allowance for a token. The bridge only pulls escrowed tokens, so
@@ -309,7 +344,7 @@ contract ComplianceModule is Initializable, ProxyAdminOwnedBase, IBridgeHook, IS
     /// @return True if the item is a messenger envelope.
     function _isFromMessenger(Item memory _item) internal view returns (bool) {
         if (_item.direction == Direction.Deposit) {
-            return _item.to == Predeploys.L2_CROSS_DOMAIN_MESSENGER
+            return _item.aliased && _item.to == Predeploys.L2_CROSS_DOMAIN_MESSENGER
                 && _item.from == AddressAliasHelper.applyL1ToL2Alias(l1CrossDomainMessenger);
         }
         return _item.to == l1CrossDomainMessenger && _item.from == Predeploys.L2_CROSS_DOMAIN_MESSENGER;
