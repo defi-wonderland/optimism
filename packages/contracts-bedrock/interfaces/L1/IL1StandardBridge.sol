@@ -6,6 +6,7 @@ import { ICrossDomainMessenger } from "interfaces/universal/ICrossDomainMessenge
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProxyAdminOwnedBase } from "interfaces/universal/IProxyAdminOwnedBase.sol";
+import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
 
 interface IL1StandardBridge is IStandardBridge, IProxyAdminOwnedBase {
     error ReinitializableBase_ZeroInitVersion();
@@ -69,6 +70,7 @@ interface IL1StandardBridge is IStandardBridge, IProxyAdminOwnedBase {
     function initialize(ICrossDomainMessenger _messenger, ISystemConfig _systemConfig) external;
     function l2TokenBridge() external view returns (address);
     function systemConfig() external view returns (ISystemConfig);
+    function setBridgeHook(IBridgeHook _bridgeHook) external;
     function version() external view returns (string memory);
     function superchainConfig() external view returns (ISuperchainConfig);
 
