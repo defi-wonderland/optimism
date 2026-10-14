@@ -17,6 +17,8 @@ import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Claim, GameStatus, GameType, GameTypes } from "src/dispute/lib/Types.sol";
 import { Features } from "src/libraries/Features.sol";
+import { Item } from "src/libraries/BridgeHookItem.sol";
+import { BridgeHookPortal } from "src/libraries/BridgeHookPortal.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -28,6 +30,7 @@ import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.so
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IBridgeHook } from "interfaces/universal/IBridgeHook.sol";
 
 /// @custom:proxied true
 /// @title OptimismPortal2
@@ -131,6 +134,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @custom:spacer superRootsActive
     bool private spacer_63_20_1;
 
+    /// @notice The bridge hook and the items it holds.
+    /// @custom:network-specific
+    BridgeHookPortal.State internal _bridgeHookState;
+
     /// @notice Emitted when the Portal is migrated.
     /// @param oldLockbox The lockbox before the migration
     /// @param newLockbox The shared lockbox
@@ -176,6 +183,19 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param withdrawalHash Hash of the withdrawal transaction.
     /// @param proofSubmitter Address of the proof submitter.
     event WithdrawalProofDeleted(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
+
+    /// @notice Emitted when the bridge hook is set.
+    /// @param bridgeHook Address of the bridge hook.
+    event BridgeHookSet(address indexed bridgeHook);
+
+    /// @notice Emitted when the bridge hook holds a deposit.
+    /// @param id Identifier of the held deposit.
+    event DepositHeld(bytes32 indexed id);
+
+    /// @notice Emitted when the bridge hook holds a withdrawal.
+    /// @param id             Identifier of the held withdrawal.
+    /// @param withdrawalHash Hash of the withdrawal transaction.
+    event WithdrawalHeld(bytes32 indexed id, bytes32 indexed withdrawalHash);
 
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();
@@ -250,6 +270,21 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Thrown when a dispute game has not been permanently invalidated.
     error OptimismPortal_DisputeGameNotInvalidated();
+
+    /// @notice Thrown when the caller is not the bridge hook.
+    error OptimismPortal_NotBridgeHook();
+
+    /// @notice Thrown when the bridge hook is changed while it holds items.
+    error OptimismPortal_BridgeHookItemsOutstanding();
+
+    /// @notice Thrown when completing an item that is not held.
+    error OptimismPortal_NotHeld();
+
+    /// @notice Thrown when the ETH sent with a completion does not match the held item.
+    error OptimismPortal_ValueMismatch();
+
+    /// @notice Thrown when a relay fails while a bridge hook is set.
+    error OptimismPortal_RelayFailed();
 
     /// @notice Semantic version.
     /// @custom:semver 5.11.0
@@ -610,6 +645,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
             if (_tx.value > 0) ethLockbox.unlockETH(_tx.value);
         }
 
+        // A withdrawal the bridge hook holds is not executed, and its value goes to the hook.
+        if (_isUsingBridgeHook()) {
+            if (
+                !BridgeHookPortal.screenWithdrawal(
+                    _bridgeHookState, systemConfig, _tx, withdrawalHash, _finalizableAt(withdrawalHash, _proofSubmitter)
+                )
+            ) return;
+        }
+
         // Set the l2Sender so contracts know who triggered this withdrawal on L2.
         l2Sender = _tx.sender;
 
@@ -624,6 +668,12 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // Reset the l2Sender back to the default value.
         l2Sender = Constants.DEFAULT_L2_SENDER;
+
+        // With a bridge hook, a relay the messenger did not record as successful reverts, so it is
+        // retried through a finalization, screened again, instead of replayed on the messenger.
+        if (_isUsingBridgeHook() && BridgeHookPortal.isFailedRelay(_tx, systemConfig)) {
+            revert OptimismPortal_RelayFailed();
+        }
 
         // All withdrawals are immediately finalized. Replayability can
         // be achieved through contracts built on top of this contract
@@ -733,11 +783,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
             if (msg.value > 0) revert OptimismPortal_NotAllowedOnCGTMode();
         }
 
-        // If using ETHLockbox, lock the ETH in the ETHLockbox.
-        if (_isUsingLockbox()) {
-            if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
-        }
-
         // Just to be safe, make sure that people specify address(0) as the target when doing
         // contract creations.
         if (_isCreation && _to != address(0)) {
@@ -762,6 +807,21 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         address from = msg.sender;
         if (!EOA.isSenderEOA()) {
             from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
+        }
+
+        // A deposit the bridge hook holds is not emitted, and its ETH goes to the hook instead of
+        // the ETHLockbox.
+        if (_isUsingBridgeHook()) {
+            if (
+                !BridgeHookPortal.screenDeposit(
+                    _bridgeHookState, systemConfig, from, _to, _value, _gasLimit, _isCreation, _data
+                )
+            ) return;
+        }
+
+        // If using ETHLockbox, lock the ETH in the ETHLockbox.
+        if (_isUsingLockbox()) {
+            if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
         }
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
@@ -824,8 +884,14 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Checks if a target address is unsafe.
     function _isUnsafeTarget(address _target) internal view virtual returns (bool) {
-        // Prevent users from targeting an unsafe target address on a withdrawal transaction.
-        return _target == address(this) || _target == address(ethLockbox);
+        // Prevent users from targeting an unsafe target address on a withdrawal transaction. With
+        // a bridge hook, that includes the hook and the L1StandardBridge, whose escrow the Portal
+        // moves.
+        return _target == address(this) || _target == address(ethLockbox)
+            || (
+                _isUsingBridgeHook()
+                    && (_target == address(_bridgeHookState.hook) || _target == systemConfig.l1StandardBridge())
+            );
     }
 
     /// @notice Getter for the resource config. Used internally by the ResourceMetering contract.
@@ -836,5 +902,107 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         assembly ("memory-safe") {
             config_ := config
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Bridge hook. Its logic is in BridgeHookPortal.
+    // ---------------------------------------------------------------------------------------------
+
+    /// @notice Sets the bridge hook. Only callable by the ProxyAdmin owner, and only while the hook
+    ///         holds no item, since held items complete through the hook address.
+    /// @param _bridgeHook Address of the bridge hook, or zero to unset it.
+    function setBridgeHook(IBridgeHook _bridgeHook) external {
+        _assertOnlyProxyAdminOwner();
+        if (_bridgeHookState.outstandingItems != 0) revert OptimismPortal_BridgeHookItemsOutstanding();
+
+        _bridgeHookState.hook = _bridgeHook;
+        emit BridgeHookSet(address(_bridgeHook));
+    }
+
+    /// @notice Completes a held deposit on the terms it was held with. Only callable by the bridge
+    ///         hook, which sends the deposit's ETH with the call.
+    /// @param _item The held deposit.
+    function completeDepositTransaction(Item memory _item) external payable {
+        BridgeHookPortal.completeDeposit(_bridgeHookState, systemConfig, _item);
+
+        // Paid for at submission. Counted against this block, since this is where it reaches L2.
+        _allocateResource(uint64(_item.gasLimit));
+
+        if (_isUsingLockbox()) {
+            if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
+        }
+
+        emit TransactionDeposited(
+            _item.from,
+            _item.to,
+            DEPOSIT_VERSION,
+            abi.encodePacked(msg.value, _item.l2Value, uint64(_item.gasLimit), _item.isCreation, _item.data)
+        );
+    }
+
+    /// @notice Completes a held withdrawal on the terms it was held with. Only callable by the
+    ///         bridge hook, which sends the withdrawal's ETH with the call.
+    /// @param _item The held withdrawal.
+    function completeWithdrawalTransaction(Item memory _item) external payable {
+        _assertNotPaused();
+        if (l2Sender != Constants.DEFAULT_L2_SENDER) revert OptimismPortal_NoReentrancy();
+
+        Types.WithdrawalTransaction memory wtx =
+            BridgeHookPortal.completeWithdrawal(_bridgeHookState, systemConfig, _item);
+
+        l2Sender = wtx.sender;
+        bool success = SafeCall.callWithMinGas(wtx.target, wtx.gasLimit, wtx.value, wtx.data);
+        l2Sender = Constants.DEFAULT_L2_SENDER;
+
+        // Held value must not fall back into protocol contracts, so a failed call reverts.
+        if (!success || BridgeHookPortal.isFailedRelay(wtx, systemConfig)) revert OptimismPortal_RelayFailed();
+
+        emit WithdrawalFinalized(Hashing.hashWithdrawal(wtx), true);
+    }
+
+    /// @notice Address of the bridge hook.
+    function bridgeHook() external view returns (IBridgeHook) {
+        return _bridgeHookState.hook;
+    }
+
+    /// @notice Counter that makes each deposit the bridge hook screens unique.
+    function depositNonce() external view returns (uint64) {
+        return _bridgeHookState.depositNonce;
+    }
+
+    /// @notice Number of items held by the bridge hook.
+    function outstandingBridgeHookItems() external view returns (uint64) {
+        return _bridgeHookState.outstandingItems;
+    }
+
+    /// @notice Whether a deposit is held by the bridge hook.
+    /// @param _id Identifier of the deposit item.
+    function heldDeposits(bytes32 _id) external view returns (bool) {
+        return _bridgeHookState.heldDeposits[_id];
+    }
+
+    /// @notice Whether a withdrawal is held by the bridge hook.
+    /// @param _id Identifier of the withdrawal item.
+    function heldWithdrawals(bytes32 _id) external view returns (bool) {
+        return _bridgeHookState.heldWithdrawals[_id];
+    }
+
+    /// @notice Returns when a withdrawal became finalizable with the given proof: once the proof
+    ///         matured and its dispute game became final.
+    /// @param _withdrawalHash Hash of the withdrawal.
+    /// @param _proofSubmitter Address of the proof submitter.
+    /// @return Timestamp at which the withdrawal became finalizable.
+    function _finalizableAt(bytes32 _withdrawalHash, address _proofSubmitter) internal view returns (uint256) {
+        ProvenWithdrawal memory provenWithdrawal = provenWithdrawals[_withdrawalHash][_proofSubmitter];
+        uint256 maturedAt = provenWithdrawal.timestamp + PROOF_MATURITY_DELAY_SECONDS;
+        uint256 finalAt =
+            provenWithdrawal.disputeGameProxy.resolvedAt().raw() + anchorStateRegistry.disputeGameFinalityDelaySeconds();
+        return maturedAt > finalAt ? maturedAt : finalAt;
+    }
+
+    /// @notice Checks if a bridge hook is set.
+    /// @return bool True if the bridge hook is in use.
+    function _isUsingBridgeHook() internal view returns (bool) {
+        return address(_bridgeHookState.hook) != address(0);
     }
 }
